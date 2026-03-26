@@ -19,11 +19,12 @@ from app.contracts.foundation import (
     FoundationPortfolioSummary,
     FoundationRebalanceSummary,
     FoundationReportingReadiness,
+    FoundationTopPosition,
     FoundationWorkflowLaunchCue,
     FoundationWorkspaceReadiness,
     FoundationWorkspaceResponse,
 )
-from app.precision_policy import quantize_money, quantize_performance
+from app.precision_policy import quantize_money, quantize_performance, quantize_quantity
 
 
 class FoundationService:
@@ -85,7 +86,7 @@ class FoundationService:
                 detail=f"lotus-core foundation snapshot unavailable: {pas_payload}",
             )
 
-        portfolio, summary, allocations, as_of_date = self._parse_core_snapshot(
+        portfolio, summary, allocations, top_positions, as_of_date = self._parse_core_snapshot(
             fallback_portfolio_id=portfolio_id,
             payload=pas_payload,
             fallback_as_of_date=as_of_date,
@@ -145,6 +146,7 @@ class FoundationService:
             portfolio=portfolio,
             summary=summary,
             allocations=allocations,
+            top_positions=top_positions,
             performance=performance,
             rebalance=rebalance,
             readiness=readiness,
@@ -185,6 +187,7 @@ class FoundationService:
         FoundationPortfolioIdentity,
         FoundationPortfolioSummary,
         list[FoundationAllocationBucket],
+        list[FoundationTopPosition],
         str,
     ]:
         portfolio_payload = payload.get("portfolio", {}) if isinstance(payload, dict) else {}
@@ -215,6 +218,7 @@ class FoundationService:
             )
 
         allocations: list[FoundationAllocationBucket] = []
+        top_positions: list[FoundationTopPosition] = []
         position_count = 0
         for asset_class, items in sorted(holdings_by_asset_class.items()):
             if not isinstance(items, list):
@@ -230,6 +234,23 @@ class FoundationService:
                     continue
                 bucket_market_value += market_value
                 has_bucket_market_value = True
+                top_positions.append(
+                    FoundationTopPosition(
+                        security_id=str(
+                            item.get("instrument_id", item.get("security_id", "UNKNOWN"))
+                        ),
+                        instrument_name=str(
+                            item.get(
+                                "instrument_name",
+                                item.get("instrument_id", item.get("security_id", "UNKNOWN")),
+                            )
+                        ),
+                        asset_class=str(asset_class) if asset_class is not None else None,
+                        quantity=float(quantize_quantity(item.get("quantity", 0.0))),
+                        market_value_base=market_value,
+                        weight_pct=None,
+                    )
+                )
             weight_pct = None
             market_value_for_bucket = None
             if has_bucket_market_value:
@@ -273,8 +294,12 @@ class FoundationService:
             cash_weight_pct=cash_weight_pct,
             position_count=position_count,
         )
+        top_positions = self._finalize_top_positions(
+            rows=top_positions,
+            total_market_value=market_value_base,
+        )
         as_of_date = str(snapshot_payload.get("as_of_date", fallback_as_of_date))
-        return portfolio, summary, allocations, as_of_date
+        return portfolio, summary, allocations, top_positions, as_of_date
 
     def _parse_performance_result(
         self,
@@ -448,6 +473,32 @@ class FoundationService:
             except (TypeError, ValueError):
                 continue
         return None
+
+    def _finalize_top_positions(
+        self,
+        rows: list[FoundationTopPosition],
+        total_market_value: float,
+    ) -> list[FoundationTopPosition]:
+        finalized: list[FoundationTopPosition] = []
+        for row in rows:
+            weight_pct = row.weight_pct
+            if (
+                weight_pct is None
+                and row.market_value_base is not None
+                and total_market_value > 0
+            ):
+                weight_pct = float(
+                    quantize_performance((row.market_value_base / total_market_value) * 100.0)
+                )
+            finalized.append(row.model_copy(update={"weight_pct": weight_pct}))
+        finalized.sort(
+            key=lambda row: (
+                row.market_value_base is None,
+                -(row.market_value_base or 0.0),
+                row.security_id,
+            )
+        )
+        return finalized[:5]
 
     def _build_workflow_cues(self, portfolio_id: str) -> list[FoundationWorkflowLaunchCue]:
         return [

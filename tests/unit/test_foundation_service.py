@@ -106,11 +106,18 @@ async def test_foundation_workspace_success():
                     "holdings": {
                         "holdingsByAssetClass": {
                             "Equity": [
-                                {"instrument_id": "EQ_1", "valuation": {"market_value_base": 700.0}}
+                                {
+                                    "instrument_id": "EQ_1",
+                                    "instrument_name": "Equity 1",
+                                    "quantity": 10,
+                                    "valuation": {"market_value_base": 700.0},
+                                }
                             ],
                             "Cash": [
                                 {
                                     "instrument_id": "CASH_1",
+                                    "instrument_name": "Cash Balance",
+                                    "quantity": 1,
                                     "valuation": {"market_value_base": 100.0},
                                 }
                             ],
@@ -149,6 +156,9 @@ async def test_foundation_workspace_success():
     assert response.portfolio.display_name == "Alpha Growth"
     assert response.summary.cash_weight_pct == 10.0
     assert response.allocations[0].asset_class == "Cash"
+    assert response.top_positions[0].security_id == "EQ_1"
+    assert response.top_positions[0].instrument_name == "Equity 1"
+    assert response.top_positions[0].weight_pct == 70.0
     assert response.performance is not None
     assert response.performance.return_pct == 4.3
     assert response.rebalance is not None
@@ -167,7 +177,11 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
                 "snapshot": {
                     "as_of_date": "2026-03-25",
                     "overview": {"total_market_value": 500.0, "total_cash": 50.0},
-                    "holdings": {"holdingsByAssetClass": {"Equity": [{"instrument_id": "EQ_1"}]}},
+                    "holdings": {
+                        "holdingsByAssetClass": {
+                            "Equity": [{"instrument_id": "EQ_1", "instrument_name": "Equity 1"}]
+                        }
+                    },
                 },
             },
         ),
@@ -184,6 +198,7 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
     assert response.performance is None
     assert response.rebalance is None
     assert response.readiness.reporting.status == "UNAVAILABLE"
+    assert response.top_positions == []
     assert response.warnings == [
         "FOUNDATION_PERFORMANCE_UNAVAILABLE",
         "FOUNDATION_REBALANCE_UNAVAILABLE",

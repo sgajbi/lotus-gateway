@@ -49,12 +49,16 @@ def test_foundation_workspace_router_success(monkeypatch):
                         "Equity": [
                             {
                                 "instrument_id": "EQ_1",
+                                "instrument_name": "Equity 1",
+                                "quantity": 10,
                                 "valuation": {"market_value_base": 600.0},
                             }
                         ],
                         "Fixed Income": [
                             {
                                 "instrument_id": "FI_1",
+                                "instrument_name": "Bond 1",
+                                "quantity": 4,
                                 "valuation": {"market_value_base": 300.0},
                             }
                         ],
@@ -97,6 +101,8 @@ def test_foundation_workspace_router_success(monkeypatch):
     assert body["portfolio"]["display_name"] == "Alpha Growth"
     assert body["summary"]["position_count"] == 2
     assert body["allocations"][0]["asset_class"] == "Equity"
+    assert body["top_positions"][0]["security_id"] == "EQ_1"
+    assert body["top_positions"][0]["instrument_name"] == "Equity 1"
     assert body["performance"]["period"] == "YTD"
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
     assert body["readiness"]["reporting"]["status"] == "READY"
@@ -136,6 +142,7 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
     body = response.json()
     assert body["performance"] is None
     assert body["readiness"]["reporting"]["status"] == "UNAVAILABLE"
+    assert body["top_positions"] == []
     assert body["warnings"] == [
         "FOUNDATION_PERFORMANCE_UNAVAILABLE",
         "FOUNDATION_REPORTING_UNAVAILABLE",
