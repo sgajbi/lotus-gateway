@@ -109,11 +109,11 @@ class LotusAnalyticsClient:
         payload = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
-            "portfolioId": portfolio_id,
-            "metricBasis": "NET",
-            "reportEndDate": report_end_date,
+            "portfolio_id": portfolio_id,
+            "metric_basis": "NET",
+            "report_end_date": report_end_date,
             "analyses": [{"period": period, "frequencies": ["daily", "monthly"]}],
-            "statefulInput": {},
+            "stateful_input": {},
         }
         status_code, response_payload = await request_with_retry(
             method="POST",
@@ -163,24 +163,24 @@ class LotusAnalyticsClient:
         payload: dict[str, Any] = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
-            "portfolioId": portfolio_id,
-            "metricBasis": metric_basis,
-            "reportEndDate": report_end_date,
+            "portfolio_id": portfolio_id,
+            "metric_basis": metric_basis,
+            "report_end_date": report_end_date,
             "analyses": [
                 {
                     "period": period,
                     "frequencies": ["daily", "monthly", "quarterly", "yearly"],
                 }
             ],
-            "includeBenchmark": True,
-            "statefulInput": {},
+            "include_benchmark": benchmark_id is not None,
+            "stateful_input": {},
         }
         if benchmark_id:
             payload["benchmark"] = {
-                "benchmarkId": benchmark_id,
-                "inputMode": "stateful",
-                "returnSource": "calculated",
-                "statefulInput": {},
+                "benchmark_id": benchmark_id,
+                "input_mode": "stateful",
+                "return_source": "calculated",
+                "stateful_input": {},
             }
         return await self._post_analytics_request(
             path="/performance/twr",
@@ -199,11 +199,11 @@ class LotusAnalyticsClient:
         payload = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
-            "portfolioId": portfolio_id,
-            "asOf": as_of_date,
-            "mwrMethod": "XIRR",
-            "statefulInput": {
-                "windowStartDate": window_start_date,
+            "portfolio_id": portfolio_id,
+            "as_of": as_of_date,
+            "mwr_method": "XIRR",
+            "stateful_input": {
+                "window_start_date": window_start_date,
             },
         }
         return await self._post_analytics_request(
@@ -226,9 +226,9 @@ class LotusAnalyticsClient:
         payload = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
-            "portfolioId": portfolio_id,
-            "reportStartDate": report_start_date,
-            "reportEndDate": report_end_date,
+            "portfolio_id": portfolio_id,
+            "report_start_date": report_start_date,
+            "report_end_date": report_end_date,
             "analyses": [{"period": period, "frequencies": ["monthly"]}],
             "hierarchy": [dimension],
             "emit": {
@@ -239,10 +239,10 @@ class LotusAnalyticsClient:
                 "includeOther": True,
                 "includeUnclassified": True,
             },
-            "statefulInput": {
-                "metricBasis": metric_basis,
+            "stateful_input": {
+                "metric_basis": metric_basis,
                 "dimensions": [dimension],
-                "includeCashFlows": True,
+                "include_cash_flows": True,
             },
         }
         return await self._post_analytics_request(
@@ -266,23 +266,23 @@ class LotusAnalyticsClient:
         payload: dict[str, Any] = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
-            "portfolioId": portfolio_id,
-            "reportStartDate": report_start_date,
-            "reportEndDate": report_end_date,
+            "portfolio_id": portfolio_id,
+            "report_start_date": report_start_date,
+            "report_end_date": report_end_date,
             "analyses": [{"period": period, "frequencies": ["monthly"]}],
             "mode": "by_instrument",
             "frequency": "monthly",
-            "groupBy": [dimension],
+            "group_by": [dimension],
             "model": "BF",
             "linking": "carino",
-            "statefulInput": {
-                "metricBasis": metric_basis,
+            "stateful_input": {
+                "metric_basis": metric_basis,
                 "dimensions": [dimension],
-                "includeCashFlows": True,
+                "include_cash_flows": True,
             },
         }
         if benchmark_id:
-            payload["statefulInput"]["benchmarkId"] = benchmark_id
+            payload["stateful_input"]["benchmark_id"] = benchmark_id
         return await self._post_analytics_request(
             path="/performance/attribution",
             payload=payload,
