@@ -29,6 +29,18 @@ class FoundationPortfolioIdentity(BaseModel):
     booking_center_code: str | None = None
 
 
+class FoundationPortfolioProfile(BaseModel):
+    status: str | None = None
+    portfolio_type: str | None = None
+    risk_exposure: str | None = None
+    investment_time_horizon: str | None = None
+    objective: str | None = None
+    is_leverage_allowed: bool | None = None
+    advisor_id: str | None = None
+    open_date: str | None = None
+    close_date: str | None = None
+
+
 class FoundationPortfolioSummary(BaseModel):
     market_value_base: float
     total_cash_base: float
@@ -47,9 +59,59 @@ class FoundationTopPosition(BaseModel):
     security_id: str
     instrument_name: str
     asset_class: str | None = None
+    isin: str | None = None
+    currency: str | None = None
     quantity: float
+    cost_basis_base: float | None = None
     market_value_base: float | None = None
     weight_pct: float | None = None
+
+
+class FoundationPositionView(BaseModel):
+    security_id: str
+    instrument_name: str
+    asset_class: str | None = None
+    isin: str | None = None
+    currency: str | None = None
+    sector: str | None = None
+    country_of_risk: str | None = None
+    held_since_date: str | None = None
+    quantity: float
+    cost_basis_base: float | None = None
+    market_value_base: float | None = None
+    weight_pct: float | None = None
+    reprocessing_status: str | None = None
+
+
+class FoundationTransactionView(BaseModel):
+    transaction_id: str
+    transaction_date: str
+    transaction_type: str
+    security_id: str
+    instrument_id: str
+    quantity: float
+    price: float | None = None
+    gross_amount: float | None = None
+    currency: str | None = None
+    net_cost_base: float | None = None
+    realized_gain_loss_base: float | None = None
+    settlement_status: str | None = None
+
+
+class FoundationCashflowPoint(BaseModel):
+    projection_date: str
+    net_cashflow_base: float
+    projected_cumulative_cashflow_base: float
+
+
+class FoundationCashflowOutlook(BaseModel):
+    as_of_date: str
+    range_end_date: str
+    total_net_cashflow_base: float
+    projection_days: int
+    include_projected: bool
+    notes: str | None = None
+    upcoming_points: list[FoundationCashflowPoint] = Field(default_factory=list)
 
 
 class FoundationPerformanceSummary(BaseModel):
@@ -85,9 +147,13 @@ class FoundationWorkspaceResponse(BaseModel):
     contract_version: str = Field(default="v1")
     as_of_date: str
     portfolio: FoundationPortfolioIdentity
+    profile: FoundationPortfolioProfile
     summary: FoundationPortfolioSummary
     allocations: list[FoundationAllocationBucket] = Field(default_factory=list)
     top_positions: list[FoundationTopPosition] = Field(default_factory=list)
+    positions: list[FoundationPositionView] = Field(default_factory=list)
+    recent_transactions: list[FoundationTransactionView] = Field(default_factory=list)
+    cashflow_outlook: FoundationCashflowOutlook | None = None
     performance: FoundationPerformanceSummary | None = None
     rebalance: FoundationRebalanceSummary | None = None
     readiness: FoundationWorkspaceReadiness

@@ -4,15 +4,17 @@ from app.clients.http_resilience import request_with_retry
 from app.middleware.correlation import propagation_headers
 
 
-class PasClient:
+class LotusCoreQueryClient:
     def __init__(
         self,
         base_url: str,
         timeout_seconds: float,
+        control_plane_base_url: str | None = None,
         max_retries: int = 2,
         retry_backoff_seconds: float = 0.2,
     ):
-        self._base_url = base_url.rstrip("/")
+        self._query_base_url = base_url.rstrip("/")
+        self._control_plane_base_url = (control_plane_base_url or base_url).rstrip("/")
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
@@ -23,7 +25,7 @@ class PasClient:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/integration/capabilities"
+        url = f"{self._control_plane_base_url}/integration/capabilities"
         params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
@@ -42,7 +44,7 @@ class PasClient:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/integration/policy/effective"
+        url = f"{self._control_plane_base_url}/integration/policy/effective"
         params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
@@ -59,7 +61,7 @@ class PasClient:
         self,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/portfolios"
+        url = f"{self._query_base_url}/portfolios"
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -70,20 +72,120 @@ class PasClient:
             headers=headers,
         )
 
+    async def get_portfolio(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}"
+        headers = propagation_headers(correlation_id)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_portfolio_positions(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        include_projected: bool = False,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+        )
+
+    async def get_portfolio_transactions(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        *,
+        limit: int = 10,
+        skip: int = 0,
+        sort_by: str = "transaction_date",
+        sort_order: str = "desc",
+        as_of_date: str | None = None,
+        include_projected: bool = False,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {
+            "limit": limit,
+            "skip": skip,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
+            "include_projected": str(include_projected).lower(),
+        }
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+        )
+
+    async def get_cashflow_projection(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        *,
+        horizon_days: int = 10,
+        as_of_date: str | None = None,
+        include_projected: bool = True,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cashflow-projection"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {
+            "horizon_days": horizon_days,
+            "include_projected": str(include_projected).lower(),
+        }
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+        )
+
     async def get_core_snapshot(
         self,
         portfolio_id: str,
         as_of_date: str,
-        include_sections: list[str],
+        sections: list[str],
         consumer_system: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
+        url = (
+            f"{self._control_plane_base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
+        )
         headers = propagation_headers(correlation_id)
         payload = {
-            "asOfDate": as_of_date,
-            "includeSections": include_sections,
-            "consumerSystem": consumer_system,
+            "as_of_date": as_of_date,
+            "sections": sections,
+            "consumer_system": consumer_system,
         }
         return await request_with_retry(
             method="POST",
@@ -95,12 +197,54 @@ class PasClient:
             headers=headers,
         )
 
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = (
+            f"{self._control_plane_base_url}/integration/portfolios/"
+            f"{portfolio_id}/analytics/reference"
+        )
+        headers = propagation_headers(correlation_id)
+        payload = {
+            "as_of_date": as_of_date,
+            "consumer_system": consumer_system,
+        }
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )
+
+    async def get_support_overview(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/overview"
+        headers = propagation_headers(correlation_id)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
     async def list_instruments(
         self,
         limit: int,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/instruments"
+        url = f"{self._query_base_url}/instruments"
         headers = propagation_headers(correlation_id)
         params = {"skip": 0, "limit": limit}
         return await request_with_retry(
@@ -146,7 +290,7 @@ class PasClient:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}{path}"
+        url = f"{self._query_base_url}{path}"
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -165,7 +309,7 @@ class PasClient:
         ttl_hours: int,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/simulation-sessions"
+        url = f"{self._control_plane_base_url}/simulation-sessions"
         headers = propagation_headers(correlation_id)
         payload = {
             "portfolio_id": portfolio_id,
@@ -188,7 +332,7 @@ class PasClient:
         changes: list[dict[str, Any]],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/simulation-sessions/{session_id}/changes"
+        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/changes"
         headers = propagation_headers(correlation_id)
         payload = {"changes": changes}
         return await request_with_retry(
@@ -206,7 +350,9 @@ class PasClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/simulation-sessions/{session_id}/projected-positions"
+        url = (
+            f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
+        )
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -222,7 +368,9 @@ class PasClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/simulation-sessions/{session_id}/projected-summary"
+        url = (
+            f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
+        )
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",

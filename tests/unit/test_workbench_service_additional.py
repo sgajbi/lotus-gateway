@@ -6,12 +6,18 @@ from fastapi import HTTPException
 from app.services.workbench_service import WorkbenchService
 
 
-class _StubPasClient:
+class _StubLotusCoreQueryClient:
     def __init__(self):
+        self.portfolio_status = 200
+        self.portfolio_payload: dict = {"portfolio_id": "P1", "base_currency": "USD"}
         self.core_status = 200
         self.core_payload: dict = {
-            "portfolio": {"portfolio_id": "P1", "base_currency": "USD"},
-            "snapshot": {"as_of_date": "2026-02-24", "overview": {}, "holdings": {}},
+            "as_of_date": "2026-02-24",
+            "sections": {
+                "positions_baseline": [],
+                "portfolio_totals": {"baseline_total_market_value_base": 0.0},
+                "instrument_enrichment": [],
+            },
         }
         self.positions_status = 200
         self.positions_payload: dict = {"positions": []}
@@ -26,15 +32,27 @@ class _StubPasClient:
         self.change_status = 200
         self.change_payload: dict = {"version": 2}
 
+    async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+        return self.portfolio_status, self.portfolio_payload
+
     async def get_core_snapshot(
         self,
         portfolio_id: str,
         as_of_date: str,
-        include_sections: list[str],
+        sections: list[str],
         consumer_system: str,
         correlation_id: str,
     ):
         return self.core_status, self.core_payload
+
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ):
+        return 200, {"performance_end_date": "2026-02-24"}
 
     async def get_projected_positions(self, session_id: str, correlation_id: str):
         return self.positions_status, self.positions_payload
@@ -53,10 +71,14 @@ class _StubPasClient:
         return self.change_status, self.change_payload
 
 
-class _StubPaClient:
+class _StubLotusAnalyticsClient:
     def __init__(self):
         self.snapshot_status = 200
-        self.snapshot_payload: dict = {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.2}}}
+        self.snapshot_payload: dict = {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.2}}}}
+            }
+        }
         self.analytics_status = 200
         self.analytics_payload: dict = {
             "allocationBuckets": [],
@@ -67,15 +89,32 @@ class _StubPaClient:
             "activeReturnPct": 0.2,
         }
 
-    async def get_pas_input_twr(
+    async def get_stateful_twr(
         self,
         portfolio_id: str,
-        as_of_date: str,
-        periods: list[str],
-        consumer_system: str,
+        report_end_date: str,
+        period: str,
         correlation_id: str,
     ):
         return self.snapshot_status, self.snapshot_payload
+
+    async def get_twr_analytics(
+        self,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        metric_basis: str,
+        benchmark_id: str | None,
+        correlation_id: str,
+    ):
+        _ = report_start_date, metric_basis, benchmark_id
+        return await self.get_stateful_twr(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            period=period,
+            correlation_id=correlation_id,
+        )
 
     async def get_workbench_analytics(self, payload: dict, correlation_id: str):
         return self.analytics_status, self.analytics_payload
@@ -98,22 +137,41 @@ class _StubDpmClient:
         return self.simulate_status, self.simulate_payload
 
 
-def _build_service() -> tuple[WorkbenchService, _StubPasClient, _StubPaClient, _StubDpmClient]:
-    pas = _StubPasClient()
-    pa = _StubPaClient()
+def _build_service() -> tuple[
+    WorkbenchService,
+    _StubLotusCoreQueryClient,
+    _StubLotusAnalyticsClient,
+    _StubDpmClient,
+]:
+    pas = _StubLotusCoreQueryClient()
+    pa = _StubLotusAnalyticsClient()
     dpm = _StubDpmClient()
-    return WorkbenchService(pas_client=pas, pa_client=pa, dpm_client=dpm), pas, pa, dpm
+    return (
+        WorkbenchService(lotus_core_query_client=pas, analytics_client=pa, dpm_client=dpm),
+        pas,
+        pa,
+        dpm,
+    )
 
 
 def _build_service_with_risk_client() -> tuple[
-    WorkbenchService, _StubPasClient, _StubPaClient, _StubDpmClient, _StubPaClient
+    WorkbenchService,
+    _StubLotusCoreQueryClient,
+    _StubLotusAnalyticsClient,
+    _StubDpmClient,
+    _StubLotusAnalyticsClient,
 ]:
-    pas = _StubPasClient()
-    pa = _StubPaClient()
+    pas = _StubLotusCoreQueryClient()
+    pa = _StubLotusAnalyticsClient()
     dpm = _StubDpmClient()
-    risk = _StubPaClient()
+    risk = _StubLotusAnalyticsClient()
     return (
-        WorkbenchService(pas_client=pas, pa_client=pa, dpm_client=dpm, risk_client=risk),
+        WorkbenchService(
+            lotus_core_query_client=pas,
+            analytics_client=pa,
+            dpm_client=dpm,
+            risk_client=risk,
+        ),
         pas,
         pa,
         dpm,
@@ -121,26 +179,27 @@ def _build_service_with_risk_client() -> tuple[
     )
 
 
-def test_raise_for_pas_error_includes_upstream_detail():
+def test_raise_for_lotus_core_error_includes_upstream_detail():
     service, _, _, _ = _build_service()
     with pytest.raises(HTTPException) as exc:
-        service._raise_for_pas_error(500, {"detail": "downstream unavailable"})
+        service._raise_for_lotus_core_error(500, {"detail": "downstream unavailable"})
     assert exc.value.status_code == 502
     assert "downstream unavailable" in str(exc.value.detail)
 
 
-def test_parse_pas_core_snapshot_invalid_structure_raises():
+def test_parse_lotus_core_snapshot_invalid_structure_raises():
     service, _, _, _ = _build_service()
     with pytest.raises(HTTPException) as exc:
-        service._parse_pas_core_snapshot("P1", {"portfolio": [], "snapshot": {}}, "2026-02-24")
+        service._parse_lotus_core_snapshot("P1", [], {}, "2026-02-24")
     assert exc.value.status_code == 502
 
 
-def test_parse_pas_core_snapshot_uses_fallback_defaults():
+def test_parse_lotus_core_snapshot_uses_fallback_defaults():
     service, _, _, _ = _build_service()
-    portfolio, overview, as_of_date = service._parse_pas_core_snapshot(
+    portfolio, overview, as_of_date = service._parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
-        payload={"portfolio": {}, "snapshot": {"overview": {"total_market_value": 0.0}}},
+        portfolio_payload={},
+        snapshot_payload={"sections": {}},
         fallback_as_of_date="2026-02-24",
     )
     assert portfolio.portfolio_id == "P1"
@@ -152,53 +211,68 @@ def test_parse_pas_core_snapshot_uses_fallback_defaults():
 @pytest.mark.parametrize(
     ("result", "warning"),
     [
-        (RuntimeError("boom"), "PA_SNAPSHOT_UNAVAILABLE"),
-        (("bad",), "PA_SNAPSHOT_UNAVAILABLE"),
+        (RuntimeError("boom"), "PERFORMANCE_SNAPSHOT_UNAVAILABLE"),
+        (("bad",), "PERFORMANCE_SNAPSHOT_UNAVAILABLE"),
     ],
 )
-def test_parse_pa_snapshot_handles_exception_and_invalid_result_shape(result, warning):
+def test_parse_performance_snapshot_handles_exception_and_invalid_result_shape(result, warning):
     service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_pa_snapshot(result, partial_failures, warnings)
+    parsed = service._parse_performance_snapshot(result, partial_failures, warnings)
     assert parsed is None
     assert warning in warnings
     assert len(partial_failures) == 1
 
 
-def test_parse_pa_snapshot_handles_invalid_payload_types():
+def test_parse_performance_snapshot_handles_invalid_payload_types():
     service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_pa_snapshot((200, "bad-payload"), partial_failures, warnings)
+    parsed = service._parse_performance_snapshot((200, "bad-payload"), partial_failures, warnings)
     assert parsed is None
-    assert "PA_SNAPSHOT_UNAVAILABLE" in warnings
+    assert "PERFORMANCE_SNAPSHOT_UNAVAILABLE" in warnings
 
 
-def test_parse_pa_snapshot_handles_http_error_payload():
+def test_parse_performance_snapshot_handles_http_error_payload():
     service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_pa_snapshot((503, {"detail": "pa down"}), partial_failures, warnings)
+    parsed = service._parse_performance_snapshot(
+        (503, {"detail": "lotus-performance down"}),
+        partial_failures,
+        warnings,
+    )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_503"
 
 
-def test_parse_pa_snapshot_handles_non_dict_period_map():
+def test_parse_performance_snapshot_handles_non_dict_period_map():
     service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_pa_snapshot((200, {"resultsByPeriod": []}), partial_failures, warnings)
+    parsed = service._parse_performance_snapshot(
+        (200, {"results_by_period": []}),
+        partial_failures,
+        warnings,
+    )
     assert parsed is None
-    assert "PA_SNAPSHOT_INVALID" in warnings
+    assert "PERFORMANCE_SNAPSHOT_INVALID" in warnings
 
 
-def test_parse_pa_snapshot_falls_back_to_first_period_key():
+def test_parse_performance_snapshot_falls_back_to_first_period_key():
     service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_pa_snapshot(
-        (200, {"resultsByPeriod": {"QTD": {"net_cumulative_return": 2.2}}}),
+    parsed = service._parse_performance_snapshot(
+        (
+            200,
+            {
+                "results_by_period": {
+                    "QTD": {"portfolio": {"summary": {"period_return": {"base": 2.2}}}}
+                }
+            },
+        ),
         partial_failures,
         warnings,
     )
@@ -210,8 +284,8 @@ def test_parse_pa_snapshot_falls_back_to_first_period_key():
 @pytest.mark.parametrize(
     ("result", "warning"),
     [
-        (RuntimeError("boom"), "DPM_REBALANCE_UNAVAILABLE"),
-        (("bad",), "DPM_REBALANCE_UNAVAILABLE"),
+        (RuntimeError("boom"), "MANAGE_REBALANCE_UNAVAILABLE"),
+        (("bad",), "MANAGE_REBALANCE_UNAVAILABLE"),
     ],
 )
 def test_parse_dpm_snapshot_handles_exception_and_invalid_result_shape(result, warning):
@@ -280,30 +354,22 @@ def test_parse_position_market_value_variants(payload, expected):
 
 def test_extract_current_positions_handles_non_dict_holdings():
     service, _, _, _ = _build_service()
-    assert service._extract_current_positions({"holdings": []}) == []
+    assert service._extract_current_positions({"sections": []}) == []
 
 
 def test_extract_current_positions_computes_weight_and_sorts():
     service, _, _, _ = _build_service()
     payload = {
-        "overview": {"total_market_value": 1000.0},
-        "holdings": {
-            "holdingsByAssetClass": {
-                "Equity": [
-                    {
-                        "instrument_id": "B",
-                        "instrument_name": "B Name",
-                        "quantity": 2,
-                        "valuation": {"market_value": 200.0},
-                    },
-                    {
-                        "instrument_id": "A",
-                        "instrument_name": "A Name",
-                        "quantity": 1,
-                        "valuation": {"market_value": 100.0},
-                    },
-                ]
-            }
+        "sections": {
+            "positions_baseline": [
+                {"security_id": "B", "quantity": 2, "market_value_base": 200.0},
+                {"security_id": "A", "quantity": 1, "market_value_base": 100.0},
+            ],
+            "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+            "instrument_enrichment": [
+                {"security_id": "B", "instrument_name": "B Name", "asset_class": "Equity"},
+                {"security_id": "A", "instrument_name": "A Name", "asset_class": "Equity"},
+            ],
         },
     }
     rows = service._extract_current_positions(payload)
@@ -459,7 +525,7 @@ async def test_evaluate_policy_feedback_handles_dpm_failure():
         partial_failures=partial_failures,
     )
     assert feedback.status == "UNAVAILABLE"
-    assert warnings == ["DPM_POLICY_SIMULATION_UNAVAILABLE"]
+    assert warnings == ["MANAGE_POLICY_SIMULATION_UNAVAILABLE"]
     assert partial_failures[0].source_service == "lotus-manage"
 
 
@@ -481,15 +547,18 @@ async def test_evaluate_policy_feedback_uses_status_when_gate_decision_missing()
 
 def test_extract_current_positions_returns_empty_when_by_asset_class_not_dict():
     service, _, _, _ = _build_service()
-    payload = {"overview": {}, "holdings": {"holdingsByAssetClass": []}}
+    payload = {"sections": {"positions_baseline": [], "instrument_enrichment": []}}
     assert service._extract_current_positions(payload) == []
 
 
 def test_extract_current_positions_skips_invalid_item_shapes():
     service, _, _, _ = _build_service()
     payload = {
-        "overview": {"total_market_value": 100.0},
-        "holdings": {"holdingsByAssetClass": {"Equity": ["bad", {"instrument_id": "EQ_1"}]}},
+        "sections": {
+            "positions_baseline": ["bad", {"security_id": "EQ_1", "quantity": 1}],
+            "portfolio_totals": {"baseline_total_market_value_base": 100.0},
+            "instrument_enrichment": [{"security_id": "EQ_1", "instrument_name": "EQ 1"}],
+        },
     }
     rows = service._extract_current_positions(payload)
     assert len(rows) == 1
@@ -498,10 +567,7 @@ def test_extract_current_positions_skips_invalid_item_shapes():
 
 def test_extract_current_positions_skips_asset_class_with_non_list_items():
     service, _, _, _ = _build_service()
-    payload = {
-        "overview": {"total_market_value": 100.0},
-        "holdings": {"holdingsByAssetClass": {"Equity": {"instrument_id": "EQ_1"}}},
-    }
+    payload = {"sections": {"positions_baseline": {"security_id": "EQ_1"}}}
     rows = service._extract_current_positions(payload)
     assert rows == []
 
@@ -514,14 +580,12 @@ def test_parse_position_market_value_skips_non_numeric_in_flat_keys():
     )
 
 
-def test_parse_pas_core_snapshot_handles_non_dict_overview_and_holdings_shapes():
+def test_parse_lotus_core_snapshot_handles_non_dict_overview_and_holdings_shapes():
     service, _, _, _ = _build_service()
-    portfolio, overview, _ = service._parse_pas_core_snapshot(
+    portfolio, overview, _ = service._parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
-        payload={
-            "portfolio": {"portfolio_id": "P1"},
-            "snapshot": {"overview": [], "holdings": {"holdingsByAssetClass": []}},
-        },
+        portfolio_payload={"portfolio_id": "P1"},
+        snapshot_payload={"sections": []},
         fallback_as_of_date="2026-02-24",
     )
     assert portfolio.portfolio_id == "P1"
@@ -529,22 +593,29 @@ def test_parse_pas_core_snapshot_handles_non_dict_overview_and_holdings_shapes()
     assert overview.position_count == 0
 
 
-def test_parse_pa_snapshot_empty_results_by_period_returns_none():
+def test_parse_performance_snapshot_empty_results_by_period_returns_none():
     service, _, _, _ = _build_service()
-    result = service._parse_pa_snapshot((200, {"resultsByPeriod": {}}), [], [])
+    result = service._parse_performance_snapshot((200, {"results_by_period": {}}), [], [])
     assert result is None
 
 
-def test_parse_pa_snapshot_non_dict_period_payload_returns_none():
+def test_parse_performance_snapshot_non_dict_period_payload_returns_none():
     service, _, _, _ = _build_service()
-    result = service._parse_pa_snapshot((200, {"resultsByPeriod": {"YTD": []}}), [], [])
+    result = service._parse_performance_snapshot((200, {"results_by_period": {"YTD": []}}), [], [])
     assert result is None
 
 
-def test_parse_pa_snapshot_none_period_key_returns_none():
+def test_parse_performance_snapshot_none_period_key_returns_none():
     service, _, _, _ = _build_service()
-    result = service._parse_pa_snapshot(
-        (200, {"resultsByPeriod": {None: {"net_cumulative_return": 1.0}}}),
+    result = service._parse_performance_snapshot(
+        (
+            200,
+            {
+                "results_by_period": {
+                    None: {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                }
+            },
+        ),
         [],
         [],
     )

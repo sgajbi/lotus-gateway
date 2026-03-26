@@ -3,8 +3,8 @@ from typing import Any
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from app.clients.pas_client import PasClient
-from app.clients.pas_ingestion_client import PasIngestionClient
+from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.intake import EnvelopeResponse, LookupResponse
 
@@ -12,11 +12,11 @@ from app.contracts.intake import EnvelopeResponse, LookupResponse
 class IntakeService:
     def __init__(
         self,
-        pas_ingestion_client: PasIngestionClient,
-        pas_query_client: PasClient,
+        lotus_core_ingestion_client: LotusCoreIngestionClient,
+        lotus_core_query_client: LotusCoreQueryClient,
     ):
-        self._pas_ingestion_client = pas_ingestion_client
-        self._pas_query_client = pas_query_client
+        self._lotus_core_ingestion_client = lotus_core_ingestion_client
+        self._lotus_core_query_client = lotus_core_query_client
 
     async def ingest_portfolio_bundle(
         self,
@@ -26,7 +26,7 @@ class IntakeService:
         (
             upstream_status,
             upstream_payload,
-        ) = await self._pas_ingestion_client.ingest_portfolio_bundle(
+        ) = await self._lotus_core_ingestion_client.ingest_portfolio_bundle(
             body=body,
             correlation_id=correlation_id,
         )
@@ -41,7 +41,7 @@ class IntakeService:
         sample_size: int,
         correlation_id: str,
     ) -> EnvelopeResponse:
-        upstream_status, upstream_payload = await self._pas_ingestion_client.preview_upload(
+        upstream_status, upstream_payload = await self._lotus_core_ingestion_client.preview_upload(
             entity_type=entity_type,
             filename=filename,
             content=content,
@@ -59,7 +59,7 @@ class IntakeService:
         allow_partial: bool,
         correlation_id: str,
     ) -> EnvelopeResponse:
-        upstream_status, upstream_payload = await self._pas_ingestion_client.commit_upload(
+        upstream_status, upstream_payload = await self._lotus_core_ingestion_client.commit_upload(
             entity_type=entity_type,
             filename=filename,
             content=content,
@@ -70,7 +70,10 @@ class IntakeService:
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
 
     async def get_portfolio_lookups(self, correlation_id: str) -> LookupResponse:
-        upstream_status, upstream_payload = await self._pas_query_client.get_portfolio_lookups(
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._lotus_core_query_client.get_portfolio_lookups(
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
@@ -79,7 +82,10 @@ class IntakeService:
         )
 
     async def get_instrument_lookups(self, limit: int, correlation_id: str) -> LookupResponse:
-        upstream_status, upstream_payload = await self._pas_query_client.get_instrument_lookups(
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._lotus_core_query_client.get_instrument_lookups(
             limit=limit,
             correlation_id=correlation_id,
         )
@@ -89,7 +95,10 @@ class IntakeService:
         )
 
     async def get_currency_lookups(self, correlation_id: str) -> LookupResponse:
-        upstream_status, upstream_payload = await self._pas_query_client.get_currency_lookups(
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._lotus_core_query_client.get_currency_lookups(
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)

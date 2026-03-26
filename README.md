@@ -74,9 +74,9 @@ Live platform-capabilities E2E (lotus-gateway + lotus-core + lotus-performance +
 
 ```bash
 export ADVISE_REPO_PATH=/c/Users/sande/dev/lotus-advise
-export MANAGE_REPO_PATH=/c/Users/sande/dev/lotus-manage
-export PAS_REPO_PATH=/c/Users/sande/dev/lotus-core
-export PA_REPO_PATH=/c/Users/sande/dev/lotus-performance
+export LOTUS_MANAGE_REPO_PATH=/c/Users/sande/dev/lotus-manage
+export LOTUS_CORE_REPO_PATH=/c/Users/sande/dev/lotus-core
+export LOTUS_PERFORMANCE_REPO_PATH=/c/Users/sande/dev/lotus-performance
 make e2e-up
 make test-e2e-live
 make e2e-down

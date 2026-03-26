@@ -16,6 +16,11 @@ def test_foundation_response_model_contract_shape() -> None:
             "base_currency": "USD",
             "booking_center_code": "SG",
         },
+        profile={
+            "status": "ACTIVE",
+            "portfolio_type": "ADVISORY",
+            "risk_exposure": "MODERATE",
+        },
         summary={
             "market_value_base": 1000.0,
             "total_cash_base": 100.0,
@@ -40,6 +45,33 @@ def test_foundation_response_model_contract_shape() -> None:
                 "weight_pct": 50.0,
             }
         ],
+        positions=[
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "quantity": 10.0,
+                "market_value_base": 500.0,
+                "weight_pct": 50.0,
+            }
+        ],
+        recent_transactions=[
+            {
+                "transaction_id": "TX_1",
+                "transaction_date": "2026-03-24T10:00:00Z",
+                "transaction_type": "BUY",
+                "security_id": "EQ_1",
+                "instrument_id": "EQ_1",
+                "quantity": 10.0,
+            }
+        ],
+        cashflow_outlook={
+            "as_of_date": "2026-03-26",
+            "range_end_date": "2026-04-05",
+            "total_net_cashflow_base": -25.0,
+            "projection_days": 10,
+            "include_projected": True,
+        },
         performance={"period": "YTD", "return_pct": 4.2},
         rebalance={"status": "READY"},
         readiness={"has_positions": True, "reporting": {"status": "READY", "row_count": 2}},
@@ -48,8 +80,11 @@ def test_foundation_response_model_contract_shape() -> None:
         ],
     )
     assert payload.portfolio.portfolio_id == "PF_1001"
+    assert payload.profile.status == "ACTIVE"
     assert payload.summary.position_count == 3
     assert payload.top_positions[0].security_id == "EQ_1"
+    assert payload.positions[0].security_id == "EQ_1"
+    assert payload.recent_transactions[0].transaction_id == "TX_1"
     assert payload.readiness.reporting.status == "READY"
 
 

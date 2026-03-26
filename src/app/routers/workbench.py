@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
 from app.clients.dpm_client import DpmClient
-from app.clients.pa_client import PaClient
-from app.clients.pas_client import PasClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
+from app.contracts.performance_workspace import PerformanceWorkspaceResponse
 from app.contracts.workbench import (
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
@@ -13,6 +14,7 @@ from app.contracts.workbench import (
     WorkbenchSandboxStateResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.workbench_service import WorkbenchService
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -25,13 +27,14 @@ def _workbench_service() -> WorkbenchService:
         else settings.decisioning_service_base_url
     )
     return WorkbenchService(
-        pas_client=PasClient(
-            base_url=settings.portfolio_data_platform_base_url,
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        pa_client=PaClient(
+        analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
@@ -44,7 +47,7 @@ def _workbench_service() -> WorkbenchService:
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
         risk_client=(
-            PaClient(
+            LotusAnalyticsClient(
                 base_url=settings.risk_analytics_base_url,
                 timeout_seconds=settings.upstream_timeout_seconds,
                 max_retries=settings.upstream_max_retries,
@@ -52,6 +55,26 @@ def _workbench_service() -> WorkbenchService:
             )
             if settings.risk_split_enabled
             else None
+        ),
+    )
+
+
+def _performance_workspace_service() -> PerformanceWorkspaceService:
+    workbench_service = _workbench_service()
+    return PerformanceWorkspaceService(
+        workbench_service=workbench_service,
+        analytics_client=LotusAnalyticsClient(
+            base_url=settings.performance_analytics_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
     )
 
@@ -126,6 +149,42 @@ async def get_workbench_analytics(
         group_by=group_by,
         benchmark_code=benchmark_code,
         session_id=session_id,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance",
+    response_model=PerformanceWorkspaceResponse,
+    summary="Get Performance Workspace",
+    description=(
+        "Returns an advisor-grade performance workspace contract with comparative TWR, "
+        "money-weighted return, contribution, attribution, and chart-ready breakdowns."
+    ),
+)
+async def get_performance_workspace(
+    portfolio_id: str,
+    period: str = "YTD",
+    chart_frequency: str = "monthly",
+    contribution_dimension: str = "asset_class",
+    attribution_dimension: str = "asset_class",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
+) -> PerformanceWorkspaceResponse:
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_workspace(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 

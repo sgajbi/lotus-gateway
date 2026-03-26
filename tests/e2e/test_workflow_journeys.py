@@ -2,13 +2,15 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
+
 
 def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     async def _pas(*args, **kwargs):
         return 200, {
             "sourceService": "lotus-core",
             "contractVersion": "v1",
-            "policyVersion": "pas-default-v1",
+            "policyVersion": "lotus-core-default-v1",
             "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
             "workflows": [{"workflow_key": "portfolio_bulk_onboarding", "enabled": True}],
             "supportedInputModes": ["pas_ref"],
@@ -18,7 +20,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
         return 200, {
             "sourceService": "performance-analytics",
             "contractVersion": "v1",
-            "policyVersion": "pa-default-v1",
+            "policyVersion": "lotus-performance-default-v1",
             "features": [{"key": "pa.analytics.twr", "enabled": True}],
             "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
             "supportedInputModes": ["pas_ref", "inline_bundle"],
@@ -28,7 +30,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
         return 200, {
             "sourceService": "lotus-advise",
             "contractVersion": "v1",
-            "policyVersion": "dpm-default-v1",
+            "policyVersion": "lotus-manage-default-v1",
             "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
             "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
             "supportedInputModes": ["pas_ref", "inline_bundle"],
@@ -38,7 +40,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
         return 200, {
             "sourceService": "lotus-report",
             "contractVersion": "v1",
-            "policyVersion": "ras-default-v1",
+            "policyVersion": "lotus-report-default-v1",
             "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
             "workflows": [{"workflow_key": "portfolio_reporting", "enabled": True}],
             "supportedInputModes": ["pas_ref"],
@@ -47,7 +49,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     async def _pas_policy(*args, **kwargs):
         return 200, {
             "policyProvenance": {
-                "policyVersion": "pas-default-v1",
+                "policyVersion": "lotus-core-default-v1",
                 "policySource": "tenant",
                 "matchedRuleId": "tenant.default.consumers.lotus-gateway",
                 "strictMode": False,
@@ -56,9 +58,11 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
             "warnings": [],
         }
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_capabilities", _pas)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_effective_policy", _pas_policy)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_capabilities", _pa)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -72,7 +76,12 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     assert health.status_code == 200
     body = capabilities.json()["data"]
     assert body["partialFailure"] is False
-    assert set(body["sources"].keys()) == {"pas", "pa", "dpm", "ras"}
+    assert set(body["sources"].keys()) == {
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+    }
 
 
 def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
@@ -121,12 +130,14 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
     async def _dpm_simulate(*args, **kwargs):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_core_snapshot", _pas_core)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.create_simulation_session", _pas_create)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.add_simulation_changes", _pas_add)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_projected_positions", _pas_positions)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_projected_summary", _pas_summary)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_pas_input_twr", _pa)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _pa
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate)
 
@@ -246,7 +257,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
         return 200, {
             "sourceService": "lotus-core",
             "contractVersion": "v1",
-            "policyVersion": "pas-default-v1",
+            "policyVersion": "lotus-core-default-v1",
             "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
             "workflows": [],
             "supportedInputModes": ["pas_ref"],
@@ -259,7 +270,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
         return 200, {
             "sourceService": "lotus-advise",
             "contractVersion": "v1",
-            "policyVersion": "dpm-default-v1",
+            "policyVersion": "lotus-manage-default-v1",
             "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
             "workflows": [],
             "supportedInputModes": ["pas_ref", "inline_bundle"],
@@ -269,7 +280,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
         return 200, {
             "sourceService": "lotus-report",
             "contractVersion": "v1",
-            "policyVersion": "ras-default-v1",
+            "policyVersion": "lotus-report-default-v1",
             "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
             "workflows": [],
             "supportedInputModes": ["pas_ref"],
@@ -278,7 +289,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
     async def _pas_policy(*args, **kwargs):
         return 200, {
             "policyProvenance": {
-                "policyVersion": "pas-default-v1",
+                "policyVersion": "lotus-core-default-v1",
                 "policySource": "tenant",
                 "matchedRuleId": "tenant.default.consumers.lotus-gateway",
                 "strictMode": False,
@@ -287,11 +298,13 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
             "warnings": [],
         }
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_capabilities", _pas)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_capabilities", _pa)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_effective_policy", _pas_policy)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
 
     client = TestClient(app)
     response = client.get(
@@ -301,8 +314,8 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
     assert response.status_code == 200
     body = response.json()["data"]
     assert body["partialFailure"] is True
-    assert any(item["service"] == "pa" for item in body["errors"])
-    assert body["normalized"]["moduleHealth"]["pa"] == "unavailable"
+    assert any(item["service"] == "lotus_performance" for item in body["errors"])
+    assert body["normalized"]["moduleHealth"]["lotus_performance"] == "unavailable"
 
 
 def test_e2e_reporting_snapshot_maps_upstream_failure_to_gateway_error(monkeypatch) -> None:
@@ -367,12 +380,14 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
     async def _dpm_simulate_failure(*args, **kwargs):
         return 503, {"detail": "lotus-manage policy service unavailable"}
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_core_snapshot", _pas_core)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.create_simulation_session", _pas_create)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.add_simulation_changes", _pas_add)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_projected_positions", _pas_positions)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_projected_summary", _pas_summary)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_pas_input_twr", _pa)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _pa
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate_failure)
 
@@ -393,4 +408,4 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
     assert updated.status_code == 200
     payload = updated.json()
     assert payload["policy_feedback"]["status"] == "UNAVAILABLE"
-    assert "DPM_POLICY_SIMULATION_UNAVAILABLE" in payload["warnings"]
+    assert "MANAGE_POLICY_SIMULATION_UNAVAILABLE" in payload["warnings"]

@@ -4,7 +4,7 @@ from app.clients.http_resilience import request_with_retry
 from app.middleware.correlation import propagation_headers
 
 
-class PasIngestionClient:
+class LotusCoreIngestionClient:
     def __init__(
         self,
         base_url: str,
