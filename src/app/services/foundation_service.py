@@ -83,7 +83,7 @@ class FoundationService:
         (
             portfolio_result,
             positions_result,
-            overview_result,
+            snapshot_result,
             transactions_result,
             cashflow_result,
         ) = await asyncio.gather(
@@ -100,7 +100,7 @@ class FoundationService:
             self._lotus_core_query_client.get_core_snapshot(
                 portfolio_id=portfolio_id,
                 as_of_date=requested_as_of_date,
-                include_sections=["OVERVIEW"],
+                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
                 consumer_system="lotus-gateway",
                 correlation_id=correlation_id,
             ),
@@ -130,17 +130,17 @@ class FoundationService:
             result=positions_result,
             unavailable_detail_prefix="lotus-core positions unavailable",
         )
-        overview_payload = self._require_core_payload(
-            result=overview_result,
-            unavailable_detail_prefix="lotus-core overview snapshot unavailable",
+        snapshot_payload = self._require_core_payload(
+            result=snapshot_result,
+            unavailable_detail_prefix="lotus-core core snapshot unavailable",
         )
 
         portfolio, profile = self._parse_portfolio_record(portfolio_payload)
         positions = self._parse_positions_payload(positions_payload)
-        as_of_date, summary = self._parse_overview_payload(
-            payload=overview_payload,
+        as_of_date, summary = self._parse_snapshot_summary(
+            payload=snapshot_payload,
             fallback_as_of_date=requested_as_of_date,
-            position_count=len(positions),
+            positions=positions,
         )
         allocations = self._build_allocation_buckets(
             rows=positions,
@@ -275,24 +275,39 @@ class FoundationService:
         )
         return portfolio, profile
 
-    def _parse_overview_payload(
+    def _parse_snapshot_summary(
         self,
         payload: dict[str, Any],
         fallback_as_of_date: str,
-        position_count: int,
+        positions: list[FoundationPositionView],
     ) -> tuple[str, FoundationPortfolioSummary]:
-        snapshot_payload = payload.get("snapshot", {})
-        if not isinstance(snapshot_payload, dict):
+        sections_payload = payload.get("sections", {})
+        if not isinstance(sections_payload, dict):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Invalid lotus-core overview snapshot payload structure.",
+                detail="Invalid lotus-core core snapshot payload structure.",
             )
-        overview_payload = snapshot_payload.get("overview", {})
-        if not isinstance(overview_payload, dict):
-            overview_payload = {}
+        portfolio_totals = sections_payload.get("portfolio_totals", {})
+        if not isinstance(portfolio_totals, dict):
+            portfolio_totals = {}
 
-        market_value_base = float(quantize_money(overview_payload.get("total_market_value", 0.0)))
-        total_cash_base = float(quantize_money(overview_payload.get("total_cash", 0.0)))
+        market_value_base = self._optional_money(
+            portfolio_totals.get("baseline_total_market_value_base")
+        )
+        if market_value_base is None:
+            market_value_base = float(
+                quantize_money(sum(position.market_value_base or 0.0 for position in positions))
+            )
+
+        total_cash_base = float(
+            quantize_money(
+                sum(
+                    position.market_value_base or 0.0
+                    for position in positions
+                    if (position.asset_class or "").lower() == "cash"
+                )
+            )
+        )
         cash_weight_pct = 0.0
         if market_value_base > 0:
             cash_weight_pct = float(
@@ -303,9 +318,9 @@ class FoundationService:
             market_value_base=market_value_base,
             total_cash_base=total_cash_base,
             cash_weight_pct=cash_weight_pct,
-            position_count=position_count,
+            position_count=len(positions),
         )
-        return str(snapshot_payload.get("as_of_date", fallback_as_of_date)), summary
+        return str(payload.get("as_of_date", fallback_as_of_date)), summary
 
     def _parse_positions_payload(
         self,

@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.contracts.performance_workspace import (
     AttributionLevelView,
     AttributionRowView,
@@ -17,6 +18,7 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceWorkspaceResponse,
 )
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
 from app.services.workbench_service import WorkbenchService
 
@@ -26,9 +28,11 @@ class PerformanceWorkspaceService:
         self,
         workbench_service: WorkbenchService,
         analytics_client: LotusAnalyticsClient,
+        lotus_core_query_client: LotusCoreQueryClient,
     ):
         self._workbench_service = workbench_service
         self._analytics_client = analytics_client
+        self._lotus_core_query_client = lotus_core_query_client
 
     async def get_performance_workspace(
         self,
@@ -45,14 +49,23 @@ class PerformanceWorkspaceService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
+        warnings = list(overview.warnings)
+        partial_failures = list(overview.partial_failures)
+        report_end_date = await self._resolve_report_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            correlation_id=correlation_id,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
         report_start_date = self._resolve_report_start_date(
-            as_of_date=date.fromisoformat(overview.as_of_date),
+            as_of_date=date.fromisoformat(report_end_date),
             period=period,
         )
 
         net_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
-            report_end_date=overview.as_of_date,
+            report_end_date=report_end_date,
             period=period,
             metric_basis="NET",
             benchmark_id=benchmark_code,
@@ -60,7 +73,7 @@ class PerformanceWorkspaceService:
         )
         gross_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
-            report_end_date=overview.as_of_date,
+            report_end_date=report_end_date,
             period=period,
             metric_basis="GROSS",
             benchmark_id=benchmark_code,
@@ -68,28 +81,32 @@ class PerformanceWorkspaceService:
         )
         mwr_task = self._analytics_client.get_mwr_analytics(
             portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
+            as_of_date=report_end_date,
             window_start_date=report_start_date.isoformat(),
             correlation_id=correlation_id,
         )
         contribution_task = self._analytics_client.get_contribution_analytics(
             portfolio_id=portfolio_id,
             report_start_date=report_start_date.isoformat(),
-            report_end_date=overview.as_of_date,
+            report_end_date=report_end_date,
             period=period,
             metric_basis=detail_basis,
             dimension=detail_dimension,
             correlation_id=correlation_id,
         )
-        attribution_task = self._analytics_client.get_attribution_analytics(
-            portfolio_id=portfolio_id,
-            report_start_date=report_start_date.isoformat(),
-            report_end_date=overview.as_of_date,
-            period=period,
-            metric_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            dimension=detail_dimension,
-            correlation_id=correlation_id,
+        attribution_task = (
+            self._analytics_client.get_attribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date.isoformat(),
+                report_end_date=report_end_date,
+                period=period,
+                metric_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                dimension=detail_dimension,
+                correlation_id=correlation_id,
+            )
+            if benchmark_code
+            else self._empty_async_result()
         )
 
         results = await asyncio.gather(
@@ -100,9 +117,6 @@ class PerformanceWorkspaceService:
             attribution_task,
             return_exceptions=True,
         )
-
-        warnings = list(overview.warnings)
-        partial_failures = list(overview.partial_failures)
 
         net_performance, net_chart = self._parse_twr_result(
             result=results[0],
@@ -159,6 +173,51 @@ class PerformanceWorkspaceService:
             partial_failures=partial_failures,
         )
 
+    async def _resolve_report_end_date(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> str:
+        status_code, payload = await (
+            self._lotus_core_query_client.get_portfolio_analytics_reference(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            )
+        )
+        if status_code >= 400 or not isinstance(payload, dict):
+            warnings.append("PERFORMANCE_REFERENCE_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-core",
+                    (
+                        f"HTTP_{status_code}"
+                        if isinstance(status_code, int)
+                        else "INVALID_RESPONSE"
+                    ),
+                    (
+                        str(payload.get("detail", payload))
+                        if isinstance(payload, dict)
+                        else str(payload)
+                    ),
+                )
+            )
+            return as_of_date
+
+        performance_end_date = payload.get("performance_end_date")
+        if not isinstance(performance_end_date, str) or not performance_end_date:
+            warnings.append("PERFORMANCE_REFERENCE_MISSING_END_DATE")
+            return as_of_date
+        return performance_end_date
+
+    async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
+        return 204, {}
+
     def _resolve_report_start_date(self, *, as_of_date: date, period: str) -> date:
         normalized_period = period.upper()
         if normalized_period == "MTD":
@@ -189,7 +248,7 @@ class PerformanceWorkspaceService:
         metric_basis: str,
         chart_frequency: str,
         warnings: list[str],
-        partial_failures: list[Any],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> tuple[PerformanceComparativeSummary, list[PerformanceChartPoint]]:
         empty_summary = PerformanceComparativeSummary(metric_basis=metric_basis)
         if isinstance(result, Exception):
@@ -199,6 +258,8 @@ class PerformanceWorkspaceService:
             )
             return empty_summary, []
         status_code, payload = result
+        if status_code == 204:
+            return None
         if not isinstance(payload, dict):
             warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
             partial_failures.append(
@@ -331,7 +392,7 @@ class PerformanceWorkspaceService:
         *,
         result: object,
         warnings: list[str],
-        partial_failures: list[Any],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> MoneyWeightedReturnSummary | None:
         if isinstance(result, Exception):
             warnings.append("MWR_UNAVAILABLE")
@@ -369,7 +430,7 @@ class PerformanceWorkspaceService:
         result: object,
         metric_basis: str,
         warnings: list[str],
-        partial_failures: list[Any],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> ContributionSummaryView | None:
         if isinstance(result, Exception):
             warnings.append("CONTRIBUTION_UNAVAILABLE")
@@ -434,7 +495,9 @@ class PerformanceWorkspaceService:
                         level=int(level_payload.get("level", len(levels) + 1)),
                         name=str(level_payload.get("name", "Level")),
                         rows=rows,
-                        total_contribution_pct=sum(row.contribution_pct for row in rows) if rows else None,
+                        total_contribution_pct=(
+                            sum(row.contribution_pct for row in rows) if rows else None
+                        ),
                     )
                 )
         return ContributionSummaryView(
@@ -456,7 +519,7 @@ class PerformanceWorkspaceService:
         result: object,
         metric_basis: str,
         warnings: list[str],
-        partial_failures: list[Any],
+        partial_failures: list[WorkbenchPartialFailure],
     ) -> AttributionSummaryView | None:
         if isinstance(result, Exception):
             warnings.append("ATTRIBUTION_UNAVAILABLE")
@@ -588,9 +651,14 @@ class PerformanceWorkspaceService:
             return None
         return str(value)
 
-    def _performance_failure(self, source_service: str, error_code: str, detail: str) -> dict[str, str]:
-        return {
-            "source_service": source_service,
-            "error_code": error_code,
-            "detail": detail,
-        }
+    def _performance_failure(
+        self,
+        source_service: str,
+        error_code: str,
+        detail: str,
+    ) -> WorkbenchPartialFailure:
+        return WorkbenchPartialFailure(
+            source_service=source_service,
+            error_code=error_code,
+            detail=detail,
+        )

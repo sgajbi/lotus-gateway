@@ -40,7 +40,7 @@ class _StubLotusCoreQueryClient:
         self,
         portfolio_id: str,
         as_of_date: str,
-        include_sections: list[str],
+        sections: list[str],
         consumer_system: str,
         correlation_id: str,
     ):
@@ -168,13 +168,24 @@ async def test_foundation_workspace_success():
                         "valuation": {"market_value_base": 300.0},
                         "weight": 0.30,
                     },
+                    {
+                        "security_id": "CASH_USD",
+                        "instrument_name": "US Dollar Cash",
+                        "asset_class": "Cash",
+                        "quantity": 100,
+                        "cost_basis": 100.0,
+                        "valuation": {"market_value_base": 100.0},
+                        "weight": 0.10,
+                    },
                 ]
             },
             overview_payload={
-                "snapshot": {
-                    "as_of_date": "2026-03-25",
-                    "overview": {"total_market_value": 1000.0, "total_cash": 100.0},
-                }
+                "as_of_date": "2026-03-25",
+                "sections": {
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "positions_baseline": [],
+                    "instrument_enrichment": [],
+                },
             },
             transactions_result=(
                 200,
@@ -250,7 +261,11 @@ async def test_foundation_workspace_success():
     assert response.portfolio.display_name == "PF_1001"
     assert response.profile.status == "ACTIVE"
     assert response.summary.cash_weight_pct == 10.0
-    assert response.allocations[0].asset_class == "Equity"
+    assert {bucket.asset_class for bucket in response.allocations} == {
+        "Cash",
+        "Equity",
+        "Fixed Income",
+    }
     assert response.top_positions[0].security_id == "EQ_1"
     assert response.positions[0].instrument_name == "Equity 1"
     assert response.recent_transactions[0].transaction_id == "TX_1"
@@ -286,10 +301,12 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
                 ]
             },
             overview_payload={
-                "snapshot": {
-                    "as_of_date": "2026-03-25",
-                    "overview": {"total_market_value": 500.0, "total_cash": 50.0},
-                }
+                "as_of_date": "2026-03-25",
+                "sections": {
+                    "portfolio_totals": {"baseline_total_market_value_base": 500.0},
+                    "positions_baseline": [],
+                    "instrument_enrichment": [],
+                },
             },
             transactions_result=(503, {"detail": "transactions unavailable"}),
             cashflow_result=(503, {"detail": "cashflow unavailable"}),

@@ -65,14 +65,25 @@ def test_foundation_workspace_router_success(monkeypatch):
                     "valuation": {"market_value_base": 300.0},
                     "weight": 0.30,
                 },
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "US Dollar Cash",
+                    "asset_class": "Cash",
+                    "quantity": 100,
+                    "cost_basis": 100.0,
+                    "valuation": {"market_value_base": 100.0},
+                    "weight": 0.10,
+                },
             ]
         }
 
     async def _core_snapshot(*args, **kwargs):
         return 200, {
-            "snapshot": {
-                "as_of_date": "2026-03-25",
-                "overview": {"total_market_value": 1000.0, "total_cash": 100.0},
+            "as_of_date": "2026-03-25",
+            "sections": {
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "positions_baseline": [],
+                "instrument_enrichment": [],
             },
         }
 
@@ -155,8 +166,12 @@ def test_foundation_workspace_router_success(monkeypatch):
     body = response.json()
     assert body["portfolio"]["display_name"] == "PF_1001"
     assert body["profile"]["status"] == "ACTIVE"
-    assert body["summary"]["position_count"] == 2
-    assert body["allocations"][0]["asset_class"] == "Equity"
+    assert body["summary"]["position_count"] == 3
+    assert {bucket["asset_class"] for bucket in body["allocations"]} == {
+        "Cash",
+        "Equity",
+        "Fixed Income",
+    }
     assert body["positions"][0]["security_id"] == "EQ_1"
     assert body["recent_transactions"][0]["transaction_id"] == "TX_1"
     assert body["cashflow_outlook"]["total_net_cashflow_base"] == -25.0
@@ -189,9 +204,11 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
 
     async def _core_snapshot(*args, **kwargs):
         return 200, {
-            "snapshot": {
-                "as_of_date": "2026-03-25",
-                "overview": {"total_market_value": 1000.0, "total_cash": 250.0},
+            "as_of_date": "2026-03-25",
+            "sections": {
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "positions_baseline": [],
+                "instrument_enrichment": [],
             },
         }
 

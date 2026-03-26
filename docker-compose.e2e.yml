@@ -39,7 +39,7 @@ services:
   kafka-topic-creator:
     profiles: ["full-stack"]
     build:
-      context: ${PAS_REPO_PATH}
+      context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/persistence_service/Dockerfile
     depends_on:
       kafka:
@@ -49,7 +49,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     restart: "no"
 
-  dpm-postgres:
+  lotus-manage-postgres:
     image: postgres:17.6
     environment:
       POSTGRES_DB: dpm_supportability
@@ -62,9 +62,9 @@ services:
       retries: 10
       start_period: 10s
 
-  dpm:
+  lotus-manage:
     build:
-      context: ${DPM_REPO_PATH}
+      context: ${LOTUS_MANAGE_REPO_PATH}
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
@@ -72,13 +72,13 @@ services:
       ENVIRONMENT: production
       APP_PERSISTENCE_PROFILE: PRODUCTION
       DPM_SUPPORTABILITY_STORE_BACKEND: POSTGRES
-      DPM_SUPPORTABILITY_POSTGRES_DSN: postgresql://dpm:dpm@dpm-postgres:5432/dpm_supportability
+      DPM_SUPPORTABILITY_POSTGRES_DSN: postgresql://dpm:dpm@lotus-manage-postgres:5432/dpm_supportability
       PROPOSAL_STORE_BACKEND: POSTGRES
-      PROPOSAL_POSTGRES_DSN: postgresql://dpm:dpm@dpm-postgres:5432/dpm_supportability
+      PROPOSAL_POSTGRES_DSN: postgresql://dpm:dpm@lotus-manage-postgres:5432/dpm_supportability
       DPM_POLICY_PACK_CATALOG_BACKEND: POSTGRES
-      DPM_POLICY_PACK_POSTGRES_DSN: postgresql://dpm:dpm@dpm-postgres:5432/dpm_supportability
+      DPM_POLICY_PACK_POSTGRES_DSN: postgresql://dpm:dpm@lotus-manage-postgres:5432/dpm_supportability
     depends_on:
-      dpm-postgres:
+      lotus-manage-postgres:
         condition: service_healthy
     healthcheck:
       test:
@@ -93,7 +93,7 @@ services:
       retries: 15
       start_period: 20s
 
-  pas-postgres:
+  lotus-core-postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: portfolio_db
@@ -106,28 +106,28 @@ services:
       retries: 10
       start_period: 10s
 
-  pas-migration-runner:
+  lotus-core-migration-runner:
     build:
-      context: ${PAS_REPO_PATH}
+      context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/persistence_service/Dockerfile
     environment:
-      DATABASE_URL: postgresql://user:password@pas-postgres:5432/portfolio_db
+      DATABASE_URL: postgresql://user:password@lotus-core-postgres:5432/portfolio_db
     depends_on:
-      pas-postgres:
+      lotus-core-postgres:
         condition: service_healthy
     command: ["alembic", "upgrade", "head"]
     restart: "no"
 
-  pas-query:
+  lotus-core-query:
     build:
-      context: ${PAS_REPO_PATH}
+      context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/query_service/Dockerfile
     ports:
       - "8201:8001"
     environment:
-      DATABASE_URL: postgresql://user:password@pas-postgres:5432/portfolio_db
+      DATABASE_URL: postgresql://user:password@lotus-core-postgres:5432/portfolio_db
     depends_on:
-      pas-migration-runner:
+      lotus-core-migration-runner:
         condition: service_completed_successfully
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
     healthcheck:
@@ -143,10 +143,10 @@ services:
       retries: 15
       start_period: 20s
 
-  pas-ingestion:
+  lotus-core-ingestion:
     profiles: ["full-stack"]
     build:
-      context: ${PAS_REPO_PATH}
+      context: ${LOTUS_CORE_REPO_PATH}
       dockerfile: ./src/services/ingestion_service/Dockerfile
     ports:
       - "8200:8000"
@@ -171,13 +171,13 @@ services:
       retries: 15
       start_period: 20s
 
-  pa:
+  lotus-performance:
     image: python:3.12-slim
     working_dir: /app
     ports:
       - "8002:8000"
     volumes:
-      - ${PA_REPO_PATH}:/app
+      - ${LOTUS_PERFORMANCE_REPO_PATH}:/app
     command:
       [
         "sh",
@@ -197,21 +197,21 @@ services:
       retries: 20
       start_period: 30s
 
-  ras:
+  lotus-report:
     build:
-      context: ${RAS_REPO_PATH}
+      context: ${LOTUS_REPORT_REPO_PATH}
       dockerfile: Dockerfile
     ports:
       - "8300:8300"
     environment:
-      PAS_BASE_URL: http://pas-query:8001
-      PA_BASE_URL: http://pa:8000
+      LOTUS_CORE_BASE_URL: http://lotus-core-query:8001
+      PA_BASE_URL: http://lotus-performance:8000
       UPSTREAM_TIMEOUT_SECONDS: 10
       CONTRACT_VERSION: v1
     depends_on:
-      pas-query:
+      lotus-core-query:
         condition: service_healthy
-      pa:
+      lotus-performance:
         condition: service_healthy
     healthcheck:
       test:
@@ -231,25 +231,25 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DECISIONING_SERVICE_BASE_URL: http://dpm:8000
-      PORTFOLIO_DATA_PLATFORM_BASE_URL: http://pas-query:8001
-      PORTFOLIO_DATA_INGESTION_BASE_URL: ${PORTFOLIO_DATA_INGESTION_BASE_URL:-http://pas-ingestion:8000}
-      PERFORMANCE_ANALYTICS_BASE_URL: http://pa:8000
-      REPORTING_AGGREGATION_BASE_URL: http://ras:8300
+      DECISIONING_SERVICE_BASE_URL: http://lotus-manage:8000
+      PORTFOLIO_DATA_PLATFORM_BASE_URL: http://lotus-core-query:8001
+      PORTFOLIO_DATA_INGESTION_BASE_URL: ${PORTFOLIO_DATA_INGESTION_BASE_URL:-http://lotus-core-ingestion:8000}
+      PERFORMANCE_ANALYTICS_BASE_URL: http://lotus-performance:8000
+      REPORTING_AGGREGATION_BASE_URL: http://lotus-report:8300
       UPSTREAM_TIMEOUT_SECONDS: 10
       CONTRACT_VERSION: v1
     ports:
       - "8100:8100"
     depends_on:
-      dpm:
+      lotus-manage:
         condition: service_healthy
-      pas-query:
+      lotus-core-query:
         condition: service_healthy
-      pa:
+      lotus-performance:
         condition: service_healthy
-      ras:
+      lotus-report:
         condition: service_healthy
-      pas-ingestion:
+      lotus-core-ingestion:
         condition: service_healthy
         required: false
     healthcheck:

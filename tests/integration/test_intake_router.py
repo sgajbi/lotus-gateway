@@ -2,13 +2,16 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
+LOTUS_CORE_INGESTION_CLIENT = "app.clients.lotus_core_ingestion_client.LotusCoreIngestionClient"
+
 
 def test_ingest_portfolio_bundle_success(monkeypatch):
     async def _fake_ingest(*args, **kwargs):
         return 202, {"message": "queued"}
 
     monkeypatch.setattr(
-        "app.clients.pas_ingestion_client.PasIngestionClient.ingest_portfolio_bundle",
+        f"{LOTUS_CORE_INGESTION_CLIENT}.ingest_portfolio_bundle",
         _fake_ingest,
     )
 
@@ -27,7 +30,7 @@ def test_preview_upload_success(monkeypatch):
         return 200, {"entity_type": "portfolios", "valid_rows": 1}
 
     monkeypatch.setattr(
-        "app.clients.pas_ingestion_client.PasIngestionClient.preview_upload",
+        f"{LOTUS_CORE_INGESTION_CLIENT}.preview_upload",
         _fake_preview,
     )
 
@@ -47,7 +50,7 @@ def test_commit_upload_success(monkeypatch):
         return 202, {"entity_type": "portfolios", "published_rows": 1}
 
     monkeypatch.setattr(
-        "app.clients.pas_ingestion_client.PasIngestionClient.commit_upload",
+        f"{LOTUS_CORE_INGESTION_CLIENT}.commit_upload",
         _fake_commit,
     )
 
@@ -72,11 +75,12 @@ def test_lookups_success(monkeypatch):
     async def _fake_currencies(*args, **kwargs):
         return 200, {"items": [{"id": "USD", "label": "USD"}]}
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_portfolio_lookups", _fake_portfolios)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_lookups", _fake_portfolios)
     monkeypatch.setattr(
-        "app.clients.pas_client.PasClient.get_instrument_lookups", _fake_instruments
+        f"{LOTUS_CORE_QUERY_CLIENT}.get_instrument_lookups",
+        _fake_instruments,
     )
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_currency_lookups", _fake_currencies)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_currency_lookups", _fake_currencies)
 
     client = TestClient(app)
 
