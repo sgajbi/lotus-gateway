@@ -10,3 +10,4 @@ venv/
 htmlcov/
 *.egg-info/
 output/
+.codex-logs/
