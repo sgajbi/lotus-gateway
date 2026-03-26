@@ -64,10 +64,11 @@ class PerformanceWorkspaceService:
         )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        resolved_report_end_date = await self._resolve_report_end_date(
+        resolved_report_end_date = await self._determine_report_end_date(
             portfolio_id=portfolio_id,
             as_of_date=overview.as_of_date,
             correlation_id=correlation_id,
+            explicit_end_date=explicit_end_date,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -77,69 +78,17 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        twr_analyses = self._build_twr_analyses(effective_period)
-
-        net_twr_task = self._analytics_client.get_twr_analytics(
+        results = await self._fetch_analytics_results(
             portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
             report_end_date=report_end_date,
-            report_start_date=(
-                report_start_date.isoformat() if effective_period == "EXPLICIT" else None
-            ),
-            period=effective_period,
-            metric_basis="NET",
-            benchmark_id=benchmark_code,
-            correlation_id=correlation_id,
-            analyses=twr_analyses,
-        )
-        gross_twr_task = self._analytics_client.get_twr_analytics(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=(
-                report_start_date.isoformat() if effective_period == "EXPLICIT" else None
-            ),
-            period=effective_period,
-            metric_basis="GROSS",
-            benchmark_id=benchmark_code,
-            correlation_id=correlation_id,
-            analyses=twr_analyses,
-        )
-        mwr_task = self._analytics_client.get_mwr_analytics(
-            portfolio_id=portfolio_id,
-            as_of_date=report_end_date,
-            window_start_date=report_start_date.isoformat(),
-            correlation_id=correlation_id,
-        )
-        contribution_task = self._analytics_client.get_contribution_analytics(
-            portfolio_id=portfolio_id,
             report_start_date=report_start_date.isoformat(),
-            report_end_date=report_end_date,
-            period=period,
-            metric_basis=detail_basis,
-            dimension=contribution_dimension,
-            correlation_id=correlation_id,
-        )
-        attribution_task = (
-            self._analytics_client.get_attribution_analytics(
-                portfolio_id=portfolio_id,
-                report_start_date=report_start_date.isoformat(),
-                report_end_date=report_end_date,
-                period=period,
-                metric_basis=detail_basis,
-                benchmark_id=benchmark_code,
-                dimension=attribution_dimension,
-                correlation_id=correlation_id,
-            )
-            if benchmark_code
-            else self._empty_async_result()
-        )
-
-        results = await asyncio.gather(
-            net_twr_task,
-            gross_twr_task,
-            mwr_task,
-            contribution_task,
-            attribution_task,
-            return_exceptions=True,
+            effective_period=effective_period,
+            requested_period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
         )
 
         net_performance, net_chart = self._parse_twr_result(
@@ -203,6 +152,95 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    async def _determine_report_end_date(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        explicit_end_date: str | None,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> str:
+        if explicit_end_date:
+            return explicit_end_date
+        return await self._resolve_report_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            correlation_id=correlation_id,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    async def _fetch_analytics_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        report_start_date: str,
+        effective_period: str,
+        requested_period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        contribution_dimension: str,
+        attribution_dimension: str,
+    ) -> tuple[object, object, object, object, object]:
+        twr_analyses = self._build_twr_analyses(effective_period)
+        twr_report_start_date = report_start_date if effective_period == "EXPLICIT" else None
+        analytics_tasks = (
+            self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=twr_report_start_date,
+                period=effective_period,
+                metric_basis="NET",
+                benchmark_id=benchmark_code,
+                correlation_id=correlation_id,
+                analyses=twr_analyses,
+            ),
+            self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=twr_report_start_date,
+                period=effective_period,
+                metric_basis="GROSS",
+                benchmark_id=benchmark_code,
+                correlation_id=correlation_id,
+                analyses=twr_analyses,
+            ),
+            self._analytics_client.get_mwr_analytics(
+                portfolio_id=portfolio_id,
+                as_of_date=report_end_date,
+                window_start_date=report_start_date,
+                correlation_id=correlation_id,
+            ),
+            self._analytics_client.get_contribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                dimension=contribution_dimension,
+                correlation_id=correlation_id,
+            ),
+            (
+                self._analytics_client.get_attribution_analytics(
+                    portfolio_id=portfolio_id,
+                    report_start_date=report_start_date,
+                    report_end_date=report_end_date,
+                    period=requested_period,
+                    metric_basis=detail_basis,
+                    benchmark_id=benchmark_code,
+                    dimension=attribution_dimension,
+                    correlation_id=correlation_id,
+                )
+                if benchmark_code
+                else self._empty_async_result()
+            ),
+        )
+        return await asyncio.gather(*analytics_tasks, return_exceptions=True)
 
     def _build_twr_analyses(self, period: str) -> list[dict[str, object]]:
         if period == "EXPLICIT":

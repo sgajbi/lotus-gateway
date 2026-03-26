@@ -223,6 +223,9 @@ class _StubAnalyticsClient:
 
 
 class _StubLotusCoreQueryClient:
+    def __init__(self):
+        self.reference_calls = 0
+
     async def get_portfolio_analytics_reference(
         self,
         portfolio_id: str,
@@ -230,6 +233,7 @@ class _StubLotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ):  # noqa: ARG002
+        self.reference_calls += 1
         return 200, {"performance_end_date": "2026-02-24"}
 
 
@@ -354,10 +358,11 @@ async def test_performance_workspace_service_skips_attribution_without_benchmark
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_supports_explicit_window():
+    lotus_core_query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
         analytics_client=_StubAnalyticsClient(),
-        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        lotus_core_query_client=lotus_core_query_client,
     )
 
     response = await service.get_performance_workspace(
@@ -376,6 +381,7 @@ async def test_performance_workspace_service_supports_explicit_window():
     assert response.period == "EXPLICIT"
     assert response.report_start_date == "2026-01-15"
     assert response.report_end_date == "2026-02-20"
+    assert lotus_core_query_client.reference_calls == 0
 
 
 @pytest.mark.asyncio
