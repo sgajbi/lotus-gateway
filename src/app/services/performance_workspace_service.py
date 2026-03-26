@@ -51,7 +51,8 @@ class PerformanceWorkspaceService:
         correlation_id: str,
         period: str,
         chart_frequency: str,
-        detail_dimension: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
         detail_basis: str,
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
@@ -114,7 +115,7 @@ class PerformanceWorkspaceService:
             report_end_date=report_end_date,
             period=period,
             metric_basis=detail_basis,
-            dimension=detail_dimension,
+            dimension=contribution_dimension,
             correlation_id=correlation_id,
         )
         attribution_task = (
@@ -125,7 +126,7 @@ class PerformanceWorkspaceService:
                 period=period,
                 metric_basis=detail_basis,
                 benchmark_id=benchmark_code,
-                dimension=detail_dimension,
+                dimension=attribution_dimension,
                 correlation_id=correlation_id,
             )
             if benchmark_code
@@ -165,12 +166,14 @@ class PerformanceWorkspaceService:
         contribution = self._parse_contribution_result(
             result=results[3],
             metric_basis=detail_basis,
+            requested_period=effective_period,
             warnings=warnings,
             partial_failures=partial_failures,
         )
         attribution = self._parse_attribution_result(
             result=results[4],
             metric_basis=detail_basis,
+            requested_period=effective_period,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -184,7 +187,8 @@ class PerformanceWorkspaceService:
             report_start_date=report_start_date.isoformat(),
             report_end_date=report_end_date,
             chart_frequency=chart_frequency,
-            detail_dimension=detail_dimension,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
             portfolio=overview.portfolio,
@@ -520,6 +524,7 @@ class PerformanceWorkspaceService:
         *,
         result: object,
         metric_basis: str,
+        requested_period: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> ContributionSummaryView | None:
@@ -546,7 +551,10 @@ class PerformanceWorkspaceService:
         results_by_period = payload.get("results_by_period", {})
         if not isinstance(results_by_period, dict) or not results_by_period:
             return None
-        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period))
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             return None
@@ -638,6 +646,7 @@ class PerformanceWorkspaceService:
         *,
         result: object,
         metric_basis: str,
+        requested_period: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> AttributionSummaryView | None:
@@ -664,7 +673,10 @@ class PerformanceWorkspaceService:
         results_by_period = payload.get("results_by_period", {})
         if not isinstance(results_by_period, dict) or not results_by_period:
             return None
-        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period))
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             return None
@@ -719,6 +731,7 @@ class PerformanceWorkspaceService:
             model=self._safe_str(payload.get("model")),
             linking=self._safe_str(payload.get("linking")),
             benchmark_id=self._safe_str(benchmark_context.get("benchmark_id")),
+            benchmark_return_source=self._safe_str(benchmark_context.get("return_source")),
             active_return_pct=self._quantize_optional(
                 reconciliation_payload.get("total_active_return")
             ),

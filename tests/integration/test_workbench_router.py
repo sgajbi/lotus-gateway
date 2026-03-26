@@ -329,7 +329,8 @@ def test_workbench_performance_router(monkeypatch):
             "report_start_date": "2026-01-01",
             "report_end_date": "2026-02-24",
             "chart_frequency": "monthly",
-            "detail_dimension": "asset_class",
+            "contribution_dimension": "asset_class",
+            "attribution_dimension": "asset_class",
             "detail_basis": "NET",
             "benchmark_code": "MODEL_60_40",
             "portfolio": {
@@ -414,8 +415,8 @@ def test_workbench_performance_router(monkeypatch):
     client = TestClient(app)
     response = client.get(
         "/api/v1/workbench/PF_1001/performance"
-        "?period=YTD&chart_frequency=monthly&detail_dimension=asset_class"
-        "&detail_basis=NET&benchmark_code=MODEL_60_40"
+        "?period=YTD&chart_frequency=monthly&contribution_dimension=asset_class"
+        "&attribution_dimension=asset_class&detail_basis=NET&benchmark_code=MODEL_60_40"
     )
 
     assert response.status_code == 200

@@ -95,6 +95,7 @@ class AttributionSummaryView(BaseModel):
     model: str | None = None
     linking: str | None = None
     benchmark_id: str | None = None
+    benchmark_return_source: str | None = None
     active_return_pct: float | None = None
     sum_of_effects_pct: float | None = None
     residual_pct: float | None = None
@@ -110,7 +111,8 @@ class PerformanceWorkspaceResponse(BaseModel):
     report_start_date: str
     report_end_date: str
     chart_frequency: str
-    detail_dimension: str
+    contribution_dimension: str
+    attribution_dimension: str
     detail_basis: str
     benchmark_code: str | None = None
     portfolio: WorkbenchPortfolioSummary
