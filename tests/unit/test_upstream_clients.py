@@ -190,6 +190,7 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     twr_status, twr_payload = await client.get_twr_analytics(
         portfolio_id="P1",
         report_end_date="2026-02-24",
+        report_start_date="2026-01-01",
         period="YTD",
         metric_basis="NET",
         benchmark_id="MODEL_60_40",
@@ -239,6 +240,9 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     assert twr_post["url"] == "http://analytics/performance/twr"
     assert twr_post["json"]["portfolio_id"] == "P1"
     assert twr_post["json"]["metric_basis"] == "NET"
+    assert twr_post["json"]["report_start_date"] == "2026-01-01"
+    assert twr_post["json"]["performance_start_date"] == "2026-01-01"
+    assert twr_post["json"]["analyses"][0]["period"] == "EXPLICIT"
     assert twr_post["json"]["include_benchmark"] is True
     assert twr_post["json"]["benchmark"]["benchmark_id"] == "MODEL_60_40"
     assert twr_post["json"]["benchmark"]["return_source"] == "calculated"
@@ -276,6 +280,7 @@ async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_reque
     status_code, _ = await client.get_twr_analytics(
         portfolio_id="P1",
         report_end_date="2026-02-24",
+        report_start_date=None,
         period="YTD",
         metric_basis="NET",
         benchmark_id=None,

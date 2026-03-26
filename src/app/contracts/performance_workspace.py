@@ -107,6 +107,8 @@ class PerformanceWorkspaceResponse(BaseModel):
     portfolio_id: str
     as_of_date: str
     period: str
+    report_start_date: str
+    report_end_date: str
     chart_frequency: str
     detail_dimension: str
     detail_basis: str

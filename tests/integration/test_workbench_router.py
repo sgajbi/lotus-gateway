@@ -326,6 +326,8 @@ def test_workbench_performance_router(monkeypatch):
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-02-24",
             "period": "YTD",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
             "chart_frequency": "monthly",
             "detail_dimension": "asset_class",
             "detail_basis": "NET",

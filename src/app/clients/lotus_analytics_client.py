@@ -155,20 +155,24 @@ class LotusAnalyticsClient:
         *,
         portfolio_id: str,
         report_end_date: str,
+        report_start_date: str | None,
         period: str,
         metric_basis: str,
         benchmark_id: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        analysis_period = "EXPLICIT" if report_start_date else period
         payload: dict[str, Any] = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
             "metric_basis": metric_basis,
             "report_end_date": report_end_date,
+            "report_start_date": report_start_date,
+            "performance_start_date": report_start_date,
             "analyses": [
                 {
-                    "period": period,
+                    "period": analysis_period,
                     "frequencies": ["daily", "monthly", "quarterly", "yearly"],
                 }
             ],

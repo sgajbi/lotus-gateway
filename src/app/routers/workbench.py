@@ -168,6 +168,8 @@ async def get_performance_workspace(
     detail_dimension: str = "asset_class",
     detail_basis: str = "NET",
     benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
 ) -> PerformanceWorkspaceResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -179,6 +181,8 @@ async def get_performance_workspace(
         detail_dimension=detail_dimension,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 

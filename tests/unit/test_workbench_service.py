@@ -127,12 +127,13 @@ class _StubLotusAnalyticsClient:
         self,
         portfolio_id: str,
         report_end_date: str,
+        report_start_date: str | None,
         period: str,
         metric_basis: str,
         benchmark_id: str | None,
         correlation_id: str,
     ):
-        _ = metric_basis, benchmark_id
+        _ = report_start_date, metric_basis, benchmark_id
         return await self.get_stateful_twr(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,

@@ -89,6 +89,7 @@ class WorkbenchService:
         performance_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
             report_end_date=performance_end_date,
+            report_start_date=None,
             period="YTD",
             metric_basis="NET",
             benchmark_id=None,

@@ -248,6 +248,8 @@ async def test_performance_workspace_service_returns_rich_workspace():
     )
 
     assert response.portfolio.portfolio_id == "PF_1001"
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-02-24"
     assert response.net_performance.portfolio_return_pct == 5.42
     assert response.net_performance.benchmark_return_pct == 4.9
     assert response.gross_performance.portfolio_return_pct == 5.42
@@ -341,3 +343,28 @@ async def test_performance_workspace_service_skips_attribution_without_benchmark
 
     assert response.net_performance.benchmark_return_pct is None
     assert response.attribution is None
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_supports_explicit_window():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        detail_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="MODEL_60_40",
+        explicit_start_date="2026-01-15",
+        explicit_end_date="2026-02-20",
+    )
+
+    assert response.period == "EXPLICIT"
+    assert response.report_start_date == "2026-01-15"
+    assert response.report_end_date == "2026-02-20"

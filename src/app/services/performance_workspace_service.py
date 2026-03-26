@@ -45,6 +45,8 @@ class PerformanceWorkspaceService:
         detail_dimension: str,
         detail_basis: str,
         benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
     ) -> PerformanceWorkspaceResponse:
         overview = await self._workbench_service.get_workbench_overview(
             portfolio_id=portfolio_id,
@@ -52,22 +54,27 @@ class PerformanceWorkspaceService:
         )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        report_end_date = await self._resolve_report_end_date(
+        resolved_report_end_date = await self._resolve_report_end_date(
             portfolio_id=portfolio_id,
             as_of_date=overview.as_of_date,
             correlation_id=correlation_id,
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        report_start_date = self._resolve_report_start_date(
-            as_of_date=date.fromisoformat(report_end_date),
+        report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+            default_report_end_date=resolved_report_end_date,
             period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
         )
 
         net_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,
-            period=period,
+            report_start_date=(
+                report_start_date.isoformat() if effective_period == "EXPLICIT" else None
+            ),
+            period=effective_period,
             metric_basis="NET",
             benchmark_id=benchmark_code,
             correlation_id=correlation_id,
@@ -75,7 +82,10 @@ class PerformanceWorkspaceService:
         gross_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,
-            period=period,
+            report_start_date=(
+                report_start_date.isoformat() if effective_period == "EXPLICIT" else None
+            ),
+            period=effective_period,
             metric_basis="GROSS",
             benchmark_id=benchmark_code,
             correlation_id=correlation_id,
@@ -156,7 +166,9 @@ class PerformanceWorkspaceService:
             contract_version=overview.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=overview.as_of_date,
-            period=period,
+            period=effective_period,
+            report_start_date=report_start_date.isoformat(),
+            report_end_date=report_end_date,
             chart_frequency=chart_frequency,
             detail_dimension=detail_dimension,
             detail_basis=detail_basis,
@@ -235,6 +247,27 @@ class PerformanceWorkspaceService:
         if normalized_period == "5Y":
             return self._shift_years(as_of_date, 5)
         return as_of_date.replace(month=1, day=1)
+
+    def _resolve_requested_window(
+        self,
+        *,
+        default_report_end_date: str,
+        period: str,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> tuple[str, date, str]:
+        report_end = date.fromisoformat(explicit_end_date or default_report_end_date)
+        effective_period = period.upper()
+        if explicit_start_date:
+            report_start = date.fromisoformat(explicit_start_date)
+            if report_start > report_end:
+                report_start, report_end = report_end, report_start
+            return report_end.isoformat(), report_start, "EXPLICIT"
+        return (
+            report_end.isoformat(),
+            self._resolve_report_start_date(as_of_date=report_end, period=effective_period),
+            effective_period,
+        )
 
     def _shift_years(self, anchor: date, years: int) -> date:
         try:
