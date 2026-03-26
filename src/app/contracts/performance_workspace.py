@@ -48,6 +48,15 @@ class ContributionRowView(BaseModel):
     is_other: bool = False
 
 
+class ContributionPositionView(BaseModel):
+    position_id: str
+    contribution_pct: float
+    weight_avg_pct: float | None = None
+    total_return_pct: float | None = None
+    local_contribution_pct: float | None = None
+    fx_contribution_pct: float | None = None
+
+
 class ContributionLevelView(BaseModel):
     level: int
     name: str
@@ -61,6 +70,9 @@ class ContributionSummaryView(BaseModel):
     portfolio_contribution_pct: float | None = None
     total_portfolio_return_pct: float | None = None
     coverage_mv_pct: float | None = None
+    portfolio_local_contribution_pct: float | None = None
+    portfolio_fx_contribution_pct: float | None = None
+    position_rows: list[ContributionPositionView] = Field(default_factory=list)
     levels: list[ContributionLevelView] = Field(default_factory=list)
 
 

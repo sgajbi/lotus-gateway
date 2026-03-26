@@ -143,6 +143,8 @@ class _StubAnalyticsClient:
                             "portfolio_contribution": 5.42,
                             "coverage_mv_pct": 98.7,
                             "weighting_scheme": "average_weight",
+                            "local_contribution": 4.5,
+                            "fx_contribution": 0.92,
                         },
                         "levels": [
                             {
@@ -164,6 +166,16 @@ class _StubAnalyticsClient:
                                         "fx_contribution": 0.1,
                                     },
                                 ],
+                            }
+                        ],
+                        "position_contributions": [
+                            {
+                                "position_id": "AAPL",
+                                "total_contribution": 1.45,
+                                "average_weight": 46.36,
+                                "total_return": 7.2,
+                                "local_contribution": 1.2,
+                                "fx_contribution": 0.25,
                             }
                         ],
                     }
@@ -246,6 +258,10 @@ async def test_performance_workspace_service_returns_rich_workspace():
     assert response.contribution is not None
     assert response.contribution.levels[0].rows[0].key_label == "Equity"
     assert response.contribution.levels[0].rows[0].weight_avg_pct == 61.0
+    assert response.contribution.portfolio_local_contribution_pct == 4.5
+    assert response.contribution.portfolio_fx_contribution_pct == 0.92
+    assert response.contribution.position_rows[0].position_id == "AAPL"
+    assert response.contribution.position_rows[0].weight_avg_pct == 46.36
     assert response.attribution is not None
     assert response.attribution.levels[0].rows[0].total_effect_pct == 0.45
     assert response.warnings == ["FOUNDATION_WARNING"]

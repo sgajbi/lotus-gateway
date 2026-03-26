@@ -11,6 +11,7 @@ from app.contracts.performance_workspace import (
     AttributionRowView,
     AttributionSummaryView,
     ContributionLevelView,
+    ContributionPositionView,
     ContributionRowView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
@@ -480,7 +481,7 @@ class PerformanceWorkspaceService:
                                 contribution_pct=float(
                                     quantize_performance(row_payload.get("contribution", 0.0))
                                 ),
-                                weight_avg_pct=self._ratio_to_pct(row_payload.get("weight_avg")),
+                                weight_avg_pct=self._weight_to_pct(row_payload.get("weight_avg")),
                                 local_contribution_pct=self._quantize_optional(
                                     row_payload.get("local_contribution")
                                 ),
@@ -500,6 +501,28 @@ class PerformanceWorkspaceService:
                         ),
                     )
                 )
+        position_rows: list[ContributionPositionView] = []
+        position_payloads = period_payload.get("position_contributions", [])
+        if isinstance(position_payloads, list):
+            for position_payload in position_payloads[:10]:
+                if not isinstance(position_payload, dict):
+                    continue
+                position_rows.append(
+                    ContributionPositionView(
+                        position_id=str(position_payload.get("position_id", "Unknown Position")),
+                        contribution_pct=float(
+                            quantize_performance(position_payload.get("total_contribution", 0.0))
+                        ),
+                        weight_avg_pct=self._weight_to_pct(position_payload.get("average_weight")),
+                        total_return_pct=self._quantize_optional(position_payload.get("total_return")),
+                        local_contribution_pct=self._quantize_optional(
+                            position_payload.get("local_contribution")
+                        ),
+                        fx_contribution_pct=self._quantize_optional(
+                            position_payload.get("fx_contribution")
+                        ),
+                    )
+                )
         return ContributionSummaryView(
             metric_basis=metric_basis,
             weighting_scheme=self._safe_str(summary_payload.get("weighting_scheme")),
@@ -510,6 +533,13 @@ class PerformanceWorkspaceService:
                 period_payload.get("total_portfolio_return")
             ),
             coverage_mv_pct=self._quantize_optional(summary_payload.get("coverage_mv_pct")),
+            portfolio_local_contribution_pct=self._quantize_optional(
+                summary_payload.get("local_contribution")
+            ),
+            portfolio_fx_contribution_pct=self._quantize_optional(
+                summary_payload.get("fx_contribution")
+            ),
+            position_rows=position_rows,
             levels=levels,
         )
 
@@ -633,11 +663,14 @@ class PerformanceWorkspaceService:
         except (TypeError, ValueError):
             return None
 
-    def _ratio_to_pct(self, value: Any) -> float | None:
+    def _weight_to_pct(self, value: Any) -> float | None:
         if value is None:
             return None
         try:
-            return float(quantize_performance(float(value) * 100.0))
+            normalized = float(value)
+            if abs(normalized) <= 1.000001:
+                normalized *= 100.0
+            return float(quantize_performance(normalized))
         except (TypeError, ValueError):
             return None
 
