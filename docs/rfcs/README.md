@@ -20,5 +20,5 @@ Governance boundary:
 | RFC-0012 | Workbench Analytics Delta API | IMPLEMENTED | `docs/rfcs/RFC-0012-workbench-analytics-delta-api.md` |
 | RFC-0013 | Workbench Position Valuation Fields | IMPLEMENTED | `docs/rfcs/RFC-0013-workbench-position-valuation-fields.md` |
 | RFC-0014 | Experience API Foundation and Pre-Live Replacement Strategy | PROPOSED | `docs/rfcs/RFC-0014-experience-api-foundation-and-prelive-replacement-strategy.md` |
-| RFC-0015 | Foundation Workspace Experience Contract | PROPOSED | `docs/rfcs/RFC-0015-foundation-workspace-experience-contract.md` |
+| RFC-0015 | Foundation Workspace Experience Contract | IMPLEMENTED | `docs/rfcs/RFC-0015-foundation-workspace-experience-contract.md` |
 

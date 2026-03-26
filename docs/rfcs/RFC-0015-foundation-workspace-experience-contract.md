@@ -1,6 +1,6 @@
 # RFC-0015: Foundation Workspace Experience Contract
 
-- Status: PROPOSED
+- Status: IMPLEMENTED
 - Date: 2026-03-26
 - Owners: lotus-gateway
 - Requires Approval From:

@@ -30,6 +30,8 @@ API docs: `http://localhost:8100/docs`
 
 ## Current endpoints
 
+- `GET /api/v1/foundation/portfolios` (selector-ready Foundation portfolio catalog)
+- `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace` (Foundation workspace entry payload with readiness and partial-failure-aware upstream context)
 - `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
 - `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
 - `GET /api/v1/proposals` (list proposals)
