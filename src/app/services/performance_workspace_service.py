@@ -23,6 +23,15 @@ from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
 from app.services.workbench_service import WorkbenchService
 
+STANDARD_PERIOD_ANALYSES = (
+    {"period": "MTD", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+    {"period": "QTD", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+    {"period": "YTD", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+    {"period": "1Y", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+    {"period": "3Y", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+    {"period": "5Y", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
+)
+
 
 class PerformanceWorkspaceService:
     def __init__(
@@ -67,6 +76,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        twr_analyses = self._build_twr_analyses(effective_period)
 
         net_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
@@ -78,6 +88,7 @@ class PerformanceWorkspaceService:
             metric_basis="NET",
             benchmark_id=benchmark_code,
             correlation_id=correlation_id,
+            analyses=twr_analyses,
         )
         gross_twr_task = self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
@@ -89,6 +100,7 @@ class PerformanceWorkspaceService:
             metric_basis="GROSS",
             benchmark_id=benchmark_code,
             correlation_id=correlation_id,
+            analyses=twr_analyses,
         )
         mwr_task = self._analytics_client.get_mwr_analytics(
             portfolio_id=portfolio_id,
@@ -133,6 +145,7 @@ class PerformanceWorkspaceService:
             result=results[0],
             metric_basis="NET",
             chart_frequency=chart_frequency,
+            requested_period=effective_period,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -140,6 +153,7 @@ class PerformanceWorkspaceService:
             result=results[1],
             metric_basis="GROSS",
             chart_frequency=chart_frequency,
+            requested_period=effective_period,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -185,6 +199,31 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    def _build_twr_analyses(self, period: str) -> list[dict[str, object]]:
+        if period == "EXPLICIT":
+            return [
+                {
+                    "period": "EXPLICIT",
+                    "frequencies": ["daily", "monthly", "quarterly", "yearly"],
+                }
+            ]
+        requested_period = period.upper()
+        analyses: list[dict[str, object]] = []
+        seen_periods: set[str] = set()
+        for analysis in (
+            {
+                "period": requested_period,
+                "frequencies": ["daily", "monthly", "quarterly", "yearly"],
+            },
+            *STANDARD_PERIOD_ANALYSES,
+        ):
+            period_key = str(analysis["period"]).upper()
+            if period_key in seen_periods:
+                continue
+            seen_periods.add(period_key)
+            analyses.append(dict(analysis))
+        return analyses
 
     async def _resolve_report_end_date(
         self,
@@ -281,6 +320,7 @@ class PerformanceWorkspaceService:
         result: object,
         metric_basis: str,
         chart_frequency: str,
+        requested_period: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> tuple[PerformanceComparativeSummary, list[PerformanceChartPoint]]:
@@ -319,7 +359,10 @@ class PerformanceWorkspaceService:
         if not isinstance(results_by_period, dict) or not results_by_period:
             warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
             return empty_summary, []
-        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period))
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             return empty_summary, []
@@ -355,6 +398,20 @@ class PerformanceWorkspaceService:
             chart_frequency=chart_frequency,
         )
         return summary, chart_points
+
+    def _resolve_results_period_key(
+        self,
+        *,
+        requested_period: str,
+        results_by_period: dict[str, Any],
+    ) -> str:
+        normalized_requested_period = requested_period.upper()
+        for key in results_by_period:
+            if key.upper() == normalized_requested_period:
+                return key
+        if normalized_requested_period == "EXPLICIT":
+            return next(iter(results_by_period))
+        return next(iter(results_by_period))
 
     def _parse_chart_points(
         self,

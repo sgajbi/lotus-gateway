@@ -38,7 +38,11 @@ class _StubWorkbenchService:
 
 
 class _StubAnalyticsClient:
+    def __init__(self):
+        self.twr_calls: list[dict[str, object]] = []
+
     async def get_twr_analytics(self, **kwargs):  # noqa: ARG002
+        self.twr_calls.append(kwargs)
         return (
             200,
             {
@@ -368,3 +372,106 @@ async def test_performance_workspace_service_supports_explicit_window():
     assert response.period == "EXPLICIT"
     assert response.report_start_date == "2026-01-15"
     assert response.report_end_date == "2026-02-20"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_uses_requested_period_not_ytd_fallback():
+    class _MultiPeriodAnalyticsClient(_StubAnalyticsClient):
+        async def get_twr_analytics(self, **kwargs):  # noqa: ARG002
+            self.twr_calls.append(kwargs)
+            return (
+                200,
+                {
+                    "benchmark_context": {
+                        "benchmark_id": "MODEL_60_40",
+                        "return_source": "calculated",
+                    },
+                    "results_by_period": {
+                        "YTD": {
+                            "portfolio": {
+                                "summary": {
+                                    "period_return": {"base": 5.42},
+                                    "annualized_return": {"base": 5.42},
+                                },
+                                "breakdowns": {"monthly": []},
+                            }
+                        },
+                        "3Y": {
+                            "portfolio": {
+                                "summary": {
+                                    "period_return": {"base": 18.75},
+                                    "annualized_return": {"base": 5.91},
+                                },
+                                "breakdowns": {
+                                    "monthly": [
+                                        {
+                                            "period": "2026-02",
+                                            "period_start": "2026-02-01",
+                                            "period_end": "2026-02-24",
+                                            "period_return": {"base": 1.22},
+                                            "cumulative_return": {"base": 18.75},
+                                        }
+                                    ]
+                                },
+                            },
+                            "benchmark": {
+                                "summary": {"period_return": {"base": 16.12}},
+                                "breakdowns": {
+                                    "monthly": [
+                                        {
+                                            "period": "2026-02",
+                                            "period_start": "2026-02-01",
+                                            "period_end": "2026-02-24",
+                                            "period_return": {"base": 0.94},
+                                            "cumulative_return": {"base": 16.12},
+                                        }
+                                    ]
+                                },
+                            },
+                            "relative_performance": {
+                                "summary": {"period_return": {"base": 2.63}},
+                                "breakdowns": {
+                                    "monthly": [
+                                        {
+                                            "period": "2026-02",
+                                            "period_start": "2026-02-01",
+                                            "period_end": "2026-02-24",
+                                            "period_return": {"base": 0.28},
+                                            "cumulative_return": {"base": 2.63},
+                                        }
+                                    ]
+                                },
+                            },
+                        },
+                    },
+                },
+            )
+
+    analytics_client = _MultiPeriodAnalyticsClient()
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-performance",
+        period="3Y",
+        chart_frequency="monthly",
+        detail_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="MODEL_60_40",
+    )
+
+    assert response.period == "3Y"
+    assert response.net_performance.portfolio_return_pct == 18.75
+    assert response.net_performance.annualized_return_pct == 5.91
+    assert response.net_chart[0].cumulative_portfolio_return_pct == 18.75
+    assert analytics_client.twr_calls
+    first_call = analytics_client.twr_calls[0]
+    analyses = first_call["analyses"]
+    assert isinstance(analyses, list)
+    assert analyses[0]["period"] == "3Y"
+    assert any(analysis["period"] == "YTD" for analysis in analyses)

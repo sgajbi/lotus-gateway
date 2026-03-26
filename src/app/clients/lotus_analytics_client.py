@@ -160,6 +160,7 @@ class LotusAnalyticsClient:
         metric_basis: str,
         benchmark_id: str | None,
         correlation_id: str,
+        analyses: list[dict[str, Any]] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         analysis_period = "EXPLICIT" if report_start_date else period
         payload: dict[str, Any] = {
@@ -170,7 +171,8 @@ class LotusAnalyticsClient:
             "report_end_date": report_end_date,
             "report_start_date": report_start_date,
             "performance_start_date": report_start_date,
-            "analyses": [
+            "analyses": analyses
+            or [
                 {
                     "period": analysis_period,
                     "frequencies": ["daily", "monthly", "quarterly", "yearly"],
