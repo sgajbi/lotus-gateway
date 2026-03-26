@@ -6,7 +6,8 @@ class Settings(BaseSettings):
     app_name: str = "Advisor Experience API"
     contract_version: str = "v1"
     decisioning_service_base_url: str = Field(default="http://localhost:8000")
-    portfolio_data_platform_base_url: str = Field(default="http://localhost:8201")
+    portfolio_data_query_base_url: str = Field(default="http://localhost:8201")
+    portfolio_data_control_plane_base_url: str = Field(default="http://localhost:8202")
     portfolio_data_ingestion_base_url: str = Field(default="http://localhost:8200")
     performance_analytics_base_url: str = Field(default="http://localhost:8002")
     risk_analytics_base_url: str = Field(default="http://localhost:8130")

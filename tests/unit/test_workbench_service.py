@@ -3,20 +3,40 @@ import pytest
 from app.services.workbench_service import WorkbenchService
 
 
-class _StubPasClient:
-    def __init__(self, status_code: int, payload: dict):
-        self.status_code = status_code
-        self.payload = payload
+class _StubLotusCoreQueryClient:
+    def __init__(
+        self,
+        portfolio_status_code: int,
+        portfolio_payload: dict,
+        snapshot_status_code: int,
+        snapshot_payload: dict,
+    ):
+        self.portfolio_status_code = portfolio_status_code
+        self.portfolio_payload = portfolio_payload
+        self.snapshot_status_code = snapshot_status_code
+        self.snapshot_payload = snapshot_payload
+
+    async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+        return self.portfolio_status_code, self.portfolio_payload
 
     async def get_core_snapshot(
         self,
         portfolio_id: str,
         as_of_date: str,
-        include_sections: list[str],
+        sections: list[str],
         consumer_system: str,
         correlation_id: str,
     ):
-        return self.status_code, self.payload
+        return self.snapshot_status_code, self.snapshot_payload
+
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ):
+        return 200, {"performance_end_date": "2026-02-23"}
 
     async def get_projected_positions(self, session_id: str, correlation_id: str):
         return 200, {
@@ -57,10 +77,11 @@ class _StubPasClient:
         return 200, {"session_id": session_id, "version": 2}
 
 
-class _StubPaClient:
+class _StubLotusAnalyticsClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
+        self.last_report_end_date: str | None = None
         self.workbench_status_code = 200
         self.workbench_payload = {
             "portfolioId": "PF_1001",
@@ -92,15 +113,32 @@ class _StubPaClient:
             "riskProxy": {"hhiCurrent": 10000.0, "hhiProposed": 10000.0, "hhiDelta": 0.0},
         }
 
-    async def get_pas_input_twr(
+    async def get_stateful_twr(
         self,
         portfolio_id: str,
-        as_of_date: str,
-        periods: list[str],
-        consumer_system: str,
+        report_end_date: str,
+        period: str,
         correlation_id: str,
     ):
+        self.last_report_end_date = report_end_date
         return self.status_code, self.payload
+
+    async def get_twr_analytics(
+        self,
+        portfolio_id: str,
+        report_end_date: str,
+        period: str,
+        metric_basis: str,
+        benchmark_id: str | None,
+        correlation_id: str,
+    ):
+        _ = metric_basis, benchmark_id
+        return await self.get_stateful_twr(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            period=period,
+            correlation_id=correlation_id,
+        )
 
     async def get_workbench_analytics(self, payload: dict, correlation_id: str):  # noqa: ARG002
         return self.workbench_status_code, self.workbench_payload
@@ -125,35 +163,69 @@ class _StubDpmClient:
 
 @pytest.mark.asyncio
 async def test_workbench_overview_success():
+    analytics_client = _StubLotusAnalyticsClient(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 3.2}}}}
+            },
+        },
+    )
     service = WorkbenchService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
             {
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "base_currency": "USD",
-                    "booking_center": "SG",
-                    "cif_id": "CIF_1001",
-                },
-                "snapshot": {
-                    "as_of_date": "2026-02-23",
-                    "overview": {"total_market_value": 1000.0, "total_cash": 200.0},
-                    "holdings": {
-                        "holdingsByAssetClass": {
-                            "Equity": [{"instrument_id": "EQ_1"}, {"instrument_id": "EQ_2"}]
-                        }
-                    },
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+                "client_id": "CIF_1001",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [
+                        {
+                            "security_id": "EQ_1",
+                            "quantity": 10,
+                            "market_value_base": 400.0,
+                            "weight": 0.4,
+                        },
+                        {
+                            "security_id": "EQ_2",
+                            "quantity": 5,
+                            "market_value_base": 400.0,
+                            "weight": 0.4,
+                        },
+                        {
+                            "security_id": "CASH_USD",
+                            "quantity": 200.0,
+                            "market_value_base": 200.0,
+                            "weight": 0.2,
+                        },
+                    ],
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "instrument_enrichment": [
+                        {
+                            "security_id": "EQ_1",
+                            "instrument_name": "Equity 1",
+                            "asset_class": "Equity",
+                        },
+                        {
+                            "security_id": "EQ_2",
+                            "instrument_name": "Equity 2",
+                            "asset_class": "Equity",
+                        },
+                        {
+                            "security_id": "CASH_USD",
+                            "instrument_name": "US Dollar Cash",
+                            "asset_class": "Cash",
+                        },
+                    ],
                 },
             },
         ),
-        pa_client=_StubPaClient(
-            200,
-            {
-                "resultsByPeriod": {
-                    "YTD": {"net_cumulative_return": 3.2},
-                }
-            },
-        ),
+        analytics_client=analytics_client,
         dpm_client=_StubDpmClient(
             200,
             {
@@ -174,9 +246,10 @@ async def test_workbench_overview_success():
     )
 
     assert response.portfolio.portfolio_id == "PF_1001"
-    assert response.overview.position_count == 2
+    assert response.overview.position_count == 3
     assert response.performance_snapshot is not None
     assert response.performance_snapshot.return_pct == 3.2
+    assert analytics_client.last_report_end_date == "2026-02-23"
     assert response.rebalance_snapshot is not None
     assert response.rebalance_snapshot.status == "READY"
     assert response.partial_failures == []
@@ -185,20 +258,49 @@ async def test_workbench_overview_success():
 @pytest.mark.asyncio
 async def test_workbench_overview_partial_failures():
     service = WorkbenchService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
             {
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "base_currency": "USD",
-                },
-                "snapshot": {
-                    "as_of_date": "2026-02-23",
-                    "overview": {"total_market_value": 500.0, "total_cash": 50.0},
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [
+                        {
+                            "security_id": "EQ_1",
+                            "quantity": 5,
+                            "market_value_base": 450.0,
+                            "weight": 0.9,
+                        },
+                        {
+                            "security_id": "CASH_USD",
+                            "quantity": 50.0,
+                            "market_value_base": 50.0,
+                            "weight": 0.1,
+                        },
+                    ],
+                    "portfolio_totals": {"baseline_total_market_value_base": 500.0},
+                    "instrument_enrichment": [
+                        {
+                            "security_id": "EQ_1",
+                            "instrument_name": "Equity 1",
+                            "asset_class": "Equity",
+                        },
+                        {
+                            "security_id": "CASH_USD",
+                            "instrument_name": "US Dollar Cash",
+                            "asset_class": "Cash",
+                        },
+                    ],
                 },
             },
         ),
-        pa_client=_StubPaClient(503, {"detail": "pa unavailable"}),
+        analytics_client=_StubLotusAnalyticsClient(
+            503, {"detail": "lotus-performance unavailable"}
+        ),
         dpm_client=_StubDpmClient(500, {"detail": "dpm unavailable"}),
     )
 
@@ -210,40 +312,54 @@ async def test_workbench_overview_partial_failures():
     assert response.performance_snapshot is None
     assert response.rebalance_snapshot is None
     assert len(response.partial_failures) == 2
-    assert response.warnings == ["PA_SNAPSHOT_UNAVAILABLE", "DPM_REBALANCE_UNAVAILABLE"]
+    assert response.warnings == [
+        "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
+        "MANAGE_REBALANCE_UNAVAILABLE",
+    ]
 
 
 @pytest.mark.asyncio
 async def test_workbench_portfolio_360_with_projected_state():
     service = WorkbenchService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
             {
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "base_currency": "USD",
-                    "booking_center": "SG",
-                    "cif_id": "CIF_1001",
-                },
-                "snapshot": {
-                    "as_of_date": "2026-02-23",
-                    "overview": {"total_market_value": 1000.0, "total_cash": 200.0},
-                    "holdings": {
-                        "holdingsByAssetClass": {
-                            "Equity": [
-                                {
-                                    "instrument_id": "EQ_1",
-                                    "instrument_name": "Equity 1",
-                                    "quantity": 10,
-                                    "valuation": {"market_value": 420.5},
-                                }
-                            ]
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+                "client_id": "CIF_1001",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [
+                        {
+                            "security_id": "EQ_1",
+                            "quantity": 10,
+                            "market_value_base": 420.5,
+                            "weight": 0.4205,
                         }
-                    },
+                    ],
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "instrument_enrichment": [
+                        {
+                            "security_id": "EQ_1",
+                            "instrument_name": "Equity 1",
+                            "asset_class": "Equity",
+                        }
+                    ],
                 },
             },
         ),
-        pa_client=_StubPaClient(200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.0}}}),
+        analytics_client=_StubLotusAnalyticsClient(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                }
+            },
+        ),
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_portfolio_360(
@@ -263,17 +379,30 @@ async def test_workbench_portfolio_360_with_projected_state():
 @pytest.mark.asyncio
 async def test_workbench_apply_sandbox_changes_with_policy_eval():
     service = WorkbenchService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
             {
-                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
-                "snapshot": {
-                    "as_of_date": "2026-02-23",
-                    "overview": {"total_market_value": 1000, "total_cash": 200},
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [],
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "instrument_enrichment": [],
                 },
             },
         ),
-        pa_client=_StubPaClient(200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.0}}}),
+        analytics_client=_StubLotusAnalyticsClient(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                }
+            },
+        ),
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.apply_sandbox_changes(
@@ -292,32 +421,43 @@ async def test_workbench_apply_sandbox_changes_with_policy_eval():
 @pytest.mark.asyncio
 async def test_workbench_analytics_response():
     service = WorkbenchService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
             {
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "base_currency": "USD",
-                },
-                "snapshot": {
-                    "as_of_date": "2026-02-23",
-                    "overview": {"total_market_value": 1000.0, "total_cash": 200.0},
-                    "holdings": {
-                        "holdingsByAssetClass": {
-                            "Equity": [
-                                {
-                                    "instrument_id": "EQ_1",
-                                    "instrument_name": "Equity 1",
-                                    "quantity": 10,
-                                    "market_value_base": 300.0,
-                                }
-                            ]
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [
+                        {
+                            "security_id": "EQ_1",
+                            "quantity": 10,
+                            "market_value_base": 300.0,
+                            "weight": 0.3,
                         }
-                    },
+                    ],
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "instrument_enrichment": [
+                        {
+                            "security_id": "EQ_1",
+                            "instrument_name": "Equity 1",
+                            "asset_class": "Equity",
+                        }
+                    ],
                 },
             },
         ),
-        pa_client=_StubPaClient(200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.0}}}),
+        analytics_client=_StubLotusAnalyticsClient(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                }
+            },
+        ),
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_workbench_analytics(

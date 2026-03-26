@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
 from app.clients.dpm_client import DpmClient
-from app.clients.pa_client import PaClient
-from app.clients.pas_client import PasClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.foundation import (
@@ -22,13 +22,14 @@ def _foundation_service() -> FoundationService:
         else settings.decisioning_service_base_url
     )
     return FoundationService(
-        pas_client=PasClient(
-            base_url=settings.portfolio_data_platform_base_url,
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        pa_client=PaClient(
+        analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,

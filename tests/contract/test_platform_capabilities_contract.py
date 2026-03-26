@@ -2,13 +2,15 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
+
 
 def test_platform_capabilities_contract_shape(monkeypatch):
     async def _pas(*args, **kwargs):
         return 200, {
             "contractVersion": "v1",
             "sourceService": "lotus-core",
-            "policyVersion": "pas-default-v1",
+            "policyVersion": "lotus-core-default-v1",
             "features": [],
             "workflows": [],
         }
@@ -17,7 +19,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         return 200, {
             "contractVersion": "v1",
             "sourceService": "performance-analytics",
-            "policyVersion": "pa-default-v1",
+            "policyVersion": "lotus-performance-default-v1",
             "features": [],
             "workflows": [],
         }
@@ -26,7 +28,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         return 200, {
             "contractVersion": "v1",
             "sourceService": "lotus-advise",
-            "policyVersion": "dpm-default-v1",
+            "policyVersion": "lotus-manage-default-v1",
             "features": [],
             "workflows": [],
         }
@@ -35,7 +37,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         return 200, {
             "contractVersion": "v1",
             "sourceService": "lotus-report",
-            "policyVersion": "ras-default-v1",
+            "policyVersion": "lotus-report-default-v1",
             "features": [],
             "workflows": [],
         }
@@ -43,7 +45,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     async def _pas_policy(*args, **kwargs):
         return 200, {
             "policyProvenance": {
-                "policyVersion": "pas-default-v1",
+                "policyVersion": "lotus-core-default-v1",
                 "policySource": "default",
                 "matchedRuleId": "default",
                 "strictMode": False,
@@ -52,9 +54,11 @@ def test_platform_capabilities_contract_shape(monkeypatch):
             "warnings": [],
         }
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_capabilities", _pas)
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_effective_policy", _pas_policy)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_capabilities", _pa)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -74,9 +78,9 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert "workflowFlags" in payload["normalized"]
     assert "moduleHealth" in payload["normalized"]
     assert "policyVersionsBySource" in payload["normalized"]
-    assert "pasPolicyDiagnostics" in payload["normalized"]
+    assert "lotusCorePolicyDiagnostics" in payload["normalized"]
 
-    for service_name in ("pas", "pa", "dpm", "ras"):
+    for service_name in ("lotus_core", "lotus_performance", "lotus_manage", "lotus_report"):
         source = payload["sources"][service_name]
         assert source["contractVersion"] == "v1"
         assert "sourceService" in source

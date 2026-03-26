@@ -16,7 +16,7 @@ class _StubClient:
         self.policy_status_code = policy_status_code
         self.policy_payload = policy_payload or {
             "policyProvenance": {
-                "policyVersion": "pas-default-v1",
+                "policyVersion": "lotus-core-default-v1",
                 "policySource": "default",
                 "matchedRuleId": "default",
                 "strictMode": False,
@@ -66,7 +66,7 @@ async def test_platform_capabilities_all_sources_success():
         dpm_client=_StubClient(
             200,
             {
-                "sourceService": "dpm",
+                "sourceService": "lotus_manage",
                 "policyVersion": "dpm-tenant-a-v2",
                 "supportedInputModes": ["pas_ref", "inline_bundle"],
                 "features": [
@@ -76,10 +76,10 @@ async def test_platform_capabilities_all_sources_success():
                 "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
             },
         ),
-        pas_client=_StubClient(
+        lotus_core_query_client=_StubClient(
             200,
             {
-                "sourceService": "pas",
+                "sourceService": "lotus_core",
                 "policyVersion": "pas-tenant-a-v3",
                 "supportedInputModes": ["pas_ref"],
                 "features": [
@@ -99,10 +99,10 @@ async def test_platform_capabilities_all_sources_success():
                 "warnings": ["SECTIONS_FILTERED_BY_POLICY"],
             },
         ),
-        pa_client=_StubClient(
+        analytics_client=_StubClient(
             200,
             {
-                "sourceService": "pa",
+                "sourceService": "lotus_performance",
                 "policyVersion": "pa-tenant-a-v4",
                 "supportedInputModes": ["pas_ref", "inline_bundle"],
                 "features": [{"key": "pa.analytics.twr", "enabled": True}],
@@ -132,7 +132,12 @@ async def test_platform_capabilities_all_sources_success():
     )
 
     assert response.data.partial_failure is False
-    assert set(response.data.sources.keys()) == {"pas", "pa", "dpm", "ras"}
+    assert set(response.data.sources.keys()) == {
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+    }
     assert response.data.errors == []
     assert response.data.normalized.navigation["portfolio_intake"] is True
     assert response.data.normalized.navigation["analytics_studio"] is True
@@ -141,15 +146,15 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["portfolio_reporting"] is True
     assert "inline_bundle" in response.data.normalized.input_modes_union
-    assert response.data.normalized.module_health["pas"] == "available"
+    assert response.data.normalized.module_health["lotus_core"] == "available"
     assert response.data.normalized.policy_versions_by_source == {
-        "pas": "pas-tenant-a-v3",
-        "pa": "pa-tenant-a-v4",
-        "dpm": "dpm-tenant-a-v2",
-        "ras": "ras-tenant-a-v1",
+        "lotus_core": "pas-tenant-a-v3",
+        "lotus_performance": "pa-tenant-a-v4",
+        "lotus_manage": "dpm-tenant-a-v2",
+        "lotus_report": "ras-tenant-a-v1",
     }
-    assert response.data.normalized.pas_policy_diagnostics["available"] is True
-    assert response.data.normalized.pas_policy_diagnostics["policyProvenance"] == {
+    assert response.data.normalized.lotus_core_policy_diagnostics["available"] is True
+    assert response.data.normalized.lotus_core_policy_diagnostics["policyProvenance"] == {
         "policyVersion": "pas-policy-v7",
         "policySource": "tenant",
         "matchedRuleId": "tenant.default.consumers.lotus-gateway",
@@ -161,10 +166,10 @@ async def test_platform_capabilities_all_sources_success():
 async def test_platform_capabilities_partial_failure_on_error():
     service = PlatformCapabilitiesService(
         dpm_client=_ErrorClient(),
-        pas_client=_StubClient(
+        lotus_core_query_client=_StubClient(
             200,
             {
-                "sourceService": "pas",
+                "sourceService": "lotus_core",
                 "policyVersion": "pas-tenant-default-v1",
                 "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
                 "workflows": [],
@@ -172,7 +177,7 @@ async def test_platform_capabilities_partial_failure_on_error():
             policy_status_code=503,
             policy_payload={"detail": "service unavailable"},
         ),
-        pa_client=_StubClient(502, {"detail": "bad gateway"}),
+        analytics_client=_StubClient(502, {"detail": "bad gateway"}),
         reporting_client=_StubClient(503, {"detail": "upstream failed"}),
         contract_version="v1",
     )
@@ -184,23 +189,23 @@ async def test_platform_capabilities_partial_failure_on_error():
     )
 
     assert response.data.partial_failure is True
-    assert set(response.data.sources.keys()) == {"pas"}
+    assert set(response.data.sources.keys()) == {"lotus_core"}
     assert len(response.data.errors) == 4
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
-    assert response.data.normalized.module_health["pa"] == "unavailable"
-    assert response.data.normalized.module_health["dpm"] == "unavailable"
-    assert response.data.normalized.module_health["ras"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert response.data.normalized.policy_versions_by_source == {
-        "pas": "pas-tenant-default-v1",
-        "pa": "unknown",
-        "dpm": "unknown",
-        "ras": "unknown",
+        "lotus_core": "pas-tenant-default-v1",
+        "lotus_performance": "unknown",
+        "lotus_manage": "unknown",
+        "lotus_report": "unknown",
     }
-    assert response.data.normalized.pas_policy_diagnostics["available"] is False
+    assert response.data.normalized.lotus_core_policy_diagnostics["available"] is False
     assert (
-        "PAS_POLICY_ENDPOINT_UNAVAILABLE"
-        in (response.data.normalized.pas_policy_diagnostics["warnings"])
+        "LOTUS_CORE_POLICY_ENDPOINT_UNAVAILABLE"
+        in (response.data.normalized.lotus_core_policy_diagnostics["warnings"])
     )
 
 
@@ -210,16 +215,16 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
         dpm_client=_StubClient(
             200,
             {
-                "sourceService": "dpm",
+                "sourceService": "lotus_manage",
                 "policyVersion": "dpm-v1",
                 "features": "invalid",
                 "workflows": "invalid",
             },
         ),
-        pas_client=_StubClient(
+        lotus_core_query_client=_StubClient(
             200,
             {
-                "sourceService": "pas",
+                "sourceService": "lotus_core",
                 "policyVersion": "pas-v1",
                 "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
                 "workflows": [{"workflow_key": "portfolio_bulk_onboarding", "enabled": True}],
@@ -231,10 +236,10 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
                 "warnings": "invalid",
             },
         ),
-        pa_client=_StubClient(
+        analytics_client=_StubClient(
             200,
             {
-                "sourceService": "pa",
+                "sourceService": "lotus_performance",
                 "policyVersion": "pa-v1",
                 "features": [{"key": "pa.analytics.twr", "enabled": False}],
                 "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
@@ -264,11 +269,13 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     assert normalized.navigation["analytics_studio"] is False
     assert normalized.workflow_flags["proposal_lifecycle"] is False
     assert normalized.workflow_flags["performance_snapshot"] is True
-    assert normalized.input_modes_by_source["pas"] == []
-    assert normalized.pas_policy_diagnostics["available"] is True
-    assert normalized.pas_policy_diagnostics["allowedSections"] == []
-    assert normalized.pas_policy_diagnostics["warnings"] == []
-    assert normalized.pas_policy_diagnostics["policyProvenance"]["policyVersion"] == "unknown"
+    assert normalized.input_modes_by_source["lotus_core"] == []
+    assert normalized.lotus_core_policy_diagnostics["available"] is True
+    assert normalized.lotus_core_policy_diagnostics["allowedSections"] == []
+    assert normalized.lotus_core_policy_diagnostics["warnings"] == []
+    assert (
+        normalized.lotus_core_policy_diagnostics["policyProvenance"]["policyVersion"] == "unknown"
+    )
 
 
 @pytest.mark.asyncio
@@ -283,11 +290,17 @@ async def test_platform_capabilities_records_pas_policy_exception():
             raise RuntimeError("policy endpoint timeout")
 
     service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(200, {"sourceService": "dpm", "features": [], "workflows": []}),
-        pas_client=_PasPolicyErrorClient(
-            200, {"sourceService": "pas", "features": [], "workflows": []}
+        dpm_client=_StubClient(
+            200,
+            {"sourceService": "lotus_manage", "features": [], "workflows": []},
         ),
-        pa_client=_StubClient(200, {"sourceService": "pa", "features": [], "workflows": []}),
+        lotus_core_query_client=_PasPolicyErrorClient(
+            200, {"sourceService": "lotus_core", "features": [], "workflows": []}
+        ),
+        analytics_client=_StubClient(
+            200,
+            {"sourceService": "lotus_performance", "features": [], "workflows": []},
+        ),
         reporting_client=_StubClient(
             200,
             {"sourceService": "lotus-report", "features": [], "workflows": []},
@@ -301,28 +314,34 @@ async def test_platform_capabilities_records_pas_policy_exception():
         correlation_id="corr-policy-ex",
     )
     error_services = {item.service for item in response.data.errors}
-    assert "pas_policy" in error_services
+    assert "lotus_core_policy" in error_services
 
 
 def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
     service = PlatformCapabilitiesService(
         dpm_client=_StubClient(200, {}),
-        pas_client=_StubClient(200, {}),
-        pa_client=_StubClient(200, {}),
+        lotus_core_query_client=_StubClient(200, {}),
+        analytics_client=_StubClient(200, {}),
         reporting_client=_StubClient(200, {}),
         contract_version="v1",
     )
     sources = {
-        "pa": {"features": ["bad", {"key": "pa.analytics.twr", "enabled": True}]},
-        "dpm": {"workflows": ["bad", {"workflow_key": "proposal_lifecycle", "enabled": True}]},
+        "lotus_performance": {"features": ["bad", {"key": "pa.analytics.twr", "enabled": True}]},
+        "lotus_manage": {
+            "workflows": ["bad", {"workflow_key": "proposal_lifecycle", "enabled": True}]
+        },
     }
     assert (
-        service._feature_enabled(sources=sources, source_name="pa", feature_key="pa.analytics.twr")
+        service._feature_enabled(
+            sources=sources,
+            source_name="lotus_performance",
+            feature_keys=("pa.analytics.twr",),
+        )
         is True
     )
     assert (
         service._workflow_enabled(
-            sources=sources, source_name="dpm", workflow_key="proposal_lifecycle"
+            sources=sources, source_name="lotus_manage", workflow_key="proposal_lifecycle"
         )
         is True
     )
@@ -331,13 +350,13 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
 def test_platform_capabilities_module_health_marks_unknown_sources():
     service = PlatformCapabilitiesService(
         dpm_client=_StubClient(200, {}),
-        pas_client=_StubClient(200, {}),
-        pa_client=_StubClient(200, {}),
+        lotus_core_query_client=_StubClient(200, {}),
+        analytics_client=_StubClient(200, {}),
         reporting_client=_StubClient(200, {}),
         contract_version="v1",
     )
-    health = service._module_health(sources={"pas": {}}, errors=[])
-    assert health["pas"] == "available"
-    assert health["pa"] == "unknown"
-    assert health["dpm"] == "unknown"
-    assert health["ras"] == "unknown"
+    health = service._module_health(sources={"lotus_core": {}}, errors=[])
+    assert health["lotus_core"] == "available"
+    assert health["lotus_performance"] == "unknown"
+    assert health["lotus_manage"] == "unknown"
+    assert health["lotus_report"] == "unknown"
