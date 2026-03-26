@@ -1,6 +1,7 @@
 # lotus-gateway
 
-FastAPI lotus-gateway for Advisor Workbench, scoped to lotus-manage-first proposal workflows.
+FastAPI experience API for `lotus-workbench`, evolving from proposal-first aggregation and
+pass-through routes into the primary BFF layer for Lotus workspace applications.
 
 ## Contribution Standards
 
@@ -8,6 +9,13 @@ FastAPI lotus-gateway for Advisor Workbench, scoped to lotus-manage-first propos
 - Docs-with-code standard: `docs/documentation/implementation-documentation-standard.md`
 - PR checklist template: `.github/pull_request_template.md`
 - Platform-wide architecture governance source: `https://github.com/sgajbi/lotus-platform`
+
+## Architecture Direction
+
+- Experience API foundation blueprint:
+  `docs/documentation/experience-api-foundation-blueprint.md`
+- Current RFC history:
+  `docs/rfcs/README.md`
 
 ## Quickstart
 
@@ -43,6 +51,12 @@ API docs: `http://localhost:8100/docs`
 - `GET /api/v1/lookups/portfolios` (lotus-core-backed portfolio selector values)
 - `GET /api/v1/lookups/instruments` (lotus-core-backed instrument selector values)
 - `GET /api/v1/lookups/currencies` (lotus-core-backed currency selector values)
+
+These are the current endpoints. Because the project is pre-live, the target future direction is a
+clean replacement-first experience-API model organized around workspace journeys rather than thin
+upstream parity. Stale routes should be replaced and removed instead of being preserved by default
+under versioned duplication, as described in
+`docs/documentation/experience-api-foundation-blueprint.md`.
 
 ## Docker
 
