@@ -293,6 +293,47 @@ async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_reque
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation_contract():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="quarterly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://analytics/performance/workspace-summary"
+    assert request["json"]["periods"][0]["period"] == "YTD"
+    assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
+    assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
+    assert request["json"]["contribution"]["metric_basis"] == "NET"
+    assert request["json"]["attribution"]["metric_basis"] == "NET"
+    assert request["json"]["benchmark"]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
     _FakeAsyncClient.queue_text(503, "pa unavailable")
@@ -695,3 +736,38 @@ async def test_reporting_client_summary_review_non_json_payloads():
     assert summary_payload["detail"] == "summary failure"
     assert review_status == 200
     assert review_payload["detail"] == ["review-item"]
+
+
+@pytest.mark.asyncio
+async def test_lotus_core_query_client_posts_benchmark_catalog_request():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "records": [
+                {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_name": "Global Balanced 60/40",
+                }
+            ]
+        },
+    )
+
+    status_code, payload = await client.get_benchmark_catalog(
+        as_of_date="2026-03-27",
+        benchmark_currency="USD",
+        correlation_id="corr-3",
+    )
+
+    assert status_code == 200
+    assert payload["records"][0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://core-control/integration/benchmarks/catalog"
+    assert request["json"]["as_of_date"] == "2026-03-27"
+    assert request["json"]["benchmark_currency"] == "USD"
+    assert request["json"]["benchmark_status"] == "active"
+    assert request["json"]["benchmark_type"] == "composite"

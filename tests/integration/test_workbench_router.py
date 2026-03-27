@@ -332,7 +332,19 @@ def test_workbench_performance_router(monkeypatch):
             "contribution_dimension": "asset_class",
             "attribution_dimension": "asset_class",
             "detail_basis": "NET",
+            "segment": "asset_class",
             "benchmark_code": "MODEL_60_40",
+            "benchmark_options": [
+                {
+                    "benchmark_code": "MODEL_60_40",
+                    "benchmark_name": "Model 60/40",
+                    "benchmark_currency": "USD",
+                    "benchmark_type": "composite",
+                    "benchmark_family": "Balanced",
+                    "benchmark_provider": "Lotus",
+                    "is_assigned": True,
+                }
+            ],
             "portfolio": {
                 "portfolio_id": "PF_1001",
                 "client_id": "CIF_1001",

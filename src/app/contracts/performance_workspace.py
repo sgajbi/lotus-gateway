@@ -15,6 +15,9 @@ class PerformanceComparativeSummary(BaseModel):
     annualized_return_pct: float | None = None
     benchmark_id: str | None = None
     benchmark_return_source: str | None = None
+    begin_market_value: float | None = None
+    end_market_value: float | None = None
+    net_cash_flow: float | None = None
 
 
 class PerformanceChartPoint(BaseModel):
@@ -43,6 +46,7 @@ class ContributionRowView(BaseModel):
     key_label: str
     contribution_pct: float
     weight_avg_pct: float | None = None
+    total_return_pct: float | None = None
     local_contribution_pct: float | None = None
     fx_contribution_pct: float | None = None
     is_other: bool = False
@@ -62,6 +66,8 @@ class ContributionLevelView(BaseModel):
     name: str
     rows: list[ContributionRowView] = Field(default_factory=list)
     total_contribution_pct: float | None = None
+    total_weight_avg_pct: float | None = None
+    total_portfolio_return_pct: float | None = None
 
 
 class ContributionSummaryView(BaseModel):
@@ -78,6 +84,10 @@ class ContributionSummaryView(BaseModel):
 
 class AttributionRowView(BaseModel):
     key_label: str
+    portfolio_weight_avg_pct: float | None = None
+    benchmark_weight_avg_pct: float | None = None
+    portfolio_return_pct: float | None = None
+    benchmark_return_pct: float | None = None
     allocation_pct: float
     selection_pct: float
     interaction_pct: float
@@ -86,6 +96,9 @@ class AttributionRowView(BaseModel):
 
 class AttributionLevelView(BaseModel):
     dimension: str
+    allocation_total_pct: float | None = None
+    selection_total_pct: float | None = None
+    interaction_total_pct: float | None = None
     total_effect_pct: float
     rows: list[AttributionRowView] = Field(default_factory=list)
 
@@ -102,6 +115,16 @@ class AttributionSummaryView(BaseModel):
     levels: list[AttributionLevelView] = Field(default_factory=list)
 
 
+class PerformanceBenchmarkOptionView(BaseModel):
+    benchmark_code: str
+    benchmark_name: str
+    benchmark_currency: str | None = None
+    benchmark_type: str | None = None
+    benchmark_family: str | None = None
+    benchmark_provider: str | None = None
+    is_assigned: bool = False
+
+
 class PerformanceWorkspaceResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
@@ -114,7 +137,9 @@ class PerformanceWorkspaceResponse(BaseModel):
     contribution_dimension: str
     attribution_dimension: str
     detail_basis: str
+    segment: str
     benchmark_code: str | None = None
+    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
     portfolio: WorkbenchPortfolioSummary
     overview: WorkbenchOverviewSummary
     net_performance: PerformanceComparativeSummary
