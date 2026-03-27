@@ -151,3 +151,46 @@ class PerformanceWorkspaceResponse(BaseModel):
     attribution: AttributionSummaryView | None = None
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
+
+
+class PerformanceWorkspaceSummaryResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
+    chart_frequency: str
+    detail_basis: str
+    benchmark_code: str | None = None
+    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    portfolio: WorkbenchPortfolioSummary
+    overview: WorkbenchOverviewSummary
+    net_performance: PerformanceComparativeSummary
+    gross_performance: PerformanceComparativeSummary
+    money_weighted_return: MoneyWeightedReturnSummary | None = None
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
+
+
+class PerformanceWorkspaceDetailsResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    segment: str
+    benchmark_code: str | None = None
+    net_chart: list[PerformanceChartPoint] = Field(default_factory=list)
+    gross_chart: list[PerformanceChartPoint] = Field(default_factory=list)
+    contribution: ContributionSummaryView | None = None
+    attribution: AttributionSummaryView | None = None
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)

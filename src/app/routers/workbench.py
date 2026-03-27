@@ -4,7 +4,11 @@ from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
-from app.contracts.performance_workspace import PerformanceWorkspaceResponse
+from app.contracts.performance_workspace import (
+    PerformanceWorkspaceDetailsResponse,
+    PerformanceWorkspaceResponse,
+    PerformanceWorkspaceSummaryResponse,
+)
 from app.contracts.workbench import (
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
@@ -149,6 +153,78 @@ async def get_workbench_analytics(
         group_by=group_by,
         benchmark_code=benchmark_code,
         session_id=session_id,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/summary",
+    response_model=PerformanceWorkspaceSummaryResponse,
+    summary="Get Performance Workspace Summary",
+    description=(
+        "Returns the first-paint performance summary contract with shared context, "
+        "benchmark options, comparative returns, and money-weighted return."
+    ),
+)
+async def get_performance_workspace_summary(
+    portfolio_id: str,
+    period: str = "YTD",
+    chart_frequency: str = "monthly",
+    contribution_dimension: str = "asset_class",
+    attribution_dimension: str = "asset_class",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
+) -> PerformanceWorkspaceSummaryResponse:
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_workspace_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/details",
+    response_model=PerformanceWorkspaceDetailsResponse,
+    summary="Get Performance Workspace Details",
+    description=(
+        "Returns the heavier analytical detail contract for charts, contribution, and attribution "
+        "panels while reusing the shared performance state model."
+    ),
+)
+async def get_performance_workspace_details(
+    portfolio_id: str,
+    period: str = "YTD",
+    chart_frequency: str = "monthly",
+    contribution_dimension: str = "asset_class",
+    attribution_dimension: str = "asset_class",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
+) -> PerformanceWorkspaceDetailsResponse:
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_workspace_details(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 

@@ -18,7 +18,9 @@ from app.contracts.performance_workspace import (
     PerformanceBenchmarkOptionView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
+    PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
+    PerformanceWorkspaceSummaryResponse,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
@@ -46,6 +48,89 @@ class PerformanceWorkspaceService:
         self._lotus_core_query_client = lotus_core_query_client
 
     async def get_performance_workspace(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceResponse:
+        return await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+
+    async def get_performance_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceSummaryResponse:
+        workspace = await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return self._project_workspace_summary(workspace)
+
+    async def get_performance_workspace_details(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceDetailsResponse:
+        workspace = await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return self._project_workspace_details(workspace)
+
+    async def _build_performance_workspace_response(
         self,
         *,
         portfolio_id: str,
@@ -149,6 +234,55 @@ class PerformanceWorkspaceService:
             attribution=attribution,
             warnings=warnings,
             partial_failures=partial_failures,
+        )
+
+    def _project_workspace_summary(
+        self, workspace: PerformanceWorkspaceResponse
+    ) -> PerformanceWorkspaceSummaryResponse:
+        return PerformanceWorkspaceSummaryResponse(
+            correlation_id=workspace.correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
+            chart_frequency=workspace.chart_frequency,
+            detail_basis=workspace.detail_basis,
+            benchmark_code=workspace.benchmark_code,
+            benchmark_options=workspace.benchmark_options,
+            portfolio=workspace.portfolio,
+            overview=workspace.overview,
+            net_performance=workspace.net_performance,
+            gross_performance=workspace.gross_performance,
+            money_weighted_return=workspace.money_weighted_return,
+            warnings=workspace.warnings,
+            partial_failures=workspace.partial_failures,
+        )
+
+    def _project_workspace_details(
+        self, workspace: PerformanceWorkspaceResponse
+    ) -> PerformanceWorkspaceDetailsResponse:
+        return PerformanceWorkspaceDetailsResponse(
+            correlation_id=workspace.correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
+            chart_frequency=workspace.chart_frequency,
+            contribution_dimension=workspace.contribution_dimension,
+            attribution_dimension=workspace.attribution_dimension,
+            detail_basis=workspace.detail_basis,
+            segment=workspace.segment,
+            benchmark_code=workspace.benchmark_code,
+            net_chart=workspace.net_chart,
+            gross_chart=workspace.gross_chart,
+            contribution=workspace.contribution,
+            attribution=workspace.attribution,
+            warnings=workspace.warnings,
+            partial_failures=workspace.partial_failures,
         )
 
     async def _determine_report_end_date(

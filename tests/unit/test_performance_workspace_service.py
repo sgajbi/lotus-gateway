@@ -391,6 +391,65 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_projects_summary_contract():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_id == "DEMO_ADV_USD_001"
+    assert response.net_performance.portfolio_return_pct == 15.1
+    assert response.gross_performance.portfolio_return_pct == 15.13
+    assert response.money_weighted_return is not None
+    assert response.money_weighted_return.method == "XIRR"
+    assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
+    assert not hasattr(response, "net_chart")
+    assert not hasattr(response, "contribution")
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_projects_detail_contract():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_id == "DEMO_ADV_USD_001"
+    assert len(response.net_chart) == 3
+    assert response.contribution is not None
+    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert response.attribution is not None
+    assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.segment == "asset_class"
+    assert not hasattr(response, "overview")
+    assert not hasattr(response, "net_performance")
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_aligns_mismatched_dimensions_to_shared_segment():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(

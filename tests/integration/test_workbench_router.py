@@ -441,6 +441,149 @@ def test_workbench_performance_router(monkeypatch):
     assert body["attribution"]["model"] == "BF"
 
 
+def test_workbench_performance_summary_router(monkeypatch):
+    async def _performance_summary(*args, **kwargs):  # noqa: ARG001
+        return {
+            "correlation_id": "corr-performance",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-02-24",
+            "period": "YTD",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
+            "chart_frequency": "monthly",
+            "detail_basis": "NET",
+            "benchmark_code": "MODEL_60_40",
+            "benchmark_options": [
+                {
+                    "benchmark_code": "MODEL_60_40",
+                    "benchmark_name": "Model 60/40",
+                    "is_assigned": True,
+                }
+            ],
+            "portfolio": {
+                "portfolio_id": "PF_1001",
+                "client_id": "CIF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+            },
+            "overview": {
+                "market_value_base": 1250000.0,
+                "cash_weight_pct": 6.8,
+                "position_count": 18,
+            },
+            "net_performance": {
+                "metric_basis": "NET",
+                "portfolio_return_pct": 5.42,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.52,
+                "annualized_return_pct": 5.42,
+            },
+            "gross_performance": {
+                "metric_basis": "GROSS",
+                "portfolio_return_pct": 5.88,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.98,
+                "annualized_return_pct": 5.88,
+            },
+            "money_weighted_return": {
+                "money_weighted_return_pct": 5.12,
+                "annualized_return_pct": 5.12,
+                "method": "XIRR",
+                "start_date": "2026-01-01",
+                "end_date": "2026-02-24",
+                "notes": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_summary",
+        _performance_summary,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/performance/summary?period=YTD")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["net_performance"]["portfolio_return_pct"] == 5.42
+    assert "net_chart" not in body
+    assert "contribution" not in body
+
+
+def test_workbench_performance_details_router(monkeypatch):
+    async def _performance_details(*args, **kwargs):  # noqa: ARG001
+        return {
+            "correlation_id": "corr-performance",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-02-24",
+            "period": "YTD",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
+            "chart_frequency": "monthly",
+            "contribution_dimension": "asset_class",
+            "attribution_dimension": "asset_class",
+            "detail_basis": "NET",
+            "segment": "asset_class",
+            "benchmark_code": "MODEL_60_40",
+            "net_chart": [
+                {
+                    "label": "2026-01",
+                    "frequency": "monthly",
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-01-31",
+                    "portfolio_return_pct": 2.2,
+                    "benchmark_return_pct": 1.9,
+                    "active_return_pct": 0.3,
+                    "cumulative_portfolio_return_pct": 2.2,
+                    "cumulative_benchmark_return_pct": 1.9,
+                    "cumulative_active_return_pct": 0.3,
+                }
+            ],
+            "gross_chart": [],
+            "contribution": {
+                "metric_basis": "NET",
+                "weighting_scheme": "average_weight",
+                "portfolio_contribution_pct": 5.42,
+                "total_portfolio_return_pct": 5.42,
+                "coverage_mv_pct": 98.7,
+                "levels": [],
+            },
+            "attribution": {
+                "metric_basis": "NET",
+                "model": "BF",
+                "linking": "carino",
+                "benchmark_id": "MODEL_60_40",
+                "active_return_pct": 0.52,
+                "sum_of_effects_pct": 0.5,
+                "residual_pct": 0.02,
+                "levels": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_details",
+        _performance_details,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/performance/details?period=YTD")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["net_chart"][0]["label"] == "2026-01"
+    assert body["contribution"]["coverage_mv_pct"] == 98.7
+    assert "overview" not in body
+    assert "net_performance" not in body
+
+
 def test_workbench_sandbox_changes_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
