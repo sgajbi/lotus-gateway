@@ -125,6 +125,27 @@ class PerformanceBenchmarkOptionView(BaseModel):
     is_assigned: bool = False
 
 
+class PerformanceHorizonComparisonRow(BaseModel):
+    period: str
+    portfolio_return_pct: float | None = None
+    benchmark_return_pct: float | None = None
+    active_return_pct: float | None = None
+    annualized_return_pct: float | None = None
+
+
+class PerformanceHorizonComparisonResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    detail_basis: str
+    benchmark_code: str | None = None
+    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    rows: list[PerformanceHorizonComparisonRow] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
+
+
 class PerformanceWorkspaceResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")

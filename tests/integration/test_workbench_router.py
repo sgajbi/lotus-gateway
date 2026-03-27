@@ -584,6 +584,59 @@ def test_workbench_performance_details_router(monkeypatch):
     assert "net_performance" not in body
 
 
+def test_workbench_performance_horizon_comparison_router(monkeypatch):
+    async def _performance_horizon_comparison(*args, **kwargs):  # noqa: ARG001
+        return {
+            "correlation_id": "corr-performance",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-02-24",
+            "detail_basis": "NET",
+            "benchmark_code": "MODEL_60_40",
+            "benchmark_options": [
+                {
+                    "benchmark_code": "MODEL_60_40",
+                    "benchmark_name": "Model 60/40",
+                    "is_assigned": True,
+                }
+            ],
+            "rows": [
+                {
+                    "period": "MTD",
+                    "portfolio_return_pct": 1.2,
+                    "benchmark_return_pct": 1.0,
+                    "active_return_pct": 0.2,
+                    "annualized_return_pct": 1.2,
+                },
+                {
+                    "period": "YTD",
+                    "portfolio_return_pct": 5.4,
+                    "benchmark_return_pct": 4.9,
+                    "active_return_pct": 0.5,
+                    "annualized_return_pct": 5.4,
+                },
+            ],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_horizon_comparison",
+        _performance_horizon_comparison,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/horizon-comparison?detail_basis=NET&benchmark_code=MODEL_60_40"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["rows"][0]["period"] == "MTD"
+    assert body["rows"][1]["benchmark_return_pct"] == 4.9
+
+
 def test_workbench_sandbox_changes_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}

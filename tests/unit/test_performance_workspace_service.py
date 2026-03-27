@@ -91,6 +91,62 @@ class _StubLotusCoreQueryClient:
 def _workspace_summary_payload() -> dict:
     return {
         "results_by_period": {
+            "MTD": {
+                "benchmark": {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                    "summary": {
+                        "period_return": {"base": 1.0},
+                        "annualized_return": {"base": 1.0},
+                    },
+                },
+                "active": {
+                    "net": {"period_return": {"base": 0.2}},
+                    "gross": {"period_return": {"base": 0.22}},
+                },
+                "portfolio_twr": {
+                    "net": {
+                        "summary": {
+                            "period_return": {"base": 1.2},
+                            "annualized_return": {"base": 1.2},
+                        }
+                    },
+                    "gross": {
+                        "summary": {
+                            "period_return": {"base": 1.22},
+                            "annualized_return": {"base": 1.22},
+                        }
+                    },
+                },
+            },
+            "QTD": {
+                "benchmark": {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                    "summary": {
+                        "period_return": {"base": 4.0},
+                        "annualized_return": {"base": 4.0},
+                    },
+                },
+                "active": {
+                    "net": {"period_return": {"base": 0.3}},
+                    "gross": {"period_return": {"base": 0.34}},
+                },
+                "portfolio_twr": {
+                    "net": {
+                        "summary": {
+                            "period_return": {"base": 4.3},
+                            "annualized_return": {"base": 4.3},
+                        }
+                    },
+                    "gross": {
+                        "summary": {
+                            "period_return": {"base": 4.34},
+                            "annualized_return": {"base": 4.34},
+                        }
+                    },
+                },
+            },
             "YTD": {
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
@@ -332,6 +388,35 @@ def _workspace_summary_payload() -> dict:
                     },
                 },
             }
+            ,
+            "1Y": {
+                "benchmark": {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                    "summary": {
+                        "period_return": {"base": 12.6},
+                        "annualized_return": {"base": 12.6},
+                    },
+                },
+                "active": {
+                    "net": {"period_return": {"base": 0.6}},
+                    "gross": {"period_return": {"base": 0.64}},
+                },
+                "portfolio_twr": {
+                    "net": {
+                        "summary": {
+                            "period_return": {"base": 13.2},
+                            "annualized_return": {"base": 13.2},
+                        }
+                    },
+                    "gross": {
+                        "summary": {
+                            "period_return": {"base": 13.24},
+                            "annualized_return": {"base": 13.24},
+                        }
+                    },
+                },
+            },
         }
     }
 
@@ -417,6 +502,34 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_builds_horizon_comparison_contract():
+    analytics_client = _StubAnalyticsClient()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        chart_frequency="monthly",
+    )
+
+    assert response.portfolio_id == "DEMO_ADV_USD_001"
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
+    assert response.rows[0].portfolio_return_pct == 1.2
+    assert response.rows[2].benchmark_return_pct == 14.72
+    assert response.rows[3].active_return_pct == 0.6
+    assert analytics_client.workspace_summary_calls[0]["periods"][0]["period"] == "MTD"
+    assert analytics_client.workspace_summary_calls[0]["periods"][-1]["period"] == "1Y"
 
 
 @pytest.mark.asyncio

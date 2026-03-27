@@ -307,6 +307,7 @@ class LotusAnalyticsClient:
         benchmark_id: str | None,
         segment: str,
         correlation_id: str,
+        periods: list[dict[str, Any]] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
         deduped_frequencies: list[str] = []
@@ -320,7 +321,8 @@ class LotusAnalyticsClient:
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
             "report_end_date": report_end_date,
-            "periods": [
+            "periods": periods
+            or [
                 {
                     "period": requested_period,
                     "frequencies": deduped_frequencies,

@@ -5,6 +5,7 @@ from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.performance_workspace import (
+    PerformanceHorizonComparisonResponse,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -225,6 +226,32 @@ async def get_performance_workspace_details(
         benchmark_code=benchmark_code,
         explicit_start_date=report_start_date,
         explicit_end_date=report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/horizon-comparison",
+    response_model=PerformanceHorizonComparisonResponse,
+    summary="Get Performance Horizon Comparison",
+    description=(
+        "Returns a compact multi-horizon comparative return module for benchmark-aware "
+        "first-paint analytics panels."
+    ),
+)
+async def get_performance_horizon_comparison(
+    portfolio_id: str,
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    chart_frequency: str = "monthly",
+) -> PerformanceHorizonComparisonResponse:
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_horizon_comparison(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        chart_frequency=chart_frequency,
     )
 
 
