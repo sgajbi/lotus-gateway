@@ -172,7 +172,7 @@ class PerformanceWorkspaceService:
             chart_frequency=chart_frequency,
         )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
-            result=workspace_summary_result,
+            results_by_label=workspace_summary_result,
             detail_basis=detail_basis,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -666,35 +666,38 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         portfolio_currency: str,
         chart_frequency: str,
-    ) -> tuple[object, object]:
-        workspace_summary_task = self._analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
+    ) -> tuple[dict[str, object], object]:
+        request_specs = self._build_horizon_comparison_request_specs(
             report_end_date=report_end_date,
-            report_start_date=None,
-            period="YTD",
             chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            segment="asset_class",
-            correlation_id=correlation_id,
-            periods=[
-                {
-                    "period": period,
-                    "frequencies": [chart_frequency, "monthly", "quarterly", "yearly"],
-                }
-                for period in STANDARD_HORIZON_COMPARISON_PERIODS
-            ],
         )
+        twr_tasks = [
+            self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=spec["report_start_date"],
+                period=spec["period"],
+                metric_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                correlation_id=correlation_id,
+                analyses=spec["analyses"],
+            )
+            for spec in request_specs
+        ]
         benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
             as_of_date=report_end_date,
             benchmark_currency=portfolio_currency,
             correlation_id=correlation_id,
         )
-        return await asyncio.gather(
-            workspace_summary_task,
+        results = await asyncio.gather(
+            *twr_tasks,
             benchmark_catalog_task,
             return_exceptions=True,
         )
+        twr_results = {
+            spec["label"]: results[index] for index, spec in enumerate(request_specs)
+        }
+        return twr_results, results[-1]
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
@@ -800,54 +803,40 @@ class PerformanceWorkspaceService:
     def _parse_horizon_comparison_result(
         self,
         *,
-        result: object,
+        results_by_label: dict[str, object],
         detail_basis: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
-        if isinstance(result, Exception):
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-            partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return [], None
-        status_code, payload = result
-        if not isinstance(payload, dict):
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-            return [], None
-        if status_code >= 400:
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-            partial_failures.append(
-                self._performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return [], None
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-            return [], None
-
-        basis_key = "gross" if detail_basis.upper() == "GROSS" else "net"
         rows: list[PerformanceHorizonComparisonRow] = []
         resolved_benchmark_code: str | None = None
         for period in STANDARD_HORIZON_COMPARISON_PERIODS:
-            period_payload = results_by_period.get(period, {})
-            if not isinstance(period_payload, dict):
+            result = results_by_label.get(period)
+            if isinstance(result, Exception):
+                warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+                partial_failures.append(
+                    self._performance_failure(
+                        "lotus-performance", "UPSTREAM_EXCEPTION", str(result)
+                    )
+                )
                 continue
-            benchmark_block = period_payload.get("benchmark", {})
-            active_block = period_payload.get("active", {})
-            comparative = self._build_workspace_comparative_summary(
+            if result is None:
+                continue
+
+            requested_period = "EXPLICIT" if period in {"MTD", "QTD"} else period
+            comparative, _ = self._parse_twr_result(
+                result=result,
                 metric_basis=detail_basis.upper(),
-                portfolio_block=self._extract_twr_workspace_block(period_payload, basis_key),
-                benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
-                active_basis_block=(
-                    active_block.get(basis_key) if isinstance(active_block, dict) else {}
-                ),
+                chart_frequency="monthly",
+                requested_period=requested_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
             )
+            if (
+                comparative.portfolio_return_pct is None
+                and comparative.benchmark_return_pct is None
+            ):
+                continue
             rows.append(
                 PerformanceHorizonComparisonRow(
                     period=period,
@@ -857,9 +846,51 @@ class PerformanceWorkspaceService:
                     annualized_return_pct=comparative.annualized_return_pct,
                 )
             )
-            if resolved_benchmark_code is None and isinstance(benchmark_block, dict):
-                resolved_benchmark_code = self._safe_str(benchmark_block.get("benchmark_id"))
+            if resolved_benchmark_code is None:
+                resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
+
+    def _build_horizon_comparison_request_specs(
+        self,
+        *,
+        report_end_date: str,
+        chart_frequency: str,
+    ) -> list[dict[str, Any]]:
+        report_end = date.fromisoformat(report_end_date)
+        frequencies: list[str] = []
+        for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
+            if frequency not in frequencies:
+                frequencies.append(frequency)
+        return [
+            {
+                "label": "MTD",
+                "period": "EXPLICIT",
+                "report_start_date": report_end.replace(day=1).isoformat(),
+                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
+            },
+            {
+                "label": "QTD",
+                "period": "EXPLICIT",
+                "report_start_date": self._start_of_quarter(report_end).isoformat(),
+                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
+            },
+            {
+                "label": "YTD",
+                "period": "YTD",
+                "report_start_date": None,
+                "analyses": [{"period": "YTD", "frequencies": frequencies}],
+            },
+            {
+                "label": "1Y",
+                "period": "1Y",
+                "report_start_date": None,
+                "analyses": [{"period": "1Y", "frequencies": frequencies}],
+            },
+        ]
+
+    def _start_of_quarter(self, value: date) -> date:
+        quarter_start_month = ((value.month - 1) // 3) * 3 + 1
+        return date(value.year, quarter_start_month, 1)
 
     def _extract_twr_workspace_block(
         self, period_payload: dict[str, Any], basis: str

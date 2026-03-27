@@ -41,9 +41,27 @@ class _StubAnalyticsClient:
     def __init__(self):
         self.workspace_summary_calls: list[dict[str, object]] = []
         self.attribution_calls: list[dict[str, object]] = []
+        self.twr_calls: list[dict[str, object]] = []
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
+        requested_period = kwargs.get("period")
+        if requested_period == "EXPLICIT":
+            report_start_date = str(kwargs.get("report_start_date"))
+            explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
+            return 200, {
+                "results_by_period": {
+                    "EXPLICIT": _workspace_summary_payload()["results_by_period"][explicit_label]
+                }
+            }
+        if requested_period in {"YTD", "1Y"}:
+            return 200, {
+                "results_by_period": {
+                    requested_period: _workspace_summary_payload()["results_by_period"][
+                        requested_period
+                    ]
+                }
+            }
         return 200, _workspace_summary_payload()
 
     async def get_attribution_analytics(self, **kwargs):
@@ -52,6 +70,15 @@ class _StubAnalyticsClient:
             report_start_date=str(kwargs["report_start_date"]),
             report_end_date=str(kwargs["report_end_date"]),
         )
+
+    async def get_twr_analytics(self, **kwargs):
+        self.twr_calls.append(kwargs)
+        requested_period = str(kwargs["period"])
+        if requested_period == "EXPLICIT":
+            report_start_date = str(kwargs["report_start_date"])
+            explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
+            return 200, _twr_payload_for_period("EXPLICIT", explicit_label)
+        return 200, _twr_payload_for_period(requested_period, requested_period)
 
 
 class _StubLotusCoreQueryClient:
@@ -429,6 +456,25 @@ def _workspace_summary_payload() -> dict:
     }
 
 
+def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
+    source = _workspace_summary_payload()["results_by_period"][source_label]
+    return {
+        "benchmark_context": {
+            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "return_source": "calculated",
+        },
+        "results_by_period": {
+            result_key: {
+                "portfolio": source["portfolio_twr"]["net"],
+                "benchmark": source["benchmark"],
+                "relative_performance": {
+                    "summary": source["active"]["net"],
+                },
+            }
+        },
+    }
+
+
 def _attribution_payload(*, report_start_date: str, report_end_date: str) -> dict:
     month = report_start_date[:7]
     totals_by_month = {
@@ -573,8 +619,14 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[0].portfolio_return_pct == 1.2
     assert response.rows[2].benchmark_return_pct == 14.72
     assert response.rows[3].active_return_pct == 0.6
-    assert analytics_client.workspace_summary_calls[0]["periods"][0]["period"] == "MTD"
-    assert analytics_client.workspace_summary_calls[0]["periods"][-1]["period"] == "1Y"
+    assert [call["period"] for call in analytics_client.twr_calls] == [
+        "EXPLICIT",
+        "EXPLICIT",
+        "YTD",
+        "1Y",
+    ]
+    assert analytics_client.twr_calls[0]["report_start_date"] == "2026-03-01"
+    assert analytics_client.twr_calls[1]["report_start_date"] == "2026-01-01"
 
 
 @pytest.mark.asyncio
