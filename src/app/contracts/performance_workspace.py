@@ -146,6 +146,37 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
 
 
+class PerformanceAttributionTrendRow(BaseModel):
+    period_label: str
+    period_start: str
+    period_end: str
+    frequency: str
+    allocation_pct: float | None = None
+    selection_pct: float | None = None
+    interaction_pct: float | None = None
+    total_effect_pct: float | None = None
+    cumulative_total_effect_pct: float | None = None
+    active_return_pct: float | None = None
+    residual_pct: float | None = None
+
+
+class PerformanceAttributionTrendResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
+    chart_frequency: str
+    detail_basis: str
+    attribution_dimension: str
+    benchmark_code: str | None = None
+    rows: list[PerformanceAttributionTrendRow] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
+
+
 class PerformanceWorkspaceResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")

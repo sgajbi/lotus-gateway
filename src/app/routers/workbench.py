@@ -5,6 +5,7 @@ from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.performance_workspace import (
+    PerformanceAttributionTrendResponse,
     PerformanceHorizonComparisonResponse,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
@@ -252,6 +253,40 @@ async def get_performance_horizon_comparison(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         chart_frequency=chart_frequency,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/attribution-trend",
+    response_model=PerformanceAttributionTrendResponse,
+    summary="Get Performance Attribution Trend",
+    description=(
+        "Returns benchmark-relative attribution effects over time for the selected period window "
+        "using a dedicated analytical module contract."
+    ),
+)
+async def get_performance_attribution_trend(
+    portfolio_id: str,
+    period: str = "YTD",
+    chart_frequency: str = "monthly",
+    attribution_dimension: str = "asset_class",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
+) -> PerformanceAttributionTrendResponse:
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_attribution_trend(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 

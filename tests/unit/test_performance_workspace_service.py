@@ -40,10 +40,18 @@ class _StubWorkbenchService:
 class _StubAnalyticsClient:
     def __init__(self):
         self.workspace_summary_calls: list[dict[str, object]] = []
+        self.attribution_calls: list[dict[str, object]] = []
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
         return 200, _workspace_summary_payload()
+
+    async def get_attribution_analytics(self, **kwargs):
+        self.attribution_calls.append(kwargs)
+        return 200, _attribution_payload(
+            report_start_date=str(kwargs["report_start_date"]),
+            report_end_date=str(kwargs["report_end_date"]),
+        )
 
 
 class _StubLotusCoreQueryClient:
@@ -421,6 +429,43 @@ def _workspace_summary_payload() -> dict:
     }
 
 
+def _attribution_payload(*, report_start_date: str, report_end_date: str) -> dict:
+    month = report_start_date[:7]
+    totals_by_month = {
+        "2026-01": {"allocation": 0.12, "selection": 0.08, "interaction": 0.02, "total": 0.22},
+        "2026-02": {"allocation": -0.04, "selection": 0.11, "interaction": 0.01, "total": 0.08},
+        "2026-03": {"allocation": 0.05, "selection": -0.02, "interaction": 0.01, "total": 0.04},
+    }
+    totals = totals_by_month[month]
+    return {
+        "benchmark_context": {
+            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "return_source": "calculated",
+        },
+        "results_by_period": {
+            "EXPLICIT": {
+                "reconciliation": {
+                    "total_active_return": totals["total"],
+                    "sum_of_effects": totals["total"],
+                    "residual": 0.0,
+                },
+                "levels": [
+                    {
+                        "dimension": "asset_class",
+                        "totals": {
+                            "allocation": totals["allocation"],
+                            "selection": totals["selection"],
+                            "interaction": totals["interaction"],
+                            "total_effect": totals["total"],
+                        },
+                        "groups": [],
+                    }
+                ],
+            }
+        },
+    }
+
+
 @pytest.mark.asyncio
 async def test_performance_workspace_service_returns_workspace_summary_contract():
     analytics_client = _StubAnalyticsClient()
@@ -530,6 +575,36 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[3].active_return_pct == 0.6
     assert analytics_client.workspace_summary_calls[0]["periods"][0]["period"] == "MTD"
     assert analytics_client.workspace_summary_calls[0]["periods"][-1]["period"] == "1Y"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_builds_attribution_trend_contract():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_id == "DEMO_ADV_USD_001"
+    assert response.chart_frequency == "monthly"
+    assert [row.period_label for row in response.rows] == ["2026-01", "2026-02", "2026-03"]
+    assert response.rows[0].allocation_pct == 0.12
+    assert response.rows[1].selection_pct == 0.11
+    assert response.rows[2].cumulative_total_effect_pct == 0.34
+    assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
+    assert analytics_client.attribution_calls[-1]["report_end_date"] == "2026-03-27"
 
 
 @pytest.mark.asyncio

@@ -637,6 +637,59 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
 
 
+def test_workbench_performance_attribution_trend_router(monkeypatch):
+    async def _performance_attribution_trend(*args, **kwargs):  # noqa: ARG001
+        return {
+            "correlation_id": "corr-performance",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-02-24",
+            "period": "YTD",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
+            "chart_frequency": "monthly",
+            "detail_basis": "NET",
+            "attribution_dimension": "asset_class",
+            "benchmark_code": "MODEL_60_40",
+            "rows": [
+                {
+                    "period_label": "2026-01",
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-01-31",
+                    "frequency": "monthly",
+                    "allocation_pct": 0.12,
+                    "selection_pct": 0.08,
+                    "interaction_pct": 0.02,
+                    "total_effect_pct": 0.22,
+                    "cumulative_total_effect_pct": 0.22,
+                    "active_return_pct": 0.22,
+                    "residual_pct": 0.0,
+                }
+            ],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_attribution_trend",
+        _performance_attribution_trend,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/attribution-trend"
+        "?period=YTD&chart_frequency=monthly&attribution_dimension=asset_class"
+        "&detail_basis=NET&benchmark_code=MODEL_60_40"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["chart_frequency"] == "monthly"
+    assert body["rows"][0]["period_label"] == "2026-01"
+    assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
+
+
 def test_workbench_sandbox_changes_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}

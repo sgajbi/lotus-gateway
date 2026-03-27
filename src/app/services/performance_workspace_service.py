@@ -15,6 +15,8 @@ from app.contracts.performance_workspace import (
     ContributionRowView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
+    PerformanceAttributionTrendResponse,
+    PerformanceAttributionTrendRow,
     PerformanceBenchmarkOptionView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
@@ -189,6 +191,110 @@ class PerformanceWorkspaceService:
             detail_basis=detail_basis,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
+            rows=rows,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    async def get_performance_attribution_trend(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceAttributionTrendResponse:
+        overview = await self._workbench_service.get_workbench_overview(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        warnings = list(overview.warnings)
+        partial_failures = list(overview.partial_failures)
+        resolved_report_end_date = await self._determine_report_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            correlation_id=correlation_id,
+            explicit_end_date=explicit_end_date,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+            default_report_end_date=resolved_report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        resolved_frequency = self._normalize_attribution_trend_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+        )
+
+        if not benchmark_code:
+            warnings.append("ATTRIBUTION_TREND_UNAVAILABLE_NO_BENCHMARK")
+            return PerformanceAttributionTrendResponse(
+                correlation_id=correlation_id,
+                contract_version=overview.contract_version,
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                period=effective_period,
+                report_start_date=report_start_date.isoformat(),
+                report_end_date=report_end_date,
+                chart_frequency=resolved_frequency,
+                detail_basis=detail_basis,
+                attribution_dimension=attribution_dimension,
+                benchmark_code=None,
+                rows=[],
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+
+        window_pairs = self._build_attribution_trend_windows(
+            start_date=report_start_date,
+            end_date=date.fromisoformat(report_end_date),
+            chart_frequency=resolved_frequency,
+        )
+        attribution_results = await asyncio.gather(
+            *[
+                self._analytics_client.get_attribution_analytics(
+                    portfolio_id=portfolio_id,
+                    report_start_date=window_start.isoformat(),
+                    report_end_date=window_end.isoformat(),
+                    period="EXPLICIT",
+                    metric_basis=detail_basis,
+                    benchmark_id=benchmark_code,
+                    dimension=attribution_dimension,
+                    correlation_id=correlation_id,
+                )
+                for window_start, window_end in window_pairs
+            ],
+            return_exceptions=True,
+        )
+        rows = self._parse_attribution_trend_results(
+            results=attribution_results,
+            window_pairs=window_pairs,
+            chart_frequency=resolved_frequency,
+            requested_period="EXPLICIT",
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+        return PerformanceAttributionTrendResponse(
+            correlation_id=correlation_id,
+            contract_version=overview.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            period=effective_period,
+            report_start_date=report_start_date.isoformat(),
+            report_end_date=report_end_date,
+            chart_frequency=resolved_frequency,
+            detail_basis=detail_basis,
+            attribution_dimension=attribution_dimension,
+            benchmark_code=benchmark_code,
             rows=rows,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -1163,6 +1269,72 @@ class PerformanceWorkspaceService:
             effective_period,
         )
 
+    def _normalize_attribution_trend_frequency(
+        self,
+        *,
+        chart_frequency: str,
+        warnings: list[str],
+    ) -> str:
+        normalized_frequency = chart_frequency.lower()
+        if normalized_frequency in {"monthly", "quarterly", "yearly"}:
+            return normalized_frequency
+        warnings.append("ATTRIBUTION_TREND_FREQUENCY_NORMALIZED_TO_MONTHLY")
+        return "monthly"
+
+    def _build_attribution_trend_windows(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        chart_frequency: str,
+    ) -> list[tuple[date, date]]:
+        if start_date > end_date:
+            return []
+        windows: list[tuple[date, date]] = []
+        cursor = start_date
+        while cursor <= end_date:
+            window_end = self._resolve_attribution_trend_window_end(
+                window_start=cursor,
+                end_date=end_date,
+                chart_frequency=chart_frequency,
+            )
+            windows.append((cursor, window_end))
+            cursor = window_end + timedelta(days=1)
+        return windows
+
+    def _resolve_attribution_trend_window_end(
+        self,
+        *,
+        window_start: date,
+        end_date: date,
+        chart_frequency: str,
+    ) -> date:
+        if chart_frequency == "quarterly":
+            quarter_end_month = ((window_start.month - 1) // 3 + 1) * 3
+            return min(
+                date(
+                    window_start.year,
+                    quarter_end_month,
+                    self._last_day_of_month(window_start.year, quarter_end_month),
+                ),
+                end_date,
+            )
+        if chart_frequency == "yearly":
+            return min(date(window_start.year, 12, 31), end_date)
+        return min(
+            date(
+                window_start.year,
+                window_start.month,
+                self._last_day_of_month(window_start.year, window_start.month),
+            ),
+            end_date,
+        )
+
+    def _last_day_of_month(self, year: int, month: int) -> int:
+        if month == 12:
+            return 31
+        return (date(year, month + 1, 1) - timedelta(days=1)).day
+
     def _shift_years(self, anchor: date, years: int) -> date:
         try:
             return anchor.replace(year=anchor.year - years) + timedelta(days=1)
@@ -1594,6 +1766,137 @@ class PerformanceWorkspaceService:
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
             levels=levels,
         )
+
+    def _parse_attribution_trend_results(
+        self,
+        *,
+        results: list[object],
+        window_pairs: list[tuple[date, date]],
+        chart_frequency: str,
+        requested_period: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> list[PerformanceAttributionTrendRow]:
+        rows: list[PerformanceAttributionTrendRow] = []
+        cumulative_total_effect = 0.0
+
+        for index, result in enumerate(results):
+            window_start, window_end = window_pairs[index]
+            parsed_row = self._parse_single_attribution_trend_row(
+                result=result,
+                window_start=window_start,
+                window_end=window_end,
+                chart_frequency=chart_frequency,
+                requested_period=requested_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+            if parsed_row is None:
+                continue
+
+            cumulative_total_effect += parsed_row.total_effect_pct or 0.0
+            row_payload = parsed_row.model_dump()
+            row_payload["cumulative_total_effect_pct"] = self._quantize_optional(
+                cumulative_total_effect
+            )
+            rows.append(
+                PerformanceAttributionTrendRow(**row_payload)
+            )
+
+        return rows
+
+    def _parse_single_attribution_trend_row(
+        self,
+        *,
+        result: object,
+        window_start: date,
+        window_end: date,
+        chart_frequency: str,
+        requested_period: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> PerformanceAttributionTrendRow | None:
+        if isinstance(result, Exception):
+            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+            )
+            return None
+
+        status_code, payload = result
+        if status_code >= 400 or not isinstance(payload, dict):
+            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-performance",
+                    f"HTTP_{status_code}"
+                    if isinstance(status_code, int)
+                    else "INVALID_UPSTREAM_PAYLOAD",
+                    str(payload),
+                )
+            )
+            return None
+
+        results_by_period = payload.get("results_by_period", {})
+        if not isinstance(results_by_period, dict) or not results_by_period:
+            return None
+
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
+        period_payload = results_by_period.get(period_key, {})
+        if not isinstance(period_payload, dict):
+            return None
+
+        levels_payload = period_payload.get("levels", [])
+        reconciliation_payload = period_payload.get("reconciliation", {})
+        if not isinstance(levels_payload, list) or not levels_payload:
+            return None
+        if not isinstance(reconciliation_payload, dict):
+            reconciliation_payload = {}
+
+        level_payload = levels_payload[0]
+        if not isinstance(level_payload, dict):
+            return None
+        totals_payload = level_payload.get("totals", {})
+        if not isinstance(totals_payload, dict):
+            totals_payload = {}
+
+        return PerformanceAttributionTrendRow(
+            period_label=self._format_attribution_trend_label(
+                window_start=window_start,
+                window_end=window_end,
+                chart_frequency=chart_frequency,
+            ),
+            period_start=window_start.isoformat(),
+            period_end=window_end.isoformat(),
+            frequency=chart_frequency,
+            allocation_pct=self._quantize_optional(totals_payload.get("allocation")),
+            selection_pct=self._quantize_optional(totals_payload.get("selection")),
+            interaction_pct=self._quantize_optional(totals_payload.get("interaction")),
+            total_effect_pct=self._quantize_optional(totals_payload.get("total_effect")),
+            active_return_pct=self._quantize_optional(
+                reconciliation_payload.get("total_active_return")
+            ),
+            residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+        )
+
+    def _format_attribution_trend_label(
+        self,
+        *,
+        window_start: date,
+        window_end: date,
+        chart_frequency: str,
+    ) -> str:
+        if chart_frequency == "yearly":
+            return str(window_start.year)
+        if chart_frequency == "quarterly":
+            quarter = ((window_start.month - 1) // 3) + 1
+            return f"{window_start.year}-Q{quarter}"
+        if window_start.year == window_end.year and window_start.month == window_end.month:
+            return f"{window_start.year}-{window_start.month:02d}"
+        return f"{window_start.isoformat()} to {window_end.isoformat()}"
 
     def _extract_return(self, payload: Any, *path: str) -> float | None:
         current = payload
