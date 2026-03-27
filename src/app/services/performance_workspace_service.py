@@ -15,9 +15,16 @@ from app.contracts.performance_workspace import (
     ContributionRowView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
+    PerformanceAttributionTrendResponse,
+    PerformanceAttributionTrendRow,
+    PerformanceBenchmarkOptionView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
+    PerformanceHorizonComparisonResponse,
+    PerformanceHorizonComparisonRow,
+    PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
+    PerformanceWorkspaceSummaryResponse,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
@@ -32,6 +39,8 @@ STANDARD_PERIOD_ANALYSES = (
     {"period": "5Y", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
 )
 
+STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
+
 
 class PerformanceWorkspaceService:
     def __init__(
@@ -45,6 +54,253 @@ class PerformanceWorkspaceService:
         self._lotus_core_query_client = lotus_core_query_client
 
     async def get_performance_workspace(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceResponse:
+        return await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+
+    async def get_performance_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceSummaryResponse:
+        workspace = await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return self._project_workspace_summary(workspace)
+
+    async def get_performance_workspace_details(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceDetailsResponse:
+        workspace = await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return self._project_workspace_details(workspace)
+
+    async def get_performance_horizon_comparison(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        chart_frequency: str,
+    ) -> PerformanceHorizonComparisonResponse:
+        overview = await self._workbench_service.get_workbench_overview(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        warnings = list(overview.warnings)
+        partial_failures = list(overview.partial_failures)
+        report_end_date = await self._determine_report_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            correlation_id=correlation_id,
+            explicit_end_date=None,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        (
+            workspace_summary_result,
+            benchmark_catalog_result,
+        ) = await self._fetch_workspace_horizon_dependencies(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_end_date,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            portfolio_currency=overview.portfolio.base_currency,
+            chart_frequency=chart_frequency,
+        )
+        rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
+            results_by_label=workspace_summary_result,
+            detail_basis=detail_basis,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        benchmark_options = self._parse_benchmark_catalog_result(
+            result=benchmark_catalog_result,
+            assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        return PerformanceHorizonComparisonResponse(
+            correlation_id=correlation_id,
+            contract_version=overview.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            detail_basis=detail_basis,
+            benchmark_code=resolved_benchmark_code or benchmark_code,
+            benchmark_options=benchmark_options,
+            rows=rows,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    async def get_performance_attribution_trend(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceAttributionTrendResponse:
+        overview = await self._workbench_service.get_workbench_overview(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        warnings = list(overview.warnings)
+        partial_failures = list(overview.partial_failures)
+        resolved_report_end_date = await self._determine_report_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            correlation_id=correlation_id,
+            explicit_end_date=explicit_end_date,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+            default_report_end_date=resolved_report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        resolved_frequency = self._normalize_attribution_trend_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+        )
+
+        if not benchmark_code:
+            warnings.append("ATTRIBUTION_TREND_UNAVAILABLE_NO_BENCHMARK")
+            return PerformanceAttributionTrendResponse(
+                correlation_id=correlation_id,
+                contract_version=overview.contract_version,
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                period=effective_period,
+                report_start_date=report_start_date.isoformat(),
+                report_end_date=report_end_date,
+                chart_frequency=resolved_frequency,
+                detail_basis=detail_basis,
+                attribution_dimension=attribution_dimension,
+                benchmark_code=None,
+                rows=[],
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+
+        window_pairs = self._build_attribution_trend_windows(
+            start_date=report_start_date,
+            end_date=date.fromisoformat(report_end_date),
+            chart_frequency=resolved_frequency,
+        )
+        attribution_results = await asyncio.gather(
+            *[
+                self._analytics_client.get_attribution_analytics(
+                    portfolio_id=portfolio_id,
+                    report_start_date=window_start.isoformat(),
+                    report_end_date=window_end.isoformat(),
+                    period="EXPLICIT",
+                    metric_basis=detail_basis,
+                    benchmark_id=benchmark_code,
+                    dimension=attribution_dimension,
+                    correlation_id=correlation_id,
+                )
+                for window_start, window_end in window_pairs
+            ],
+            return_exceptions=True,
+        )
+        rows = self._parse_attribution_trend_results(
+            results=attribution_results,
+            window_pairs=window_pairs,
+            chart_frequency=resolved_frequency,
+            requested_period="EXPLICIT",
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+        return PerformanceAttributionTrendResponse(
+            correlation_id=correlation_id,
+            contract_version=overview.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            period=effective_period,
+            report_start_date=report_start_date.isoformat(),
+            report_end_date=report_end_date,
+            chart_frequency=resolved_frequency,
+            detail_basis=detail_basis,
+            attribution_dimension=attribution_dimension,
+            benchmark_code=benchmark_code,
+            rows=rows,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    async def _build_performance_workspace_response(
         self,
         *,
         portfolio_id: str,
@@ -78,51 +334,46 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        results = await self._fetch_analytics_results(
+        shared_segment = self._resolve_shared_segment(
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            warnings=warnings,
+        )
+        (
+            workspace_summary_result,
+            benchmark_catalog_result,
+        ) = await self._fetch_workspace_dependencies(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_end_date,
             report_start_date=report_start_date.isoformat(),
             effective_period=effective_period,
-            requested_period=period,
+            chart_frequency=chart_frequency,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+            segment=shared_segment,
+            portfolio_currency=overview.portfolio.base_currency,
         )
 
-        net_performance, net_chart = self._parse_twr_result(
-            result=results[0],
-            metric_basis="NET",
+        (
+            net_performance,
+            gross_performance,
+            net_chart,
+            gross_chart,
+            money_weighted_return,
+            contribution,
+            attribution,
+            resolved_benchmark_code,
+        ) = self._parse_workspace_summary_result(
+            result=workspace_summary_result,
+            requested_period=effective_period,
             chart_frequency=chart_frequency,
-            requested_period=effective_period,
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        gross_performance, gross_chart = self._parse_twr_result(
-            result=results[1],
-            metric_basis="GROSS",
-            chart_frequency=chart_frequency,
-            requested_period=effective_period,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        money_weighted_return = self._parse_mwr_result(
-            result=results[2],
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        contribution = self._parse_contribution_result(
-            result=results[3],
-            metric_basis=detail_basis,
-            requested_period=effective_period,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        attribution = self._parse_attribution_result(
-            result=results[4],
-            metric_basis=detail_basis,
-            requested_period=effective_period,
+        benchmark_options = self._parse_benchmark_catalog_result(
+            result=benchmark_catalog_result,
+            assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -139,7 +390,9 @@ class PerformanceWorkspaceService:
             contribution_dimension=contribution_dimension,
             attribution_dimension=attribution_dimension,
             detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
+            segment=shared_segment,
+            benchmark_code=resolved_benchmark_code or benchmark_code,
+            benchmark_options=benchmark_options,
             portfolio=overview.portfolio,
             overview=overview.overview,
             net_performance=net_performance,
@@ -151,6 +404,55 @@ class PerformanceWorkspaceService:
             attribution=attribution,
             warnings=warnings,
             partial_failures=partial_failures,
+        )
+
+    def _project_workspace_summary(
+        self, workspace: PerformanceWorkspaceResponse
+    ) -> PerformanceWorkspaceSummaryResponse:
+        return PerformanceWorkspaceSummaryResponse(
+            correlation_id=workspace.correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
+            chart_frequency=workspace.chart_frequency,
+            detail_basis=workspace.detail_basis,
+            benchmark_code=workspace.benchmark_code,
+            benchmark_options=workspace.benchmark_options,
+            portfolio=workspace.portfolio,
+            overview=workspace.overview,
+            net_performance=workspace.net_performance,
+            gross_performance=workspace.gross_performance,
+            money_weighted_return=workspace.money_weighted_return,
+            warnings=workspace.warnings,
+            partial_failures=workspace.partial_failures,
+        )
+
+    def _project_workspace_details(
+        self, workspace: PerformanceWorkspaceResponse
+    ) -> PerformanceWorkspaceDetailsResponse:
+        return PerformanceWorkspaceDetailsResponse(
+            correlation_id=workspace.correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
+            chart_frequency=workspace.chart_frequency,
+            contribution_dimension=workspace.contribution_dimension,
+            attribution_dimension=workspace.attribution_dimension,
+            detail_basis=workspace.detail_basis,
+            segment=workspace.segment,
+            benchmark_code=workspace.benchmark_code,
+            net_chart=workspace.net_chart,
+            gross_chart=workspace.gross_chart,
+            contribution=workspace.contribution,
+            attribution=workspace.attribution,
+            warnings=workspace.warnings,
+            partial_failures=workspace.partial_failures,
         )
 
     async def _determine_report_end_date(
@@ -276,24 +578,21 @@ class PerformanceWorkspaceService:
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> str:
-        status_code, payload = await (
-            self._lotus_core_query_client.get_portfolio_analytics_reference(
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                consumer_system="lotus-gateway",
-                correlation_id=correlation_id,
-            )
+        (
+            status_code,
+            payload,
+        ) = await self._lotus_core_query_client.get_portfolio_analytics_reference(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            consumer_system="lotus-gateway",
+            correlation_id=correlation_id,
         )
         if status_code >= 400 or not isinstance(payload, dict):
             warnings.append("PERFORMANCE_REFERENCE_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure(
                     "lotus-core",
-                    (
-                        f"HTTP_{status_code}"
-                        if isinstance(status_code, int)
-                        else "INVALID_RESPONSE"
-                    ),
+                    (f"HTTP_{status_code}" if isinstance(status_code, int) else "INVALID_RESPONSE"),
                     (
                         str(payload.get("detail", payload))
                         if isinstance(payload, dict)
@@ -309,8 +608,659 @@ class PerformanceWorkspaceService:
             return as_of_date
         return performance_end_date
 
+    def _resolve_shared_segment(
+        self,
+        *,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        warnings: list[str],
+    ) -> str:
+        if contribution_dimension == attribution_dimension:
+            return contribution_dimension
+        warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
+        return contribution_dimension
+
+    async def _fetch_workspace_dependencies(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        report_start_date: str,
+        effective_period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        segment: str,
+        portfolio_currency: str,
+    ) -> tuple[object, object]:
+        workspace_summary_task = self._analytics_client.get_workspace_summary(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
+            period=effective_period,
+            chart_frequency=chart_frequency,
+            detail_basis=detail_basis,
+            benchmark_id=benchmark_code,
+            segment=segment,
+            correlation_id=correlation_id,
+        )
+        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
+            as_of_date=report_end_date,
+            benchmark_currency=portfolio_currency,
+            correlation_id=correlation_id,
+        )
+        return await asyncio.gather(
+            workspace_summary_task,
+            benchmark_catalog_task,
+            return_exceptions=True,
+        )
+
+    async def _fetch_workspace_horizon_dependencies(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        portfolio_currency: str,
+        chart_frequency: str,
+    ) -> tuple[dict[str, object], object]:
+        request_specs = self._build_horizon_comparison_request_specs(
+            report_end_date=report_end_date,
+            chart_frequency=chart_frequency,
+        )
+        twr_tasks = [
+            self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=spec["report_start_date"],
+                period=spec["period"],
+                metric_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                correlation_id=correlation_id,
+                analyses=spec["analyses"],
+            )
+            for spec in request_specs
+        ]
+        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
+            as_of_date=report_end_date,
+            benchmark_currency=portfolio_currency,
+            correlation_id=correlation_id,
+        )
+        results = await asyncio.gather(
+            *twr_tasks,
+            benchmark_catalog_task,
+            return_exceptions=True,
+        )
+        twr_results = {
+            spec["label"]: results[index] for index, spec in enumerate(request_specs)
+        }
+        return twr_results, results[-1]
+
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
+
+    def _parse_workspace_summary_result(
+        self,
+        *,
+        result: object,
+        requested_period: str,
+        chart_frequency: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> tuple[
+        PerformanceComparativeSummary,
+        PerformanceComparativeSummary,
+        list[PerformanceChartPoint],
+        list[PerformanceChartPoint],
+        MoneyWeightedReturnSummary | None,
+        ContributionSummaryView | None,
+        AttributionSummaryView | None,
+        str | None,
+    ]:
+        empty_summary = PerformanceComparativeSummary(metric_basis="NET")
+        empty_gross_summary = PerformanceComparativeSummary(metric_basis="GROSS")
+        if isinstance(result, Exception):
+            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+            )
+            return empty_summary, empty_gross_summary, [], [], None, None, None, None
+
+        status_code, payload = result
+        if not isinstance(payload, dict):
+            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
+            return empty_summary, empty_gross_summary, [], [], None, None, None, None
+        if status_code >= 400:
+            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-performance",
+                    f"HTTP_{status_code}",
+                    str(payload.get("detail", payload)),
+                )
+            )
+            return empty_summary, empty_gross_summary, [], [], None, None, None, None
+
+        results_by_period = payload.get("results_by_period", {})
+        if not isinstance(results_by_period, dict) or not results_by_period:
+            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
+            return empty_summary, empty_gross_summary, [], [], None, None, None, None
+
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
+        period_payload = results_by_period.get(period_key, {})
+        if not isinstance(period_payload, dict):
+            return empty_summary, empty_gross_summary, [], [], None, None, None, None
+
+        benchmark_block = period_payload.get("benchmark", {})
+        active_block = period_payload.get("active", {})
+        net_block = self._extract_twr_workspace_block(period_payload, "net")
+        gross_block = self._extract_twr_workspace_block(period_payload, "gross")
+        money_weighted_return = self._build_workspace_mwr_summary(period_payload)
+        contribution = self._build_workspace_contribution(period_payload)
+        attribution = self._build_workspace_attribution(period_payload)
+
+        net_summary = self._build_workspace_comparative_summary(
+            metric_basis="NET",
+            portfolio_block=net_block,
+            benchmark_block=benchmark_block,
+            active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
+        )
+        gross_summary = self._build_workspace_comparative_summary(
+            metric_basis="GROSS",
+            portfolio_block=gross_block,
+            benchmark_block=benchmark_block,
+            active_basis_block=active_block.get("gross") if isinstance(active_block, dict) else {},
+        )
+        net_chart = self._build_workspace_chart_points(
+            portfolio_block=net_block,
+            benchmark_block=benchmark_block,
+            chart_frequency=chart_frequency,
+        )
+        gross_chart = self._build_workspace_chart_points(
+            portfolio_block=gross_block,
+            benchmark_block=benchmark_block,
+            chart_frequency=chart_frequency,
+        )
+
+        resolved_benchmark_code = self._safe_str(benchmark_block.get("benchmark_id"))
+        return (
+            net_summary,
+            gross_summary,
+            net_chart,
+            gross_chart,
+            money_weighted_return,
+            contribution,
+            attribution,
+            resolved_benchmark_code,
+        )
+
+    def _parse_horizon_comparison_result(
+        self,
+        *,
+        results_by_label: dict[str, object],
+        detail_basis: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
+        rows: list[PerformanceHorizonComparisonRow] = []
+        resolved_benchmark_code: str | None = None
+        for period in STANDARD_HORIZON_COMPARISON_PERIODS:
+            result = results_by_label.get(period)
+            if isinstance(result, Exception):
+                warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+                partial_failures.append(
+                    self._performance_failure(
+                        "lotus-performance", "UPSTREAM_EXCEPTION", str(result)
+                    )
+                )
+                continue
+            if result is None:
+                continue
+
+            requested_period = "EXPLICIT" if period in {"MTD", "QTD"} else period
+            comparative, _ = self._parse_twr_result(
+                result=result,
+                metric_basis=detail_basis.upper(),
+                chart_frequency="monthly",
+                requested_period=requested_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+            if (
+                comparative.portfolio_return_pct is None
+                and comparative.benchmark_return_pct is None
+            ):
+                continue
+            rows.append(
+                PerformanceHorizonComparisonRow(
+                    period=period,
+                    portfolio_return_pct=comparative.portfolio_return_pct,
+                    benchmark_return_pct=comparative.benchmark_return_pct,
+                    active_return_pct=comparative.active_return_pct,
+                    annualized_return_pct=comparative.annualized_return_pct,
+                )
+            )
+            if resolved_benchmark_code is None:
+                resolved_benchmark_code = comparative.benchmark_id
+        return rows, resolved_benchmark_code
+
+    def _build_horizon_comparison_request_specs(
+        self,
+        *,
+        report_end_date: str,
+        chart_frequency: str,
+    ) -> list[dict[str, Any]]:
+        report_end = date.fromisoformat(report_end_date)
+        frequencies: list[str] = []
+        for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
+            if frequency not in frequencies:
+                frequencies.append(frequency)
+        return [
+            {
+                "label": "MTD",
+                "period": "EXPLICIT",
+                "report_start_date": report_end.replace(day=1).isoformat(),
+                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
+            },
+            {
+                "label": "QTD",
+                "period": "EXPLICIT",
+                "report_start_date": self._start_of_quarter(report_end).isoformat(),
+                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
+            },
+            {
+                "label": "YTD",
+                "period": "YTD",
+                "report_start_date": None,
+                "analyses": [{"period": "YTD", "frequencies": frequencies}],
+            },
+            {
+                "label": "1Y",
+                "period": "1Y",
+                "report_start_date": None,
+                "analyses": [{"period": "1Y", "frequencies": frequencies}],
+            },
+        ]
+
+    def _start_of_quarter(self, value: date) -> date:
+        quarter_start_month = ((value.month - 1) // 3) * 3 + 1
+        return date(value.year, quarter_start_month, 1)
+
+    def _extract_twr_workspace_block(
+        self, period_payload: dict[str, Any], basis: str
+    ) -> dict[str, Any]:
+        portfolio_twr = period_payload.get("portfolio_twr", {})
+        if not isinstance(portfolio_twr, dict):
+            return {}
+        block = portfolio_twr.get(basis.lower(), {})
+        return block if isinstance(block, dict) else {}
+
+    def _build_workspace_comparative_summary(
+        self,
+        *,
+        metric_basis: str,
+        portfolio_block: dict[str, Any],
+        benchmark_block: dict[str, Any],
+        active_basis_block: Any,
+    ) -> PerformanceComparativeSummary:
+        active_payload = active_basis_block if isinstance(active_basis_block, dict) else {}
+        economics = (
+            portfolio_block.get("summary", {}).get("economics", {})
+            if isinstance(portfolio_block.get("summary"), dict)
+            else {}
+        )
+        return PerformanceComparativeSummary(
+            metric_basis=metric_basis,
+            portfolio_return_pct=self._extract_return(
+                portfolio_block, "summary", "period_return", "base"
+            ),
+            benchmark_return_pct=self._extract_return(
+                benchmark_block, "summary", "period_return", "base"
+            ),
+            active_return_pct=self._extract_nested_return(active_payload, "period_return", "base"),
+            annualized_return_pct=self._extract_return(
+                portfolio_block, "summary", "annualized_return", "base"
+            ),
+            benchmark_id=self._safe_str(benchmark_block.get("benchmark_id")),
+            benchmark_return_source=self._safe_str(benchmark_block.get("return_source")),
+            begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
+            if isinstance(economics, dict)
+            else None,
+            end_market_value=self._quantize_optional(economics.get("end_market_value"))
+            if isinstance(economics, dict)
+            else None,
+            net_cash_flow=self._quantize_optional(economics.get("net_cash_flow"))
+            if isinstance(economics, dict)
+            else None,
+        )
+
+    def _build_workspace_chart_points(
+        self,
+        *,
+        portfolio_block: dict[str, Any],
+        benchmark_block: dict[str, Any],
+        chart_frequency: str,
+    ) -> list[PerformanceChartPoint]:
+        normalized_frequency = chart_frequency.lower()
+        portfolio_breakdowns = portfolio_block.get("breakdowns", {})
+        benchmark_breakdowns = benchmark_block.get("breakdowns", {})
+        if not isinstance(portfolio_breakdowns, dict):
+            return []
+        portfolio_rows = portfolio_breakdowns.get(normalized_frequency, [])
+        benchmark_rows = (
+            benchmark_breakdowns.get(normalized_frequency, [])
+            if isinstance(benchmark_breakdowns, dict)
+            else []
+        )
+        if not isinstance(portfolio_rows, list):
+            return []
+        points: list[PerformanceChartPoint] = []
+        for index, portfolio_row in enumerate(portfolio_rows):
+            if not isinstance(portfolio_row, dict):
+                continue
+            benchmark_row = (
+                benchmark_rows[index]
+                if index < len(benchmark_rows) and isinstance(benchmark_rows[index], dict)
+                else {}
+            )
+            portfolio_period = self._extract_nested_return(portfolio_row, "period_return", "base")
+            benchmark_period = self._extract_nested_return(benchmark_row, "period_return", "base")
+            portfolio_cumulative = self._extract_nested_return(
+                portfolio_row, "cumulative_return", "base"
+            )
+            benchmark_cumulative = self._extract_nested_return(
+                benchmark_row, "cumulative_return", "base"
+            )
+            active_period = None
+            active_cumulative = None
+            if portfolio_period is not None and benchmark_period is not None:
+                active_period = float(quantize_performance(portfolio_period - benchmark_period))
+            if portfolio_cumulative is not None and benchmark_cumulative is not None:
+                active_cumulative = float(
+                    quantize_performance(portfolio_cumulative - benchmark_cumulative)
+                )
+            points.append(
+                PerformanceChartPoint(
+                    label=str(portfolio_row.get("period", f"point-{index + 1}")),
+                    frequency=normalized_frequency,
+                    period_start=self._safe_str(portfolio_row.get("period_start")),
+                    period_end=self._safe_str(portfolio_row.get("period_end")),
+                    portfolio_return_pct=portfolio_period,
+                    benchmark_return_pct=benchmark_period,
+                    active_return_pct=active_period,
+                    cumulative_portfolio_return_pct=portfolio_cumulative,
+                    cumulative_benchmark_return_pct=benchmark_cumulative,
+                    cumulative_active_return_pct=active_cumulative,
+                )
+            )
+        return points
+
+    def _build_workspace_mwr_summary(
+        self, period_payload: dict[str, Any]
+    ) -> MoneyWeightedReturnSummary | None:
+        mwr_payload = period_payload.get("money_weighted_return", {})
+        if not isinstance(mwr_payload, dict):
+            return None
+        notes = mwr_payload.get("notes", [])
+        return MoneyWeightedReturnSummary(
+            money_weighted_return_pct=self._quantize_optional(mwr_payload.get("period_return")),
+            annualized_return_pct=self._quantize_optional(mwr_payload.get("annualized_return")),
+            method=self._safe_str(mwr_payload.get("method")),
+            start_date=self._safe_str(mwr_payload.get("start_date")),
+            end_date=self._safe_str(mwr_payload.get("end_date")),
+            notes=[str(note) for note in notes] if isinstance(notes, list) else [],
+        )
+
+    def _build_workspace_contribution(
+        self, period_payload: dict[str, Any]
+    ) -> ContributionSummaryView | None:
+        contribution_payload = period_payload.get("contribution", {})
+        if not isinstance(contribution_payload, dict):
+            return None
+        summary_payload = contribution_payload.get("summary", {})
+        if not isinstance(summary_payload, dict):
+            summary_payload = {}
+        levels_payload = contribution_payload.get("levels", [])
+        position_payloads = contribution_payload.get("position_contributions", [])
+        levels: list[ContributionLevelView] = []
+        if isinstance(levels_payload, list):
+            for level_payload in levels_payload:
+                if not isinstance(level_payload, dict):
+                    continue
+                rows_payload = level_payload.get("rows", [])
+                rows: list[ContributionRowView] = []
+                if isinstance(rows_payload, list):
+                    for row_payload in rows_payload:
+                        if not isinstance(row_payload, dict):
+                            continue
+                        rows.append(
+                            ContributionRowView(
+                                key_label=self._format_key_label(row_payload.get("key")),
+                                contribution_pct=self._quantize_optional(
+                                    row_payload.get("contribution")
+                                )
+                                or 0.0,
+                                weight_avg_pct=self._weight_to_pct(row_payload.get("weight_avg")),
+                                total_return_pct=self._quantize_optional(row_payload.get("return")),
+                                local_contribution_pct=self._quantize_optional(
+                                    row_payload.get("local_contribution")
+                                ),
+                                fx_contribution_pct=self._quantize_optional(
+                                    row_payload.get("fx_contribution")
+                                ),
+                                is_other=bool(row_payload.get("is_other", False)),
+                            )
+                        )
+                levels.append(
+                    ContributionLevelView(
+                        level=int(level_payload.get("level", len(levels) + 1)),
+                        name=str(level_payload.get("name", "Level")),
+                        rows=rows,
+                        total_contribution_pct=self._quantize_optional(
+                            summary_payload.get("total_contribution")
+                        ),
+                        total_weight_avg_pct=self._sum_optional(
+                            [row.weight_avg_pct for row in rows]
+                        ),
+                        total_portfolio_return_pct=self._quantize_optional(
+                            summary_payload.get("portfolio_return")
+                        ),
+                    )
+                )
+        position_rows: list[ContributionPositionView] = []
+        if isinstance(position_payloads, list):
+            for position_payload in position_payloads:
+                if not isinstance(position_payload, dict):
+                    continue
+                position_rows.append(
+                    ContributionPositionView(
+                        position_id=str(position_payload.get("position_id", "Unknown Position")),
+                        contribution_pct=self._quantize_optional(
+                            position_payload.get("contribution")
+                        )
+                        or 0.0,
+                        weight_avg_pct=self._weight_to_pct(position_payload.get("average_weight")),
+                        total_return_pct=self._quantize_optional(
+                            position_payload.get("total_return")
+                        ),
+                        local_contribution_pct=self._quantize_optional(
+                            position_payload.get("local_contribution")
+                        ),
+                        fx_contribution_pct=self._quantize_optional(
+                            position_payload.get("fx_contribution")
+                        ),
+                    )
+                )
+        return ContributionSummaryView(
+            metric_basis=self._safe_str(contribution_payload.get("metric_basis")) or "NET",
+            weighting_scheme=None,
+            portfolio_contribution_pct=self._quantize_optional(
+                summary_payload.get("total_contribution")
+            ),
+            total_portfolio_return_pct=self._quantize_optional(
+                summary_payload.get("portfolio_return")
+            ),
+            coverage_mv_pct=None,
+            portfolio_local_contribution_pct=self._quantize_optional(
+                summary_payload.get("portfolio_local_return")
+            ),
+            portfolio_fx_contribution_pct=self._quantize_optional(
+                summary_payload.get("portfolio_fx_return")
+            ),
+            position_rows=position_rows,
+            levels=levels,
+        )
+
+    def _build_workspace_attribution(
+        self, period_payload: dict[str, Any]
+    ) -> AttributionSummaryView | None:
+        attribution_payload = period_payload.get("attribution", {})
+        if not isinstance(attribution_payload, dict):
+            return None
+        result_payload = attribution_payload.get("result", {})
+        benchmark_context = attribution_payload.get("benchmark_context", {})
+        if not isinstance(result_payload, dict):
+            result_payload = {}
+        if not isinstance(benchmark_context, dict):
+            benchmark_context = {}
+        levels_payload = result_payload.get("levels", [])
+        reconciliation_payload = result_payload.get("reconciliation", {})
+        if not isinstance(reconciliation_payload, dict):
+            reconciliation_payload = {}
+        levels: list[AttributionLevelView] = []
+        if isinstance(levels_payload, list):
+            for level_payload in levels_payload:
+                if not isinstance(level_payload, dict):
+                    continue
+                rows_payload = level_payload.get("rows", [])
+                totals_payload = level_payload.get("totals", {})
+                if not isinstance(totals_payload, dict):
+                    totals_payload = {}
+                rows: list[AttributionRowView] = []
+                if isinstance(rows_payload, list):
+                    for row_payload in rows_payload:
+                        if not isinstance(row_payload, dict):
+                            continue
+                        rows.append(
+                            AttributionRowView(
+                                key_label=self._format_key_label(row_payload.get("key")),
+                                portfolio_weight_avg_pct=self._weight_to_pct(
+                                    row_payload.get("portfolio_weight_avg")
+                                ),
+                                benchmark_weight_avg_pct=self._weight_to_pct(
+                                    row_payload.get("benchmark_weight_avg")
+                                ),
+                                portfolio_return_pct=self._quantize_optional(
+                                    row_payload.get("portfolio_return")
+                                ),
+                                benchmark_return_pct=self._quantize_optional(
+                                    row_payload.get("benchmark_return")
+                                ),
+                                allocation_pct=self._quantize_optional(
+                                    row_payload.get("allocation")
+                                )
+                                or 0.0,
+                                selection_pct=self._quantize_optional(row_payload.get("selection"))
+                                or 0.0,
+                                interaction_pct=self._quantize_optional(
+                                    row_payload.get("interaction")
+                                )
+                                or 0.0,
+                                total_effect_pct=self._quantize_optional(
+                                    row_payload.get("total_effect")
+                                )
+                                or 0.0,
+                            )
+                        )
+                levels.append(
+                    AttributionLevelView(
+                        dimension=str(level_payload.get("dimension", "Dimension")),
+                        allocation_total_pct=self._quantize_optional(
+                            totals_payload.get("allocation")
+                        ),
+                        selection_total_pct=self._quantize_optional(
+                            totals_payload.get("selection")
+                        ),
+                        interaction_total_pct=self._quantize_optional(
+                            totals_payload.get("interaction")
+                        ),
+                        total_effect_pct=self._quantize_optional(totals_payload.get("total_effect"))
+                        or 0.0,
+                        rows=rows,
+                    )
+                )
+        return AttributionSummaryView(
+            metric_basis=self._safe_str(attribution_payload.get("metric_basis")) or "NET",
+            model=self._safe_str(attribution_payload.get("model")),
+            linking=self._safe_str(attribution_payload.get("linking")),
+            benchmark_id=self._safe_str(benchmark_context.get("benchmark_id")),
+            benchmark_return_source=self._safe_str(benchmark_context.get("return_source")),
+            active_return_pct=self._quantize_optional(
+                reconciliation_payload.get("total_active_return")
+            ),
+            sum_of_effects_pct=self._quantize_optional(
+                reconciliation_payload.get("sum_of_effects")
+            ),
+            residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+            levels=levels,
+        )
+
+    def _parse_benchmark_catalog_result(
+        self,
+        *,
+        result: object,
+        assigned_benchmark_code: str | None,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> list[PerformanceBenchmarkOptionView]:
+        if isinstance(result, Exception):
+            warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
+            )
+            return []
+        status_code, payload = result
+        if status_code >= 400 or not isinstance(payload, dict):
+            warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-core",
+                    f"HTTP_{status_code}"
+                    if isinstance(status_code, int)
+                    else "INVALID_UPSTREAM_PAYLOAD",
+                    str(payload),
+                )
+            )
+            return []
+        records = payload.get("records", [])
+        if not isinstance(records, list):
+            return []
+        options: list[PerformanceBenchmarkOptionView] = []
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            benchmark_code = self._safe_str(record.get("benchmark_id"))
+            benchmark_name = self._safe_str(record.get("benchmark_name"))
+            if not benchmark_code or not benchmark_name:
+                continue
+            options.append(
+                PerformanceBenchmarkOptionView(
+                    benchmark_code=benchmark_code,
+                    benchmark_name=benchmark_name,
+                    benchmark_currency=self._safe_str(record.get("benchmark_currency")),
+                    benchmark_type=self._safe_str(record.get("benchmark_type")),
+                    benchmark_family=self._safe_str(record.get("benchmark_family")),
+                    benchmark_provider=self._safe_str(record.get("benchmark_provider")),
+                    is_assigned=benchmark_code == assigned_benchmark_code,
+                )
+            )
+        return sorted(options, key=lambda option: (not option.is_assigned, option.benchmark_name))
 
     def _resolve_report_start_date(self, *, as_of_date: date, period: str) -> date:
         normalized_period = period.upper()
@@ -349,6 +1299,72 @@ class PerformanceWorkspaceService:
             self._resolve_report_start_date(as_of_date=report_end, period=effective_period),
             effective_period,
         )
+
+    def _normalize_attribution_trend_frequency(
+        self,
+        *,
+        chart_frequency: str,
+        warnings: list[str],
+    ) -> str:
+        normalized_frequency = chart_frequency.lower()
+        if normalized_frequency in {"monthly", "quarterly", "yearly"}:
+            return normalized_frequency
+        warnings.append("ATTRIBUTION_TREND_FREQUENCY_NORMALIZED_TO_MONTHLY")
+        return "monthly"
+
+    def _build_attribution_trend_windows(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        chart_frequency: str,
+    ) -> list[tuple[date, date]]:
+        if start_date > end_date:
+            return []
+        windows: list[tuple[date, date]] = []
+        cursor = start_date
+        while cursor <= end_date:
+            window_end = self._resolve_attribution_trend_window_end(
+                window_start=cursor,
+                end_date=end_date,
+                chart_frequency=chart_frequency,
+            )
+            windows.append((cursor, window_end))
+            cursor = window_end + timedelta(days=1)
+        return windows
+
+    def _resolve_attribution_trend_window_end(
+        self,
+        *,
+        window_start: date,
+        end_date: date,
+        chart_frequency: str,
+    ) -> date:
+        if chart_frequency == "quarterly":
+            quarter_end_month = ((window_start.month - 1) // 3 + 1) * 3
+            return min(
+                date(
+                    window_start.year,
+                    quarter_end_month,
+                    self._last_day_of_month(window_start.year, quarter_end_month),
+                ),
+                end_date,
+            )
+        if chart_frequency == "yearly":
+            return min(date(window_start.year, 12, 31), end_date)
+        return min(
+            date(
+                window_start.year,
+                window_start.month,
+                self._last_day_of_month(window_start.year, window_start.month),
+            ),
+            end_date,
+        )
+
+    def _last_day_of_month(self, year: int, month: int) -> int:
+        if month == 12:
+            return 31
+        return (date(year, month + 1, 1) - timedelta(days=1)).day
 
     def _shift_years(self, anchor: date, years: int) -> date:
         try:
@@ -650,7 +1666,9 @@ class PerformanceWorkspaceService:
                             quantize_performance(position_payload.get("total_contribution", 0.0))
                         ),
                         weight_avg_pct=self._weight_to_pct(position_payload.get("average_weight")),
-                        total_return_pct=self._quantize_optional(position_payload.get("total_return")),
+                        total_return_pct=self._quantize_optional(
+                            position_payload.get("total_return")
+                        ),
                         local_contribution_pct=self._quantize_optional(
                             position_payload.get("local_contribution")
                         ),
@@ -780,6 +1798,137 @@ class PerformanceWorkspaceService:
             levels=levels,
         )
 
+    def _parse_attribution_trend_results(
+        self,
+        *,
+        results: list[object],
+        window_pairs: list[tuple[date, date]],
+        chart_frequency: str,
+        requested_period: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> list[PerformanceAttributionTrendRow]:
+        rows: list[PerformanceAttributionTrendRow] = []
+        cumulative_total_effect = 0.0
+
+        for index, result in enumerate(results):
+            window_start, window_end = window_pairs[index]
+            parsed_row = self._parse_single_attribution_trend_row(
+                result=result,
+                window_start=window_start,
+                window_end=window_end,
+                chart_frequency=chart_frequency,
+                requested_period=requested_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+            if parsed_row is None:
+                continue
+
+            cumulative_total_effect += parsed_row.total_effect_pct or 0.0
+            row_payload = parsed_row.model_dump()
+            row_payload["cumulative_total_effect_pct"] = self._quantize_optional(
+                cumulative_total_effect
+            )
+            rows.append(
+                PerformanceAttributionTrendRow(**row_payload)
+            )
+
+        return rows
+
+    def _parse_single_attribution_trend_row(
+        self,
+        *,
+        result: object,
+        window_start: date,
+        window_end: date,
+        chart_frequency: str,
+        requested_period: str,
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> PerformanceAttributionTrendRow | None:
+        if isinstance(result, Exception):
+            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+            )
+            return None
+
+        status_code, payload = result
+        if status_code >= 400 or not isinstance(payload, dict):
+            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-performance",
+                    f"HTTP_{status_code}"
+                    if isinstance(status_code, int)
+                    else "INVALID_UPSTREAM_PAYLOAD",
+                    str(payload),
+                )
+            )
+            return None
+
+        results_by_period = payload.get("results_by_period", {})
+        if not isinstance(results_by_period, dict) or not results_by_period:
+            return None
+
+        period_key = self._resolve_results_period_key(
+            requested_period=requested_period,
+            results_by_period=results_by_period,
+        )
+        period_payload = results_by_period.get(period_key, {})
+        if not isinstance(period_payload, dict):
+            return None
+
+        levels_payload = period_payload.get("levels", [])
+        reconciliation_payload = period_payload.get("reconciliation", {})
+        if not isinstance(levels_payload, list) or not levels_payload:
+            return None
+        if not isinstance(reconciliation_payload, dict):
+            reconciliation_payload = {}
+
+        level_payload = levels_payload[0]
+        if not isinstance(level_payload, dict):
+            return None
+        totals_payload = level_payload.get("totals", {})
+        if not isinstance(totals_payload, dict):
+            totals_payload = {}
+
+        return PerformanceAttributionTrendRow(
+            period_label=self._format_attribution_trend_label(
+                window_start=window_start,
+                window_end=window_end,
+                chart_frequency=chart_frequency,
+            ),
+            period_start=window_start.isoformat(),
+            period_end=window_end.isoformat(),
+            frequency=chart_frequency,
+            allocation_pct=self._quantize_optional(totals_payload.get("allocation")),
+            selection_pct=self._quantize_optional(totals_payload.get("selection")),
+            interaction_pct=self._quantize_optional(totals_payload.get("interaction")),
+            total_effect_pct=self._quantize_optional(totals_payload.get("total_effect")),
+            active_return_pct=self._quantize_optional(
+                reconciliation_payload.get("total_active_return")
+            ),
+            residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+        )
+
+    def _format_attribution_trend_label(
+        self,
+        *,
+        window_start: date,
+        window_end: date,
+        chart_frequency: str,
+    ) -> str:
+        if chart_frequency == "yearly":
+            return str(window_start.year)
+        if chart_frequency == "quarterly":
+            quarter = ((window_start.month - 1) // 3) + 1
+            return f"{window_start.year}-Q{quarter}"
+        if window_start.year == window_end.year and window_start.month == window_end.month:
+            return f"{window_start.year}-{window_start.month:02d}"
+        return f"{window_start.isoformat()} to {window_end.isoformat()}"
+
     def _extract_return(self, payload: Any, *path: str) -> float | None:
         current = payload
         for key in path:
@@ -814,6 +1963,12 @@ class PerformanceWorkspaceService:
             return float(quantize_performance(normalized))
         except (TypeError, ValueError):
             return None
+
+    def _sum_optional(self, values: list[float | None]) -> float | None:
+        numeric_values = [value for value in values if value is not None]
+        if not numeric_values:
+            return None
+        return float(quantize_performance(sum(numeric_values)))
 
     def _format_key_label(self, payload: Any) -> str:
         if isinstance(payload, dict) and payload:

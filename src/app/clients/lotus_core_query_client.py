@@ -239,6 +239,36 @@ class LotusCoreQueryClient:
             headers=headers,
         )
 
+    async def get_benchmark_catalog(
+        self,
+        *,
+        as_of_date: str,
+        correlation_id: str,
+        benchmark_currency: str | None = None,
+        benchmark_status: str | None = "active",
+        benchmark_type: str | None = "composite",
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._control_plane_base_url}/integration/benchmarks/catalog"
+        headers = propagation_headers(correlation_id)
+        payload: dict[str, Any] = {
+            "as_of_date": as_of_date,
+        }
+        if benchmark_currency is not None:
+            payload["benchmark_currency"] = benchmark_currency
+        if benchmark_status is not None:
+            payload["benchmark_status"] = benchmark_status
+        if benchmark_type is not None:
+            payload["benchmark_type"] = benchmark_type
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )
+
     async def list_instruments(
         self,
         limit: int,

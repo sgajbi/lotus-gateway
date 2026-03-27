@@ -295,6 +295,68 @@ class LotusAnalyticsClient:
             correlation_id=correlation_id,
         )
 
+    async def get_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_id: str | None,
+        segment: str,
+        correlation_id: str,
+        periods: list[dict[str, Any]] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
+        deduped_frequencies: list[str] = []
+        for frequency in frequencies:
+            if frequency not in deduped_frequencies:
+                deduped_frequencies.append(frequency)
+
+        requested_period = "EXPLICIT" if report_start_date else period
+        payload: dict[str, Any] = {
+            "calculation_id": str(uuid4()),
+            "input_mode": "stateful",
+            "portfolio_id": portfolio_id,
+            "report_end_date": report_end_date,
+            "periods": periods
+            or [
+                {
+                    "period": requested_period,
+                    "frequencies": deduped_frequencies,
+                }
+            ],
+            "include_benchmark": benchmark_id is not None,
+            "stateful_input": {},
+            "segmentation": {
+                "group_by": [segment],
+            },
+            "contribution": {
+                "metric_basis": detail_basis,
+                "top_positions": 10,
+            },
+            "attribution": {
+                "metric_basis": detail_basis,
+            },
+            "mwr_method": "XIRR",
+        }
+        if report_start_date:
+            payload["report_start_date"] = report_start_date
+        if benchmark_id:
+            payload["benchmark"] = {
+                "benchmark_id": benchmark_id,
+                "input_mode": "stateful",
+                "return_source": "calculated",
+                "stateful_input": {},
+            }
+        return await self._post_analytics_request(
+            path="/performance/workspace-summary",
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+
     async def get_workbench_risk_proxy(
         self,
         payload: dict[str, Any],
