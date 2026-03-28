@@ -10,6 +10,7 @@ from app.contracts.portfolio import (
     PortfolioIncomeSummaryResponse,
     PortfolioLiquidityResponse,
     PortfolioPositionBookResponse,
+    PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
     PortfolioTransactionLedgerResponse,
     PortfolioWorkflowResponse,
@@ -123,6 +124,26 @@ async def get_portfolio_liquidity(
 
 
 @router.get(
+    "/portfolios/{portfolio_id}/projected-cashflow",
+    response_model=PortfolioProjectedCashflowResponse,
+    summary="Get portfolio projected cashflow view",
+)
+async def get_portfolio_projected_cashflow(
+    portfolio_id: str,
+    as_of_date: str | None = Query(default=None),
+    horizon_days: int = Query(default=10, ge=1, le=365),
+    include_projected: bool = Query(default=True),
+) -> PortfolioProjectedCashflowResponse:
+    return await _portfolio_service().get_portfolio_projected_cashflow(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        horizon_days=horizon_days,
+        include_projected=include_projected,
+    )
+
+
+@router.get(
     "/portfolios/{portfolio_id}/allocations",
     response_model=PortfolioAllocationResponse,
     summary="Get portfolio allocation views",
@@ -201,6 +222,9 @@ async def get_portfolio_transactions(
     portfolio_id: str,
     as_of_date: str | None = Query(default=None),
     include_projected: bool = Query(default=False),
+    transaction_type: str | None = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
 ) -> PortfolioTransactionLedgerResponse:
@@ -209,6 +233,9 @@ async def get_portfolio_transactions(
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         include_projected=include_projected,
+        transaction_type=transaction_type,
+        start_date=start_date,
+        end_date=end_date,
         skip=skip,
         limit=limit,
     )

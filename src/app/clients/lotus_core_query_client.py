@@ -121,6 +121,9 @@ class LotusCoreQueryClient:
         sort_order: str = "desc",
         as_of_date: str | None = None,
         include_projected: bool = False,
+        transaction_type: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
         headers = propagation_headers(correlation_id)
@@ -133,6 +136,12 @@ class LotusCoreQueryClient:
         }
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
+        if transaction_type is not None:
+            params["transaction_type"] = transaction_type
+        if start_date is not None:
+            params["start_date"] = start_date
+        if end_date is not None:
+            params["end_date"] = end_date
         return await request_with_retry(
             method="GET",
             url=url,

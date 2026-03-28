@@ -315,6 +315,39 @@ async def test_portfolio_liquidity_returns_cash_and_cashflow():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_projected_cashflow_returns_requested_horizon():
+    class _CashflowAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_kwargs = None
+
+        async def get_cashflow_projection(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.last_kwargs = kwargs
+            return await super().get_cashflow_projection(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _CashflowAwareClient()
+    service = PortfolioService(client)
+    response = await service.get_portfolio_projected_cashflow(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3b2",
+        as_of_date="2026-03-27",
+        horizon_days=30,
+        include_projected=True,
+    )
+
+    assert client.last_kwargs is not None
+    assert client.last_kwargs["horizon_days"] == 30
+    assert response.cashflow_outlook is not None
+    assert response.cashflow_outlook.projection_days == 10
+    assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_allocations_return_dimension_views():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_allocations(
@@ -394,6 +427,43 @@ async def test_transaction_ledger_preserves_paging_metadata():
     assert response.skip == 20
     assert response.limit == 25
     assert response.transactions[0].transaction_id == "TX_1"
+
+
+@pytest.mark.asyncio
+async def test_transaction_ledger_passes_transaction_filters_upstream():
+    class _FilterAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_kwargs = None
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.last_kwargs = kwargs
+            return await super().get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _FilterAwareClient()
+    service = PortfolioService(client)
+
+    await service.get_transaction_ledger(
+        portfolio_id="PF_1001",
+        correlation_id="corr-4b",
+        as_of_date="2026-03-27",
+        include_projected=False,
+        skip=0,
+        limit=100,
+        transaction_type="BUY",
+        start_date="2026-03-01",
+        end_date="2026-03-27",
+    )
+
+    assert client.last_kwargs is not None
+    assert client.last_kwargs["transaction_type"] == "BUY"
+    assert client.last_kwargs["start_date"] == "2026-03-01"
+    assert client.last_kwargs["end_date"] == "2026-03-27"
 
 
 @pytest.mark.asyncio

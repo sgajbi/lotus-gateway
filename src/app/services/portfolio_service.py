@@ -29,6 +29,7 @@ from app.contracts.portfolio import (
     PortfolioPositionBookResponse,
     PortfolioPositionView,
     PortfolioProfile,
+    PortfolioProjectedCashflowResponse,
     PortfolioReadinessIndicator,
     PortfolioReadinessResponse,
     PortfolioSummary,
@@ -296,6 +297,36 @@ class PortfolioService:
             partial_failures=partial_failures,
         )
 
+    async def get_portfolio_projected_cashflow(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        horizon_days: int,
+        include_projected: bool,
+    ) -> PortfolioProjectedCashflowResponse:
+        warnings: list[str] = []
+        partial_failures: list[PortfolioPartialFailure] = []
+        cashflow_result = await self._lotus_core_query_client.get_cashflow_projection(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            horizon_days=horizon_days,
+        )
+        cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
+        resolved_as_of_date = self._extract_resolved_as_of_date(cashflow_result)
+
+        return PortfolioProjectedCashflowResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=resolved_as_of_date or as_of_date or datetime.now(UTC).date().isoformat(),
+            cashflow_outlook=cashflow_outlook,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
     async def get_portfolio_allocations(
         self,
         portfolio_id: str,
@@ -399,6 +430,9 @@ class PortfolioService:
         include_projected: bool,
         skip: int,
         limit: int,
+        transaction_type: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
         status_code, payload = await self._lotus_core_query_client.get_portfolio_transactions(
             portfolio_id=portfolio_id,
@@ -407,6 +441,9 @@ class PortfolioService:
             include_projected=include_projected,
             skip=skip,
             limit=limit,
+            transaction_type=transaction_type,
+            start_date=start_date,
+            end_date=end_date,
         )
         result_payload = self._require_payload(
             result=(status_code, payload),

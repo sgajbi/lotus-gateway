@@ -286,6 +286,16 @@ class PortfolioLiquidityResponse(BaseModel):
     partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
 
 
+class PortfolioProjectedCashflowResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    cashflow_outlook: PortfolioCashflowOutlook | None = None
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
+
+
 class PortfolioAllocationResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")

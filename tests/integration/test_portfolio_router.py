@@ -249,7 +249,10 @@ def test_portfolio_book_router(monkeypatch):
 
 
 def test_portfolio_transactions_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _transactions(*args, **kwargs):
+        captured.update(kwargs)
         return 200, {
             "total": 1,
             "skip": 0,
@@ -268,9 +271,19 @@ def test_portfolio_transactions_router(monkeypatch):
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/transactions")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/transactions",
+        params={
+            "transaction_type": "BUY",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-27",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["transactions"][0]["transaction_id"] == "TX_1"
+    assert captured["transaction_type"] == "BUY"
+    assert captured["start_date"] == "2026-03-01"
+    assert captured["end_date"] == "2026-03-27"
 
 
 def test_portfolio_liquidity_router(monkeypatch):
@@ -314,6 +327,39 @@ def test_portfolio_liquidity_router(monkeypatch):
     response = client.get("/api/v1/portfolio/portfolios/PF_1001/liquidity")
     assert response.status_code == 200
     assert response.json()["cash_balances"][0]["security_id"] == "CASH_USD"
+
+
+def test_portfolio_projected_cashflow_router(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _cashflow(*args, **kwargs):
+        captured.update(kwargs)
+        return 200, {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-26",
+            "total_net_cashflow": 125.0,
+            "projection_days": 30,
+            "include_projected": True,
+            "points": [
+                {
+                    "projection_date": "2026-03-28",
+                    "net_cashflow": 25.0,
+                    "projected_cumulative_cashflow": 25.0,
+                }
+            ],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/projected-cashflow",
+        params={"as_of_date": "2026-03-27", "horizon_days": 30},
+    )
+    assert response.status_code == 200
+    assert response.json()["cashflow_outlook"]["projection_days"] == 30
+    assert captured["horizon_days"] == 30
+    assert captured["as_of_date"] == "2026-03-27"
 
 
 def test_portfolio_allocations_router(monkeypatch):
