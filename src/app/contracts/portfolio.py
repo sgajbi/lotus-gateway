@@ -231,12 +231,37 @@ class PortfolioReadinessIndicator(BaseModel):
     href: str
 
 
+class PortfolioExceptionSummary(BaseModel):
+    key: str
+    title: str
+    detail: str
+    tone: str
+    href: str
+
+
+class PortfolioInsight(BaseModel):
+    key: str
+    title: str
+    detail: str
+    severity: str
+    href: str
+
+
 class PortfolioReadinessResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
     indicators: list[PortfolioReadinessIndicator] = Field(default_factory=list)
+
+
+class PortfolioInsightsResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    insights: list[PortfolioInsight] = Field(default_factory=list)
+    exception_summaries: list[PortfolioExceptionSummary] = Field(default_factory=list)
 
 
 class PortfolioWorkflowAction(BaseModel):

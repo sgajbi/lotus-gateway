@@ -203,6 +203,114 @@ def test_portfolio_workflow_router(monkeypatch):
     assert response.json()["actions"][0]["title"] == "Review performance"
 
 
+def test_portfolio_insights_router(monkeypatch):
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
+
+    async def _query_aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {"portfolio_id": "PF_1001", "aum_reporting_currency": 1000.0, "position_count": 1}
+            ],
+        }
+
+    async def _support(*args, **kwargs):
+        return 200, {"business_date": "2026-03-27", "publish_allowed": True}
+
+    async def _cashflow(*args, **kwargs):
+        return 200, {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-06",
+            "total_net_cashflow": 0,
+            "projection_days": 10,
+            "include_projected": True,
+            "points": [],
+        }
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
+            "cash_accounts": [],
+        }
+
+    async def _positions(*args, **kwargs):
+        return 200, {
+            "positions": [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "quantity": 1,
+                    "weight": 0.25,
+                    "valuation": {"market_value_base": 1000.0},
+                }
+            ]
+        }
+
+    async def _allocation(*args, **kwargs):
+        return 200, {
+            "views": [{"dimension": "asset_class", "buckets": [{"dimension_value": "Equity"}]}]
+        }
+
+    async def _transactions(*args, **kwargs):
+        return 200, {
+            "total": 1,
+            "skip": 0,
+            "limit": 50,
+            "transactions": [
+                {
+                    "transaction_id": "TX_1",
+                    "transaction_date": "2026-03-27T00:00:00Z",
+                    "transaction_type": "BUY",
+                    "security_id": "EQ_1",
+                    "instrument_id": "EQ_1",
+                    "quantity": 1,
+                }
+            ],
+        }
+
+    async def _activity_summary(*args, **kwargs):
+        return 200, {
+            "reporting_currency": "USD",
+            "totals": {
+                "buckets": [
+                    {
+                        "bucket": "OUTFLOWS",
+                        "requested_window": {
+                            "transaction_count": 1,
+                            "amount_reporting_currency": -100.0,
+                        },
+                        "year_to_date": {
+                            "transaction_count": 1,
+                            "amount_reporting_currency": -100.0,
+                        },
+                    }
+                ]
+            },
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_activity_summary", _activity_summary)
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_1001/insights")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_id"] == "PF_1001"
+    assert {item["key"] for item in body["insights"]} == {
+        "equity-concentration-high",
+        "net-outflows-window",
+    }
+    assert body["exception_summaries"] == []
+
+
 def test_portfolio_book_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}

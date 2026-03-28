@@ -268,6 +268,23 @@ async def test_portfolio_readiness_returns_compact_indicators():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_insights_returns_source_backed_insight_and_exception_summaries():
+    service = PortfolioService(_StubLotusCoreQueryClient())
+    response = await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb",
+        as_of_date="2026-03-27",
+    )
+
+    assert response.portfolio_id == "PF_1001"
+    assert {insight.key for insight in response.insights} == {
+        "equity-concentration-high",
+    }
+    assert any(insight.severity == "warning" for insight in response.insights)
+    assert response.exception_summaries == []
+
+
+@pytest.mark.asyncio
 async def test_portfolio_workflow_returns_prioritized_actions():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_workflow(

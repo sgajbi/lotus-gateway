@@ -18,10 +18,13 @@ from app.contracts.portfolio import (
     PortfolioCashflowPoint,
     PortfolioCatalogItem,
     PortfolioCatalogResponse,
+    PortfolioExceptionSummary,
     PortfolioIdentity,
     PortfolioIncomePeriodSummary,
     PortfolioIncomeSummaryResponse,
     PortfolioIncomeTypeSummary,
+    PortfolioInsight,
+    PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
     PortfolioMoneySummary,
     PortfolioOperationalReadiness,
@@ -170,6 +173,58 @@ class PortfolioService:
             portfolio_id=portfolio_id,
             as_of_date=workspace.as_of_date,
             indicators=indicators,
+        )
+
+    async def get_portfolio_insights(
+        self, portfolio_id: str, correlation_id: str, as_of_date: str | None
+    ) -> PortfolioInsightsResponse:
+        workspace, positions, allocations, transactions, activity = await asyncio.gather(
+            self.get_portfolio_workspace(portfolio_id=portfolio_id, correlation_id=correlation_id),
+            self.get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=False,
+            ),
+            self.get_portfolio_allocations(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
+            self.get_transaction_ledger(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=False,
+                skip=0,
+                limit=50,
+            ),
+            self.get_activity_summary(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                start_date=None,
+                end_date=None,
+            ),
+        )
+
+        return PortfolioInsightsResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=workspace.as_of_date,
+            insights=self._build_portfolio_insights(
+                workspace=workspace,
+                positions=positions.positions,
+                top_positions=positions.top_positions,
+                allocation_views=allocations.views,
+                activity_summary=activity,
+            ),
+            exception_summaries=self._build_portfolio_exception_summaries(
+                workspace=workspace,
+                positions=positions.positions,
+                allocation_views=allocations.views,
+                transaction_total=transactions.total,
+            ),
         )
 
     async def get_portfolio_workflow(
@@ -991,6 +1046,255 @@ class PortfolioService:
             ),
         ]
 
+    def _build_portfolio_exception_summaries(
+        self,
+        *,
+        workspace: PortfolioWorkspaceResponse,
+        positions: list[PortfolioPositionView],
+        allocation_views: list[PortfolioAllocationView],
+        transaction_total: int,
+    ) -> list[PortfolioExceptionSummary]:
+        exceptions: list[PortfolioExceptionSummary] = []
+        holdings_status = self._holdings_readiness_status(
+            position_count=workspace.summary.position_count,
+            positions=positions,
+        )
+        pricing_status = self._pricing_readiness_status(
+            positions=positions,
+            allocation_views=allocation_views,
+        )
+        transaction_status = self._transactions_readiness_status(
+            transaction_total=transaction_total,
+            operations=workspace.operations,
+        )
+        reporting_status = self._reporting_status_label(
+            workspace.reporting.status,
+            workspace.reporting.row_count,
+        )
+
+        if holdings_status != "Ready":
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key="holdings",
+                    title=(
+                        "Holdings coverage incomplete"
+                        if holdings_status == "Partial"
+                        else "Missing holdings"
+                    ),
+                    detail=(
+                        "The holdings inventory is only partially available for this book."
+                        if holdings_status == "Partial"
+                        else "No positions are currently booked for this portfolio."
+                    ),
+                    tone="warn" if holdings_status == "Partial" else "danger",
+                    href="#portfolio-drilldown",
+                )
+            )
+
+        if pricing_status != "Ready":
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key="pricing",
+                    title=(
+                        "Pricing coverage incomplete"
+                        if pricing_status == "Partial"
+                        else "No priced positions"
+                    ),
+                    detail=(
+                        "Some holdings lack complete valuation coverage."
+                        if pricing_status == "Partial"
+                        else "Valuation cannot run until priced positions are available."
+                    ),
+                    tone="warn" if pricing_status == "Partial" else "danger",
+                    href="#portfolio-attention",
+                )
+            )
+
+        if transaction_status != "Ready":
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key="transactions",
+                    title=(
+                        "Transaction history incomplete"
+                        if transaction_status == "Partial"
+                        else "Empty transaction history"
+                    ),
+                    detail=(
+                        "Booked transaction history is present but not fully "
+                        "available in the current view."
+                        if transaction_status == "Partial"
+                        else "No funding, trading, or cash activity has been recorded yet."
+                    ),
+                    tone="warn" if transaction_status == "Partial" else "danger",
+                    href="#portfolio-drilldown",
+                )
+            )
+
+        if reporting_status != "Ready":
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key="reporting",
+                    title=(
+                        "Reporting output incomplete"
+                        if reporting_status == "Partial"
+                        else "Reporting output unavailable"
+                        if reporting_status == "Empty"
+                        else "Reporting output missing"
+                    ),
+                    detail=(
+                        "Reporting output exists, but the current book is not fully reportable."
+                        if reporting_status == "Partial"
+                        else "Reporting has not produced any rows for this portfolio yet."
+                        if reporting_status == "Empty"
+                        else "Reporting coverage is not yet available for this portfolio."
+                    ),
+                    tone="warn" if reporting_status in {"Partial", "Empty"} else "danger",
+                    href="#portfolio-health",
+                )
+            )
+
+        if workspace.operations and workspace.operations.controls_blocking:
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key="controls_blocking",
+                    title="Blocking controls active",
+                    detail=(
+                        "Operational controls are currently preventing publication "
+                        "or downstream processing."
+                    ),
+                    tone="danger",
+                    href="#portfolio-attention",
+                )
+            )
+
+        for failure in workspace.partial_failures:
+            exceptions.append(
+                PortfolioExceptionSummary(
+                    key=f"partial_failure_{failure.error_code}",
+                    title=failure.error_code.replace("_", " "),
+                    detail=failure.detail,
+                    tone="warn",
+                    href="#portfolio-attention",
+                )
+            )
+
+        return exceptions
+
+    def _build_portfolio_insights(
+        self,
+        *,
+        workspace: PortfolioWorkspaceResponse,
+        positions: list[PortfolioPositionView],
+        top_positions: list[PortfolioTopPosition],
+        allocation_views: list[PortfolioAllocationView],
+        activity_summary: PortfolioActivitySummaryResponse,
+    ) -> list[PortfolioInsight]:
+        insights: list[PortfolioInsight] = []
+        pricing_status = self._pricing_readiness_status(
+            positions=positions,
+            allocation_views=allocation_views,
+        )
+        reporting_status = self._reporting_status_label(
+            workspace.reporting.status,
+            workspace.reporting.row_count,
+        )
+        max_position_weight = max(
+            (position.weight_pct or 0 for position in top_positions),
+            default=0,
+        )
+        requested_window_activity = self._requested_window_activity_amount(activity_summary)
+
+        if not positions:
+            insights.append(
+                PortfolioInsight(
+                    key="no-holdings-booked",
+                    title="No holdings booked",
+                    detail=(
+                        "Book the first position to activate holdings, allocation, "
+                        "and valuation views."
+                    ),
+                    severity="critical",
+                    href="#portfolio-drilldown",
+                )
+            )
+
+        if workspace.summary.cash_balance_count == 0:
+            insights.append(
+                PortfolioInsight(
+                    key="no-cash-funding",
+                    title="No cash funding recorded",
+                    detail=(
+                        "Add opening cash or a subscription so the portfolio can "
+                        "be funded and invested."
+                    ),
+                    severity="critical",
+                    href="#portfolio-insights",
+                )
+            )
+
+        if pricing_status != "Ready":
+            insights.append(
+                PortfolioInsight(
+                    key="pricing-not-published",
+                    title="Pricing not yet published",
+                    detail="Publish prices to complete valuation and unlock reliable reporting.",
+                    severity="warning",
+                    href="#portfolio-attention",
+                )
+            )
+
+        if reporting_status != "Ready":
+            insights.append(
+                PortfolioInsight(
+                    key="reporting-unavailable",
+                    title="Reporting cannot be generated yet",
+                    detail=(
+                        "Reporting remains blocked until book coverage and "
+                        "valuation are complete."
+                    ),
+                    severity="warning",
+                    href="#portfolio-health",
+                )
+            )
+
+        if max_position_weight >= 20:
+            insights.append(
+                PortfolioInsight(
+                    key="equity-concentration-high",
+                    title="Large position dominates portfolio risk",
+                    detail=(
+                        "One holding has become large enough to dominate current "
+                        "portfolio concentration."
+                    ),
+                    severity="warning",
+                    href="#portfolio-insights",
+                )
+            )
+
+        if (workspace.summary.cash_weight_pct or 0) >= 15:
+            insights.append(
+                PortfolioInsight(
+                    key="cash-above-target",
+                    title="Cash exceeds target allocation",
+                    detail="Available cash is elevated relative to invested assets.",
+                    severity="info",
+                    href="#portfolio-insights",
+                )
+            )
+
+        if requested_window_activity < 0:
+            insights.append(
+                PortfolioInsight(
+                    key="net-outflows-window",
+                    title="Net outflows in last 30 days",
+                    detail="Recent activity is net negative over the selected reporting window.",
+                    severity="warning",
+                    href="#portfolio-changes",
+                )
+            )
+
+        return insights
+
     def _build_workflow_actions(
         self,
         *,
@@ -1122,6 +1426,16 @@ class PortfolioService:
         if normalized == "PENDING" or row_count > 0:
             return "Partial"
         return "Missing"
+
+    def _requested_window_activity_amount(
+        self, activity_summary: PortfolioActivitySummaryResponse
+    ) -> float:
+        return float(
+            sum(
+                bucket.requested_window.reporting_currency_amount
+                for bucket in activity_summary.buckets
+            )
+        )
 
     def _dedupe_workflow_cues(
         self, workflow_cues: list[PortfolioWorkflowLaunchCue]
