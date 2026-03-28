@@ -339,6 +339,44 @@ async def test_portfolio_positions_return_top_positions_and_full_book():
     assert response.summary.position_count == 3
     assert response.positions[0].security_id == "EQ_1"
     assert response.top_positions[0].security_id == "EQ_1"
+    assert response.positions[0].market_value_base == 700.0
+    assert response.positions[0].market_value_local is None
+
+
+@pytest.mark.asyncio
+async def test_portfolio_positions_fall_back_to_legacy_core_valuation_keys():
+    class _LegacyValuationClient(_StubLotusCoreQueryClient):
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 200, {
+                "positions": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                        "quantity": 10,
+                        "cost_basis": 500.0,
+                        "weight": 0.7,
+                        "valuation": {
+                            "market_value": 700.0,
+                            "market_price": 70.0,
+                            "unrealized_gain_loss": 200.0,
+                        },
+                    }
+                ]
+            }
+
+    service = PortfolioService(_LegacyValuationClient())
+    response = await service.get_portfolio_positions(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3e",
+        as_of_date="2026-03-27",
+        include_projected=False,
+    )
+
+    assert response.positions[0].market_value_base == 700.0
+    assert response.positions[0].market_value_local == 700.0
+    assert response.positions[0].unrealized_gain_loss_base == 200.0
+    assert response.positions[0].unrealized_gain_loss_local == 200.0
 
 
 @pytest.mark.asyncio

@@ -681,24 +681,53 @@ class PortfolioService:
                 if item.get("cost_basis_local") is not None
                 else None,
                 market_value_base=float(
-                    quantize_money(item.get("valuation", {}).get("market_value_base", 0))
+                    quantize_money(
+                        self._position_valuation_value(
+                            item, "market_value_base", fallback_key="market_value"
+                        )
+                    )
                 )
-                if item.get("valuation", {}).get("market_value_base") is not None
+                if self._position_valuation_value(
+                    item, "market_value_base", fallback_key="market_value"
+                )
+                is not None
                 else None,
                 market_value_local=float(
-                    quantize_money(item.get("valuation", {}).get("market_value_local", 0))
+                    quantize_money(
+                        self._position_valuation_value(
+                            item, "market_value_local", fallback_key="market_value"
+                        )
+                    )
                 )
-                if item.get("valuation", {}).get("market_value_local") is not None
+                if self._position_valuation_value(
+                    item, "market_value_local", fallback_key="market_value"
+                )
+                is not None
                 else None,
                 unrealized_gain_loss_base=float(
-                    quantize_money(item.get("valuation", {}).get("unrealized_gain_loss", 0))
+                    quantize_money(
+                        self._position_valuation_value(
+                            item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
+                        )
+                    )
                 )
-                if item.get("valuation", {}).get("unrealized_gain_loss") is not None
+                if self._position_valuation_value(
+                    item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
+                )
+                is not None
                 else None,
                 unrealized_gain_loss_local=float(
-                    quantize_money(item.get("valuation", {}).get("unrealized_gain_loss_local", 0))
+                    quantize_money(
+                        self._position_valuation_value(
+                            item, "unrealized_gain_loss_local",
+                            fallback_key="unrealized_gain_loss",
+                        )
+                    )
                 )
-                if item.get("valuation", {}).get("unrealized_gain_loss_local") is not None
+                if self._position_valuation_value(
+                    item, "unrealized_gain_loss_local", fallback_key="unrealized_gain_loss"
+                )
+                is not None
                 else None,
                 weight_pct=float(quantize_performance(float(item.get("weight", 0)) * 100))
                 if item.get("weight") is not None
@@ -731,6 +760,19 @@ class PortfolioService:
             for view in payload.get("views", [])
             if isinstance(view, dict)
         ]
+
+    def _position_valuation_value(
+        self, item: dict[str, Any], primary_key: str, fallback_key: str | None = None
+    ) -> Any:
+        valuation = item.get("valuation", {})
+        if not isinstance(valuation, dict):
+            return None
+        primary_value = valuation.get(primary_key)
+        if primary_value is not None:
+            return primary_value
+        if fallback_key is not None:
+            return valuation.get(fallback_key)
+        return None
 
     def _parse_cash_balances(
         self, payload: dict[str, Any], total_aum: float
