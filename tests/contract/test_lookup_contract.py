@@ -14,15 +14,15 @@ def test_lookup_contract_shape_passthrough(monkeypatch):
         return 200, {"items": [{"id": "USD", "label": "USD"}]}
 
     monkeypatch.setattr(
-        "app.clients.pas_client.PasClient.get_portfolio_lookups",
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio_lookups",
         _fake_portfolio_lookups,
     )
     monkeypatch.setattr(
-        "app.clients.pas_client.PasClient.get_instrument_lookups",
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_instrument_lookups",
         _fake_instrument_lookups,
     )
     monkeypatch.setattr(
-        "app.clients.pas_client.PasClient.get_currency_lookups",
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_currency_lookups",
         _fake_currency_lookups,
     )
 
@@ -51,7 +51,7 @@ def test_lookup_contract_invalid_upstream_payload_maps_to_502(monkeypatch):
         return 200, {"items": [{"id": 100, "label": None}]}
 
     monkeypatch.setattr(
-        "app.clients.pas_client.PasClient.get_portfolio_lookups",
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio_lookups",
         _bad_payload,
     )
 

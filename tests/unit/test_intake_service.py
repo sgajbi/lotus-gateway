@@ -35,8 +35,8 @@ class _PasQueryStub:
 @pytest.mark.asyncio
 async def test_intake_service_happy_paths():
     service = IntakeService(
-        pas_ingestion_client=_PasIngestionStub(),
-        pas_query_client=_PasQueryStub(),
+        lotus_core_ingestion_client=_PasIngestionStub(),
+        lotus_core_query_client=_PasQueryStub(),
     )
 
     ingest = await service.ingest_portfolio_bundle(
@@ -81,8 +81,8 @@ async def test_intake_service_raises_upstream_error():
             return 400, {"detail": "bad request"}
 
     service = IntakeService(
-        pas_ingestion_client=_ErrorPasIngestionStub(),
-        pas_query_client=_PasQueryStub(),
+        lotus_core_ingestion_client=_ErrorPasIngestionStub(),
+        lotus_core_query_client=_PasQueryStub(),
     )
 
     try:

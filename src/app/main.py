@@ -13,6 +13,7 @@ from app.middleware.correlation import correlation_id_var, correlation_middlewar
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
+from app.routers.portfolio import router as portfolio_router
 from app.routers.proposals import router as proposals_router
 from app.routers.reporting import router as reporting_router
 from app.routers.workbench import router as workbench_router
@@ -35,6 +36,7 @@ app.include_router(proposals_router)
 app.include_router(platform_router)
 app.include_router(intake_router)
 app.include_router(foundation_router)
+app.include_router(portfolio_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 

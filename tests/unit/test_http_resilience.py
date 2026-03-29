@@ -8,9 +8,11 @@ from app.clients.http_resilience import request_with_retry
 
 class _FlakyAsyncClient:
     calls = 0
+    follow_redirects = None
 
-    def __init__(self, timeout: float):
+    def __init__(self, timeout: float, follow_redirects: bool = False):
         _ = timeout
+        _FlakyAsyncClient.follow_redirects = follow_redirects
 
     async def __aenter__(self):
         return self
@@ -33,9 +35,11 @@ class _FlakyAsyncClient:
 
 class _RetryStatusAsyncClient:
     calls = 0
+    follow_redirects = None
 
-    def __init__(self, timeout: float):
+    def __init__(self, timeout: float, follow_redirects: bool = False):
         _ = timeout
+        _RetryStatusAsyncClient.follow_redirects = follow_redirects
 
     async def __aenter__(self):
         return self
@@ -54,8 +58,11 @@ class _RetryStatusAsyncClient:
 
 
 class _NetworkErrorAsyncClient:
-    def __init__(self, timeout: float):
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
         _ = timeout
+        _NetworkErrorAsyncClient.follow_redirects = follow_redirects
 
     async def __aenter__(self):
         return self
@@ -69,8 +76,11 @@ class _NetworkErrorAsyncClient:
 
 
 class _TextPayloadAsyncClient:
-    def __init__(self, timeout: float):
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
         _ = timeout
+        _TextPayloadAsyncClient.follow_redirects = follow_redirects
 
     async def __aenter__(self):
         return self
@@ -103,6 +113,7 @@ async def test_request_with_retry_retries_on_timeout(monkeypatch):
     assert status == 200
     assert payload == {"ok": True}
     assert _FlakyAsyncClient.calls == 2
+    assert _FlakyAsyncClient.follow_redirects is True
 
 
 @pytest.mark.asyncio
@@ -169,3 +180,42 @@ async def test_request_with_retry_handles_negative_retry_configuration():
 
     assert status == 503
     assert payload == {"detail": "upstream communication failure: exhausted retries"}
+
+
+class _RedirectAwareAsyncClient:
+    requested_urls: list[str] = []
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _RedirectAwareAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = params, headers
+        _RedirectAwareAsyncClient.requested_urls.append(url)
+        return httpx.Response(200, json={"redirected": True}, request=httpx.Request("GET", url))
+
+
+@pytest.mark.asyncio
+async def test_request_with_retry_enables_redirect_following(monkeypatch):
+    _RedirectAwareAsyncClient.requested_urls = []
+    monkeypatch.setattr("httpx.AsyncClient", _RedirectAwareAsyncClient)
+
+    status, payload = await request_with_retry(
+        method="GET",
+        url="http://service/portfolios",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+    )
+
+    assert status == 200
+    assert payload == {"redirected": True}
+    assert _RedirectAwareAsyncClient.requested_urls == ["http://service/portfolios"]
+    assert _RedirectAwareAsyncClient.follow_redirects is True

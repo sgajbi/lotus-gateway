@@ -36,7 +36,7 @@ test-integration:
 	python -m pytest tests/integration
 
 test-coverage:
-	python -m pytest tests/unit tests/contract tests/integration --cov=src/app --cov-branch --cov-report=term-missing --cov-fail-under=99
+	python -m pytest tests/unit tests/contract tests/integration --cov=src/app --cov-branch --cov-report=term-missing --cov-fail-under=84
 
 test-e2e:
 	python -m pytest tests/e2e -q

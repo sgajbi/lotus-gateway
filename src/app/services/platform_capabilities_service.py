@@ -2,8 +2,8 @@ import asyncio
 from typing import Any, cast
 
 from app.clients.dpm_client import DpmClient
-from app.clients.pa_client import PaClient
-from app.clients.pas_client import PasClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.reporting_client import ReportingClient
 from app.contracts.platform_capabilities import (
     CapabilitySourceError,
@@ -17,16 +17,16 @@ class PlatformCapabilitiesService:
     def __init__(
         self,
         dpm_client: DpmClient,
-        pas_client: PasClient,
-        pa_client: PaClient,
+        lotus_core_query_client: LotusCoreQueryClient,
+        analytics_client: LotusAnalyticsClient,
         reporting_client: ReportingClient,
         contract_version: str,
-        risk_client: PaClient | None = None,
+        risk_client: LotusAnalyticsClient | None = None,
         manage_client: DpmClient | None = None,
     ):
         self._dpm_client = dpm_client
-        self._pas_client = pas_client
-        self._pa_client = pa_client
+        self._lotus_core_query_client = lotus_core_query_client
+        self._analytics_client = analytics_client
         self._reporting_client = reporting_client
         self._risk_client = risk_client
         self._manage_client = manage_client
@@ -39,12 +39,12 @@ class PlatformCapabilitiesService:
         correlation_id: str,
     ) -> PlatformCapabilitiesResponse:
         tasks: list[Any] = [
-            self._pas_client.get_capabilities(
+            self._lotus_core_query_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
             ),
-            self._pa_client.get_capabilities(
+            self._analytics_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
@@ -59,7 +59,7 @@ class PlatformCapabilitiesService:
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
             ),
-            self._pas_client.get_effective_policy(
+            self._lotus_core_query_client.get_effective_policy(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
@@ -89,7 +89,7 @@ class PlatformCapabilitiesService:
 
         sources: dict[str, dict[str, Any]] = {}
         errors: list[CapabilitySourceError] = []
-        service_names = ["pas", "pa", "dpm", "ras"]
+        service_names = ["lotus_core", "lotus_performance", "lotus_manage", "lotus_report"]
 
         for service_name, result in zip(service_names, results[:4], strict=True):
             if isinstance(result, BaseException):
@@ -115,28 +115,30 @@ class PlatformCapabilitiesService:
 
             sources[service_name] = payload
 
-        pas_policy_payload: dict[str, Any] | None = None
-        pas_policy_result = results[4]
-        if isinstance(pas_policy_result, BaseException):
+        lotus_core_policy_payload: dict[str, Any] | None = None
+        lotus_core_policy_result = results[4]
+        if isinstance(lotus_core_policy_result, BaseException):
             errors.append(
                 CapabilitySourceError(
-                    service="pas_policy",
+                    service="lotus_core_policy",
                     status_code=500,
-                    detail=f"upstream_exception: {pas_policy_result}",
+                    detail=f"upstream_exception: {lotus_core_policy_result}",
                 )
             )
         else:
-            policy_status_code, policy_payload = cast(tuple[int, dict[str, Any]], pas_policy_result)
+            policy_status_code, policy_payload = cast(
+                tuple[int, dict[str, Any]], lotus_core_policy_result
+            )
             if policy_status_code >= 400:
                 errors.append(
                     CapabilitySourceError(
-                        service="pas_policy",
+                        service="lotus_core_policy",
                         status_code=policy_status_code,
                         detail=str(policy_payload.get("detail", policy_payload)),
                     )
                 )
             else:
-                pas_policy_payload = policy_payload
+                lotus_core_policy_payload = policy_payload
 
         optional_result_map: dict[str, Any] = {}
         for index, source in enumerate(optional_sources, start=5):
@@ -145,14 +147,14 @@ class PlatformCapabilitiesService:
         self._merge_optional_source_into_primary(
             optional_result_map=optional_result_map,
             source_name="risk",
-            primary_source_name="pa",
+            primary_source_name="lotus_performance",
             sources=sources,
             errors=errors,
         )
         self._merge_optional_source_into_primary(
             optional_result_map=optional_result_map,
             source_name="manage",
-            primary_source_name="dpm",
+            primary_source_name="lotus_manage",
             sources=sources,
             errors=errors,
         )
@@ -160,7 +162,7 @@ class PlatformCapabilitiesService:
         normalized = self._build_normalized_capabilities(
             sources=sources,
             errors=errors,
-            pas_policy=pas_policy_payload,
+            lotus_core_policy=lotus_core_policy_payload,
         )
         data = PlatformCapabilitiesData(
             consumerSystem=consumer_system,
@@ -178,7 +180,7 @@ class PlatformCapabilitiesService:
         *,
         sources: dict[str, dict[str, Any]],
         errors: list[CapabilitySourceError],
-        pas_policy: dict[str, Any] | None,
+        lotus_core_policy: dict[str, Any] | None,
     ) -> PlatformCapabilitiesNormalized:
         input_modes_by_source: dict[str, list[str]] = {}
         input_modes_union: list[str] = []
@@ -195,36 +197,76 @@ class PlatformCapabilitiesService:
             for mode in normalized_modes:
                 if mode not in input_modes_union:
                     input_modes_union.append(mode)
-        for source_name in ("pas", "pa", "dpm", "ras"):
+        for source_name in (
+            "lotus_core",
+            "lotus_performance",
+            "lotus_manage",
+            "lotus_report",
+        ):
             policy_versions_by_source.setdefault(source_name, "unknown")
 
         feature_enabled = {
-            "pas_core_snapshot": self._feature_enabled(
-                sources=sources, source_name="pas", feature_key="pas.integration.core_snapshot"
+            "lotus_core_snapshot": self._feature_enabled(
+                sources=sources,
+                source_name="lotus_core",
+                feature_keys=(
+                    "lotus_core.integration.core_snapshot",
+                    "pas.integration.core_snapshot",
+                ),
             ),
-            "pas_intake": self._feature_enabled(
-                sources=sources, source_name="pas", feature_key="pas.ingestion.bulk_upload"
+            "lotus_core_intake": self._feature_enabled(
+                sources=sources,
+                source_name="lotus_core",
+                feature_keys=(
+                    "lotus_core.ingestion.bulk_upload",
+                    "pas.ingestion.bulk_upload",
+                ),
             ),
-            "pa_analytics": any(
-                self._feature_enabled(sources=sources, source_name="pa", feature_key=key)
+            "lotus_performance_analytics": any(
+                self._feature_enabled(
+                    sources=sources,
+                    source_name="lotus_performance",
+                    feature_keys=(key,),
+                )
                 for key in (
+                    "lotus_performance.analytics.twr",
                     "pa.analytics.twr",
+                    "lotus_performance.analytics.mwr",
                     "pa.analytics.mwr",
+                    "lotus_performance.analytics.contribution",
                     "pa.analytics.contribution",
+                    "lotus_performance.analytics.attribution",
                     "pa.analytics.attribution",
                 )
             ),
-            "dpm_lifecycle": self._feature_enabled(
-                sources=sources, source_name="dpm", feature_key="dpm.proposals.lifecycle"
+            "lotus_manage_lifecycle": self._feature_enabled(
+                sources=sources,
+                source_name="lotus_manage",
+                feature_keys=(
+                    "lotus_manage.proposals.lifecycle",
+                    "dpm.proposals.lifecycle",
+                ),
             ),
-            "dpm_support": self._feature_enabled(
-                sources=sources, source_name="dpm", feature_key="dpm.support.run_apis"
+            "lotus_manage_support": self._feature_enabled(
+                sources=sources,
+                source_name="lotus_manage",
+                feature_keys=(
+                    "lotus_manage.support.run_apis",
+                    "dpm.support.run_apis",
+                ),
             ),
-            "ras_reporting": any(
-                self._feature_enabled(sources=sources, source_name="ras", feature_key=key)
+            "lotus_report_reporting": any(
+                self._feature_enabled(
+                    sources=sources,
+                    source_name="lotus_report",
+                    feature_keys=(key,),
+                )
                 for key in (
+                    "lotus_report.reporting.portfolio_summary",
                     "ras.reporting.portfolio_summary",
+                    "lotus_report.reporting.portfolio_review",
                     "ras.reporting.portfolio_review",
+                    "lotus_report.aggregation.portfolio_snapshot",
                     "ras.aggregation.portfolio_snapshot",
                 )
             ),
@@ -234,36 +276,49 @@ class PlatformCapabilitiesService:
         navigation = {
             "command_center": True,
             "portfolio_intake": (
-                feature_enabled["pas_intake"] or feature_enabled["pas_core_snapshot"]
+                feature_enabled["lotus_core_intake"] or feature_enabled["lotus_core_snapshot"]
             ),
-            "analytics_studio": feature_enabled["pa_analytics"],
-            "advisory_pipeline": feature_enabled["dpm_lifecycle"],
-            "scenario_builder": feature_enabled["dpm_lifecycle"],
+            "analytics_studio": feature_enabled["lotus_performance_analytics"],
+            "advisory_pipeline": feature_enabled["lotus_manage_lifecycle"],
+            "scenario_builder": feature_enabled["lotus_manage_lifecycle"],
             "decision_console": (
-                feature_enabled["pas_core_snapshot"]
-                and (feature_enabled["dpm_lifecycle"] or feature_enabled["dpm_support"])
+                feature_enabled["lotus_core_snapshot"]
+                and (
+                    feature_enabled["lotus_manage_lifecycle"]
+                    or feature_enabled["lotus_manage_support"]
+                )
             ),
-            "reporting_hub": feature_enabled["ras_reporting"],
+            "reporting_hub": feature_enabled["lotus_report_reporting"],
         }
         workflow_flags = {
             "proposal_lifecycle": self._workflow_enabled(
-                sources=sources, source_name="dpm", workflow_key="proposal_lifecycle"
+                sources=sources,
+                source_name="lotus_manage",
+                workflow_key="proposal_lifecycle",
             ),
             "proposal_approval_flow": self._workflow_enabled(
-                sources=sources, source_name="dpm", workflow_key="proposal_approval_flow"
+                sources=sources,
+                source_name="lotus_manage",
+                workflow_key="proposal_approval_flow",
             ),
             "portfolio_bulk_onboarding": self._workflow_enabled(
-                sources=sources, source_name="pas", workflow_key="portfolio_bulk_onboarding"
+                sources=sources,
+                source_name="lotus_core",
+                workflow_key="portfolio_bulk_onboarding",
             ),
             "performance_snapshot": self._workflow_enabled(
-                sources=sources, source_name="pa", workflow_key="performance_snapshot"
+                sources=sources,
+                source_name="lotus_performance",
+                workflow_key="performance_snapshot",
             ),
             "portfolio_reporting": self._workflow_enabled(
-                sources=sources, source_name="ras", workflow_key="portfolio_reporting"
+                sources=sources,
+                source_name="lotus_report",
+                workflow_key="portfolio_reporting",
             ),
         }
-        pas_policy_diagnostics = self._pas_policy_diagnostics(
-            pas_policy=pas_policy,
+        lotus_core_policy_diagnostics = self._lotus_core_policy_diagnostics(
+            lotus_core_policy=lotus_core_policy,
             errors=errors,
         )
         return PlatformCapabilitiesNormalized(
@@ -273,7 +328,7 @@ class PlatformCapabilitiesService:
             inputModesUnion=input_modes_union,
             moduleHealth=module_health,
             policyVersionsBySource=policy_versions_by_source,
-            pasPolicyDiagnostics=pas_policy_diagnostics,
+            lotusCorePolicyDiagnostics=lotus_core_policy_diagnostics,
         )
 
     def _feature_enabled(
@@ -281,7 +336,7 @@ class PlatformCapabilitiesService:
         *,
         sources: dict[str, dict[str, Any]],
         source_name: str,
-        feature_key: str,
+        feature_keys: tuple[str, ...],
     ) -> bool:
         source_payload = sources.get(source_name, {})
         features = source_payload.get("features", [])
@@ -290,7 +345,7 @@ class PlatformCapabilitiesService:
         for feature in features:
             if not isinstance(feature, dict):
                 continue
-            if str(feature.get("key")) == feature_key:
+            if str(feature.get("key")) in feature_keys:
                 return bool(feature.get("enabled"))
         return False
 
@@ -320,7 +375,12 @@ class PlatformCapabilitiesService:
     ) -> dict[str, str]:
         errored_sources = {error.service for error in errors}
         health: dict[str, str] = {}
-        for source_name in ("pas", "pa", "dpm", "ras"):
+        for source_name in (
+            "lotus_core",
+            "lotus_performance",
+            "lotus_manage",
+            "lotus_report",
+        ):
             if source_name in sources:
                 health[source_name] = "available"
             elif source_name in errored_sources:
@@ -329,10 +389,10 @@ class PlatformCapabilitiesService:
                 health[source_name] = "unknown"
         return health
 
-    def _pas_policy_diagnostics(
+    def _lotus_core_policy_diagnostics(
         self,
         *,
-        pas_policy: dict[str, Any] | None,
+        lotus_core_policy: dict[str, Any] | None,
         errors: list[CapabilitySourceError],
     ) -> dict[str, Any]:
         diagnostics: dict[str, Any] = {
@@ -347,11 +407,11 @@ class PlatformCapabilitiesService:
             },
         }
 
-        if pas_policy is not None:
+        if lotus_core_policy is not None:
             diagnostics["available"] = True
-            allowed_sections = pas_policy.get("allowedSections", [])
-            warnings = pas_policy.get("warnings", [])
-            provenance = pas_policy.get("policyProvenance", {})
+            allowed_sections = lotus_core_policy.get("allowedSections", [])
+            warnings = lotus_core_policy.get("warnings", [])
+            provenance = lotus_core_policy.get("policyProvenance", {})
             diagnostics["allowedSections"] = (
                 [str(section) for section in allowed_sections]
                 if isinstance(allowed_sections, list)
@@ -368,9 +428,9 @@ class PlatformCapabilitiesService:
                     "strictMode": bool(provenance.get("strictMode", False)),
                 }
 
-        if any(error.service == "pas_policy" for error in errors):
+        if any(error.service == "lotus_core_policy" for error in errors):
             diagnostics["warnings"] = list(diagnostics["warnings"]) + [
-                "PAS_POLICY_ENDPOINT_UNAVAILABLE"
+                "LOTUS_CORE_POLICY_ENDPOINT_UNAVAILABLE"
             ]
         return diagnostics
 

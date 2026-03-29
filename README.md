@@ -32,6 +32,10 @@ API docs: `http://localhost:8100/docs`
 
 - `GET /api/v1/foundation/portfolios` (selector-ready Foundation portfolio catalog)
 - `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace` (Foundation workspace entry payload with readiness and partial-failure-aware upstream context)
+- `GET /api/v1/workbench/{portfolio_id}/performance/summary` (first-paint benchmark-aware performance summary)
+- `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract)
+- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact multi-horizon comparison module)
+- `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
 - `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
 - `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
 - `GET /api/v1/proposals` (list proposals)
@@ -74,9 +78,9 @@ Live platform-capabilities E2E (lotus-gateway + lotus-core + lotus-performance +
 
 ```bash
 export ADVISE_REPO_PATH=/c/Users/sande/dev/lotus-advise
-export MANAGE_REPO_PATH=/c/Users/sande/dev/lotus-manage
-export PAS_REPO_PATH=/c/Users/sande/dev/lotus-core
-export PA_REPO_PATH=/c/Users/sande/dev/lotus-performance
+export LOTUS_MANAGE_REPO_PATH=/c/Users/sande/dev/lotus-manage
+export LOTUS_CORE_REPO_PATH=/c/Users/sande/dev/lotus-core
+export LOTUS_PERFORMANCE_REPO_PATH=/c/Users/sande/dev/lotus-performance
 make e2e-up
 make test-e2e-live
 make e2e-down
@@ -85,8 +89,35 @@ make e2e-down
 Coverage gate (local parity with CI threshold):
 
 ```bash
-python -m pytest --cov=src/app --cov-report=term-missing
+make test-coverage
 ```
+
+## Live Performance Demo Contracts
+
+The current flagship performance workstation integration is served from `lotus-gateway`.
+
+Required upstreams:
+
+- `lotus-core` query: `http://127.0.0.1:8201`
+- `lotus-core` control plane: `http://127.0.0.1:8202`
+- `lotus-performance`: `http://127.0.0.1:8002`
+
+Example live probes:
+
+```bash
+curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+
+curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+
+curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+
+curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+```
+
+Expected benchmark catalog for the seeded flagship mandate:
+
+- `BMK_GLOBAL_BALANCED_60_40` (`Global Balanced 60/40`)
+- `BMK_GLOBAL_GROWTH_80_20` (`Global Growth 80/20`)
 
 ## Demo Pack
 

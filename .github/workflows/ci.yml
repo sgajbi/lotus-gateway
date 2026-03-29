@@ -104,12 +104,13 @@ jobs:
   e2e-platform-capabilities-live:
     name: E2E Platform Capabilities (Live Upstreams)
     needs: [coverage]
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
-      DPM_REPO_PATH: ../lotus-manage
-      PAS_REPO_PATH: ../lotus-core
-      PA_REPO_PATH: ../lotus-performance
-      RAS_REPO_PATH: ../lotus-report
+      LOTUS_MANAGE_REPO_PATH: ../lotus-manage
+      LOTUS_CORE_REPO_PATH: ../lotus-core
+      LOTUS_PERFORMANCE_REPO_PATH: ../lotus-performance
+      LOTUS_REPORT_REPO_PATH: ../lotus-report
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

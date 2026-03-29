@@ -31,7 +31,10 @@ async def request_with_retry(
     attempts = max_retries + 1
     for attempt in range(attempts):
         try:
-            async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+            async with httpx.AsyncClient(
+                timeout=timeout_seconds,
+                follow_redirects=True,
+            ) as client:
                 if method.upper() == "GET":
                     response = await client.get(url, params=params, headers=headers)
                 else:

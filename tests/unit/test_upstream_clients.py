@@ -4,9 +4,9 @@ import httpx
 import pytest
 
 from app.clients.dpm_client import DpmClient
-from app.clients.pa_client import PaClient
-from app.clients.pas_client import PasClient
-from app.clients.pas_ingestion_client import PasIngestionClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.reporting_client import ReportingClient
 
 
@@ -14,7 +14,7 @@ class _FakeAsyncClient:
     responses: list[httpx.Response] = []
     calls: list[dict] = []
 
-    def __init__(self, timeout: float):
+    def __init__(self, timeout: float, **_: object):
         self.timeout = timeout
 
     async def __aenter__(self):
@@ -82,10 +82,17 @@ def _patch_async_client(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_pa_client_calls_and_payload_handling():
-    client = PaClient(base_url="http://pa", timeout_seconds=2.0)
+async def test_lotus_analytics_client_calls_and_payload_handling():
+    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pa"})
-    _FakeAsyncClient.queue_json(200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 2.1}}})
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 2.1}}}}
+            }
+        },
+    )
     _FakeAsyncClient.queue_json(
         200,
         {
@@ -100,11 +107,10 @@ async def test_pa_client_calls_and_payload_handling():
         tenant_id="default",
         correlation_id="corr-1",
     )
-    status_two, payload_two = await client.get_pas_input_twr(
+    status_two, payload_two = await client.get_stateful_twr(
         portfolio_id="P1",
-        as_of_date="2026-02-24",
-        periods=["YTD"],
-        consumer_system="lotus-gateway",
+        report_end_date="2026-02-24",
+        period="YTD",
         correlation_id="corr-1",
     )
     status_three, payload_three = await client.get_workbench_analytics(
@@ -115,17 +121,221 @@ async def test_pa_client_calls_and_payload_handling():
     assert status_one == 200
     assert payload_one["sourceService"] == "pa"
     assert status_two == 200
-    assert payload_two["resultsByPeriod"]["YTD"]["net_cumulative_return"] == 2.1
+    assert (
+        payload_two["results_by_period"]["YTD"]["portfolio"]["summary"]["period_return"]["base"]
+        == 2.1
+    )
     assert status_three == 200
     assert payload_three["allocationBuckets"][0]["bucketKey"] == "EQUITY"
     assert _FakeAsyncClient.calls[0]["url"] == "http://pa/integration/capabilities"
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pa/performance/twr/pas-input"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://pa/performance/twr"
     assert _FakeAsyncClient.calls[2]["url"] == "http://pa/analytics/workbench"
+    assert _FakeAsyncClient.calls[1]["json"]["portfolio_id"] == "P1"
+    assert _FakeAsyncClient.calls[1]["json"]["report_end_date"] == "2026-02-24"
+    assert _FakeAsyncClient.calls[1]["json"]["stateful_input"] == {}
 
 
 @pytest.mark.asyncio
-async def test_pa_client_non_json_and_non_dict_payload_handling():
-    client = PaClient(base_url="http://pa", timeout_seconds=2.0)
+async def test_lotus_analytics_client_performance_workspace_requests_use_owned_contract_keys():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        202,
+        {
+            "result_path": "/jobs/twr-1/result",
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 5.2}}}}
+            }
+        },
+    )
+    _FakeAsyncClient.queue_json(200, {"money_weighted_return": 4.1, "mwr_annualized": 4.1})
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "summary": {
+                        "portfolio_contribution": 5.2,
+                        "coverage_mv_pct": 99.2,
+                        "weighting_scheme": "average_weight",
+                    },
+                    "total_portfolio_return": 5.2,
+                    "levels": [],
+                }
+            }
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "model": "BF",
+            "linking": "carino",
+            "results_by_period": {
+                "YTD": {
+                    "reconciliation": {
+                        "total_active_return": 0.7,
+                        "sum_of_effects": 0.69,
+                        "residual": 0.01,
+                    },
+                    "levels": [],
+                }
+            },
+        },
+    )
+
+    twr_status, twr_payload = await client.get_twr_analytics(
+        portfolio_id="P1",
+        report_end_date="2026-02-24",
+        report_start_date="2026-01-01",
+        period="YTD",
+        metric_basis="NET",
+        benchmark_id="MODEL_60_40",
+        correlation_id="corr-performance",
+    )
+    mwr_status, _ = await client.get_mwr_analytics(
+        portfolio_id="P1",
+        as_of_date="2026-02-24",
+        window_start_date="2026-01-01",
+        correlation_id="corr-performance",
+    )
+    contribution_status, _ = await client.get_contribution_analytics(
+        portfolio_id="P1",
+        report_start_date="2026-01-01",
+        report_end_date="2026-02-24",
+        period="YTD",
+        metric_basis="NET",
+        dimension="asset_class",
+        correlation_id="corr-performance",
+    )
+    attribution_status, _ = await client.get_attribution_analytics(
+        portfolio_id="P1",
+        report_start_date="2026-01-01",
+        report_end_date="2026-02-24",
+        period="YTD",
+        metric_basis="GROSS",
+        benchmark_id="MODEL_60_40",
+        dimension="sector",
+        correlation_id="corr-performance",
+    )
+
+    assert twr_status == 200
+    assert (
+        twr_payload["results_by_period"]["YTD"]["portfolio"]["summary"]["period_return"]["base"]
+        == 5.2
+    )
+    assert mwr_status == 200
+    assert contribution_status == 200
+    assert attribution_status == 200
+
+    twr_post = _FakeAsyncClient.calls[0]
+    twr_poll = _FakeAsyncClient.calls[1]
+    mwr_post = _FakeAsyncClient.calls[2]
+    contribution_post = _FakeAsyncClient.calls[3]
+    attribution_post = _FakeAsyncClient.calls[4]
+
+    assert twr_post["url"] == "http://analytics/performance/twr"
+    assert twr_post["json"]["portfolio_id"] == "P1"
+    assert twr_post["json"]["metric_basis"] == "NET"
+    assert twr_post["json"]["report_start_date"] == "2026-01-01"
+    assert twr_post["json"]["performance_start_date"] == "2026-01-01"
+    assert twr_post["json"]["analyses"][0]["period"] == "EXPLICIT"
+    assert twr_post["json"]["include_benchmark"] is True
+    assert twr_post["json"]["benchmark"]["benchmark_id"] == "MODEL_60_40"
+    assert twr_post["json"]["benchmark"]["return_source"] == "calculated"
+    assert twr_poll["url"] == "http://analytics/jobs/twr-1/result"
+
+    assert mwr_post["url"] == "http://analytics/performance/mwr"
+    assert mwr_post["json"]["portfolio_id"] == "P1"
+    assert mwr_post["json"]["as_of"] == "2026-02-24"
+    assert mwr_post["json"]["stateful_input"]["window_start_date"] == "2026-01-01"
+
+    assert contribution_post["url"] == "http://analytics/performance/contribution"
+    assert contribution_post["json"]["report_start_date"] == "2026-01-01"
+    assert contribution_post["json"]["stateful_input"]["metric_basis"] == "NET"
+    assert contribution_post["json"]["stateful_input"]["dimensions"] == ["asset_class"]
+    assert contribution_post["json"]["stateful_input"]["include_cash_flows"] is True
+
+    assert attribution_post["url"] == "http://analytics/performance/attribution"
+    assert attribution_post["json"]["group_by"] == ["sector"]
+    assert attribution_post["json"]["stateful_input"]["metric_basis"] == "GROSS"
+    assert attribution_post["json"]["stateful_input"]["benchmark_id"] == "MODEL_60_40"
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 2.1}}}}
+            }
+        },
+    )
+
+    status_code, _ = await client.get_twr_analytics(
+        portfolio_id="P1",
+        report_end_date="2026-02-24",
+        report_start_date=None,
+        period="YTD",
+        metric_basis="NET",
+        benchmark_id=None,
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert _FakeAsyncClient.calls[0]["json"]["include_benchmark"] is False
+    assert "benchmark" not in _FakeAsyncClient.calls[0]["json"]
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation_contract():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="quarterly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://analytics/performance/workspace-summary"
+    assert request["json"]["periods"][0]["period"] == "YTD"
+    assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
+    assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
+    assert request["json"]["contribution"]["metric_basis"] == "NET"
+    assert request["json"]["attribution"]["metric_basis"] == "NET"
+    assert request["json"]["benchmark"]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
+    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
     _FakeAsyncClient.queue_text(503, "pa unavailable")
     _FakeAsyncClient.queue_json(200, ["analytics"])
 
@@ -146,8 +356,12 @@ async def test_pa_client_non_json_and_non_dict_payload_handling():
 
 
 @pytest.mark.asyncio
-async def test_pas_client_endpoints_and_non_json_response_handling():
-    client = PasClient(base_url="http://pas", timeout_seconds=2.0)
+async def test_lotus_core_query_client_endpoints_and_non_json_response_handling():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"portfolio_id": "P1"})
+    _FakeAsyncClient.queue_json(200, {"positions": [{"security_id": "EQ_1"}]})
+    _FakeAsyncClient.queue_json(200, {"transactions": [{"transaction_id": "TX_1"}]})
+    _FakeAsyncClient.queue_json(200, {"points": [{"projection_date": "2026-03-25"}]})
     _FakeAsyncClient.queue_json(200, {"items": [{"portfolio_id": "P1"}]})
     _FakeAsyncClient.queue_json(200, {"items": [{"instrument_id": "AAPL"}]})
     _FakeAsyncClient.queue_json(200, {"items": [{"value": "USD"}]})
@@ -156,6 +370,16 @@ async def test_pas_client_endpoints_and_non_json_response_handling():
     _FakeAsyncClient.queue_json(200, {"positions": []})
     _FakeAsyncClient.queue_text(503, "service unavailable")
 
+    assert (await client.get_portfolio(portfolio_id="P1", correlation_id="corr-2"))[0] == 200
+    assert (await client.get_portfolio_positions(portfolio_id="P1", correlation_id="corr-2"))[
+        0
+    ] == 200
+    assert (await client.get_portfolio_transactions(portfolio_id="P1", correlation_id="corr-2"))[
+        0
+    ] == 200
+    assert (await client.get_cashflow_projection(portfolio_id="P1", correlation_id="corr-2"))[
+        0
+    ] == 200
     assert (await client.get_portfolio_lookups(correlation_id="corr-2"))[0] == 200
     assert (await client.get_instrument_lookups(limit=25, correlation_id="corr-2"))[0] == 200
     assert (await client.get_currency_lookups(correlation_id="corr-2"))[0] == 200
@@ -184,15 +408,20 @@ async def test_pas_client_endpoints_and_non_json_response_handling():
     )
     assert status_summary == 503
     assert payload_summary["detail"] == "service unavailable"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/portfolios/P1/positions"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://pas/portfolios/P1/transactions"
+    assert _FakeAsyncClient.calls[3]["url"] == "http://pas/portfolios/P1/cashflow-projection"
 
 
 @pytest.mark.asyncio
-async def test_pas_client_core_endpoints():
-    client = PasClient(base_url="http://pas", timeout_seconds=2.0)
+async def test_lotus_core_query_client_core_endpoints():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})
     _FakeAsyncClient.queue_json(200, {"allowedSections": ["OVERVIEW"]})
-    _FakeAsyncClient.queue_json(200, {"items": []})
-    _FakeAsyncClient.queue_json(200, {"snapshot": {"overview": {}}})
+    _FakeAsyncClient.queue_json(200, {"portfolios": []})
+    _FakeAsyncClient.queue_json(200, {"as_of_date": "2026-02-24", "sections": {}})
+    _FakeAsyncClient.queue_json(200, {"performance_end_date": "2026-02-24"})
     _FakeAsyncClient.queue_json(200, {"items": [{"instrument_id": "AAPL"}]})
 
     assert (
@@ -210,17 +439,34 @@ async def test_pas_client_core_endpoints():
         await client.get_core_snapshot(
             portfolio_id="P1",
             as_of_date="2026-02-24",
-            include_sections=["OVERVIEW"],
+            sections=["positions_baseline"],
+            consumer_system="lotus-gateway",
+            correlation_id="corr-3",
+        )
+    )[0] == 200
+    assert (
+        await client.get_portfolio_analytics_reference(
+            portfolio_id="P1",
+            as_of_date="2026-02-24",
             consumer_system="lotus-gateway",
             correlation_id="corr-3",
         )
     )[0] == 200
     assert (await client.list_instruments(limit=10, correlation_id="corr-3"))[0] == 200
+    assert _FakeAsyncClient.calls[3]["json"] == {
+        "as_of_date": "2026-02-24",
+        "sections": ["positions_baseline"],
+        "consumer_system": "lotus-gateway",
+    }
+    assert (
+        _FakeAsyncClient.calls[4]["url"]
+        == "http://pas/integration/portfolios/P1/analytics/reference"
+    )
 
 
 @pytest.mark.asyncio
-async def test_pas_client_non_dict_payload_branch():
-    client = PasClient(base_url="http://pas", timeout_seconds=2.0)
+async def test_lotus_core_query_client_non_dict_payload_branch():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, ["not-dict"])
     status_code, payload = await client.list_portfolios(correlation_id="corr-3")
     assert status_code == 200
@@ -229,7 +475,7 @@ async def test_pas_client_non_dict_payload_branch():
 
 @pytest.mark.asyncio
 async def test_pas_ingestion_client_upload_paths():
-    client = PasIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(202, {"status": "accepted"})
     _FakeAsyncClient.queue_json(200, {"columns": ["portfolio_id"]})
     _FakeAsyncClient.queue_json(201, {"importedRows": 10})
@@ -262,7 +508,7 @@ async def test_pas_ingestion_client_upload_paths():
 
 @pytest.mark.asyncio
 async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
-    client = PasIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, [{"preview": "row"}])
     _FakeAsyncClient.queue_text(503, "ingestion unavailable")
 
@@ -493,3 +739,38 @@ async def test_reporting_client_summary_review_non_json_payloads():
     assert summary_payload["detail"] == "summary failure"
     assert review_status == 200
     assert review_payload["detail"] == ["review-item"]
+
+
+@pytest.mark.asyncio
+async def test_lotus_core_query_client_posts_benchmark_catalog_request():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "records": [
+                {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_name": "Global Balanced 60/40",
+                }
+            ]
+        },
+    )
+
+    status_code, payload = await client.get_benchmark_catalog(
+        as_of_date="2026-03-27",
+        benchmark_currency="USD",
+        correlation_id="corr-3",
+    )
+
+    assert status_code == 200
+    assert payload["records"][0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == "http://core-control/integration/benchmarks/catalog"
+    assert request["json"]["as_of_date"] == "2026-03-27"
+    assert request["json"]["benchmark_currency"] == "USD"
+    assert request["json"]["benchmark_status"] == "active"
+    assert request["json"]["benchmark_type"] == "composite"
