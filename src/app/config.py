@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     upstream_timeout_seconds: float = Field(default=3.0)
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)
+    portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
 
 
 settings = Settings()

@@ -50,11 +50,214 @@ from app.precision_policy import (
     quantize_price,
     quantize_quantity,
 )
+from app.services.async_ttl_cache import AsyncTtlCache
 
 
 class PortfolioService:
-    def __init__(self, lotus_core_query_client: LotusCoreQueryClient):
+    def __init__(
+        self,
+        lotus_core_query_client: LotusCoreQueryClient,
+        upstream_cache_ttl_seconds: float | None = None,
+    ):
         self._lotus_core_query_client = lotus_core_query_client
+        self._upstream_cache = AsyncTtlCache[tuple[int, dict[str, Any]]](
+            ttl_seconds=upstream_cache_ttl_seconds
+            or settings.portfolio_upstream_cache_ttl_seconds
+        )
+
+    def clear_upstream_cache(self) -> None:
+        self._upstream_cache.clear()
+
+    async def _get_cached_upstream_result(
+        self,
+        key: tuple[object, ...],
+        loader: Any,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._upstream_cache.get_or_set(key=key, factory=loader)
+
+    async def _get_portfolio_result(
+        self, portfolio_id: str, correlation_id: str
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("portfolio", portfolio_id),
+            lambda: self._lotus_core_query_client.get_portfolio(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _get_support_overview_result(
+        self, portfolio_id: str, correlation_id: str
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("support_overview", portfolio_id),
+            lambda: self._lotus_core_query_client.get_support_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _query_aum_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("aum", portfolio_id, as_of_date),
+            lambda: self._lotus_core_query_client.query_assets_under_management(
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+            ),
+        )
+
+    async def _query_cash_balances_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("cash_balances", portfolio_id, as_of_date),
+            lambda: self._lotus_core_query_client.query_cash_balances(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
+        )
+
+    async def _get_cashflow_projection_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        horizon_days: int,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            (
+                "cashflow_projection",
+                portfolio_id,
+                as_of_date,
+                include_projected,
+                horizon_days,
+            ),
+            lambda: self._lotus_core_query_client.get_cashflow_projection(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=include_projected,
+                horizon_days=horizon_days,
+            ),
+        )
+
+    async def _query_asset_allocation_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        dimensions: list[str],
+    ) -> tuple[int, dict[str, Any]]:
+        dimensions_key = tuple(dimensions)
+        return await self._get_cached_upstream_result(
+            ("asset_allocation", portfolio_id, as_of_date, dimensions_key),
+            lambda: self._lotus_core_query_client.query_asset_allocation(
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                dimensions=dimensions,
+            ),
+        )
+
+    async def _get_portfolio_positions_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("positions", portfolio_id, as_of_date, include_projected),
+            lambda: self._lotus_core_query_client.get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=include_projected,
+            ),
+        )
+
+    async def _get_portfolio_transactions_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        *,
+        as_of_date: str | None,
+        include_projected: bool,
+        skip: int,
+        limit: int,
+        transaction_type: str | None,
+        start_date: str | None,
+        end_date: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            (
+                "transactions",
+                portfolio_id,
+                as_of_date,
+                include_projected,
+                skip,
+                limit,
+                transaction_type,
+                start_date,
+                end_date,
+            ),
+            lambda: self._lotus_core_query_client.get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=include_projected,
+                skip=skip,
+                limit=limit,
+                transaction_type=transaction_type,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+        )
+
+    async def _query_income_summary_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        start_date: str,
+        end_date: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("income_summary", portfolio_id, start_date, end_date),
+            lambda: self._lotus_core_query_client.query_income_summary(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+        )
+
+    async def _query_activity_summary_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        start_date: str,
+        end_date: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("activity_summary", portfolio_id, start_date, end_date),
+            lambda: self._lotus_core_query_client.query_activity_summary(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                start_date=start_date,
+                end_date=end_date,
+            ),
+        )
 
     async def get_portfolio_catalog(self, correlation_id: str) -> PortfolioCatalogResponse:
         status_code, payload = await self._lotus_core_query_client.list_portfolios(
@@ -73,9 +276,9 @@ class PortfolioService:
         )
 
     async def get_portfolio_workspace(
-        self, portfolio_id: str, correlation_id: str
+        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
     ) -> PortfolioWorkspaceResponse:
-        as_of_date = datetime.now(UTC).date().isoformat()
+        effective_as_of_date = as_of_date or datetime.now(UTC).date().isoformat()
         (
             portfolio_result,
             aum_result,
@@ -83,30 +286,27 @@ class PortfolioService:
             cashflow_result,
             cash_balance_result,
         ) = await asyncio.gather(
-            self._lotus_core_query_client.get_portfolio(
+            self._get_portfolio_result(portfolio_id=portfolio_id, correlation_id=correlation_id),
+            self._query_aum_result(
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=effective_as_of_date,
+            ),
+            self._get_support_overview_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
             ),
-            self._lotus_core_query_client.query_assets_under_management(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-            ),
-            self._lotus_core_query_client.get_support_overview(
+            self._get_cashflow_projection_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-            ),
-            self._lotus_core_query_client.get_cashflow_projection(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
+                as_of_date=effective_as_of_date,
                 include_projected=True,
                 horizon_days=10,
             ),
-            self._lotus_core_query_client.query_cash_balances(
+            self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=as_of_date,
+                as_of_date=effective_as_of_date,
             ),
         )
         portfolio_payload = self._require_payload(
@@ -123,7 +323,7 @@ class PortfolioService:
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=self._extract_resolved_as_of_date(aum_result) or as_of_date,
+            as_of_date=self._extract_resolved_as_of_date(aum_result) or effective_as_of_date,
             portfolio=portfolio,
             profile=profile,
             summary=summary,
@@ -139,7 +339,11 @@ class PortfolioService:
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioReadinessResponse:
         workspace, positions, allocations, transactions = await asyncio.gather(
-            self.get_portfolio_workspace(portfolio_id=portfolio_id, correlation_id=correlation_id),
+            self.get_portfolio_workspace(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
             self.get_portfolio_positions(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -179,7 +383,11 @@ class PortfolioService:
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioInsightsResponse:
         workspace, positions, allocations, transactions, activity = await asyncio.gather(
-            self.get_portfolio_workspace(portfolio_id=portfolio_id, correlation_id=correlation_id),
+            self.get_portfolio_workspace(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
             self.get_portfolio_positions(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -231,7 +439,11 @@ class PortfolioService:
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioWorkflowResponse:
         workspace, transactions = await asyncio.gather(
-            self.get_portfolio_workspace(portfolio_id=portfolio_id, correlation_id=correlation_id),
+            self.get_portfolio_workspace(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
             self.get_transaction_ledger(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -280,7 +492,7 @@ class PortfolioService:
             include_projected=include_projected,
         )
         portfolio_payload = self._require_payload(
-            result=await self._lotus_core_query_client.get_portfolio(
+            result=await self._get_portfolio_result(
                 portfolio_id=portfolio_id, correlation_id=correlation_id
             ),
             unavailable_detail_prefix="lotus-core portfolio unavailable",
@@ -311,15 +523,15 @@ class PortfolioService:
             cash_balances_result,
             cashflow_result,
         ) = await asyncio.gather(
-            self._lotus_core_query_client.query_assets_under_management(
+            self._query_aum_result(
                 correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
             ),
-            self._lotus_core_query_client.query_cash_balances(
+            self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self._lotus_core_query_client.get_cashflow_projection(
+            self._get_cashflow_projection_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
@@ -362,7 +574,7 @@ class PortfolioService:
     ) -> PortfolioProjectedCashflowResponse:
         warnings: list[str] = []
         partial_failures: list[PortfolioPartialFailure] = []
-        cashflow_result = await self._lotus_core_query_client.get_cashflow_projection(
+        cashflow_result = await self._get_cashflow_projection_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
@@ -393,15 +605,15 @@ class PortfolioService:
             cash_balances_result,
             allocation_result,
         ) = await asyncio.gather(
-            self._lotus_core_query_client.query_assets_under_management(
+            self._query_aum_result(
                 correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
             ),
-            self._lotus_core_query_client.query_cash_balances(
+            self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self._lotus_core_query_client.query_asset_allocation(
+            self._query_asset_allocation_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
@@ -440,15 +652,15 @@ class PortfolioService:
             cash_balances_result,
             positions_result,
         ) = await asyncio.gather(
-            self._lotus_core_query_client.query_assets_under_management(
+            self._query_aum_result(
                 correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
             ),
-            self._lotus_core_query_client.query_cash_balances(
+            self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self._lotus_core_query_client.get_portfolio_positions(
+            self._get_portfolio_positions_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
@@ -489,7 +701,7 @@ class PortfolioService:
         start_date: str | None = None,
         end_date: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
-        status_code, payload = await self._lotus_core_query_client.get_portfolio_transactions(
+        status_code, payload = await self._get_portfolio_transactions_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
@@ -533,7 +745,7 @@ class PortfolioService:
         end_date: str | None,
     ) -> PortfolioIncomeSummaryResponse:
         window_start, window_end = self._resolve_reporting_window(start_date, end_date)
-        status_code, payload = await self._lotus_core_query_client.query_income_summary(
+        status_code, payload = await self._query_income_summary_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             start_date=window_start.isoformat(),
@@ -579,7 +791,7 @@ class PortfolioService:
         end_date: str | None,
     ) -> PortfolioActivitySummaryResponse:
         window_start, window_end = self._resolve_reporting_window(start_date, end_date)
-        status_code, payload = await self._lotus_core_query_client.query_activity_summary(
+        status_code, payload = await self._query_activity_summary_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             start_date=window_start.isoformat(),

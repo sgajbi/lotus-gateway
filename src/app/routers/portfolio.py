@@ -22,18 +22,19 @@ from app.services.portfolio_service import PortfolioService
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
+_PORTFOLIO_SERVICE = PortfolioService(
+    lotus_core_query_client=LotusCoreQueryClient(
+        base_url=settings.portfolio_data_query_base_url,
+        control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+        timeout_seconds=settings.upstream_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    )
+)
+
 
 def _portfolio_service() -> PortfolioService:
-    return PortfolioService(
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
-
+    return _PORTFOLIO_SERVICE
 
 @router.get(
     "/portfolios",
@@ -51,10 +52,14 @@ async def get_portfolios() -> PortfolioCatalogResponse:
     response_model=PortfolioWorkspaceResponse,
     summary="Get portfolio workspace summary",
 )
-async def get_portfolio_workspace(portfolio_id: str) -> PortfolioWorkspaceResponse:
+async def get_portfolio_workspace(
+    portfolio_id: str,
+    as_of_date: str | None = Query(default=None),
+) -> PortfolioWorkspaceResponse:
     return await _portfolio_service().get_portfolio_workspace(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
     )
 
 

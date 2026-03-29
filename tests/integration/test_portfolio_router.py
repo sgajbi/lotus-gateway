@@ -1,10 +1,17 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.routers.portfolio import _portfolio_service
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 
 
+@pytest.fixture(autouse=True)
+def clear_portfolio_router_cache():
+    _portfolio_service().clear_upstream_cache()
+    yield
+    _portfolio_service().clear_upstream_cache()
 def test_portfolio_catalog_router(monkeypatch):
     async def _list_portfolios(*args, **kwargs):
         return 200, {"portfolios": [{"portfolio_id": "PF_1001", "base_currency": "USD"}]}
