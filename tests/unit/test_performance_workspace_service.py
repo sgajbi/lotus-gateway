@@ -684,8 +684,7 @@ async def test_performance_workspace_service_resolves_linked_benchmark_when_code
 
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert (
-        analytics_client.workspace_summary_calls[0]["benchmark_id"]
-        == "BMK_GLOBAL_BALANCED_60_40"
+        analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
 
