@@ -10,6 +10,7 @@ from app.contracts.portfolio import (
     PortfolioActivityBucketSummary,
     PortfolioActivitySummaryResponse,
     PortfolioAllocationBucket,
+    PortfolioAllocationLookThroughCapability,
     PortfolioAllocationResponse,
     PortfolioAllocationView,
     PortfolioBookResponse,
@@ -33,7 +34,9 @@ from app.contracts.portfolio import (
     PortfolioPositionView,
     PortfolioProfile,
     PortfolioProjectedCashflowResponse,
+    PortfolioReadinessBucket,
     PortfolioReadinessIndicator,
+    PortfolioReadinessReason,
     PortfolioReadinessResponse,
     PortfolioSummary,
     PortfolioTopPosition,
@@ -101,13 +104,15 @@ class PortfolioService:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("aum", portfolio_id, as_of_date),
+            ("aum", portfolio_id, as_of_date, reporting_currency),
             lambda: self._lotus_core_query_client.query_assets_under_management(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
         )
 
@@ -116,13 +121,15 @@ class PortfolioService:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("cash_balances", portfolio_id, as_of_date),
+            ("cash_balances", portfolio_id, as_of_date, reporting_currency),
             lambda: self._lotus_core_query_client.query_cash_balances(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
         )
 
@@ -157,15 +164,26 @@ class PortfolioService:
         correlation_id: str,
         as_of_date: str | None,
         dimensions: list[str],
+        reporting_currency: str | None = None,
+        look_through_mode: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         dimensions_key = tuple(dimensions)
         return await self._get_cached_upstream_result(
-            ("asset_allocation", portfolio_id, as_of_date, dimensions_key),
+            (
+                "asset_allocation",
+                portfolio_id,
+                as_of_date,
+                dimensions_key,
+                reporting_currency,
+                look_through_mode,
+            ),
             lambda: self._lotus_core_query_client.query_asset_allocation(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
                 dimensions=dimensions,
+                reporting_currency=reporting_currency,
+                look_through_mode=look_through_mode,
             ),
         )
 
@@ -175,9 +193,10 @@ class PortfolioService:
         correlation_id: str,
         as_of_date: str | None,
         include_projected: bool,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("positions", portfolio_id, as_of_date, include_projected),
+            ("positions", portfolio_id, as_of_date, include_projected, reporting_currency),
             lambda: self._lotus_core_query_client.get_portfolio_positions(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -196,6 +215,7 @@ class PortfolioService:
         skip: int,
         limit: int,
         transaction_type: str | None,
+        security_id: str | None,
         start_date: str | None,
         end_date: str | None,
     ) -> tuple[int, dict[str, Any]]:
@@ -208,6 +228,7 @@ class PortfolioService:
                 skip,
                 limit,
                 transaction_type,
+                security_id,
                 start_date,
                 end_date,
             ),
@@ -219,6 +240,7 @@ class PortfolioService:
                 skip=skip,
                 limit=limit,
                 transaction_type=transaction_type,
+                security_id=security_id,
                 start_date=start_date,
                 end_date=end_date,
             ),
@@ -230,14 +252,16 @@ class PortfolioService:
         correlation_id: str,
         start_date: str,
         end_date: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("income_summary", portfolio_id, start_date, end_date),
+            ("income_summary", portfolio_id, start_date, end_date, reporting_currency),
             lambda: self._lotus_core_query_client.query_income_summary(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 start_date=start_date,
                 end_date=end_date,
+                reporting_currency=reporting_currency,
             ),
         )
 
@@ -247,14 +271,31 @@ class PortfolioService:
         correlation_id: str,
         start_date: str,
         end_date: str,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("activity_summary", portfolio_id, start_date, end_date),
+            ("activity_summary", portfolio_id, start_date, end_date, reporting_currency),
             lambda: self._lotus_core_query_client.query_activity_summary(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 start_date=start_date,
                 end_date=end_date,
+                reporting_currency=reporting_currency,
+            ),
+        )
+
+    async def _get_portfolio_readiness_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("readiness", portfolio_id, as_of_date),
+            lambda: self._lotus_core_query_client.get_portfolio_readiness(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
             ),
         )
 
@@ -275,7 +316,11 @@ class PortfolioService:
         )
 
     async def get_portfolio_workspace(
-        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> PortfolioWorkspaceResponse:
         effective_as_of_date = as_of_date or datetime.now(UTC).date().isoformat()
         (
@@ -284,12 +329,14 @@ class PortfolioService:
             support_result,
             cashflow_result,
             cash_balance_result,
+            readiness_result,
         ) = await asyncio.gather(
             self._get_portfolio_result(portfolio_id=portfolio_id, correlation_id=correlation_id),
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 as_of_date=effective_as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._get_support_overview_result(
                 portfolio_id=portfolio_id,
@@ -303,6 +350,12 @@ class PortfolioService:
                 horizon_days=10,
             ),
             self._query_cash_balances_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=effective_as_of_date,
+                reporting_currency=reporting_currency,
+            ),
+            self._get_portfolio_readiness_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=effective_as_of_date,
@@ -327,7 +380,7 @@ class PortfolioService:
             profile=profile,
             summary=summary,
             cashflow_outlook=cashflow_outlook,
-            reporting=self._reporting_readiness(summary),
+            reporting=self._reporting_readiness(summary, readiness_result),
             operations=operations,
             workflow_cues=self._build_workflow_cues(portfolio_id),
             warnings=warnings,
@@ -337,8 +390,13 @@ class PortfolioService:
     async def get_portfolio_readiness(
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioReadinessResponse:
-        workspace, positions, allocations, transactions = await asyncio.gather(
+        workspace, source_readiness, positions, allocations, transactions = await asyncio.gather(
             self.get_portfolio_workspace(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
+            self._get_portfolio_readiness_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
@@ -363,7 +421,17 @@ class PortfolioService:
                 limit=1,
             ),
         )
-        indicators = self._build_readiness_indicators(
+        source_payload = self._optional_payload(
+            source_readiness,
+            "lotus-core",
+            "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
+            [],
+            [],
+        )
+        indicators = self._build_source_readiness_indicators(
+            payload=source_payload,
+            detailed_view=False,
+        ) or self._build_readiness_indicators(
             workspace=workspace,
             positions=positions.positions,
             allocation_views=allocations.views,
@@ -375,6 +443,13 @@ class PortfolioService:
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=workspace.as_of_date,
+            holdings=self._parse_readiness_bucket((source_payload or {}).get("holdings")),
+            pricing=self._parse_readiness_bucket((source_payload or {}).get("pricing")),
+            transactions=self._parse_readiness_bucket((source_payload or {}).get("transactions")),
+            reporting=self._parse_readiness_bucket((source_payload or {}).get("reporting")),
+            blocking_reasons=self._parse_readiness_reasons(
+                (source_payload or {}).get("blocking_reasons")
+            ),
             indicators=indicators,
         )
 
@@ -409,6 +484,7 @@ class PortfolioService:
             self.get_activity_summary(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
+                as_of_date=as_of_date,
                 start_date=None,
                 end_date=None,
             ),
@@ -514,6 +590,7 @@ class PortfolioService:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None,
+        reporting_currency: str | None = None,
     ) -> PortfolioLiquidityResponse:
         warnings: list[str] = []
         partial_failures: list[PortfolioPartialFailure] = []
@@ -523,12 +600,16 @@ class PortfolioService:
             cashflow_result,
         ) = await asyncio.gather(
             self._query_aum_result(
-                correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._get_cashflow_projection_result(
                 portfolio_id=portfolio_id,
@@ -598,6 +679,8 @@ class PortfolioService:
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None,
+        reporting_currency: str | None = None,
+        look_through_mode: str | None = "direct_only",
     ) -> PortfolioAllocationResponse:
         (
             aum_result,
@@ -605,18 +688,24 @@ class PortfolioService:
             allocation_result,
         ) = await asyncio.gather(
             self._query_aum_result(
-                correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._query_asset_allocation_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
-                dimensions=["asset_class", "currency", "sector"],
+                dimensions=["asset_class", "currency", "sector", "region"],
+                reporting_currency=reporting_currency,
+                look_through_mode=look_through_mode,
             ),
         )
         aum_payload = self._require_payload(
@@ -635,6 +724,11 @@ class PortfolioService:
             as_of_date=str(
                 aum_payload.get("resolved_as_of_date") or as_of_date or datetime.now(UTC).date()
             ),
+            reporting_currency=self._optional_str(allocation_payload.get("reporting_currency"))
+            or reporting_currency,
+            look_through=self._parse_look_through_capability(
+                allocation_payload.get("look_through")
+            ),
             summary=summary,
             views=self._parse_allocation_views(allocation_payload),
         )
@@ -645,6 +739,7 @@ class PortfolioService:
         correlation_id: str,
         as_of_date: str | None,
         include_projected: bool,
+        reporting_currency: str | None = None,
     ) -> PortfolioPositionBookResponse:
         (
             aum_result,
@@ -652,18 +747,23 @@ class PortfolioService:
             positions_result,
         ) = await asyncio.gather(
             self._query_aum_result(
-                correlation_id=correlation_id, portfolio_id=portfolio_id, as_of_date=as_of_date
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._get_portfolio_positions_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
+                reporting_currency=reporting_currency,
             ),
         )
         aum_payload = self._require_payload(
@@ -697,6 +797,7 @@ class PortfolioService:
         skip: int,
         limit: int,
         transaction_type: str | None = None,
+        security_id: str | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
@@ -708,6 +809,7 @@ class PortfolioService:
             skip=skip,
             limit=limit,
             transaction_type=transaction_type,
+            security_id=security_id,
             start_date=start_date,
             end_date=end_date,
         )
@@ -740,15 +842,22 @@ class PortfolioService:
         self,
         portfolio_id: str,
         correlation_id: str,
-        start_date: str | None,
-        end_date: str | None,
+        as_of_date: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> PortfolioIncomeSummaryResponse:
-        window_start, window_end = self._resolve_reporting_window(start_date, end_date)
+        window_start, window_end = self._resolve_reporting_window(
+            start_date,
+            end_date,
+            default_end_date=as_of_date,
+        )
         status_code, payload = await self._query_income_summary_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             start_date=window_start.isoformat(),
             end_date=window_end.isoformat(),
+            reporting_currency=reporting_currency,
         )
         result_payload = self._require_payload(
             result=(status_code, payload),
@@ -770,7 +879,9 @@ class PortfolioService:
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            reporting_currency=str(result_payload.get("reporting_currency", "USD")),
+            reporting_currency=str(
+                result_payload.get("reporting_currency", reporting_currency or "USD")
+            ),
             window_start_date=window_start.isoformat(),
             window_end_date=window_end.isoformat(),
             totals_requested_window=self._parse_income_period_summary(
@@ -786,15 +897,22 @@ class PortfolioService:
         self,
         portfolio_id: str,
         correlation_id: str,
-        start_date: str | None,
-        end_date: str | None,
+        as_of_date: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> PortfolioActivitySummaryResponse:
-        window_start, window_end = self._resolve_reporting_window(start_date, end_date)
+        window_start, window_end = self._resolve_reporting_window(
+            start_date,
+            end_date,
+            default_end_date=as_of_date,
+        )
         status_code, payload = await self._query_activity_summary_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             start_date=window_start.isoformat(),
             end_date=window_end.isoformat(),
+            reporting_currency=reporting_currency,
         )
         result_payload = self._require_payload(
             result=(status_code, payload),
@@ -804,7 +922,9 @@ class PortfolioService:
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            reporting_currency=str(result_payload.get("reporting_currency", "USD")),
+            reporting_currency=str(
+                result_payload.get("reporting_currency", reporting_currency or "USD")
+            ),
             window_start_date=window_start.isoformat(),
             window_end_date=window_end.isoformat(),
             buckets=[
@@ -1109,6 +1229,7 @@ class PortfolioService:
         return PortfolioTransactionView(
             transaction_id=str(item.get("transaction_id", "")),
             transaction_date=str(item.get("transaction_date", "")),
+            settlement_date=self._optional_str(item.get("settlement_date")),
             transaction_type=str(item.get("transaction_type", "")),
             component_type=self._optional_str(item.get("component_type")),
             security_id=str(item.get("security_id", "")),
@@ -1178,9 +1299,28 @@ class PortfolioService:
             transaction_count=int(payload.get("transaction_count", 0)),
         )
 
-    def _reporting_readiness(self, summary: PortfolioSummary):
+    def _reporting_readiness(
+        self,
+        summary: PortfolioSummary,
+        readiness_result: tuple[int, dict[str, Any]] | None = None,
+    ):
         from app.contracts.portfolio import PortfolioReportingReadiness
 
+        if readiness_result is not None:
+            payload = self._optional_payload(
+                readiness_result,
+                "lotus-core",
+                "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
+                [],
+                [],
+            )
+            if payload is not None:
+                reporting_bucket = payload.get("reporting")
+                if isinstance(reporting_bucket, dict):
+                    return PortfolioReportingReadiness(
+                        status=str(reporting_bucket.get("status", "UNKNOWN")).strip().upper(),
+                        row_count=summary.position_count,
+                    )
         return PortfolioReportingReadiness(
             status="READY" if summary.position_count > 0 else "EMPTY",
             row_count=summary.position_count,
@@ -1698,6 +1838,97 @@ class PortfolioService:
         }
         return mapping.get(key, "Open the next available workflow for this portfolio.")
 
+    def _parse_look_through_capability(
+        self, payload: Any
+    ) -> PortfolioAllocationLookThroughCapability | None:
+        if not isinstance(payload, dict):
+            return None
+        requested_mode = self._optional_str(payload.get("requested_mode"))
+        effective_mode = self._optional_str(payload.get("effective_mode"))
+        if requested_mode is None or effective_mode is None:
+            return None
+        return PortfolioAllocationLookThroughCapability(
+            requested_mode=requested_mode,
+            effective_mode=effective_mode,
+            applied=bool(payload.get("applied", False)),
+        )
+
+    def _parse_readiness_bucket(self, payload: Any) -> PortfolioReadinessBucket | None:
+        if not isinstance(payload, dict):
+            return None
+        status_value = self._optional_str(payload.get("status"))
+        if status_value is None:
+            return None
+        return PortfolioReadinessBucket(
+            status=self._map_source_readiness_status(status_value),
+            reasons=self._parse_readiness_reasons(payload.get("reasons")),
+        )
+
+    def _parse_readiness_reasons(self, payload: Any) -> list[PortfolioReadinessReason]:
+        if not isinstance(payload, list):
+            return []
+        reasons: list[PortfolioReadinessReason] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            code = self._optional_str(item.get("code"))
+            if code is None:
+                continue
+            reasons.append(
+                PortfolioReadinessReason(
+                    code=code,
+                    detail=self._optional_str(item.get("detail")),
+                )
+            )
+        return reasons
+
+    def _build_source_readiness_indicators(
+        self, payload: dict[str, Any] | None, detailed_view: bool
+    ) -> list[PortfolioReadinessIndicator]:
+        if payload is None:
+            return []
+        return [
+            PortfolioReadinessIndicator(
+                key="holdings",
+                label="Holdings",
+                status=self._map_source_readiness_status(payload.get("holdings", {}).get("status")),
+                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+            ),
+            PortfolioReadinessIndicator(
+                key="pricing",
+                label="Pricing",
+                status=self._map_source_readiness_status(payload.get("pricing", {}).get("status")),
+                href="#portfolio-attention",
+            ),
+            PortfolioReadinessIndicator(
+                key="transactions",
+                label="Transactions",
+                status=self._map_source_readiness_status(
+                    payload.get("transactions", {}).get("status")
+                ),
+                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+            ),
+            PortfolioReadinessIndicator(
+                key="reporting",
+                label="Reporting",
+                status=self._map_source_readiness_status(
+                    payload.get("reporting", {}).get("status")
+                ),
+                href="#portfolio-health",
+            ),
+        ]
+
+    def _map_source_readiness_status(self, status_value: Any) -> str:
+        normalized = str(status_value or "").strip().upper()
+        mapping = {
+            "READY": "Ready",
+            "PENDING": "Pending",
+            "BLOCKED": "Blocked",
+            "FAILED": "Blocked",
+            "EMPTY": "Empty",
+        }
+        return mapping.get(normalized, "Pending" if normalized else "Unknown")
+
     def _optional_payload(
         self,
         result: tuple[int, dict[str, Any]],
@@ -1737,8 +1968,15 @@ class PortfolioService:
         self,
         start_date: str | None,
         end_date: str | None,
+        default_end_date: str | None = None,
     ) -> tuple[date, date]:
-        window_end = date.fromisoformat(end_date) if end_date else datetime.now(UTC).date()
+        window_end = (
+            date.fromisoformat(end_date)
+            if end_date
+            else date.fromisoformat(default_end_date)
+            if default_end_date
+            else datetime.now(UTC).date()
+        )
         window_start = (
             date.fromisoformat(start_date) if start_date else window_end - timedelta(days=29)
         )

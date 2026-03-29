@@ -21,6 +21,7 @@ class PlatformCapabilitiesService:
         analytics_client: LotusAnalyticsClient,
         reporting_client: ReportingClient,
         contract_version: str,
+        source_timeout_seconds: float = 1.0,
         risk_client: LotusAnalyticsClient | None = None,
         manage_client: DpmClient | None = None,
     ):
@@ -31,6 +32,7 @@ class PlatformCapabilitiesService:
         self._risk_client = risk_client
         self._manage_client = manage_client
         self._contract_version = contract_version
+        self._source_timeout_seconds = source_timeout_seconds
 
     async def get_platform_capabilities(
         self,
@@ -39,49 +41,59 @@ class PlatformCapabilitiesService:
         correlation_id: str,
     ) -> PlatformCapabilitiesResponse:
         tasks: list[Any] = [
-            self._lotus_core_query_client.get_capabilities(
+            self._with_timeout(
+                self._lotus_core_query_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
+                )
             ),
-            self._analytics_client.get_capabilities(
+            self._with_timeout(
+                self._analytics_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
+                )
             ),
-            self._dpm_client.get_capabilities(
+            self._with_timeout(
+                self._dpm_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
+                )
             ),
-            self._reporting_client.get_capabilities(
+            self._with_timeout(
+                self._reporting_client.get_capabilities(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
+                )
             ),
-            self._lotus_core_query_client.get_effective_policy(
+            self._with_timeout(
+                self._lotus_core_query_client.get_effective_policy(
                 consumer_system=consumer_system,
                 tenant_id=tenant_id,
                 correlation_id=correlation_id,
+                )
             ),
         ]
         optional_sources: list[str] = []
         if self._risk_client is not None:
             tasks.append(
-                self._risk_client.get_capabilities(
+                self._with_timeout(self._risk_client.get_capabilities(
                     consumer_system=consumer_system,
                     tenant_id=tenant_id,
                     correlation_id=correlation_id,
-                )
+                ))
             )
             optional_sources.append("risk")
         if self._manage_client is not None:
             tasks.append(
-                self._manage_client.get_capabilities(
+                self._with_timeout(self._manage_client.get_capabilities(
                     consumer_system=consumer_system,
                     tenant_id=tenant_id,
                     correlation_id=correlation_id,
-                )
+                ))
             )
             optional_sources.append("manage")
 
@@ -174,6 +186,9 @@ class PlatformCapabilitiesService:
             normalized=normalized,
         )
         return PlatformCapabilitiesResponse(data=data)
+
+    async def _with_timeout(self, coroutine: Any) -> Any:
+        return await asyncio.wait_for(coroutine, timeout=self._source_timeout_seconds)
 
     def _build_normalized_capabilities(
         self,

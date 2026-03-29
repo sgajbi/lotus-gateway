@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Query
 
+from app.clients.dpm_client import DpmClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import (
@@ -10,6 +12,7 @@ from app.contracts.portfolio import (
     PortfolioIncomeSummaryResponse,
     PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
+    PortfolioPerformanceSnapshotResponse,
     PortfolioPositionBookResponse,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
@@ -18,7 +21,9 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.portfolio_service import PortfolioService
+from app.services.workbench_service import WorkbenchService
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
@@ -35,6 +40,61 @@ _PORTFOLIO_SERVICE = PortfolioService(
 
 def _portfolio_service() -> PortfolioService:
     return _PORTFOLIO_SERVICE
+
+
+def _performance_workspace_service() -> PerformanceWorkspaceService:
+    dpm_base_url = (
+        settings.management_service_base_url
+        if settings.manage_split_enabled
+        else settings.decisioning_service_base_url
+    )
+    workbench_service = WorkbenchService(
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        analytics_client=LotusAnalyticsClient(
+            base_url=settings.performance_analytics_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        dpm_client=DpmClient(
+            base_url=dpm_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        risk_client=(
+            LotusAnalyticsClient(
+                base_url=settings.risk_analytics_base_url,
+                timeout_seconds=settings.upstream_timeout_seconds,
+                max_retries=settings.upstream_max_retries,
+                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+            )
+            if settings.risk_split_enabled
+            else None
+        ),
+    )
+    return PerformanceWorkspaceService(
+        workbench_service=workbench_service,
+        analytics_client=LotusAnalyticsClient(
+            base_url=settings.performance_analytics_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+    )
 
 
 @router.get(
@@ -54,11 +114,13 @@ async def get_portfolios() -> PortfolioCatalogResponse:
 async def get_portfolio_workspace(
     portfolio_id: str,
     as_of_date: str | None = Query(default=None),
+    reporting_currency: str | None = Query(default=None),
 ) -> PortfolioWorkspaceResponse:
     return await _portfolio_service().get_portfolio_workspace(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -136,11 +198,13 @@ async def get_portfolio_book(
 async def get_portfolio_liquidity(
     portfolio_id: str,
     as_of_date: str | None = Query(default=None),
+    reporting_currency: str | None = Query(default=None),
 ) -> PortfolioLiquidityResponse:
     return await _portfolio_service().get_portfolio_liquidity(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -172,11 +236,15 @@ async def get_portfolio_projected_cashflow(
 async def get_portfolio_allocations(
     portfolio_id: str,
     as_of_date: str | None = Query(default=None),
+    reporting_currency: str | None = Query(default=None),
+    look_through_mode: str = Query(default="direct_only"),
 ) -> PortfolioAllocationResponse:
     return await _portfolio_service().get_portfolio_allocations(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        look_through_mode=look_through_mode,
     )
 
 
@@ -189,12 +257,14 @@ async def get_portfolio_positions(
     portfolio_id: str,
     as_of_date: str | None = Query(default=None),
     include_projected: bool = Query(default=False),
+    reporting_currency: str | None = Query(default=None),
 ) -> PortfolioPositionBookResponse:
     return await _portfolio_service().get_portfolio_positions(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         include_projected=include_projected,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -205,14 +275,18 @@ async def get_portfolio_positions(
 )
 async def get_portfolio_income_summary(
     portfolio_id: str,
+    as_of_date: str | None = Query(default=None),
     start_date: str | None = Query(default=None),
     end_date: str | None = Query(default=None),
+    reporting_currency: str | None = Query(default=None),
 ) -> PortfolioIncomeSummaryResponse:
     return await _portfolio_service().get_income_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
         start_date=start_date,
         end_date=end_date,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -223,14 +297,18 @@ async def get_portfolio_income_summary(
 )
 async def get_portfolio_activity_summary(
     portfolio_id: str,
+    as_of_date: str | None = Query(default=None),
     start_date: str | None = Query(default=None),
     end_date: str | None = Query(default=None),
+    reporting_currency: str | None = Query(default=None),
 ) -> PortfolioActivitySummaryResponse:
     return await _portfolio_service().get_activity_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
         start_date=start_date,
         end_date=end_date,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -244,6 +322,7 @@ async def get_portfolio_transactions(
     as_of_date: str | None = Query(default=None),
     include_projected: bool = Query(default=False),
     transaction_type: str | None = Query(default=None),
+    security_id: str | None = Query(default=None),
     start_date: str | None = Query(default=None),
     end_date: str | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
@@ -255,8 +334,35 @@ async def get_portfolio_transactions(
         as_of_date=as_of_date,
         include_projected=include_projected,
         transaction_type=transaction_type,
+        security_id=security_id,
         start_date=start_date,
         end_date=end_date,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.get(
+    "/portfolios/{portfolio_id}/performance-snapshot",
+    response_model=PortfolioPerformanceSnapshotResponse,
+    summary="Get portfolio performance snapshot",
+)
+async def get_portfolio_performance_snapshot(
+    portfolio_id: str,
+    period: str = Query(default="YTD"),
+    chart_frequency: str = Query(default="monthly"),
+    detail_basis: str = Query(default="NET"),
+    benchmark_code: str | None = Query(default=None),
+    explicit_start_date: str | None = Query(default=None),
+    explicit_end_date: str | None = Query(default=None),
+) -> PortfolioPerformanceSnapshotResponse:
+    return await _performance_workspace_service().get_portfolio_performance_snapshot(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=period,
+        chart_frequency=chart_frequency,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=explicit_start_date,
+        explicit_end_date=explicit_end_date,
     )

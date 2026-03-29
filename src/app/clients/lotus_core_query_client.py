@@ -122,6 +122,7 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         include_projected: bool = False,
         transaction_type: str | None = None,
+        security_id: str | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
@@ -138,6 +139,8 @@ class LotusCoreQueryClient:
             params["as_of_date"] = as_of_date
         if transaction_type is not None:
             params["transaction_type"] = transaction_type
+        if security_id is not None:
+            params["security_id"] = security_id
         if start_date is not None:
             params["start_date"] = start_date
         if end_date is not None:
@@ -223,6 +226,7 @@ class LotusCoreQueryClient:
         dimensions: list[str],
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
+        look_through_mode: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/reporting/asset-allocation/query"
         headers = propagation_headers(correlation_id)
@@ -238,6 +242,8 @@ class LotusCoreQueryClient:
             payload["as_of_date"] = as_of_date
         if reporting_currency is not None:
             payload["reporting_currency"] = reporting_currency
+        if look_through_mode is not None:
+            payload["look_through_mode"] = look_through_mode
         return await request_with_retry(
             method="POST",
             url=url,
@@ -421,6 +427,27 @@ class LotusCoreQueryClient:
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_portfolio_readiness(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/readiness"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {}
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
             headers=headers,
         )
 

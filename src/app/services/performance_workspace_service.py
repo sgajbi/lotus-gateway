@@ -27,6 +27,12 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
 )
+from app.contracts.portfolio import (
+    PortfolioPartialFailure,
+    PortfolioPerformanceSnapshotPoint,
+    PortfolioPerformanceSnapshotResponse,
+    PortfolioPerformanceSnapshotUnavailable,
+)
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
 from app.services.workbench_service import WorkbenchService
@@ -140,6 +146,32 @@ class PerformanceWorkspaceService:
             explicit_end_date=explicit_end_date,
         )
         return self._project_workspace_details(workspace)
+
+    async def get_portfolio_performance_snapshot(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PortfolioPerformanceSnapshotResponse:
+        workspace = await self._build_performance_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return self._project_portfolio_performance_snapshot(workspace)
 
     async def get_performance_horizon_comparison(
         self,
@@ -478,6 +510,59 @@ class PerformanceWorkspaceService:
             attribution=workspace.attribution,
             warnings=workspace.warnings,
             partial_failures=workspace.partial_failures,
+        )
+
+    def _project_portfolio_performance_snapshot(
+        self, workspace: PerformanceWorkspaceResponse
+    ) -> PortfolioPerformanceSnapshotResponse:
+        portfolio_return_pct = workspace.net_performance.portfolio_return_pct
+        benchmark_return_pct = workspace.net_performance.benchmark_return_pct
+        excess_return_pct = workspace.net_performance.active_return_pct
+        sparkline = [
+            PortfolioPerformanceSnapshotPoint(
+                as_of_date=point.as_of_date,
+                portfolio_return_pct=point.portfolio_return_pct,
+                benchmark_return_pct=point.benchmark_return_pct,
+                excess_return_pct=point.active_return_pct,
+            )
+            for point in workspace.net_chart
+        ]
+        unavailable = None
+        if (
+            portfolio_return_pct is None
+            and benchmark_return_pct is None
+            and excess_return_pct is None
+            and not sparkline
+        ):
+            unavailable = PortfolioPerformanceSnapshotUnavailable(
+                title="Performance data unavailable",
+                detail=(
+                    "Performance snapshot requires valuation history, cashflow history, "
+                    "and a selected reporting period."
+                ),
+                requirements=[
+                    "valuation history",
+                    "cashflow history",
+                    "selected reporting period",
+                ],
+            )
+        return PortfolioPerformanceSnapshotResponse(
+            correlation_id=workspace.correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            benchmark_code=workspace.benchmark_code,
+            portfolio_return_pct=portfolio_return_pct,
+            benchmark_return_pct=benchmark_return_pct,
+            excess_return_pct=excess_return_pct,
+            sparkline=sparkline,
+            unavailable=unavailable,
+            warnings=workspace.warnings,
+            partial_failures=[
+                PortfolioPartialFailure(**failure.model_dump())
+                for failure in workspace.partial_failures
+            ],
         )
 
     async def _determine_report_end_date(

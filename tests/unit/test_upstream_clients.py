@@ -359,8 +359,7 @@ async def test_lotus_core_query_client_fetches_benchmark_assignment():
     assert payload["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     request = _FakeAsyncClient.calls[0]
     assert request["url"] == (
-        "http://core-control/integration/portfolios/"
-        "PB_SG_GLOBAL_BAL_001/benchmark-assignment"
+        "http://core-control/integration/portfolios/PB_SG_GLOBAL_BAL_001/benchmark-assignment"
     )
     assert request["json"] == {
         "as_of_date": "2026-03-28",

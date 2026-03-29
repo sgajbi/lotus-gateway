@@ -73,6 +73,12 @@ class PortfolioAllocationView(BaseModel):
     buckets: list[PortfolioAllocationBucket] = Field(default_factory=list)
 
 
+class PortfolioAllocationLookThroughCapability(BaseModel):
+    requested_mode: str
+    effective_mode: str
+    applied: bool
+
+
 class PortfolioTopPosition(BaseModel):
     security_id: str
     instrument_name: str
@@ -109,6 +115,7 @@ class PortfolioPositionView(BaseModel):
 class PortfolioTransactionView(BaseModel):
     transaction_id: str
     transaction_date: str
+    settlement_date: str | None = None
     transaction_type: str
     component_type: str | None = None
     security_id: str
@@ -231,6 +238,16 @@ class PortfolioReadinessIndicator(BaseModel):
     href: str
 
 
+class PortfolioReadinessReason(BaseModel):
+    code: str
+    detail: str | None = None
+
+
+class PortfolioReadinessBucket(BaseModel):
+    status: str
+    reasons: list[PortfolioReadinessReason] = Field(default_factory=list)
+
+
 class PortfolioExceptionSummary(BaseModel):
     key: str
     title: str
@@ -252,6 +269,11 @@ class PortfolioReadinessResponse(BaseModel):
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
+    holdings: PortfolioReadinessBucket | None = None
+    pricing: PortfolioReadinessBucket | None = None
+    transactions: PortfolioReadinessBucket | None = None
+    reporting: PortfolioReadinessBucket | None = None
+    blocking_reasons: list[PortfolioReadinessReason] = Field(default_factory=list)
     indicators: list[PortfolioReadinessIndicator] = Field(default_factory=list)
 
 
@@ -326,6 +348,8 @@ class PortfolioAllocationResponse(BaseModel):
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
+    reporting_currency: str | None = None
+    look_through: PortfolioAllocationLookThroughCapability | None = None
     summary: PortfolioSummary
     views: list[PortfolioAllocationView] = Field(default_factory=list)
 
@@ -362,3 +386,32 @@ class PortfolioTransactionLedgerResponse(BaseModel):
     skip: int
     limit: int
     transactions: list[PortfolioTransactionView] = Field(default_factory=list)
+
+
+class PortfolioPerformanceSnapshotPoint(BaseModel):
+    as_of_date: str
+    portfolio_return_pct: float | None = None
+    benchmark_return_pct: float | None = None
+    excess_return_pct: float | None = None
+
+
+class PortfolioPerformanceSnapshotUnavailable(BaseModel):
+    title: str
+    detail: str
+    requirements: list[str] = Field(default_factory=list)
+
+
+class PortfolioPerformanceSnapshotResponse(BaseModel):
+    correlation_id: str
+    contract_version: str = Field(default="v1")
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    benchmark_code: str | None = None
+    portfolio_return_pct: float | None = None
+    benchmark_return_pct: float | None = None
+    excess_return_pct: float | None = None
+    sparkline: list[PortfolioPerformanceSnapshotPoint] = Field(default_factory=list)
+    unavailable: PortfolioPerformanceSnapshotUnavailable | None = None
+    warnings: list[str] = Field(default_factory=list)
+    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
