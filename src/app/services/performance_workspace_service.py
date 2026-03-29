@@ -520,7 +520,7 @@ class PerformanceWorkspaceService:
         excess_return_pct = workspace.net_performance.active_return_pct
         sparkline = [
             PortfolioPerformanceSnapshotPoint(
-                as_of_date=point.as_of_date,
+                as_of_date=self._snapshot_point_as_of_date(point),
                 portfolio_return_pct=point.portfolio_return_pct,
                 benchmark_return_pct=point.benchmark_return_pct,
                 excess_return_pct=point.active_return_pct,
@@ -564,6 +564,9 @@ class PerformanceWorkspaceService:
                 for failure in workspace.partial_failures
             ],
         )
+
+    def _snapshot_point_as_of_date(self, point: PerformanceChartPoint) -> str:
+        return point.period_end or point.period_start or point.label
 
     async def _determine_report_end_date(
         self,

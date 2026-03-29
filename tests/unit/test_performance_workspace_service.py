@@ -832,6 +832,30 @@ async def test_performance_workspace_service_projects_detail_contract():
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_projects_portfolio_performance_snapshot():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_portfolio_performance_snapshot(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_return_pct == 15.1
+    assert response.benchmark_return_pct == 14.72
+    assert response.excess_return_pct == 0.38
+    assert response.sparkline[0].as_of_date == "2026-01-31"
+    assert response.sparkline[0].portfolio_return_pct == 2.0
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_aligns_mismatched_dimensions_to_shared_segment():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
