@@ -36,15 +36,14 @@ _PORTFOLIO_SERVICE = PortfolioService(
 def _portfolio_service() -> PortfolioService:
     return _PORTFOLIO_SERVICE
 
+
 @router.get(
     "/portfolios",
     response_model=PortfolioCatalogResponse,
     summary="Get portfolio catalog",
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
-    return await _portfolio_service().get_portfolio_catalog(
-        correlation_id=correlation_id_var.get()
-    )
+    return await _portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
 
 
 @router.get(

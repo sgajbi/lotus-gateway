@@ -694,9 +694,7 @@ class PerformanceWorkspaceService:
             benchmark_catalog_task,
             return_exceptions=True,
         )
-        twr_results = {
-            spec["label"]: results[index] for index, spec in enumerate(request_specs)
-        }
+        twr_results = {spec["label"]: results[index] for index, spec in enumerate(request_specs)}
         return twr_results, results[-1]
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
@@ -1830,9 +1828,7 @@ class PerformanceWorkspaceService:
             row_payload["cumulative_total_effect_pct"] = self._quantize_optional(
                 cumulative_total_effect
             )
-            rows.append(
-                PerformanceAttributionTrendRow(**row_payload)
-            )
+            rows.append(PerformanceAttributionTrendRow(**row_payload))
 
         return rows
 

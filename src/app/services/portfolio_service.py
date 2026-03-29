@@ -61,8 +61,7 @@ class PortfolioService:
     ):
         self._lotus_core_query_client = lotus_core_query_client
         self._upstream_cache = AsyncTtlCache[tuple[int, dict[str, Any]]](
-            ttl_seconds=upstream_cache_ttl_seconds
-            or settings.portfolio_upstream_cache_ttl_seconds
+            ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
         )
 
     def clear_upstream_cache(self) -> None:
@@ -1023,7 +1022,8 @@ class PortfolioService:
                 unrealized_gain_loss_local=float(
                     quantize_money(
                         self._position_valuation_value(
-                            item, "unrealized_gain_loss_local",
+                            item,
+                            "unrealized_gain_loss_local",
                             fallback_key="unrealized_gain_loss",
                         )
                     )
@@ -1461,8 +1461,7 @@ class PortfolioService:
                     key="reporting-unavailable",
                     title="Reporting cannot be generated yet",
                     detail=(
-                        "Reporting remains blocked until book coverage and "
-                        "valuation are complete."
+                        "Reporting remains blocked until book coverage and valuation are complete."
                     ),
                     severity="warning",
                     href="#portfolio-health",
@@ -1559,8 +1558,7 @@ class PortfolioService:
                     sequence=4,
                     title="Review holdings",
                     impact=(
-                        "Confirm the funded book, position weights, and coverage after "
-                        "valuation."
+                        "Confirm the funded book, position weights, and coverage after valuation."
                     ),
                     target="Target: holdings and allocation review",
                     href="#portfolio-insights",
@@ -1688,15 +1686,13 @@ class PortfolioService:
                 "is valued."
             ),
             "holdings": (
-                "Confirm funded positions, valuations, and portfolio weights before client "
-                "review."
+                "Confirm funded positions, valuations, and portfolio weights before client review."
             ),
             "transactions": (
                 "Inspect recent funding, trading, and cash activity affecting the book."
             ),
             "risk": (
-                "Validate suitability, exposure, and mandate fit before the next client "
-                "action."
+                "Validate suitability, exposure, and mandate fit before the next client action."
             ),
             "proposal": "Prepare the next recommended portfolio action or client proposal.",
         }

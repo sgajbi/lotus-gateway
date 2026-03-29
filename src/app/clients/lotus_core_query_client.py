@@ -338,9 +338,7 @@ class LotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
-        )
+        url = f"{self._control_plane_base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
         headers = propagation_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
@@ -540,9 +538,7 @@ class LotusCoreQueryClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
-        )
+        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -558,9 +554,7 @@ class LotusCoreQueryClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
-        )
+        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",

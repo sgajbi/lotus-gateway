@@ -458,7 +458,10 @@ async def test_lotus_core_query_client_core_endpoints():
         "sections": ["positions_baseline"],
         "consumer_system": "lotus-gateway",
     }
-    assert _FakeAsyncClient.calls[4]["url"] == "http://pas/integration/portfolios/P1/analytics/reference"
+    assert (
+        _FakeAsyncClient.calls[4]["url"]
+        == "http://pas/integration/portfolios/P1/analytics/reference"
+    )
 
 
 @pytest.mark.asyncio

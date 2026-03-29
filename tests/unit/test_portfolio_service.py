@@ -220,6 +220,7 @@ class _StubLotusCoreQueryClient:
             },
         }
 
+
 class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     def __init__(self):
         self.calls: dict[str, int] = {}
@@ -262,6 +263,8 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     async def query_activity_summary(self, **kwargs):
         self._record("query_activity_summary")
         return await super().query_activity_summary(**kwargs)
+
+
 @pytest.mark.asyncio
 async def test_portfolio_catalog_is_sorted_and_mapped():
     service = PortfolioService(_StubLotusCoreQueryClient())
@@ -378,9 +381,7 @@ async def test_portfolio_projected_cashflow_returns_requested_horizon():
         def __init__(self):
             self.last_kwargs = None
 
-        async def get_cashflow_projection(
-            self, portfolio_id: str, correlation_id: str, **kwargs
-        ):
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.last_kwargs = kwargs
             return await super().get_cashflow_projection(
                 portfolio_id=portfolio_id,

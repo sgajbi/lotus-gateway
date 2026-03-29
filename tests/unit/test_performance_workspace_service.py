@@ -422,8 +422,7 @@ def _workspace_summary_payload() -> dict:
                         ],
                     },
                 },
-            }
-            ,
+            },
             "1Y": {
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",

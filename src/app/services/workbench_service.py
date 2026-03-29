@@ -136,13 +136,14 @@ class WorkbenchService:
         as_of_date: str,
         correlation_id: str,
     ) -> str:
-        status_code, payload = await (
-            self._lotus_core_query_client.get_portfolio_analytics_reference(
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                consumer_system="lotus-gateway",
-                correlation_id=correlation_id,
-            )
+        (
+            status_code,
+            payload,
+        ) = await self._lotus_core_query_client.get_portfolio_analytics_reference(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            consumer_system="lotus-gateway",
+            correlation_id=correlation_id,
         )
         if status_code >= status.HTTP_400_BAD_REQUEST or not isinstance(payload, dict):
             return as_of_date
@@ -561,9 +562,7 @@ class WorkbenchService:
             rows.append(
                 WorkbenchPositionView(
                     security_id=security_id,
-                    instrument_name=str(
-                        enrichment.get("instrument_name", security_id)
-                    ),
+                    instrument_name=str(enrichment.get("instrument_name", security_id)),
                     asset_class=(
                         str(enrichment["asset_class"])
                         if enrichment.get("asset_class") is not None
