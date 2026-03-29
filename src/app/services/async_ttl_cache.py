@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from time import monotonic
-from typing import Generic, TypeVar
+from typing import Coroutine, Generic, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -26,7 +26,7 @@ class AsyncTtlCache(Generic[T]):
 
             task = self._inflight.get(key)
             if task is None:
-                task = asyncio.create_task(factory())
+                task = asyncio.create_task(cast(Coroutine[object, object, T], factory()))
                 self._inflight[key] = task
 
         try:

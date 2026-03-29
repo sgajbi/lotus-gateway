@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-03-29T02:44:34Z",
+  "generated_at": "2026-03-29T02:50:46Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:112:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -406,55 +406,55 @@
       "review_by": "2026-08-24"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1928:def _extract_return(self, payload: Any, *path: str) -> float | None:",
+      "finding": "src/app/services/performance_workspace_service.py:1942:def _extract_return(self, payload: Any, *path: str) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1936:def _extract_nested_return(self, payload: Any, *path: str) -> float | None:",
+      "finding": "src/app/services/performance_workspace_service.py:1950:def _extract_nested_return(self, payload: Any, *path: str) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1944:def _quantize_optional(self, value: Any) -> float | None:",
+      "finding": "src/app/services/performance_workspace_service.py:1958:def _quantize_optional(self, value: Any) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1948:return float(quantize_performance(value))",
+      "finding": "src/app/services/performance_workspace_service.py:1962:return float(quantize_performance(value))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1952:def _weight_to_pct(self, value: Any) -> float | None:",
+      "finding": "src/app/services/performance_workspace_service.py:1966:def _weight_to_pct(self, value: Any) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1956:normalized = float(value)",
+      "finding": "src/app/services/performance_workspace_service.py:1970:normalized = float(value)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1959:return float(quantize_performance(normalized))",
+      "finding": "src/app/services/performance_workspace_service.py:1973:return float(quantize_performance(normalized))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1963:def _sum_optional(self, values: list[float | None]) -> float | None:",
+      "finding": "src/app/services/performance_workspace_service.py:1977:def _sum_optional(self, values: list[float | None]) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/performance_workspace_service.py:1967:return float(quantize_performance(sum(numeric_values)))",
+      "finding": "src/app/services/performance_workspace_service.py:1981:return float(quantize_performance(sum(numeric_values)))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping, Sequence
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, TypeAlias, cast
 
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -40,6 +41,10 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
+
+UpstreamPayload: TypeAlias = dict[str, Any]
+UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
+GatheredResult: TypeAlias = UpstreamResult | BaseException
 
 
 class PerformanceWorkspaceService:
@@ -488,7 +493,7 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         contribution_dimension: str,
         attribution_dimension: str,
-    ) -> tuple[object, object, object, object, object]:
+    ) -> tuple[GatheredResult, GatheredResult, GatheredResult, GatheredResult, GatheredResult]:
         twr_analyses = self._build_twr_analyses(effective_period)
         twr_report_start_date = report_start_date if effective_period == "EXPLICIT" else None
         analytics_tasks = (
@@ -542,7 +547,10 @@ class PerformanceWorkspaceService:
                 else self._empty_async_result()
             ),
         )
-        return await asyncio.gather(*analytics_tasks, return_exceptions=True)
+        return cast(
+            tuple[GatheredResult, GatheredResult, GatheredResult, GatheredResult, GatheredResult],
+            await asyncio.gather(*analytics_tasks, return_exceptions=True),
+        )
 
     def _build_twr_analyses(self, period: str) -> list[dict[str, object]]:
         if period == "EXPLICIT":
@@ -633,7 +641,7 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         segment: str,
         portfolio_currency: str,
-    ) -> tuple[object, object]:
+    ) -> tuple[GatheredResult, GatheredResult]:
         workspace_summary_task = self._analytics_client.get_workspace_summary(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,
@@ -650,10 +658,13 @@ class PerformanceWorkspaceService:
             benchmark_currency=portfolio_currency,
             correlation_id=correlation_id,
         )
-        return await asyncio.gather(
-            workspace_summary_task,
-            benchmark_catalog_task,
-            return_exceptions=True,
+        return cast(
+            tuple[GatheredResult, GatheredResult],
+            await asyncio.gather(
+                workspace_summary_task,
+                benchmark_catalog_task,
+                return_exceptions=True,
+            ),
         )
 
     async def _fetch_workspace_horizon_dependencies(
@@ -666,7 +677,7 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         portfolio_currency: str,
         chart_frequency: str,
-    ) -> tuple[dict[str, object], object]:
+    ) -> tuple[dict[str, GatheredResult], GatheredResult]:
         request_specs = self._build_horizon_comparison_request_specs(
             report_end_date=report_end_date,
             chart_frequency=chart_frequency,
@@ -694,8 +705,11 @@ class PerformanceWorkspaceService:
             benchmark_catalog_task,
             return_exceptions=True,
         )
-        twr_results = {spec["label"]: results[index] for index, spec in enumerate(request_specs)}
-        return twr_results, results[-1]
+        twr_results: dict[str, GatheredResult] = {
+            str(spec["label"]): cast(GatheredResult, results[index])
+            for index, spec in enumerate(request_specs)
+        }
+        return twr_results, cast(GatheredResult, results[-1])
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
@@ -703,7 +717,7 @@ class PerformanceWorkspaceService:
     def _parse_workspace_summary_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         requested_period: str,
         chart_frequency: str,
         warnings: list[str],
@@ -720,7 +734,7 @@ class PerformanceWorkspaceService:
     ]:
         empty_summary = PerformanceComparativeSummary(metric_basis="NET")
         empty_gross_summary = PerformanceComparativeSummary(metric_basis="GROSS")
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
@@ -801,7 +815,7 @@ class PerformanceWorkspaceService:
     def _parse_horizon_comparison_result(
         self,
         *,
-        results_by_label: dict[str, object],
+        results_by_label: Mapping[str, GatheredResult],
         detail_basis: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
@@ -810,7 +824,7 @@ class PerformanceWorkspaceService:
         resolved_benchmark_code: str | None = None
         for period in STANDARD_HORIZON_COMPARISON_PERIODS:
             result = results_by_label.get(period)
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
                 partial_failures.append(
                     self._performance_failure(
@@ -1212,12 +1226,12 @@ class PerformanceWorkspaceService:
     def _parse_benchmark_catalog_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         assigned_benchmark_code: str | None,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> list[PerformanceBenchmarkOptionView]:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
@@ -1373,7 +1387,7 @@ class PerformanceWorkspaceService:
     def _parse_twr_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         metric_basis: str,
         chart_frequency: str,
         requested_period: str,
@@ -1381,7 +1395,7 @@ class PerformanceWorkspaceService:
         partial_failures: list[WorkbenchPartialFailure],
     ) -> tuple[PerformanceComparativeSummary, list[PerformanceChartPoint]]:
         empty_summary = PerformanceComparativeSummary(metric_basis=metric_basis)
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append(f"{metric_basis}_PERFORMANCE_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
@@ -1389,7 +1403,7 @@ class PerformanceWorkspaceService:
             return empty_summary, []
         status_code, payload = result
         if status_code == 204:
-            return None
+            return empty_summary, []
         if not isinstance(payload, dict):
             warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
             partial_failures.append(
@@ -1537,11 +1551,11 @@ class PerformanceWorkspaceService:
     def _parse_mwr_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> MoneyWeightedReturnSummary | None:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("MWR_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
@@ -1574,13 +1588,13 @@ class PerformanceWorkspaceService:
     def _parse_contribution_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         metric_basis: str,
         requested_period: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> ContributionSummaryView | None:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("CONTRIBUTION_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
@@ -1698,13 +1712,13 @@ class PerformanceWorkspaceService:
     def _parse_attribution_result(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         metric_basis: str,
         requested_period: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> AttributionSummaryView | None:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("ATTRIBUTION_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
@@ -1799,7 +1813,7 @@ class PerformanceWorkspaceService:
     def _parse_attribution_trend_results(
         self,
         *,
-        results: list[object],
+        results: Sequence[GatheredResult],
         window_pairs: list[tuple[date, date]],
         chart_frequency: str,
         requested_period: str,
@@ -1835,7 +1849,7 @@ class PerformanceWorkspaceService:
     def _parse_single_attribution_trend_row(
         self,
         *,
-        result: object,
+        result: GatheredResult,
         window_start: date,
         window_end: date,
         chart_frequency: str,
@@ -1843,7 +1857,7 @@ class PerformanceWorkspaceService:
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> PerformanceAttributionTrendRow | None:
-        if isinstance(result, Exception):
+        if isinstance(result, BaseException):
             warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
             partial_failures.append(
                 self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))

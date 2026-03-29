@@ -754,7 +754,7 @@ class PortfolioService:
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core income summary unavailable",
         )
-        portfolio_payload = next(iter(result_payload.get("portfolios", [])), {})
+        portfolio_payload: dict[str, Any] = next(iter(result_payload.get("portfolios", [])), {})
         income_types = [
             PortfolioIncomeTypeSummary(
                 income_type=str(item.get("income_type", "")),
@@ -891,7 +891,7 @@ class PortfolioService:
             )
             or {}
         )
-        first_portfolio = next(iter(aum_payload.get("portfolios", [])), {})
+        first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
         invested = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
         cash_total = float(
             quantize_money(
