@@ -43,6 +43,15 @@ class _StubLotusCoreQueryClient:
             "controls_blocking": False,
         }
 
+    async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
     async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
         return 200, {
             "as_of_date": "2026-03-27",
@@ -239,6 +248,10 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     async def get_support_overview(self, portfolio_id: str, correlation_id: str):
         self._record("get_support_overview")
         return await super().get_support_overview(portfolio_id, correlation_id)
+
+    async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
+        self._record("get_portfolio_readiness")
+        return await super().get_portfolio_readiness(portfolio_id, correlation_id, **kwargs)
 
     async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
         self._record("get_cashflow_projection")

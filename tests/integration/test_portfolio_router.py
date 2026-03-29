@@ -40,6 +40,15 @@ def test_portfolio_workspace_router(monkeypatch):
     async def _support(*args, **kwargs):
         return 200, {"business_date": "2026-03-27", "publish_allowed": True}
 
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
     async def _cashflow(*args, **kwargs):
         return 200, {
             "as_of_date": "2026-03-27",
@@ -59,6 +68,7 @@ def test_portfolio_workspace_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
 
