@@ -221,6 +221,50 @@ class _StubLotusCoreQueryClient:
         }
 
 
+class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
+    def __init__(self):
+        self.calls: dict[str, int] = {}
+
+    def _record(self, name: str) -> None:
+        self.calls[name] = self.calls.get(name, 0) + 1
+
+    async def get_portfolio(self, portfolio_id: str, correlation_id: str):
+        self._record("get_portfolio")
+        return await super().get_portfolio(portfolio_id, correlation_id)
+
+    async def query_assets_under_management(self, **kwargs):
+        self._record("query_assets_under_management")
+        return await super().query_assets_under_management(**kwargs)
+
+    async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+        self._record("get_support_overview")
+        return await super().get_support_overview(portfolio_id, correlation_id)
+
+    async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+        self._record("get_cashflow_projection")
+        return await super().get_cashflow_projection(portfolio_id, correlation_id, **kwargs)
+
+    async def query_cash_balances(self, **kwargs):
+        self._record("query_cash_balances")
+        return await super().query_cash_balances(**kwargs)
+
+    async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+        self._record("get_portfolio_positions")
+        return await super().get_portfolio_positions(portfolio_id, correlation_id, **kwargs)
+
+    async def query_asset_allocation(self, **kwargs):
+        self._record("query_asset_allocation")
+        return await super().query_asset_allocation(**kwargs)
+
+    async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
+        self._record("get_portfolio_transactions")
+        return await super().get_portfolio_transactions(portfolio_id, correlation_id, **kwargs)
+
+    async def query_activity_summary(self, **kwargs):
+        self._record("query_activity_summary")
+        return await super().query_activity_summary(**kwargs)
+
+
 @pytest.mark.asyncio
 async def test_portfolio_catalog_is_sorted_and_mapped():
     service = PortfolioService(_StubLotusCoreQueryClient())
@@ -508,3 +552,40 @@ async def test_activity_summary_returns_bucket_totals():
     )
     assert response.buckets[0].bucket == "INFLOWS"
     assert response.buckets[0].requested_window.reporting_currency_amount == 100.0
+
+
+@pytest.mark.asyncio
+async def test_portfolio_service_reuses_cached_upstream_results_across_modules():
+    client = _CountingLotusCoreQueryClient()
+    service = PortfolioService(client, upstream_cache_ttl_seconds=60.0)
+
+    await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-1",
+        as_of_date="2026-03-27",
+    )
+    await service.get_portfolio_readiness(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-2",
+        as_of_date="2026-03-27",
+    )
+    await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-3",
+        as_of_date="2026-03-27",
+    )
+    await service.get_portfolio_workflow(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-4",
+        as_of_date="2026-03-27",
+    )
+
+    assert client.calls["get_portfolio"] == 1
+    assert client.calls["query_assets_under_management"] == 1
+    assert client.calls["get_support_overview"] == 1
+    assert client.calls["get_cashflow_projection"] == 1
+    assert client.calls["query_cash_balances"] == 1
+    assert client.calls["get_portfolio_positions"] == 1
+    assert client.calls["query_asset_allocation"] == 1
+    assert client.calls["get_portfolio_transactions"] == 2
+    assert client.calls["query_activity_summary"] == 1
