@@ -381,6 +381,33 @@ class LotusCoreQueryClient:
             headers=headers,
         )
 
+    async def get_benchmark_assignment(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        reporting_currency: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = (
+            f"{self._control_plane_base_url}/integration/portfolios/"
+            f"{portfolio_id}/benchmark-assignment"
+        )
+        headers = propagation_headers(correlation_id)
+        payload = {
+            "as_of_date": as_of_date,
+            "reporting_currency": reporting_currency,
+        }
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )
+
     async def get_support_overview(
         self,
         portfolio_id: str,
