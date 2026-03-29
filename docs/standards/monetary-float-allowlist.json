@@ -1,13 +1,43 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-03-29T02:50:46Z",
+  "generated_at": "2026-03-29T05:57:54Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:112:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-08-24"
+    },
+    {
+      "finding": "src/app/contracts/foundation.py:33:market_value_base: float",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/foundation.py:35:cash_weight_pct: float",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/foundation.py:42:market_value_base: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/foundation.py:43:weight_pct: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/foundation.py:48:return_pct: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
     },
     {
       "finding": "src/app/contracts/performance_workspace.py:112:active_return_pct: float | None = None",
@@ -404,6 +434,48 @@
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-08-24"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:210:market_value_base = float(quantize_money(overview_payload.get(\"total_market_value\", 0.0)))",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:214:cash_weight_pct = float(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:237:market_value_for_bucket = float(quantize_money(bucket_market_value))",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:239:weight_pct = float(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:423:def _extract_market_value(self, item: dict[str, Any]) -> float | None:",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:431:return float(quantize_money(value))",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/services/foundation_service.py:446:return float(quantize_money(value))",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
     },
     {
       "finding": "src/app/services/performance_workspace_service.py:1942:def _extract_return(self, payload: Any, *path: str) -> float | None:",
