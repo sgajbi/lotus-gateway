@@ -172,7 +172,13 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             report_end_date=report_end_date,
             detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
+            benchmark_code=await self._resolve_benchmark_code(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+            ),
             portfolio_currency=overview.portfolio.base_currency,
             chart_frequency=chart_frequency,
         )
@@ -239,7 +245,15 @@ class PerformanceWorkspaceService:
             warnings=warnings,
         )
 
-        if not benchmark_code:
+        resolved_benchmark_code = await self._resolve_benchmark_code(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=report_end_date,
+            portfolio_currency=overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+        )
+
+        if not resolved_benchmark_code:
             warnings.append("ATTRIBUTION_TREND_UNAVAILABLE_NO_BENCHMARK")
             return PerformanceAttributionTrendResponse(
                 correlation_id=correlation_id,
@@ -271,7 +285,7 @@ class PerformanceWorkspaceService:
                     report_end_date=window_end.isoformat(),
                     period="EXPLICIT",
                     metric_basis=detail_basis,
-                    benchmark_id=benchmark_code,
+                    benchmark_id=resolved_benchmark_code,
                     dimension=attribution_dimension,
                     correlation_id=correlation_id,
                 )
@@ -299,7 +313,7 @@ class PerformanceWorkspaceService:
             chart_frequency=resolved_frequency,
             detail_basis=detail_basis,
             attribution_dimension=attribution_dimension,
-            benchmark_code=benchmark_code,
+            benchmark_code=resolved_benchmark_code,
             rows=rows,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -355,7 +369,13 @@ class PerformanceWorkspaceService:
             effective_period=effective_period,
             chart_frequency=chart_frequency,
             detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
+            benchmark_code=await self._resolve_benchmark_code(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+            ),
             segment=shared_segment,
             portfolio_currency=overview.portfolio.base_currency,
         )
@@ -479,6 +499,27 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    async def _resolve_benchmark_code(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+        portfolio_currency: str,
+        benchmark_code: str | None,
+    ) -> str | None:
+        if benchmark_code:
+            return benchmark_code
+        status_code, payload = await self._lotus_core_query_client.get_benchmark_assignment(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            reporting_currency=portfolio_currency,
+            correlation_id=correlation_id,
+        )
+        if status_code >= 400 or not isinstance(payload, dict):
+            return None
+        return self._safe_str(payload.get("benchmark_id"))
 
     async def _fetch_analytics_results(
         self,
@@ -1253,7 +1294,7 @@ class PerformanceWorkspaceService:
         records = payload.get("records", [])
         if not isinstance(records, list):
             return []
-        options: list[PerformanceBenchmarkOptionView] = []
+        options_by_code: dict[str, PerformanceBenchmarkOptionView] = {}
         for record in records:
             if not isinstance(record, dict):
                 continue
@@ -1261,18 +1302,22 @@ class PerformanceWorkspaceService:
             benchmark_name = self._safe_str(record.get("benchmark_name"))
             if not benchmark_code or not benchmark_name:
                 continue
-            options.append(
-                PerformanceBenchmarkOptionView(
-                    benchmark_code=benchmark_code,
-                    benchmark_name=benchmark_name,
-                    benchmark_currency=self._safe_str(record.get("benchmark_currency")),
-                    benchmark_type=self._safe_str(record.get("benchmark_type")),
-                    benchmark_family=self._safe_str(record.get("benchmark_family")),
-                    benchmark_provider=self._safe_str(record.get("benchmark_provider")),
-                    is_assigned=benchmark_code == assigned_benchmark_code,
-                )
+            option = PerformanceBenchmarkOptionView(
+                benchmark_code=benchmark_code,
+                benchmark_name=benchmark_name,
+                benchmark_currency=self._safe_str(record.get("benchmark_currency")),
+                benchmark_type=self._safe_str(record.get("benchmark_type")),
+                benchmark_family=self._safe_str(record.get("benchmark_family")),
+                benchmark_provider=self._safe_str(record.get("benchmark_provider")),
+                is_assigned=benchmark_code == assigned_benchmark_code,
             )
-        return sorted(options, key=lambda option: (not option.is_assigned, option.benchmark_name))
+            existing = options_by_code.get(benchmark_code)
+            if existing is None or (option.is_assigned and not existing.is_assigned):
+                options_by_code[benchmark_code] = option
+        return sorted(
+            options_by_code.values(),
+            key=lambda option: (not option.is_assigned, option.benchmark_name),
+        )
 
     def _resolve_report_start_date(self, *, as_of_date: date, period: str) -> date:
         normalized_period = period.upper()

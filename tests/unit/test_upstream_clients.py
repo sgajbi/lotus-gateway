@@ -334,6 +334,41 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_fetches_benchmark_assignment():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+            "assignment_status": "active",
+        },
+    )
+
+    status_code, payload = await client.get_benchmark_assignment(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date="2026-03-28",
+        reporting_currency="USD",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert payload["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
+    request = _FakeAsyncClient.calls[0]
+    assert request["url"] == (
+        "http://core-control/integration/portfolios/"
+        "PB_SG_GLOBAL_BAL_001/benchmark-assignment"
+    )
+    assert request["json"] == {
+        "as_of_date": "2026-03-28",
+        "reporting_currency": "USD",
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
     _FakeAsyncClient.queue_text(503, "pa unavailable")

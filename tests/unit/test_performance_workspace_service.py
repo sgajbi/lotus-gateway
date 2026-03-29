@@ -85,6 +85,7 @@ class _StubLotusCoreQueryClient:
     def __init__(self):
         self.reference_calls = 0
         self.benchmark_catalog_calls: list[dict[str, object]] = []
+        self.benchmark_assignment_calls: list[dict[str, object]] = []
 
     async def get_portfolio_analytics_reference(
         self,
@@ -119,6 +120,16 @@ class _StubLotusCoreQueryClient:
                         "benchmark_provider": "Lotus",
                     },
                 ]
+            },
+        )
+
+    async def get_benchmark_assignment(self, **kwargs):
+        self.benchmark_assignment_calls.append(kwargs)
+        return (
+            200,
+            {
+                "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                "assignment_status": "active",
             },
         )
 
@@ -512,6 +523,62 @@ def _attribution_payload(*, report_start_date: str, report_end_date: str) -> dic
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_deduplicates_benchmark_catalog_options():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    warnings: list[str] = []
+    partial_failures: list[WorkbenchPartialFailure] = []
+    options = service._parse_benchmark_catalog_result(
+        result=(
+            200,
+            {
+                "records": [
+                    {
+                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_name": "Global Balanced 60/40",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Balanced",
+                        "benchmark_provider": "Lotus",
+                    },
+                    {
+                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_name": "Global Balanced 60/40",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Balanced",
+                        "benchmark_provider": "Lotus",
+                    },
+                    {
+                        "benchmark_id": "BMK_GLOBAL_GROWTH_80_20",
+                        "benchmark_name": "Global Growth 80/20",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Growth",
+                        "benchmark_provider": "Lotus",
+                    },
+                ]
+            },
+        ),
+        assigned_benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert [option.benchmark_code for option in options] == [
+        "BMK_GLOBAL_BALANCED_60_40",
+        "BMK_GLOBAL_GROWTH_80_20",
+    ]
+    assert options[0].is_assigned is True
+    assert warnings == []
+    assert partial_failures == []
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_returns_workspace_summary_contract():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
@@ -595,6 +662,35 @@ async def test_performance_workspace_service_projects_summary_contract():
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_resolves_linked_benchmark_when_code_is_omitted():
+    analytics_client = _StubAnalyticsClient()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+    )
+
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert (
+        analytics_client.workspace_summary_calls[0]["benchmark_id"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
+    assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_builds_horizon_comparison_contract():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
@@ -629,6 +725,29 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_resolves_linked_benchmark_for_horizon_comparison():
+    analytics_client = _StubAnalyticsClient()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        detail_basis="NET",
+        benchmark_code=None,
+        chart_frequency="monthly",
+    )
+
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert analytics_client.twr_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_builds_attribution_trend_contract():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
@@ -656,6 +775,31 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
     assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
     assert analytics_client.attribution_calls[-1]["report_end_date"] == "2026-03-27"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_resolves_linked_benchmark_for_attribution_trend():
+    analytics_client = _StubAnalyticsClient()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+    )
+
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert analytics_client.attribution_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
 
 
 @pytest.mark.asyncio
