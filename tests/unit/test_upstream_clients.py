@@ -14,7 +14,7 @@ class _FakeAsyncClient:
     responses: list[httpx.Response] = []
     calls: list[dict] = []
 
-    def __init__(self, timeout: float):
+    def __init__(self, timeout: float, **_: object):
         self.timeout = timeout
 
     async def __aenter__(self):
