@@ -22,7 +22,6 @@ from app.services.portfolio_service import PortfolioService
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
-
 _PORTFOLIO_SERVICE = PortfolioService(
     lotus_core_query_client=LotusCoreQueryClient(
         base_url=settings.portfolio_data_query_base_url,

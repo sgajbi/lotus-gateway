@@ -220,7 +220,6 @@ class _StubLotusCoreQueryClient:
             },
         }
 
-
 class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     def __init__(self):
         self.calls: dict[str, int] = {}
@@ -263,8 +262,6 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     async def query_activity_summary(self, **kwargs):
         self._record("query_activity_summary")
         return await super().query_activity_summary(**kwargs)
-
-
 @pytest.mark.asyncio
 async def test_portfolio_catalog_is_sorted_and_mapped():
     service = PortfolioService(_StubLotusCoreQueryClient())
