@@ -89,7 +89,7 @@ make e2e-down
 Coverage gate (local parity with CI threshold):
 
 ```bash
-python -m pytest --cov=src/app --cov-report=term-missing
+make test-coverage
 ```
 
 ## Live Performance Demo Contracts
