@@ -10,6 +10,7 @@ from app.enterprise_readiness import (
     validate_enterprise_runtime_config,
 )
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
+from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
 from app.routers.portfolio import router as portfolio_router
@@ -34,6 +35,7 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(proposals_router)
 app.include_router(platform_router)
 app.include_router(intake_router)
+app.include_router(foundation_router)
 app.include_router(portfolio_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
