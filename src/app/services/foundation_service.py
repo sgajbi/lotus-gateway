@@ -5,8 +5,8 @@ from typing import Any, cast
 from fastapi import HTTPException, status
 
 from app.clients.dpm_client import DpmClient
-from app.clients.pa_client import PaClient
-from app.clients.pas_client import PasClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
+from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.foundation import (
@@ -29,13 +29,13 @@ from app.precision_policy import quantize_money, quantize_performance
 class FoundationService:
     def __init__(
         self,
-        pas_client: PasClient,
-        pa_client: PaClient,
+        lotus_core_query_client: LotusCoreQueryClient,
+        analytics_client: LotusAnalyticsClient,
         dpm_client: DpmClient,
         reporting_client: ReportingClient,
     ):
-        self._pas_client = pas_client
-        self._pa_client = pa_client
+        self._lotus_core_query_client = lotus_core_query_client
+        self._analytics_client = analytics_client
         self._dpm_client = dpm_client
         self._reporting_client = reporting_client
 
@@ -43,7 +43,9 @@ class FoundationService:
         self,
         correlation_id: str,
     ) -> FoundationPortfolioCatalogResponse:
-        status_code, payload = await self._pas_client.list_portfolios(correlation_id=correlation_id)
+        status_code, payload = await self._lotus_core_query_client.list_portfolios(
+            correlation_id=correlation_id
+        )
         if status_code >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -72,10 +74,10 @@ class FoundationService:
         correlation_id: str,
     ) -> FoundationWorkspaceResponse:
         as_of_date = datetime.now(UTC).date().isoformat()
-        pas_status, pas_payload = await self._pas_client.get_core_snapshot(
+        pas_status, pas_payload = await self._lotus_core_query_client.get_core_snapshot(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
-            include_sections=["OVERVIEW", "HOLDINGS"],
+            sections=["OVERVIEW", "HOLDINGS"],
             consumer_system="lotus-gateway",
             correlation_id=correlation_id,
         )
@@ -91,11 +93,10 @@ class FoundationService:
             fallback_as_of_date=as_of_date,
         )
 
-        performance_task = self._pa_client.get_pas_input_twr(
+        performance_task = self._analytics_client.get_stateful_twr(
             portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            periods=["YTD"],
-            consumer_system="lotus-gateway",
+            report_end_date=as_of_date,
+            period="YTD",
             correlation_id=correlation_id,
         )
         rebalance_task = self._dpm_client.list_runs(
@@ -249,9 +250,7 @@ class FoundationService:
 
         portfolio_id = str(portfolio_payload.get("portfolio_id", fallback_portfolio_id))
         display_name = str(
-            portfolio_payload.get("portfolio_name")
-            or portfolio_payload.get("name")
-            or portfolio_id
+            portfolio_payload.get("portfolio_name") or portfolio_payload.get("name") or portfolio_id
         )
         portfolio = FoundationPortfolioIdentity(
             portfolio_id=portfolio_id,

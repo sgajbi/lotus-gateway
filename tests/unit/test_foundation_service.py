@@ -3,7 +3,7 @@ import pytest
 from app.services.foundation_service import FoundationService
 
 
-class _StubPasClient:
+class _StubLotusCoreQueryClient:
     def __init__(self, list_payload: dict, snapshot_payload: dict):
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
@@ -15,24 +15,23 @@ class _StubPasClient:
         self,
         portfolio_id: str,
         as_of_date: str,
-        include_sections: list[str],
+        sections: list[str],
         consumer_system: str,
         correlation_id: str,
     ):
         return 200, self.snapshot_payload
 
 
-class _StubPaClient:
+class _StubAnalyticsClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
 
-    async def get_pas_input_twr(
+    async def get_stateful_twr(
         self,
         portfolio_id: str,
-        as_of_date: str,
-        periods: list[str],
-        consumer_system: str,
+        report_end_date: str,
+        period: str,
         correlation_id: str,
     ):
         return self.status_code, self.payload
@@ -59,7 +58,7 @@ class _StubReportingClient:
 @pytest.mark.asyncio
 async def test_foundation_portfolio_catalog_success():
     service = FoundationService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={
                 "items": [
                     {
@@ -76,7 +75,7 @@ async def test_foundation_portfolio_catalog_success():
             },
             snapshot_payload={},
         ),
-        pa_client=_StubPaClient(200, {}),
+        analytics_client=_StubAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {}),
         reporting_client=_StubReportingClient(200, {}),
     )
@@ -90,7 +89,7 @@ async def test_foundation_portfolio_catalog_success():
 @pytest.mark.asyncio
 async def test_foundation_workspace_success():
     service = FoundationService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
             snapshot_payload={
                 "portfolio": {
@@ -119,7 +118,9 @@ async def test_foundation_workspace_success():
                 },
             },
         ),
-        pa_client=_StubPaClient(200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 4.3}}}),
+        analytics_client=_StubAnalyticsClient(
+            200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 4.3}}}
+        ),
         dpm_client=_StubDpmClient(
             200,
             {
@@ -160,7 +161,7 @@ async def test_foundation_workspace_success():
 @pytest.mark.asyncio
 async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
     service = FoundationService(
-        pas_client=_StubPasClient(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
             snapshot_payload={
                 "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
@@ -171,7 +172,7 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
                 },
             },
         ),
-        pa_client=_StubPaClient(503, {"detail": "pa unavailable"}),
+        analytics_client=_StubAnalyticsClient(503, {"detail": "pa unavailable"}),
         dpm_client=_StubDpmClient(500, {"detail": "dpm unavailable"}),
         reporting_client=_StubReportingClient(503, {"detail": "reporting unavailable"}),
     )
