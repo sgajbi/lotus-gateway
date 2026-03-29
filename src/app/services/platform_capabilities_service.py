@@ -43,57 +43,61 @@ class PlatformCapabilitiesService:
         tasks: list[Any] = [
             self._with_timeout(
                 self._lotus_core_query_client.get_capabilities(
-                consumer_system=consumer_system,
-                tenant_id=tenant_id,
-                correlation_id=correlation_id,
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
                 self._analytics_client.get_capabilities(
-                consumer_system=consumer_system,
-                tenant_id=tenant_id,
-                correlation_id=correlation_id,
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
                 self._dpm_client.get_capabilities(
-                consumer_system=consumer_system,
-                tenant_id=tenant_id,
-                correlation_id=correlation_id,
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
                 self._reporting_client.get_capabilities(
-                consumer_system=consumer_system,
-                tenant_id=tenant_id,
-                correlation_id=correlation_id,
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
                 self._lotus_core_query_client.get_effective_policy(
-                consumer_system=consumer_system,
-                tenant_id=tenant_id,
-                correlation_id=correlation_id,
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
                 )
             ),
         ]
         optional_sources: list[str] = []
         if self._risk_client is not None:
             tasks.append(
-                self._with_timeout(self._risk_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                ))
+                self._with_timeout(
+                    self._risk_client.get_capabilities(
+                        consumer_system=consumer_system,
+                        tenant_id=tenant_id,
+                        correlation_id=correlation_id,
+                    )
+                )
             )
             optional_sources.append("risk")
         if self._manage_client is not None:
             tasks.append(
-                self._with_timeout(self._manage_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                ))
+                self._with_timeout(
+                    self._manage_client.get_capabilities(
+                        consumer_system=consumer_system,
+                        tenant_id=tenant_id,
+                        correlation_id=correlation_id,
+                    )
+                )
             )
             optional_sources.append("manage")
 
