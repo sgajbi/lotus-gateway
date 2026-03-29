@@ -21,7 +21,10 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
             ]
         }
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.list_portfolios", _list_portfolios)
+    monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.list_portfolios",
+        _list_portfolios,
+    )
 
     client = TestClient(app)
     response = client.get("/api/v1/foundation/portfolios")
@@ -83,8 +86,13 @@ def test_foundation_workspace_router_success(monkeypatch):
             "rows": [{"metric": "market_value_base"}, {"metric": "return_ytd_pct"}],
         }
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_core_snapshot", _core_snapshot)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_pas_input_twr", _performance)
+    monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_core_snapshot",
+        _core_snapshot,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _rebalance)
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.get_portfolio_snapshot", _reporting
@@ -123,8 +131,13 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
     async def _reporting(*args, **kwargs):
         return 503, {"detail": "report unavailable"}
 
-    monkeypatch.setattr("app.clients.pas_client.PasClient.get_core_snapshot", _core_snapshot)
-    monkeypatch.setattr("app.clients.pa_client.PaClient.get_pas_input_twr", _performance)
+    monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_core_snapshot",
+        _core_snapshot,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
+    )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _rebalance)
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.get_portfolio_snapshot", _reporting
