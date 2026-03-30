@@ -812,6 +812,29 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_horizon_frequency():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        chart_frequency="weekly",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.requested_chart_frequency_supported is False
+    assert "PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_builds_attribution_trend_contract():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
@@ -839,6 +862,34 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
     assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
     assert analytics_client.attribution_calls[-1]["report_end_date"] == "2026-03-27"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_attribution_trend_controls():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="weekly",
+        attribution_dimension="issuer",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.attribution_dimension == "asset_class"
+    assert response.requested_chart_frequency_supported is False
+    assert response.requested_attribution_dimension_supported is False
+    assert "PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_ATTRIBUTION_TREND_DIMENSION_NORMALIZED" in response.warnings
+    assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
 
 
 @pytest.mark.asyncio

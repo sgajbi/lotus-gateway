@@ -176,6 +176,8 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     as_of_date: str
     reporting_currency: str | None = None
     detail_basis: str
+    chart_frequency: str
+    requested_chart_frequency_supported: bool = True
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
     rows: list[PerformanceHorizonComparisonRow] = Field(default_factory=list)
@@ -208,6 +210,8 @@ class PerformanceAttributionTrendResponse(BaseModel):
     chart_frequency: str
     detail_basis: str
     attribution_dimension: str
+    requested_chart_frequency_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     benchmark_code: str | None = None
     rows: list[PerformanceAttributionTrendRow] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)

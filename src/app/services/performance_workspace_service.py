@@ -210,6 +210,14 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
+        (
+            resolved_chart_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+            warning_code="PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED",
+        )
         async with server_timing_span("perf-benchmark"):
             (
                 resolved_benchmark_code,
@@ -229,7 +237,7 @@ class PerformanceWorkspaceService:
                 report_end_date=report_end_date,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
-                chart_frequency=chart_frequency,
+                chart_frequency=resolved_chart_frequency,
             )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
             result=workspace_summary_result,
@@ -250,6 +258,8 @@ class PerformanceWorkspaceService:
             as_of_date=overview.as_of_date,
             reporting_currency=overview.portfolio.base_currency,
             detail_basis=detail_basis,
+            chart_frequency=resolved_chart_frequency,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
             rows=rows,
@@ -294,9 +304,22 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        resolved_frequency = self._normalize_attribution_trend_frequency(
+        (
+            resolved_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(
             chart_frequency=chart_frequency,
             warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED",
+        )
+        (
+            resolved_attribution_dimension,
+            requested_attribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=attribution_dimension,
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_TREND_DIMENSION_NORMALIZED",
         )
 
         async with server_timing_span("perf-benchmark"):
@@ -321,7 +344,9 @@ class PerformanceWorkspaceService:
                 report_end_date=report_end_date,
                 chart_frequency=resolved_frequency,
                 detail_basis=detail_basis,
-                attribution_dimension=attribution_dimension,
+                attribution_dimension=resolved_attribution_dimension,
+                requested_chart_frequency_supported=requested_chart_frequency_supported,
+                requested_attribution_dimension_supported=requested_attribution_dimension_supported,
                 benchmark_code=None,
                 rows=[],
                 warnings=warnings,
@@ -343,7 +368,7 @@ class PerformanceWorkspaceService:
                         period="EXPLICIT",
                         metric_basis=detail_basis,
                         benchmark_id=resolved_benchmark_code,
-                        dimension=attribution_dimension,
+                        dimension=resolved_attribution_dimension,
                         correlation_id=correlation_id,
                     )
                     for window_start, window_end in window_pairs
@@ -369,7 +394,9 @@ class PerformanceWorkspaceService:
             report_end_date=report_end_date,
             chart_frequency=resolved_frequency,
             detail_basis=detail_basis,
-            attribution_dimension=attribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
             benchmark_code=resolved_benchmark_code,
             rows=rows,
             warnings=warnings,
@@ -1075,11 +1102,12 @@ class PerformanceWorkspaceService:
         *,
         chart_frequency: str,
         warnings: list[str],
+        warning_code: str = "PERFORMANCE_CHART_FREQUENCY_NORMALIZED",
     ) -> tuple[str, bool]:
         normalized_frequency = chart_frequency.strip().lower()
         if normalized_frequency in SUPPORTED_WORKSPACE_FREQUENCIES:
             return normalized_frequency, True
-        warnings.append("PERFORMANCE_CHART_FREQUENCY_NORMALIZED")
+        warnings.append(warning_code)
         return "monthly", False
 
     async def _fetch_workspace_summary_result(

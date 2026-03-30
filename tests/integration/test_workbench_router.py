@@ -346,6 +346,16 @@ def test_workbench_performance_router(monkeypatch):
                     "is_assigned": True,
                 }
             ],
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "portfolio": {
                 "portfolio_id": "PF_1001",
                 "client_id": "CIF_1001",
@@ -630,6 +640,8 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-02-24",
             "detail_basis": "NET",
+            "chart_frequency": "monthly",
+            "requested_chart_frequency_supported": True,
             "benchmark_code": "MODEL_60_40",
             "benchmark_options": [
                 {
@@ -673,6 +685,8 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["chart_frequency"] == "monthly"
+    assert body["requested_chart_frequency_supported"] is True
     assert body["rows"][0]["period"] == "MTD"
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
 
@@ -693,6 +707,8 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
             "chart_frequency": "monthly",
             "detail_basis": "NET",
             "attribution_dimension": "asset_class",
+            "requested_chart_frequency_supported": True,
+            "requested_attribution_dimension_supported": True,
             "benchmark_code": "MODEL_60_40",
             "rows": [
                 {
@@ -731,6 +747,8 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["chart_frequency"] == "monthly"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
     assert body["rows"][0]["period_label"] == "2026-01"
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
 
