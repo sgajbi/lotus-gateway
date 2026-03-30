@@ -11,6 +11,19 @@ def test_correlation_header_is_returned():
     assert response.headers.get("X-Correlation-Id") == "corr_test_1"
     assert response.headers.get("X-Request-Id")
     assert response.headers.get("X-Trace-Id")
+    assert response.headers.get("Server-Timing")
+
+
+def test_server_timing_header_exposes_app_duration():
+    client = TestClient(app)
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    server_timing = response.headers.get("Server-Timing")
+    assert server_timing is not None
+    assert server_timing.startswith("app;dur=")
+    duration_value = float(server_timing.removeprefix("app;dur="))
+    assert duration_value >= 0.0
 
 
 def test_correlation_header_casing_variants_are_equivalent():

@@ -108,4 +108,5 @@ async def correlation_middleware(request: Request, call_next):
     response.headers["X-Request-Id"] = request_id
     response.headers["X-Trace-Id"] = trace_id
     response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
+    response.headers["Server-Timing"] = f'app;dur={duration_ms}'
     return response
