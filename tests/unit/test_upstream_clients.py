@@ -335,6 +335,50 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_retries_workspace_summary_when_calculation_id_conflicts():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        409,
+        {"detail": "A calculation with this calculation_id already exists. Use a new calculation_id for synchronous execution."},
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="quarterly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    assert len(_FakeAsyncClient.calls) == 2
+    first_request = _FakeAsyncClient.calls[0]
+    replay_request = _FakeAsyncClient.calls[1]
+    assert first_request["url"] == replay_request["url"] == "http://analytics/performance/workspace-summary"
+    assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
+    assert first_request["json"]["periods"] == replay_request["json"]["periods"]
+    assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_fetches_benchmark_assignment():
     client = LotusCoreQueryClient(
         base_url="http://core-query",

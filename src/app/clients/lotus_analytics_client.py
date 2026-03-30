@@ -69,6 +69,18 @@ class LotusAnalyticsClient:
             json_body=payload,
             headers=headers,
         )
+        if self._should_retry_duplicate_calculation(status_code=status_code, payload=response_payload, request=payload):
+            replay_payload = dict(payload)
+            replay_payload["calculation_id"] = str(uuid4())
+            status_code, response_payload = await request_with_retry(
+                method="POST",
+                url=url,
+                timeout_seconds=self._timeout,
+                max_retries=self._max_retries,
+                backoff_seconds=self._retry_backoff_seconds,
+                json_body=replay_payload,
+                headers=headers,
+            )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
             if isinstance(result_path, str) and result_path:
@@ -77,6 +89,22 @@ class LotusAnalyticsClient:
                     correlation_id=correlation_id,
                 )
         return status_code, response_payload
+
+    @staticmethod
+    def _should_retry_duplicate_calculation(
+        *,
+        status_code: int,
+        payload: dict[str, Any],
+        request: dict[str, Any],
+    ) -> bool:
+        if status_code != 409:
+            return False
+        if "calculation_id" not in request:
+            return False
+        detail = payload.get("detail")
+        if not isinstance(detail, str):
+            return False
+        return "calculation_id already exists" in detail.lower()
 
     async def get_capabilities(
         self,
