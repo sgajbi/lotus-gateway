@@ -174,6 +174,9 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
     reporting_currency: str | None = None
     detail_basis: str
     chart_frequency: str

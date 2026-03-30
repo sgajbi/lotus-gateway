@@ -884,6 +884,9 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.portfolio_id == "DEMO_ADV_USD_001"
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert response.reporting_currency == "USD"
+    assert response.period == "YTD"
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
     assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
     assert response.rows[0].portfolio_return_pct == 1.2
     assert response.rows[0].net_return_pct == 1.2

@@ -642,6 +642,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
             "contract_version": "v1",
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-02-24",
+            "period": "EXPLICIT",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
             "detail_basis": "NET",
             "chart_frequency": "monthly",
             "requested_chart_frequency_supported": True,
@@ -690,6 +693,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-02-24"
     assert body["chart_frequency"] == "monthly"
     assert body["requested_chart_frequency_supported"] is True
     assert body["rows"][0]["period"] == "MTD"
