@@ -227,7 +227,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=chart_frequency,
             )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
-            results_by_label=workspace_summary_result,
+            result=workspace_summary_result,
             detail_basis=detail_basis,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -862,29 +862,23 @@ class PerformanceWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         chart_frequency: str,
-    ) -> dict[str, GatheredResult]:
-        request_specs = self._build_horizon_comparison_request_specs(
-            report_end_date=report_end_date,
-            chart_frequency=chart_frequency,
-        )
-        twr_tasks = [
-            self._analytics_client.get_twr_analytics(
+    ) -> GatheredResult:
+        return cast(
+            GatheredResult,
+            await self._analytics_client.get_twr_analytics(
                 portfolio_id=portfolio_id,
                 report_end_date=report_end_date,
-                report_start_date=spec["report_start_date"],
-                period=spec["period"],
+                report_start_date=None,
+                period="YTD",
                 metric_basis=detail_basis,
                 benchmark_id=benchmark_code,
                 correlation_id=correlation_id,
-                analyses=spec["analyses"],
-            )
-            for spec in request_specs
-        ]
-        results = await asyncio.gather(*twr_tasks, return_exceptions=True)
-        return {
-            str(spec["label"]): cast(GatheredResult, results[index])
-            for index, spec in enumerate(request_specs)
-        }
+                analyses=[
+                    {"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}
+                    for period in STANDARD_HORIZON_COMPARISON_PERIODS
+                ],
+            ),
+        )
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
@@ -993,7 +987,7 @@ class PerformanceWorkspaceService:
     def _parse_horizon_comparison_result(
         self,
         *,
-        results_by_label: Mapping[str, GatheredResult],
+        result: GatheredResult,
         detail_basis: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
@@ -1001,24 +995,11 @@ class PerformanceWorkspaceService:
         rows: list[PerformanceHorizonComparisonRow] = []
         resolved_benchmark_code: str | None = None
         for period in STANDARD_HORIZON_COMPARISON_PERIODS:
-            result = results_by_label.get(period)
-            if isinstance(result, BaseException):
-                warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-                partial_failures.append(
-                    self._performance_failure(
-                        "lotus-performance", "UPSTREAM_EXCEPTION", str(result)
-                    )
-                )
-                continue
-            if result is None:
-                continue
-
-            requested_period = "EXPLICIT" if period in {"MTD", "QTD"} else period
             comparative, _ = self._parse_twr_result(
                 result=result,
                 metric_basis=detail_basis.upper(),
                 chart_frequency="monthly",
-                requested_period=requested_period,
+                requested_period=period,
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
@@ -1040,47 +1021,12 @@ class PerformanceWorkspaceService:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
 
-    def _build_horizon_comparison_request_specs(
-        self,
-        *,
-        report_end_date: str,
-        chart_frequency: str,
-    ) -> list[dict[str, Any]]:
-        report_end = date.fromisoformat(report_end_date)
+    def _build_horizon_comparison_frequencies(self, chart_frequency: str) -> list[str]:
         frequencies: list[str] = []
         for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
             if frequency not in frequencies:
                 frequencies.append(frequency)
-        return [
-            {
-                "label": "MTD",
-                "period": "EXPLICIT",
-                "report_start_date": report_end.replace(day=1).isoformat(),
-                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
-            },
-            {
-                "label": "QTD",
-                "period": "EXPLICIT",
-                "report_start_date": self._start_of_quarter(report_end).isoformat(),
-                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
-            },
-            {
-                "label": "YTD",
-                "period": "YTD",
-                "report_start_date": None,
-                "analyses": [{"period": "YTD", "frequencies": frequencies}],
-            },
-            {
-                "label": "1Y",
-                "period": "1Y",
-                "report_start_date": None,
-                "analyses": [{"period": "1Y", "frequencies": frequencies}],
-            },
-        ]
-
-    def _start_of_quarter(self, value: date) -> date:
-        quarter_start_month = ((value.month - 1) // 3) * 3 + 1
-        return date(value.year, quarter_start_month, 1)
+        return frequencies
 
     def _extract_twr_workspace_block(
         self, period_payload: dict[str, Any], basis: str

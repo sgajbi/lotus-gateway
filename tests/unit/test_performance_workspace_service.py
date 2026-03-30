@@ -81,11 +81,23 @@ class _StubAnalyticsClient:
 
     async def get_twr_analytics(self, **kwargs):
         self.twr_calls.append(kwargs)
+        analyses = kwargs.get("analyses") or []
+        if analyses:
+            results_by_period: dict[str, object] = {}
+            for analysis in analyses:
+                if not isinstance(analysis, dict):
+                    continue
+                analysis_period = str(analysis.get("period"))
+                results_by_period.update(_twr_payload_for_period(analysis_period, analysis_period)["results_by_period"])
+            return 200, {
+                "benchmark_context": {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                },
+                "results_by_period": results_by_period,
+            }
+
         requested_period = str(kwargs["period"])
-        if requested_period == "EXPLICIT":
-            report_start_date = str(kwargs["report_start_date"])
-            explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
-            return 200, _twr_payload_for_period("EXPLICIT", explicit_label)
         return 200, _twr_payload_for_period(requested_period, requested_period)
 
 
@@ -721,14 +733,15 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[0].portfolio_return_pct == 1.2
     assert response.rows[2].benchmark_return_pct == 14.72
     assert response.rows[3].active_return_pct == 0.6
-    assert [call["period"] for call in analytics_client.twr_calls] == [
-        "EXPLICIT",
-        "EXPLICIT",
+    assert len(analytics_client.twr_calls) == 1
+    assert analytics_client.twr_calls[0]["period"] == "YTD"
+    assert analytics_client.twr_calls[0]["report_start_date"] is None
+    assert [analysis["period"] for analysis in analytics_client.twr_calls[0]["analyses"]] == [
+        "MTD",
+        "QTD",
         "YTD",
         "1Y",
     ]
-    assert analytics_client.twr_calls[0]["report_start_date"] == "2026-03-01"
-    assert analytics_client.twr_calls[1]["report_start_date"] == "2026-01-01"
 
 
 @pytest.mark.asyncio
