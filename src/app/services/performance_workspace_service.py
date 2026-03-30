@@ -89,6 +89,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=True,
         )
 
     async def get_performance_workspace_summary(
@@ -116,6 +117,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=True,
         )
         return self._project_workspace_summary(workspace)
 
@@ -144,6 +146,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=False,
         )
         return self._project_workspace_details(workspace)
 
@@ -170,6 +173,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=False,
         )
         return self._project_portfolio_performance_snapshot(workspace)
 
@@ -364,6 +368,7 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        include_benchmark_catalog: bool = True,
     ) -> PerformanceWorkspaceResponse:
         overview = await self._workbench_service.get_workbench_overview(
             portfolio_id=portfolio_id,
@@ -410,6 +415,7 @@ class PerformanceWorkspaceService:
             ),
             segment=shared_segment,
             portfolio_currency=overview.portfolio.base_currency,
+            include_benchmark_catalog=include_benchmark_catalog,
         )
 
         (
@@ -770,6 +776,7 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         segment: str,
         portfolio_currency: str,
+        include_benchmark_catalog: bool,
     ) -> tuple[GatheredResult, GatheredResult]:
         workspace_summary_task = self._analytics_client.get_workspace_summary(
             portfolio_id=portfolio_id,
@@ -782,10 +789,14 @@ class PerformanceWorkspaceService:
             segment=segment,
             correlation_id=correlation_id,
         )
-        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
-            as_of_date=report_end_date,
-            benchmark_currency=portfolio_currency,
-            correlation_id=correlation_id,
+        benchmark_catalog_task = (
+            self._lotus_core_query_client.get_benchmark_catalog(
+                as_of_date=report_end_date,
+                benchmark_currency=portfolio_currency,
+                correlation_id=correlation_id,
+            )
+            if include_benchmark_catalog
+            else self._empty_async_result()
         )
         return cast(
             tuple[GatheredResult, GatheredResult],

@@ -803,10 +803,11 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_detail_contract():
+    query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
         analytics_client=_StubAnalyticsClient(),
-        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        lotus_core_query_client=query_client,
     )
 
     response = await service.get_performance_workspace_details(
@@ -829,14 +830,16 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.segment == "asset_class"
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
+    assert query_client.benchmark_catalog_calls == []
 
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_portfolio_performance_snapshot():
+    query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
         analytics_client=_StubAnalyticsClient(),
-        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        lotus_core_query_client=query_client,
     )
 
     response = await service.get_portfolio_performance_snapshot(
@@ -853,6 +856,7 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
     assert response.excess_return_pct == 0.38
     assert response.sparkline[0].as_of_date == "2026-01-31"
     assert response.sparkline[0].portfolio_return_pct == 2.0
+    assert query_client.benchmark_catalog_calls == []
 
 
 @pytest.mark.asyncio
