@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from app.contracts.workbench import (
@@ -981,3 +983,47 @@ async def test_performance_workspace_service_handles_benchmark_catalog_failure()
     assert response.benchmark_options == []
     assert "BENCHMARK_CATALOG_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_fetches_assignment_and_catalog_concurrently():
+    class _ConcurrentQueryClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            super().__init__()
+            self.assignment_started = asyncio.Event()
+            self.catalog_started = asyncio.Event()
+
+        async def get_benchmark_catalog(self, **kwargs):
+            self.catalog_started.set()
+            await asyncio.wait_for(self.assignment_started.wait(), timeout=0.1)
+            return await super().get_benchmark_catalog(**kwargs)
+
+        async def get_benchmark_assignment(self, **kwargs):
+            self.assignment_started.set()
+            await asyncio.wait_for(self.catalog_started.wait(), timeout=0.1)
+            return await super().get_benchmark_assignment(**kwargs)
+
+    query_client = _ConcurrentQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=query_client,
+    )
+
+    response = await asyncio.wait_for(
+        service.get_performance_workspace_summary(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-performance",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code=None,
+        ),
+        timeout=0.2,
+    )
+
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert len(query_client.benchmark_assignment_calls) == 1
+    assert len(query_client.benchmark_catalog_calls) == 1

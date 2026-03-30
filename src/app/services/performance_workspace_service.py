@@ -203,21 +203,22 @@ class PerformanceWorkspaceService:
             partial_failures=partial_failures,
         )
         (
-            workspace_summary_result,
+            resolved_benchmark_code,
             benchmark_catalog_result,
-        ) = await self._fetch_workspace_horizon_dependencies(
+        ) = await self._fetch_benchmark_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_end_date,
+            portfolio_currency=overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+            include_benchmark_catalog=True,
+        )
+        workspace_summary_result = await self._fetch_workspace_horizon_dependencies(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_end_date,
             detail_basis=detail_basis,
-            benchmark_code=await self._resolve_benchmark_code(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=report_end_date,
-                portfolio_currency=overview.portfolio.base_currency,
-                benchmark_code=benchmark_code,
-            ),
-            portfolio_currency=overview.portfolio.base_currency,
+            benchmark_code=resolved_benchmark_code,
             chart_frequency=chart_frequency,
         )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
@@ -285,12 +286,13 @@ class PerformanceWorkspaceService:
             warnings=warnings,
         )
 
-        resolved_benchmark_code = await self._resolve_benchmark_code(
+        resolved_benchmark_code, _ = await self._fetch_benchmark_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
-            as_of_date=report_end_date,
+            report_end_date=report_end_date,
             portfolio_currency=overview.portfolio.base_currency,
             benchmark_code=benchmark_code,
+            include_benchmark_catalog=False,
         )
 
         if not resolved_benchmark_code:
@@ -402,9 +404,17 @@ class PerformanceWorkspaceService:
             warnings=warnings,
         )
         (
-            workspace_summary_result,
+            resolved_benchmark_code,
             benchmark_catalog_result,
-        ) = await self._fetch_workspace_dependencies(
+        ) = await self._fetch_benchmark_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_end_date,
+            portfolio_currency=overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+            include_benchmark_catalog=include_benchmark_catalog,
+        )
+        workspace_summary_result = await self._fetch_workspace_summary_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             report_end_date=report_end_date,
@@ -412,16 +422,8 @@ class PerformanceWorkspaceService:
             effective_period=effective_period,
             chart_frequency=chart_frequency,
             detail_basis=detail_basis,
-            benchmark_code=await self._resolve_benchmark_code(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=report_end_date,
-                portfolio_currency=overview.portfolio.base_currency,
-                benchmark_code=benchmark_code,
-            ),
+            benchmark_code=resolved_benchmark_code,
             segment=shared_segment,
-            portfolio_currency=overview.portfolio.base_currency,
-            include_benchmark_catalog=include_benchmark_catalog,
         )
 
         (
@@ -621,6 +623,47 @@ class PerformanceWorkspaceService:
             return None
         return self._safe_str(payload.get("benchmark_id"))
 
+    async def _fetch_benchmark_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        portfolio_currency: str,
+        benchmark_code: str | None,
+        include_benchmark_catalog: bool,
+    ) -> tuple[str | None, GatheredResult]:
+        assignment_task = (
+            self._resolve_benchmark_code(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=report_end_date,
+                portfolio_currency=portfolio_currency,
+                benchmark_code=benchmark_code,
+            )
+            if not benchmark_code
+            else self._empty_async_scalar_result(None)
+        )
+        benchmark_catalog_task = (
+            self._lotus_core_query_client.get_benchmark_catalog(
+                as_of_date=report_end_date,
+                benchmark_currency=portfolio_currency,
+                correlation_id=correlation_id,
+            )
+            if include_benchmark_catalog
+            else self._empty_async_result()
+        )
+        resolved_benchmark_code, benchmark_catalog_result = await asyncio.gather(
+            assignment_task,
+            benchmark_catalog_task,
+            return_exceptions=True,
+        )
+        if isinstance(resolved_benchmark_code, BaseException):
+            return benchmark_code, cast(GatheredResult, benchmark_catalog_result)
+        return benchmark_code or cast(str | None, resolved_benchmark_code), cast(
+            GatheredResult, benchmark_catalog_result
+        )
+
     async def _fetch_analytics_results(
         self,
         *,
@@ -769,7 +812,7 @@ class PerformanceWorkspaceService:
         warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
         return contribution_dimension
 
-    async def _fetch_workspace_dependencies(
+    async def _fetch_workspace_summary_result(
         self,
         *,
         portfolio_id: str,
@@ -781,10 +824,10 @@ class PerformanceWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         segment: str,
-        portfolio_currency: str,
-        include_benchmark_catalog: bool,
-    ) -> tuple[GatheredResult, GatheredResult]:
-        workspace_summary_task = self._analytics_client.get_workspace_summary(
+    ) -> GatheredResult:
+        return cast(
+            GatheredResult,
+            await self._analytics_client.get_workspace_summary(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,
             report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
@@ -795,22 +838,6 @@ class PerformanceWorkspaceService:
             segment=segment,
             correlation_id=correlation_id,
         )
-        benchmark_catalog_task = (
-            self._lotus_core_query_client.get_benchmark_catalog(
-                as_of_date=report_end_date,
-                benchmark_currency=portfolio_currency,
-                correlation_id=correlation_id,
-            )
-            if include_benchmark_catalog
-            else self._empty_async_result()
-        )
-        return cast(
-            tuple[GatheredResult, GatheredResult],
-            await asyncio.gather(
-                workspace_summary_task,
-                benchmark_catalog_task,
-                return_exceptions=True,
-            ),
         )
 
     async def _fetch_workspace_horizon_dependencies(
@@ -821,9 +848,8 @@ class PerformanceWorkspaceService:
         report_end_date: str,
         detail_basis: str,
         benchmark_code: str | None,
-        portfolio_currency: str,
         chart_frequency: str,
-    ) -> tuple[dict[str, GatheredResult], GatheredResult]:
+    ) -> dict[str, GatheredResult]:
         request_specs = self._build_horizon_comparison_request_specs(
             report_end_date=report_end_date,
             chart_frequency=chart_frequency,
@@ -841,24 +867,17 @@ class PerformanceWorkspaceService:
             )
             for spec in request_specs
         ]
-        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
-            as_of_date=report_end_date,
-            benchmark_currency=portfolio_currency,
-            correlation_id=correlation_id,
-        )
-        results = await asyncio.gather(
-            *twr_tasks,
-            benchmark_catalog_task,
-            return_exceptions=True,
-        )
-        twr_results: dict[str, GatheredResult] = {
+        results = await asyncio.gather(*twr_tasks, return_exceptions=True)
+        return {
             str(spec["label"]): cast(GatheredResult, results[index])
             for index, spec in enumerate(request_specs)
         }
-        return twr_results, cast(GatheredResult, results[-1])
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
+
+    async def _empty_async_scalar_result(self, value: str | None) -> str | None:
+        return value
 
     def _parse_workspace_summary_result(
         self,
