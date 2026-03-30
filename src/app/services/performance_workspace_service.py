@@ -50,6 +50,9 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
+SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
+SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
+SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
 
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
@@ -617,6 +620,8 @@ class PerformanceWorkspaceService:
         fallback_available: bool | None = None,
         earliest_available_date: str | None = None,
         latest_available_date: str | None = None,
+        supported_dimensions: Sequence[str] | None = None,
+        supported_frequencies: Sequence[str] | None = None,
     ) -> PerformanceModuleCapability:
         return PerformanceModuleCapability(
             state=state,
@@ -625,6 +630,8 @@ class PerformanceWorkspaceService:
             fallback_available=fallback_available,
             earliest_available_date=earliest_available_date,
             latest_available_date=latest_available_date,
+            supported_dimensions=list(supported_dimensions) if supported_dimensions else None,
+            supported_frequencies=list(supported_frequencies) if supported_frequencies else None,
         )
 
     def _build_workspace_capabilities(
@@ -680,11 +687,13 @@ class PerformanceWorkspaceService:
                     "Time-series return observations are available for the selected horizon.",
                     earliest_available_date=earliest_history_date,
                     latest_available_date=latest_history_date,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
                 if has_return_history
                 else self._capability(
                     "unavailable",
                     "Published return observations are not available for the selected horizon.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
             ),
             benchmark_comparison=(
@@ -711,11 +720,13 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "The workspace supports benchmark-aware horizon comparisons.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
                 if has_benchmark
                 else self._capability(
                     "partial",
                     "Horizon comparisons remain available, but benchmark-relative output is unavailable.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
             ),
             contribution_ranking=(
@@ -723,6 +734,7 @@ class PerformanceWorkspaceService:
                     "supported",
                     "Position-level contribution ranking is available.",
                     coverage_level="position",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
                 if has_position_ranking
                 else self._capability(
@@ -730,11 +742,13 @@ class PerformanceWorkspaceService:
                     "Contribution exists, but only aggregate rows are available.",
                     coverage_level="aggregate",
                     fallback_available=True,
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
                 if has_contribution_detail
                 else self._capability(
                     "unavailable",
                     "Contribution analytics are not available for the current selection.",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
             ),
             attribution_detail=(
@@ -742,11 +756,15 @@ class PerformanceWorkspaceService:
                     "supported",
                     "Benchmark-relative attribution detail is available.",
                     coverage_level="detail",
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
                 if has_attribution_detail
                 else self._capability(
                     "unavailable",
                     "Attribution detail is not available for the current selection.",
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
             ),
             contribution_detail=(
@@ -754,6 +772,7 @@ class PerformanceWorkspaceService:
                     "supported",
                     "Contribution detail is available for the current selection.",
                     coverage_level="position",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
                 if has_position_ranking
                 else self._capability(
@@ -761,11 +780,13 @@ class PerformanceWorkspaceService:
                     "Contribution exists, but only aggregate rows are available.",
                     coverage_level="aggregate",
                     fallback_available=True,
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
                 if has_contribution_detail
                 else self._capability(
                     "unavailable",
                     "Contribution detail is not available for the current selection.",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
                 )
             ),
             evidence=self._capability(

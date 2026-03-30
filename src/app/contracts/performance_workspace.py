@@ -132,6 +132,8 @@ class PerformanceModuleCapability(BaseModel):
     fallback_available: bool | None = None
     earliest_available_date: str | None = None
     latest_available_date: str | None = None
+    supported_dimensions: list[str] | None = None
+    supported_frequencies: list[str] | None = None
 
 
 class PerformanceWorkspaceCapabilities(BaseModel):

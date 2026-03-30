@@ -658,10 +658,26 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.capabilities.return_path.state == "supported"
     assert response.capabilities.return_path.earliest_available_date == "2026-01-01"
     assert response.capabilities.return_path.latest_available_date == "2026-03-27"
+    assert response.capabilities.return_path.supported_frequencies == ["monthly", "quarterly"]
     assert response.capabilities.benchmark_comparison.state == "supported"
     assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.contribution_ranking.coverage_level == "position"
+    assert response.capabilities.contribution_ranking.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+    ]
     assert response.capabilities.attribution_detail.state == "supported"
+    assert response.capabilities.attribution_detail.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+        "currency",
+    ]
+    assert response.capabilities.attribution_detail.supported_frequencies == [
+        "monthly",
+        "quarterly",
+    ]
     assert response.capabilities.evidence.state == "unavailable"
     assert response.warnings == ["FOUNDATION_WARNING"]
     assert response.partial_failures[0].error_code == "STALE_REPORTING"
@@ -1063,6 +1079,11 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
     assert response.capabilities.contribution_ranking.state == "partial"
     assert response.capabilities.contribution_ranking.coverage_level == "aggregate"
     assert response.capabilities.contribution_ranking.fallback_available is True
+    assert response.capabilities.contribution_ranking.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+    ]
     assert response.capabilities.contribution_detail.state == "partial"
 
 
