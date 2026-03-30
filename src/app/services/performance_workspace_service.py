@@ -1207,16 +1207,20 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         chart_frequency: str,
     ) -> GatheredResult:
+        if period != "EXPLICIT":
+            return await self._fetch_standard_horizon_workspace_summary(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                chart_frequency=chart_frequency,
+            )
+
         horizon_periods = (
             [{"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}]
             if period == "EXPLICIT"
-            else [
-                {
-                    "period": standard_period,
-                    "frequencies": self._build_horizon_comparison_frequencies(chart_frequency),
-                }
-                for standard_period in STANDARD_HORIZON_COMPARISON_PERIODS
-            ]
+            else []
         )
         return cast(
             GatheredResult,
@@ -1234,6 +1238,128 @@ class PerformanceWorkspaceService:
                 include_detail_blocks=False,
             ),
         )
+
+    async def _fetch_standard_horizon_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        chart_frequency: str,
+    ) -> GatheredResult:
+        frequencies = self._build_horizon_comparison_frequencies(chart_frequency)
+        report_end = date.fromisoformat(report_end_date)
+        month_start = report_end.replace(day=1).isoformat()
+        quarter_start_month = ((report_end.month - 1) // 3) * 3 + 1
+        quarter_start = report_end.replace(month=quarter_start_month, day=1).isoformat()
+
+        result_labels = ("MTD", "QTD", "STANDARD")
+        gathered_results = await asyncio.gather(
+            self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=month_start,
+                period="EXPLICIT",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
+                include_detail_blocks=False,
+            ),
+            self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=quarter_start,
+                period="EXPLICIT",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
+                include_detail_blocks=False,
+            ),
+            self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=None,
+                period="YTD",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=[
+                    {"period": "YTD", "frequencies": frequencies},
+                    {"period": "1Y", "frequencies": frequencies},
+                ],
+                include_detail_blocks=False,
+            ),
+            return_exceptions=True,
+        )
+
+        merged_results: dict[str, Any] = {}
+        merged_warnings: list[str] = []
+        merged_failures: list[dict[str, str]] = []
+
+        for label, result in zip(result_labels, gathered_results, strict=True):
+            if isinstance(result, BaseException):
+                merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
+                merged_failures.append(
+                    {
+                        "source_service": "lotus-performance",
+                        "error_code": "UPSTREAM_EXCEPTION",
+                        "detail": str(result),
+                    }
+                )
+                continue
+
+            status_code, payload = result
+            if status_code >= 400 or not isinstance(payload, dict):
+                merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
+                merged_failures.append(
+                    {
+                        "source_service": "lotus-performance",
+                        "error_code": (
+                            f"HTTP_{status_code}"
+                            if isinstance(status_code, int)
+                            else "INVALID_UPSTREAM_PAYLOAD"
+                        ),
+                        "detail": str(payload.get("detail", payload))
+                        if isinstance(payload, dict)
+                        else str(payload),
+                    }
+                )
+                continue
+
+            results_by_period = payload.get("results_by_period", {})
+            if not isinstance(results_by_period, dict):
+                continue
+
+            if label in {"MTD", "QTD"}:
+                explicit_result = results_by_period.get("EXPLICIT")
+                if isinstance(explicit_result, dict):
+                    merged_results[label] = {
+                        **explicit_result,
+                        "_gateway_requested_period_start": month_start if label == "MTD" else quarter_start,
+                        "_gateway_requested_period_end": report_end_date,
+                    }
+                continue
+
+            for period_key in ("YTD", "1Y"):
+                period_payload = results_by_period.get(period_key)
+                if isinstance(period_payload, dict):
+                    merged_results[period_key] = period_payload
+
+        return 200, {
+            "results_by_period": merged_results,
+            "_gateway_warnings": merged_warnings,
+            "_gateway_partial_failures": merged_failures,
+        }
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
@@ -1361,6 +1487,21 @@ class PerformanceWorkspaceService:
         if not isinstance(payload, dict):
             warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
             return [], None
+        gateway_warnings = payload.get("_gateway_warnings", [])
+        if isinstance(gateway_warnings, list):
+            warnings.extend(str(warning) for warning in gateway_warnings)
+        gateway_partial_failures = payload.get("_gateway_partial_failures", [])
+        if isinstance(gateway_partial_failures, list):
+            for failure in gateway_partial_failures:
+                if not isinstance(failure, Mapping):
+                    continue
+                partial_failures.append(
+                    self._performance_failure(
+                        str(failure.get("source_service", "lotus-performance")),
+                        str(failure.get("error_code", "UNKNOWN_ERROR")),
+                        str(failure.get("detail", "")),
+                    )
+                )
         if status_code >= 400:
             warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
             partial_failures.append(
@@ -1420,12 +1561,14 @@ class PerformanceWorkspaceService:
                         if isinstance(money_weighted_return, dict)
                         else None
                     )
+                    or self._safe_str(period_payload.get("_gateway_requested_period_start"))
                     or requested_report_start_date,
                     period_end=(
                         self._safe_str(money_weighted_return.get("end_date"))
                         if isinstance(money_weighted_return, dict)
                         else None
                     )
+                    or self._safe_str(period_payload.get("_gateway_requested_period_end"))
                     or requested_report_end_date,
                     begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
                     if isinstance(economics, dict)

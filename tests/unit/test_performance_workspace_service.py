@@ -890,14 +890,24 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[2].benchmark_return_pct == 14.72
     assert response.rows[2].begin_market_value == 450000.0
     assert response.rows[3].active_return_pct == 0.6
+    assert response.rows[0].period_start == "2026-03-01"
+    assert response.rows[1].period_start == "2026-01-01"
     assert response.rows[2].period_start == "2026-01-01"
     assert response.rows[2].period_end == "2026-03-27"
-    assert len(analytics_client.workspace_summary_calls) == 1
-    assert analytics_client.workspace_summary_calls[0]["period"] == "YTD"
+    assert len(analytics_client.workspace_summary_calls) == 3
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-03-01"
+    assert analytics_client.workspace_summary_calls[1]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[1]["report_start_date"] == "2026-01-01"
+    assert analytics_client.workspace_summary_calls[2]["period"] == "YTD"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
-        "MTD",
-        "QTD",
+        "EXPLICIT"
+    ]
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[1]["periods"]] == [
+        "EXPLICIT"
+    ]
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]] == [
         "YTD",
         "1Y",
     ]
