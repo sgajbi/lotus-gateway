@@ -690,6 +690,19 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
 
 
+def test_workbench_performance_monolithic_route_is_marked_deprecated_in_openapi():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    performance_get = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance"]["get"]
+    assert performance_get["deprecated"] is True
+    assert "Compatibility endpoint for the legacy monolithic performance workspace contract" in (
+        performance_get["description"]
+    )
+
+
 def test_workbench_sandbox_changes_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}

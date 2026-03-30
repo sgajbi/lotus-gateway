@@ -295,9 +295,11 @@ async def get_performance_attribution_trend(
     response_model=PerformanceWorkspaceResponse,
     summary="Get Performance Workspace",
     description=(
-        "Returns an advisor-grade performance workspace contract with comparative TWR, "
-        "money-weighted return, contribution, attribution, and chart-ready breakdowns."
+        "Compatibility endpoint for the legacy monolithic performance workspace contract. "
+        "New Workbench consumers should use the split `summary`, `details`, "
+        "`horizon-comparison`, and `attribution-trend` contracts instead."
     ),
+    deprecated=True,
 )
 async def get_performance_workspace(
     portfolio_id: str,
