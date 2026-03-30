@@ -507,6 +507,7 @@ def test_workbench_performance_summary_router(monkeypatch):
     response = client.get("/api/v1/workbench/PF_1001/performance/summary?period=YTD")
 
     assert response.status_code == 200
+    assert response.headers["Server-Timing"].startswith("app;dur=")
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
@@ -576,6 +577,7 @@ def test_workbench_performance_details_router(monkeypatch):
     response = client.get("/api/v1/workbench/PF_1001/performance/details?period=YTD")
 
     assert response.status_code == 200
+    assert response.headers["Server-Timing"].startswith("app;dur=")
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_chart"][0]["label"] == "2026-01"
