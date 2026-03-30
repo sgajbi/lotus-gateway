@@ -263,6 +263,7 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     assert attribution_post["json"]["group_by"] == ["sector"]
     assert attribution_post["json"]["stateful_input"]["metric_basis"] == "GROSS"
     assert attribution_post["json"]["stateful_input"]["benchmark_id"] == "MODEL_60_40"
+    assert "calculation_id" not in attribution_post["json"]
 
 
 @pytest.mark.asyncio

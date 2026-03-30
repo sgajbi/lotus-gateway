@@ -270,7 +270,6 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         payload: dict[str, Any] = {
-            "calculation_id": str(uuid4()),
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
             "report_start_date": report_start_date,
