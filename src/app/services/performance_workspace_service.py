@@ -188,9 +188,12 @@ class PerformanceWorkspaceService:
         *,
         portfolio_id: str,
         correlation_id: str,
+        period: str,
         detail_basis: str,
         benchmark_code: str | None,
         chart_frequency: str,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
     ) -> PerformanceHorizonComparisonResponse:
         async with server_timing_span("perf-overview"):
             overview = await self._workbench_service.get_workbench_overview(
@@ -206,10 +209,16 @@ class PerformanceWorkspaceService:
                 portfolio_id=portfolio_id,
                 as_of_date=overview.as_of_date,
                 correlation_id=correlation_id,
-                explicit_end_date=None,
+                explicit_end_date=explicit_end_date,
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
+        resolved_report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+            default_report_end_date=report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
         (
             resolved_chart_frequency,
             requested_chart_frequency_supported,
@@ -225,7 +234,7 @@ class PerformanceWorkspaceService:
             ) = await self._fetch_benchmark_context(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                report_end_date=report_end_date,
+                report_end_date=resolved_report_end_date,
                 portfolio_currency=overview.portfolio.base_currency,
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=True,
@@ -234,13 +243,24 @@ class PerformanceWorkspaceService:
             workspace_summary_result = await self._fetch_workspace_horizon_dependencies(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                report_end_date=report_end_date,
+                report_end_date=resolved_report_end_date,
+                report_start_date=report_start_date.isoformat()
+                if effective_period == "EXPLICIT"
+                else None,
+                period=effective_period,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
                 chart_frequency=resolved_chart_frequency,
             )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
             result=workspace_summary_result,
+            requested_period=effective_period,
+            requested_report_start_date=report_start_date.isoformat()
+            if effective_period == "EXPLICIT"
+            else None,
+            requested_report_end_date=resolved_report_end_date
+            if effective_period == "EXPLICIT"
+            else None,
             detail_basis=detail_basis,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -1144,26 +1164,36 @@ class PerformanceWorkspaceService:
         portfolio_id: str,
         correlation_id: str,
         report_end_date: str,
+        report_start_date: str | None,
+        period: str,
         detail_basis: str,
         benchmark_code: str | None,
         chart_frequency: str,
     ) -> GatheredResult:
+        horizon_periods = (
+            [{"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}]
+            if period == "EXPLICIT"
+            else [
+                {
+                    "period": standard_period,
+                    "frequencies": self._build_horizon_comparison_frequencies(chart_frequency),
+                }
+                for standard_period in STANDARD_HORIZON_COMPARISON_PERIODS
+            ]
+        )
         return cast(
             GatheredResult,
             await self._analytics_client.get_workspace_summary(
                 portfolio_id=portfolio_id,
                 report_end_date=report_end_date,
-                report_start_date=None,
-                period="YTD",
+                report_start_date=report_start_date,
+                period=period,
                 chart_frequency=chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
                 segment="asset_class",
                 correlation_id=correlation_id,
-                periods=[
-                    {"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}
-                    for period in STANDARD_HORIZON_COMPARISON_PERIODS
-                ],
+                periods=horizon_periods,
                 include_detail_blocks=False,
             ),
         )
@@ -1276,6 +1306,9 @@ class PerformanceWorkspaceService:
         self,
         *,
         result: GatheredResult,
+        requested_period: str,
+        requested_report_start_date: str | None,
+        requested_report_end_date: str | None,
         detail_basis: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
@@ -1309,7 +1342,12 @@ class PerformanceWorkspaceService:
 
         rows: list[PerformanceHorizonComparisonRow] = []
         resolved_benchmark_code: str | None = None
-        for period in STANDARD_HORIZON_COMPARISON_PERIODS:
+        periods_to_render = (
+            tuple(results_by_period.keys())
+            if requested_period.upper() == "EXPLICIT"
+            else STANDARD_HORIZON_COMPARISON_PERIODS
+        )
+        for period in periods_to_render:
             period_key = self._resolve_results_period_key(
                 requested_period=period,
                 results_by_period=results_by_period,
@@ -1340,12 +1378,18 @@ class PerformanceWorkspaceService:
             rows.append(
                 PerformanceHorizonComparisonRow(
                     period=period,
-                    period_start=self._safe_str(money_weighted_return.get("start_date"))
-                    if isinstance(money_weighted_return, dict)
-                    else None,
-                    period_end=self._safe_str(money_weighted_return.get("end_date"))
-                    if isinstance(money_weighted_return, dict)
-                    else None,
+                    period_start=(
+                        self._safe_str(money_weighted_return.get("start_date"))
+                        if isinstance(money_weighted_return, dict)
+                        else None
+                    )
+                    or requested_report_start_date,
+                    period_end=(
+                        self._safe_str(money_weighted_return.get("end_date"))
+                        if isinstance(money_weighted_return, dict)
+                        else None
+                    )
+                    or requested_report_end_date,
                     begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
                     if isinstance(economics, dict)
                     else None,

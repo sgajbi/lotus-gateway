@@ -631,6 +631,9 @@ def test_workbench_performance_details_router(monkeypatch):
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):
     async def _performance_horizon_comparison(*args, **kwargs):  # noqa: ARG001
+        assert kwargs["period"] == "EXPLICIT"
+        assert kwargs["explicit_start_date"] == "2026-01-01"
+        assert kwargs["explicit_end_date"] == "2026-02-24"
         append_server_timing_metric("perf-reference", 1.0)
         append_server_timing_metric("perf-benchmark", 2.0)
         append_server_timing_metric("perf-horizon", 3.0)
@@ -677,7 +680,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
 
     client = TestClient(app)
     response = client.get(
-        "/api/v1/workbench/PF_1001/performance/horizon-comparison?detail_basis=NET&benchmark_code=MODEL_60_40"
+        "/api/v1/workbench/PF_1001/performance/horizon-comparison"
+        "?period=EXPLICIT&detail_basis=NET&benchmark_code=MODEL_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-02-24"
     )
 
     assert response.status_code == 200

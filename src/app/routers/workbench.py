@@ -241,18 +241,24 @@ async def get_performance_workspace_details(
 )
 async def get_performance_horizon_comparison(
     portfolio_id: str,
+    period: str = "YTD",
     detail_basis: str = "NET",
     benchmark_code: str | None = None,
     chart_frequency: str = "monthly",
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
 ) -> PerformanceHorizonComparisonResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
+        period=period,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         chart_frequency=chart_frequency,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 

@@ -61,6 +61,11 @@ class _StubAnalyticsClient:
                 if not isinstance(period_request, dict):
                     continue
                 period_key = str(period_request.get("period"))
+                if period_key == "EXPLICIT":
+                    report_start_date = str(kwargs.get("report_start_date"))
+                    explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
+                    results_by_period["EXPLICIT"] = source_results[explicit_label]
+                    continue
                 if period_key in source_results:
                     results_by_period[period_key] = source_results[period_key]
             return 200, {"results_by_period": results_by_period}
@@ -760,6 +765,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     response = await service.get_performance_horizon_comparison(
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-performance",
+        period="YTD",
         detail_basis="NET",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
         chart_frequency="monthly",
@@ -801,6 +807,7 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
     response = await service.get_performance_horizon_comparison(
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-performance",
+        period="YTD",
         detail_basis="NET",
         benchmark_code=None,
         chart_frequency="monthly",
@@ -823,6 +830,7 @@ async def test_performance_workspace_service_normalizes_unsupported_horizon_freq
     response = await service.get_performance_horizon_comparison(
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-performance",
+        period="YTD",
         detail_basis="NET",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
         chart_frequency="weekly",
@@ -832,6 +840,36 @@ async def test_performance_workspace_service_normalizes_unsupported_horizon_freq
     assert response.requested_chart_frequency_supported is False
     assert "PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED" in response.warnings
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_builds_explicit_horizon_comparison_contract():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        chart_frequency="monthly",
+        explicit_start_date="2026-01-01",
+        explicit_end_date="2026-03-27",
+    )
+
+    assert [row.period for row in response.rows] == ["EXPLICIT"]
+    assert response.rows[0].period_start == "2026-01-01"
+    assert response.rows[0].period_end == "2026-03-27"
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
+        "EXPLICIT"
+    ]
 
 
 @pytest.mark.asyncio
