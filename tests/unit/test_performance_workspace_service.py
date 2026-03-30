@@ -220,13 +220,122 @@ def _workspace_summary_payload() -> dict:
                         "summary": {
                             "period_return": {"base": 4.3},
                             "annualized_return": {"base": 4.3},
+                            "economics": {
+                                "begin_market_value": 470_000.0,
+                                "end_market_value": 508_870.0,
+                                "net_cash_flow": 12_500.0,
+                            },
                         }
                     },
                     "gross": {
                         "summary": {
                             "period_return": {"base": 4.34},
                             "annualized_return": {"base": 4.34},
+                            "economics": {
+                                "begin_market_value": 470_000.0,
+                                "end_market_value": 508_870.0,
+                                "net_cash_flow": 12_500.0,
+                            },
                         }
+                    },
+                },
+                "money_weighted_return": {
+                    "period_return": 4.11,
+                    "annualized_return": 4.11,
+                    "method": "XIRR",
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-03-27",
+                    "notes": ["cash-flow aware"],
+                },
+                "contribution": {
+                    "metric_basis": "NET",
+                    "summary": {
+                        "total_contribution": 4.3,
+                        "portfolio_return": 4.3,
+                        "portfolio_local_return": 4.0,
+                        "portfolio_fx_return": 0.3,
+                    },
+                    "levels": [
+                        {
+                            "level": 1,
+                            "name": "asset_class",
+                            "rows": [
+                                {
+                                    "key": {"asset_class": "Equity"},
+                                    "contribution": 3.2,
+                                    "weight_avg": 32.0,
+                                    "return": 9.2,
+                                    "local_contribution": 3.0,
+                                    "fx_contribution": 0.2,
+                                },
+                                {
+                                    "key": {"asset_class": "Fixed Income"},
+                                    "contribution": 0.7,
+                                    "weight_avg": 21.0,
+                                    "return": 2.6,
+                                    "local_contribution": 0.6,
+                                    "fx_contribution": 0.1,
+                                },
+                            ],
+                        }
+                    ],
+                    "position_contributions": [
+                        {
+                            "position_id": "SEC_AAPL_US",
+                            "total_contribution": 1.93,
+                            "average_weight": 8.78,
+                            "total_return": 28.05,
+                            "local_contribution": 1.76,
+                            "fx_contribution": 0.17,
+                        },
+                        {
+                            "position_id": "SEC_ETF_WORLD_USD",
+                            "total_contribution": 0.71,
+                            "average_weight": 1.81,
+                            "total_return": 18.88,
+                            "local_contribution": 0.68,
+                            "fx_contribution": 0.03,
+                        },
+                    ],
+                },
+                "attribution": {
+                    "metric_basis": "NET",
+                    "model": "BF",
+                    "linking": "carino",
+                    "benchmark_context": {
+                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "return_source": "calculated",
+                    },
+                    "result": {
+                        "reconciliation": {
+                            "total_active_return": 0.3,
+                            "sum_of_effects": 0.28,
+                            "residual": 0.02,
+                        },
+                        "levels": [
+                            {
+                                "dimension": "asset_class",
+                                "totals": {
+                                    "allocation": -0.04,
+                                    "selection": 0.25,
+                                    "interaction": 0.07,
+                                    "total_effect": 0.28,
+                                },
+                                "rows": [
+                                    {
+                                        "key": {"asset_class": "Equity"},
+                                        "portfolio_weight_avg": 32.0,
+                                        "benchmark_weight_avg": 60.0,
+                                        "portfolio_return": 9.2,
+                                        "benchmark_return": 7.6,
+                                        "allocation": -0.14,
+                                        "selection": 0.32,
+                                        "interaction": 0.04,
+                                        "total_effect": 0.22,
+                                    }
+                                ],
+                            }
+                        ],
                     },
                 },
             },
@@ -1016,6 +1125,34 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
     assert query_client.benchmark_catalog_calls == []
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_qtd_workspace_summary_to_explicit():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="QTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.period == "QTD"
+    assert response.report_start_date == "2026-01-01"
+    assert response.contribution is not None
+    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
 
 
 @pytest.mark.asyncio

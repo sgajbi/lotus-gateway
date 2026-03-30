@@ -53,6 +53,7 @@ STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
 SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
+SUPPORTED_WORKSPACE_SUMMARY_PERIODS = ("YTD", "1Y", "2Y", "5Y", "10Y", "SI", "EXPLICIT")
 
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
@@ -502,12 +503,19 @@ class PerformanceWorkspaceService:
                 include_benchmark_catalog=include_benchmark_catalog,
             )
         async with server_timing_span("perf-summary"):
+            (
+                workspace_summary_period,
+                workspace_summary_report_start_date,
+            ) = self._resolve_workspace_summary_request(
+                period=effective_period,
+                report_start_date=report_start_date,
+            )
             workspace_summary_result = await self._fetch_workspace_summary_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=report_end_date,
-                report_start_date=report_start_date.isoformat(),
-                effective_period=effective_period,
+                report_start_date=workspace_summary_report_start_date,
+                effective_period=workspace_summary_period,
                 chart_frequency=resolved_chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
@@ -1129,6 +1137,17 @@ class PerformanceWorkspaceService:
             return normalized_frequency, True
         warnings.append(warning_code)
         return "monthly", False
+
+    def _resolve_workspace_summary_request(
+        self,
+        *,
+        period: str,
+        report_start_date: date,
+    ) -> tuple[str, str | None]:
+        normalized_period = period.upper()
+        if normalized_period in SUPPORTED_WORKSPACE_SUMMARY_PERIODS:
+            return normalized_period, report_start_date.isoformat() if normalized_period == "EXPLICIT" else None
+        return "EXPLICIT", report_start_date.isoformat()
 
     async def _fetch_workspace_summary_result(
         self,
