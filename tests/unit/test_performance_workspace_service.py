@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date
 
 import pytest
 
@@ -1468,3 +1469,31 @@ async def test_performance_workspace_service_fetches_assignment_and_catalog_conc
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert len(query_client.benchmark_assignment_calls) == 1
     assert len(query_client.benchmark_catalog_calls) == 1
+
+
+def test_performance_workspace_service_resolves_canonical_period_boundaries():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(2026, 3, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(2026, 4, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(2026, 1, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(2025, 4, 1)
+
+
+def test_performance_workspace_service_keeps_ytd_distinct_from_1y():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    ytd_start = service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD")
+    one_year_start = service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y")
+
+    assert ytd_start == date(2026, 1, 1)
+    assert one_year_start == date(2025, 4, 1)
+    assert ytd_start != one_year_start
