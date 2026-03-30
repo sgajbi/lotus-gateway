@@ -128,6 +128,10 @@ class PerformanceBenchmarkOptionView(BaseModel):
 class PerformanceModuleCapability(BaseModel):
     state: str
     reason: str | None = None
+    coverage_level: str | None = None
+    fallback_available: bool | None = None
+    earliest_available_date: str | None = None
+    latest_available_date: str | None = None
 
 
 class PerformanceWorkspaceCapabilities(BaseModel):

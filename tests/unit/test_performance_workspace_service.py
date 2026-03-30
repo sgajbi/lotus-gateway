@@ -656,8 +656,11 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.benchmark_options[0].is_assigned is True
     assert response.benchmark_options[0].benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.return_path.earliest_available_date == "2026-01-01"
+    assert response.capabilities.return_path.latest_available_date == "2026-03-27"
     assert response.capabilities.benchmark_comparison.state == "supported"
     assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.contribution_ranking.coverage_level == "position"
     assert response.capabilities.attribution_detail.state == "supported"
     assert response.capabilities.evidence.state == "unavailable"
     assert response.warnings == ["FOUNDATION_WARNING"]
@@ -1026,6 +1029,41 @@ async def test_performance_workspace_service_handles_benchmark_catalog_failure()
     assert response.benchmark_options == []
     assert "BENCHMARK_CATALOG_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_aggregate_contribution_as_partial_fallback():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    response.contribution.position_rows = []
+    response.capabilities = service._build_workspace_capabilities(
+        benchmark_code=response.benchmark_code,
+        net_performance=response.net_performance,
+        net_chart=response.net_chart,
+        contribution=response.contribution,
+        attribution=response.attribution,
+    )
+
+    assert response.capabilities.contribution_ranking.state == "partial"
+    assert response.capabilities.contribution_ranking.coverage_level == "aggregate"
+    assert response.capabilities.contribution_ranking.fallback_available is True
+    assert response.capabilities.contribution_detail.state == "partial"
 
 
 @pytest.mark.asyncio

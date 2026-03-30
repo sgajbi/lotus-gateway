@@ -608,8 +608,24 @@ class PerformanceWorkspaceService:
     def _snapshot_point_as_of_date(self, point: PerformanceChartPoint) -> str:
         return point.period_end or point.period_start or point.label
 
-    def _capability(self, state: str, reason: str | None = None) -> PerformanceModuleCapability:
-        return PerformanceModuleCapability(state=state, reason=reason)
+    def _capability(
+        self,
+        state: str,
+        reason: str | None = None,
+        *,
+        coverage_level: str | None = None,
+        fallback_available: bool | None = None,
+        earliest_available_date: str | None = None,
+        latest_available_date: str | None = None,
+    ) -> PerformanceModuleCapability:
+        return PerformanceModuleCapability(
+            state=state,
+            reason=reason,
+            coverage_level=coverage_level,
+            fallback_available=fallback_available,
+            earliest_available_date=earliest_available_date,
+            latest_available_date=latest_available_date,
+        )
 
     def _build_workspace_capabilities(
         self,
@@ -633,6 +649,25 @@ class PerformanceWorkspaceService:
         has_attribution_detail = bool(
             attribution and any(level.rows for level in attribution.levels)
         )
+        dated_history = [
+            point for point in net_chart if point.period_start is not None or point.period_end is not None
+        ]
+        earliest_history_date = (
+            min(
+                point.period_start or point.period_end or ""
+                for point in dated_history
+            )
+            if dated_history
+            else None
+        )
+        latest_history_date = (
+            max(
+                point.period_end or point.period_start or ""
+                for point in dated_history
+            )
+            if dated_history
+            else None
+        )
 
         return PerformanceWorkspaceCapabilities(
             summary_kpis=self._capability(
@@ -643,6 +678,8 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "Time-series return observations are available for the selected horizon.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
                 )
                 if has_return_history
                 else self._capability(
@@ -654,11 +691,15 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "Benchmark-relative return metrics are available.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
                 )
                 if has_benchmark and has_benchmark_returns
                 else self._capability(
                     "partial",
                     "A benchmark is assigned, but benchmark-relative returns are incomplete.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
                 )
                 if has_benchmark
                 else self._capability(
@@ -681,11 +722,14 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "Position-level contribution ranking is available.",
+                    coverage_level="position",
                 )
                 if has_position_ranking
                 else self._capability(
                     "partial",
                     "Contribution exists, but only aggregate rows are available.",
+                    coverage_level="aggregate",
+                    fallback_available=True,
                 )
                 if has_contribution_detail
                 else self._capability(
@@ -697,6 +741,7 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "Benchmark-relative attribution detail is available.",
+                    coverage_level="detail",
                 )
                 if has_attribution_detail
                 else self._capability(
@@ -708,11 +753,14 @@ class PerformanceWorkspaceService:
                 self._capability(
                     "supported",
                     "Contribution detail is available for the current selection.",
+                    coverage_level="position",
                 )
                 if has_position_ranking
                 else self._capability(
                     "partial",
                     "Contribution exists, but only aggregate rows are available.",
+                    coverage_level="aggregate",
+                    fallback_available=True,
                 )
                 if has_contribution_detail
                 else self._capability(
