@@ -1376,6 +1376,47 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_marks_summary_only_attribution_as_partial_fallback():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.attribution is not None
+    response.attribution.levels[0].rows = []
+    response.capabilities = service._build_workspace_capabilities(
+        benchmark_code=response.benchmark_code,
+        net_performance=response.net_performance,
+        net_chart=response.net_chart,
+        contribution=response.contribution,
+        attribution=response.attribution,
+    )
+
+    assert response.capabilities.attribution_detail.state == "partial"
+    assert response.capabilities.attribution_detail.coverage_level == "summary"
+    assert response.capabilities.attribution_detail.fallback_available is True
+    assert response.capabilities.attribution_detail.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+        "currency",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_fetches_assignment_and_catalog_concurrently():
     class _ConcurrentQueryClient(_StubLotusCoreQueryClient):
         def __init__(self):

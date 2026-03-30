@@ -742,6 +742,15 @@ class PerformanceWorkspaceService:
         has_attribution_detail = bool(
             attribution and any(level.rows for level in attribution.levels)
         )
+        has_attribution_summary = bool(
+            attribution
+            and (
+                attribution.levels
+                or attribution.active_return_pct is not None
+                or attribution.sum_of_effects_pct is not None
+                or attribution.residual_pct is not None
+            )
+        )
         dated_history = [
             point for point in net_chart if point.period_start is not None or point.period_end is not None
         ]
@@ -846,6 +855,15 @@ class PerformanceWorkspaceService:
                     supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
                 if has_attribution_detail
+                else self._capability(
+                    "partial",
+                    "Benchmark-relative attribution is available only at summary level for the current selection.",
+                    coverage_level="summary",
+                    fallback_available=True,
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+                if has_attribution_summary
                 else self._capability(
                     "unavailable",
                     "Attribution detail is not available for the current selection.",
