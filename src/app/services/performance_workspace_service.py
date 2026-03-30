@@ -415,9 +415,31 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        (
+            resolved_chart_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
+        (
+            resolved_contribution_dimension,
+            requested_contribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=contribution_dimension,
+            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+            warnings=warnings,
+            warning_code="PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED",
+        )
+        (
+            resolved_attribution_dimension,
+            requested_attribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=attribution_dimension,
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED",
+        )
         shared_segment = self._resolve_shared_segment(
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+            contribution_dimension=resolved_contribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
             warnings=warnings,
         )
         async with server_timing_span("perf-benchmark"):
@@ -439,7 +461,7 @@ class PerformanceWorkspaceService:
                 report_end_date=report_end_date,
                 report_start_date=report_start_date.isoformat(),
                 effective_period=effective_period,
-                chart_frequency=chart_frequency,
+                chart_frequency=resolved_chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
                 segment=shared_segment,
@@ -457,7 +479,7 @@ class PerformanceWorkspaceService:
         ) = self._parse_workspace_summary_result(
             result=workspace_summary_result,
             requested_period=effective_period,
-            chart_frequency=chart_frequency,
+            chart_frequency=resolved_chart_frequency,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -483,10 +505,13 @@ class PerformanceWorkspaceService:
             period=effective_period,
             report_start_date=report_start_date.isoformat(),
             report_end_date=report_end_date,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+            chart_frequency=resolved_chart_frequency,
+            contribution_dimension=resolved_contribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
             detail_basis=detail_basis,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
             segment=shared_segment,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
@@ -517,6 +542,9 @@ class PerformanceWorkspaceService:
             report_end_date=workspace.report_end_date,
             chart_frequency=workspace.chart_frequency,
             detail_basis=workspace.detail_basis,
+            requested_chart_frequency_supported=workspace.requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=workspace.requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=workspace.requested_attribution_dimension_supported,
             benchmark_code=workspace.benchmark_code,
             benchmark_options=workspace.benchmark_options,
             capabilities=workspace.capabilities,
@@ -544,6 +572,9 @@ class PerformanceWorkspaceService:
             contribution_dimension=workspace.contribution_dimension,
             attribution_dimension=workspace.attribution_dimension,
             detail_basis=workspace.detail_basis,
+            requested_chart_frequency_supported=workspace.requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=workspace.requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=workspace.requested_attribution_dimension_supported,
             segment=workspace.segment,
             benchmark_code=workspace.benchmark_code,
             capabilities=workspace.capabilities,
@@ -1024,6 +1055,32 @@ class PerformanceWorkspaceService:
             return contribution_dimension
         warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
         return contribution_dimension
+
+    def _normalize_workspace_dimension(
+        self,
+        *,
+        requested_dimension: str,
+        supported_dimensions: Sequence[str],
+        warnings: list[str],
+        warning_code: str,
+    ) -> tuple[str, bool]:
+        normalized_dimension = requested_dimension.strip().lower()
+        if normalized_dimension in supported_dimensions:
+            return normalized_dimension, True
+        warnings.append(warning_code)
+        return supported_dimensions[0], False
+
+    def _normalize_workspace_chart_frequency(
+        self,
+        *,
+        chart_frequency: str,
+        warnings: list[str],
+    ) -> tuple[str, bool]:
+        normalized_frequency = chart_frequency.strip().lower()
+        if normalized_frequency in SUPPORTED_WORKSPACE_FREQUENCIES:
+            return normalized_frequency, True
+        warnings.append("PERFORMANCE_CHART_FREQUENCY_NORMALIZED")
+        return "monthly", False
 
     async def _fetch_workspace_summary_result(
         self,

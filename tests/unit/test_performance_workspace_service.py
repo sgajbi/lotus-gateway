@@ -955,6 +955,39 @@ async def test_performance_workspace_service_aligns_mismatched_dimensions_to_sha
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_controls():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="weekly",
+        contribution_dimension="currency",
+        attribution_dimension="issuer",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.contribution_dimension == "asset_class"
+    assert response.attribution_dimension == "asset_class"
+    assert response.requested_chart_frequency_supported is False
+    assert response.requested_contribution_dimension_supported is False
+    assert response.requested_attribution_dimension_supported is False
+    assert "PERFORMANCE_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
+    assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
+    assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_skips_reference_lookup_for_explicit_window():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()

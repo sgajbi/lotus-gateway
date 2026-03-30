@@ -226,6 +226,9 @@ class PerformanceWorkspaceResponse(BaseModel):
     contribution_dimension: str
     attribution_dimension: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     segment: str
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
@@ -253,6 +256,9 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     report_end_date: str
     chart_frequency: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
     capabilities: PerformanceWorkspaceCapabilities
@@ -277,6 +283,9 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
     contribution_dimension: str
     attribution_dimension: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     segment: str
     benchmark_code: str | None = None
     capabilities: PerformanceWorkspaceCapabilities
