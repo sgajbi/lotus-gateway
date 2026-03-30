@@ -34,6 +34,7 @@ from app.contracts.portfolio import (
     PortfolioPerformanceSnapshotUnavailable,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.workbench_service import WorkbenchService
 
@@ -186,41 +187,45 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         chart_frequency: str,
     ) -> PerformanceHorizonComparisonResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            include_performance_snapshot=False,
-            include_rebalance_snapshot=False,
-        )
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=None,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        (
-            resolved_benchmark_code,
-            benchmark_catalog_result,
-        ) = await self._fetch_benchmark_context(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            portfolio_currency=overview.portfolio.base_currency,
-            benchmark_code=benchmark_code,
-            include_benchmark_catalog=True,
-        )
-        workspace_summary_result = await self._fetch_workspace_horizon_dependencies(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            detail_basis=detail_basis,
-            benchmark_code=resolved_benchmark_code,
-            chart_frequency=chart_frequency,
-        )
+        async with server_timing_span("perf-reference"):
+            report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=None,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+        async with server_timing_span("perf-benchmark"):
+            (
+                resolved_benchmark_code,
+                benchmark_catalog_result,
+            ) = await self._fetch_benchmark_context(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+                include_benchmark_catalog=True,
+            )
+        async with server_timing_span("perf-horizon"):
+            workspace_summary_result = await self._fetch_workspace_horizon_dependencies(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                chart_frequency=chart_frequency,
+            )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
             results_by_label=workspace_summary_result,
             detail_basis=detail_basis,
@@ -259,22 +264,24 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> PerformanceAttributionTrendResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            include_performance_snapshot=False,
-            include_rebalance_snapshot=False,
-        )
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        resolved_report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=explicit_end_date,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
+        async with server_timing_span("perf-reference"):
+            resolved_report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
         report_end_date, report_start_date, effective_period = self._resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
@@ -286,14 +293,15 @@ class PerformanceWorkspaceService:
             warnings=warnings,
         )
 
-        resolved_benchmark_code, _ = await self._fetch_benchmark_context(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            portfolio_currency=overview.portfolio.base_currency,
-            benchmark_code=benchmark_code,
-            include_benchmark_catalog=False,
-        )
+        async with server_timing_span("perf-benchmark"):
+            resolved_benchmark_code, _ = await self._fetch_benchmark_context(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+                include_benchmark_catalog=False,
+            )
 
         if not resolved_benchmark_code:
             warnings.append("ATTRIBUTION_TREND_UNAVAILABLE_NO_BENCHMARK")
@@ -319,22 +327,23 @@ class PerformanceWorkspaceService:
             end_date=date.fromisoformat(report_end_date),
             chart_frequency=resolved_frequency,
         )
-        attribution_results = await asyncio.gather(
-            *[
-                self._analytics_client.get_attribution_analytics(
-                    portfolio_id=portfolio_id,
-                    report_start_date=window_start.isoformat(),
-                    report_end_date=window_end.isoformat(),
-                    period="EXPLICIT",
-                    metric_basis=detail_basis,
-                    benchmark_id=resolved_benchmark_code,
-                    dimension=attribution_dimension,
-                    correlation_id=correlation_id,
-                )
-                for window_start, window_end in window_pairs
-            ],
-            return_exceptions=True,
-        )
+        async with server_timing_span("perf-attribution"):
+            attribution_results = await asyncio.gather(
+                *[
+                    self._analytics_client.get_attribution_analytics(
+                        portfolio_id=portfolio_id,
+                        report_start_date=window_start.isoformat(),
+                        report_end_date=window_end.isoformat(),
+                        period="EXPLICIT",
+                        metric_basis=detail_basis,
+                        benchmark_id=resolved_benchmark_code,
+                        dimension=attribution_dimension,
+                        correlation_id=correlation_id,
+                    )
+                    for window_start, window_end in window_pairs
+                ],
+                return_exceptions=True,
+            )
         rows = self._parse_attribution_trend_results(
             results=attribution_results,
             window_pairs=window_pairs,
@@ -376,22 +385,24 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None = None,
         include_benchmark_catalog: bool = True,
     ) -> PerformanceWorkspaceResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            include_performance_snapshot=False,
-            include_rebalance_snapshot=False,
-        )
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        resolved_report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=explicit_end_date,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
+        async with server_timing_span("perf-reference"):
+            resolved_report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
         report_end_date, report_start_date, effective_period = self._resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
@@ -403,28 +414,30 @@ class PerformanceWorkspaceService:
             attribution_dimension=attribution_dimension,
             warnings=warnings,
         )
-        (
-            resolved_benchmark_code,
-            benchmark_catalog_result,
-        ) = await self._fetch_benchmark_context(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            portfolio_currency=overview.portfolio.base_currency,
-            benchmark_code=benchmark_code,
-            include_benchmark_catalog=include_benchmark_catalog,
-        )
-        workspace_summary_result = await self._fetch_workspace_summary_result(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date.isoformat(),
-            effective_period=effective_period,
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_code=resolved_benchmark_code,
-            segment=shared_segment,
-        )
+        async with server_timing_span("perf-benchmark"):
+            (
+                resolved_benchmark_code,
+                benchmark_catalog_result,
+            ) = await self._fetch_benchmark_context(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+                include_benchmark_catalog=include_benchmark_catalog,
+            )
+        async with server_timing_span("perf-summary"):
+            workspace_summary_result = await self._fetch_workspace_summary_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                report_start_date=report_start_date.isoformat(),
+                effective_period=effective_period,
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                segment=shared_segment,
+            )
 
         (
             net_performance,

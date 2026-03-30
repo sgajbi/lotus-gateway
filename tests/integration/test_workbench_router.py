@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.middleware.server_timing import append_server_timing_metric
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 
@@ -443,6 +444,9 @@ def test_workbench_performance_router(monkeypatch):
 
 def test_workbench_performance_summary_router(monkeypatch):
     async def _performance_summary(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-summary", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -508,6 +512,9 @@ def test_workbench_performance_summary_router(monkeypatch):
 
     assert response.status_code == 200
     assert response.headers["Server-Timing"].startswith("app;dur=")
+    assert "perf-summary;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
+    assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
@@ -517,6 +524,9 @@ def test_workbench_performance_summary_router(monkeypatch):
 
 def test_workbench_performance_details_router(monkeypatch):
     async def _performance_details(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-summary", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -578,6 +588,9 @@ def test_workbench_performance_details_router(monkeypatch):
 
     assert response.status_code == 200
     assert response.headers["Server-Timing"].startswith("app;dur=")
+    assert "perf-summary;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
+    assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_chart"][0]["label"] == "2026-01"
@@ -588,6 +601,9 @@ def test_workbench_performance_details_router(monkeypatch):
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):
     async def _performance_horizon_comparison(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-horizon", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -633,6 +649,8 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     )
 
     assert response.status_code == 200
+    assert "perf-horizon;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["rows"][0]["period"] == "MTD"
@@ -641,6 +659,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
 
 def test_workbench_performance_attribution_trend_router(monkeypatch):
     async def _performance_attribution_trend(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-attribution", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -685,6 +706,8 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     )
 
     assert response.status_code == 200
+    assert "perf-attribution;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["chart_frequency"] == "monthly"
