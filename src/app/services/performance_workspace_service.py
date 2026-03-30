@@ -1639,7 +1639,7 @@ class PerformanceWorkspaceService:
                     ContributionPositionView(
                         position_id=str(position_payload.get("position_id", "Unknown Position")),
                         contribution_pct=self._quantize_optional(
-                            position_payload.get("contribution")
+                            position_payload.get("total_contribution")
                         )
                         or 0.0,
                         weight_avg_pct=self._weight_to_pct(position_payload.get("average_weight")),

@@ -392,7 +392,7 @@ def _workspace_summary_payload() -> dict:
                     "position_contributions": [
                         {
                             "position_id": "SEC_AAPL_US",
-                            "contribution": 5.43,
+                            "total_contribution": 5.43,
                             "average_weight": 8.78,
                             "total_return": 76.05,
                             "local_contribution": 5.12,
@@ -400,7 +400,7 @@ def _workspace_summary_payload() -> dict:
                         },
                         {
                             "position_id": "SEC_ETF_WORLD_USD",
-                            "contribution": 1.31,
+                            "total_contribution": 1.31,
                             "average_weight": 1.81,
                             "total_return": 99.88,
                             "local_contribution": 1.28,
@@ -792,6 +792,35 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
         "YTD",
         "1Y",
     ]
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_maps_workspace_position_contributions_from_upstream_contract():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution is not None
+    assert [row.position_id for row in response.contribution.position_rows] == [
+        "SEC_AAPL_US",
+        "SEC_ETF_WORLD_USD",
+    ]
+    assert response.contribution.position_rows[0].contribution_pct == 5.43
+    assert response.capabilities.contribution_ranking.state == "supported"
 
 
 @pytest.mark.asyncio
