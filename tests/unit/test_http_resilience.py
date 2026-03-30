@@ -32,6 +32,18 @@ class _FlakyAsyncClient:
             request=httpx.Request("GET", "http://test"),
         )
 
+    async def post(self, url, headers=None, json=None, data=None, files=None):
+        _ = url, headers, json, data, files
+        _FlakyAsyncClient.calls += 1
+        if _FlakyAsyncClient.calls == 1:
+            raise httpx.TimeoutException("timed out")
+        return httpx.Response(
+            200,
+            content=json.dumps({"ok": True}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            request=httpx.Request("POST", "http://test"),
+        )
+
 
 class _RetryStatusAsyncClient:
     calls = 0
@@ -114,6 +126,26 @@ async def test_request_with_retry_retries_on_timeout(monkeypatch):
     assert payload == {"ok": True}
     assert _FlakyAsyncClient.calls == 2
     assert _FlakyAsyncClient.follow_redirects is True
+
+
+@pytest.mark.asyncio
+async def test_request_with_retry_can_disable_timeout_retries(monkeypatch):
+    _FlakyAsyncClient.calls = 0
+    monkeypatch.setattr("httpx.AsyncClient", _FlakyAsyncClient)
+
+    status, payload = await request_with_retry(
+        method="POST",
+        url="http://service/workspace-summary",
+        timeout_seconds=1.0,
+        max_retries=2,
+        backoff_seconds=0.0,
+        json_body={"calculation_id": "calc-1"},
+        retry_timeout_exceptions=False,
+    )
+
+    assert status == 503
+    assert payload == {"detail": "upstream communication failure: TimeoutException"}
+    assert _FlakyAsyncClient.calls == 1
 
 
 @pytest.mark.asyncio

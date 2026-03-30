@@ -379,6 +379,36 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_summary(monkeypatch):
+    captured: list[dict] = []
+
+    async def _fake_request_with_retry(**kwargs):
+        captured.append(kwargs)
+        return 503, {"detail": "upstream communication failure: TimeoutException"}
+
+    monkeypatch.setattr("app.clients.lotus_analytics_client.request_with_retry", _fake_request_with_retry)
+
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date="2026-01-01",
+        period="QTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 503
+    assert payload["detail"] == "upstream communication failure: TimeoutException"
+    assert captured[0]["retry_timeout_exceptions"] is False
+    assert captured[0]["timeout_seconds"] == 15.0
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_fetches_benchmark_assignment():
     client = LotusCoreQueryClient(
         base_url="http://core-query",

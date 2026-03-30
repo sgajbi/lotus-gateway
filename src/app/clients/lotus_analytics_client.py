@@ -68,6 +68,7 @@ class LotusAnalyticsClient:
             backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
+            retry_timeout_exceptions=False,
         )
         if self._should_retry_duplicate_calculation(status_code=status_code, payload=response_payload, request=payload):
             replay_payload = dict(payload)
@@ -80,6 +81,7 @@ class LotusAnalyticsClient:
                 backoff_seconds=self._retry_backoff_seconds,
                 json_body=replay_payload,
                 headers=headers,
+                retry_timeout_exceptions=False,
             )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
@@ -151,6 +153,7 @@ class LotusAnalyticsClient:
             backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
+            retry_timeout_exceptions=False,
         )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")

@@ -42,7 +42,7 @@ def _workbench_service() -> WorkbenchService:
         ),
         analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
+            timeout_seconds=settings.performance_analytics_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
@@ -71,7 +71,7 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
         workbench_service=workbench_service,
         analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
+            timeout_seconds=settings.performance_analytics_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
