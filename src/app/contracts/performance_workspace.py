@@ -127,9 +127,23 @@ class PerformanceBenchmarkOptionView(BaseModel):
 
 class PerformanceHorizonComparisonRow(BaseModel):
     period: str
+    period_start: str | None = None
+    period_end: str | None = None
+    begin_market_value: float | None = None
+    end_market_value: float | None = None
+    net_cash_flow: float | None = None
+    fees: float | None = None
+    net_return_pct: float | None = None
+    gross_return_pct: float | None = None
     portfolio_return_pct: float | None = None
     benchmark_return_pct: float | None = None
     active_return_pct: float | None = None
+    cumulative_net_return_pct: float | None = None
+    cumulative_gross_return_pct: float | None = None
+    cumulative_benchmark_return_pct: float | None = None
+    cumulative_active_return_pct: float | None = None
+    annualized_net_return_pct: float | None = None
+    annualized_gross_return_pct: float | None = None
     annualized_return_pct: float | None = None
 
 
@@ -138,6 +152,7 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
+    reporting_currency: str | None = None
     detail_basis: str
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)

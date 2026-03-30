@@ -53,6 +53,18 @@ class _StubAnalyticsClient:
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
+        periods = kwargs.get("periods") or []
+        if periods:
+            results_by_period: dict[str, object] = {}
+            source_results = _workspace_summary_payload()["results_by_period"]
+            for period_request in periods:
+                if not isinstance(period_request, dict):
+                    continue
+                period_key = str(period_request.get("period"))
+                if period_key in source_results:
+                    results_by_period[period_key] = source_results[period_key]
+            return 200, {"results_by_period": results_by_period}
+
         requested_period = kwargs.get("period")
         if requested_period == "EXPLICIT":
             report_start_date = str(kwargs.get("report_start_date"))
@@ -729,14 +741,20 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.reporting_currency == "USD"
     assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
     assert response.rows[0].portfolio_return_pct == 1.2
+    assert response.rows[0].net_return_pct == 1.2
+    assert response.rows[0].gross_return_pct == 1.22
     assert response.rows[2].benchmark_return_pct == 14.72
+    assert response.rows[2].begin_market_value == 450000.0
     assert response.rows[3].active_return_pct == 0.6
-    assert len(analytics_client.twr_calls) == 1
-    assert analytics_client.twr_calls[0]["period"] == "YTD"
-    assert analytics_client.twr_calls[0]["report_start_date"] is None
-    assert [analysis["period"] for analysis in analytics_client.twr_calls[0]["analyses"]] == [
+    assert response.rows[2].period_start == "2026-01-01"
+    assert response.rows[2].period_end == "2026-03-27"
+    assert len(analytics_client.workspace_summary_calls) == 1
+    assert analytics_client.workspace_summary_calls[0]["period"] == "YTD"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
         "MTD",
         "QTD",
         "YTD",
@@ -763,7 +781,7 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
     )
 
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert analytics_client.twr_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
 
 
