@@ -189,6 +189,8 @@ class PerformanceWorkspaceService:
         overview = await self._workbench_service.get_workbench_overview(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            include_performance_snapshot=False,
+            include_rebalance_snapshot=False,
         )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
@@ -259,6 +261,8 @@ class PerformanceWorkspaceService:
         overview = await self._workbench_service.get_workbench_overview(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            include_performance_snapshot=False,
+            include_rebalance_snapshot=False,
         )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
@@ -373,6 +377,8 @@ class PerformanceWorkspaceService:
         overview = await self._workbench_service.get_workbench_overview(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
+            include_performance_snapshot=False,
+            include_rebalance_snapshot=False,
         )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)

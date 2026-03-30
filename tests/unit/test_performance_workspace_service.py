@@ -10,7 +10,13 @@ from app.services.performance_workspace_service import PerformanceWorkspaceServi
 
 
 class _StubWorkbenchService:
-    async def get_workbench_overview(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+    async def get_workbench_overview(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        include_performance_snapshot: bool = True,  # noqa: ARG002
+        include_rebalance_snapshot: bool = True,  # noqa: ARG002
+    ):
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
             contract_version="v1",
