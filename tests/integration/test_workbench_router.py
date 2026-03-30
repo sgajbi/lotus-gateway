@@ -465,6 +465,16 @@ def test_workbench_performance_summary_router(monkeypatch):
                     "is_assigned": True,
                 }
             ],
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "portfolio": {
                 "portfolio_id": "PF_1001",
                 "client_id": "CIF_1001",
@@ -541,6 +551,16 @@ def test_workbench_performance_details_router(monkeypatch):
             "detail_basis": "NET",
             "segment": "asset_class",
             "benchmark_code": "MODEL_60_40",
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "net_chart": [
                 {
                     "label": "2026-01",

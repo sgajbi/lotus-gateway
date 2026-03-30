@@ -655,6 +655,11 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.attribution.levels[0].rows[0].benchmark_return_pct == 18.4
     assert response.benchmark_options[0].is_assigned is True
     assert response.benchmark_options[0].benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.benchmark_comparison.state == "supported"
+    assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.attribution_detail.state == "supported"
+    assert response.capabilities.evidence.state == "unavailable"
     assert response.warnings == ["FOUNDATION_WARNING"]
     assert response.partial_failures[0].error_code == "STALE_REPORTING"
 
@@ -689,6 +694,8 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.method == "XIRR"
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
+    assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.contribution_detail.state == "supported"
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
 
@@ -866,6 +873,8 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
     assert response.attribution is not None
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.attribution_detail.state == "supported"
     assert response.segment == "asset_class"
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
@@ -984,6 +993,9 @@ async def test_performance_workspace_service_handles_workspace_summary_failure()
     assert response.gross_performance.portfolio_return_pct is None
     assert response.contribution is None
     assert response.attribution is None
+    assert response.capabilities.return_path.state == "unavailable"
+    assert response.capabilities.contribution_detail.state == "unavailable"
+    assert response.capabilities.attribution_detail.state == "unavailable"
     assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
 

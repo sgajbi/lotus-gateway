@@ -23,6 +23,8 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceHorizonComparisonResponse,
     PerformanceHorizonComparisonRow,
+    PerformanceModuleCapability,
+    PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -462,6 +464,13 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+        capabilities = self._build_workspace_capabilities(
+            benchmark_code=resolved_benchmark_code or benchmark_code,
+            net_performance=net_performance,
+            net_chart=net_chart,
+            contribution=contribution,
+            attribution=attribution,
+        )
 
         return PerformanceWorkspaceResponse(
             correlation_id=correlation_id,
@@ -478,6 +487,7 @@ class PerformanceWorkspaceService:
             segment=shared_segment,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
+            capabilities=capabilities,
             portfolio=overview.portfolio,
             overview=overview.overview,
             net_performance=net_performance,
@@ -506,6 +516,7 @@ class PerformanceWorkspaceService:
             detail_basis=workspace.detail_basis,
             benchmark_code=workspace.benchmark_code,
             benchmark_options=workspace.benchmark_options,
+            capabilities=workspace.capabilities,
             portfolio=workspace.portfolio,
             overview=workspace.overview,
             net_performance=workspace.net_performance,
@@ -532,6 +543,7 @@ class PerformanceWorkspaceService:
             detail_basis=workspace.detail_basis,
             segment=workspace.segment,
             benchmark_code=workspace.benchmark_code,
+            capabilities=workspace.capabilities,
             net_chart=workspace.net_chart,
             gross_chart=workspace.gross_chart,
             contribution=workspace.contribution,
@@ -595,6 +607,124 @@ class PerformanceWorkspaceService:
 
     def _snapshot_point_as_of_date(self, point: PerformanceChartPoint) -> str:
         return point.period_end or point.period_start or point.label
+
+    def _capability(self, state: str, reason: str | None = None) -> PerformanceModuleCapability:
+        return PerformanceModuleCapability(state=state, reason=reason)
+
+    def _build_workspace_capabilities(
+        self,
+        *,
+        benchmark_code: str | None,
+        net_performance: PerformanceComparativeSummary,
+        net_chart: list[PerformanceChartPoint],
+        contribution: ContributionSummaryView | None,
+        attribution: AttributionSummaryView | None,
+    ) -> PerformanceWorkspaceCapabilities:
+        has_return_history = len(net_chart) > 0
+        has_benchmark = bool(benchmark_code)
+        has_benchmark_returns = (
+            net_performance.benchmark_return_pct is not None
+            and net_performance.active_return_pct is not None
+        )
+        has_contribution_detail = bool(
+            contribution and (contribution.levels or contribution.position_rows)
+        )
+        has_position_ranking = bool(contribution and contribution.position_rows)
+        has_attribution_detail = bool(
+            attribution and any(level.rows for level in attribution.levels)
+        )
+
+        return PerformanceWorkspaceCapabilities(
+            summary_kpis=self._capability(
+                "supported",
+                "The performance workspace contract supports executive summary metrics.",
+            ),
+            return_path=(
+                self._capability(
+                    "supported",
+                    "Time-series return observations are available for the selected horizon.",
+                )
+                if has_return_history
+                else self._capability(
+                    "unavailable",
+                    "Published return observations are not available for the selected horizon.",
+                )
+            ),
+            benchmark_comparison=(
+                self._capability(
+                    "supported",
+                    "Benchmark-relative return metrics are available.",
+                )
+                if has_benchmark and has_benchmark_returns
+                else self._capability(
+                    "partial",
+                    "A benchmark is assigned, but benchmark-relative returns are incomplete.",
+                )
+                if has_benchmark
+                else self._capability(
+                    "unavailable",
+                    "No benchmark is assigned to this mandate.",
+                )
+            ),
+            multi_horizon_returns=(
+                self._capability(
+                    "supported",
+                    "The workspace supports benchmark-aware horizon comparisons.",
+                )
+                if has_benchmark
+                else self._capability(
+                    "partial",
+                    "Horizon comparisons remain available, but benchmark-relative output is unavailable.",
+                )
+            ),
+            contribution_ranking=(
+                self._capability(
+                    "supported",
+                    "Position-level contribution ranking is available.",
+                )
+                if has_position_ranking
+                else self._capability(
+                    "partial",
+                    "Contribution exists, but only aggregate rows are available.",
+                )
+                if has_contribution_detail
+                else self._capability(
+                    "unavailable",
+                    "Contribution analytics are not available for the current selection.",
+                )
+            ),
+            attribution_detail=(
+                self._capability(
+                    "supported",
+                    "Benchmark-relative attribution detail is available.",
+                )
+                if has_attribution_detail
+                else self._capability(
+                    "unavailable",
+                    "Attribution detail is not available for the current selection.",
+                )
+            ),
+            contribution_detail=(
+                self._capability(
+                    "supported",
+                    "Contribution detail is available for the current selection.",
+                )
+                if has_position_ranking
+                else self._capability(
+                    "partial",
+                    "Contribution exists, but only aggregate rows are available.",
+                )
+                if has_contribution_detail
+                else self._capability(
+                    "unavailable",
+                    "Contribution detail is not available for the current selection.",
+                )
+            ),
+            evidence=self._capability(
+                "unavailable",
+                "Evidence and lineage surfaces are not exposed by the current gateway contract.",
+            ),
+        )
 
     async def _determine_report_end_date(
         self,

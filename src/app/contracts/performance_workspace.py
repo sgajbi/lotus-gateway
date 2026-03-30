@@ -125,6 +125,22 @@ class PerformanceBenchmarkOptionView(BaseModel):
     is_assigned: bool = False
 
 
+class PerformanceModuleCapability(BaseModel):
+    state: str
+    reason: str | None = None
+
+
+class PerformanceWorkspaceCapabilities(BaseModel):
+    summary_kpis: PerformanceModuleCapability
+    return_path: PerformanceModuleCapability
+    benchmark_comparison: PerformanceModuleCapability
+    multi_horizon_returns: PerformanceModuleCapability
+    contribution_ranking: PerformanceModuleCapability
+    attribution_detail: PerformanceModuleCapability
+    contribution_detail: PerformanceModuleCapability
+    evidence: PerformanceModuleCapability
+
+
 class PerformanceHorizonComparisonRow(BaseModel):
     period: str
     period_start: str | None = None
@@ -207,6 +223,7 @@ class PerformanceWorkspaceResponse(BaseModel):
     segment: str
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    capabilities: PerformanceWorkspaceCapabilities
     portfolio: WorkbenchPortfolioSummary
     overview: WorkbenchOverviewSummary
     net_performance: PerformanceComparativeSummary
@@ -232,6 +249,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     detail_basis: str
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    capabilities: PerformanceWorkspaceCapabilities
     portfolio: WorkbenchPortfolioSummary
     overview: WorkbenchOverviewSummary
     net_performance: PerformanceComparativeSummary
@@ -255,6 +273,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
     detail_basis: str
     segment: str
     benchmark_code: str | None = None
+    capabilities: PerformanceWorkspaceCapabilities
     net_chart: list[PerformanceChartPoint] = Field(default_factory=list)
     gross_chart: list[PerformanceChartPoint] = Field(default_factory=list)
     contribution: ContributionSummaryView | None = None
