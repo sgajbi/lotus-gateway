@@ -224,6 +224,7 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
+                                "flow_adjusted_end_market_value": 496_370.0,
                                 "net_cash_flow": 12_500.0,
                             },
                         }
@@ -235,6 +236,7 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
+                                "flow_adjusted_end_market_value": 496_370.0,
                                 "net_cash_flow": 12_500.0,
                             },
                         }
@@ -385,6 +387,7 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "flow_adjusted_end_market_value": 486_370.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -421,6 +424,7 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "flow_adjusted_end_market_value": 486_370.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -893,6 +897,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[0].gross_return_pct == 1.22
     assert response.rows[2].benchmark_return_pct == 14.72
     assert response.rows[2].begin_market_value == 450000.0
+    assert response.rows[2].flow_adjusted_end_market_value == 486370.0
     assert response.rows[3].active_return_pct == 0.6
     assert response.rows[0].period_start == "2026-03-01"
     assert response.rows[1].period_start == "2026-01-01"

@@ -153,6 +153,7 @@ class PerformanceHorizonComparisonRow(BaseModel):
     period_end: str | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
+    flow_adjusted_end_market_value: float | None = None
     net_cash_flow: float | None = None
     fees: float | None = None
     net_return_pct: float | None = None
