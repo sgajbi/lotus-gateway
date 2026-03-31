@@ -416,6 +416,57 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_falls_back_when_workspace_currency_breakout_requires_fx_inputs():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        422,
+        {
+            "detail": (
+                "Stateful contribution input requires fx.rates when currency_mode=BOTH "
+                "and sourced positions include currencies different from report_ccy."
+            )
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    assert len(_FakeAsyncClient.calls) == 2
+    first_request = _FakeAsyncClient.calls[0]["json"]
+    fallback_request = _FakeAsyncClient.calls[1]["json"]
+    assert first_request["currency_mode"] == "BOTH"
+    assert first_request["report_ccy"] == "USD"
+    assert "currency_mode" not in fallback_request
+    assert "report_ccy" not in fallback_request
+    assert first_request["calculation_id"] != fallback_request["calculation_id"]
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_fetches_benchmark_assignment():
     client = LotusCoreQueryClient(
         base_url="http://core-query",
