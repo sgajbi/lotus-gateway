@@ -364,6 +364,7 @@ class LotusAnalyticsClient:
             "mwr_method": "XIRR",
         }
         if include_detail_blocks:
+            payload["currency_mode"] = "BOTH"
             payload["segmentation"] = {
                 "group_by": [segment],
             }

@@ -328,6 +328,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
     assert request["url"] == "http://analytics/performance/workspace-summary"
     assert request["json"]["periods"][0]["period"] == "YTD"
     assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
+    assert request["json"]["currency_mode"] == "BOTH"
     assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
     assert request["json"]["contribution"]["metric_basis"] == "NET"
     assert request["json"]["attribution"]["metric_basis"] == "NET"
@@ -374,6 +375,7 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
     replay_request = _FakeAsyncClient.calls[1]
     assert first_request["url"] == replay_request["url"] == "http://analytics/performance/workspace-summary"
     assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
+    assert first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
     assert first_request["json"]["periods"] == replay_request["json"]["periods"]
     assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
 
