@@ -516,6 +516,13 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "method": "XIRR",
                 "start_date": "2026-01-01",
                 "end_date": "2026-02-24",
+                "begin_market_value": 1200000.0,
+                "end_market_value": 1250000.0,
+                "beginning_cash_flow": 50000.0,
+                "ending_cash_flow": -8000.0,
+                "flow_adjusted_end_market_value": 1208000.0,
+                "net_cash_flow": 42000.0,
+                "fees": 0.0,
                 "notes": [],
             },
             "warnings": [],
@@ -538,6 +545,9 @@ def test_workbench_performance_summary_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
+    assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
+    assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
+    assert body["money_weighted_return"]["net_cash_flow"] == 42000.0
     assert "net_chart" not in body
     assert "contribution" not in body
 
