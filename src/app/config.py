@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings
 
 
@@ -6,9 +6,24 @@ class Settings(BaseSettings):
     app_name: str = "Advisor Experience API"
     contract_version: str = "v1"
     decisioning_service_base_url: str = Field(default="http://advise.dev.lotus")
-    portfolio_data_query_base_url: str = Field(default="http://core-query.dev.lotus")
-    portfolio_data_control_plane_base_url: str = Field(default="http://core-query.dev.lotus")
-    portfolio_data_ingestion_base_url: str = Field(default="http://core-ingestion.dev.lotus")
+    portfolio_data_query_base_url: str = Field(
+        default="http://core-query.dev.lotus",
+        validation_alias=AliasChoices(
+            "PORTFOLIO_DATA_QUERY_BASE_URL",
+            "PORTFOLIO_DATA_PLATFORM_BASE_URL",
+        ),
+    )
+    portfolio_data_control_plane_base_url: str = Field(
+        default="http://core-query.dev.lotus",
+        validation_alias=AliasChoices(
+            "PORTFOLIO_DATA_CONTROL_PLANE_BASE_URL",
+            "PORTFOLIO_DATA_PLATFORM_BASE_URL",
+        ),
+    )
+    portfolio_data_ingestion_base_url: str = Field(
+        default="http://core-ingestion.dev.lotus",
+        validation_alias=AliasChoices("PORTFOLIO_DATA_INGESTION_BASE_URL"),
+    )
     performance_analytics_base_url: str = Field(default="http://performance.dev.lotus")
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")

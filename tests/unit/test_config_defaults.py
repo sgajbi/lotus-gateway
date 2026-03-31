@@ -1,3 +1,5 @@
+import os
+
 from app.config import Settings
 
 
@@ -15,3 +17,31 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
     assert settings.reporting_aggregation_base_url == "http://report.dev.lotus"
     assert settings.management_service_base_url == "http://manage.dev.lotus"
+
+
+def test_settings_accept_legacy_platform_stack_env_aliases():
+    previous_platform_url = os.environ.get("PORTFOLIO_DATA_PLATFORM_BASE_URL")
+    previous_ingestion_url = os.environ.get("PORTFOLIO_DATA_INGESTION_BASE_URL")
+
+    os.environ["PORTFOLIO_DATA_PLATFORM_BASE_URL"] = "http://lotus-core-query:8001"
+    os.environ["PORTFOLIO_DATA_INGESTION_BASE_URL"] = "http://lotus-core-ingestion:8000"
+
+    try:
+        settings = Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+        )
+    finally:
+        if previous_platform_url is None:
+            os.environ.pop("PORTFOLIO_DATA_PLATFORM_BASE_URL", None)
+        else:
+            os.environ["PORTFOLIO_DATA_PLATFORM_BASE_URL"] = previous_platform_url
+
+        if previous_ingestion_url is None:
+            os.environ.pop("PORTFOLIO_DATA_INGESTION_BASE_URL", None)
+        else:
+            os.environ["PORTFOLIO_DATA_INGESTION_BASE_URL"] = previous_ingestion_url
+
+    assert settings.portfolio_data_query_base_url == "http://lotus-core-query:8001"
+    assert settings.portfolio_data_control_plane_base_url == "http://lotus-core-query:8001"
+    assert settings.portfolio_data_ingestion_base_url == "http://lotus-core-ingestion:8000"
