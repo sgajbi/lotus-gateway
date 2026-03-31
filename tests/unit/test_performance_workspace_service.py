@@ -225,6 +225,7 @@ def _workspace_summary_payload() -> dict:
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
                                 "flow_adjusted_end_market_value": 496_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 12_500.0,
                             },
                         }
@@ -237,6 +238,7 @@ def _workspace_summary_payload() -> dict:
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
                                 "flow_adjusted_end_market_value": 496_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 12_500.0,
                             },
                         }
@@ -388,6 +390,7 @@ def _workspace_summary_payload() -> dict:
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
                                 "flow_adjusted_end_market_value": 486_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -425,6 +428,7 @@ def _workspace_summary_payload() -> dict:
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
                                 "flow_adjusted_end_market_value": 486_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -758,6 +762,10 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.net_performance.benchmark_return_pct == 14.72
     assert response.net_performance.active_return_pct == 0.38
     assert response.net_performance.begin_market_value == 450000.0
+    assert response.net_performance.end_market_value == 508870.0
+    assert response.net_performance.flow_adjusted_end_market_value == 486370.0
+    assert response.net_performance.net_cash_flow == 22500.0
+    assert response.net_performance.fees == 0.0
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.money_weighted_return_pct == 14.05
