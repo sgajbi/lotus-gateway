@@ -1579,6 +1579,16 @@ class PerformanceWorkspaceService:
                     end_market_value=self._quantize_optional(economics.get("end_market_value"))
                     if isinstance(economics, dict)
                     else None,
+                    beginning_cash_flow=self._quantize_optional(
+                        economics.get("beginning_cash_flow")
+                    )
+                    if isinstance(economics, dict)
+                    else None,
+                    ending_cash_flow=self._quantize_optional(
+                        economics.get("ending_cash_flow")
+                    )
+                    if isinstance(economics, dict)
+                    else None,
                     flow_adjusted_end_market_value=self._quantize_optional(
                         economics.get("flow_adjusted_end_market_value")
                     )
@@ -1678,6 +1688,12 @@ class PerformanceWorkspaceService:
             if isinstance(economics, dict)
             else None,
             end_market_value=self._quantize_optional(economics.get("end_market_value"))
+            if isinstance(economics, dict)
+            else None,
+            beginning_cash_flow=self._quantize_optional(economics.get("beginning_cash_flow"))
+            if isinstance(economics, dict)
+            else None,
+            ending_cash_flow=self._quantize_optional(economics.get("ending_cash_flow"))
             if isinstance(economics, dict)
             else None,
             flow_adjusted_end_market_value=self._quantize_optional(

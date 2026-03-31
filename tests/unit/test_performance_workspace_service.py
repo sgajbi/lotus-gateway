@@ -224,6 +224,8 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 15_000.0,
+                                "ending_cash_flow": -2_500.0,
                                 "flow_adjusted_end_market_value": 496_370.0,
                                 "fees": 0.0,
                                 "net_cash_flow": 12_500.0,
@@ -237,6 +239,8 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 470_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 15_000.0,
+                                "ending_cash_flow": -2_500.0,
                                 "flow_adjusted_end_market_value": 496_370.0,
                                 "fees": 0.0,
                                 "net_cash_flow": 12_500.0,
@@ -389,6 +393,8 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 30_000.0,
+                                "ending_cash_flow": -7_500.0,
                                 "flow_adjusted_end_market_value": 486_370.0,
                                 "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
@@ -427,6 +433,8 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 30_000.0,
+                                "ending_cash_flow": -7_500.0,
                                 "flow_adjusted_end_market_value": 486_370.0,
                                 "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
@@ -763,6 +771,8 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.net_performance.active_return_pct == 0.38
     assert response.net_performance.begin_market_value == 450000.0
     assert response.net_performance.end_market_value == 508870.0
+    assert response.net_performance.beginning_cash_flow == 30000.0
+    assert response.net_performance.ending_cash_flow == -7500.0
     assert response.net_performance.flow_adjusted_end_market_value == 486370.0
     assert response.net_performance.net_cash_flow == 22500.0
     assert response.net_performance.fees == 0.0
@@ -905,6 +915,8 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[0].gross_return_pct == 1.22
     assert response.rows[2].benchmark_return_pct == 14.72
     assert response.rows[2].begin_market_value == 450000.0
+    assert response.rows[2].beginning_cash_flow == 30000.0
+    assert response.rows[2].ending_cash_flow == -7500.0
     assert response.rows[2].flow_adjusted_end_market_value == 486370.0
     assert response.rows[3].active_return_pct == 0.6
     assert response.rows[0].period_start == "2026-03-01"

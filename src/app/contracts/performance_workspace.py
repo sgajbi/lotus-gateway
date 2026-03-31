@@ -17,6 +17,8 @@ class PerformanceComparativeSummary(BaseModel):
     benchmark_return_source: str | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
     flow_adjusted_end_market_value: float | None = None
     net_cash_flow: float | None = None
     fees: float | None = None
@@ -155,6 +157,8 @@ class PerformanceHorizonComparisonRow(BaseModel):
     period_end: str | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
     flow_adjusted_end_market_value: float | None = None
     net_cash_flow: float | None = None
     fees: float | None = None
