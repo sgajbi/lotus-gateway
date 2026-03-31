@@ -40,6 +40,7 @@ class PerformanceChartPoint(BaseModel):
 class MoneyWeightedReturnSummary(BaseModel):
     money_weighted_return_pct: float | None = None
     annualized_return_pct: float | None = None
+    input_mode: str | None = None
     method: str | None = None
     start_date: str | None = None
     end_date: str | None = None

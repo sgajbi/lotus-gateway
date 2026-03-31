@@ -251,6 +251,7 @@ def _workspace_summary_payload() -> dict:
                 "money_weighted_return": {
                     "period_return": 4.11,
                     "annualized_return": 4.11,
+                    "input_mode": "stateful",
                     "method": "XIRR",
                     "start_date": "2026-01-01",
                     "end_date": "2026-03-27",
@@ -479,6 +480,7 @@ def _workspace_summary_payload() -> dict:
                 "money_weighted_return": {
                     "period_return": 14.05,
                     "annualized_return": 14.05,
+                    "input_mode": "stateful",
                     "method": "XIRR",
                     "start_date": "2026-01-01",
                     "end_date": "2026-03-27",
@@ -797,6 +799,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.money_weighted_return_pct == 14.05
+    assert response.money_weighted_return.input_mode == "stateful"
     assert response.money_weighted_return.begin_market_value == 450000.0
     assert response.money_weighted_return.end_market_value == 508870.0
     assert response.money_weighted_return.beginning_cash_flow == 30000.0
@@ -873,6 +876,7 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.net_performance.portfolio_return_pct == 15.1
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
+    assert response.money_weighted_return.input_mode == "stateful"
     assert response.money_weighted_return.method == "XIRR"
     assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"

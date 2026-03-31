@@ -513,6 +513,7 @@ def test_workbench_performance_summary_router(monkeypatch):
             "money_weighted_return": {
                 "money_weighted_return_pct": 5.12,
                 "annualized_return_pct": 5.12,
+                "input_mode": "stateful",
                 "method": "XIRR",
                 "start_date": "2026-01-01",
                 "end_date": "2026-02-24",
@@ -545,6 +546,7 @@ def test_workbench_performance_summary_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
+    assert body["money_weighted_return"]["input_mode"] == "stateful"
     assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
     assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
     assert body["money_weighted_return"]["net_cash_flow"] == 42000.0

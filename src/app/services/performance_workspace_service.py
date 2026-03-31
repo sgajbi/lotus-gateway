@@ -1783,6 +1783,7 @@ class PerformanceWorkspaceService:
         return MoneyWeightedReturnSummary(
             money_weighted_return_pct=self._quantize_optional(mwr_payload.get("period_return")),
             annualized_return_pct=self._quantize_optional(mwr_payload.get("annualized_return")),
+            input_mode=self._safe_str(mwr_payload.get("input_mode")),
             method=self._safe_str(mwr_payload.get("method")),
             start_date=self._safe_str(mwr_payload.get("start_date")),
             end_date=self._safe_str(mwr_payload.get("end_date")),
