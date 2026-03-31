@@ -1847,13 +1847,13 @@ class PerformanceWorkspaceService:
                         name=str(level_payload.get("name", "Level")),
                         rows=rows,
                         total_contribution_pct=self._quantize_optional(
-                            summary_payload.get("total_contribution")
+                            summary_payload.get("portfolio_contribution")
                         ),
                         total_weight_avg_pct=self._sum_optional(
                             [row.weight_avg_pct for row in rows]
                         ),
                         total_portfolio_return_pct=self._quantize_optional(
-                            summary_payload.get("portfolio_return")
+                            summary_payload.get("portfolio_contribution")
                         ),
                     )
                 )
@@ -1883,19 +1883,19 @@ class PerformanceWorkspaceService:
                 )
         return ContributionSummaryView(
             metric_basis=self._safe_str(contribution_payload.get("metric_basis")) or "NET",
-            weighting_scheme=None,
+            weighting_scheme=self._safe_str(summary_payload.get("weighting_scheme")),
             portfolio_contribution_pct=self._quantize_optional(
-                summary_payload.get("total_contribution")
+                summary_payload.get("portfolio_contribution")
             ),
             total_portfolio_return_pct=self._quantize_optional(
-                summary_payload.get("portfolio_return")
+                summary_payload.get("portfolio_contribution")
             ),
-            coverage_mv_pct=None,
+            coverage_mv_pct=self._quantize_optional(summary_payload.get("coverage_mv_pct")),
             portfolio_local_contribution_pct=self._quantize_optional(
-                summary_payload.get("portfolio_local_return")
+                summary_payload.get("local_contribution")
             ),
             portfolio_fx_contribution_pct=self._quantize_optional(
-                summary_payload.get("portfolio_fx_return")
+                summary_payload.get("fx_contribution")
             ),
             position_rows=position_rows,
             levels=levels,

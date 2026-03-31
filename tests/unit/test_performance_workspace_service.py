@@ -269,10 +269,11 @@ def _workspace_summary_payload() -> dict:
                 "contribution": {
                     "metric_basis": "NET",
                     "summary": {
-                        "total_contribution": 4.3,
-                        "portfolio_return": 4.3,
-                        "portfolio_local_return": 4.0,
-                        "portfolio_fx_return": 0.3,
+                        "portfolio_contribution": 4.3,
+                        "coverage_mv_pct": 98.7,
+                        "weighting_scheme": "average_weight",
+                        "local_contribution": 4.0,
+                        "fx_contribution": 0.3,
                     },
                     "levels": [
                         {
@@ -498,10 +499,11 @@ def _workspace_summary_payload() -> dict:
                 "contribution": {
                     "metric_basis": "NET",
                     "summary": {
-                        "total_contribution": 15.1,
-                        "portfolio_return": 15.1,
-                        "portfolio_local_return": 13.9,
-                        "portfolio_fx_return": 1.2,
+                        "portfolio_contribution": 15.1,
+                        "coverage_mv_pct": 96.4,
+                        "weighting_scheme": "average_weight",
+                        "local_contribution": 13.9,
+                        "fx_contribution": 1.2,
                     },
                     "levels": [
                         {
@@ -998,6 +1000,14 @@ async def test_performance_workspace_service_maps_workspace_position_contributio
         "SEC_ETF_WORLD_USD",
     ]
     assert response.contribution.position_rows[0].contribution_pct == 5.43
+    assert response.contribution.weighting_scheme == "average_weight"
+    assert response.contribution.portfolio_contribution_pct == 15.1
+    assert response.contribution.total_portfolio_return_pct == 15.1
+    assert response.contribution.coverage_mv_pct == 96.4
+    assert response.contribution.portfolio_local_contribution_pct == 13.9
+    assert response.contribution.portfolio_fx_contribution_pct == 1.2
+    assert response.contribution.levels[0].total_contribution_pct == 15.1
+    assert response.contribution.levels[0].total_portfolio_return_pct == 15.1
     assert response.capabilities.contribution_ranking.state == "supported"
 
 
