@@ -587,6 +587,7 @@ async def test_lotus_core_query_client_core_endpoints():
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})
     _FakeAsyncClient.queue_json(200, {"allowedSections": ["OVERVIEW"]})
     _FakeAsyncClient.queue_json(200, {"portfolios": []})
+    _FakeAsyncClient.queue_json(200, {"items": [{"id": "P1", "label": "Portfolio 1"}]})
     _FakeAsyncClient.queue_json(200, {"as_of_date": "2026-02-24", "sections": {}})
     _FakeAsyncClient.queue_json(200, {"performance_end_date": "2026-02-24"})
     _FakeAsyncClient.queue_json(200, {"items": [{"instrument_id": "AAPL"}]})
@@ -602,6 +603,7 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_portfolios(correlation_id="corr-3"))[0] == 200
+    assert (await client.get_portfolio_lookups(correlation_id="corr-3"))[0] == 200
     assert (
         await client.get_core_snapshot(
             portfolio_id="P1",
@@ -620,13 +622,15 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_instruments(limit=10, correlation_id="corr-3"))[0] == 200
-    assert _FakeAsyncClient.calls[3]["json"] == {
+    assert _FakeAsyncClient.calls[3]["url"] == "http://pas/lookups/portfolios"
+    assert _FakeAsyncClient.calls[3]["params"] == {}
+    assert _FakeAsyncClient.calls[4]["json"] == {
         "as_of_date": "2026-02-24",
         "sections": ["positions_baseline"],
         "consumer_system": "lotus-gateway",
     }
     assert (
-        _FakeAsyncClient.calls[4]["url"]
+        _FakeAsyncClient.calls[5]["url"]
         == "http://pas/integration/portfolios/P1/analytics/reference"
     )
 
