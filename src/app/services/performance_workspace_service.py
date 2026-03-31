@@ -1776,6 +1776,9 @@ class PerformanceWorkspaceService:
         mwr_payload = period_payload.get("money_weighted_return", {})
         if not isinstance(mwr_payload, dict):
             return None
+        economics_payload = mwr_payload.get("economics", {})
+        if not isinstance(economics_payload, dict):
+            economics_payload = {}
         notes = mwr_payload.get("notes", [])
         return MoneyWeightedReturnSummary(
             money_weighted_return_pct=self._quantize_optional(mwr_payload.get("period_return")),
@@ -1783,6 +1786,17 @@ class PerformanceWorkspaceService:
             method=self._safe_str(mwr_payload.get("method")),
             start_date=self._safe_str(mwr_payload.get("start_date")),
             end_date=self._safe_str(mwr_payload.get("end_date")),
+            begin_market_value=self._quantize_optional(economics_payload.get("begin_market_value")),
+            end_market_value=self._quantize_optional(economics_payload.get("end_market_value")),
+            beginning_cash_flow=self._quantize_optional(
+                economics_payload.get("beginning_cash_flow")
+            ),
+            ending_cash_flow=self._quantize_optional(economics_payload.get("ending_cash_flow")),
+            flow_adjusted_end_market_value=self._quantize_optional(
+                economics_payload.get("flow_adjusted_end_market_value")
+            ),
+            net_cash_flow=self._quantize_optional(economics_payload.get("net_cash_flow")),
+            fees=self._quantize_optional(economics_payload.get("fees")),
             notes=[str(note) for note in notes] if isinstance(notes, list) else [],
         )
 

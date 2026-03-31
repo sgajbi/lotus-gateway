@@ -254,6 +254,15 @@ def _workspace_summary_payload() -> dict:
                     "method": "XIRR",
                     "start_date": "2026-01-01",
                     "end_date": "2026-03-27",
+                    "economics": {
+                        "begin_market_value": 470_000.0,
+                        "end_market_value": 508_870.0,
+                        "beginning_cash_flow": 15_000.0,
+                        "ending_cash_flow": -2_500.0,
+                        "flow_adjusted_end_market_value": 496_370.0,
+                        "fees": 0.0,
+                        "net_cash_flow": 12_500.0,
+                    },
                     "notes": ["cash-flow aware"],
                 },
                 "contribution": {
@@ -473,6 +482,15 @@ def _workspace_summary_payload() -> dict:
                     "method": "XIRR",
                     "start_date": "2026-01-01",
                     "end_date": "2026-03-27",
+                    "economics": {
+                        "begin_market_value": 450_000.0,
+                        "end_market_value": 508_870.0,
+                        "beginning_cash_flow": 30_000.0,
+                        "ending_cash_flow": -7_500.0,
+                        "flow_adjusted_end_market_value": 486_370.0,
+                        "fees": 0.0,
+                        "net_cash_flow": 22_500.0,
+                    },
                     "notes": ["cash-flow aware"],
                 },
                 "contribution": {
@@ -779,6 +797,13 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.money_weighted_return_pct == 14.05
+    assert response.money_weighted_return.begin_market_value == 450000.0
+    assert response.money_weighted_return.end_market_value == 508870.0
+    assert response.money_weighted_return.beginning_cash_flow == 30000.0
+    assert response.money_weighted_return.ending_cash_flow == -7500.0
+    assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
+    assert response.money_weighted_return.net_cash_flow == 22500.0
+    assert response.money_weighted_return.fees == 0.0
     assert len(response.net_chart) == 3
     assert response.net_chart[-1].cumulative_active_return_pct == 0.38
     assert response.contribution is not None
@@ -849,6 +874,7 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.method == "XIRR"
+    assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
     assert response.capabilities.return_path.state == "supported"
     assert response.capabilities.contribution_detail.state == "supported"

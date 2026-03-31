@@ -43,6 +43,13 @@ class MoneyWeightedReturnSummary(BaseModel):
     method: str | None = None
     start_date: str | None = None
     end_date: str | None = None
+    begin_market_value: float | None = None
+    end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
+    flow_adjusted_end_market_value: float | None = None
+    net_cash_flow: float | None = None
+    fees: float | None = None
     notes: list[str] = Field(default_factory=list)
 
 
