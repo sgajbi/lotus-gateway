@@ -335,6 +335,7 @@ class LotusAnalyticsClient:
         chart_frequency: str,
         detail_basis: str,
         benchmark_id: str | None,
+        reporting_currency: str | None,
         segment: str,
         correlation_id: str,
         periods: list[dict[str, Any]] | None = None,
@@ -365,6 +366,8 @@ class LotusAnalyticsClient:
         }
         if include_detail_blocks:
             payload["currency_mode"] = "BOTH"
+            if reporting_currency:
+                payload["report_ccy"] = reporting_currency
             payload["segmentation"] = {
                 "group_by": [segment],
             }

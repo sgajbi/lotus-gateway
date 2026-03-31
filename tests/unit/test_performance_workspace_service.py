@@ -1008,6 +1008,7 @@ async def test_performance_workspace_service_maps_workspace_position_contributio
     assert response.contribution.portfolio_fx_contribution_pct == 1.2
     assert response.contribution.levels[0].total_contribution_pct == 15.1
     assert response.contribution.levels[0].total_portfolio_return_pct == 15.1
+    assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "USD"
     assert response.capabilities.contribution_ranking.state == "supported"
 
 

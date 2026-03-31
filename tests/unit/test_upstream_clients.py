@@ -318,6 +318,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
         chart_frequency="quarterly",
         detail_basis="NET",
         benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
     )
@@ -329,6 +330,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
     assert request["json"]["periods"][0]["period"] == "YTD"
     assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
     assert request["json"]["currency_mode"] == "BOTH"
+    assert request["json"]["report_ccy"] == "USD"
     assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
     assert request["json"]["contribution"]["metric_basis"] == "NET"
     assert request["json"]["attribution"]["metric_basis"] == "NET"
@@ -364,6 +366,7 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
         chart_frequency="quarterly",
         detail_basis="NET",
         benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
     )
@@ -376,6 +379,7 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
     assert first_request["url"] == replay_request["url"] == "http://analytics/performance/workspace-summary"
     assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
     assert first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
+    assert first_request["json"]["report_ccy"] == replay_request["json"]["report_ccy"] == "USD"
     assert first_request["json"]["periods"] == replay_request["json"]["periods"]
     assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
 
@@ -400,6 +404,7 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
         chart_frequency="monthly",
         detail_basis="NET",
         benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
     )

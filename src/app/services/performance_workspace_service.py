@@ -251,6 +251,7 @@ class PerformanceWorkspaceService:
                 period=effective_period,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
+                portfolio_currency=overview.portfolio.base_currency,
                 chart_frequency=resolved_chart_frequency,
             )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
@@ -522,6 +523,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=resolved_chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_code=resolved_benchmark_code,
+                portfolio_currency=overview.portfolio.base_currency,
                 segment=shared_segment,
             )
 
@@ -1181,21 +1183,23 @@ class PerformanceWorkspaceService:
         chart_frequency: str,
         detail_basis: str,
         benchmark_code: str | None,
+        portfolio_currency: str,
         segment: str,
     ) -> GatheredResult:
         return cast(
             GatheredResult,
             await self._analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
-            period=effective_period,
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            segment=segment,
-            correlation_id=correlation_id,
-        )
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
+                period=effective_period,
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment=segment,
+                correlation_id=correlation_id,
+            )
         )
 
     async def _fetch_workspace_horizon_dependencies(
@@ -1208,6 +1212,7 @@ class PerformanceWorkspaceService:
         period: str,
         detail_basis: str,
         benchmark_code: str | None,
+        portfolio_currency: str,
         chart_frequency: str,
     ) -> GatheredResult:
         if period != "EXPLICIT":
@@ -1217,6 +1222,7 @@ class PerformanceWorkspaceService:
                 report_end_date=report_end_date,
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
+                portfolio_currency=portfolio_currency,
                 chart_frequency=chart_frequency,
             )
 
@@ -1235,6 +1241,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
                 segment="asset_class",
                 correlation_id=correlation_id,
                 periods=horizon_periods,
@@ -1250,6 +1257,7 @@ class PerformanceWorkspaceService:
         report_end_date: str,
         detail_basis: str,
         benchmark_code: str | None,
+        portfolio_currency: str,
         chart_frequency: str,
     ) -> GatheredResult:
         frequencies = self._build_horizon_comparison_frequencies(chart_frequency)
@@ -1268,6 +1276,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
                 segment="asset_class",
                 correlation_id=correlation_id,
                 periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
@@ -1281,6 +1290,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
                 segment="asset_class",
                 correlation_id=correlation_id,
                 periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
@@ -1294,6 +1304,7 @@ class PerformanceWorkspaceService:
                 chart_frequency=chart_frequency,
                 detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
                 segment="asset_class",
                 correlation_id=correlation_id,
                 periods=[
