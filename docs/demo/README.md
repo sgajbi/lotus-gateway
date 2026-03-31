@@ -11,7 +11,8 @@ Run deterministic lotus-gateway demos for:
 
 - lotus-manage running at `http://manage.dev.lotus`
 - lotus-gateway running at `http://gateway.dev.lotus`
-- lotus-core running at `http://core.dev.lotus`
+- lotus-core query running at `http://core-query.dev.lotus`
+- lotus-core ingestion running at `http://core-ingestion.dev.lotus`
 - lotus-performance running at `http://performance.dev.lotus`
 
 ## Performance Contract Demo

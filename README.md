@@ -106,7 +106,8 @@ The current flagship performance workstation integration is served from `lotus-g
 
 Required upstreams:
 
-- `lotus-core`: `http://core.dev.lotus`
+- `lotus-core` query: `http://core-query.dev.lotus`
+- `lotus-core` ingestion: `http://core-ingestion.dev.lotus`
 - `lotus-performance`: `http://performance.dev.lotus`
 
 Example live probes:
