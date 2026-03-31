@@ -15,6 +15,7 @@ class PerformanceComparativeSummary(BaseModel):
     annualized_return_pct: float | None = None
     benchmark_id: str | None = None
     benchmark_return_source: str | None = None
+    benchmark_input_mode: str | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
     beginning_cash_flow: float | None = None

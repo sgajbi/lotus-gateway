@@ -1695,6 +1695,7 @@ class PerformanceWorkspaceService:
             ),
             benchmark_id=self._safe_str(benchmark_block.get("benchmark_id")),
             benchmark_return_source=self._safe_str(benchmark_block.get("return_source")),
+            benchmark_input_mode=self._safe_str(benchmark_block.get("input_mode")),
             begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
             if isinstance(economics, dict)
             else None,

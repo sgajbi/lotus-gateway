@@ -207,6 +207,7 @@ def _workspace_summary_payload() -> dict:
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
+                    "input_mode": "stateful",
                     "summary": {
                         "period_return": {"base": 4.0},
                         "annualized_return": {"base": 4.0},
@@ -363,6 +364,7 @@ def _workspace_summary_payload() -> dict:
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
+                    "input_mode": "stateful",
                     "summary": {
                         "period_return": {"base": 14.72},
                     },
@@ -791,6 +793,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.net_performance.portfolio_return_pct == 15.1
     assert response.net_performance.benchmark_return_pct == 14.72
     assert response.net_performance.active_return_pct == 0.38
+    assert response.net_performance.benchmark_input_mode == "stateful"
     assert response.net_performance.begin_market_value == 450000.0
     assert response.net_performance.end_market_value == 508870.0
     assert response.net_performance.beginning_cash_flow == 30000.0

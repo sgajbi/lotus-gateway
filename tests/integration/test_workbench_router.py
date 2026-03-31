@@ -502,6 +502,7 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "benchmark_return_pct": 4.9,
                 "active_return_pct": 0.52,
                 "annualized_return_pct": 5.42,
+                "benchmark_input_mode": "stateful",
             },
             "gross_performance": {
                 "metric_basis": "GROSS",
@@ -509,6 +510,7 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "benchmark_return_pct": 4.9,
                 "active_return_pct": 0.98,
                 "annualized_return_pct": 5.88,
+                "benchmark_input_mode": "stateful",
             },
             "money_weighted_return": {
                 "money_weighted_return_pct": 5.12,
@@ -546,6 +548,7 @@ def test_workbench_performance_summary_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
+    assert body["net_performance"]["benchmark_input_mode"] == "stateful"
     assert body["money_weighted_return"]["input_mode"] == "stateful"
     assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
     assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
