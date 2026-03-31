@@ -26,7 +26,14 @@ pip install -e ".[dev]"
 make run
 ```
 
-API docs: `http://localhost:8100/docs`
+API docs: `http://gateway.dev.lotus/docs`
+
+Preferred environment-scoped service identity:
+
+- Gateway: `http://gateway.dev.lotus`
+
+Public-entry repos should depend on the stable service identity above. Raw port mappings remain an
+internal local-runtime detail until the full RFC-0071 rollout is complete.
 
 ## Current endpoints
 
@@ -99,20 +106,19 @@ The current flagship performance workstation integration is served from `lotus-g
 
 Required upstreams:
 
-- `lotus-core` query: `http://127.0.0.1:8201`
-- `lotus-core` control plane: `http://127.0.0.1:8202`
-- `lotus-performance`: `http://127.0.0.1:8002`
+- `lotus-core`: `http://core.dev.lotus`
+- `lotus-performance`: `http://performance.dev.lotus`
 
 Example live probes:
 
 ```bash
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 ```
 
 Expected benchmark catalog for the seeded flagship mandate:
