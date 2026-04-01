@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.middleware.server_timing import append_server_timing_metric
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
 
@@ -345,6 +346,16 @@ def test_workbench_performance_router(monkeypatch):
                     "is_assigned": True,
                 }
             ],
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "portfolio": {
                 "portfolio_id": "PF_1001",
                 "client_id": "CIF_1001",
@@ -443,6 +454,9 @@ def test_workbench_performance_router(monkeypatch):
 
 def test_workbench_performance_summary_router(monkeypatch):
     async def _performance_summary(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-summary", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -461,6 +475,16 @@ def test_workbench_performance_summary_router(monkeypatch):
                     "is_assigned": True,
                 }
             ],
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "portfolio": {
                 "portfolio_id": "PF_1001",
                 "client_id": "CIF_1001",
@@ -478,6 +502,7 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "benchmark_return_pct": 4.9,
                 "active_return_pct": 0.52,
                 "annualized_return_pct": 5.42,
+                "benchmark_input_mode": "stateful",
             },
             "gross_performance": {
                 "metric_basis": "GROSS",
@@ -485,13 +510,22 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "benchmark_return_pct": 4.9,
                 "active_return_pct": 0.98,
                 "annualized_return_pct": 5.88,
+                "benchmark_input_mode": "stateful",
             },
             "money_weighted_return": {
                 "money_weighted_return_pct": 5.12,
                 "annualized_return_pct": 5.12,
+                "input_mode": "stateful",
                 "method": "XIRR",
                 "start_date": "2026-01-01",
                 "end_date": "2026-02-24",
+                "begin_market_value": 1200000.0,
+                "end_market_value": 1250000.0,
+                "beginning_cash_flow": 50000.0,
+                "ending_cash_flow": -8000.0,
+                "flow_adjusted_end_market_value": 1208000.0,
+                "net_cash_flow": 42000.0,
+                "fees": 0.0,
                 "notes": [],
             },
             "warnings": [],
@@ -507,15 +541,27 @@ def test_workbench_performance_summary_router(monkeypatch):
     response = client.get("/api/v1/workbench/PF_1001/performance/summary?period=YTD")
 
     assert response.status_code == 200
+    assert response.headers["Server-Timing"].startswith("app;dur=")
+    assert "perf-summary;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
+    assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
+    assert body["net_performance"]["benchmark_input_mode"] == "stateful"
+    assert body["money_weighted_return"]["input_mode"] == "stateful"
+    assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
+    assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
+    assert body["money_weighted_return"]["net_cash_flow"] == 42000.0
     assert "net_chart" not in body
     assert "contribution" not in body
 
 
 def test_workbench_performance_details_router(monkeypatch):
     async def _performance_details(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-summary", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -530,6 +576,16 @@ def test_workbench_performance_details_router(monkeypatch):
             "detail_basis": "NET",
             "segment": "asset_class",
             "benchmark_code": "MODEL_60_40",
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "unavailable"},
+            },
             "net_chart": [
                 {
                     "label": "2026-01",
@@ -576,6 +632,10 @@ def test_workbench_performance_details_router(monkeypatch):
     response = client.get("/api/v1/workbench/PF_1001/performance/details?period=YTD")
 
     assert response.status_code == 200
+    assert response.headers["Server-Timing"].startswith("app;dur=")
+    assert "perf-summary;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
+    assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_chart"][0]["label"] == "2026-01"
@@ -586,12 +646,23 @@ def test_workbench_performance_details_router(monkeypatch):
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):
     async def _performance_horizon_comparison(*args, **kwargs):  # noqa: ARG001
+        assert kwargs["period"] == "EXPLICIT"
+        assert kwargs["explicit_start_date"] == "2026-01-01"
+        assert kwargs["explicit_end_date"] == "2026-02-24"
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-horizon", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-02-24",
+            "period": "EXPLICIT",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-02-24",
             "detail_basis": "NET",
+            "chart_frequency": "monthly",
+            "requested_chart_frequency_supported": True,
             "benchmark_code": "MODEL_60_40",
             "benchmark_options": [
                 {
@@ -627,18 +698,30 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
 
     client = TestClient(app)
     response = client.get(
-        "/api/v1/workbench/PF_1001/performance/horizon-comparison?detail_basis=NET&benchmark_code=MODEL_60_40"
+        "/api/v1/workbench/PF_1001/performance/horizon-comparison"
+        "?period=EXPLICIT&detail_basis=NET&benchmark_code=MODEL_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-02-24"
     )
 
     assert response.status_code == 200
+    assert "perf-horizon;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-02-24"
+    assert body["chart_frequency"] == "monthly"
+    assert body["requested_chart_frequency_supported"] is True
     assert body["rows"][0]["period"] == "MTD"
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
 
 
 def test_workbench_performance_attribution_trend_router(monkeypatch):
     async def _performance_attribution_trend(*args, **kwargs):  # noqa: ARG001
+        append_server_timing_metric("perf-reference", 1.0)
+        append_server_timing_metric("perf-benchmark", 2.0)
+        append_server_timing_metric("perf-attribution", 3.0)
         return {
             "correlation_id": "corr-performance",
             "contract_version": "v1",
@@ -650,6 +733,8 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
             "chart_frequency": "monthly",
             "detail_basis": "NET",
             "attribution_dimension": "asset_class",
+            "requested_chart_frequency_supported": True,
+            "requested_attribution_dimension_supported": True,
             "benchmark_code": "MODEL_60_40",
             "rows": [
                 {
@@ -683,11 +768,28 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     )
 
     assert response.status_code == 200
+    assert "perf-attribution;dur=" in response.headers["Server-Timing"]
+    assert "perf-benchmark;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["chart_frequency"] == "monthly"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
     assert body["rows"][0]["period_label"] == "2026-01"
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
+
+
+def test_workbench_performance_monolithic_route_is_marked_deprecated_in_openapi():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    performance_get = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance"]["get"]
+    assert performance_get["deprecated"] is True
+    assert "Compatibility endpoint for the legacy monolithic performance workspace contract" in (
+        performance_get["description"]
+    )
 
 
 def test_workbench_sandbox_changes_router(monkeypatch):

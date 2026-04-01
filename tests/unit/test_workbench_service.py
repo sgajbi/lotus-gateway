@@ -15,6 +15,7 @@ class _StubLotusCoreQueryClient:
         self.portfolio_payload = portfolio_payload
         self.snapshot_status_code = snapshot_status_code
         self.snapshot_payload = snapshot_payload
+        self.reference_calls = 0
 
     async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
         return self.portfolio_status_code, self.portfolio_payload
@@ -36,6 +37,7 @@ class _StubLotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ):
+        self.reference_calls += 1
         return 200, {"performance_end_date": "2026-02-23"}
 
     async def get_projected_positions(self, session_id: str, correlation_id: str):
@@ -112,6 +114,7 @@ class _StubLotusAnalyticsClient:
             ],
             "riskProxy": {"hhiCurrent": 10000.0, "hhiProposed": 10000.0, "hhiDelta": 0.0},
         }
+        self.twr_calls = 0
 
     async def get_stateful_twr(
         self,
@@ -120,6 +123,7 @@ class _StubLotusAnalyticsClient:
         period: str,
         correlation_id: str,
     ):
+        self.twr_calls += 1
         self.last_report_end_date = report_end_date
         return self.status_code, self.payload
 
@@ -149,8 +153,10 @@ class _StubDpmClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
+        self.list_runs_calls = 0
 
     async def list_runs(self, params: dict, correlation_id: str):
+        self.list_runs_calls += 1
         return self.status_code, self.payload
 
     async def simulate_proposal(
@@ -317,6 +323,70 @@ async def test_workbench_overview_partial_failures():
         "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
         "MANAGE_REBALANCE_UNAVAILABLE",
     ]
+
+
+@pytest.mark.asyncio
+async def test_workbench_overview_can_skip_performance_and_rebalance_fetches():
+    query_client = _StubLotusCoreQueryClient(
+        200,
+        {
+            "portfolio_id": "PF_1001",
+            "base_currency": "USD",
+            "booking_center_code": "SG",
+            "client_id": "CIF_1001",
+        },
+        200,
+        {
+            "as_of_date": "2026-02-23",
+            "sections": {
+                "positions_baseline": [
+                    {
+                        "security_id": "EQ_1",
+                        "quantity": 10,
+                        "market_value_base": 750.0,
+                        "weight": 0.75,
+                    }
+                ],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                    }
+                ],
+            },
+        },
+    )
+    analytics_client = _StubLotusAnalyticsClient(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 3.2}}}}
+            },
+        },
+    )
+    dpm_client = _StubDpmClient(200, {"items": []})
+    service = WorkbenchService(
+        lotus_core_query_client=query_client,
+        analytics_client=analytics_client,
+        dpm_client=dpm_client,
+    )
+
+    response = await service.get_workbench_overview(
+        portfolio_id="PF_1001",
+        correlation_id="corr-skip",
+        include_performance_snapshot=False,
+        include_rebalance_snapshot=False,
+    )
+
+    assert response.performance_snapshot is None
+    assert response.rebalance_snapshot is None
+    assert response.warnings == []
+    assert response.partial_failures == []
+    assert query_client.reference_calls == 0
+    assert analytics_client.twr_calls == 0
+    assert dpm_client.list_runs_calls == 0
 
 
 @pytest.mark.asyncio

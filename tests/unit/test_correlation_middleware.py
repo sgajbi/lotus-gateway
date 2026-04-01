@@ -1,7 +1,10 @@
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.middleware.correlation import resolve_trace_id
+from app.middleware.correlation import correlation_middleware
+from app.middleware.server_timing import append_server_timing_metric
 
 
 def test_correlation_header_is_returned():
@@ -11,6 +14,38 @@ def test_correlation_header_is_returned():
     assert response.headers.get("X-Correlation-Id") == "corr_test_1"
     assert response.headers.get("X-Request-Id")
     assert response.headers.get("X-Trace-Id")
+    assert response.headers.get("Server-Timing")
+
+
+def test_server_timing_header_exposes_app_duration():
+    client = TestClient(app)
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    server_timing = response.headers.get("Server-Timing")
+    assert server_timing is not None
+    assert server_timing.startswith("app;dur=")
+    duration_value = float(server_timing.removeprefix("app;dur="))
+    assert duration_value >= 0.0
+
+
+def test_server_timing_header_includes_phase_metrics_when_recorded():
+    timing_app = FastAPI()
+    timing_app.middleware("http")(correlation_middleware)
+
+    @timing_app.get("/timed")
+    async def _timed_health():
+        append_server_timing_metric("perf-summary", 12.34)
+        return {"status": "ok"}
+
+    client = TestClient(timing_app)
+    response = client.get("/timed")
+
+    assert response.status_code == 200
+    server_timing = response.headers.get("Server-Timing")
+    assert server_timing is not None
+    assert "app;dur=" in server_timing
+    assert "perf-summary;dur=12.34" in server_timing
 
 
 def test_correlation_header_casing_variants_are_equivalent():

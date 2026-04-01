@@ -9,11 +9,11 @@ Run deterministic lotus-gateway demos for:
 
 ## Prerequisites
 
-- lotus-manage running at `http://127.0.0.1:8000`
-- lotus-gateway running at `http://127.0.0.1:8100`
-- lotus-core query running at `http://127.0.0.1:8201`
-- lotus-core control plane running at `http://127.0.0.1:8202`
-- lotus-performance running at `http://127.0.0.1:8002`
+- lotus-manage running at `http://manage.dev.lotus`
+- lotus-gateway running at `http://gateway.dev.lotus`
+- lotus-core query running at `http://core-query.dev.lotus`
+- lotus-core ingestion running at `http://core-ingestion.dev.lotus`
+- lotus-performance running at `http://performance.dev.lotus`
 
 ## Performance Contract Demo
 
@@ -26,13 +26,13 @@ Use the seeded flagship mandate:
 Probe the split contracts:
 
 ```bash
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
-curl "http://127.0.0.1:8100/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 ```
 
 Verify:

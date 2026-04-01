@@ -23,6 +23,8 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceHorizonComparisonResponse,
     PerformanceHorizonComparisonRow,
+    PerformanceModuleCapability,
+    PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -34,6 +36,7 @@ from app.contracts.portfolio import (
     PortfolioPerformanceSnapshotUnavailable,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.workbench_service import WorkbenchService
 
@@ -47,6 +50,10 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
+SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
+SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
+SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
+SUPPORTED_WORKSPACE_SUMMARY_PERIODS = ("YTD", "1Y", "2Y", "5Y", "10Y", "SI", "EXPLICIT")
 
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
@@ -89,6 +96,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=True,
         )
 
     async def get_performance_workspace_summary(
@@ -116,6 +124,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=True,
         )
         return self._project_workspace_summary(workspace)
 
@@ -144,6 +153,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=False,
         )
         return self._project_workspace_details(workspace)
 
@@ -170,6 +180,7 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=False,
         )
         return self._project_portfolio_performance_snapshot(workspace)
 
@@ -178,44 +189,80 @@ class PerformanceWorkspaceService:
         *,
         portfolio_id: str,
         correlation_id: str,
+        period: str,
         detail_basis: str,
         benchmark_code: str | None,
         chart_frequency: str,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
     ) -> PerformanceHorizonComparisonResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-        )
-        warnings = list(overview.warnings)
-        partial_failures = list(overview.partial_failures)
-        report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=None,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        (
-            workspace_summary_result,
-            benchmark_catalog_result,
-        ) = await self._fetch_workspace_horizon_dependencies(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            detail_basis=detail_basis,
-            benchmark_code=await self._resolve_benchmark_code(
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=report_end_date,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
+        warnings = list(overview.warnings)
+        partial_failures = list(overview.partial_failures)
+        async with server_timing_span("perf-reference"):
+            report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+        resolved_report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+            default_report_end_date=report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        (
+            resolved_chart_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+            warning_code="PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED",
+        )
+        async with server_timing_span("perf-benchmark"):
+            (
+                resolved_benchmark_code,
+                benchmark_catalog_result,
+            ) = await self._fetch_benchmark_context(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=resolved_report_end_date,
                 portfolio_currency=overview.portfolio.base_currency,
                 benchmark_code=benchmark_code,
-            ),
-            portfolio_currency=overview.portfolio.base_currency,
-            chart_frequency=chart_frequency,
-        )
+                include_benchmark_catalog=True,
+            )
+        async with server_timing_span("perf-horizon"):
+            workspace_summary_result = await self._fetch_workspace_horizon_dependencies(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=resolved_report_end_date,
+                report_start_date=report_start_date.isoformat()
+                if effective_period == "EXPLICIT"
+                else None,
+                period=effective_period,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                portfolio_currency=overview.portfolio.base_currency,
+                chart_frequency=resolved_chart_frequency,
+            )
         rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
-            results_by_label=workspace_summary_result,
+            result=workspace_summary_result,
+            requested_period=effective_period,
+            requested_report_start_date=report_start_date.isoformat()
+            if effective_period == "EXPLICIT"
+            else None,
+            requested_report_end_date=resolved_report_end_date
+            if effective_period == "EXPLICIT"
+            else None,
             detail_basis=detail_basis,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -231,7 +278,13 @@ class PerformanceWorkspaceService:
             contract_version=overview.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=overview.as_of_date,
+            period=effective_period,
+            report_start_date=report_start_date.isoformat(),
+            report_end_date=resolved_report_end_date,
+            reporting_currency=overview.portfolio.base_currency,
             detail_basis=detail_basis,
+            chart_frequency=resolved_chart_frequency,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
             rows=rows,
@@ -252,38 +305,57 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> PerformanceAttributionTrendResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-        )
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        resolved_report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=explicit_end_date,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
+        async with server_timing_span("perf-reference"):
+            resolved_report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
         report_end_date, report_start_date, effective_period = self._resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        resolved_frequency = self._normalize_attribution_trend_frequency(
+        (
+            resolved_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(
             chart_frequency=chart_frequency,
             warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED",
+        )
+        (
+            resolved_attribution_dimension,
+            requested_attribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=attribution_dimension,
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_TREND_DIMENSION_NORMALIZED",
         )
 
-        resolved_benchmark_code = await self._resolve_benchmark_code(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=report_end_date,
-            portfolio_currency=overview.portfolio.base_currency,
-            benchmark_code=benchmark_code,
-        )
+        async with server_timing_span("perf-benchmark"):
+            resolved_benchmark_code, _ = await self._fetch_benchmark_context(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                portfolio_currency=overview.portfolio.base_currency,
+                benchmark_code=benchmark_code,
+                include_benchmark_catalog=False,
+            )
 
         if not resolved_benchmark_code:
             warnings.append("ATTRIBUTION_TREND_UNAVAILABLE_NO_BENCHMARK")
@@ -297,7 +369,9 @@ class PerformanceWorkspaceService:
                 report_end_date=report_end_date,
                 chart_frequency=resolved_frequency,
                 detail_basis=detail_basis,
-                attribution_dimension=attribution_dimension,
+                attribution_dimension=resolved_attribution_dimension,
+                requested_chart_frequency_supported=requested_chart_frequency_supported,
+                requested_attribution_dimension_supported=requested_attribution_dimension_supported,
                 benchmark_code=None,
                 rows=[],
                 warnings=warnings,
@@ -309,22 +383,23 @@ class PerformanceWorkspaceService:
             end_date=date.fromisoformat(report_end_date),
             chart_frequency=resolved_frequency,
         )
-        attribution_results = await asyncio.gather(
-            *[
-                self._analytics_client.get_attribution_analytics(
-                    portfolio_id=portfolio_id,
-                    report_start_date=window_start.isoformat(),
-                    report_end_date=window_end.isoformat(),
-                    period="EXPLICIT",
-                    metric_basis=detail_basis,
-                    benchmark_id=resolved_benchmark_code,
-                    dimension=attribution_dimension,
-                    correlation_id=correlation_id,
-                )
-                for window_start, window_end in window_pairs
-            ],
-            return_exceptions=True,
-        )
+        async with server_timing_span("perf-attribution"):
+            attribution_results = await asyncio.gather(
+                *[
+                    self._analytics_client.get_attribution_analytics(
+                        portfolio_id=portfolio_id,
+                        report_start_date=window_start.isoformat(),
+                        report_end_date=window_end.isoformat(),
+                        period="EXPLICIT",
+                        metric_basis=detail_basis,
+                        benchmark_id=resolved_benchmark_code,
+                        dimension=resolved_attribution_dimension,
+                        correlation_id=correlation_id,
+                    )
+                    for window_start, window_end in window_pairs
+                ],
+                return_exceptions=True,
+            )
         rows = self._parse_attribution_trend_results(
             results=attribution_results,
             window_pairs=window_pairs,
@@ -344,7 +419,9 @@ class PerformanceWorkspaceService:
             report_end_date=report_end_date,
             chart_frequency=resolved_frequency,
             detail_basis=detail_basis,
-            attribution_dimension=attribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
             benchmark_code=resolved_benchmark_code,
             rows=rows,
             warnings=warnings,
@@ -364,53 +441,91 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
+        include_benchmark_catalog: bool = True,
     ) -> PerformanceWorkspaceResponse:
-        overview = await self._workbench_service.get_workbench_overview(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-        )
+        async with server_timing_span("perf-overview"):
+            overview = await self._workbench_service.get_workbench_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_performance_snapshot=False,
+                include_rebalance_snapshot=False,
+            )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
-        resolved_report_end_date = await self._determine_report_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            correlation_id=correlation_id,
-            explicit_end_date=explicit_end_date,
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
+        async with server_timing_span("perf-reference"):
+            resolved_report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
         report_end_date, report_start_date, effective_period = self._resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        shared_segment = self._resolve_shared_segment(
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+        (
+            resolved_chart_frequency,
+            requested_chart_frequency_supported,
+        ) = self._normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
+        (
+            resolved_contribution_dimension,
+            requested_contribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=contribution_dimension,
+            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
             warnings=warnings,
+            warning_code="PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED",
         )
         (
-            workspace_summary_result,
-            benchmark_catalog_result,
-        ) = await self._fetch_workspace_dependencies(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date.isoformat(),
-            effective_period=effective_period,
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_code=await self._resolve_benchmark_code(
+            resolved_attribution_dimension,
+            requested_attribution_dimension_supported,
+        ) = self._normalize_workspace_dimension(
+            requested_dimension=attribution_dimension,
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            warnings=warnings,
+            warning_code="PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED",
+        )
+        shared_segment = self._resolve_shared_segment(
+            contribution_dimension=resolved_contribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
+            warnings=warnings,
+        )
+        async with server_timing_span("perf-benchmark"):
+            (
+                resolved_benchmark_code,
+                benchmark_catalog_result,
+            ) = await self._fetch_benchmark_context(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=report_end_date,
+                report_end_date=report_end_date,
                 portfolio_currency=overview.portfolio.base_currency,
                 benchmark_code=benchmark_code,
-            ),
-            segment=shared_segment,
-            portfolio_currency=overview.portfolio.base_currency,
-        )
+                include_benchmark_catalog=include_benchmark_catalog,
+            )
+        async with server_timing_span("perf-summary"):
+            (
+                workspace_summary_period,
+                workspace_summary_report_start_date,
+            ) = self._resolve_workspace_summary_request(
+                period=effective_period,
+                report_start_date=report_start_date,
+            )
+            workspace_summary_result = await self._fetch_workspace_summary_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                report_start_date=workspace_summary_report_start_date,
+                effective_period=workspace_summary_period,
+                chart_frequency=resolved_chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                portfolio_currency=overview.portfolio.base_currency,
+                segment=shared_segment,
+            )
 
         (
             net_performance,
@@ -424,7 +539,7 @@ class PerformanceWorkspaceService:
         ) = self._parse_workspace_summary_result(
             result=workspace_summary_result,
             requested_period=effective_period,
-            chart_frequency=chart_frequency,
+            chart_frequency=resolved_chart_frequency,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -433,6 +548,13 @@ class PerformanceWorkspaceService:
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
             warnings=warnings,
             partial_failures=partial_failures,
+        )
+        capabilities = self._build_workspace_capabilities(
+            benchmark_code=resolved_benchmark_code or benchmark_code,
+            net_performance=net_performance,
+            net_chart=net_chart,
+            contribution=contribution,
+            attribution=attribution,
         )
 
         return PerformanceWorkspaceResponse(
@@ -443,13 +565,17 @@ class PerformanceWorkspaceService:
             period=effective_period,
             report_start_date=report_start_date.isoformat(),
             report_end_date=report_end_date,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+            chart_frequency=resolved_chart_frequency,
+            contribution_dimension=resolved_contribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
             detail_basis=detail_basis,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
             segment=shared_segment,
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
+            capabilities=capabilities,
             portfolio=overview.portfolio,
             overview=overview.overview,
             net_performance=net_performance,
@@ -476,8 +602,12 @@ class PerformanceWorkspaceService:
             report_end_date=workspace.report_end_date,
             chart_frequency=workspace.chart_frequency,
             detail_basis=workspace.detail_basis,
+            requested_chart_frequency_supported=workspace.requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=workspace.requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=workspace.requested_attribution_dimension_supported,
             benchmark_code=workspace.benchmark_code,
             benchmark_options=workspace.benchmark_options,
+            capabilities=workspace.capabilities,
             portfolio=workspace.portfolio,
             overview=workspace.overview,
             net_performance=workspace.net_performance,
@@ -502,8 +632,12 @@ class PerformanceWorkspaceService:
             contribution_dimension=workspace.contribution_dimension,
             attribution_dimension=workspace.attribution_dimension,
             detail_basis=workspace.detail_basis,
+            requested_chart_frequency_supported=workspace.requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=workspace.requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=workspace.requested_attribution_dimension_supported,
             segment=workspace.segment,
             benchmark_code=workspace.benchmark_code,
+            capabilities=workspace.capabilities,
             net_chart=workspace.net_chart,
             gross_chart=workspace.gross_chart,
             contribution=workspace.contribution,
@@ -568,6 +702,208 @@ class PerformanceWorkspaceService:
     def _snapshot_point_as_of_date(self, point: PerformanceChartPoint) -> str:
         return point.period_end or point.period_start or point.label
 
+    def _capability(
+        self,
+        state: str,
+        reason: str | None = None,
+        *,
+        coverage_level: str | None = None,
+        fallback_available: bool | None = None,
+        earliest_available_date: str | None = None,
+        latest_available_date: str | None = None,
+        supported_dimensions: Sequence[str] | None = None,
+        supported_frequencies: Sequence[str] | None = None,
+    ) -> PerformanceModuleCapability:
+        return PerformanceModuleCapability(
+            state=state,
+            reason=reason,
+            coverage_level=coverage_level,
+            fallback_available=fallback_available,
+            earliest_available_date=earliest_available_date,
+            latest_available_date=latest_available_date,
+            supported_dimensions=list(supported_dimensions) if supported_dimensions else None,
+            supported_frequencies=list(supported_frequencies) if supported_frequencies else None,
+        )
+
+    def _build_workspace_capabilities(
+        self,
+        *,
+        benchmark_code: str | None,
+        net_performance: PerformanceComparativeSummary,
+        net_chart: list[PerformanceChartPoint],
+        contribution: ContributionSummaryView | None,
+        attribution: AttributionSummaryView | None,
+    ) -> PerformanceWorkspaceCapabilities:
+        has_return_history = len(net_chart) > 0
+        has_benchmark = bool(benchmark_code)
+        has_benchmark_returns = (
+            net_performance.benchmark_return_pct is not None
+            and net_performance.active_return_pct is not None
+        )
+        has_contribution_detail = bool(
+            contribution and (contribution.levels or contribution.position_rows)
+        )
+        has_position_ranking = bool(contribution and contribution.position_rows)
+        has_attribution_detail = bool(
+            attribution and any(level.rows for level in attribution.levels)
+        )
+        has_attribution_summary = bool(
+            attribution
+            and (
+                attribution.levels
+                or attribution.active_return_pct is not None
+                or attribution.sum_of_effects_pct is not None
+                or attribution.residual_pct is not None
+            )
+        )
+        dated_history = [
+            point for point in net_chart if point.period_start is not None or point.period_end is not None
+        ]
+        earliest_history_date = (
+            min(
+                point.period_start or point.period_end or ""
+                for point in dated_history
+            )
+            if dated_history
+            else None
+        )
+        latest_history_date = (
+            max(
+                point.period_end or point.period_start or ""
+                for point in dated_history
+            )
+            if dated_history
+            else None
+        )
+
+        return PerformanceWorkspaceCapabilities(
+            summary_kpis=self._capability(
+                "supported",
+                "The performance workspace contract supports executive summary metrics.",
+            ),
+            return_path=(
+                self._capability(
+                    "supported",
+                    "Time-series return observations are available for the selected horizon.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+                if has_return_history
+                else self._capability(
+                    "unavailable",
+                    "Published return observations are not available for the selected horizon.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+            ),
+            benchmark_comparison=(
+                self._capability(
+                    "supported",
+                    "Benchmark-relative return metrics are available.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
+                )
+                if has_benchmark and has_benchmark_returns
+                else self._capability(
+                    "partial",
+                    "A benchmark is assigned, but benchmark-relative returns are incomplete.",
+                    earliest_available_date=earliest_history_date,
+                    latest_available_date=latest_history_date,
+                )
+                if has_benchmark
+                else self._capability(
+                    "unavailable",
+                    "No benchmark is assigned to this mandate.",
+                )
+            ),
+            multi_horizon_returns=(
+                self._capability(
+                    "supported",
+                    "The workspace supports benchmark-aware horizon comparisons.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+                if has_benchmark
+                else self._capability(
+                    "partial",
+                    "Horizon comparisons remain available, but benchmark-relative output is unavailable.",
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+            ),
+            contribution_ranking=(
+                self._capability(
+                    "supported",
+                    "Position-level contribution ranking is available.",
+                    coverage_level="position",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+                if has_position_ranking
+                else self._capability(
+                    "partial",
+                    "Contribution exists, but only aggregate rows are available.",
+                    coverage_level="aggregate",
+                    fallback_available=True,
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+                if has_contribution_detail
+                else self._capability(
+                    "unavailable",
+                    "Contribution analytics are not available for the current selection.",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+            ),
+            attribution_detail=(
+                self._capability(
+                    "supported",
+                    "Benchmark-relative attribution detail is available.",
+                    coverage_level="detail",
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+                if has_attribution_detail
+                else self._capability(
+                    "partial",
+                    "Benchmark-relative attribution is available only at summary level for the current selection.",
+                    coverage_level="summary",
+                    fallback_available=True,
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+                if has_attribution_summary
+                else self._capability(
+                    "unavailable",
+                    "Attribution detail is not available for the current selection.",
+                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+                )
+            ),
+            contribution_detail=(
+                self._capability(
+                    "supported",
+                    "Contribution detail is available for the current selection.",
+                    coverage_level="position",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+                if has_position_ranking
+                else self._capability(
+                    "partial",
+                    "Contribution exists, but only aggregate rows are available.",
+                    coverage_level="aggregate",
+                    fallback_available=True,
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+                if has_contribution_detail
+                else self._capability(
+                    "unavailable",
+                    "Contribution detail is not available for the current selection.",
+                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                )
+            ),
+            evidence=self._capability(
+                "unavailable",
+                "Evidence and lineage surfaces are not exposed by the current gateway contract.",
+            ),
+        )
+
     async def _determine_report_end_date(
         self,
         *,
@@ -608,6 +944,47 @@ class PerformanceWorkspaceService:
         if status_code >= 400 or not isinstance(payload, dict):
             return None
         return self._safe_str(payload.get("benchmark_id"))
+
+    async def _fetch_benchmark_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        portfolio_currency: str,
+        benchmark_code: str | None,
+        include_benchmark_catalog: bool,
+    ) -> tuple[str | None, GatheredResult]:
+        assignment_task = (
+            self._resolve_benchmark_code(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=report_end_date,
+                portfolio_currency=portfolio_currency,
+                benchmark_code=benchmark_code,
+            )
+            if not benchmark_code
+            else self._empty_async_scalar_result(None)
+        )
+        benchmark_catalog_task = (
+            self._lotus_core_query_client.get_benchmark_catalog(
+                as_of_date=report_end_date,
+                benchmark_currency=portfolio_currency,
+                correlation_id=correlation_id,
+            )
+            if include_benchmark_catalog
+            else self._empty_async_result()
+        )
+        resolved_benchmark_code, benchmark_catalog_result = await asyncio.gather(
+            assignment_task,
+            benchmark_catalog_task,
+            return_exceptions=True,
+        )
+        if isinstance(resolved_benchmark_code, BaseException):
+            return benchmark_code, cast(GatheredResult, benchmark_catalog_result)
+        return benchmark_code or cast(str | None, resolved_benchmark_code), cast(
+            GatheredResult, benchmark_catalog_result
+        )
 
     async def _fetch_analytics_results(
         self,
@@ -757,7 +1134,45 @@ class PerformanceWorkspaceService:
         warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
         return contribution_dimension
 
-    async def _fetch_workspace_dependencies(
+    def _normalize_workspace_dimension(
+        self,
+        *,
+        requested_dimension: str,
+        supported_dimensions: Sequence[str],
+        warnings: list[str],
+        warning_code: str,
+    ) -> tuple[str, bool]:
+        normalized_dimension = requested_dimension.strip().lower()
+        if normalized_dimension in supported_dimensions:
+            return normalized_dimension, True
+        warnings.append(warning_code)
+        return supported_dimensions[0], False
+
+    def _normalize_workspace_chart_frequency(
+        self,
+        *,
+        chart_frequency: str,
+        warnings: list[str],
+        warning_code: str = "PERFORMANCE_CHART_FREQUENCY_NORMALIZED",
+    ) -> tuple[str, bool]:
+        normalized_frequency = chart_frequency.strip().lower()
+        if normalized_frequency in SUPPORTED_WORKSPACE_FREQUENCIES:
+            return normalized_frequency, True
+        warnings.append(warning_code)
+        return "monthly", False
+
+    def _resolve_workspace_summary_request(
+        self,
+        *,
+        period: str,
+        report_start_date: date,
+    ) -> tuple[str, str | None]:
+        normalized_period = period.upper()
+        if normalized_period in SUPPORTED_WORKSPACE_SUMMARY_PERIODS:
+            return normalized_period, report_start_date.isoformat() if normalized_period == "EXPLICIT" else None
+        return "EXPLICIT", report_start_date.isoformat()
+
+    async def _fetch_workspace_summary_result(
         self,
         *,
         portfolio_id: str,
@@ -768,35 +1183,73 @@ class PerformanceWorkspaceService:
         chart_frequency: str,
         detail_basis: str,
         benchmark_code: str | None,
-        segment: str,
         portfolio_currency: str,
-    ) -> tuple[GatheredResult, GatheredResult]:
-        workspace_summary_task = self._analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
-            period=effective_period,
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            segment=segment,
-            correlation_id=correlation_id,
-        )
-        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
-            as_of_date=report_end_date,
-            benchmark_currency=portfolio_currency,
-            correlation_id=correlation_id,
-        )
+        segment: str,
+    ) -> GatheredResult:
         return cast(
-            tuple[GatheredResult, GatheredResult],
-            await asyncio.gather(
-                workspace_summary_task,
-                benchmark_catalog_task,
-                return_exceptions=True,
-            ),
+            GatheredResult,
+            await self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
+                period=effective_period,
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment=segment,
+                correlation_id=correlation_id,
+            )
         )
 
     async def _fetch_workspace_horizon_dependencies(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        portfolio_currency: str,
+        chart_frequency: str,
+    ) -> GatheredResult:
+        if period != "EXPLICIT":
+            return await self._fetch_standard_horizon_workspace_summary(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                portfolio_currency=portfolio_currency,
+                chart_frequency=chart_frequency,
+            )
+
+        horizon_periods = (
+            [{"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}]
+            if period == "EXPLICIT"
+            else []
+        )
+        return cast(
+            GatheredResult,
+            await self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=report_start_date,
+                period=period,
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=horizon_periods,
+                include_detail_blocks=False,
+            ),
+        )
+
+    async def _fetch_standard_horizon_workspace_summary(
         self,
         *,
         portfolio_id: str,
@@ -806,42 +1259,127 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         portfolio_currency: str,
         chart_frequency: str,
-    ) -> tuple[dict[str, GatheredResult], GatheredResult]:
-        request_specs = self._build_horizon_comparison_request_specs(
-            report_end_date=report_end_date,
-            chart_frequency=chart_frequency,
-        )
-        twr_tasks = [
-            self._analytics_client.get_twr_analytics(
+    ) -> GatheredResult:
+        frequencies = self._build_horizon_comparison_frequencies(chart_frequency)
+        report_end = date.fromisoformat(report_end_date)
+        month_start = report_end.replace(day=1).isoformat()
+        quarter_start_month = ((report_end.month - 1) // 3) * 3 + 1
+        quarter_start = report_end.replace(month=quarter_start_month, day=1).isoformat()
+
+        result_labels = ("MTD", "QTD", "STANDARD")
+        gathered_results = await asyncio.gather(
+            self._analytics_client.get_workspace_summary(
                 portfolio_id=portfolio_id,
                 report_end_date=report_end_date,
-                report_start_date=spec["report_start_date"],
-                period=spec["period"],
-                metric_basis=detail_basis,
+                report_start_date=month_start,
+                period="EXPLICIT",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
                 benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment="asset_class",
                 correlation_id=correlation_id,
-                analyses=spec["analyses"],
-            )
-            for spec in request_specs
-        ]
-        benchmark_catalog_task = self._lotus_core_query_client.get_benchmark_catalog(
-            as_of_date=report_end_date,
-            benchmark_currency=portfolio_currency,
-            correlation_id=correlation_id,
-        )
-        results = await asyncio.gather(
-            *twr_tasks,
-            benchmark_catalog_task,
+                periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
+                include_detail_blocks=False,
+            ),
+            self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=quarter_start,
+                period="EXPLICIT",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
+                include_detail_blocks=False,
+            ),
+            self._analytics_client.get_workspace_summary(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=None,
+                period="YTD",
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                reporting_currency=portfolio_currency,
+                segment="asset_class",
+                correlation_id=correlation_id,
+                periods=[
+                    {"period": "YTD", "frequencies": frequencies},
+                    {"period": "1Y", "frequencies": frequencies},
+                ],
+                include_detail_blocks=False,
+            ),
             return_exceptions=True,
         )
-        twr_results: dict[str, GatheredResult] = {
-            str(spec["label"]): cast(GatheredResult, results[index])
-            for index, spec in enumerate(request_specs)
+
+        merged_results: dict[str, Any] = {}
+        merged_warnings: list[str] = []
+        merged_failures: list[dict[str, str]] = []
+
+        for label, result in zip(result_labels, gathered_results, strict=True):
+            if isinstance(result, BaseException):
+                merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
+                merged_failures.append(
+                    {
+                        "source_service": "lotus-performance",
+                        "error_code": "UPSTREAM_EXCEPTION",
+                        "detail": str(result),
+                    }
+                )
+                continue
+
+            status_code, payload = result
+            if status_code >= 400 or not isinstance(payload, dict):
+                merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
+                merged_failures.append(
+                    {
+                        "source_service": "lotus-performance",
+                        "error_code": (
+                            f"HTTP_{status_code}"
+                            if isinstance(status_code, int)
+                            else "INVALID_UPSTREAM_PAYLOAD"
+                        ),
+                        "detail": str(payload.get("detail", payload))
+                        if isinstance(payload, dict)
+                        else str(payload),
+                    }
+                )
+                continue
+
+            results_by_period = payload.get("results_by_period", {})
+            if not isinstance(results_by_period, dict):
+                continue
+
+            if label in {"MTD", "QTD"}:
+                explicit_result = results_by_period.get("EXPLICIT")
+                if isinstance(explicit_result, dict):
+                    merged_results[label] = {
+                        **explicit_result,
+                        "_gateway_requested_period_start": month_start if label == "MTD" else quarter_start,
+                        "_gateway_requested_period_end": report_end_date,
+                    }
+                continue
+
+            for period_key in ("YTD", "1Y"):
+                period_payload = results_by_period.get(period_key)
+                if isinstance(period_payload, dict):
+                    merged_results[period_key] = period_payload
+
+        return 200, {
+            "results_by_period": merged_results,
+            "_gateway_warnings": merged_warnings,
+            "_gateway_partial_failures": merged_failures,
         }
-        return twr_results, cast(GatheredResult, results[-1])
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
+
+    async def _empty_async_scalar_result(self, value: str | None) -> str | None:
+        return value
 
     def _parse_workspace_summary_result(
         self,
@@ -944,46 +1482,168 @@ class PerformanceWorkspaceService:
     def _parse_horizon_comparison_result(
         self,
         *,
-        results_by_label: Mapping[str, GatheredResult],
+        result: GatheredResult,
+        requested_period: str,
+        requested_report_start_date: str | None,
+        requested_report_end_date: str | None,
         detail_basis: str,
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
-        rows: list[PerformanceHorizonComparisonRow] = []
-        resolved_benchmark_code: str | None = None
-        for period in STANDARD_HORIZON_COMPARISON_PERIODS:
-            result = results_by_label.get(period)
-            if isinstance(result, BaseException):
-                warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+        if isinstance(result, BaseException):
+            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+            )
+            return [], None
+
+        status_code, payload = result
+        if not isinstance(payload, dict):
+            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
+            return [], None
+        gateway_warnings = payload.get("_gateway_warnings", [])
+        if isinstance(gateway_warnings, list):
+            warnings.extend(str(warning) for warning in gateway_warnings)
+        gateway_partial_failures = payload.get("_gateway_partial_failures", [])
+        if isinstance(gateway_partial_failures, list):
+            for failure in gateway_partial_failures:
+                if not isinstance(failure, Mapping):
+                    continue
                 partial_failures.append(
                     self._performance_failure(
-                        "lotus-performance", "UPSTREAM_EXCEPTION", str(result)
+                        str(failure.get("source_service", "lotus-performance")),
+                        str(failure.get("error_code", "UNKNOWN_ERROR")),
+                        str(failure.get("detail", "")),
                     )
                 )
-                continue
-            if result is None:
-                continue
-
-            requested_period = "EXPLICIT" if period in {"MTD", "QTD"} else period
-            comparative, _ = self._parse_twr_result(
-                result=result,
-                metric_basis=detail_basis.upper(),
-                chart_frequency="monthly",
-                requested_period=requested_period,
-                warnings=warnings,
-                partial_failures=partial_failures,
+        if status_code >= 400:
+            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+            partial_failures.append(
+                self._performance_failure(
+                    "lotus-performance",
+                    f"HTTP_{status_code}",
+                    str(payload.get("detail", payload)),
+                )
             )
-            if (
-                comparative.portfolio_return_pct is None
-                and comparative.benchmark_return_pct is None
-            ):
+            return [], None
+
+        results_by_period = payload.get("results_by_period", {})
+        if not isinstance(results_by_period, dict) or not results_by_period:
+            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
+            return [], None
+
+        rows: list[PerformanceHorizonComparisonRow] = []
+        resolved_benchmark_code: str | None = None
+        periods_to_render = (
+            tuple(results_by_period.keys())
+            if requested_period.upper() == "EXPLICIT"
+            else STANDARD_HORIZON_COMPARISON_PERIODS
+        )
+        for period in periods_to_render:
+            period_key = self._resolve_results_period_key(
+                requested_period=period,
+                results_by_period=results_by_period,
+            )
+            period_payload = results_by_period.get(period_key, {})
+            if not isinstance(period_payload, dict):
+                continue
+            benchmark_block = period_payload.get("benchmark", {})
+            active_block = period_payload.get("active", {})
+            net_block = self._extract_twr_workspace_block(period_payload, "net")
+            gross_block = self._extract_twr_workspace_block(period_payload, "gross")
+            net_summary_payload = net_block.get("summary", {}) if isinstance(net_block, dict) else {}
+            gross_summary_payload = gross_block.get("summary", {}) if isinstance(gross_block, dict) else {}
+            money_weighted_return = period_payload.get("money_weighted_return", {})
+            economics = (
+                net_summary_payload.get("economics", {})
+                if isinstance(net_summary_payload, dict)
+                else {}
+            )
+            comparative = self._build_workspace_comparative_summary(
+                metric_basis=detail_basis.upper(),
+                portfolio_block=net_block,
+                benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
+                active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
+            )
+            if comparative.portfolio_return_pct is None and comparative.benchmark_return_pct is None:
                 continue
             rows.append(
                 PerformanceHorizonComparisonRow(
                     period=period,
+                    period_start=(
+                        self._safe_str(money_weighted_return.get("start_date"))
+                        if isinstance(money_weighted_return, dict)
+                        else None
+                    )
+                    or self._safe_str(period_payload.get("_gateway_requested_period_start"))
+                    or requested_report_start_date,
+                    period_end=(
+                        self._safe_str(money_weighted_return.get("end_date"))
+                        if isinstance(money_weighted_return, dict)
+                        else None
+                    )
+                    or self._safe_str(period_payload.get("_gateway_requested_period_end"))
+                    or requested_report_end_date,
+                    begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
+                    if isinstance(economics, dict)
+                    else None,
+                    end_market_value=self._quantize_optional(economics.get("end_market_value"))
+                    if isinstance(economics, dict)
+                    else None,
+                    beginning_cash_flow=self._quantize_optional(
+                        economics.get("beginning_cash_flow")
+                    )
+                    if isinstance(economics, dict)
+                    else None,
+                    ending_cash_flow=self._quantize_optional(
+                        economics.get("ending_cash_flow")
+                    )
+                    if isinstance(economics, dict)
+                    else None,
+                    flow_adjusted_end_market_value=self._quantize_optional(
+                        economics.get("flow_adjusted_end_market_value")
+                    )
+                    if isinstance(economics, dict)
+                    else None,
+                    net_cash_flow=self._quantize_optional(economics.get("net_cash_flow"))
+                    if isinstance(economics, dict)
+                    else None,
+                    fees=self._quantize_optional(economics.get("fees")) if isinstance(economics, dict) else None,
+                    net_return_pct=self._extract_return(net_block, "summary", "period_return", "base"),
+                    gross_return_pct=self._extract_return(gross_block, "summary", "period_return", "base"),
                     portfolio_return_pct=comparative.portfolio_return_pct,
                     benchmark_return_pct=comparative.benchmark_return_pct,
                     active_return_pct=comparative.active_return_pct,
+                    cumulative_net_return_pct=self._extract_return(net_block, "summary", "cumulative_return", "base"),
+                    cumulative_gross_return_pct=self._extract_return(
+                        gross_block,
+                        "summary",
+                        "cumulative_return",
+                        "base",
+                    ),
+                    cumulative_benchmark_return_pct=self._extract_return(
+                        benchmark_block if isinstance(benchmark_block, dict) else {},
+                        "summary",
+                        "cumulative_return",
+                        "base",
+                    ),
+                    cumulative_active_return_pct=self._extract_nested_return(
+                        active_block.get("net") if isinstance(active_block, dict) else {},
+                        "cumulative_return",
+                        "base",
+                    ),
+                    annualized_net_return_pct=self._extract_return(
+                        net_block,
+                        "summary",
+                        "annualized_return",
+                        "base",
+                    ),
+                    annualized_gross_return_pct=self._extract_return(
+                        gross_block,
+                        "summary",
+                        "annualized_return",
+                        "base",
+                    ),
                     annualized_return_pct=comparative.annualized_return_pct,
                 )
             )
@@ -991,47 +1651,12 @@ class PerformanceWorkspaceService:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
 
-    def _build_horizon_comparison_request_specs(
-        self,
-        *,
-        report_end_date: str,
-        chart_frequency: str,
-    ) -> list[dict[str, Any]]:
-        report_end = date.fromisoformat(report_end_date)
+    def _build_horizon_comparison_frequencies(self, chart_frequency: str) -> list[str]:
         frequencies: list[str] = []
         for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
             if frequency not in frequencies:
                 frequencies.append(frequency)
-        return [
-            {
-                "label": "MTD",
-                "period": "EXPLICIT",
-                "report_start_date": report_end.replace(day=1).isoformat(),
-                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
-            },
-            {
-                "label": "QTD",
-                "period": "EXPLICIT",
-                "report_start_date": self._start_of_quarter(report_end).isoformat(),
-                "analyses": [{"period": "EXPLICIT", "frequencies": frequencies}],
-            },
-            {
-                "label": "YTD",
-                "period": "YTD",
-                "report_start_date": None,
-                "analyses": [{"period": "YTD", "frequencies": frequencies}],
-            },
-            {
-                "label": "1Y",
-                "period": "1Y",
-                "report_start_date": None,
-                "analyses": [{"period": "1Y", "frequencies": frequencies}],
-            },
-        ]
-
-    def _start_of_quarter(self, value: date) -> date:
-        quarter_start_month = ((value.month - 1) // 3) * 3 + 1
-        return date(value.year, quarter_start_month, 1)
+        return frequencies
 
     def _extract_twr_workspace_block(
         self, period_payload: dict[str, Any], basis: str
@@ -1070,13 +1695,28 @@ class PerformanceWorkspaceService:
             ),
             benchmark_id=self._safe_str(benchmark_block.get("benchmark_id")),
             benchmark_return_source=self._safe_str(benchmark_block.get("return_source")),
+            benchmark_input_mode=self._safe_str(benchmark_block.get("input_mode")),
             begin_market_value=self._quantize_optional(economics.get("begin_market_value"))
             if isinstance(economics, dict)
             else None,
             end_market_value=self._quantize_optional(economics.get("end_market_value"))
             if isinstance(economics, dict)
             else None,
+            beginning_cash_flow=self._quantize_optional(economics.get("beginning_cash_flow"))
+            if isinstance(economics, dict)
+            else None,
+            ending_cash_flow=self._quantize_optional(economics.get("ending_cash_flow"))
+            if isinstance(economics, dict)
+            else None,
+            flow_adjusted_end_market_value=self._quantize_optional(
+                economics.get("flow_adjusted_end_market_value")
+            )
+            if isinstance(economics, dict)
+            else None,
             net_cash_flow=self._quantize_optional(economics.get("net_cash_flow"))
+            if isinstance(economics, dict)
+            else None,
+            fees=self._quantize_optional(economics.get("fees"))
             if isinstance(economics, dict)
             else None,
         )
@@ -1148,13 +1788,28 @@ class PerformanceWorkspaceService:
         mwr_payload = period_payload.get("money_weighted_return", {})
         if not isinstance(mwr_payload, dict):
             return None
+        economics_payload = mwr_payload.get("economics", {})
+        if not isinstance(economics_payload, dict):
+            economics_payload = {}
         notes = mwr_payload.get("notes", [])
         return MoneyWeightedReturnSummary(
             money_weighted_return_pct=self._quantize_optional(mwr_payload.get("period_return")),
             annualized_return_pct=self._quantize_optional(mwr_payload.get("annualized_return")),
+            input_mode=self._safe_str(mwr_payload.get("input_mode")),
             method=self._safe_str(mwr_payload.get("method")),
             start_date=self._safe_str(mwr_payload.get("start_date")),
             end_date=self._safe_str(mwr_payload.get("end_date")),
+            begin_market_value=self._quantize_optional(economics_payload.get("begin_market_value")),
+            end_market_value=self._quantize_optional(economics_payload.get("end_market_value")),
+            beginning_cash_flow=self._quantize_optional(
+                economics_payload.get("beginning_cash_flow")
+            ),
+            ending_cash_flow=self._quantize_optional(economics_payload.get("ending_cash_flow")),
+            flow_adjusted_end_market_value=self._quantize_optional(
+                economics_payload.get("flow_adjusted_end_market_value")
+            ),
+            net_cash_flow=self._quantize_optional(economics_payload.get("net_cash_flow")),
+            fees=self._quantize_optional(economics_payload.get("fees")),
             notes=[str(note) for note in notes] if isinstance(notes, list) else [],
         )
 
@@ -1204,13 +1859,13 @@ class PerformanceWorkspaceService:
                         name=str(level_payload.get("name", "Level")),
                         rows=rows,
                         total_contribution_pct=self._quantize_optional(
-                            summary_payload.get("total_contribution")
+                            summary_payload.get("portfolio_contribution")
                         ),
                         total_weight_avg_pct=self._sum_optional(
                             [row.weight_avg_pct for row in rows]
                         ),
                         total_portfolio_return_pct=self._quantize_optional(
-                            summary_payload.get("portfolio_return")
+                            summary_payload.get("portfolio_contribution")
                         ),
                     )
                 )
@@ -1223,7 +1878,7 @@ class PerformanceWorkspaceService:
                     ContributionPositionView(
                         position_id=str(position_payload.get("position_id", "Unknown Position")),
                         contribution_pct=self._quantize_optional(
-                            position_payload.get("contribution")
+                            position_payload.get("total_contribution")
                         )
                         or 0.0,
                         weight_avg_pct=self._weight_to_pct(position_payload.get("average_weight")),
@@ -1240,19 +1895,19 @@ class PerformanceWorkspaceService:
                 )
         return ContributionSummaryView(
             metric_basis=self._safe_str(contribution_payload.get("metric_basis")) or "NET",
-            weighting_scheme=None,
+            weighting_scheme=self._safe_str(summary_payload.get("weighting_scheme")),
             portfolio_contribution_pct=self._quantize_optional(
-                summary_payload.get("total_contribution")
+                summary_payload.get("portfolio_contribution")
             ),
             total_portfolio_return_pct=self._quantize_optional(
-                summary_payload.get("portfolio_return")
+                summary_payload.get("portfolio_contribution")
             ),
-            coverage_mv_pct=None,
+            coverage_mv_pct=self._quantize_optional(summary_payload.get("coverage_mv_pct")),
             portfolio_local_contribution_pct=self._quantize_optional(
-                summary_payload.get("portfolio_local_return")
+                summary_payload.get("local_contribution")
             ),
             portfolio_fx_contribution_pct=self._quantize_optional(
-                summary_payload.get("portfolio_fx_return")
+                summary_payload.get("fx_contribution")
             ),
             position_rows=position_rows,
             levels=levels,

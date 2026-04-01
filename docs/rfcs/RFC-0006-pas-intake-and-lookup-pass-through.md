@@ -22,7 +22,7 @@ Add first-class lotus-gateway passthrough APIs for lotus-core ingestion and look
 Implementation details:
 - Introduce `PasIngestionClient` and extend `PasClient` for lookup sources.
 - Add `IntakeService` for envelope shaping and upstream error handling parity.
-- Add `portfolio_data_ingestion_base_url` config (default `http://localhost:8200`).
+- Add `portfolio_data_ingestion_base_url` config with canonical environment-scoped service identity defaults.
 
 ## Rationale
 

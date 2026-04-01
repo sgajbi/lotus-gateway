@@ -15,9 +15,14 @@ class PerformanceComparativeSummary(BaseModel):
     annualized_return_pct: float | None = None
     benchmark_id: str | None = None
     benchmark_return_source: str | None = None
+    benchmark_input_mode: str | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
+    flow_adjusted_end_market_value: float | None = None
     net_cash_flow: float | None = None
+    fees: float | None = None
 
 
 class PerformanceChartPoint(BaseModel):
@@ -36,9 +41,17 @@ class PerformanceChartPoint(BaseModel):
 class MoneyWeightedReturnSummary(BaseModel):
     money_weighted_return_pct: float | None = None
     annualized_return_pct: float | None = None
+    input_mode: str | None = None
     method: str | None = None
     start_date: str | None = None
     end_date: str | None = None
+    begin_market_value: float | None = None
+    end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
+    flow_adjusted_end_market_value: float | None = None
+    net_cash_flow: float | None = None
+    fees: float | None = None
     notes: list[str] = Field(default_factory=list)
 
 
@@ -125,11 +138,50 @@ class PerformanceBenchmarkOptionView(BaseModel):
     is_assigned: bool = False
 
 
+class PerformanceModuleCapability(BaseModel):
+    state: str
+    reason: str | None = None
+    coverage_level: str | None = None
+    fallback_available: bool | None = None
+    earliest_available_date: str | None = None
+    latest_available_date: str | None = None
+    supported_dimensions: list[str] | None = None
+    supported_frequencies: list[str] | None = None
+
+
+class PerformanceWorkspaceCapabilities(BaseModel):
+    summary_kpis: PerformanceModuleCapability
+    return_path: PerformanceModuleCapability
+    benchmark_comparison: PerformanceModuleCapability
+    multi_horizon_returns: PerformanceModuleCapability
+    contribution_ranking: PerformanceModuleCapability
+    attribution_detail: PerformanceModuleCapability
+    contribution_detail: PerformanceModuleCapability
+    evidence: PerformanceModuleCapability
+
+
 class PerformanceHorizonComparisonRow(BaseModel):
     period: str
+    period_start: str | None = None
+    period_end: str | None = None
+    begin_market_value: float | None = None
+    end_market_value: float | None = None
+    beginning_cash_flow: float | None = None
+    ending_cash_flow: float | None = None
+    flow_adjusted_end_market_value: float | None = None
+    net_cash_flow: float | None = None
+    fees: float | None = None
+    net_return_pct: float | None = None
+    gross_return_pct: float | None = None
     portfolio_return_pct: float | None = None
     benchmark_return_pct: float | None = None
     active_return_pct: float | None = None
+    cumulative_net_return_pct: float | None = None
+    cumulative_gross_return_pct: float | None = None
+    cumulative_benchmark_return_pct: float | None = None
+    cumulative_active_return_pct: float | None = None
+    annualized_net_return_pct: float | None = None
+    annualized_gross_return_pct: float | None = None
     annualized_return_pct: float | None = None
 
 
@@ -138,7 +190,13 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     contract_version: str = Field(default="v1")
     portfolio_id: str
     as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
+    reporting_currency: str | None = None
     detail_basis: str
+    chart_frequency: str
+    requested_chart_frequency_supported: bool = True
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
     rows: list[PerformanceHorizonComparisonRow] = Field(default_factory=list)
@@ -171,6 +229,8 @@ class PerformanceAttributionTrendResponse(BaseModel):
     chart_frequency: str
     detail_basis: str
     attribution_dimension: str
+    requested_chart_frequency_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     benchmark_code: str | None = None
     rows: list[PerformanceAttributionTrendRow] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
@@ -189,9 +249,13 @@ class PerformanceWorkspaceResponse(BaseModel):
     contribution_dimension: str
     attribution_dimension: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     segment: str
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    capabilities: PerformanceWorkspaceCapabilities
     portfolio: WorkbenchPortfolioSummary
     overview: WorkbenchOverviewSummary
     net_performance: PerformanceComparativeSummary
@@ -215,8 +279,12 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     report_end_date: str
     chart_frequency: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     benchmark_code: str | None = None
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
+    capabilities: PerformanceWorkspaceCapabilities
     portfolio: WorkbenchPortfolioSummary
     overview: WorkbenchOverviewSummary
     net_performance: PerformanceComparativeSummary
@@ -238,8 +306,12 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
     contribution_dimension: str
     attribution_dimension: str
     detail_basis: str
+    requested_chart_frequency_supported: bool = True
+    requested_contribution_dimension_supported: bool = True
+    requested_attribution_dimension_supported: bool = True
     segment: str
     benchmark_code: str | None = None
+    capabilities: PerformanceWorkspaceCapabilities
     net_chart: list[PerformanceChartPoint] = Field(default_factory=list)
     gross_chart: list[PerformanceChartPoint] = Field(default_factory=list)
     contribution: ContributionSummaryView | None = None

@@ -27,6 +27,7 @@ async def request_with_retry(
     json_body: dict[str, Any] | None = None,
     data: dict[str, Any] | None = None,
     files: dict[str, Any] | None = None,
+    retry_timeout_exceptions: bool = True,
 ) -> tuple[int, dict[str, Any]]:
     attempts = max_retries + 1
     for attempt in range(attempts):
@@ -52,6 +53,8 @@ async def request_with_retry(
                 continue
             return response.status_code, _response_payload(response)
         except (httpx.TimeoutException, httpx.NetworkError) as exc:
+            if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
+                return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
             if attempt >= max_retries:
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
             await asyncio.sleep(backoff_seconds * (2**attempt))

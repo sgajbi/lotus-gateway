@@ -8,21 +8,18 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
         return 200, {
             "items": [
                 {
-                    "portfolio_id": "PF_2002",
-                    "portfolio_name": "Income",
-                    "base_currency": "EUR",
+                    "id": "PF_2002",
+                    "label": "Income",
                 },
                 {
-                    "portfolio_id": "PF_1001",
-                    "portfolio_name": "Alpha Growth",
-                    "base_currency": "USD",
-                    "cif_id": "CIF_1001",
+                    "id": "PF_1001",
+                    "label": "Alpha Growth",
                 },
             ]
         }
 
     monkeypatch.setattr(
-        "app.clients.lotus_core_query_client.LotusCoreQueryClient.list_portfolios",
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio_lookups",
         _list_portfolios,
     )
 
@@ -44,25 +41,20 @@ def test_foundation_workspace_router_success(monkeypatch):
                 "booking_center": "SG",
                 "cif_id": "CIF_1001",
             },
-            "snapshot": {
-                "as_of_date": "2026-03-25",
-                "overview": {"total_market_value": 1000.0, "total_cash": 100.0},
-                "holdings": {
-                    "holdingsByAssetClass": {
-                        "Equity": [
-                            {
-                                "instrument_id": "EQ_1",
-                                "valuation": {"market_value_base": 600.0},
-                            }
-                        ],
-                        "Fixed Income": [
-                            {
-                                "instrument_id": "FI_1",
-                                "valuation": {"market_value_base": 300.0},
-                            }
-                        ],
-                    }
+            "metadata": {"as_of_date": "2026-03-25"},
+            "sections": {
+                "positions_baseline": [
+                    {"security_id": "EQ_1", "market_value_base": 600.0},
+                    {"security_id": "FI_1", "market_value_base": 300.0},
+                ],
+                "portfolio_totals": {
+                    "baseline_total_market_value_base": 1000.0,
+                    "baseline_total_cash_base": 100.0,
                 },
+                "instrument_enrichment": [
+                    {"security_id": "EQ_1", "asset_class": "Equity"},
+                    {"security_id": "FI_1", "asset_class": "Fixed Income"},
+                ],
             },
         }
 
@@ -115,10 +107,14 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
     async def _core_snapshot(*args, **kwargs):
         return 200, {
             "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
-            "snapshot": {
-                "as_of_date": "2026-03-25",
-                "overview": {"total_market_value": 1000.0, "total_cash": 250.0},
-                "holdings": {"holdingsByAssetClass": {"Equity": [{"instrument_id": "EQ_1"}]}},
+            "metadata": {"as_of_date": "2026-03-25"},
+            "sections": {
+                "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 750.0}],
+                "portfolio_totals": {
+                    "baseline_total_market_value_base": 1000.0,
+                    "baseline_total_cash_base": 250.0,
+                },
+                "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
             },
         }
 

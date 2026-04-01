@@ -68,7 +68,21 @@ class LotusAnalyticsClient:
             backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
+            retry_timeout_exceptions=False,
         )
+        if self._should_retry_duplicate_calculation(status_code=status_code, payload=response_payload, request=payload):
+            replay_payload = dict(payload)
+            replay_payload["calculation_id"] = str(uuid4())
+            status_code, response_payload = await request_with_retry(
+                method="POST",
+                url=url,
+                timeout_seconds=self._timeout,
+                max_retries=self._max_retries,
+                backoff_seconds=self._retry_backoff_seconds,
+                json_body=replay_payload,
+                headers=headers,
+                retry_timeout_exceptions=False,
+            )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
             if isinstance(result_path, str) and result_path:
@@ -77,6 +91,41 @@ class LotusAnalyticsClient:
                     correlation_id=correlation_id,
                 )
         return status_code, response_payload
+
+    @staticmethod
+    def _should_retry_duplicate_calculation(
+        *,
+        status_code: int,
+        payload: dict[str, Any],
+        request: dict[str, Any],
+    ) -> bool:
+        if status_code != 409:
+            return False
+        if "calculation_id" not in request:
+            return False
+        detail = payload.get("detail")
+        if not isinstance(detail, str):
+            return False
+        return "calculation_id already exists" in detail.lower()
+
+    @staticmethod
+    def _should_fallback_workspace_currency_breakout(
+        *,
+        status_code: int,
+        payload: dict[str, Any],
+        request: dict[str, Any],
+    ) -> bool:
+        if status_code != 422:
+            return False
+        if request.get("currency_mode") != "BOTH":
+            return False
+        detail = payload.get("detail")
+        if not isinstance(detail, str):
+            return False
+        detail_lower = detail.lower()
+        return "currency_mode=both" in detail_lower and (
+            "report_ccy" in detail_lower or "fx.rates" in detail_lower
+        )
 
     async def get_capabilities(
         self,
@@ -123,6 +172,7 @@ class LotusAnalyticsClient:
             backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
+            retry_timeout_exceptions=False,
         )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
@@ -270,7 +320,6 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         payload: dict[str, Any] = {
-            "calculation_id": str(uuid4()),
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
             "report_start_date": report_start_date,
@@ -305,9 +354,11 @@ class LotusAnalyticsClient:
         chart_frequency: str,
         detail_basis: str,
         benchmark_id: str | None,
+        reporting_currency: str | None,
         segment: str,
         correlation_id: str,
         periods: list[dict[str, Any]] | None = None,
+        include_detail_blocks: bool = True,
     ) -> tuple[int, dict[str, Any]]:
         frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
         deduped_frequencies: list[str] = []
@@ -330,18 +381,22 @@ class LotusAnalyticsClient:
             ],
             "include_benchmark": benchmark_id is not None,
             "stateful_input": {},
-            "segmentation": {
-                "group_by": [segment],
-            },
-            "contribution": {
-                "metric_basis": detail_basis,
-                "top_positions": 10,
-            },
-            "attribution": {
-                "metric_basis": detail_basis,
-            },
             "mwr_method": "XIRR",
         }
+        if include_detail_blocks:
+            payload["currency_mode"] = "BOTH"
+            if reporting_currency:
+                payload["report_ccy"] = reporting_currency
+            payload["segmentation"] = {
+                "group_by": [segment],
+            }
+            payload["contribution"] = {
+                "metric_basis": detail_basis,
+                "top_positions": 10,
+            }
+            payload["attribution"] = {
+                "metric_basis": detail_basis,
+            }
         if report_start_date:
             payload["report_start_date"] = report_start_date
         if benchmark_id:
@@ -351,11 +406,26 @@ class LotusAnalyticsClient:
                 "return_source": "calculated",
                 "stateful_input": {},
             }
-        return await self._post_analytics_request(
+        status_code, response_payload = await self._post_analytics_request(
             path="/performance/workspace-summary",
             payload=payload,
             correlation_id=correlation_id,
         )
+        if self._should_fallback_workspace_currency_breakout(
+            status_code=status_code,
+            payload=response_payload,
+            request=payload,
+        ):
+            fallback_payload = dict(payload)
+            fallback_payload.pop("currency_mode", None)
+            fallback_payload.pop("report_ccy", None)
+            fallback_payload["calculation_id"] = str(uuid4())
+            return await self._post_analytics_request(
+                path="/performance/workspace-summary",
+                payload=fallback_payload,
+                correlation_id=correlation_id,
+            )
+        return status_code, response_payload
 
     async def get_workbench_risk_proxy(
         self,

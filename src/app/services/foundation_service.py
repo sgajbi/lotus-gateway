@@ -43,7 +43,7 @@ class FoundationService:
         self,
         correlation_id: str,
     ) -> FoundationPortfolioCatalogResponse:
-        status_code, payload = await self._lotus_core_query_client.list_portfolios(
+        status_code, payload = await self._lotus_core_query_client.get_portfolio_lookups(
             correlation_id=correlation_id
         )
         if status_code >= status.HTTP_400_BAD_REQUEST:
@@ -77,7 +77,7 @@ class FoundationService:
         pas_status, pas_payload = await self._lotus_core_query_client.get_core_snapshot(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
-            sections=["OVERVIEW", "HOLDINGS"],
+            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
             consumer_system="lotus-gateway",
             correlation_id=correlation_id,
         )
@@ -164,6 +164,7 @@ class FoundationService:
         display_name = str(
             item.get("portfolio_name")
             or item.get("name")
+            or item.get("label")
             or item.get("display_name")
             or portfolio_id
         )
@@ -188,65 +189,86 @@ class FoundationService:
         list[FoundationAllocationBucket],
         str,
     ]:
-        portfolio_payload = payload.get("portfolio", {}) if isinstance(payload, dict) else {}
-        snapshot_payload = payload.get("snapshot", {}) if isinstance(payload, dict) else {}
-        if not isinstance(portfolio_payload, dict) or not isinstance(snapshot_payload, dict):
+        if not isinstance(payload, dict):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Invalid lotus-core foundation snapshot payload structure.",
             )
 
-        overview_payload = snapshot_payload.get("overview", {})
-        if not isinstance(overview_payload, dict):
-            overview_payload = {}
+        portfolio_payload = payload.get("portfolio", {})
+        sections_payload = payload.get("sections", {})
+        metadata_payload = payload.get("metadata", {})
+        if not isinstance(portfolio_payload, dict) or not isinstance(sections_payload, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid lotus-core foundation snapshot payload structure.",
+            )
 
-        holdings_payload = snapshot_payload.get("holdings", {})
-        if not isinstance(holdings_payload, dict):
-            holdings_payload = {}
-        holdings_by_asset_class = holdings_payload.get("holdingsByAssetClass", {})
-        if not isinstance(holdings_by_asset_class, dict):
-            holdings_by_asset_class = {}
+        baseline_rows = sections_payload.get("positions_baseline", [])
+        if not isinstance(baseline_rows, list):
+            baseline_rows = []
+        totals_payload = sections_payload.get("portfolio_totals", {})
+        if not isinstance(totals_payload, dict):
+            totals_payload = {}
+        enrichment_rows = sections_payload.get("instrument_enrichment", [])
+        if not isinstance(enrichment_rows, list):
+            enrichment_rows = []
 
-        market_value_base = float(quantize_money(overview_payload.get("total_market_value", 0.0)))
-        total_cash_base = float(quantize_money(overview_payload.get("total_cash", 0.0)))
+        market_value_base = float(
+            quantize_money(totals_payload.get("baseline_total_market_value_base", 0.0))
+        )
+        total_cash_base = float(
+            quantize_money(totals_payload.get("baseline_total_cash_base", 0.0))
+        )
         cash_weight_pct = 0.0
         if market_value_base > 0:
             cash_weight_pct = float(
                 quantize_performance((total_cash_base / market_value_base) * 100.0)
             )
 
-        allocations: list[FoundationAllocationBucket] = []
-        position_count = 0
-        for asset_class, items in sorted(holdings_by_asset_class.items()):
-            if not isinstance(items, list):
+        enrichment_by_security_id: dict[str, dict[str, Any]] = {}
+        for row in enrichment_rows:
+            if not isinstance(row, dict):
                 continue
-            position_count += len(items)
-            bucket_market_value = 0.0
-            has_bucket_market_value = False
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                market_value = self._extract_market_value(item)
-                if market_value is None:
-                    continue
-                bucket_market_value += market_value
-                has_bucket_market_value = True
-            weight_pct = None
-            market_value_for_bucket = None
-            if has_bucket_market_value:
-                market_value_for_bucket = float(quantize_money(bucket_market_value))
-                if market_value_base > 0:
-                    weight_pct = float(
-                        quantize_performance((market_value_for_bucket / market_value_base) * 100.0)
-                    )
-            allocations.append(
-                FoundationAllocationBucket(
-                    asset_class=str(asset_class),
-                    position_count=len(items),
-                    market_value_base=market_value_for_bucket,
-                    weight_pct=weight_pct,
-                )
+            security_id = self._optional_str(row.get("security_id"))
+            if security_id is not None:
+                enrichment_by_security_id[security_id] = row
+
+        allocations_by_asset_class: dict[str, FoundationAllocationBucket] = {}
+        position_count = 0
+        for row in baseline_rows:
+            if not isinstance(row, dict):
+                continue
+            position_count += 1
+            security_id = self._optional_str(row.get("security_id"))
+            enrichment = enrichment_by_security_id.get(security_id or "", {})
+            asset_class = str(
+                enrichment.get("asset_class")
+                or enrichment.get("asset_class_name")
+                or row.get("asset_class")
+                or "Unclassified"
             )
+            bucket = allocations_by_asset_class.get(asset_class)
+            if bucket is None:
+                bucket = FoundationAllocationBucket(
+                    asset_class=asset_class,
+                    position_count=0,
+                    market_value_base=0.0,
+                    weight_pct=None,
+                )
+                allocations_by_asset_class[asset_class] = bucket
+            bucket.position_count += 1
+            market_value = self._extract_market_value(row)
+            if market_value is not None:
+                current_market_value = bucket.market_value_base or 0.0
+                bucket.market_value_base = float(quantize_money(current_market_value + market_value))
+
+        allocations = sorted(allocations_by_asset_class.values(), key=lambda item: item.asset_class)
+        for bucket in allocations:
+            if bucket.market_value_base is not None and market_value_base > 0:
+                bucket.weight_pct = float(
+                    quantize_performance((bucket.market_value_base / market_value_base) * 100.0)
+                )
 
         portfolio_id = str(portfolio_payload.get("portfolio_id", fallback_portfolio_id))
         display_name = str(
@@ -272,7 +294,12 @@ class FoundationService:
             cash_weight_pct=cash_weight_pct,
             position_count=position_count,
         )
-        as_of_date = str(snapshot_payload.get("as_of_date", fallback_as_of_date))
+        as_of_date = str(
+            payload.get("as_of_date")
+            or metadata_payload.get("as_of_date")
+            or metadata_payload.get("business_date")
+            or fallback_as_of_date
+        )
         return portfolio, summary, allocations, as_of_date
 
     def _parse_performance_result(

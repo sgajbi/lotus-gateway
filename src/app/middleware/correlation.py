@@ -7,6 +7,11 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import Request
+from app.middleware.server_timing import (
+    format_server_timing_header,
+    reset_server_timing_metrics,
+    restore_server_timing_metrics,
+)
 
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
@@ -86,6 +91,7 @@ async def correlation_middleware(request: Request, call_next):
     correlation_token = correlation_id_var.set(correlation_id)
     request_token = request_id_var.set(request_id)
     trace_token = trace_id_var.set(trace_id)
+    server_timing_token = reset_server_timing_metrics()
     try:
         response = await call_next(request)
     finally:
@@ -108,4 +114,6 @@ async def correlation_middleware(request: Request, call_next):
     response.headers["X-Request-Id"] = request_id
     response.headers["X-Trace-Id"] = trace_id
     response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
+    response.headers["Server-Timing"] = format_server_timing_header(duration_ms)
+    restore_server_timing_metrics(server_timing_token)
     return response

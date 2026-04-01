@@ -5,8 +5,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-BFF_URL = "http://127.0.0.1:8100/api/v1/platform/capabilities"
-HEALTH_READY_URL = "http://127.0.0.1:8100/health/ready"
+BFF_URL = "http://gateway.dev.lotus/api/v1/platform/capabilities"
+HEALTH_READY_URL = "http://gateway.dev.lotus/health/ready"
 
 
 def _fetch() -> dict:

@@ -51,6 +51,8 @@ class WorkbenchService:
         self,
         portfolio_id: str,
         correlation_id: str,
+        include_performance_snapshot: bool = True,
+        include_rebalance_snapshot: bool = True,
     ) -> WorkbenchOverviewResponse:
         as_of_date = date.today().isoformat()
         (
@@ -80,42 +82,56 @@ class WorkbenchService:
             snapshot_payload=snapshot_payload,
             fallback_as_of_date=as_of_date,
         )
-        performance_end_date = await self._resolve_performance_snapshot_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            correlation_id=correlation_id,
-        )
-
-        performance_task = self._analytics_client.get_twr_analytics(
-            portfolio_id=portfolio_id,
-            report_end_date=performance_end_date,
-            report_start_date=None,
-            period="YTD",
-            metric_basis="NET",
-            benchmark_id=None,
-            correlation_id=correlation_id,
-        )
-        dpm_task = self._dpm_client.list_runs(
-            params={"portfolio_id": portfolio_id, "limit": 1},
-            correlation_id=correlation_id,
-        )
-        gathered = await asyncio.gather(performance_task, dpm_task, return_exceptions=True)
-        performance_result = cast(object, gathered[0])
-        dpm_result = cast(object, gathered[1])
-
         partial_failures: list[WorkbenchPartialFailure] = []
         warnings: list[str] = []
+        performance_snapshot = None
+        rebalance_snapshot = None
 
-        performance_snapshot = self._parse_performance_snapshot(
-            result=performance_result,
-            partial_failures=partial_failures,
-            warnings=warnings,
-        )
-        rebalance_snapshot = self._parse_dpm_snapshot(
-            result=dpm_result,
-            partial_failures=partial_failures,
-            warnings=warnings,
-        )
+        if include_performance_snapshot or include_rebalance_snapshot:
+            performance_task: object
+            if include_performance_snapshot:
+                performance_end_date = await self._resolve_performance_snapshot_end_date(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    correlation_id=correlation_id,
+                )
+                performance_task = self._analytics_client.get_twr_analytics(
+                    portfolio_id=portfolio_id,
+                    report_end_date=performance_end_date,
+                    report_start_date=None,
+                    period="YTD",
+                    metric_basis="NET",
+                    benchmark_id=None,
+                    correlation_id=correlation_id,
+                )
+            else:
+                performance_task = self._empty_async_result()
+
+            dpm_task = (
+                self._dpm_client.list_runs(
+                    params={"portfolio_id": portfolio_id, "limit": 1},
+                    correlation_id=correlation_id,
+                )
+                if include_rebalance_snapshot
+                else self._empty_async_result()
+            )
+            gathered = await asyncio.gather(
+                cast(object, performance_task),
+                dpm_task,
+                return_exceptions=True,
+            )
+            if include_performance_snapshot:
+                performance_snapshot = self._parse_performance_snapshot(
+                    result=cast(object, gathered[0]),
+                    partial_failures=partial_failures,
+                    warnings=warnings,
+                )
+            if include_rebalance_snapshot:
+                rebalance_snapshot = self._parse_dpm_snapshot(
+                    result=cast(object, gathered[1]),
+                    partial_failures=partial_failures,
+                    warnings=warnings,
+                )
 
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
@@ -128,6 +144,9 @@ class WorkbenchService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
+        return 204, {}
 
     async def _resolve_performance_snapshot_end_date(
         self,

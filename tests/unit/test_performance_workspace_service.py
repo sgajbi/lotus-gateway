@@ -1,3 +1,6 @@
+import asyncio
+from datetime import date
+
 import pytest
 
 from app.contracts.workbench import (
@@ -10,7 +13,13 @@ from app.services.performance_workspace_service import PerformanceWorkspaceServi
 
 
 class _StubWorkbenchService:
-    async def get_workbench_overview(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
+    async def get_workbench_overview(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        include_performance_snapshot: bool = True,  # noqa: ARG002
+        include_rebalance_snapshot: bool = True,  # noqa: ARG002
+    ):
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
             contract_version="v1",
@@ -45,6 +54,23 @@ class _StubAnalyticsClient:
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
+        periods = kwargs.get("periods") or []
+        if periods:
+            results_by_period: dict[str, object] = {}
+            source_results = _workspace_summary_payload()["results_by_period"]
+            for period_request in periods:
+                if not isinstance(period_request, dict):
+                    continue
+                period_key = str(period_request.get("period"))
+                if period_key == "EXPLICIT":
+                    report_start_date = str(kwargs.get("report_start_date"))
+                    explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
+                    results_by_period["EXPLICIT"] = source_results[explicit_label]
+                    continue
+                if period_key in source_results:
+                    results_by_period[period_key] = source_results[period_key]
+            return 200, {"results_by_period": results_by_period}
+
         requested_period = kwargs.get("period")
         if requested_period == "EXPLICIT":
             report_start_date = str(kwargs.get("report_start_date"))
@@ -73,11 +99,23 @@ class _StubAnalyticsClient:
 
     async def get_twr_analytics(self, **kwargs):
         self.twr_calls.append(kwargs)
+        analyses = kwargs.get("analyses") or []
+        if analyses:
+            results_by_period: dict[str, object] = {}
+            for analysis in analyses:
+                if not isinstance(analysis, dict):
+                    continue
+                analysis_period = str(analysis.get("period"))
+                results_by_period.update(_twr_payload_for_period(analysis_period, analysis_period)["results_by_period"])
+            return 200, {
+                "benchmark_context": {
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                },
+                "results_by_period": results_by_period,
+            }
+
         requested_period = str(kwargs["period"])
-        if requested_period == "EXPLICIT":
-            report_start_date = str(kwargs["report_start_date"])
-            explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
-            return 200, _twr_payload_for_period("EXPLICIT", explicit_label)
         return 200, _twr_payload_for_period(requested_period, requested_period)
 
 
@@ -169,6 +207,7 @@ def _workspace_summary_payload() -> dict:
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
+                    "input_mode": "stateful",
                     "summary": {
                         "period_return": {"base": 4.0},
                         "annualized_return": {"base": 4.0},
@@ -183,13 +222,141 @@ def _workspace_summary_payload() -> dict:
                         "summary": {
                             "period_return": {"base": 4.3},
                             "annualized_return": {"base": 4.3},
+                            "economics": {
+                                "begin_market_value": 470_000.0,
+                                "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 15_000.0,
+                                "ending_cash_flow": -2_500.0,
+                                "flow_adjusted_end_market_value": 496_370.0,
+                                "fees": 0.0,
+                                "net_cash_flow": 12_500.0,
+                            },
                         }
                     },
                     "gross": {
                         "summary": {
                             "period_return": {"base": 4.34},
                             "annualized_return": {"base": 4.34},
+                            "economics": {
+                                "begin_market_value": 470_000.0,
+                                "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 15_000.0,
+                                "ending_cash_flow": -2_500.0,
+                                "flow_adjusted_end_market_value": 496_370.0,
+                                "fees": 0.0,
+                                "net_cash_flow": 12_500.0,
+                            },
                         }
+                    },
+                },
+                "money_weighted_return": {
+                    "period_return": 4.11,
+                    "annualized_return": 4.11,
+                    "input_mode": "stateful",
+                    "method": "XIRR",
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-03-27",
+                    "economics": {
+                        "begin_market_value": 470_000.0,
+                        "end_market_value": 508_870.0,
+                        "beginning_cash_flow": 15_000.0,
+                        "ending_cash_flow": -2_500.0,
+                        "flow_adjusted_end_market_value": 496_370.0,
+                        "fees": 0.0,
+                        "net_cash_flow": 12_500.0,
+                    },
+                    "notes": ["cash-flow aware"],
+                },
+                "contribution": {
+                    "metric_basis": "NET",
+                    "summary": {
+                        "portfolio_contribution": 4.3,
+                        "coverage_mv_pct": 98.7,
+                        "weighting_scheme": "average_weight",
+                        "local_contribution": 4.0,
+                        "fx_contribution": 0.3,
+                    },
+                    "levels": [
+                        {
+                            "level": 1,
+                            "name": "asset_class",
+                            "rows": [
+                                {
+                                    "key": {"asset_class": "Equity"},
+                                    "contribution": 3.2,
+                                    "weight_avg": 32.0,
+                                    "return": 9.2,
+                                    "local_contribution": 3.0,
+                                    "fx_contribution": 0.2,
+                                },
+                                {
+                                    "key": {"asset_class": "Fixed Income"},
+                                    "contribution": 0.7,
+                                    "weight_avg": 21.0,
+                                    "return": 2.6,
+                                    "local_contribution": 0.6,
+                                    "fx_contribution": 0.1,
+                                },
+                            ],
+                        }
+                    ],
+                    "position_contributions": [
+                        {
+                            "position_id": "SEC_AAPL_US",
+                            "total_contribution": 1.93,
+                            "average_weight": 8.78,
+                            "total_return": 28.05,
+                            "local_contribution": 1.76,
+                            "fx_contribution": 0.17,
+                        },
+                        {
+                            "position_id": "SEC_ETF_WORLD_USD",
+                            "total_contribution": 0.71,
+                            "average_weight": 1.81,
+                            "total_return": 18.88,
+                            "local_contribution": 0.68,
+                            "fx_contribution": 0.03,
+                        },
+                    ],
+                },
+                "attribution": {
+                    "metric_basis": "NET",
+                    "model": "BF",
+                    "linking": "carino",
+                    "benchmark_context": {
+                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "return_source": "calculated",
+                    },
+                    "result": {
+                        "reconciliation": {
+                            "total_active_return": 0.3,
+                            "sum_of_effects": 0.28,
+                            "residual": 0.02,
+                        },
+                        "levels": [
+                            {
+                                "dimension": "asset_class",
+                                "totals": {
+                                    "allocation": -0.04,
+                                    "selection": 0.25,
+                                    "interaction": 0.07,
+                                    "total_effect": 0.28,
+                                },
+                                "rows": [
+                                    {
+                                        "key": {"asset_class": "Equity"},
+                                        "portfolio_weight_avg": 32.0,
+                                        "benchmark_weight_avg": 60.0,
+                                        "portfolio_return": 9.2,
+                                        "benchmark_return": 7.6,
+                                        "allocation": -0.14,
+                                        "selection": 0.32,
+                                        "interaction": 0.04,
+                                        "total_effect": 0.22,
+                                    }
+                                ],
+                            }
+                        ],
                     },
                 },
             },
@@ -197,6 +364,7 @@ def _workspace_summary_payload() -> dict:
                 "benchmark": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
+                    "input_mode": "stateful",
                     "summary": {
                         "period_return": {"base": 14.72},
                     },
@@ -238,6 +406,10 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 30_000.0,
+                                "ending_cash_flow": -7_500.0,
+                                "flow_adjusted_end_market_value": 486_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -274,6 +446,10 @@ def _workspace_summary_payload() -> dict:
                             "economics": {
                                 "begin_market_value": 450_000.0,
                                 "end_market_value": 508_870.0,
+                                "beginning_cash_flow": 30_000.0,
+                                "ending_cash_flow": -7_500.0,
+                                "flow_adjusted_end_market_value": 486_370.0,
+                                "fees": 0.0,
                                 "net_cash_flow": 22_500.0,
                             },
                         },
@@ -307,18 +483,29 @@ def _workspace_summary_payload() -> dict:
                 "money_weighted_return": {
                     "period_return": 14.05,
                     "annualized_return": 14.05,
+                    "input_mode": "stateful",
                     "method": "XIRR",
                     "start_date": "2026-01-01",
                     "end_date": "2026-03-27",
+                    "economics": {
+                        "begin_market_value": 450_000.0,
+                        "end_market_value": 508_870.0,
+                        "beginning_cash_flow": 30_000.0,
+                        "ending_cash_flow": -7_500.0,
+                        "flow_adjusted_end_market_value": 486_370.0,
+                        "fees": 0.0,
+                        "net_cash_flow": 22_500.0,
+                    },
                     "notes": ["cash-flow aware"],
                 },
                 "contribution": {
                     "metric_basis": "NET",
                     "summary": {
-                        "total_contribution": 15.1,
-                        "portfolio_return": 15.1,
-                        "portfolio_local_return": 13.9,
-                        "portfolio_fx_return": 1.2,
+                        "portfolio_contribution": 15.1,
+                        "coverage_mv_pct": 96.4,
+                        "weighting_scheme": "average_weight",
+                        "local_contribution": 13.9,
+                        "fx_contribution": 1.2,
                     },
                     "levels": [
                         {
@@ -355,7 +542,7 @@ def _workspace_summary_payload() -> dict:
                     "position_contributions": [
                         {
                             "position_id": "SEC_AAPL_US",
-                            "contribution": 5.43,
+                            "total_contribution": 5.43,
                             "average_weight": 8.78,
                             "total_return": 76.05,
                             "local_contribution": 5.12,
@@ -363,7 +550,7 @@ def _workspace_summary_payload() -> dict:
                         },
                         {
                             "position_id": "SEC_ETF_WORLD_USD",
-                            "contribution": 1.31,
+                            "total_contribution": 1.31,
                             "average_weight": 1.81,
                             "total_return": 99.88,
                             "local_contribution": 1.28,
@@ -606,10 +793,25 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.net_performance.portfolio_return_pct == 15.1
     assert response.net_performance.benchmark_return_pct == 14.72
     assert response.net_performance.active_return_pct == 0.38
+    assert response.net_performance.benchmark_input_mode == "stateful"
     assert response.net_performance.begin_market_value == 450000.0
+    assert response.net_performance.end_market_value == 508870.0
+    assert response.net_performance.beginning_cash_flow == 30000.0
+    assert response.net_performance.ending_cash_flow == -7500.0
+    assert response.net_performance.flow_adjusted_end_market_value == 486370.0
+    assert response.net_performance.net_cash_flow == 22500.0
+    assert response.net_performance.fees == 0.0
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
     assert response.money_weighted_return.money_weighted_return_pct == 14.05
+    assert response.money_weighted_return.input_mode == "stateful"
+    assert response.money_weighted_return.begin_market_value == 450000.0
+    assert response.money_weighted_return.end_market_value == 508870.0
+    assert response.money_weighted_return.beginning_cash_flow == 30000.0
+    assert response.money_weighted_return.ending_cash_flow == -7500.0
+    assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
+    assert response.money_weighted_return.net_cash_flow == 22500.0
+    assert response.money_weighted_return.fees == 0.0
     assert len(response.net_chart) == 3
     assert response.net_chart[-1].cumulative_active_return_pct == 0.38
     assert response.contribution is not None
@@ -623,6 +825,30 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.attribution.levels[0].rows[0].benchmark_return_pct == 18.4
     assert response.benchmark_options[0].is_assigned is True
     assert response.benchmark_options[0].benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.return_path.earliest_available_date == "2026-01-01"
+    assert response.capabilities.return_path.latest_available_date == "2026-03-27"
+    assert response.capabilities.return_path.supported_frequencies == ["monthly", "quarterly"]
+    assert response.capabilities.benchmark_comparison.state == "supported"
+    assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.contribution_ranking.coverage_level == "position"
+    assert response.capabilities.contribution_ranking.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+    ]
+    assert response.capabilities.attribution_detail.state == "supported"
+    assert response.capabilities.attribution_detail.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+        "currency",
+    ]
+    assert response.capabilities.attribution_detail.supported_frequencies == [
+        "monthly",
+        "quarterly",
+    ]
+    assert response.capabilities.evidence.state == "unavailable"
     assert response.warnings == ["FOUNDATION_WARNING"]
     assert response.partial_failures[0].error_code == "STALE_REPORTING"
 
@@ -655,8 +881,12 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.net_performance.portfolio_return_pct == 15.1
     assert response.gross_performance.portfolio_return_pct == 15.13
     assert response.money_weighted_return is not None
+    assert response.money_weighted_return.input_mode == "stateful"
     assert response.money_weighted_return.method == "XIRR"
+    assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
+    assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.contribution_detail.state == "supported"
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
 
@@ -702,6 +932,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     response = await service.get_performance_horizon_comparison(
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-performance",
+        period="YTD",
         detail_basis="NET",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
         chart_frequency="monthly",
@@ -709,18 +940,79 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.reporting_currency == "USD"
+    assert response.period == "YTD"
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
     assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
     assert response.rows[0].portfolio_return_pct == 1.2
+    assert response.rows[0].net_return_pct == 1.2
+    assert response.rows[0].gross_return_pct == 1.22
     assert response.rows[2].benchmark_return_pct == 14.72
+    assert response.rows[2].begin_market_value == 450000.0
+    assert response.rows[2].beginning_cash_flow == 30000.0
+    assert response.rows[2].ending_cash_flow == -7500.0
+    assert response.rows[2].flow_adjusted_end_market_value == 486370.0
     assert response.rows[3].active_return_pct == 0.6
-    assert [call["period"] for call in analytics_client.twr_calls] == [
-        "EXPLICIT",
-        "EXPLICIT",
+    assert response.rows[0].period_start == "2026-03-01"
+    assert response.rows[1].period_start == "2026-01-01"
+    assert response.rows[2].period_start == "2026-01-01"
+    assert response.rows[2].period_end == "2026-03-27"
+    assert len(analytics_client.workspace_summary_calls) == 3
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-03-01"
+    assert analytics_client.workspace_summary_calls[1]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[1]["report_start_date"] == "2026-01-01"
+    assert analytics_client.workspace_summary_calls[2]["period"] == "YTD"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
+        "EXPLICIT"
+    ]
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[1]["periods"]] == [
+        "EXPLICIT"
+    ]
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]] == [
         "YTD",
         "1Y",
     ]
-    assert analytics_client.twr_calls[0]["report_start_date"] == "2026-03-01"
-    assert analytics_client.twr_calls[1]["report_start_date"] == "2026-01-01"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_maps_workspace_position_contributions_from_upstream_contract():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution is not None
+    assert [row.position_id for row in response.contribution.position_rows] == [
+        "SEC_AAPL_US",
+        "SEC_ETF_WORLD_USD",
+    ]
+    assert response.contribution.position_rows[0].contribution_pct == 5.43
+    assert response.contribution.weighting_scheme == "average_weight"
+    assert response.contribution.portfolio_contribution_pct == 15.1
+    assert response.contribution.total_portfolio_return_pct == 15.1
+    assert response.contribution.coverage_mv_pct == 96.4
+    assert response.contribution.portfolio_local_contribution_pct == 13.9
+    assert response.contribution.portfolio_fx_contribution_pct == 1.2
+    assert response.contribution.levels[0].total_contribution_pct == 15.1
+    assert response.contribution.levels[0].total_portfolio_return_pct == 15.1
+    assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "USD"
+    assert response.capabilities.contribution_ranking.state == "supported"
 
 
 @pytest.mark.asyncio
@@ -736,14 +1028,69 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
     response = await service.get_performance_horizon_comparison(
         portfolio_id="DEMO_ADV_USD_001",
         correlation_id="corr-performance",
+        period="YTD",
         detail_basis="NET",
         benchmark_code=None,
         chart_frequency="monthly",
     )
 
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert analytics_client.twr_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_horizon_frequency():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        chart_frequency="weekly",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.requested_chart_frequency_supported is False
+    assert "PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_builds_explicit_horizon_comparison_contract():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_horizon_comparison(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        chart_frequency="monthly",
+        explicit_start_date="2026-01-01",
+        explicit_end_date="2026-03-27",
+    )
+
+    assert [row.period for row in response.rows] == ["EXPLICIT"]
+    assert response.rows[0].period_start == "2026-01-01"
+    assert response.rows[0].period_end == "2026-03-27"
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
+    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
+        "EXPLICIT"
+    ]
 
 
 @pytest.mark.asyncio
@@ -777,6 +1124,34 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_attribution_trend_controls():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_attribution_trend(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="weekly",
+        attribution_dimension="issuer",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.attribution_dimension == "asset_class"
+    assert response.requested_chart_frequency_supported is False
+    assert response.requested_attribution_dimension_supported is False
+    assert "PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_ATTRIBUTION_TREND_DIMENSION_NORMALIZED" in response.warnings
+    assert analytics_client.attribution_calls[0]["dimension"] == "asset_class"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_resolves_linked_benchmark_for_attribution_trend():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
@@ -803,10 +1178,11 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_detail_contract():
+    query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
         analytics_client=_StubAnalyticsClient(),
-        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        lotus_core_query_client=query_client,
     )
 
     response = await service.get_performance_workspace_details(
@@ -826,17 +1202,49 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
     assert response.attribution is not None
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.attribution_detail.state == "supported"
     assert response.segment == "asset_class"
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
+    assert query_client.benchmark_catalog_calls == []
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_qtd_workspace_summary_to_explicit():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="QTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.period == "QTD"
+    assert response.report_start_date == "2026-01-01"
+    assert response.contribution is not None
+    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
+    assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
 
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_portfolio_performance_snapshot():
+    query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
         analytics_client=_StubAnalyticsClient(),
-        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        lotus_core_query_client=query_client,
     )
 
     response = await service.get_portfolio_performance_snapshot(
@@ -853,6 +1261,7 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
     assert response.excess_return_pct == 0.38
     assert response.sparkline[0].as_of_date == "2026-01-31"
     assert response.sparkline[0].portfolio_return_pct == 2.0
+    assert query_client.benchmark_catalog_calls == []
 
 
 @pytest.mark.asyncio
@@ -881,6 +1290,39 @@ async def test_performance_workspace_service_aligns_mismatched_dimensions_to_sha
     assert "PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT" in response.warnings
     assert analytics_client.workspace_summary_calls[0]["segment"] == "sector"
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "quarterly"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_normalizes_unsupported_controls():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="weekly",
+        contribution_dimension="currency",
+        attribution_dimension="issuer",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.chart_frequency == "monthly"
+    assert response.contribution_dimension == "asset_class"
+    assert response.attribution_dimension == "asset_class"
+    assert response.requested_chart_frequency_supported is False
+    assert response.requested_contribution_dimension_supported is False
+    assert response.requested_attribution_dimension_supported is False
+    assert "PERFORMANCE_CHART_FREQUENCY_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
+    assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
+    assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
 
 
 @pytest.mark.asyncio
@@ -941,6 +1383,9 @@ async def test_performance_workspace_service_handles_workspace_summary_failure()
     assert response.gross_performance.portfolio_return_pct is None
     assert response.contribution is None
     assert response.attribution is None
+    assert response.capabilities.return_path.state == "unavailable"
+    assert response.capabilities.contribution_detail.state == "unavailable"
+    assert response.capabilities.attribution_detail.state == "unavailable"
     assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
 
@@ -971,3 +1416,156 @@ async def test_performance_workspace_service_handles_benchmark_catalog_failure()
     assert response.benchmark_options == []
     assert "BENCHMARK_CATALOG_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_aggregate_contribution_as_partial_fallback():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    response.contribution.position_rows = []
+    response.capabilities = service._build_workspace_capabilities(
+        benchmark_code=response.benchmark_code,
+        net_performance=response.net_performance,
+        net_chart=response.net_chart,
+        contribution=response.contribution,
+        attribution=response.attribution,
+    )
+
+    assert response.capabilities.contribution_ranking.state == "partial"
+    assert response.capabilities.contribution_ranking.coverage_level == "aggregate"
+    assert response.capabilities.contribution_ranking.fallback_available is True
+    assert response.capabilities.contribution_ranking.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+    ]
+    assert response.capabilities.contribution_detail.state == "partial"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_summary_only_attribution_as_partial_fallback():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.attribution is not None
+    response.attribution.levels[0].rows = []
+    response.capabilities = service._build_workspace_capabilities(
+        benchmark_code=response.benchmark_code,
+        net_performance=response.net_performance,
+        net_chart=response.net_chart,
+        contribution=response.contribution,
+        attribution=response.attribution,
+    )
+
+    assert response.capabilities.attribution_detail.state == "partial"
+    assert response.capabilities.attribution_detail.coverage_level == "summary"
+    assert response.capabilities.attribution_detail.fallback_available is True
+    assert response.capabilities.attribution_detail.supported_dimensions == [
+        "asset_class",
+        "sector",
+        "country",
+        "currency",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_fetches_assignment_and_catalog_concurrently():
+    class _ConcurrentQueryClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            super().__init__()
+            self.assignment_started = asyncio.Event()
+            self.catalog_started = asyncio.Event()
+
+        async def get_benchmark_catalog(self, **kwargs):
+            self.catalog_started.set()
+            await asyncio.wait_for(self.assignment_started.wait(), timeout=0.1)
+            return await super().get_benchmark_catalog(**kwargs)
+
+        async def get_benchmark_assignment(self, **kwargs):
+            self.assignment_started.set()
+            await asyncio.wait_for(self.catalog_started.wait(), timeout=0.1)
+            return await super().get_benchmark_assignment(**kwargs)
+
+    query_client = _ConcurrentQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=query_client,
+    )
+
+    response = await asyncio.wait_for(
+        service.get_performance_workspace_summary(
+            portfolio_id="DEMO_ADV_USD_001",
+            correlation_id="corr-performance",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code=None,
+        ),
+        timeout=0.2,
+    )
+
+    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert len(query_client.benchmark_assignment_calls) == 1
+    assert len(query_client.benchmark_catalog_calls) == 1
+
+
+def test_performance_workspace_service_resolves_canonical_period_boundaries():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(2026, 3, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(2026, 4, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(2026, 1, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(2025, 4, 1)
+
+
+def test_performance_workspace_service_keeps_ytd_distinct_from_1y():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    ytd_start = service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD")
+    one_year_start = service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y")
+
+    assert ytd_start == date(2026, 1, 1)
+    assert one_year_start == date(2025, 4, 1)
+    assert ytd_start != one_year_start

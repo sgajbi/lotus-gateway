@@ -263,6 +263,7 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     assert attribution_post["json"]["group_by"] == ["sector"]
     assert attribution_post["json"]["stateful_input"]["metric_basis"] == "GROSS"
     assert attribution_post["json"]["stateful_input"]["benchmark_id"] == "MODEL_60_40"
+    assert "calculation_id" not in attribution_post["json"]
 
 
 @pytest.mark.asyncio
@@ -317,6 +318,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
         chart_frequency="quarterly",
         detail_basis="NET",
         benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
     )
@@ -327,10 +329,141 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
     assert request["url"] == "http://analytics/performance/workspace-summary"
     assert request["json"]["periods"][0]["period"] == "YTD"
     assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
+    assert request["json"]["currency_mode"] == "BOTH"
+    assert request["json"]["report_ccy"] == "USD"
     assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
     assert request["json"]["contribution"]["metric_basis"] == "NET"
     assert request["json"]["attribution"]["metric_basis"] == "NET"
     assert request["json"]["benchmark"]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_retries_workspace_summary_when_calculation_id_conflicts():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        409,
+        {"detail": "A calculation with this calculation_id already exists. Use a new calculation_id for synchronous execution."},
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="quarterly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    assert len(_FakeAsyncClient.calls) == 2
+    first_request = _FakeAsyncClient.calls[0]
+    replay_request = _FakeAsyncClient.calls[1]
+    assert first_request["url"] == replay_request["url"] == "http://analytics/performance/workspace-summary"
+    assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
+    assert first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
+    assert first_request["json"]["report_ccy"] == replay_request["json"]["report_ccy"] == "USD"
+    assert first_request["json"]["periods"] == replay_request["json"]["periods"]
+    assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_summary(monkeypatch):
+    captured: list[dict] = []
+
+    async def _fake_request_with_retry(**kwargs):
+        captured.append(kwargs)
+        return 503, {"detail": "upstream communication failure: TimeoutException"}
+
+    monkeypatch.setattr("app.clients.lotus_analytics_client.request_with_retry", _fake_request_with_retry)
+
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date="2026-01-01",
+        period="QTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 503
+    assert payload["detail"] == "upstream communication failure: TimeoutException"
+    assert captured[0]["retry_timeout_exceptions"] is False
+    assert captured[0]["timeout_seconds"] == 15.0
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_falls_back_when_workspace_currency_breakout_requires_fx_inputs():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        422,
+        {
+            "detail": (
+                "Stateful contribution input requires fx.rates when currency_mode=BOTH "
+                "and sourced positions include currencies different from report_ccy."
+            )
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio_twr": {
+                        "net": {"summary": {"period_return": {"base": 2.1}}},
+                        "gross": {"summary": {"period_return": {"base": 2.2}}},
+                    }
+                }
+            }
+        },
+    )
+
+    status_code, payload = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert "results_by_period" in payload
+    assert len(_FakeAsyncClient.calls) == 2
+    first_request = _FakeAsyncClient.calls[0]["json"]
+    fallback_request = _FakeAsyncClient.calls[1]["json"]
+    assert first_request["currency_mode"] == "BOTH"
+    assert first_request["report_ccy"] == "USD"
+    assert "currency_mode" not in fallback_request
+    assert "report_ccy" not in fallback_request
+    assert first_request["calculation_id"] != fallback_request["calculation_id"]
 
 
 @pytest.mark.asyncio
@@ -454,6 +587,7 @@ async def test_lotus_core_query_client_core_endpoints():
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})
     _FakeAsyncClient.queue_json(200, {"allowedSections": ["OVERVIEW"]})
     _FakeAsyncClient.queue_json(200, {"portfolios": []})
+    _FakeAsyncClient.queue_json(200, {"items": [{"id": "P1", "label": "Portfolio 1"}]})
     _FakeAsyncClient.queue_json(200, {"as_of_date": "2026-02-24", "sections": {}})
     _FakeAsyncClient.queue_json(200, {"performance_end_date": "2026-02-24"})
     _FakeAsyncClient.queue_json(200, {"items": [{"instrument_id": "AAPL"}]})
@@ -469,6 +603,7 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_portfolios(correlation_id="corr-3"))[0] == 200
+    assert (await client.get_portfolio_lookups(correlation_id="corr-3"))[0] == 200
     assert (
         await client.get_core_snapshot(
             portfolio_id="P1",
@@ -487,13 +622,15 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_instruments(limit=10, correlation_id="corr-3"))[0] == 200
-    assert _FakeAsyncClient.calls[3]["json"] == {
+    assert _FakeAsyncClient.calls[3]["url"] == "http://pas/lookups/portfolios"
+    assert _FakeAsyncClient.calls[3]["params"] == {}
+    assert _FakeAsyncClient.calls[4]["json"] == {
         "as_of_date": "2026-02-24",
         "sections": ["positions_baseline"],
         "consumer_system": "lotus-gateway",
     }
     assert (
-        _FakeAsyncClient.calls[4]["url"]
+        _FakeAsyncClient.calls[5]["url"]
         == "http://pas/integration/portfolios/P1/analytics/reference"
     )
 

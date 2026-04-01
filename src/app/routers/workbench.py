@@ -42,7 +42,7 @@ def _workbench_service() -> WorkbenchService:
         ),
         analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
+            timeout_seconds=settings.performance_analytics_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
@@ -71,7 +71,7 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
         workbench_service=workbench_service,
         analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
+            timeout_seconds=settings.performance_analytics_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
@@ -241,18 +241,24 @@ async def get_performance_workspace_details(
 )
 async def get_performance_horizon_comparison(
     portfolio_id: str,
+    period: str = "YTD",
     detail_basis: str = "NET",
     benchmark_code: str | None = None,
     chart_frequency: str = "monthly",
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
 ) -> PerformanceHorizonComparisonResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
+        period=period,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         chart_frequency=chart_frequency,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
     )
 
 
@@ -295,9 +301,11 @@ async def get_performance_attribution_trend(
     response_model=PerformanceWorkspaceResponse,
     summary="Get Performance Workspace",
     description=(
-        "Returns an advisor-grade performance workspace contract with comparative TWR, "
-        "money-weighted return, contribution, attribution, and chart-ready breakdowns."
+        "Compatibility endpoint for the legacy monolithic performance workspace contract. "
+        "New Workbench consumers should use the split `summary`, `details`, "
+        "`horizon-comparison`, and `attribution-trend` contracts instead."
     ),
+    deprecated=True,
 )
 async def get_performance_workspace(
     portfolio_id: str,
