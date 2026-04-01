@@ -8,7 +8,7 @@ class _StubLotusCoreQueryClient:
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
 
-    async def list_portfolios(self, correlation_id: str):
+    async def get_portfolio_lookups(self, correlation_id: str):
         return 200, self.list_payload
 
     async def get_core_snapshot(
@@ -92,6 +92,7 @@ async def test_foundation_workspace_success():
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
             snapshot_payload={
+                "as_of_date": "2026-03-25",
                 "portfolio": {
                     "portfolio_id": "PF_1001",
                     "portfolio_name": "Alpha Growth",
@@ -99,22 +100,19 @@ async def test_foundation_workspace_success():
                     "booking_center": "SG",
                     "cif_id": "CIF_1001",
                 },
-                "snapshot": {
-                    "as_of_date": "2026-03-25",
-                    "overview": {"total_market_value": 1000.0, "total_cash": 100.0},
-                    "holdings": {
-                        "holdingsByAssetClass": {
-                            "Equity": [
-                                {"instrument_id": "EQ_1", "valuation": {"market_value_base": 700.0}}
-                            ],
-                            "Cash": [
-                                {
-                                    "instrument_id": "CASH_1",
-                                    "valuation": {"market_value_base": 100.0},
-                                }
-                            ],
-                        }
+                "sections": {
+                    "positions_baseline": [
+                        {"security_id": "EQ_1", "market_value_base": 700.0},
+                        {"security_id": "CASH_1", "market_value_base": 100.0},
+                    ],
+                    "portfolio_totals": {
+                        "baseline_total_market_value_base": 1000.0,
+                        "baseline_total_cash_base": 100.0,
                     },
+                    "instrument_enrichment": [
+                        {"security_id": "EQ_1", "asset_class": "Equity"},
+                        {"security_id": "CASH_1", "asset_class": "Cash"},
+                    ],
                 },
             },
         ),
@@ -164,11 +162,15 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
             snapshot_payload={
+                "as_of_date": "2026-03-25",
                 "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
-                "snapshot": {
-                    "as_of_date": "2026-03-25",
-                    "overview": {"total_market_value": 500.0, "total_cash": 50.0},
-                    "holdings": {"holdingsByAssetClass": {"Equity": [{"instrument_id": "EQ_1"}]}},
+                "sections": {
+                    "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
+                    "portfolio_totals": {
+                        "baseline_total_market_value_base": 500.0,
+                        "baseline_total_cash_base": 50.0,
+                    },
+                    "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
                 },
             },
         ),
