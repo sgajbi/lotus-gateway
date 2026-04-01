@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 
 from app.services.foundation_service import FoundationService
 
@@ -193,3 +194,339 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
         "FOUNDATION_REPORTING_UNAVAILABLE",
     ]
     assert len(response.partial_failures) == 3
+
+
+@pytest.mark.asyncio
+async def test_foundation_catalog_rejects_invalid_items_payload():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": {"portfolio_id": "PF_1001"}},
+            snapshot_payload={},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_catalog(correlation_id="corr-invalid-items")
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Invalid lotus-core portfolio catalog payload structure."
+
+
+@pytest.mark.asyncio
+async def test_foundation_catalog_rejects_item_without_portfolio_id():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": [{"portfolio_name": "Missing identifier"}]},
+            snapshot_payload={},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_catalog(correlation_id="corr-missing-id")
+
+    assert exc_info.value.status_code == 502
+    assert (
+        exc_info.value.detail == "Invalid lotus-core portfolio catalog item without portfolio_id."
+    )
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_rejects_invalid_snapshot_payload():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": []},
+            snapshot_payload={"portfolio": [], "sections": "invalid"},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_workspace(
+            portfolio_id="PF_INVALID",
+            correlation_id="corr-invalid-snapshot",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == "Invalid lotus-core foundation snapshot payload structure."
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_handles_invalid_optional_upstream_payloads():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": []},
+            snapshot_payload={
+                "as_of_date": "2026-03-25",
+                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
+                "sections": {
+                    "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
+                    "portfolio_totals": {
+                        "baseline_total_market_value_base": 500.0,
+                        "baseline_total_cash_base": 50.0,
+                    },
+                    "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
+                },
+            },
+        ),
+        analytics_client=_StubAnalyticsClient(200, {"resultsByPeriod": []}),
+        dpm_client=_StubDpmClient(200, "unexpected"),
+        reporting_client=_StubReportingClient(
+            200, {"generatedAt": "2026-03-25T09:00:00Z", "rows": "invalid"}
+        ),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-invalid-optional",
+    )
+
+    assert response.performance is None
+    assert response.rebalance is None
+    assert response.readiness.reporting.status == "EMPTY"
+    assert response.readiness.reporting.row_count == 0
+    assert response.warnings == [
+        "FOUNDATION_PERFORMANCE_INVALID",
+        "FOUNDATION_REBALANCE_UNAVAILABLE",
+    ]
+    assert len(response.partial_failures) == 1
+    assert response.partial_failures[0].source_service == "lotus-manage"
+    assert response.partial_failures[0].error_code == "INVALID_UPSTREAM_PAYLOAD"
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_records_optional_upstream_exception():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": []},
+            snapshot_payload={
+                "as_of_date": "2026-03-25",
+                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
+                "sections": {
+                    "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
+                    "portfolio_totals": {
+                        "baseline_total_market_value_base": 500.0,
+                        "baseline_total_cash_base": 50.0,
+                    },
+                    "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
+                },
+            },
+        ),
+        analytics_client=_StubAnalyticsClient(
+            200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.2}}}
+        ),
+        dpm_client=_StubDpmClient(200, {"items": []}),
+        reporting_client=_StubReportingClient(200, {"rows": []}),
+    )
+
+    warnings: list[str] = []
+    partial_failures = []
+
+    response = service._parse_reporting_result(
+        result=RuntimeError("report exploded"),
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert response.status == "UNAVAILABLE"
+    assert warnings == ["FOUNDATION_REPORTING_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-report"
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
+
+
+@pytest.mark.asyncio
+async def test_foundation_catalog_rejects_upstream_error():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"detail": "catalog unavailable"},
+            snapshot_payload={},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    async def _raise_catalog_error(correlation_id: str):
+        return 503, {"detail": "catalog unavailable"}
+
+    service._lotus_core_query_client.get_portfolio_lookups = _raise_catalog_error  # type: ignore[method-assign]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_catalog(correlation_id="corr-catalog-503")
+
+    assert exc_info.value.status_code == 502
+    assert "lotus-core portfolio catalog unavailable" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_rejects_snapshot_upstream_error():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": []},
+            snapshot_payload={"detail": "snapshot unavailable"},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    async def _raise_snapshot_error(
+        portfolio_id: str,
+        as_of_date: str,
+        sections: list[str],
+        consumer_system: str,
+        correlation_id: str,
+    ):
+        return 503, {"detail": "snapshot unavailable"}
+
+    service._lotus_core_query_client.get_core_snapshot = _raise_snapshot_error  # type: ignore[method-assign]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_workspace(
+            portfolio_id="PF_503",
+            correlation_id="corr-snapshot-503",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert "lotus-core foundation snapshot unavailable" in exc_info.value.detail
+
+
+def test_foundation_parses_defensive_snapshot_branches():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    portfolio, summary, allocations, as_of_date = service._parse_core_snapshot(
+        fallback_portfolio_id="PF_FALLBACK",
+        fallback_as_of_date="2026-03-31",
+        payload={
+            "metadata": {"business_date": "2026-03-30"},
+            "portfolio": {"name": "Fallback Name"},
+            "sections": {
+                "positions_baseline": [
+                    "skip-me",
+                    {"security_id": None, "asset_class": "Alternatives", "value_base": "125.55"},
+                    {"security_id": "EQ_1", "valuation": {"market_value_base": "374.45"}},
+                ],
+                "portfolio_totals": [],
+                "instrument_enrichment": [
+                    "skip-me",
+                    {"security_id": "EQ_1", "asset_class_name": "Equity"},
+                ],
+            },
+        },
+    )
+
+    assert portfolio.portfolio_id == "PF_FALLBACK"
+    assert portfolio.display_name == "Fallback Name"
+    assert summary.market_value_base == 0.0
+    assert summary.position_count == 2
+    assert [bucket.asset_class for bucket in allocations] == ["Alternatives", "Equity"]
+    assert allocations[0].weight_pct is None
+    assert allocations[1].market_value_base == 374.45
+    assert as_of_date == "2026-03-30"
+
+
+def test_foundation_parses_optional_result_edge_cases():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    warnings: list[str] = []
+    partial_failures = []
+    assert (
+        service._parse_performance_result(
+            (200, {"resultsByPeriod": {}}), warnings, partial_failures
+        )
+        is None
+    )
+    assert warnings == []
+
+    warnings = []
+    partial_failures = []
+    assert (
+        service._parse_performance_result(
+            (200, {"resultsByPeriod": {"QTD": []}}),
+            warnings,
+            partial_failures,
+        )
+        is None
+    )
+    assert warnings == []
+
+    warnings = []
+    partial_failures = []
+    rebalance = service._parse_rebalance_result(
+        (200, {"items": ["bad-row"]}),
+        warnings,
+        partial_failures,
+    )
+    assert rebalance is not None
+    assert rebalance.status == "NOT_AVAILABLE"
+
+    warnings = []
+    partial_failures = []
+    status_code, payload = service._unpack_optional_upstream(
+        result="invalid-response",
+        source_service="lotus-manage",
+        unavailable_warning="FOUNDATION_REBALANCE_UNAVAILABLE",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    assert status_code is None
+    assert payload is None
+    assert warnings == ["FOUNDATION_REBALANCE_UNAVAILABLE"]
+    assert partial_failures[0].error_code == "INVALID_UPSTREAM_RESPONSE"
+
+    warnings = []
+    partial_failures = []
+    status_code, payload = service._unpack_optional_upstream(
+        result=(503, {"detail": "service down"}),
+        source_service="lotus-report",
+        unavailable_warning="FOUNDATION_REPORTING_UNAVAILABLE",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    assert status_code == 503
+    assert payload is None
+    assert warnings == ["FOUNDATION_REPORTING_UNAVAILABLE"]
+    assert partial_failures[0].error_code == "HTTP_503"
+
+
+def test_foundation_extracts_market_value_and_workflow_cues():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    assert service._extract_market_value({"valuation": {"market_value": "88.10"}}) == 88.1
+    assert (
+        service._extract_market_value(
+            {"valuation": {"market_value_base": "bad"}, "current_value": "45.25"}
+        )
+        == 45.25
+    )
+    assert (
+        service._extract_market_value({"market_value_base": "bad", "value_base": "17.75"}) == 17.75
+    )
+    assert service._extract_market_value({"valuation": {"market_value_base": "bad"}}) is None
+
+    cues = service._build_workflow_cues("PF_1001")
+    assert [cue.key for cue in cues] == ["performance", "risk", "proposal"]
+    assert cues[0].href == "/app/performance?portfolioId=PF_1001"
