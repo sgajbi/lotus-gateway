@@ -342,7 +342,12 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
         409,
-        {"detail": "A calculation with this calculation_id already exists. Use a new calculation_id for synchronous execution."},
+        {
+            "detail": (
+                "A calculation with this calculation_id already exists. "
+                "Use a new calculation_id for synchronous execution."
+            )
+        },
     )
     _FakeAsyncClient.queue_json(
         200,
@@ -376,9 +381,15 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
     assert len(_FakeAsyncClient.calls) == 2
     first_request = _FakeAsyncClient.calls[0]
     replay_request = _FakeAsyncClient.calls[1]
-    assert first_request["url"] == replay_request["url"] == "http://analytics/performance/workspace-summary"
+    assert (
+        first_request["url"]
+        == replay_request["url"]
+        == "http://analytics/performance/workspace-summary"
+    )
     assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
-    assert first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
+    assert (
+        first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
+    )
     assert first_request["json"]["report_ccy"] == replay_request["json"]["report_ccy"] == "USD"
     assert first_request["json"]["periods"] == replay_request["json"]["periods"]
     assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
@@ -392,7 +403,9 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
         captured.append(kwargs)
         return 503, {"detail": "upstream communication failure: TimeoutException"}
 
-    monkeypatch.setattr("app.clients.lotus_analytics_client.request_with_retry", _fake_request_with_retry)
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.request_with_retry", _fake_request_with_retry
+    )
 
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=15.0)
 
@@ -416,7 +429,7 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
 
 
 @pytest.mark.asyncio
-async def test_lotus_analytics_client_falls_back_when_workspace_currency_breakout_requires_fx_inputs():
+async def test_lotus_analytics_client_falls_back_for_workspace_currency_breakout():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
         422,

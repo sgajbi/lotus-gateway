@@ -70,7 +70,9 @@ class LotusAnalyticsClient:
             headers=headers,
             retry_timeout_exceptions=False,
         )
-        if self._should_retry_duplicate_calculation(status_code=status_code, payload=response_payload, request=payload):
+        if self._should_retry_duplicate_calculation(
+            status_code=status_code, payload=response_payload, request=payload
+        ):
             replay_payload = dict(payload)
             replay_payload["calculation_id"] = str(uuid4())
             status_code, response_payload = await request_with_retry(

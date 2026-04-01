@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.middleware.correlation import resolve_trace_id
-from app.middleware.correlation import correlation_middleware
+from app.middleware.correlation import correlation_middleware, resolve_trace_id
 from app.middleware.server_timing import append_server_timing_metric
 
 
