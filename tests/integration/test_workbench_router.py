@@ -787,8 +787,9 @@ def test_workbench_performance_monolithic_route_is_marked_deprecated_in_openapi(
     schema = response.json()
     performance_get = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance"]["get"]
     assert performance_get["deprecated"] is True
-    assert "Compatibility endpoint for the legacy monolithic performance workspace contract" in (
-        performance_get["description"]
+    assert (
+        "Compatibility endpoint for the legacy monolithic performance workspace contract"
+        in (performance_get["description"])
     )
 
 
