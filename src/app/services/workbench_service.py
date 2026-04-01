@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Awaitable
 from datetime import UTC, date, datetime
 from typing import Any, cast
 
@@ -88,7 +89,7 @@ class WorkbenchService:
         rebalance_snapshot = None
 
         if include_performance_snapshot or include_rebalance_snapshot:
-            performance_task: object
+            performance_task: Awaitable[tuple[int, dict[str, Any]]]
             if include_performance_snapshot:
                 performance_end_date = await self._resolve_performance_snapshot_end_date(
                     portfolio_id=portfolio_id,
@@ -115,11 +116,7 @@ class WorkbenchService:
                 if include_rebalance_snapshot
                 else self._empty_async_result()
             )
-            gathered = await asyncio.gather(
-                cast(object, performance_task),
-                dpm_task,
-                return_exceptions=True,
-            )
+            gathered = await asyncio.gather(performance_task, dpm_task, return_exceptions=True)
             if include_performance_snapshot:
                 performance_snapshot = self._parse_performance_snapshot(
                     result=cast(object, gathered[0]),

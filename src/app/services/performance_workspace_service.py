@@ -1187,7 +1187,7 @@ class PerformanceWorkspaceService:
         portfolio_id: str,
         correlation_id: str,
         report_end_date: str,
-        report_start_date: str,
+        report_start_date: str | None,
         effective_period: str,
         chart_frequency: str,
         detail_basis: str,
