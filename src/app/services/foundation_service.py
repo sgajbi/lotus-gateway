@@ -217,9 +217,7 @@ class FoundationService:
         market_value_base = float(
             quantize_money(totals_payload.get("baseline_total_market_value_base", 0.0))
         )
-        total_cash_base = float(
-            quantize_money(totals_payload.get("baseline_total_cash_base", 0.0))
-        )
+        total_cash_base = float(quantize_money(totals_payload.get("baseline_total_cash_base", 0.0)))
         cash_weight_pct = 0.0
         if market_value_base > 0:
             cash_weight_pct = float(
@@ -261,7 +259,9 @@ class FoundationService:
             market_value = self._extract_market_value(row)
             if market_value is not None:
                 current_market_value = bucket.market_value_base or 0.0
-                bucket.market_value_base = float(quantize_money(current_market_value + market_value))
+                bucket.market_value_base = float(
+                    quantize_money(current_market_value + market_value)
+                )
 
         allocations = sorted(allocations_by_asset_class.values(), key=lambda item: item.asset_class)
         for bucket in allocations:

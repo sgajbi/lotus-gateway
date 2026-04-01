@@ -106,7 +106,9 @@ class _StubAnalyticsClient:
                 if not isinstance(analysis, dict):
                     continue
                 analysis_period = str(analysis.get("period"))
-                results_by_period.update(_twr_payload_for_period(analysis_period, analysis_period)["results_by_period"])
+                results_by_period.update(
+                    _twr_payload_for_period(analysis_period, analysis_period)["results_by_period"]
+                )
             return 200, {
                 "benchmark_context": {
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
@@ -965,20 +967,22 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert analytics_client.workspace_summary_calls[1]["report_start_date"] == "2026-01-01"
     assert analytics_client.workspace_summary_calls[2]["period"] == "YTD"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
-    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
-        "EXPLICIT"
-    ]
-    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[1]["periods"]] == [
-        "EXPLICIT"
-    ]
-    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]] == [
+    assert [
+        analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]
+    ] == ["EXPLICIT"]
+    assert [
+        analysis["period"] for analysis in analytics_client.workspace_summary_calls[1]["periods"]
+    ] == ["EXPLICIT"]
+    assert [
+        analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]
+    ] == [
         "YTD",
         "1Y",
     ]
 
 
 @pytest.mark.asyncio
-async def test_performance_workspace_service_maps_workspace_position_contributions_from_upstream_contract():
+async def test_workspace_service_maps_position_contributions_from_upstream_contract():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
@@ -1035,7 +1039,9 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
     )
 
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert (
+        analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
 
 
@@ -1088,9 +1094,9 @@ async def test_performance_workspace_service_builds_explicit_horizon_comparison_
     assert response.rows[0].period_end == "2026-03-27"
     assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
-    assert [analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]] == [
-        "EXPLICIT"
-    ]
+    assert [
+        analysis["period"] for analysis in analytics_client.workspace_summary_calls[0]["periods"]
+    ] == ["EXPLICIT"]
 
 
 @pytest.mark.asyncio
@@ -1550,10 +1556,18 @@ def test_performance_workspace_service_resolves_canonical_period_boundaries():
         lotus_core_query_client=_StubLotusCoreQueryClient(),
     )
 
-    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(2026, 3, 1)
-    assert service._resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(2026, 4, 1)
-    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(2026, 1, 1)
-    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(2025, 4, 1)
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(
+        2026, 3, 1
+    )
+    assert service._resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(
+        2026, 4, 1
+    )
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(
+        2026, 1, 1
+    )
+    assert service._resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(
+        2025, 4, 1
+    )
 
 
 def test_performance_workspace_service_keeps_ytd_distinct_from_1y():

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from fastapi import Request
+
 from app.middleware.server_timing import (
     format_server_timing_header,
     reset_server_timing_metrics,

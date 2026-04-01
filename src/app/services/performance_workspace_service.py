@@ -214,11 +214,13 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
-        resolved_report_end_date, report_start_date, effective_period = self._resolve_requested_window(
-            default_report_end_date=report_end_date,
-            period=period,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
+        resolved_report_end_date, report_start_date, effective_period = (
+            self._resolve_requested_window(
+                default_report_end_date=report_end_date,
+                period=period,
+                explicit_start_date=explicit_start_date,
+                explicit_end_date=explicit_end_date,
+            )
         )
         (
             resolved_chart_frequency,
@@ -470,7 +472,9 @@ class PerformanceWorkspaceService:
         (
             resolved_chart_frequency,
             requested_chart_frequency_supported,
-        ) = self._normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
+        ) = self._normalize_workspace_chart_frequency(
+            chart_frequency=chart_frequency, warnings=warnings
+        )
         (
             resolved_contribution_dimension,
             requested_contribution_dimension_supported,
@@ -757,21 +761,17 @@ class PerformanceWorkspaceService:
             )
         )
         dated_history = [
-            point for point in net_chart if point.period_start is not None or point.period_end is not None
+            point
+            for point in net_chart
+            if point.period_start is not None or point.period_end is not None
         ]
         earliest_history_date = (
-            min(
-                point.period_start or point.period_end or ""
-                for point in dated_history
-            )
+            min(point.period_start or point.period_end or "" for point in dated_history)
             if dated_history
             else None
         )
         latest_history_date = (
-            max(
-                point.period_end or point.period_start or ""
-                for point in dated_history
-            )
+            max(point.period_end or point.period_start or "" for point in dated_history)
             if dated_history
             else None
         )
@@ -825,7 +825,10 @@ class PerformanceWorkspaceService:
                 if has_benchmark
                 else self._capability(
                     "partial",
-                    "Horizon comparisons remain available, but benchmark-relative output is unavailable.",
+                    (
+                        "Horizon comparisons remain available, "
+                        "but benchmark-relative output is unavailable."
+                    ),
                     supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
             ),
@@ -862,7 +865,10 @@ class PerformanceWorkspaceService:
                 if has_attribution_detail
                 else self._capability(
                     "partial",
-                    "Benchmark-relative attribution is available only at summary level for the current selection.",
+                    (
+                        "Benchmark-relative attribution is available only at summary level "
+                        "for the current selection."
+                    ),
                     coverage_level="summary",
                     fallback_available=True,
                     supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
@@ -1169,7 +1175,10 @@ class PerformanceWorkspaceService:
     ) -> tuple[str, str | None]:
         normalized_period = period.upper()
         if normalized_period in SUPPORTED_WORKSPACE_SUMMARY_PERIODS:
-            return normalized_period, report_start_date.isoformat() if normalized_period == "EXPLICIT" else None
+            return (
+                normalized_period,
+                report_start_date.isoformat() if normalized_period == "EXPLICIT" else None,
+            )
         return "EXPLICIT", report_start_date.isoformat()
 
     async def _fetch_workspace_summary_result(
@@ -1199,7 +1208,7 @@ class PerformanceWorkspaceService:
                 reporting_currency=portfolio_currency,
                 segment=segment,
                 correlation_id=correlation_id,
-            )
+            ),
         )
 
     async def _fetch_workspace_horizon_dependencies(
@@ -1227,7 +1236,12 @@ class PerformanceWorkspaceService:
             )
 
         horizon_periods = (
-            [{"period": period, "frequencies": self._build_horizon_comparison_frequencies(chart_frequency)}]
+            [
+                {
+                    "period": period,
+                    "frequencies": self._build_horizon_comparison_frequencies(chart_frequency),
+                }
+            ]
             if period == "EXPLICIT"
             else []
         )
@@ -1359,7 +1373,9 @@ class PerformanceWorkspaceService:
                 if isinstance(explicit_result, dict):
                     merged_results[label] = {
                         **explicit_result,
-                        "_gateway_requested_period_start": month_start if label == "MTD" else quarter_start,
+                        "_gateway_requested_period_start": month_start
+                        if label == "MTD"
+                        else quarter_start,
                         "_gateway_requested_period_end": report_end_date,
                     }
                 continue
@@ -1551,8 +1567,9 @@ class PerformanceWorkspaceService:
             active_block = period_payload.get("active", {})
             net_block = self._extract_twr_workspace_block(period_payload, "net")
             gross_block = self._extract_twr_workspace_block(period_payload, "gross")
-            net_summary_payload = net_block.get("summary", {}) if isinstance(net_block, dict) else {}
-            gross_summary_payload = gross_block.get("summary", {}) if isinstance(gross_block, dict) else {}
+            net_summary_payload = (
+                net_block.get("summary", {}) if isinstance(net_block, dict) else {}
+            )
             money_weighted_return = period_payload.get("money_weighted_return", {})
             economics = (
                 net_summary_payload.get("economics", {})
@@ -1563,9 +1580,14 @@ class PerformanceWorkspaceService:
                 metric_basis=detail_basis.upper(),
                 portfolio_block=net_block,
                 benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
-                active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
+                active_basis_block=active_block.get("net")
+                if isinstance(active_block, dict)
+                else {},
             )
-            if comparative.portfolio_return_pct is None and comparative.benchmark_return_pct is None:
+            if (
+                comparative.portfolio_return_pct is None
+                and comparative.benchmark_return_pct is None
+            ):
                 continue
             rows.append(
                 PerformanceHorizonComparisonRow(
@@ -1595,9 +1617,7 @@ class PerformanceWorkspaceService:
                     )
                     if isinstance(economics, dict)
                     else None,
-                    ending_cash_flow=self._quantize_optional(
-                        economics.get("ending_cash_flow")
-                    )
+                    ending_cash_flow=self._quantize_optional(economics.get("ending_cash_flow"))
                     if isinstance(economics, dict)
                     else None,
                     flow_adjusted_end_market_value=self._quantize_optional(
@@ -1608,13 +1628,21 @@ class PerformanceWorkspaceService:
                     net_cash_flow=self._quantize_optional(economics.get("net_cash_flow"))
                     if isinstance(economics, dict)
                     else None,
-                    fees=self._quantize_optional(economics.get("fees")) if isinstance(economics, dict) else None,
-                    net_return_pct=self._extract_return(net_block, "summary", "period_return", "base"),
-                    gross_return_pct=self._extract_return(gross_block, "summary", "period_return", "base"),
+                    fees=self._quantize_optional(economics.get("fees"))
+                    if isinstance(economics, dict)
+                    else None,
+                    net_return_pct=self._extract_return(
+                        net_block, "summary", "period_return", "base"
+                    ),
+                    gross_return_pct=self._extract_return(
+                        gross_block, "summary", "period_return", "base"
+                    ),
                     portfolio_return_pct=comparative.portfolio_return_pct,
                     benchmark_return_pct=comparative.benchmark_return_pct,
                     active_return_pct=comparative.active_return_pct,
-                    cumulative_net_return_pct=self._extract_return(net_block, "summary", "cumulative_return", "base"),
+                    cumulative_net_return_pct=self._extract_return(
+                        net_block, "summary", "cumulative_return", "base"
+                    ),
                     cumulative_gross_return_pct=self._extract_return(
                         gross_block,
                         "summary",
