@@ -20,6 +20,7 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceWorkspaceResponse,
 )
+from app.middleware.server_timing import server_timing_span
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 
 _TASK_ID = "explain.v1"
@@ -50,18 +51,21 @@ class AdvisorBriefService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> AdvisorBriefResponse:
-        workspace = await self._performance_workspace_service.get_performance_workspace(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
-        )
+        async with server_timing_span("perf-advisor-brief-source"):
+            workspace = (
+                await self._performance_workspace_service.get_performance_workspace(
+                    portfolio_id=portfolio_id,
+                    correlation_id=correlation_id,
+                    period=period,
+                    chart_frequency=chart_frequency,
+                    contribution_dimension=contribution_dimension,
+                    attribution_dimension=attribution_dimension,
+                    detail_basis=detail_basis,
+                    benchmark_code=benchmark_code,
+                    explicit_start_date=explicit_start_date,
+                    explicit_end_date=explicit_end_date,
+                )
+            )
 
         selected_performance = (
             workspace.net_performance
@@ -89,21 +93,22 @@ class AdvisorBriefService:
         ai_evidence: dict[str, Any] = {"descriptors": []}
 
         if status is not AdvisorBriefStatus.UNAVAILABLE:
-            ai_status, ai_payload = await self._lotus_ai_client.execute_task(
-                task_id=_TASK_ID,
-                caller_app="lotus-gateway",
-                correlation_id=correlation_id,
-                context_summary=(
-                    f"Advisor brief context for portfolio {workspace.portfolio_id}, "
-                    f"{workspace.period} period, basis {workspace.detail_basis}."
-                ),
-                context_payload=_build_ai_fact_bundle(
-                    workspace=workspace,
-                    selected_performance=selected_performance,
-                ),
-                source_refs=source_refs,
-                expected_output_label=_EXPECTED_OUTPUT_LABEL,
-            )
+            async with server_timing_span("perf-advisor-brief-ai"):
+                ai_status, ai_payload = await self._lotus_ai_client.execute_task(
+                    task_id=_TASK_ID,
+                    caller_app="lotus-gateway",
+                    correlation_id=correlation_id,
+                    context_summary=(
+                        f"Advisor brief context for portfolio {workspace.portfolio_id}, "
+                        f"{workspace.period} period, basis {workspace.detail_basis}."
+                    ),
+                    context_payload=_build_ai_fact_bundle(
+                        workspace=workspace,
+                        selected_performance=selected_performance,
+                    ),
+                    source_refs=source_refs,
+                    expected_output_label=_EXPECTED_OUTPUT_LABEL,
+                )
             if ai_status == 200 and ai_payload.get("status") == "COMPLETED":
                 source_summary = _extract_ai_summary(ai_payload=ai_payload) or source_summary
                 ai_audit = _safe_dict(ai_payload.get("audit"))

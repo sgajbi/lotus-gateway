@@ -17,6 +17,11 @@ from app.contracts.workbench import (
     WorkbenchPartialFailure,
     WorkbenchPortfolioSummary,
 )
+from app.middleware.server_timing import (
+    format_server_timing_header,
+    reset_server_timing_metrics,
+    restore_server_timing_metrics,
+)
 from app.services.advisor_brief_service import AdvisorBriefService
 
 
@@ -204,6 +209,36 @@ async def test_advisor_brief_service_marks_partial_when_source_slices_or_ai_gene
             ],
         },
     ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_records_source_and_ai_server_timing_spans():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+    token = reset_server_timing_metrics()
+
+    try:
+        await service.get_performance_advisor_brief(
+            portfolio_id="PF_1001",
+            correlation_id="corr-1",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        )
+
+        server_timing = format_server_timing_header(1.0)
+    finally:
+        restore_server_timing_metrics(token)
+
+    assert "perf-advisor-brief-source;dur=" in server_timing
+    assert "perf-advisor-brief-ai;dur=" in server_timing
 
 
 def _build_workspace(

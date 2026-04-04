@@ -809,6 +809,8 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
 
     async def _brief(*args, **kwargs):
         captured_call.update(kwargs)
+        append_server_timing_metric("perf-advisor-brief-source", 4.0)
+        append_server_timing_metric("perf-advisor-brief-ai", 5.0)
         return AdvisorBriefResponse(
             correlation_id=kwargs["correlation_id"],
             contract_version="v1",
@@ -898,6 +900,9 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     )
 
     assert response.status_code == 200
+    assert response.headers["Server-Timing"].startswith("app;dur=")
+    assert "perf-advisor-brief-source;dur=" in response.headers["Server-Timing"]
+    assert "perf-advisor-brief-ai;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["status"] == "ready"
     assert body["summary"] == "Advisor summary."
