@@ -535,14 +535,15 @@ def _to_supportability_item(
     state: str,
     reason: str | None,
 ) -> AdvisorBriefSupportabilityItem:
-    if state == "ready":
+    normalized_state = state.strip().lower()
+    if normalized_state in {"ready", "supported"}:
         return AdvisorBriefSupportabilityItem(
             label=label,
             value="Ready",
             tone="success",
             reason=reason,
         )
-    if state == "partial":
+    if normalized_state == "partial":
         return AdvisorBriefSupportabilityItem(
             label=label,
             value="Partial",

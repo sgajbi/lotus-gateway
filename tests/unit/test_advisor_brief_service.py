@@ -212,6 +212,41 @@ async def test_advisor_brief_service_marks_partial_when_source_slices_or_ai_gene
 
 
 @pytest.mark.asyncio
+async def test_advisor_brief_service_treats_supported_capabilities_as_ready():
+    workspace = _build_workspace(
+        benchmark_state="supported",
+        contribution_state="supported",
+        attribution_state="supported",
+    )
+    workspace.capabilities.summary_kpis.state = "supported"
+    workspace.capabilities.return_path.state = "supported"
+    service = AdvisorBriefService(
+        performance_workspace_service=_StubPerformanceWorkspaceService(workspace),
+        lotus_ai_client=_StubLotusAiClient(),
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-supported",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.status == "ready"
+    assert [item.value for item in response.supportability] == [
+        "Ready",
+        "Ready",
+        "Ready",
+        "Ready",
+        "Ready",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_advisor_brief_service_records_source_and_ai_server_timing_spans():
     workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
     ai_client = _StubLotusAiClient()
