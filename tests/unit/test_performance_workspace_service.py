@@ -953,7 +953,7 @@ async def test_performance_workspace_service_reuses_cached_workspace_summary_res
 
 
 @pytest.mark.asyncio
-async def test_performance_workspace_service_clear_upstream_cache_forces_workspace_summary_refresh():
+async def test_performance_workspace_service_clear_upstream_cache_forces_summary_refresh():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
@@ -985,7 +985,10 @@ async def test_performance_workspace_service_clear_upstream_cache_forces_workspa
     )
 
     assert len(analytics_client.workspace_summary_calls) == 2
-    assert analytics_client.workspace_summary_calls[1]["correlation_id"] == "corr-performance-second"
+    assert (
+        analytics_client.workspace_summary_calls[1]["correlation_id"]
+        == "corr-performance-second"
+    )
 
 
 @pytest.mark.asyncio

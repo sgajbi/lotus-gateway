@@ -428,7 +428,7 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
 
 
 @pytest.mark.asyncio
-async def test_lotus_analytics_client_workspace_summary_does_not_send_unsupported_currency_breakout():
+async def test_lotus_analytics_client_workspace_summary_omits_unsupported_currency_breakout():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
         200,
