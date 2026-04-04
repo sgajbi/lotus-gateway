@@ -26,12 +26,31 @@ from app.services.workbench_service import WorkbenchService
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 
-def _workbench_service() -> WorkbenchService:
-    dpm_base_url = (
-        settings.management_service_base_url
-        if settings.manage_split_enabled
-        else settings.decisioning_service_base_url
+_WORKBENCH_SERVICE: WorkbenchService | None = None
+_WORKBENCH_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
+_PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+
+
+def _service_signature() -> tuple[object, ...]:
+    return (
+        settings.portfolio_data_query_base_url,
+        settings.portfolio_data_control_plane_base_url,
+        settings.performance_analytics_base_url,
+        settings.management_service_base_url,
+        settings.decisioning_service_base_url,
+        settings.risk_analytics_base_url,
+        settings.manage_split_enabled,
+        settings.risk_split_enabled,
+        settings.upstream_timeout_seconds,
+        settings.performance_analytics_timeout_seconds,
+        settings.upstream_max_retries,
+        settings.upstream_retry_backoff_seconds,
+        settings.portfolio_upstream_cache_ttl_seconds,
     )
+
+
+def _build_workbench_service() -> WorkbenchService:
     return WorkbenchService(
         lotus_core_query_client=LotusCoreQueryClient(
             base_url=settings.portfolio_data_query_base_url,
@@ -47,7 +66,11 @@ def _workbench_service() -> WorkbenchService:
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
         dpm_client=DpmClient(
-            base_url=dpm_base_url,
+            base_url=(
+                settings.management_service_base_url
+                if settings.manage_split_enabled
+                else settings.decisioning_service_base_url
+            ),
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
@@ -65,8 +88,9 @@ def _workbench_service() -> WorkbenchService:
     )
 
 
-def _performance_workspace_service() -> PerformanceWorkspaceService:
-    workbench_service = _workbench_service()
+def _build_performance_workspace_service(
+    workbench_service: WorkbenchService,
+) -> PerformanceWorkspaceService:
     return PerformanceWorkspaceService(
         workbench_service=workbench_service,
         analytics_client=LotusAnalyticsClient(
@@ -83,6 +107,29 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
     )
+
+
+def _workbench_service() -> WorkbenchService:
+    global _WORKBENCH_SERVICE, _WORKBENCH_SERVICE_SIGNATURE
+    signature = _service_signature()
+    if _WORKBENCH_SERVICE is None or _WORKBENCH_SERVICE_SIGNATURE != signature:
+        _WORKBENCH_SERVICE = _build_workbench_service()
+        _WORKBENCH_SERVICE_SIGNATURE = signature
+    return _WORKBENCH_SERVICE
+
+
+def _performance_workspace_service() -> PerformanceWorkspaceService:
+    global _PERFORMANCE_WORKSPACE_SERVICE, _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE
+    signature = _service_signature()
+    if (
+        _PERFORMANCE_WORKSPACE_SERVICE is None
+        or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
+    ):
+        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service(
+            _workbench_service()
+        )
+        _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
+    return _PERFORMANCE_WORKSPACE_SERVICE
 
 
 @router.get(

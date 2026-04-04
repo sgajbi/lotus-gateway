@@ -37,64 +37,95 @@ _PORTFOLIO_SERVICE = PortfolioService(
     )
 )
 
+_PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
+_PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+
+
+def _service_signature() -> tuple[object, ...]:
+    return (
+        settings.portfolio_data_query_base_url,
+        settings.portfolio_data_control_plane_base_url,
+        settings.performance_analytics_base_url,
+        settings.management_service_base_url,
+        settings.decisioning_service_base_url,
+        settings.risk_analytics_base_url,
+        settings.manage_split_enabled,
+        settings.risk_split_enabled,
+        settings.upstream_timeout_seconds,
+        settings.performance_analytics_timeout_seconds,
+        settings.upstream_max_retries,
+        settings.upstream_retry_backoff_seconds,
+        settings.portfolio_upstream_cache_ttl_seconds,
+    )
+
+
+def _build_performance_workspace_service() -> PerformanceWorkspaceService:
+    return PerformanceWorkspaceService(
+        workbench_service=WorkbenchService(
+            lotus_core_query_client=LotusCoreQueryClient(
+                base_url=settings.portfolio_data_query_base_url,
+                control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+                timeout_seconds=settings.upstream_timeout_seconds,
+                max_retries=settings.upstream_max_retries,
+                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+            ),
+            analytics_client=LotusAnalyticsClient(
+                base_url=settings.performance_analytics_base_url,
+                timeout_seconds=settings.performance_analytics_timeout_seconds,
+                max_retries=settings.upstream_max_retries,
+                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+            ),
+            dpm_client=DpmClient(
+                base_url=(
+                    settings.management_service_base_url
+                    if settings.manage_split_enabled
+                    else settings.decisioning_service_base_url
+                ),
+                timeout_seconds=settings.upstream_timeout_seconds,
+                max_retries=settings.upstream_max_retries,
+                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+            ),
+            risk_client=(
+                LotusAnalyticsClient(
+                    base_url=settings.risk_analytics_base_url,
+                    timeout_seconds=settings.upstream_timeout_seconds,
+                    max_retries=settings.upstream_max_retries,
+                    retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+                )
+                if settings.risk_split_enabled
+                else None
+            ),
+        ),
+        analytics_client=LotusAnalyticsClient(
+            base_url=settings.performance_analytics_base_url,
+            timeout_seconds=settings.performance_analytics_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        lotus_core_query_client=LotusCoreQueryClient(
+            base_url=settings.portfolio_data_query_base_url,
+            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+    )
+
 
 def _portfolio_service() -> PortfolioService:
     return _PORTFOLIO_SERVICE
 
 
 def _performance_workspace_service() -> PerformanceWorkspaceService:
-    dpm_base_url = (
-        settings.management_service_base_url
-        if settings.manage_split_enabled
-        else settings.decisioning_service_base_url
-    )
-    workbench_service = WorkbenchService(
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        dpm_client=DpmClient(
-            base_url=dpm_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        risk_client=(
-            LotusAnalyticsClient(
-                base_url=settings.risk_analytics_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            )
-            if settings.risk_split_enabled
-            else None
-        ),
-    )
-    return PerformanceWorkspaceService(
-        workbench_service=workbench_service,
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    global _PERFORMANCE_WORKSPACE_SERVICE, _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE
+    signature = _service_signature()
+    if (
+        _PERFORMANCE_WORKSPACE_SERVICE is None
+        or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
+    ):
+        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service()
+        _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
+    return _PERFORMANCE_WORKSPACE_SERVICE
 
 
 @router.get(

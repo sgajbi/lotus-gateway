@@ -329,8 +329,8 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
     assert request["url"] == "http://analytics/performance/workspace-summary"
     assert request["json"]["periods"][0]["period"] == "YTD"
     assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
-    assert request["json"]["currency_mode"] == "BOTH"
     assert request["json"]["report_ccy"] == "USD"
+    assert "currency_mode" not in request["json"]
     assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
     assert request["json"]["contribution"]["metric_basis"] == "NET"
     assert request["json"]["attribution"]["metric_basis"] == "NET"
@@ -387,9 +387,8 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
         == "http://analytics/performance/workspace-summary"
     )
     assert first_request["json"]["calculation_id"] != replay_request["json"]["calculation_id"]
-    assert (
-        first_request["json"]["currency_mode"] == replay_request["json"]["currency_mode"] == "BOTH"
-    )
+    assert "currency_mode" not in first_request["json"]
+    assert "currency_mode" not in replay_request["json"]
     assert first_request["json"]["report_ccy"] == replay_request["json"]["report_ccy"] == "USD"
     assert first_request["json"]["periods"] == replay_request["json"]["periods"]
     assert first_request["json"]["benchmark"] == replay_request["json"]["benchmark"]
@@ -429,17 +428,8 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
 
 
 @pytest.mark.asyncio
-async def test_lotus_analytics_client_falls_back_for_workspace_currency_breakout():
+async def test_lotus_analytics_client_workspace_summary_does_not_send_unsupported_currency_breakout():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
-    _FakeAsyncClient.queue_json(
-        422,
-        {
-            "detail": (
-                "Stateful contribution input requires fx.rates when currency_mode=BOTH "
-                "and sourced positions include currencies different from report_ccy."
-            )
-        },
-    )
     _FakeAsyncClient.queue_json(
         200,
         {
@@ -469,14 +459,13 @@ async def test_lotus_analytics_client_falls_back_for_workspace_currency_breakout
 
     assert status_code == 200
     assert "results_by_period" in payload
-    assert len(_FakeAsyncClient.calls) == 2
-    first_request = _FakeAsyncClient.calls[0]["json"]
-    fallback_request = _FakeAsyncClient.calls[1]["json"]
-    assert first_request["currency_mode"] == "BOTH"
-    assert first_request["report_ccy"] == "USD"
-    assert "currency_mode" not in fallback_request
-    assert "report_ccy" not in fallback_request
-    assert first_request["calculation_id"] != fallback_request["calculation_id"]
+    assert len(_FakeAsyncClient.calls) == 1
+    request = _FakeAsyncClient.calls[0]["json"]
+    assert "currency_mode" not in request
+    assert request["report_ccy"] == "USD"
+    assert request["segmentation"]["group_by"] == ["asset_class"]
+    assert request["contribution"]["metric_basis"] == "NET"
+    assert request["attribution"]["metric_basis"] == "NET"
 
 
 @pytest.mark.asyncio

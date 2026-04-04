@@ -110,25 +110,6 @@ class LotusAnalyticsClient:
             return False
         return "calculation_id already exists" in detail.lower()
 
-    @staticmethod
-    def _should_fallback_workspace_currency_breakout(
-        *,
-        status_code: int,
-        payload: dict[str, Any],
-        request: dict[str, Any],
-    ) -> bool:
-        if status_code != 422:
-            return False
-        if request.get("currency_mode") != "BOTH":
-            return False
-        detail = payload.get("detail")
-        if not isinstance(detail, str):
-            return False
-        detail_lower = detail.lower()
-        return "currency_mode=both" in detail_lower and (
-            "report_ccy" in detail_lower or "fx.rates" in detail_lower
-        )
-
     async def get_capabilities(
         self,
         consumer_system: str,
@@ -386,7 +367,6 @@ class LotusAnalyticsClient:
             "mwr_method": "XIRR",
         }
         if include_detail_blocks:
-            payload["currency_mode"] = "BOTH"
             if reporting_currency:
                 payload["report_ccy"] = reporting_currency
             payload["segmentation"] = {
@@ -413,20 +393,6 @@ class LotusAnalyticsClient:
             payload=payload,
             correlation_id=correlation_id,
         )
-        if self._should_fallback_workspace_currency_breakout(
-            status_code=status_code,
-            payload=response_payload,
-            request=payload,
-        ):
-            fallback_payload = dict(payload)
-            fallback_payload.pop("currency_mode", None)
-            fallback_payload.pop("report_ccy", None)
-            fallback_payload["calculation_id"] = str(uuid4())
-            return await self._post_analytics_request(
-                path="/performance/workspace-summary",
-                payload=fallback_payload,
-                correlation_id=correlation_id,
-            )
         return status_code, response_payload
 
     async def get_workbench_risk_proxy(
