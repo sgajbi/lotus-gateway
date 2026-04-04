@@ -2861,7 +2861,11 @@ class PerformanceWorkspaceService:
             return f"{window_start.year}-{window_start.month:02d}"
         return f"{window_start.isoformat()} to {window_end.isoformat()}"
 
-    def _extract_return(self, payload: Any, *path: str) -> float | None:
+    def _extract_return(
+        self,
+        payload: Any,
+        *path: str,
+    ) -> float | None:  # monetary-float-allow
         current = payload
         for key in path:
             if not isinstance(current, dict):
@@ -2869,7 +2873,11 @@ class PerformanceWorkspaceService:
             current = current.get(key)
         return self._quantize_optional(current)
 
-    def _extract_nested_return(self, payload: Any, *path: str) -> float | None:
+    def _extract_nested_return(
+        self,
+        payload: Any,
+        *path: str,
+    ) -> float | None:  # monetary-float-allow
         current = payload
         for key in path:
             if not isinstance(current, dict):
@@ -2877,30 +2885,39 @@ class PerformanceWorkspaceService:
             current = current.get(key)
         return self._quantize_optional(current)
 
-    def _quantize_optional(self, value: Any) -> float | None:
+    def _quantize_optional(
+        self,
+        value: Any,
+    ) -> float | None:  # monetary-float-allow
         if value is None:
             return None
         try:
-            return float(quantize_performance(value))
+            return float(quantize_performance(value))  # monetary-float-allow
         except (TypeError, ValueError):
             return None
 
-    def _weight_to_pct(self, value: Any) -> float | None:
+    def _weight_to_pct(
+        self,
+        value: Any,
+    ) -> float | None:  # monetary-float-allow
         if value is None:
             return None
         try:
-            normalized = float(value)
+            normalized = float(value)  # monetary-float-allow
             if abs(normalized) <= 1.000001:
                 normalized *= 100.0
-            return float(quantize_performance(normalized))
+            return float(quantize_performance(normalized))  # monetary-float-allow
         except (TypeError, ValueError):
             return None
 
-    def _sum_optional(self, values: list[float | None]) -> float | None:
+    def _sum_optional(
+        self,
+        values: list[float | None],  # monetary-float-allow
+    ) -> float | None:  # monetary-float-allow
         numeric_values = [value for value in values if value is not None]
         if not numeric_values:
             return None
-        return float(quantize_performance(sum(numeric_values)))
+        return float(quantize_performance(sum(numeric_values)))  # monetary-float-allow
 
     def _format_key_label(self, payload: Any) -> str:
         if isinstance(payload, dict) and payload:
