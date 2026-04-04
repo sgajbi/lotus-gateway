@@ -125,9 +125,7 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
         _PERFORMANCE_WORKSPACE_SERVICE is None
         or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
     ):
-        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service(
-            _workbench_service()
-        )
+        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service(_workbench_service())
         _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
     return _PERFORMANCE_WORKSPACE_SERVICE
 

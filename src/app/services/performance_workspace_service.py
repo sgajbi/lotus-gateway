@@ -74,8 +74,7 @@ class PerformanceWorkspaceService:
         self._analytics_client = analytics_client
         self._lotus_core_query_client = lotus_core_query_client
         self._upstream_cache = AsyncTtlCache[Any](
-            ttl_seconds=upstream_cache_ttl_seconds
-            or settings.portfolio_upstream_cache_ttl_seconds
+            ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
         )
 
     def clear_upstream_cache(self) -> None:
@@ -1305,9 +1304,7 @@ class PerformanceWorkspaceService:
                 lambda: self._analytics_client.get_workspace_summary(
                     portfolio_id=portfolio_id,
                     report_end_date=report_end_date,
-                    report_start_date=report_start_date
-                    if effective_period == "EXPLICIT"
-                    else None,
+                    report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
                     period=effective_period,
                     chart_frequency=chart_frequency,
                     detail_basis=detail_basis,

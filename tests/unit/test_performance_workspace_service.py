@@ -986,8 +986,7 @@ async def test_performance_workspace_service_clear_upstream_cache_forces_summary
 
     assert len(analytics_client.workspace_summary_calls) == 2
     assert (
-        analytics_client.workspace_summary_calls[1]["correlation_id"]
-        == "corr-performance-second"
+        analytics_client.workspace_summary_calls[1]["correlation_id"] == "corr-performance-second"
     )
 
 
