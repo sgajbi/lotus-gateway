@@ -14,7 +14,7 @@ class Settings(BaseSettings):
         ),
     )
     portfolio_data_control_plane_base_url: str = Field(
-        default="http://core-query.dev.lotus",
+        default="http://core-control.dev.lotus",
         validation_alias=AliasChoices(
             "PORTFOLIO_DATA_CONTROL_PLANE_BASE_URL",
             "PORTFOLIO_DATA_PLATFORM_BASE_URL",

@@ -7,6 +7,7 @@ from typing import Any, TypeAlias, cast
 
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
+from app.config import settings
 from app.contracts.performance_workspace import (
     AttributionLevelView,
     AttributionRowView,
@@ -35,9 +36,10 @@ from app.contracts.portfolio import (
     PortfolioPerformanceSnapshotResponse,
     PortfolioPerformanceSnapshotUnavailable,
 )
-from app.contracts.workbench import WorkbenchPartialFailure
+from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
+from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.workbench_service import WorkbenchService
 
 STANDARD_PERIOD_ANALYSES = (
@@ -66,10 +68,43 @@ class PerformanceWorkspaceService:
         workbench_service: WorkbenchService,
         analytics_client: LotusAnalyticsClient,
         lotus_core_query_client: LotusCoreQueryClient,
+        upstream_cache_ttl_seconds: float | None = None,
     ):
         self._workbench_service = workbench_service
         self._analytics_client = analytics_client
         self._lotus_core_query_client = lotus_core_query_client
+        self._upstream_cache = AsyncTtlCache[Any](
+            ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
+        )
+
+    def clear_upstream_cache(self) -> None:
+        self._upstream_cache.clear()
+
+    async def _get_cached_upstream_result(
+        self,
+        key: tuple[object, ...],
+        loader: Any,
+    ) -> Any:
+        return await self._upstream_cache.get_or_set(key=key, factory=loader)
+
+    async def _get_cached_workspace_overview(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> WorkbenchOverviewResponse:
+        return cast(
+            WorkbenchOverviewResponse,
+            await self._get_cached_upstream_result(
+                ("workbench_overview", portfolio_id),
+                lambda: self._workbench_service.get_workbench_overview(
+                    portfolio_id=portfolio_id,
+                    correlation_id=correlation_id,
+                    include_performance_snapshot=False,
+                    include_rebalance_snapshot=False,
+                ),
+            ),
+        )
 
     async def get_performance_workspace(
         self,
@@ -125,6 +160,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=True,
+            include_detail_blocks=False,
         )
         return self._project_workspace_summary(workspace)
 
@@ -154,6 +190,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=False,
+            include_detail_blocks=True,
         )
         return self._project_workspace_details(workspace)
 
@@ -181,6 +218,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=False,
+            include_detail_blocks=False,
         )
         return self._project_portfolio_performance_snapshot(workspace)
 
@@ -197,11 +235,9 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None = None,
     ) -> PerformanceHorizonComparisonResponse:
         async with server_timing_span("perf-overview"):
-            overview = await self._workbench_service.get_workbench_overview(
+            overview = await self._get_cached_workspace_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                include_performance_snapshot=False,
-                include_rebalance_snapshot=False,
             )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
@@ -308,11 +344,9 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None = None,
     ) -> PerformanceAttributionTrendResponse:
         async with server_timing_span("perf-overview"):
-            overview = await self._workbench_service.get_workbench_overview(
+            overview = await self._get_cached_workspace_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                include_performance_snapshot=False,
-                include_rebalance_snapshot=False,
             )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
@@ -444,13 +478,12 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
         include_benchmark_catalog: bool = True,
+        include_detail_blocks: bool = True,
     ) -> PerformanceWorkspaceResponse:
         async with server_timing_span("perf-overview"):
-            overview = await self._workbench_service.get_workbench_overview(
+            overview = await self._get_cached_workspace_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                include_performance_snapshot=False,
-                include_rebalance_snapshot=False,
             )
         warnings = list(overview.warnings)
         partial_failures = list(overview.partial_failures)
@@ -529,6 +562,7 @@ class PerformanceWorkspaceService:
                 benchmark_code=resolved_benchmark_code,
                 portfolio_currency=overview.portfolio.base_currency,
                 segment=shared_segment,
+                include_detail_blocks=include_detail_blocks,
             )
 
         (
@@ -559,6 +593,7 @@ class PerformanceWorkspaceService:
             net_chart=net_chart,
             contribution=contribution,
             attribution=attribution,
+            include_detail_blocks=include_detail_blocks,
         )
 
         return PerformanceWorkspaceResponse(
@@ -737,6 +772,7 @@ class PerformanceWorkspaceService:
         net_chart: list[PerformanceChartPoint],
         contribution: ContributionSummaryView | None,
         attribution: AttributionSummaryView | None,
+        include_detail_blocks: bool = True,
     ) -> PerformanceWorkspaceCapabilities:
         has_return_history = len(net_chart) > 0
         has_benchmark = bool(benchmark_code)
@@ -832,82 +868,100 @@ class PerformanceWorkspaceService:
                     supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
                 )
             ),
-            contribution_ranking=(
-                self._capability(
-                    "supported",
-                    "Position-level contribution ranking is available.",
-                    coverage_level="position",
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
-                if has_position_ranking
-                else self._capability(
-                    "partial",
-                    "Contribution exists, but only aggregate rows are available.",
-                    coverage_level="aggregate",
-                    fallback_available=True,
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
-                if has_contribution_detail
-                else self._capability(
-                    "unavailable",
-                    "Contribution analytics are not available for the current selection.",
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
+            contribution_ranking=self._build_contribution_capability(
+                include_detail_blocks=include_detail_blocks,
+                has_position_ranking=has_position_ranking,
+                has_contribution_detail=has_contribution_detail,
+                supported_reason="Position-level contribution ranking is available.",
+                aggregate_reason="Contribution exists, but only aggregate rows are available.",
+                unavailable_reason=(
+                    "Contribution analytics are not available for the current selection."
+                ),
             ),
-            attribution_detail=(
-                self._capability(
-                    "supported",
-                    "Benchmark-relative attribution detail is available.",
-                    coverage_level="detail",
-                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-                if has_attribution_detail
-                else self._capability(
-                    "partial",
-                    (
-                        "Benchmark-relative attribution is available only at summary level "
-                        "for the current selection."
-                    ),
-                    coverage_level="summary",
-                    fallback_available=True,
-                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-                if has_attribution_summary
-                else self._capability(
-                    "unavailable",
-                    "Attribution detail is not available for the current selection.",
-                    supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
+            attribution_detail=self._build_attribution_capability(
+                include_detail_blocks=include_detail_blocks,
+                has_attribution_detail=has_attribution_detail,
+                has_attribution_summary=has_attribution_summary,
             ),
-            contribution_detail=(
-                self._capability(
-                    "supported",
-                    "Contribution detail is available for the current selection.",
-                    coverage_level="position",
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
-                if has_position_ranking
-                else self._capability(
-                    "partial",
-                    "Contribution exists, but only aggregate rows are available.",
-                    coverage_level="aggregate",
-                    fallback_available=True,
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
-                if has_contribution_detail
-                else self._capability(
-                    "unavailable",
-                    "Contribution detail is not available for the current selection.",
-                    supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-                )
+            contribution_detail=self._build_contribution_capability(
+                include_detail_blocks=include_detail_blocks,
+                has_position_ranking=has_position_ranking,
+                has_contribution_detail=has_contribution_detail,
+                supported_reason="Contribution detail is available for the current selection.",
+                aggregate_reason="Contribution exists, but only aggregate rows are available.",
+                unavailable_reason=(
+                    "Contribution detail is not available for the current selection."
+                ),
             ),
             evidence=self._capability(
                 "unavailable",
                 "Evidence and lineage surfaces are not exposed by the current gateway contract.",
             ),
+        )
+
+    def _build_contribution_capability(
+        self,
+        *,
+        include_detail_blocks: bool,
+        has_position_ranking: bool,
+        has_contribution_detail: bool,
+        supported_reason: str,
+        aggregate_reason: str,
+        unavailable_reason: str,
+    ) -> PerformanceModuleCapability:
+        if not include_detail_blocks or has_position_ranking:
+            return self._capability(
+                "supported",
+                supported_reason,
+                coverage_level="position",
+                supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+            )
+        if has_contribution_detail:
+            return self._capability(
+                "partial",
+                aggregate_reason,
+                coverage_level="aggregate",
+                fallback_available=True,
+                supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+            )
+        return self._capability(
+            "unavailable",
+            unavailable_reason,
+            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+        )
+
+    def _build_attribution_capability(
+        self,
+        *,
+        include_detail_blocks: bool,
+        has_attribution_detail: bool,
+        has_attribution_summary: bool,
+    ) -> PerformanceModuleCapability:
+        if not include_detail_blocks or has_attribution_detail:
+            return self._capability(
+                "supported",
+                "Benchmark-relative attribution detail is available.",
+                coverage_level="detail",
+                supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+            )
+        if has_attribution_summary:
+            return self._capability(
+                "partial",
+                (
+                    "Benchmark-relative attribution is available only at summary level "
+                    "for the current selection."
+                ),
+                coverage_level="summary",
+                fallback_available=True,
+                supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+            )
+        return self._capability(
+            "unavailable",
+            "Attribution detail is not available for the current selection.",
+            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
         )
 
     async def _determine_report_end_date(
@@ -941,6 +995,32 @@ class PerformanceWorkspaceService:
     ) -> str | None:
         if benchmark_code:
             return benchmark_code
+        return cast(
+            str | None,
+            await self._get_cached_upstream_result(
+                (
+                    "benchmark_assignment",
+                    portfolio_id,
+                    as_of_date,
+                    portfolio_currency,
+                ),
+                lambda: self._fetch_assigned_benchmark_code(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    portfolio_currency=portfolio_currency,
+                    correlation_id=correlation_id,
+                ),
+            ),
+        )
+
+    async def _fetch_assigned_benchmark_code(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        portfolio_currency: str,
+        correlation_id: str,
+    ) -> str | None:
         status_code, payload = await self._lotus_core_query_client.get_benchmark_assignment(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
@@ -973,23 +1053,31 @@ class PerformanceWorkspaceService:
             else self._empty_async_scalar_result(None)
         )
         benchmark_catalog_task = (
-            self._lotus_core_query_client.get_benchmark_catalog(
-                as_of_date=report_end_date,
-                benchmark_currency=portfolio_currency,
-                correlation_id=correlation_id,
+            self._get_cached_upstream_result(
+                ("benchmark_catalog", report_end_date, portfolio_currency),
+                lambda: self._lotus_core_query_client.get_benchmark_catalog(
+                    as_of_date=report_end_date,
+                    benchmark_currency=portfolio_currency,
+                    correlation_id=correlation_id,
+                ),
             )
             if include_benchmark_catalog
             else self._empty_async_result()
         )
-        resolved_benchmark_code, benchmark_catalog_result = await asyncio.gather(
+        benchmark_context_results = await asyncio.gather(
             assignment_task,
             benchmark_catalog_task,
             return_exceptions=True,
         )
-        if isinstance(resolved_benchmark_code, BaseException):
-            return benchmark_code, cast(GatheredResult, benchmark_catalog_result)
-        return benchmark_code or cast(str | None, resolved_benchmark_code), cast(
-            GatheredResult, benchmark_catalog_result
+        resolved_benchmark_code_result = cast(
+            str | None | BaseException,
+            benchmark_context_results[0],
+        )
+        benchmark_catalog_result_value = cast(GatheredResult, benchmark_context_results[1])
+        if isinstance(resolved_benchmark_code_result, BaseException):
+            return benchmark_code, cast(GatheredResult, benchmark_catalog_result_value)
+        return benchmark_code or cast(str | None, resolved_benchmark_code_result), cast(
+            GatheredResult, benchmark_catalog_result_value
         )
 
     async def _fetch_analytics_results(
@@ -1101,11 +1189,17 @@ class PerformanceWorkspaceService:
         (
             status_code,
             payload,
-        ) = await self._lotus_core_query_client.get_portfolio_analytics_reference(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            consumer_system="lotus-gateway",
-            correlation_id=correlation_id,
+        ) = cast(
+            UpstreamResult,
+            await self._get_cached_upstream_result(
+                ("analytics_reference", portfolio_id, as_of_date),
+                lambda: self._lotus_core_query_client.get_portfolio_analytics_reference(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    consumer_system="lotus-gateway",
+                    correlation_id=correlation_id,
+                ),
+            ),
         )
         if status_code >= 400 or not isinstance(payload, dict):
             warnings.append("PERFORMANCE_REFERENCE_UNAVAILABLE")
@@ -1194,20 +1288,37 @@ class PerformanceWorkspaceService:
         benchmark_code: str | None,
         portfolio_currency: str,
         segment: str,
+        include_detail_blocks: bool = True,
     ) -> GatheredResult:
         return cast(
             GatheredResult,
-            await self._analytics_client.get_workspace_summary(
-                portfolio_id=portfolio_id,
-                report_end_date=report_end_date,
-                report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
-                period=effective_period,
-                chart_frequency=chart_frequency,
-                detail_basis=detail_basis,
-                benchmark_id=benchmark_code,
-                reporting_currency=portfolio_currency,
-                segment=segment,
-                correlation_id=correlation_id,
+            await self._get_cached_upstream_result(
+                (
+                    "workspace_summary",
+                    portfolio_id,
+                    report_end_date,
+                    report_start_date if effective_period == "EXPLICIT" else None,
+                    effective_period,
+                    chart_frequency,
+                    detail_basis,
+                    benchmark_code,
+                    portfolio_currency,
+                    segment,
+                    include_detail_blocks,
+                ),
+                lambda: self._analytics_client.get_workspace_summary(
+                    portfolio_id=portfolio_id,
+                    report_end_date=report_end_date,
+                    report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
+                    period=effective_period,
+                    chart_frequency=chart_frequency,
+                    detail_basis=detail_basis,
+                    benchmark_id=benchmark_code,
+                    reporting_currency=portfolio_currency,
+                    segment=segment,
+                    correlation_id=correlation_id,
+                    include_detail_blocks=include_detail_blocks,
+                ),
             ),
         )
 
@@ -2755,7 +2866,11 @@ class PerformanceWorkspaceService:
             return f"{window_start.year}-{window_start.month:02d}"
         return f"{window_start.isoformat()} to {window_end.isoformat()}"
 
-    def _extract_return(self, payload: Any, *path: str) -> float | None:
+    def _extract_return(
+        self,
+        payload: Any,
+        *path: str,
+    ) -> float | None:  # monetary-float-allow
         current = payload
         for key in path:
             if not isinstance(current, dict):
@@ -2763,7 +2878,11 @@ class PerformanceWorkspaceService:
             current = current.get(key)
         return self._quantize_optional(current)
 
-    def _extract_nested_return(self, payload: Any, *path: str) -> float | None:
+    def _extract_nested_return(
+        self,
+        payload: Any,
+        *path: str,
+    ) -> float | None:  # monetary-float-allow
         current = payload
         for key in path:
             if not isinstance(current, dict):
@@ -2771,30 +2890,39 @@ class PerformanceWorkspaceService:
             current = current.get(key)
         return self._quantize_optional(current)
 
-    def _quantize_optional(self, value: Any) -> float | None:
+    def _quantize_optional(
+        self,
+        value: Any,
+    ) -> float | None:  # monetary-float-allow
         if value is None:
             return None
         try:
-            return float(quantize_performance(value))
+            return float(quantize_performance(value))  # monetary-float-allow
         except (TypeError, ValueError):
             return None
 
-    def _weight_to_pct(self, value: Any) -> float | None:
+    def _weight_to_pct(
+        self,
+        value: Any,
+    ) -> float | None:  # monetary-float-allow
         if value is None:
             return None
         try:
-            normalized = float(value)
+            normalized = float(value)  # monetary-float-allow
             if abs(normalized) <= 1.000001:
                 normalized *= 100.0
-            return float(quantize_performance(normalized))
+            return float(quantize_performance(normalized))  # monetary-float-allow
         except (TypeError, ValueError):
             return None
 
-    def _sum_optional(self, values: list[float | None]) -> float | None:
+    def _sum_optional(
+        self,
+        values: list[float | None],  # monetary-float-allow
+    ) -> float | None:  # monetary-float-allow
         numeric_values = [value for value in values if value is not None]
         if not numeric_values:
             return None
-        return float(quantize_performance(sum(numeric_values)))
+        return float(quantize_performance(sum(numeric_values)))  # monetary-float-allow
 
     def _format_key_label(self, payload: Any) -> str:
         if isinstance(payload, dict) and payload:

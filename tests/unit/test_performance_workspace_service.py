@@ -13,6 +13,9 @@ from app.services.performance_workspace_service import PerformanceWorkspaceServi
 
 
 class _StubWorkbenchService:
+    def __init__(self):
+        self.overview_calls = 0
+
     async def get_workbench_overview(
         self,
         portfolio_id: str,
@@ -20,6 +23,7 @@ class _StubWorkbenchService:
         include_performance_snapshot: bool = True,  # noqa: ARG002
         include_rebalance_snapshot: bool = True,  # noqa: ARG002
     ):
+        self.overview_calls += 1
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
             contract_version="v1",
@@ -54,10 +58,13 @@ class _StubAnalyticsClient:
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
+        source_payload = _workspace_summary_payload(
+            include_detail_blocks=bool(kwargs.get("include_detail_blocks", True))
+        )
         periods = kwargs.get("periods") or []
         if periods:
             results_by_period: dict[str, object] = {}
-            source_results = _workspace_summary_payload()["results_by_period"]
+            source_results = source_payload["results_by_period"]
             for period_request in periods:
                 if not isinstance(period_request, dict):
                     continue
@@ -77,18 +84,16 @@ class _StubAnalyticsClient:
             explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
             return 200, {
                 "results_by_period": {
-                    "EXPLICIT": _workspace_summary_payload()["results_by_period"][explicit_label]
+                    "EXPLICIT": source_payload["results_by_period"][explicit_label]
                 }
             }
         if requested_period in {"YTD", "1Y"}:
             return 200, {
                 "results_by_period": {
-                    requested_period: _workspace_summary_payload()["results_by_period"][
-                        requested_period
-                    ]
+                    requested_period: source_payload["results_by_period"][requested_period]
                 }
             }
-        return 200, _workspace_summary_payload()
+        return 200, source_payload
 
     async def get_attribution_analytics(self, **kwargs):
         self.attribution_calls.append(kwargs)
@@ -174,8 +179,8 @@ class _StubLotusCoreQueryClient:
         )
 
 
-def _workspace_summary_payload() -> dict:
-    return {
+def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
+    payload = {
         "results_by_period": {
             "MTD": {
                 "benchmark": {
@@ -653,6 +658,14 @@ def _workspace_summary_payload() -> dict:
             },
         }
     }
+    if include_detail_blocks:
+        return payload
+
+    for period_payload in payload["results_by_period"].values():
+        if isinstance(period_payload, dict):
+            period_payload.pop("contribution", None)
+            period_payload.pop("attribution", None)
+    return payload
 
 
 def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
@@ -862,9 +875,10 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_summary_contract():
+    analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
-        analytics_client=_StubAnalyticsClient(),
+        analytics_client=analytics_client,
         lotus_core_query_client=_StubLotusCoreQueryClient(),
     )
 
@@ -888,9 +902,92 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.money_weighted_return.flow_adjusted_end_market_value == 486370.0
     assert response.benchmark_options[0].benchmark_name == "Global Balanced 60/40"
     assert response.capabilities.return_path.state == "supported"
+    assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.contribution_detail.state == "supported"
+    assert response.capabilities.attribution_detail.state == "supported"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_reuses_cached_workspace_summary_result():
+    analytics_client = _StubAnalyticsClient()
+    workbench_service = _StubWorkbenchService()
+    query_client = _StubLotusCoreQueryClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=workbench_service,
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+        upstream_cache_ttl_seconds=60,
+    )
+
+    first_response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-first",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+    second_response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-second",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert first_response.net_performance.portfolio_return_pct == 15.1
+    assert second_response.net_performance.portfolio_return_pct == 15.1
+    assert workbench_service.overview_calls == 1
+    assert query_client.reference_calls == 1
+    assert len(query_client.benchmark_catalog_calls) == 1
+    assert len(analytics_client.workspace_summary_calls) == 1
+    assert analytics_client.workspace_summary_calls[0]["correlation_id"] == "corr-performance-first"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_clear_upstream_cache_forces_summary_refresh():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+        upstream_cache_ttl_seconds=60,
+    )
+
+    await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-first",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+    service.clear_upstream_cache()
+    await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-second",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert len(analytics_client.workspace_summary_calls) == 2
+    assert (
+        analytics_client.workspace_summary_calls[1]["correlation_id"] == "corr-performance-second"
+    )
 
 
 @pytest.mark.asyncio
@@ -1184,10 +1281,11 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
 
 @pytest.mark.asyncio
 async def test_performance_workspace_service_projects_detail_contract():
+    analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
     service = PerformanceWorkspaceService(
         workbench_service=_StubWorkbenchService(),
-        analytics_client=_StubAnalyticsClient(),
+        analytics_client=analytics_client,
         lotus_core_query_client=query_client,
     )
 
@@ -1210,6 +1308,7 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
     assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.attribution_detail.state == "supported"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is True
     assert response.segment == "asset_class"
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
