@@ -1,0 +1,695 @@
+from __future__ import annotations
+
+from typing import Any
+
+from app.clients.lotus_ai_client import LotusAiClient
+from app.contracts.advisor_brief import (
+    AdvisorBriefActionItem,
+    AdvisorBriefEvidenceRef,
+    AdvisorBriefNarrativeItem,
+    AdvisorBriefResponse,
+    AdvisorBriefSourceMetric,
+    AdvisorBriefStatus,
+    AdvisorBriefSupportabilityItem,
+    AdvisorBriefTone,
+)
+from app.contracts.performance_workspace import (
+    AttributionSummaryView,
+    ContributionPositionView,
+    ContributionSummaryView,
+    PerformanceComparativeSummary,
+    PerformanceWorkspaceResponse,
+)
+from app.services.performance_workspace_service import PerformanceWorkspaceService
+
+_TASK_ID = "explain.v1"
+_EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"
+
+
+class AdvisorBriefService:
+    def __init__(
+        self,
+        *,
+        performance_workspace_service: PerformanceWorkspaceService,
+        lotus_ai_client: LotusAiClient,
+    ):
+        self._performance_workspace_service = performance_workspace_service
+        self._lotus_ai_client = lotus_ai_client
+
+    async def get_performance_advisor_brief(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> AdvisorBriefResponse:
+        workspace = await self._performance_workspace_service.get_performance_workspace(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+
+        selected_performance = (
+            workspace.net_performance
+            if detail_basis.upper() == "NET"
+            else workspace.gross_performance
+        )
+        source_refs = _build_source_refs(workspace=workspace)
+        supportability = _build_supportability(workspace=workspace)
+        status = _resolve_status(workspace=workspace, supportability=supportability)
+
+        source_summary = _build_source_summary(
+            workspace=workspace,
+            selected_performance=selected_performance,
+        )
+        talking_points = _build_source_talking_points(
+            workspace=workspace,
+            selected_performance=selected_performance,
+        )
+        recommended_actions = _build_recommended_actions(workspace=workspace)
+        risks_and_exceptions = _build_risks_and_exceptions(
+            workspace=workspace,
+            supportability=supportability,
+        )
+        ai_audit: dict[str, Any] = {}
+        ai_evidence: dict[str, Any] = {"descriptors": []}
+
+        if status is not AdvisorBriefStatus.UNAVAILABLE:
+            ai_status, ai_payload = await self._lotus_ai_client.execute_task(
+                task_id=_TASK_ID,
+                caller_app="lotus-gateway",
+                correlation_id=correlation_id,
+                context_summary=(
+                    f"Advisor brief context for portfolio {workspace.portfolio_id}, "
+                    f"{workspace.period} period, basis {workspace.detail_basis}."
+                ),
+                context_payload=_build_ai_fact_bundle(
+                    workspace=workspace,
+                    selected_performance=selected_performance,
+                ),
+                source_refs=source_refs,
+                expected_output_label=_EXPECTED_OUTPUT_LABEL,
+            )
+            if ai_status == 200 and ai_payload.get("status") == "COMPLETED":
+                source_summary = _extract_ai_summary(ai_payload=ai_payload) or source_summary
+                ai_audit = _safe_dict(ai_payload.get("audit"))
+                ai_evidence = _safe_dict(ai_payload.get("evidence")) or {"descriptors": []}
+            else:
+                status = AdvisorBriefStatus.PARTIAL
+                ai_audit = {
+                    "task_id": _TASK_ID,
+                    "output_label": _EXPECTED_OUTPUT_LABEL,
+                    "provider_mode": "unavailable",
+                    "detail": _safe_error_detail(ai_payload),
+                }
+                risks_and_exceptions.append(
+                    AdvisorBriefNarrativeItem(
+                        headline="AI narrative generation is unavailable.",
+                        detail="Source-backed metrics remain available for manual review and client prep.",
+                        tone=AdvisorBriefTone.WARNING,
+                        evidence_refs=[
+                            _summary_evidence_ref(
+                                label="Advisor Brief",
+                                value="Unavailable",
+                                portfolio_id=workspace.portfolio_id,
+                                period=workspace.period,
+                                basis=workspace.detail_basis,
+                                benchmark_code=workspace.benchmark_code,
+                            )
+                        ],
+                    )
+                )
+
+        return AdvisorBriefResponse(
+            correlation_id=correlation_id,
+            contract_version=workspace.contract_version,
+            portfolio_id=workspace.portfolio_id,
+            portfolio=workspace.portfolio,
+            as_of_date=workspace.as_of_date,
+            period=workspace.period,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
+            detail_basis=workspace.detail_basis,
+            chart_frequency=workspace.chart_frequency,
+            contribution_dimension=workspace.contribution_dimension,
+            attribution_dimension=workspace.attribution_dimension,
+            benchmark_code=workspace.benchmark_code,
+            status=status,
+            summary=source_summary,
+            talking_points=talking_points,
+            recommended_actions=recommended_actions,
+            risks_and_exceptions=risks_and_exceptions,
+            source_metrics=_build_source_metrics(
+                workspace=workspace,
+                selected_performance=selected_performance,
+            ),
+            supportability=supportability,
+            ai_audit=ai_audit,
+            ai_evidence=ai_evidence,
+            warnings=workspace.warnings,
+            partial_failures=workspace.partial_failures,
+        )
+
+
+def _build_source_refs(*, workspace: PerformanceWorkspaceResponse) -> list[str]:
+    refs = [
+        f"lotus-gateway:workbench:{workspace.portfolio_id}:performance-summary:{workspace.period}",
+        f"lotus-gateway:workbench:{workspace.portfolio_id}:performance-details:{workspace.period}",
+    ]
+    if workspace.benchmark_code:
+        refs.append(
+            f"lotus-performance:benchmark:{workspace.portfolio_id}:{workspace.benchmark_code}:{workspace.period}"
+        )
+    return refs
+
+
+def _build_ai_fact_bundle(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> dict[str, Any]:
+    contribution = workspace.contribution
+    attribution = workspace.attribution
+    return {
+        "portfolio": workspace.portfolio.model_dump(mode="json"),
+        "period": {
+            "period": workspace.period,
+            "report_start_date": workspace.report_start_date,
+            "report_end_date": workspace.report_end_date,
+            "as_of_date": workspace.as_of_date,
+            "detail_basis": workspace.detail_basis,
+        },
+        "benchmark": {
+            "benchmark_code": workspace.benchmark_code,
+            "benchmark_return_pct": selected_performance.benchmark_return_pct,
+        },
+        "performance": {
+            "portfolio_return_pct": selected_performance.portfolio_return_pct,
+            "benchmark_return_pct": selected_performance.benchmark_return_pct,
+            "active_return_pct": selected_performance.active_return_pct,
+            "net_cash_flow": selected_performance.net_cash_flow,
+            "end_market_value": selected_performance.end_market_value,
+            "money_weighted_return_pct": (
+                workspace.money_weighted_return.money_weighted_return_pct
+                if workspace.money_weighted_return
+                else None
+            ),
+        },
+        "contribution": {
+            "portfolio_contribution_pct": (
+                contribution.portfolio_contribution_pct if contribution else None
+            ),
+            "coverage_mv_pct": contribution.coverage_mv_pct if contribution else None,
+            "top_positions": [
+                row.model_dump(mode="json")
+                for row in _positive_position_contributors(contribution=contribution)[:5]
+            ],
+            "bottom_positions": [
+                row.model_dump(mode="json")
+                for row in _negative_position_contributors(contribution=contribution)[:5]
+            ],
+        },
+        "attribution": {
+            "active_return_pct": attribution.active_return_pct if attribution else None,
+            "sum_of_effects_pct": attribution.sum_of_effects_pct if attribution else None,
+            "residual_pct": attribution.residual_pct if attribution else None,
+            "top_effects": _top_attribution_effects(attribution=attribution),
+        },
+        "supportability": [item.model_dump(mode="json") for item in _build_supportability(workspace=workspace)],
+        "warnings": workspace.warnings,
+        "partial_failures": [item.model_dump(mode="json") for item in workspace.partial_failures],
+    }
+
+
+def _build_source_summary(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> str:
+    portfolio_return = _format_pct(selected_performance.portfolio_return_pct)
+    benchmark_return = _format_pct(selected_performance.benchmark_return_pct)
+    active_return = _format_pct(selected_performance.active_return_pct)
+    if (
+        selected_performance.portfolio_return_pct is None
+        and selected_performance.benchmark_return_pct is None
+    ):
+        return (
+            "No source-backed advisor brief can be generated from the current performance "
+            "selection."
+        )
+    return (
+        f"{workspace.period} portfolio return is {portfolio_return} versus benchmark "
+        f"{benchmark_return}, with active return {active_return}."
+    )
+
+
+def _extract_ai_summary(*, ai_payload: dict[str, Any]) -> str | None:
+    result = _safe_dict(ai_payload.get("result"))
+    message = result.get("message")
+    if isinstance(message, str) and message.strip():
+        return message.strip()
+    return None
+
+
+def _build_source_talking_points(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> list[AdvisorBriefNarrativeItem]:
+    points: list[AdvisorBriefNarrativeItem] = []
+    if (
+        selected_performance.portfolio_return_pct is not None
+        or selected_performance.benchmark_return_pct is not None
+        or selected_performance.active_return_pct is not None
+    ):
+        points.append(
+            AdvisorBriefNarrativeItem(
+                headline=(
+                    f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
+                    f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
+                ),
+                detail=(
+                    f"Active return is {_format_pct(selected_performance.active_return_pct)} "
+                    f"for the selected {workspace.period} period."
+                ),
+                tone=(
+                    AdvisorBriefTone.POSITIVE
+                    if (selected_performance.active_return_pct or 0) >= 0
+                    else AdvisorBriefTone.WARNING
+                ),
+                evidence_refs=[
+                    _summary_evidence_ref(
+                        label="Active Return",
+                        value=_format_pct(selected_performance.active_return_pct),
+                        portfolio_id=workspace.portfolio_id,
+                        period=workspace.period,
+                        basis=workspace.detail_basis,
+                        benchmark_code=workspace.benchmark_code,
+                    )
+                ],
+            )
+        )
+
+    top_position = _positive_position_contributors(contribution=workspace.contribution)[:1]
+    if top_position:
+        points.append(
+            AdvisorBriefNarrativeItem(
+                headline=f"Top contributor is {top_position[0].position_id}.",
+                detail=(
+                    f"Contribution is {_format_pct(top_position[0].contribution_pct)} "
+                    f"with return {_format_pct(top_position[0].total_return_pct)}."
+                ),
+                tone=AdvisorBriefTone.POSITIVE,
+                evidence_refs=[
+                    _analysis_evidence_ref(
+                        label="Top Contributor",
+                        value=top_position[0].position_id,
+                        portfolio_id=workspace.portfolio_id,
+                        period=workspace.period,
+                        basis=workspace.detail_basis,
+                        benchmark_code=workspace.benchmark_code,
+                    )
+                ],
+            )
+        )
+
+    bottom_position = _negative_position_contributors(contribution=workspace.contribution)[:1]
+    if bottom_position:
+        points.append(
+            AdvisorBriefNarrativeItem(
+                headline=f"Top detractor is {bottom_position[0].position_id}.",
+                detail=(
+                    f"Contribution is {_format_pct(bottom_position[0].contribution_pct)} "
+                    f"with return {_format_pct(bottom_position[0].total_return_pct)}."
+                ),
+                tone=AdvisorBriefTone.WARNING,
+                evidence_refs=[
+                    _analysis_evidence_ref(
+                        label="Top Detractor",
+                        value=bottom_position[0].position_id,
+                        portfolio_id=workspace.portfolio_id,
+                        period=workspace.period,
+                        basis=workspace.detail_basis,
+                        benchmark_code=workspace.benchmark_code,
+                    )
+                ],
+            )
+        )
+
+    return points
+
+
+def _build_recommended_actions(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+) -> list[AdvisorBriefActionItem]:
+    return [
+        AdvisorBriefActionItem(
+            label="Open Return Path",
+            target_mode="summary",
+            route=_route_query(
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            ),
+        ),
+        AdvisorBriefActionItem(
+            label="Open Contribution",
+            target_mode="analysis",
+            route=_route_query(
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            ),
+        ),
+        AdvisorBriefActionItem(
+            label="Open Attribution",
+            target_mode="analysis",
+            route=_route_query(
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            ),
+        ),
+    ]
+
+
+def _build_risks_and_exceptions(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    supportability: list[AdvisorBriefSupportabilityItem],
+) -> list[AdvisorBriefNarrativeItem]:
+    risks: list[AdvisorBriefNarrativeItem] = []
+    for item in supportability:
+        if item.tone not in {"warn", "danger"}:
+            continue
+        if item.label == "Advisor Brief":
+            continue
+        risks.append(
+            AdvisorBriefNarrativeItem(
+                headline=f"{item.label} is {item.value.lower()}.",
+                detail=item.reason or "Source detail is not fully available for this selection.",
+                tone=AdvisorBriefTone.WARNING,
+                evidence_refs=[
+                    AdvisorBriefEvidenceRef(
+                        metric_label=item.label,
+                        metric_value=item.value,
+                        source_surface=f"performance.{item.label.lower().replace(' ', '_')}",
+                        target_mode="analysis"
+                        if item.label in {"Contribution", "Attribution"}
+                        else "summary",
+                        route=_route_query(
+                            portfolio_id=workspace.portfolio_id,
+                            period=workspace.period,
+                            basis=workspace.detail_basis,
+                            benchmark_code=workspace.benchmark_code,
+                        ),
+                    )
+                ],
+            )
+        )
+    return risks
+
+
+def _build_source_metrics(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> list[AdvisorBriefSourceMetric]:
+    route = _route_query(
+        portfolio_id=workspace.portfolio_id,
+        period=workspace.period,
+        basis=workspace.detail_basis,
+        benchmark_code=workspace.benchmark_code,
+    )
+    return [
+        AdvisorBriefSourceMetric(
+            label="Portfolio Return",
+            value=_format_pct(selected_performance.portfolio_return_pct),
+            support_label=f"{workspace.period} {workspace.detail_basis}",
+            target_mode="summary",
+            route=route,
+            state=workspace.capabilities.summary_kpis.state,
+        ),
+        AdvisorBriefSourceMetric(
+            label="Benchmark Return",
+            value=_format_pct(selected_performance.benchmark_return_pct),
+            support_label=workspace.benchmark_code or "Unassigned",
+            target_mode="summary",
+            route=route,
+            state=workspace.capabilities.benchmark_comparison.state,
+        ),
+        AdvisorBriefSourceMetric(
+            label="Active Return",
+            value=_format_pct(selected_performance.active_return_pct),
+            support_label=f"{workspace.report_start_date} to {workspace.report_end_date}",
+            target_mode="summary",
+            route=route,
+            state=workspace.capabilities.benchmark_comparison.state,
+        ),
+        AdvisorBriefSourceMetric(
+            label="Net Flow",
+            value=_format_currency(selected_performance.net_cash_flow),
+            support_label=workspace.portfolio.base_currency or "Portfolio currency",
+            target_mode="summary",
+            route=route,
+            state=workspace.capabilities.summary_kpis.state,
+        ),
+        AdvisorBriefSourceMetric(
+            label="Ending MV",
+            value=_format_currency(selected_performance.end_market_value),
+            support_label=workspace.report_end_date,
+            target_mode="summary",
+            route=route,
+            state=workspace.capabilities.summary_kpis.state,
+        ),
+    ]
+
+
+def _build_supportability(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+) -> list[AdvisorBriefSupportabilityItem]:
+    items = [
+        _to_supportability_item("Portfolio", workspace.capabilities.summary_kpis.state, None),
+        _to_supportability_item(
+            "Return History",
+            workspace.capabilities.return_path.state,
+            workspace.capabilities.return_path.reason,
+        ),
+        _to_supportability_item(
+            "Contribution",
+            workspace.capabilities.contribution_detail.state,
+            workspace.capabilities.contribution_detail.reason,
+        ),
+        _to_supportability_item(
+            "Attribution",
+            workspace.capabilities.attribution_detail.state,
+            workspace.capabilities.attribution_detail.reason,
+        ),
+    ]
+    advisor_brief_value = "Ready"
+    advisor_brief_tone = "success"
+    if any(item.tone == "danger" for item in items[:2]):
+        advisor_brief_value = "Unavailable"
+        advisor_brief_tone = "danger"
+    elif any(item.tone in {"warn", "danger"} for item in items):
+        advisor_brief_value = "Partial"
+        advisor_brief_tone = "warn"
+
+    items.append(
+        AdvisorBriefSupportabilityItem(
+            label="Advisor Brief",
+            value=advisor_brief_value,
+            tone=advisor_brief_tone,
+            reason=None,
+        )
+    )
+    return items
+
+
+def _to_supportability_item(
+    label: str,
+    state: str,
+    reason: str | None,
+) -> AdvisorBriefSupportabilityItem:
+    if state == "ready":
+        return AdvisorBriefSupportabilityItem(
+            label=label,
+            value="Ready",
+            tone="success",
+            reason=reason,
+        )
+    if state == "partial":
+        return AdvisorBriefSupportabilityItem(
+            label=label,
+            value="Partial",
+            tone="warn",
+            reason=reason,
+        )
+    return AdvisorBriefSupportabilityItem(
+        label=label,
+        value="Unavailable",
+        tone="danger",
+        reason=reason,
+    )
+
+
+def _resolve_status(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    supportability: list[AdvisorBriefSupportabilityItem],
+) -> AdvisorBriefStatus:
+    if workspace.capabilities.summary_kpis.state == "unavailable":
+        return AdvisorBriefStatus.UNAVAILABLE
+    if any(item.tone in {"warn", "danger"} for item in supportability):
+        return AdvisorBriefStatus.PARTIAL
+    return AdvisorBriefStatus.READY
+
+
+def _positive_position_contributors(
+    *,
+    contribution: ContributionSummaryView | None,
+) -> list[ContributionPositionView]:
+    if not contribution:
+        return []
+    return sorted(
+        [row for row in contribution.position_rows if row.contribution_pct > 0],
+        key=lambda row: row.contribution_pct,
+        reverse=True,
+    )
+
+
+def _negative_position_contributors(
+    *,
+    contribution: ContributionSummaryView | None,
+) -> list[ContributionPositionView]:
+    if not contribution:
+        return []
+    return sorted(
+        [row for row in contribution.position_rows if row.contribution_pct < 0],
+        key=lambda row: row.contribution_pct,
+    )
+
+
+def _top_attribution_effects(
+    *,
+    attribution: AttributionSummaryView | None,
+) -> list[dict[str, Any]]:
+    if not attribution:
+        return []
+    rows = [
+        row
+        for level in attribution.levels
+        for row in level.rows
+        if row.total_effect_pct is not None
+    ]
+    return [
+        row.model_dump(mode="json")
+        for row in sorted(
+            rows,
+            key=lambda row: abs(row.total_effect_pct),
+            reverse=True,
+        )[:5]
+    ]
+
+
+def _summary_evidence_ref(
+    *,
+    label: str,
+    value: str,
+    portfolio_id: str,
+    period: str,
+    basis: str,
+    benchmark_code: str | None,
+) -> AdvisorBriefEvidenceRef:
+    return AdvisorBriefEvidenceRef(
+        metric_label=label,
+        metric_value=value,
+        source_surface="performance.return_path",
+        target_mode="summary",
+        route=_route_query(
+            portfolio_id=portfolio_id,
+            period=period,
+            basis=basis,
+            benchmark_code=benchmark_code,
+        ),
+    )
+
+
+def _analysis_evidence_ref(
+    *,
+    label: str,
+    value: str,
+    portfolio_id: str,
+    period: str,
+    basis: str,
+    benchmark_code: str | None,
+) -> AdvisorBriefEvidenceRef:
+    return AdvisorBriefEvidenceRef(
+        metric_label=label,
+        metric_value=value,
+        source_surface="performance.contribution",
+        target_mode="analysis",
+        route=_route_query(
+            portfolio_id=portfolio_id,
+            period=period,
+            basis=basis,
+            benchmark_code=benchmark_code,
+        ),
+    )
+
+
+def _route_query(
+    *,
+    portfolio_id: str,
+    period: str,
+    basis: str,
+    benchmark_code: str | None,
+) -> str:
+    route = (
+        f"/performance?portfolioId={portfolio_id}&period={period}&detailBasis={basis}"
+    )
+    if benchmark_code:
+        route += f"&benchmark={benchmark_code}"
+    return route
+
+
+def _format_pct(value: float | None) -> str:
+    if value is None:
+        return "N/A"
+    return f"{value:.2f}%"
+
+
+def _format_currency(value: float | None) -> str:
+    if value is None:
+        return "N/A"
+    return f"${value:,.0f}"
+
+
+def _safe_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _safe_error_detail(payload: dict[str, Any]) -> str:
+    detail = payload.get("detail")
+    if isinstance(detail, str) and detail.strip():
+        return detail.strip()
+    return "lotus-ai task execution did not return a completed advisor brief."

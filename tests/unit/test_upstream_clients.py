@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -265,6 +266,51 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
     assert attribution_post["json"]["stateful_input"]["benchmark_id"] == "MODEL_60_40"
     assert "calculation_id" not in attribution_post["json"]
 
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_headers():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "status": "COMPLETED",
+            "task_id": "explain.v1",
+            "category": "explain",
+            "output_label": "EXPLANATION_ONLY",
+            "result": {"message": "Advisor summary.", "structured_output": {}},
+            "audit": {"request_id": "req-1"},
+            "evidence": {"descriptors": []},
+        },
+    )
+
+    status, payload = await client.execute_task(
+        task_id="explain.v1",
+        caller_app="lotus-gateway",
+        correlation_id="corr-ai-1",
+        context_summary="Advisor brief context",
+        context_payload={"portfolio_id": "PF_1001"},
+        source_refs=["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
+        expected_output_label="EXPLANATION_ONLY",
+    )
+
+    assert status == 200
+    assert payload["status"] == "COMPLETED"
+    assert _FakeAsyncClient.calls[-1]["url"] == "http://ai/ai/tasks/execute"
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-1"
+    assert _FakeAsyncClient.calls[-1]["json"] == {
+        "task_id": "explain.v1",
+        "input_mode": "STRUCTURED_CONTEXT",
+        "caller": {
+            "caller_app": "lotus-gateway",
+            "correlation_id": "corr-ai-1",
+        },
+        "context": {
+            "summary": "Advisor brief context",
+            "payload": {"portfolio_id": "PF_1001"},
+            "source_refs": ["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
+        },
+        "expected_output_label": "EXPLANATION_ONLY",
+    }
 
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():

@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
+from app.contracts.advisor_brief import AdvisorBriefResponse
 from app.contracts.performance_workspace import (
     PerformanceAttributionTrendResponse,
     PerformanceHorizonComparisonResponse,
@@ -20,6 +22,7 @@ from app.contracts.workbench import (
     WorkbenchSandboxStateResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.advisor_brief_service import AdvisorBriefService
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.workbench_service import WorkbenchService
 
@@ -30,6 +33,8 @@ _WORKBENCH_SERVICE: WorkbenchService | None = None
 _WORKBENCH_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
 _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_ADVISOR_BRIEF_SERVICE: AdvisorBriefService | None = None
+_ADVISOR_BRIEF_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
 
 def _service_signature() -> tuple[object, ...]:
@@ -37,6 +42,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.portfolio_data_query_base_url,
         settings.portfolio_data_control_plane_base_url,
         settings.performance_analytics_base_url,
+        settings.ai_service_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
         settings.risk_analytics_base_url,
@@ -44,6 +50,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.risk_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
+        settings.ai_service_timeout_seconds,
         settings.upstream_max_retries,
         settings.upstream_retry_backoff_seconds,
         settings.portfolio_upstream_cache_ttl_seconds,
@@ -128,6 +135,31 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
         _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service(_workbench_service())
         _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
     return _PERFORMANCE_WORKSPACE_SERVICE
+
+
+def _build_advisor_brief_service(
+    performance_workspace_service: PerformanceWorkspaceService,
+) -> AdvisorBriefService:
+    return AdvisorBriefService(
+        performance_workspace_service=performance_workspace_service,
+        lotus_ai_client=LotusAiClient(
+            base_url=settings.ai_service_base_url,
+            timeout_seconds=settings.ai_service_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+    )
+
+
+def _advisor_brief_service() -> AdvisorBriefService:
+    global _ADVISOR_BRIEF_SERVICE, _ADVISOR_BRIEF_SERVICE_SIGNATURE
+    signature = _service_signature()
+    if _ADVISOR_BRIEF_SERVICE is None or _ADVISOR_BRIEF_SERVICE_SIGNATURE != signature:
+        _ADVISOR_BRIEF_SERVICE = _build_advisor_brief_service(
+            _performance_workspace_service()
+        )
+        _ADVISOR_BRIEF_SERVICE_SIGNATURE = signature
+    return _ADVISOR_BRIEF_SERVICE
 
 
 @router.get(
@@ -366,6 +398,42 @@ async def get_performance_workspace(
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_workspace(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/advisor-brief",
+    response_model=AdvisorBriefResponse,
+    summary="Get Performance Advisor Brief",
+    description=(
+        "Returns a source-grounded advisor brief assembled from the performance workspace "
+        "contract and narrated through lotus-ai with audit and evidence metadata preserved."
+    ),
+)
+async def get_performance_advisor_brief(
+    portfolio_id: str,
+    period: str = "YTD",
+    chart_frequency: str = "monthly",
+    contribution_dimension: str = "asset_class",
+    attribution_dimension: str = "asset_class",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    report_start_date: str | None = None,
+    report_end_date: str | None = None,
+) -> AdvisorBriefResponse:
+    service = _advisor_brief_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_advisor_brief(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id,
         period=period,

@@ -1,5 +1,16 @@
 from fastapi.testclient import TestClient
 
+from app.contracts.advisor_brief import (
+    AdvisorBriefActionItem,
+    AdvisorBriefEvidenceRef,
+    AdvisorBriefNarrativeItem,
+    AdvisorBriefResponse,
+    AdvisorBriefSourceMetric,
+    AdvisorBriefStatus,
+    AdvisorBriefSupportabilityItem,
+    AdvisorBriefTone,
+)
+from app.contracts.workbench import WorkbenchPortfolioSummary
 from app.main import app
 from app.middleware.server_timing import append_server_timing_metric
 
@@ -791,6 +802,116 @@ def test_workbench_performance_monolithic_route_is_marked_deprecated_in_openapi(
         "Compatibility endpoint for the legacy monolithic performance workspace contract"
         in (performance_get["description"])
     )
+
+
+def test_workbench_performance_advisor_brief_router(monkeypatch):
+    captured_call = {}
+
+    async def _brief(*args, **kwargs):
+        captured_call.update(kwargs)
+        return AdvisorBriefResponse(
+            correlation_id=kwargs["correlation_id"],
+            contract_version="v1",
+            portfolio_id="PF_1001",
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id="PF_1001",
+                client_id="CIF_1001",
+                base_currency="USD",
+                booking_center_code="SG",
+            ),
+            as_of_date="2026-04-04",
+            period="YTD",
+            report_start_date="2026-01-01",
+            report_end_date="2026-04-04",
+            detail_basis="NET",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+            status=AdvisorBriefStatus.READY,
+            summary="Advisor summary.",
+            talking_points=[
+                AdvisorBriefNarrativeItem(
+                    headline="Portfolio return is 1.25% versus benchmark 7.93%.",
+                    detail="Active return is -6.68% for the selected YTD period.",
+                    tone=AdvisorBriefTone.WARNING,
+                    evidence_refs=[
+                        AdvisorBriefEvidenceRef(
+                            metric_label="Active Return",
+                            metric_value="-6.68%",
+                            source_surface="performance.return_path",
+                            target_mode="summary",
+                            route=(
+                                "/performance?portfolioId=PF_1001&period=YTD"
+                                "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                            ),
+                        )
+                    ],
+                )
+            ],
+            recommended_actions=[
+                AdvisorBriefActionItem(
+                    label="Open Return Path",
+                    target_mode="summary",
+                    route=(
+                        "/performance?portfolioId=PF_1001&period=YTD"
+                        "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                    ),
+                )
+            ],
+            risks_and_exceptions=[],
+            source_metrics=[
+                AdvisorBriefSourceMetric(
+                    label="Active Return",
+                    value="-6.68%",
+                    support_label="YTD NET",
+                    target_mode="summary",
+                    route=(
+                        "/performance?portfolioId=PF_1001&period=YTD"
+                        "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                    ),
+                )
+            ],
+            supportability=[
+                AdvisorBriefSupportabilityItem(
+                    label="Advisor Brief",
+                    value="Ready",
+                    tone="success",
+                )
+            ],
+            ai_audit={"request_id": "req-1"},
+            ai_evidence={"descriptors": []},
+        )
+
+    monkeypatch.setattr(
+        "app.services.advisor_brief_service.AdvisorBriefService.get_performance_advisor_brief",
+        _brief,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief"
+        "?period=YTD&chart_frequency=monthly&detail_basis=NET"
+        "&contribution_dimension=asset_class&attribution_dimension=asset_class"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40&report_start_date=2026-01-01"
+        "&report_end_date=2026-04-04"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["summary"] == "Advisor summary."
+    assert body["talking_points"][0]["evidence_refs"][0]["target_mode"] == "summary"
+    assert body["source_metrics"][0]["label"] == "Active Return"
+    assert body["supportability"][0]["value"] == "Ready"
+    assert body["ai_audit"]["request_id"] == "req-1"
+    assert body["ai_evidence"] == {"descriptors": []}
+    assert captured_call["portfolio_id"] == "PF_1001"
+    assert captured_call["period"] == "YTD"
+    assert captured_call["detail_basis"] == "NET"
+    assert captured_call["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert captured_call["explicit_start_date"] == "2026-01-01"
+    assert captured_call["explicit_end_date"] == "2026-04-04"
 
 
 def test_workbench_sandbox_changes_router(monkeypatch):

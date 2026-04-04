@@ -85,6 +85,9 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
 
 
 def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
+    async def _pas_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
+
     async def _pas_core(*args, **kwargs):
         return 200, {
             "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
@@ -130,6 +133,7 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
     async def _dpm_simulate(*args, **kwargs):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
 
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _pas_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
@@ -335,6 +339,9 @@ def test_e2e_reporting_snapshot_maps_upstream_failure_to_gateway_error(monkeypat
 
 
 def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monkeypatch) -> None:
+    async def _pas_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
+
     async def _pas_core(*args, **kwargs):
         return 200, {
             "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
@@ -380,6 +387,7 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
     async def _dpm_simulate_failure(*args, **kwargs):
         return 503, {"detail": "lotus-manage policy service unavailable"}
 
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _pas_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
