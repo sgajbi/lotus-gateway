@@ -1064,15 +1064,20 @@ class PerformanceWorkspaceService:
             if include_benchmark_catalog
             else self._empty_async_result()
         )
-        resolved_benchmark_code, benchmark_catalog_result = await asyncio.gather(
+        benchmark_context_results = await asyncio.gather(
             assignment_task,
             benchmark_catalog_task,
             return_exceptions=True,
         )
-        if isinstance(resolved_benchmark_code, BaseException):
-            return benchmark_code, cast(GatheredResult, benchmark_catalog_result)
-        return benchmark_code or cast(str | None, resolved_benchmark_code), cast(
-            GatheredResult, benchmark_catalog_result
+        resolved_benchmark_code_result = cast(
+            str | None | BaseException,
+            benchmark_context_results[0],
+        )
+        benchmark_catalog_result_value = cast(GatheredResult, benchmark_context_results[1])
+        if isinstance(resolved_benchmark_code_result, BaseException):
+            return benchmark_code, cast(GatheredResult, benchmark_catalog_result_value)
+        return benchmark_code or cast(str | None, resolved_benchmark_code_result), cast(
+            GatheredResult, benchmark_catalog_result_value
         )
 
     async def _fetch_analytics_results(
