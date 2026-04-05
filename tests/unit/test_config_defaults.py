@@ -15,6 +15,7 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.portfolio_data_ingestion_base_url == "http://core-ingestion.dev.lotus"
     assert settings.performance_analytics_base_url == "http://performance.dev.lotus"
     assert settings.ai_service_base_url == "http://ai.dev.lotus"
+    assert settings.ai_service_timeout_seconds == 45.0
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
     assert settings.reporting_aggregation_base_url == "http://report.dev.lotus"
     assert settings.management_service_base_url == "http://manage.dev.lotus"

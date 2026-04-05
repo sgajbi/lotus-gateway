@@ -110,7 +110,48 @@ class AdvisorBriefService:
                     expected_output_label=_EXPECTED_OUTPUT_LABEL,
                 )
             if ai_status == 200 and ai_payload.get("status") == "COMPLETED":
-                source_summary = _extract_ai_summary(ai_payload=ai_payload) or source_summary
+                result = _safe_dict(ai_payload.get("result"))
+                structured_output = _safe_dict(result.get("structured_output"))
+                source_summary = (
+                    _extract_ai_summary(ai_payload=ai_payload, structured_output=structured_output)
+                    or source_summary
+                )
+                talking_points = (
+                    _extract_ai_talking_points(
+                        structured_output=structured_output,
+                        route=_route_query(
+                            portfolio_id=workspace.portfolio_id,
+                            period=workspace.period,
+                            basis=workspace.detail_basis,
+                            benchmark_code=workspace.benchmark_code,
+                        ),
+                    )
+                    or talking_points
+                )
+                recommended_actions = (
+                    _extract_ai_recommended_actions(
+                        structured_output=structured_output,
+                        route=_route_query(
+                            portfolio_id=workspace.portfolio_id,
+                            period=workspace.period,
+                            basis=workspace.detail_basis,
+                            benchmark_code=workspace.benchmark_code,
+                        ),
+                    )
+                    or recommended_actions
+                )
+                risks_and_exceptions = (
+                    _extract_ai_risks(
+                        structured_output=structured_output,
+                        route=_route_query(
+                            portfolio_id=workspace.portfolio_id,
+                            period=workspace.period,
+                            basis=workspace.detail_basis,
+                            benchmark_code=workspace.benchmark_code,
+                        ),
+                    )
+                    or risks_and_exceptions
+                )
                 ai_audit = _safe_dict(ai_payload.get("audit"))
                 ai_evidence = _safe_dict(ai_payload.get("evidence")) or {"descriptors": []}
             else:
@@ -190,7 +231,10 @@ def _build_ai_fact_bundle(
     contribution = workspace.contribution
     attribution = workspace.attribution
     return {
-        "portfolio": workspace.portfolio.model_dump(mode="json"),
+        "portfolio": {
+            **workspace.portfolio.model_dump(mode="json"),
+            "display_label": _portfolio_display_label(workspace=workspace),
+        },
         "period": {
             "period": workspace.period,
             "report_start_date": workspace.report_start_date,
@@ -200,6 +244,7 @@ def _build_ai_fact_bundle(
         },
         "benchmark": {
             "benchmark_code": workspace.benchmark_code,
+            "benchmark_name": _benchmark_display_label(workspace=workspace),
             "benchmark_return_pct": selected_performance.benchmark_return_pct,
         },
         "performance": {
@@ -219,12 +264,18 @@ def _build_ai_fact_bundle(
                 contribution.portfolio_contribution_pct if contribution else None
             ),
             "coverage_mv_pct": contribution.coverage_mv_pct if contribution else None,
-            "top_positions": [
-                row.model_dump(mode="json")
+                "top_positions": [
+                {
+                    **row.model_dump(mode="json"),
+                    "display_label": _normalize_position_label(row.position_id),
+                }
                 for row in _positive_position_contributors(contribution=contribution)[:5]
             ],
             "bottom_positions": [
-                row.model_dump(mode="json")
+                {
+                    **row.model_dump(mode="json"),
+                    "display_label": _normalize_position_label(row.position_id),
+                }
                 for row in _negative_position_contributors(contribution=contribution)[:5]
             ],
         },
@@ -255,19 +306,178 @@ def _build_source_summary(
         return (
             "No source-backed advisor brief can be generated from the current performance "
             "selection."
-        )
+    )
     return (
-        f"{workspace.period} portfolio return is {portfolio_return} versus benchmark "
-        f"{benchmark_return}, with active return {active_return}."
+        f"{workspace.period} portfolio return for {_portfolio_display_label(workspace=workspace)} "
+        f"is {portfolio_return} versus "
+        f"{_benchmark_display_label(workspace=workspace) or 'benchmark'} {benchmark_return}, "
+        f"with active return {active_return}."
     )
 
 
-def _extract_ai_summary(*, ai_payload: dict[str, Any]) -> str | None:
+def _extract_ai_summary(
+    *,
+    ai_payload: dict[str, Any],
+    structured_output: dict[str, Any] | None = None,
+) -> str | None:
+    output_payload = structured_output or _safe_dict(
+        _safe_dict(ai_payload.get("result")).get("structured_output")
+    )
+    summary = output_payload.get("grounded_summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary.strip()
     result = _safe_dict(ai_payload.get("result"))
     message = result.get("message")
     if isinstance(message, str) and message.strip():
         return message.strip()
     return None
+
+
+def _extract_ai_talking_points(
+    *,
+    structured_output: dict[str, Any],
+    route: str,
+) -> list[AdvisorBriefNarrativeItem]:
+    return [
+        item
+        for item in (
+            _parse_ai_narrative_item(value=value, route=route, default_mode="summary")
+            for value in _safe_list(structured_output.get("talking_points"))
+        )
+        if item is not None
+    ]
+
+
+def _extract_ai_risks(
+    *,
+    structured_output: dict[str, Any],
+    route: str,
+) -> list[AdvisorBriefNarrativeItem]:
+    return [
+        item
+        for item in (
+            _parse_ai_narrative_item(value=value, route=route, default_mode="analysis")
+            for value in _safe_list(structured_output.get("risks_and_exceptions"))
+        )
+        if item is not None
+    ]
+
+
+def _extract_ai_recommended_actions(
+    *,
+    structured_output: dict[str, Any],
+    route: str,
+) -> list[AdvisorBriefActionItem]:
+    actions: list[AdvisorBriefActionItem] = []
+    for value in _safe_list(structured_output.get("recommended_actions")):
+        item = _safe_dict(value)
+        label = item.get("label")
+        if not isinstance(label, str) or not label.strip():
+            continue
+        actions.append(
+            AdvisorBriefActionItem(
+                label=label.strip(),
+                target_mode=_infer_target_mode_from_text(label),
+                route=route,
+            )
+        )
+    return actions
+
+
+def _parse_ai_narrative_item(
+    *,
+    value: Any,
+    route: str,
+    default_mode: str,
+) -> AdvisorBriefNarrativeItem | None:
+    item = _safe_dict(value)
+    headline = item.get("headline")
+    detail = item.get("detail")
+    if not isinstance(headline, str) or not headline.strip():
+        return None
+    if not isinstance(detail, str) or not detail.strip():
+        return None
+    tone = _normalize_narrative_tone(item.get("tone"))
+    evidence_refs = [
+        ref
+        for ref in (
+            _parse_ai_evidence_ref(value=ref_value, route=route, default_mode=default_mode)
+            for ref_value in _safe_list(item.get("evidence_refs"))
+        )
+        if ref is not None
+    ]
+    if not evidence_refs:
+        evidence_refs = [
+            AdvisorBriefEvidenceRef(
+                metric_label="Advisor Brief",
+                metric_value="Source-Grounded",
+                source_surface="performance.advisor_brief",
+                target_mode=default_mode,
+                route=route,
+            )
+        ]
+    return AdvisorBriefNarrativeItem(
+        headline=headline.strip(),
+        detail=detail.strip(),
+        tone=tone,
+        evidence_refs=evidence_refs,
+    )
+
+
+def _parse_ai_evidence_ref(
+    *,
+    value: Any,
+    route: str,
+    default_mode: str,
+) -> AdvisorBriefEvidenceRef | None:
+    item = _safe_dict(value)
+    metric_label = item.get("metric_label")
+    metric_value = item.get("metric_value")
+    if not isinstance(metric_label, str) or not metric_label.strip():
+        return None
+    if not isinstance(metric_value, str) or not metric_value.strip():
+        return None
+    source_ref = _safe_str(item.get("source_ref")) or _safe_str(item.get("source_surface"))
+    source_surface = _infer_source_surface(source_ref) if source_ref else "performance.advisor_brief"
+    return AdvisorBriefEvidenceRef(
+        metric_label=metric_label.strip(),
+        metric_value=metric_value.strip(),
+        source_surface=source_surface,
+        target_mode=_infer_target_mode(source_surface=source_surface, default_mode=default_mode),
+        route=route,
+    )
+
+
+def _normalize_narrative_tone(value: Any) -> AdvisorBriefTone:
+    if value == AdvisorBriefTone.POSITIVE.value:
+        return AdvisorBriefTone.POSITIVE
+    if value == AdvisorBriefTone.WARNING.value:
+        return AdvisorBriefTone.WARNING
+    return AdvisorBriefTone.NEUTRAL
+
+
+def _infer_target_mode(*, source_surface: str, default_mode: str) -> str:
+    return "summary" if source_surface == "performance.return_path" else default_mode
+
+
+def _infer_target_mode_from_text(label: str) -> str:
+    normalized = label.strip().lower()
+    if "return" in normalized:
+        return "summary"
+    return "analysis"
+
+
+def _infer_source_surface(source_ref: str | None) -> str:
+    if not source_ref:
+        return "performance.advisor_brief"
+    normalized = source_ref.lower()
+    if "performance-summary" in normalized:
+        return "performance.return_path"
+    if "performance-details" in normalized or "contribution" in normalized:
+        return "performance.contribution"
+    if "benchmark" in normalized or "attribution" in normalized:
+        return "performance.attribution"
+    return "performance.advisor_brief"
 
 
 def _build_source_talking_points(
@@ -313,16 +523,20 @@ def _build_source_talking_points(
     if top_position:
         points.append(
             AdvisorBriefNarrativeItem(
-                headline=f"Top contributor is {top_position[0].position_id}.",
+                headline=(
+                    f"Top contributor is "
+                    f"{_normalize_position_label(top_position[0].position_id)}."
+                ),
                 detail=(
-                    f"Contribution is {_format_pct(top_position[0].contribution_pct)} "
-                    f"with return {_format_pct(top_position[0].total_return_pct)}."
+                    f"{_normalize_position_label(top_position[0].position_id)} contributed "
+                    f"{_format_pct(top_position[0].contribution_pct)} with return "
+                    f"{_format_pct(top_position[0].total_return_pct)}."
                 ),
                 tone=AdvisorBriefTone.POSITIVE,
                 evidence_refs=[
                     _analysis_evidence_ref(
                         label="Top Contributor",
-                        value=top_position[0].position_id,
+                        value=_normalize_position_label(top_position[0].position_id),
                         portfolio_id=workspace.portfolio_id,
                         period=workspace.period,
                         basis=workspace.detail_basis,
@@ -336,16 +550,20 @@ def _build_source_talking_points(
     if bottom_position:
         points.append(
             AdvisorBriefNarrativeItem(
-                headline=f"Top detractor is {bottom_position[0].position_id}.",
+                headline=(
+                    f"Top detractor is "
+                    f"{_normalize_position_label(bottom_position[0].position_id)}."
+                ),
                 detail=(
-                    f"Contribution is {_format_pct(bottom_position[0].contribution_pct)} "
-                    f"with return {_format_pct(bottom_position[0].total_return_pct)}."
+                    f"{_normalize_position_label(bottom_position[0].position_id)} contributed "
+                    f"{_format_pct(bottom_position[0].contribution_pct)} with return "
+                    f"{_format_pct(bottom_position[0].total_return_pct)}."
                 ),
                 tone=AdvisorBriefTone.WARNING,
                 evidence_refs=[
                     _analysis_evidence_ref(
                         label="Top Detractor",
-                        value=bottom_position[0].position_id,
+                        value=_normalize_position_label(bottom_position[0].position_id),
                         portfolio_id=workspace.portfolio_id,
                         period=workspace.period,
                         basis=workspace.detail_basis,
@@ -694,8 +912,40 @@ def _safe_dict(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _safe_list(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _safe_str(value: Any) -> str | None:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
 def _safe_error_detail(payload: dict[str, Any]) -> str:
     detail = payload.get("detail")
     if isinstance(detail, str) and detail.strip():
         return detail.strip()
     return "lotus-ai task execution did not return a completed advisor brief."
+
+
+def _normalize_position_label(position_id: str) -> str:
+    display_label = position_id.rsplit(":", 1)[-1].strip()
+    for prefix in ("FO_EQ_", "FO_FI_", "FO_CASH_", "FO_ALT_", "FO_FX_"):
+        if display_label.startswith(prefix):
+            display_label = display_label[len(prefix):]
+            break
+    return display_label.replace("_", " ").strip() or position_id
+
+
+def _portfolio_display_label(*, workspace: PerformanceWorkspaceResponse) -> str:
+    return _normalize_position_label(workspace.portfolio.portfolio_id)
+
+
+def _benchmark_display_label(*, workspace: PerformanceWorkspaceResponse) -> str | None:
+    if not workspace.benchmark_code:
+        return None
+    for option in workspace.benchmark_options:
+        if option.benchmark_code == workspace.benchmark_code:
+            return option.benchmark_name.strip() or workspace.benchmark_code
+    return workspace.benchmark_code

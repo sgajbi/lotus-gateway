@@ -7,6 +7,7 @@ from app.contracts.performance_workspace import (
     ContributionPositionView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
+    PerformanceBenchmarkOptionView,
     PerformanceComparativeSummary,
     PerformanceModuleCapability,
     PerformanceWorkspaceCapabilities,
@@ -43,7 +44,46 @@ class _StubLotusAiClient:
             "task_id": "explain.v1",
             "result": {
                 "message": "AI summary: portfolio return exceeded benchmark over the selected period.",
-                "structured_output": {},
+                "structured_output": {
+                    "grounded_summary": (
+                        "AI summary: portfolio return exceeded benchmark over the selected period."
+                    ),
+                    "talking_points": [
+                        {
+                            "headline": "AI-generated active-return summary.",
+                            "detail": "Use Return Path to explain the benchmark gap.",
+                            "tone": "warning",
+                            "evidence_refs": [
+                                {
+                                    "metric_label": "Active Return",
+                                    "metric_value": "-6.68%",
+                                    "source_ref": "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
+                                }
+                            ],
+                        }
+                    ],
+                    "recommended_actions": [
+                        {
+                            "label": "Review Return Path",
+                            "detail": "Check period and flow context.",
+                            "evidence_refs": [],
+                        }
+                    ],
+                    "risks_and_exceptions": [
+                        {
+                            "headline": "Attribution evidence is partial.",
+                            "detail": "Keep the narrative constrained to available source metrics.",
+                            "tone": "warning",
+                            "evidence_refs": [
+                                {
+                                    "metric_label": "Attribution",
+                                    "metric_value": "Partial",
+                                    "source_ref": "lotus-gateway:workbench:PF_1001:performance-details:YTD",
+                                }
+                            ],
+                        }
+                    ],
+                },
             },
             "audit": {
                 "request_id": "req-1",
@@ -89,23 +129,26 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
 
     assert response.status == "ready"
     assert response.summary.startswith("AI summary:")
+    assert response.talking_points[0].headline == "AI-generated active-return summary."
+    assert response.talking_points[0].evidence_refs[0].source_surface == "performance.return_path"
+    assert response.recommended_actions[0].label == "Review Return Path"
+    assert response.risks_and_exceptions[0].headline == "Attribution evidence is partial."
+    assert response.risks_and_exceptions[0].evidence_refs[0].target_mode == "analysis"
     assert response.source_metrics[0].label == "Portfolio Return"
     assert response.source_metrics[0].route == (
         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
         "&benchmark=BMK_GLOBAL_BALANCED_60_40"
     )
-    assert response.talking_points[0].evidence_refs[0].source_surface == "performance.return_path"
-    assert [action.label for action in response.recommended_actions] == [
-        "Open Return Path",
-        "Open Contribution",
-        "Open Attribution",
-    ]
     assert response.ai_audit["request_id"] == "req-1"
     assert response.ai_evidence["descriptors"][0]["evidence_type"] == "source_fact_bundle"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
     assert ai_client.calls[0]["task_id"] == "explain.v1"
     assert ai_client.calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
     assert ai_client.calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
+    assert ai_client.calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
+    assert ai_client.calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
+        "Private Banking Global Balanced 60/40"
+    )
     assert ai_client.calls[0]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",
@@ -247,6 +290,63 @@ async def test_advisor_brief_service_treats_supported_capabilities_as_ready():
 
 
 @pytest.mark.asyncio
+async def test_advisor_brief_service_normalizes_raw_position_ids_in_fallback_copy():
+    workspace = _build_workspace()
+    workspace.contribution.position_rows = [
+        ContributionPositionView(
+            position_id="PF_1001:FO_EQ_AAPL_US",
+            contribution_pct=0.30,
+            weight_avg_pct=7.37,
+            total_return_pct=4.31,
+        ),
+        ContributionPositionView(
+            position_id="PF_1001:FO_CASH_USD_BOOK_OPERATING",
+            contribution_pct=-0.06,
+            weight_avg_pct=9.24,
+            total_return_pct=0.00,
+        ),
+    ]
+    service = AdvisorBriefService(
+        performance_workspace_service=_StubPerformanceWorkspaceService(workspace),
+        lotus_ai_client=_StubLotusAiClient(
+            payload={
+                "status": "COMPLETED",
+                "task_id": "explain.v1",
+                "result": {
+                    "message": "Fallback summary only.",
+                    "structured_output": {
+                        "grounded_summary": "Fallback summary only.",
+                        "talking_points": [],
+                        "recommended_actions": [],
+                        "risks_and_exceptions": [],
+                    },
+                },
+                "audit": {},
+                "evidence": {"descriptors": []},
+            }
+        ),
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-raw-position-id",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert "PF_1001:" not in response.talking_points[1].headline
+    assert response.talking_points[1].headline == "Top contributor is AAPL US."
+    assert response.talking_points[2].headline == "Top detractor is USD BOOK OPERATING."
+    assert response.talking_points[2].detail == (
+        "USD BOOK OPERATING contributed -0.06% with return 0.00%."
+    )
+
+
+@pytest.mark.asyncio
 async def test_advisor_brief_service_records_source_and_ai_server_timing_spans():
     workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
     ai_client = _StubLotusAiClient()
@@ -299,6 +399,13 @@ def _build_workspace(
         requested_attribution_dimension_supported=True,
         segment="asset_class",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_options=[
+            PerformanceBenchmarkOptionView(
+                benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+                benchmark_name="Private Banking Global Balanced 60/40",
+                benchmark_currency="USD",
+            )
+        ],
         capabilities=PerformanceWorkspaceCapabilities(
             summary_kpis=PerformanceModuleCapability(state="ready"),
             return_path=PerformanceModuleCapability(state="ready"),

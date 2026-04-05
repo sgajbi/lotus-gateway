@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
-    ai_service_timeout_seconds: float = Field(default=15.0)
+    ai_service_timeout_seconds: float = Field(default=45.0)
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
