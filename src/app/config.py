@@ -25,6 +25,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("PORTFOLIO_DATA_INGESTION_BASE_URL"),
     )
     performance_analytics_base_url: str = Field(default="http://performance.dev.lotus")
+    ai_service_base_url: str = Field(default="http://ai.dev.lotus")
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
@@ -32,9 +33,11 @@ class Settings(BaseSettings):
     manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
+    ai_service_timeout_seconds: float = Field(default=45.0)
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
+    advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
 
 
 settings = Settings()

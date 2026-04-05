@@ -43,6 +43,7 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract)
 - `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact multi-horizon comparison module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
+- `GET /api/v1/workbench/{portfolio_id}/performance/advisor-brief` (source-grounded advisor brief with evidence refs and supportability)
 - `GET /api/v1/workbench/{portfolio_id}/performance` (legacy compatibility endpoint; deprecated in favor of split Performance contracts)
 - `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
 - `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
@@ -107,8 +108,10 @@ The current flagship performance workstation integration is served from `lotus-g
 Required upstreams:
 
 - `lotus-core` query: `http://core-query.dev.lotus`
+- `lotus-core` control plane: `http://core-control.dev.lotus`
 - `lotus-core` ingestion: `http://core-ingestion.dev.lotus`
 - `lotus-performance`: `http://performance.dev.lotus`
+- `lotus-ai`: `http://ai.dev.lotus`
 
 Example live probes:
 
@@ -120,6 +123,8 @@ curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/det
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 ```
 
 Expected benchmark catalog for the seeded flagship mandate:
