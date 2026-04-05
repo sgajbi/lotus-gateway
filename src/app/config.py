@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     upstream_max_retries: int = Field(default=2)
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
+    advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
 
 
 settings = Settings()

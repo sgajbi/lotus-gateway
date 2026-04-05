@@ -305,6 +305,77 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
 
 
 @pytest.mark.asyncio
+async def test_advisor_brief_service_reuses_cached_response_for_identical_request():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+        cache_ttl_seconds=60.0,
+    )
+
+    first = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-1",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+    second = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-2",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert first.summary == second.summary
+    assert len(workspace_service.calls) == 1
+    assert len(ai_client.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_cache_key_changes_when_request_shape_changes():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+        cache_ttl_seconds=60.0,
+    )
+
+    await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-net",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+    await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-cache-gross",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="GROSS",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert len(workspace_service.calls) == 2
+    assert len(ai_client.calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_advisor_brief_service_treats_supported_capabilities_as_ready():
     workspace = _build_workspace(
         benchmark_state="supported",

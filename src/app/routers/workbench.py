@@ -54,6 +54,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.upstream_max_retries,
         settings.upstream_retry_backoff_seconds,
         settings.portfolio_upstream_cache_ttl_seconds,
+        settings.advisor_brief_cache_ttl_seconds,
     )
 
 
@@ -148,6 +149,7 @@ def _build_advisor_brief_service(
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
+        cache_ttl_seconds=settings.advisor_brief_cache_ttl_seconds,
     )
 
 

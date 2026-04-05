@@ -21,6 +21,7 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
 )
 from app.middleware.server_timing import server_timing_span
+from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 
 _TASK_ID = "explain.v1"
@@ -33,9 +34,14 @@ class AdvisorBriefService:
         *,
         performance_workspace_service: PerformanceWorkspaceService,
         lotus_ai_client: LotusAiClient,
+        cache_ttl_seconds: float = 30.0,
     ):
         self._performance_workspace_service = performance_workspace_service
         self._lotus_ai_client = lotus_ai_client
+        self._response_cache = AsyncTtlCache[AdvisorBriefResponse](ttl_seconds=cache_ttl_seconds)
+
+    def clear_cache(self) -> None:
+        self._response_cache.clear()
 
     async def get_performance_advisor_brief(
         self,
@@ -51,20 +57,60 @@ class AdvisorBriefService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> AdvisorBriefResponse:
+        cache_key = (
+            "advisor_brief",
+            portfolio_id,
+            period,
+            chart_frequency,
+            contribution_dimension,
+            attribution_dimension,
+            detail_basis,
+            benchmark_code or "",
+            explicit_start_date or "",
+            explicit_end_date or "",
+        )
+        return await self._response_cache.get_or_set(
+            key=cache_key,
+            factory=lambda: self._build_performance_advisor_brief(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                period=period,
+                chart_frequency=chart_frequency,
+                contribution_dimension=contribution_dimension,
+                attribution_dimension=attribution_dimension,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                explicit_start_date=explicit_start_date,
+                explicit_end_date=explicit_end_date,
+            ),
+        )
+
+    async def _build_performance_advisor_brief(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> AdvisorBriefResponse:
         async with server_timing_span("perf-advisor-brief-source"):
-            workspace = (
-                await self._performance_workspace_service.get_performance_workspace(
-                    portfolio_id=portfolio_id,
-                    correlation_id=correlation_id,
-                    period=period,
-                    chart_frequency=chart_frequency,
-                    contribution_dimension=contribution_dimension,
-                    attribution_dimension=attribution_dimension,
-                    detail_basis=detail_basis,
-                    benchmark_code=benchmark_code,
-                    explicit_start_date=explicit_start_date,
-                    explicit_end_date=explicit_end_date,
-                )
+            workspace = await self._performance_workspace_service.get_performance_workspace(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                period=period,
+                chart_frequency=chart_frequency,
+                contribution_dimension=contribution_dimension,
+                attribution_dimension=attribution_dimension,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                explicit_start_date=explicit_start_date,
+                explicit_end_date=explicit_end_date,
             )
 
         selected_performance = (
