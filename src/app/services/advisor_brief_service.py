@@ -89,7 +89,7 @@ class AdvisorBriefService:
             workspace=workspace,
             supportability=supportability,
         )
-        ai_audit: dict[str, Any] = {}
+        ai_audit: dict[str, Any] = _normalize_ai_audit({})
         ai_evidence: dict[str, Any] = {"descriptors": []}
 
         if status is not AdvisorBriefStatus.UNAVAILABLE:
@@ -152,20 +152,25 @@ class AdvisorBriefService:
                     )
                     or risks_and_exceptions
                 )
-                ai_audit = _safe_dict(ai_payload.get("audit"))
+                ai_audit = _normalize_ai_audit(_safe_dict(ai_payload.get("audit")))
                 ai_evidence = _safe_dict(ai_payload.get("evidence")) or {"descriptors": []}
             else:
                 status = AdvisorBriefStatus.PARTIAL
-                ai_audit = {
-                    "task_id": _TASK_ID,
-                    "output_label": _EXPECTED_OUTPUT_LABEL,
-                    "provider_mode": "unavailable",
-                    "detail": _safe_error_detail(ai_payload),
-                }
+                ai_audit = _normalize_ai_audit(
+                    {
+                        "task_id": _TASK_ID,
+                        "output_label": _EXPECTED_OUTPUT_LABEL,
+                        "provider_mode": "unavailable",
+                        "detail": _safe_error_detail(ai_payload),
+                    }
+                )
                 risks_and_exceptions.append(
                     AdvisorBriefNarrativeItem(
                         headline="AI narrative generation is unavailable.",
-                        detail="Source-backed metrics remain available for manual review and client prep.",
+                        detail=(
+                            "Source-backed metrics remain available for manual review and "
+                            "client prep."
+                        ),
                         tone=AdvisorBriefTone.WARNING,
                         evidence_refs=[
                             _summary_evidence_ref(
@@ -209,6 +214,20 @@ class AdvisorBriefService:
             warnings=workspace.warnings,
             partial_failures=workspace.partial_failures,
         )
+
+
+def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(audit)
+    normalized.setdefault("task_id", _TASK_ID)
+    normalized.setdefault("output_label", _EXPECTED_OUTPUT_LABEL)
+    normalized.setdefault("provider_mode", "unknown")
+    normalized.setdefault("provider_id", None)
+    normalized.setdefault("adapter_kind", None)
+    normalized.setdefault("model_id", None)
+    normalized.setdefault("generated_at", None)
+    normalized.setdefault("stubbed", True)
+    normalized.setdefault("source_refs", [])
+    return normalized
 
 
 def _build_source_refs(*, workspace: PerformanceWorkspaceResponse) -> list[str]:
@@ -285,7 +304,10 @@ def _build_ai_fact_bundle(
             "residual_pct": attribution.residual_pct if attribution else None,
             "top_effects": _top_attribution_effects(attribution=attribution),
         },
-        "supportability": [item.model_dump(mode="json") for item in _build_supportability(workspace=workspace)],
+        "supportability": [
+            item.model_dump(mode="json")
+            for item in _build_supportability(workspace=workspace)
+        ],
         "warnings": workspace.warnings,
         "partial_failures": [item.model_dump(mode="json") for item in workspace.partial_failures],
     }
@@ -438,7 +460,9 @@ def _parse_ai_evidence_ref(
     if not isinstance(metric_value, str) or not metric_value.strip():
         return None
     source_ref = _safe_str(item.get("source_ref")) or _safe_str(item.get("source_surface"))
-    source_surface = _infer_source_surface(source_ref) if source_ref else "performance.advisor_brief"
+    source_surface = (
+        _infer_source_surface(source_ref) if source_ref else "performance.advisor_brief"
+    )
     return AdvisorBriefEvidenceRef(
         metric_label=metric_label.strip(),
         metric_value=metric_value.strip(),

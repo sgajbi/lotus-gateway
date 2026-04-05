@@ -43,7 +43,9 @@ class _StubLotusAiClient:
             "status": "COMPLETED",
             "task_id": "explain.v1",
             "result": {
-                "message": "AI summary: portfolio return exceeded benchmark over the selected period.",
+                "message": (
+                    "AI summary: portfolio return exceeded benchmark over the selected period."
+                ),
                 "structured_output": {
                     "grounded_summary": (
                         "AI summary: portfolio return exceeded benchmark over the selected period."
@@ -57,7 +59,10 @@ class _StubLotusAiClient:
                                 {
                                     "metric_label": "Active Return",
                                     "metric_value": "-6.68%",
-                                    "source_ref": "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
+                                    "source_ref": (
+                                        "lotus-gateway:workbench:PF_1001:"
+                                        "performance-summary:YTD"
+                                    ),
                                 }
                             ],
                         }
@@ -78,7 +83,10 @@ class _StubLotusAiClient:
                                 {
                                     "metric_label": "Attribution",
                                     "metric_value": "Partial",
-                                    "source_ref": "lotus-gateway:workbench:PF_1001:performance-details:YTD",
+                                    "source_ref": (
+                                        "lotus-gateway:workbench:PF_1001:"
+                                        "performance-details:YTD"
+                                    ),
                                 }
                             ],
                         }
@@ -88,7 +96,11 @@ class _StubLotusAiClient:
             "audit": {
                 "request_id": "req-1",
                 "task_id": "explain.v1",
-                "provider_mode": "stub",
+                "provider_mode": "openai",
+                "provider_id": "text.openai",
+                "adapter_kind": "OPENAI_LIVE",
+                "model_id": "gpt-5.4",
+                "stubbed": False,
             },
             "evidence": {
                 "descriptors": [
@@ -140,6 +152,11 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "&benchmark=BMK_GLOBAL_BALANCED_60_40"
     )
     assert response.ai_audit["request_id"] == "req-1"
+    assert response.ai_audit["provider_mode"] == "openai"
+    assert response.ai_audit["provider_id"] == "text.openai"
+    assert response.ai_audit["adapter_kind"] == "OPENAI_LIVE"
+    assert response.ai_audit["model_id"] == "gpt-5.4"
+    assert response.ai_audit["stubbed"] is False
     assert response.ai_evidence["descriptors"][0]["evidence_type"] == "source_fact_bundle"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
     assert ai_client.calls[0]["task_id"] == "explain.v1"
@@ -157,7 +174,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
 
 
 @pytest.mark.asyncio
-async def test_advisor_brief_service_marks_partial_when_source_slices_or_ai_generation_are_partial():
+async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
     workspace = _build_workspace(
         contribution_state="partial",
         attribution_state="unavailable",
@@ -181,6 +198,10 @@ async def test_advisor_brief_service_marks_partial_when_source_slices_or_ai_gene
 
     assert response.status == "partial"
     assert response.ai_audit["provider_mode"] == "unavailable"
+    assert response.ai_audit["provider_id"] is None
+    assert response.ai_audit["adapter_kind"] is None
+    assert response.ai_audit["model_id"] is None
+    assert response.ai_audit["stubbed"] is True
     assert response.ai_audit["detail"] == "lotus-ai paused"
     assert [item.model_dump(mode="json") for item in response.supportability] == [
         {"label": "Portfolio", "value": "Ready", "tone": "success", "reason": None},

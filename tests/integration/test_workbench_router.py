@@ -881,7 +881,14 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
                     tone="success",
                 )
             ],
-            ai_audit={"request_id": "req-1"},
+            ai_audit={
+                "request_id": "req-1",
+                "provider_mode": "local_openai_compatible",
+                "provider_id": "text.local",
+                "adapter_kind": "OPENAI_COMPATIBLE_LOCAL",
+                "model_id": "qwen3:8b",
+                "stubbed": False,
+            },
             ai_evidence={"descriptors": []},
         )
 
@@ -910,6 +917,11 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert body["source_metrics"][0]["label"] == "Active Return"
     assert body["supportability"][0]["value"] == "Ready"
     assert body["ai_audit"]["request_id"] == "req-1"
+    assert body["ai_audit"]["provider_mode"] == "local_openai_compatible"
+    assert body["ai_audit"]["provider_id"] == "text.local"
+    assert body["ai_audit"]["adapter_kind"] == "OPENAI_COMPATIBLE_LOCAL"
+    assert body["ai_audit"]["model_id"] == "qwen3:8b"
+    assert body["ai_audit"]["stubbed"] is False
     assert body["ai_evidence"] == {"descriptors": []}
     assert captured_call["portfolio_id"] == "PF_1001"
     assert captured_call["period"] == "YTD"

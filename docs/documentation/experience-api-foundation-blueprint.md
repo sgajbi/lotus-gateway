@@ -33,7 +33,9 @@ The gateway should own:
 2. UI-facing aggregation,
 3. graceful partial-failure behavior,
 4. workflow-friendly action contracts,
-5. supportability and evidence access for product surfaces.
+5. supportability and evidence access for product surfaces,
+6. preserved upstream provenance for AI-authored surfaces so downstream UIs can distinguish
+   managed and local provider authorship without direct provider integration.
 
 The gateway should not own:
 
