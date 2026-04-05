@@ -163,9 +163,38 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert ai_client.calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
     assert ai_client.calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
     assert ai_client.calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
+    assert set(ai_client.calls[0]["context_payload"]["portfolio"].keys()) == {
+        "portfolio_id",
+        "display_label",
+        "base_currency",
+        "booking_center_code",
+        "client_id",
+    }
     assert ai_client.calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
         "Private Banking Global Balanced 60/40"
     )
+    top_position = ai_client.calls[0]["context_payload"]["contribution"]["top_positions"][0]
+    assert set(top_position.keys()) == {
+        "display_label",
+        "contribution_pct",
+        "weight_avg_pct",
+        "total_return_pct",
+        "local_contribution_pct",
+        "fx_contribution_pct",
+    }
+    assert top_position["display_label"] == "AAPL US"
+    top_effect = ai_client.calls[0]["context_payload"]["attribution"]["top_effects"][0]
+    assert set(top_effect.keys()) == {
+        "segment_label",
+        "total_effect_pct",
+        "allocation_pct",
+        "selection_pct",
+        "interaction_pct",
+        "portfolio_weight_avg_pct",
+        "benchmark_weight_avg_pct",
+        "portfolio_return_pct",
+        "benchmark_return_pct",
+    }
     assert ai_client.calls[0]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",

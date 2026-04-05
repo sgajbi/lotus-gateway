@@ -250,10 +250,7 @@ def _build_ai_fact_bundle(
     contribution = workspace.contribution
     attribution = workspace.attribution
     return {
-        "portfolio": {
-            **workspace.portfolio.model_dump(mode="json"),
-            "display_label": _portfolio_display_label(workspace=workspace),
-        },
+        "portfolio": _build_ai_portfolio_context(workspace=workspace),
         "period": {
             "period": workspace.period,
             "report_start_date": workspace.report_start_date,
@@ -283,18 +280,12 @@ def _build_ai_fact_bundle(
                 contribution.portfolio_contribution_pct if contribution else None
             ),
             "coverage_mv_pct": contribution.coverage_mv_pct if contribution else None,
-                "top_positions": [
-                {
-                    **row.model_dump(mode="json"),
-                    "display_label": _normalize_position_label(row.position_id),
-                }
+            "top_positions": [
+                _build_ai_contribution_position(row=row)
                 for row in _positive_position_contributors(contribution=contribution)[:5]
             ],
             "bottom_positions": [
-                {
-                    **row.model_dump(mode="json"),
-                    "display_label": _normalize_position_label(row.position_id),
-                }
+                _build_ai_contribution_position(row=row)
                 for row in _negative_position_contributors(contribution=contribution)[:5]
             ],
         },
@@ -310,6 +301,33 @@ def _build_ai_fact_bundle(
         ],
         "warnings": workspace.warnings,
         "partial_failures": [item.model_dump(mode="json") for item in workspace.partial_failures],
+    }
+
+
+def _build_ai_portfolio_context(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+) -> dict[str, Any]:
+    return {
+        "portfolio_id": workspace.portfolio_id,
+        "display_label": _portfolio_display_label(workspace=workspace),
+        "base_currency": workspace.portfolio.base_currency,
+        "booking_center_code": workspace.portfolio.booking_center_code,
+        "client_id": workspace.portfolio.client_id,
+    }
+
+
+def _build_ai_contribution_position(
+    *,
+    row: ContributionPositionView,
+) -> dict[str, Any]:
+    return {
+        "display_label": _normalize_position_label(row.position_id),
+        "contribution_pct": row.contribution_pct,
+        "weight_avg_pct": row.weight_avg_pct,
+        "total_return_pct": row.total_return_pct,
+        "local_contribution_pct": row.local_contribution_pct,
+        "fx_contribution_pct": row.fx_contribution_pct,
     }
 
 
@@ -850,7 +868,17 @@ def _top_attribution_effects(
         if row.total_effect_pct is not None
     ]
     return [
-        row.model_dump(mode="json")
+        {
+            "segment_label": row.key_label,
+            "total_effect_pct": row.total_effect_pct,
+            "allocation_pct": row.allocation_pct,
+            "selection_pct": row.selection_pct,
+            "interaction_pct": row.interaction_pct,
+            "portfolio_weight_avg_pct": row.portfolio_weight_avg_pct,
+            "benchmark_weight_avg_pct": row.benchmark_weight_avg_pct,
+            "portfolio_return_pct": row.portfolio_return_pct,
+            "benchmark_return_pct": row.benchmark_return_pct,
+        }
         for row in sorted(
             rows,
             key=lambda row: abs(row.total_effect_pct),
