@@ -268,6 +268,48 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
+    client = LotusAnalyticsClient(base_url="http://risk", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"results": {}})
+    _FakeAsyncClient.queue_json(200, {"risk_proxy": {"hhi_current": 100.0}})
+    _FakeAsyncClient.queue_json(200, {"results": {}})
+    _FakeAsyncClient.queue_json(200, {"results": {}})
+    _FakeAsyncClient.queue_json(200, {"results": {}})
+
+    status_one, _ = await client.post_risk_calculate(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+    status_two, _ = await client.post_risk_concentration(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+    status_three, _ = await client.post_risk_drawdown(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+    status_four, _ = await client.post_risk_rolling_metrics(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+    status_five, _ = await client.post_risk_historical_attribution(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+
+    assert status_one == 200
+    assert status_two == 200
+    assert status_three == 200
+    assert status_four == 200
+    assert status_five == 200
+    assert _FakeAsyncClient.calls[-5]["url"] == "http://risk/analytics/risk/calculate"
+    assert _FakeAsyncClient.calls[-4]["url"] == "http://risk/analytics/risk/concentration"
+    assert _FakeAsyncClient.calls[-3]["url"] == "http://risk/analytics/risk/drawdown"
+    assert _FakeAsyncClient.calls[-2]["url"] == "http://risk/analytics/risk/rolling-metrics"
+    assert _FakeAsyncClient.calls[-1]["url"] == "http://risk/analytics/risk/historical-attribution"
+
+
+@pytest.mark.asyncio
 async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_headers():
     client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
     _FakeAsyncClient.queue_json(

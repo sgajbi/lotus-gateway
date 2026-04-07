@@ -48,9 +48,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.performance_analytics_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
-        settings.risk_analytics_base_url,
         settings.manage_split_enabled,
-        settings.risk_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
         settings.upstream_max_retries,
@@ -84,16 +82,6 @@ def _build_performance_workspace_service() -> PerformanceWorkspaceService:
                 timeout_seconds=settings.upstream_timeout_seconds,
                 max_retries=settings.upstream_max_retries,
                 retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            ),
-            risk_client=(
-                LotusAnalyticsClient(
-                    base_url=settings.risk_analytics_base_url,
-                    timeout_seconds=settings.upstream_timeout_seconds,
-                    max_retries=settings.upstream_max_retries,
-                    retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-                )
-                if settings.risk_split_enabled
-                else None
             ),
         ),
         analytics_client=LotusAnalyticsClient(

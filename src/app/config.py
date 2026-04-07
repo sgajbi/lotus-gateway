@@ -1,4 +1,6 @@
-from pydantic import AliasChoices, Field
+from urllib.parse import urlparse
+
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -29,7 +31,6 @@ class Settings(BaseSettings):
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
-    risk_split_enabled: bool = Field(default=True)
     manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
@@ -38,6 +39,32 @@ class Settings(BaseSettings):
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
     advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
+    risk_bff_cache_ttl_seconds: float = Field(default=15.0)
+
+    @field_validator(
+        "decisioning_service_base_url",
+        "portfolio_data_query_base_url",
+        "portfolio_data_control_plane_base_url",
+        "portfolio_data_ingestion_base_url",
+        "performance_analytics_base_url",
+        "ai_service_base_url",
+        "risk_analytics_base_url",
+        "reporting_aggregation_base_url",
+        "management_service_base_url",
+        mode="before",
+    )
+    @classmethod
+    def normalize_upstream_base_url(cls, value: str) -> str:
+        normalized = str(value).strip().rstrip("/")
+        hostname = urlparse(normalized).hostname
+
+        if hostname and hostname.lower() in {"localhost", "127.0.0.1", "0.0.0.0"}:
+            raise ValueError(
+                "Gateway upstream base URLs must use canonical service hostnames, "
+                f"not local loopback ({hostname})."
+            )
+
+        return normalized
 
 
 settings = Settings()

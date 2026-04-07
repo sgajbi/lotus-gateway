@@ -13,6 +13,13 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
 )
+from app.contracts.risk_workspace import (
+    WorkbenchRiskAttributionResponse,
+    WorkbenchRiskConcentrationResponse,
+    WorkbenchRiskDrawdownResponse,
+    WorkbenchRiskRollingResponse,
+    WorkbenchRiskSummaryResponse,
+)
 from app.contracts.workbench import (
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
@@ -24,6 +31,7 @@ from app.contracts.workbench import (
 from app.middleware.correlation import correlation_id_var
 from app.services.advisor_brief_service import AdvisorBriefService
 from app.services.performance_workspace_service import PerformanceWorkspaceService
+from app.services.risk_workspace_service import RiskWorkspaceService
 from app.services.workbench_service import WorkbenchService
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -35,6 +43,8 @@ _PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
 _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _ADVISOR_BRIEF_SERVICE: AdvisorBriefService | None = None
 _ADVISOR_BRIEF_SERVICE_SIGNATURE: tuple[object, ...] | None = None
+_RISK_WORKSPACE_SERVICE: RiskWorkspaceService | None = None
+_RISK_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
 
 def _service_signature() -> tuple[object, ...]:
@@ -42,12 +52,11 @@ def _service_signature() -> tuple[object, ...]:
         settings.portfolio_data_query_base_url,
         settings.portfolio_data_control_plane_base_url,
         settings.performance_analytics_base_url,
+        settings.risk_analytics_base_url,
         settings.ai_service_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
-        settings.risk_analytics_base_url,
         settings.manage_split_enabled,
-        settings.risk_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
         settings.ai_service_timeout_seconds,
@@ -55,6 +64,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.upstream_retry_backoff_seconds,
         settings.portfolio_upstream_cache_ttl_seconds,
         settings.advisor_brief_cache_ttl_seconds,
+        settings.risk_bff_cache_ttl_seconds,
     )
 
 
@@ -82,16 +92,6 @@ def _build_workbench_service() -> WorkbenchService:
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        risk_client=(
-            LotusAnalyticsClient(
-                base_url=settings.risk_analytics_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            )
-            if settings.risk_split_enabled
-            else None
         ),
     )
 
@@ -164,6 +164,27 @@ def _advisor_brief_service() -> AdvisorBriefService:
     return _ADVISOR_BRIEF_SERVICE
 
 
+def _build_risk_workspace_service() -> RiskWorkspaceService:
+    return RiskWorkspaceService(
+        risk_client=LotusAnalyticsClient(
+            base_url=settings.risk_analytics_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        cache_ttl_seconds=settings.risk_bff_cache_ttl_seconds,
+    )
+
+
+def _risk_workspace_service() -> RiskWorkspaceService:
+    global _RISK_WORKSPACE_SERVICE, _RISK_WORKSPACE_SERVICE_SIGNATURE
+    signature = _service_signature()
+    if _RISK_WORKSPACE_SERVICE is None or _RISK_WORKSPACE_SERVICE_SIGNATURE != signature:
+        _RISK_WORKSPACE_SERVICE = _build_risk_workspace_service()
+        _RISK_WORKSPACE_SERVICE_SIGNATURE = signature
+    return _RISK_WORKSPACE_SERVICE
+
+
 @router.get(
     "/{portfolio_id}/overview",
     response_model=WorkbenchOverviewResponse,
@@ -213,9 +234,10 @@ async def get_portfolio_360(
     description=(
         "Returns lotus-performance-owned analytics for current vs "
         "projected portfolio state, including grouped allocation "
-        "deltas, top changes, active return, and concentration "
-        "risk proxy. lotus-gateway orchestrates inputs and "
-        "delegates analytics computation to lotus-performance."
+        "deltas, top changes, and active return. Stateful risk "
+        "analytics are intentionally excluded from this legacy "
+        "Workbench analytics route and will be served by the "
+        "RFC-0022 Risk BFF."
     ),
 )
 async def get_workbench_analytics(
@@ -234,6 +256,163 @@ async def get_workbench_analytics(
         group_by=group_by,
         benchmark_code=benchmark_code,
         session_id=session_id,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/summary",
+    response_model=WorkbenchRiskSummaryResponse,
+    summary="Get Workbench Risk Summary",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench. "
+        "This endpoint uses the RFC-0022 Risk BFF contract and does not expose stateless "
+        "risk execution to the UI."
+    ),
+)
+async def get_workbench_risk_summary(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+) -> WorkbenchRiskSummaryResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/concentration",
+    response_model=WorkbenchRiskConcentrationResponse,
+    summary="Get Workbench Risk Concentration",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk concentration analytics for Workbench. "
+        "Simulation concentration remains gated to a future sandbox-aware slice."
+    ),
+)
+async def get_workbench_risk_concentration(
+    portfolio_id: str,
+    period: str = "YTD",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+) -> WorkbenchRiskConcentrationResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_concentration(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        benchmark_code=benchmark_code,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/drawdown",
+    response_model=WorkbenchRiskDrawdownResponse,
+    summary="Get Workbench Risk Drawdown",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench. "
+        "Underwater series detail is optional and requested on demand to keep first paint lean."
+    ),
+)
+async def get_workbench_risk_drawdown(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+    include_underwater_series: bool = False,
+) -> WorkbenchRiskDrawdownResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_drawdown(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        include_underwater_series=include_underwater_series,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/rolling",
+    response_model=WorkbenchRiskRollingResponse,
+    summary="Get Workbench Risk Rolling Metrics",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
+        "Rolling series detail is optional and requested on demand to keep first paint lean."
+    ),
+)
+async def get_workbench_risk_rolling(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+    include_time_series: bool = False,
+) -> WorkbenchRiskRollingResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_rolling(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        include_time_series=include_time_series,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/attribution",
+    response_model=WorkbenchRiskAttributionResponse,
+    summary="Get Workbench Risk Attribution",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
+        "Only supported stateful attribution combinations are surfaced to the UI."
+    ),
+)
+async def get_workbench_risk_attribution(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+    attribution_type: str = "TOTAL_RISK",
+    grouping_dimension: str = "SECTOR",
+) -> WorkbenchRiskAttributionResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_attribution(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
     )
 
 

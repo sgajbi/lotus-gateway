@@ -296,7 +296,6 @@ def test_workbench_analytics_router(monkeypatch):
                     "direction": "INCREASE",
                 }
             ],
-            "riskProxy": {"hhiCurrent": 10000.0, "hhiProposed": 10000.0, "hhiDelta": 0.0},
         }
 
     async def _dpm_runs(*args, **kwargs):
@@ -327,7 +326,7 @@ def test_workbench_analytics_router(monkeypatch):
     assert body["portfolio_id"] == "PF_1001"
     assert body["group_by"] == "ASSET_CLASS"
     assert len(body["allocation_buckets"]) >= 1
-    assert "risk_proxy" in body
+    assert "risk_proxy" not in body
 
 
 def test_workbench_performance_router(monkeypatch):
@@ -461,6 +460,357 @@ def test_workbench_performance_router(monkeypatch):
     assert body["money_weighted_return"]["method"] == "XIRR"
     assert body["contribution"]["coverage_mv_pct"] == 98.7
     assert body["attribution"]["model"] == "BF"
+
+
+def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatch):
+    async def _risk_calculate(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert "stateless_input" not in payload
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_SUMMARY"
+        return 200, {
+            "scope": {
+                "as_of_date": "2026-04-04",
+                "reporting_currency": "USD",
+                "net_or_gross": "NET",
+            },
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "metrics": {
+                        "VOLATILITY": {"value": 0.12},
+                        "SHARPE": {"value": 1.2},
+                        "SORTINO": {"value": 1.4},
+                        "BETA": {"value": 0.9},
+                        "TRACKING_ERROR": {"value": 0.03},
+                        "INFORMATION_RATIO": {"value": 0.4},
+                        "VAR": {"value": -0.02},
+                    },
+                }
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_calculate",
+        _risk_calculate,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_SUMMARY/risk/summary"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD",
+        headers={"X-Correlation-Id": "corr-risk-summary"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-summary"
+    assert body["source_service"] == "lotus-risk"
+    assert body["state"] == "ready"
+    assert body["metadata"]["input_mode"] == "stateful"
+    assert body["payload"]["periods"][0]["metrics"][0]["label"] == "Volatility"
+
+
+def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeypatch):
+    async def _risk_concentration(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_CONC"
+        assert payload["issuer_grouping_level"] == "ultimate_parent"
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "risk_proxy": {"hhi_current": 1200.0, "hhi_proposed": 1225.0, "hhi_delta": 25.0},
+            "single_position_concentration": {
+                "top_position_weight_current": 0.2,
+                "top_position_weight_proposed": 0.21,
+                "top_position_weight_delta": 0.01,
+                "top_n_cumulative_weight_current": 0.5,
+                "top_n_cumulative_weight_proposed": 0.52,
+                "top_n_cumulative_weight_delta": 0.02,
+                "top_n": 10,
+            },
+            "issuer_concentration": {
+                "hhi_current": 1500.0,
+                "hhi_proposed": 1600.0,
+                "hhi_delta": 100.0,
+                "top_issuer_weight_current": 0.25,
+                "top_issuer_weight_proposed": 0.27,
+                "top_issuer_weight_delta": 0.02,
+                "coverage_status": "complete",
+                "covered_position_count_current": 10,
+                "covered_position_count_proposed": 10,
+                "total_position_count_current": 10,
+                "total_position_count_proposed": 10,
+                "note": None,
+            },
+            "valuation_context": {"reporting_currency": "USD"},
+            "metadata": {"as_of_date": "2026-04-04", "portfolio_id": "PF_RISK_CONC"},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_concentration",
+        _risk_concentration,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_CONC/risk/concentration"
+        "?period=YTD&benchmark_code=BMK_1&as_of_date=2026-04-04&reporting_currency=USD",
+        headers={"X-Correlation-Id": "corr-risk-concentration"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["state"] == "ready"
+    assert body["payload"]["risk_proxy"]["hhi_current"] == 1200.0
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_positions": "ready",
+        "issuer_enrichment": "ready",
+    }
+
+
+def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(monkeypatch):
+    async def _risk_drawdown(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_DRAWDOWN"
+        assert payload["stateful_input"]["benchmark_policy"] == {
+            "include_benchmark": True,
+            "missing_benchmark_policy": "IGNORE",
+        }
+        assert payload["analysis_options"]["include_underwater_series"] is True
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "summary": {
+                        "max_drawdown": -0.124533,
+                        "max_drawdown_peak_date": "2026-01-12",
+                        "max_drawdown_trough_date": "2026-02-03",
+                        "max_drawdown_recovery_date": None,
+                        "is_recovered": False,
+                        "days_to_trough": 16,
+                        "days_to_recovery": None,
+                        "time_under_water_days": 34,
+                        "average_drawdown": -0.041208,
+                        "ulcer_index": 0.053901,
+                        "drawdown_at_risk_95": -0.101552,
+                        "conditional_drawdown_at_risk_95": -0.117884,
+                    },
+                    "episodes": [
+                        {
+                            "episode_id": "dd_0001",
+                            "peak_date": "2026-01-12",
+                            "trough_date": "2026-02-03",
+                            "recovery_date": None,
+                            "depth": -0.124533,
+                            "days_to_trough": 16,
+                            "days_to_recovery": None,
+                            "total_days": 34,
+                            "is_recovered": False,
+                        }
+                    ],
+                    "relative_to_benchmark": {
+                        "max_drawdown": -0.0821,
+                        "max_drawdown_peak_date": "2026-01-11",
+                        "max_drawdown_trough_date": "2026-02-01",
+                    },
+                    "underwater_series": [
+                        {"date": "2026-01-20", "drawdown": -0.0521},
+                        {"date": "2026-01-21", "drawdown": -0.061},
+                    ],
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "drawdown.v1"},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_drawdown",
+        _risk_drawdown,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_DRAWDOWN/risk/drawdown"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_underwater_series=true",
+        headers={"X-Correlation-Id": "corr-risk-drawdown"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-drawdown"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "drawdown.v1"
+    assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
+    assert body["payload"]["periods"][0]["episodes"][0]["episode_id"] == "dd_0001"
+    assert len(body["payload"]["periods"][0]["underwater_series"]) == 2
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "benchmark_relative_drawdown": "ready",
+        "underwater_series": "ready",
+    }
+
+
+def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(monkeypatch):
+    async def _risk_rolling(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ROLLING"
+        assert payload["stateful_input"]["rolling_options"]["include_time_series"] is True
+        assert payload["stateful_input"]["rolling_options"]["window_lengths"] == [21, 63, 126, 252]
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "series_count": 66,
+                    "window_results": [
+                        {
+                            "window_length": 21,
+                            "metric_summaries": {
+                                "ROLLING_VOLATILITY": {
+                                    "latest": 0.1374,
+                                    "average": 0.1221,
+                                    "minimum": 0.0913,
+                                    "maximum": 0.1662,
+                                    "p05": 0.0975,
+                                    "p50": 0.1218,
+                                    "p95": 0.1611,
+                                },
+                            },
+                            "metric_series": [
+                                {
+                                    "date": "2026-04-01",
+                                    "metric_values": {
+                                        "ROLLING_VOLATILITY": 0.131,
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    "quality_flags": ["metric:ROLLING_BETA:benchmark_variance_zero"],
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_rolling_metrics",
+        _risk_rolling,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_ROLLING/risk/rolling"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_time_series=true",
+        headers={"X-Correlation-Id": "corr-risk-rolling"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-rolling"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
+    assert body["payload"]["periods"][0]["window_results"][0]["window_length"] == 21
+    assert len(body["payload"]["periods"][0]["window_results"][0]["metric_series"]) == 1
+    assert body["payload"]["periods"][0]["quality_flags"] == [
+        "metric:ROLLING_BETA:benchmark_variance_zero"
+    ]
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "benchmark_returns": "ready",
+        "risk_free_series": "ready",
+        "rolling_time_series": "ready",
+    }
+
+
+def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch):
+    async def _risk_attribution(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ATTRIBUTION"
+        assert payload["stateful_input"]["benchmark_id"] == "BMK_1"
+        assert payload["stateful_input"]["attribution_options"] == {
+            "attribution_types": ["ACTIVE_RISK"],
+            "metrics": ["TRACKING_ERROR"],
+            "grouping_dimensions": ["ASSET_CLASS"],
+            "annualization_basis": 252,
+        }
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "attribution_sets": [
+                        {
+                            "attribution_type": "ACTIVE_RISK",
+                            "metric": "TRACKING_ERROR",
+                            "grouping_dimension": "ASSET_CLASS",
+                            "total_value": 0.034,
+                            "reconciled_sum": 0.033,
+                            "residual": 0.001,
+                            "contributors": [
+                                {
+                                    "group_key": "EQUITY",
+                                    "group_label": "Equity",
+                                    "weight_average": 0.62,
+                                    "marginal_contribution": 0.018,
+                                    "component_contribution": 0.016,
+                                    "percent_contribution": 0.47,
+                                }
+                            ],
+                            "quality_flags": [],
+                        }
+                    ],
+                    "error": None,
+                }
+            },
+            "metadata": {
+                "contract_version": "v1",
+                "methodology_version": "historical_attribution.v1",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_historical_attribution",
+        _risk_attribution,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_ATTRIBUTION/risk/attribution"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD"
+        "&attribution_type=ACTIVE_RISK&grouping_dimension=ASSET_CLASS",
+        headers={"X-Correlation-Id": "corr-risk-attribution"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-attribution"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
+    assert body["payload"]["controls"]["selected_attribution_type"] == "ACTIVE_RISK"
+    assert body["payload"]["controls"]["selected_grouping_dimension"] == "ASSET_CLASS"
+    assert body["payload"]["periods"][0]["attribution_sets"][0]["metric"] == "TRACKING_ERROR"
+    assert (
+        body["payload"]["periods"][0]["attribution_sets"][0]["contributors"][0]["group_label"]
+        == "Equity"
+    )
 
 
 def test_workbench_performance_summary_router(monkeypatch):

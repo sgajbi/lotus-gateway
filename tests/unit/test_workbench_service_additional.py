@@ -83,7 +83,6 @@ class _StubLotusAnalyticsClient:
         self.analytics_payload: dict = {
             "allocationBuckets": [],
             "topChanges": [],
-            "riskProxy": {},
             "portfolioReturnPct": 1.0,
             "benchmarkReturnPct": 0.8,
             "activeReturnPct": 0.2,
@@ -119,10 +118,6 @@ class _StubLotusAnalyticsClient:
     async def get_workbench_analytics(self, payload: dict, correlation_id: str):
         return self.analytics_status, self.analytics_payload
 
-    async def get_workbench_risk_proxy(self, payload: dict, correlation_id: str):
-        return 200, {"riskProxy": {"hhiCurrent": 1234.0, "hhiProposed": 1500.0, "hhiDelta": 266.0}}
-
-
 class _StubDpmClient:
     def __init__(self):
         self.list_runs_status = 200
@@ -151,31 +146,6 @@ def _build_service() -> tuple[
         pas,
         pa,
         dpm,
-    )
-
-
-def _build_service_with_risk_client() -> tuple[
-    WorkbenchService,
-    _StubLotusCoreQueryClient,
-    _StubLotusAnalyticsClient,
-    _StubDpmClient,
-    _StubLotusAnalyticsClient,
-]:
-    pas = _StubLotusCoreQueryClient()
-    pa = _StubLotusAnalyticsClient()
-    dpm = _StubDpmClient()
-    risk = _StubLotusAnalyticsClient()
-    return (
-        WorkbenchService(
-            lotus_core_query_client=pas,
-            analytics_client=pa,
-            dpm_client=dpm,
-            risk_client=risk,
-        ),
-        pas,
-        pa,
-        dpm,
-        risk,
     )
 
 
@@ -487,12 +457,12 @@ async def test_get_workbench_analytics_raises_on_invalid_payload_shape():
 
 
 @pytest.mark.asyncio
-async def test_get_workbench_analytics_handles_non_dict_risk_proxy():
+async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
     service, _, pa, _ = _build_service()
     pa.analytics_payload = {
         "allocationBuckets": [],
         "topChanges": [],
-        "riskProxy": "bad-shape",
+        "riskProxy": {"hhiCurrent": 9999.0, "hhiProposed": 9999.0, "hhiDelta": 0.0},
         "portfolioReturnPct": 1.0,
         "benchmarkReturnPct": 0.8,
         "activeReturnPct": 0.2,
@@ -505,7 +475,14 @@ async def test_get_workbench_analytics_handles_non_dict_risk_proxy():
         benchmark_code="MODEL",
         session_id=None,
     )
-    assert response.risk_proxy.hhi_current == 0.0
+    assert "risk_proxy" not in response.model_dump()
+    assert "RISK_BFF_PENDING" in response.warnings
+    assert [
+        failure
+        for failure in response.partial_failures
+        if failure.source_service == "risk"
+        and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
+    ]
 
 
 @pytest.mark.asyncio
@@ -637,8 +614,8 @@ def test_parse_dpm_snapshot_without_created_at_keeps_last_run_null():
 
 
 @pytest.mark.asyncio
-async def test_workbench_analytics_prefers_split_risk_proxy_when_available():
-    service, _, pa, _, _ = _build_service_with_risk_client()
+async def test_workbench_analytics_reports_controlled_risk_gap_until_risk_bff_exists():
+    service, _, pa, _ = _build_service()
     pa.analytics_payload = {
         "allocationBuckets": [],
         "topChanges": [],
@@ -655,4 +632,7 @@ async def test_workbench_analytics_prefers_split_risk_proxy_when_available():
         benchmark_code="MODEL_60_40",
         session_id=None,
     )
-    assert response.risk_proxy.hhi_current == 1234.0
+    assert "risk_proxy" not in response.model_dump()
+    assert "RISK_BFF_PENDING" in response.warnings
+    assert response.partial_failures[-1].source_service == "risk"
+    assert response.partial_failures[-1].error_code == "RISK_BFF_NOT_IMPLEMENTED"
