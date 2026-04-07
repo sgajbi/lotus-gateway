@@ -18,11 +18,19 @@ class AsyncTtlCache(Generic[T]):
         key: tuple[object, ...],
         factory: Callable[[], Awaitable[T]],
     ) -> T:
+        value, _ = await self.get_or_set_with_status(key=key, factory=factory)
+        return value
+
+    async def get_or_set_with_status(
+        self,
+        key: tuple[object, ...],
+        factory: Callable[[], Awaitable[T]],
+    ) -> tuple[T, bool]:
         now = monotonic()
         async with self._lock:
             entry = self._entries.get(key)
             if entry and entry[0] > now:
-                return entry[1]
+                return entry[1], True
 
             task = self._inflight.get(key)
             if task is None:
@@ -43,7 +51,7 @@ class AsyncTtlCache(Generic[T]):
             current = self._inflight.get(key)
             if current is task:
                 self._inflight.pop(key, None)
-        return value
+        return value, False
 
     def clear(self) -> None:
         self._entries.clear()

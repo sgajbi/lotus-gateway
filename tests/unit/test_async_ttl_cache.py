@@ -51,6 +51,26 @@ async def test_async_ttl_cache_caches_successful_value_until_cleared() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_ttl_cache_reports_hit_status() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    calls = 0
+
+    async def factory() -> int:
+        nonlocal calls
+        calls += 1
+        return calls
+
+    first, first_hit = await cache.get_or_set_with_status(("portfolio", "P1"), factory)
+    second, second_hit = await cache.get_or_set_with_status(("portfolio", "P1"), factory)
+
+    assert first == 1
+    assert second == 1
+    assert first_hit is False
+    assert second_hit is True
+    assert calls == 1
+
+
+@pytest.mark.asyncio
 async def test_async_ttl_cache_retries_after_factory_exception() -> None:
     cache = AsyncTtlCache[int](ttl_seconds=60)
     call_count = 0
