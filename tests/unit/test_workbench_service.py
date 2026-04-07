@@ -112,7 +112,6 @@ class _StubLotusAnalyticsClient:
                     "direction": "INCREASE",
                 }
             ],
-            "riskProxy": {"hhiCurrent": 10000.0, "hhiProposed": 10000.0, "hhiDelta": 0.0},
         }
         self.twr_calls = 0
 
@@ -543,7 +542,7 @@ async def test_workbench_analytics_response():
     assert response.group_by == "ASSET_CLASS"
     assert len(response.allocation_buckets) == 1
     assert response.top_changes[0].security_id == "EQ_1"
-    assert response.risk_proxy is None
+    assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
     assert any(
         failure.source_service == "risk"

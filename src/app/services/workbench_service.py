@@ -442,7 +442,6 @@ class WorkbenchService:
             ),
             allocation_buckets=allocation_buckets,
             top_changes=top_changes,
-            risk_proxy=None,
             warnings=portfolio_360.warnings,
             partial_failures=portfolio_360.partial_failures,
         )

@@ -296,7 +296,6 @@ def test_workbench_analytics_router(monkeypatch):
                     "direction": "INCREASE",
                 }
             ],
-            "riskProxy": {"hhiCurrent": 10000.0, "hhiProposed": 10000.0, "hhiDelta": 0.0},
         }
 
     async def _dpm_runs(*args, **kwargs):
@@ -327,7 +326,7 @@ def test_workbench_analytics_router(monkeypatch):
     assert body["portfolio_id"] == "PF_1001"
     assert body["group_by"] == "ASSET_CLASS"
     assert len(body["allocation_buckets"]) >= 1
-    assert "risk_proxy" in body
+    assert "risk_proxy" not in body
 
 
 def test_workbench_performance_router(monkeypatch):

@@ -16,6 +16,7 @@ def test_removed_workbench_risk_proxy_is_not_reintroduced_in_gateway_runtime_cod
     forbidden_patterns = {
         "/analytics/workbench/risk-proxy": "removed lotus-risk compatibility endpoint",
         "get_workbench_risk_proxy": "legacy client method for the removed endpoint",
+        "WorkbenchRiskProxy": "legacy analytics contract type should stay deleted",
     }
 
     violations: list[tuple[str, str, str]] = []

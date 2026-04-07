@@ -141,12 +141,6 @@ class WorkbenchTopChange(BaseModel):
     direction: str
 
 
-class WorkbenchRiskProxy(BaseModel):
-    hhi_current: float
-    hhi_proposed: float
-    hhi_delta: float
-
-
 class WorkbenchAnalyticsResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
@@ -160,6 +154,5 @@ class WorkbenchAnalyticsResponse(BaseModel):
     active_return_pct: float | None = None
     allocation_buckets: list[WorkbenchAnalyticsBucket] = Field(default_factory=list)
     top_changes: list[WorkbenchTopChange] = Field(default_factory=list)
-    risk_proxy: WorkbenchRiskProxy | None = None
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)

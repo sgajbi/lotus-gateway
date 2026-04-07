@@ -475,7 +475,7 @@ async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
         benchmark_code="MODEL",
         session_id=None,
     )
-    assert response.risk_proxy is None
+    assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
     assert [
         failure
@@ -632,7 +632,7 @@ async def test_workbench_analytics_reports_controlled_risk_gap_until_risk_bff_ex
         benchmark_code="MODEL_60_40",
         session_id=None,
     )
-    assert response.risk_proxy is None
+    assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
     assert response.partial_failures[-1].source_service == "risk"
     assert response.partial_failures[-1].error_code == "RISK_BFF_NOT_IMPLEMENTED"
