@@ -8,9 +8,11 @@ class _StubRiskClient:
         self.calculate_calls: list[dict] = []
         self.concentration_calls: list[dict] = []
         self.drawdown_calls: list[dict] = []
+        self.rolling_calls: list[dict] = []
         self.calculate_status = 200
         self.concentration_status = 200
         self.drawdown_status = 200
+        self.rolling_status = 200
         self.calculate_payload: dict = {
             "scope": {
                 "as_of_date": "2026-04-04",
@@ -119,6 +121,61 @@ class _StubRiskClient:
             },
             "metadata": {"contract_version": "v1", "methodology_version": "drawdown.v1"},
         }
+        self.rolling_payload: dict = {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "series_count": 66,
+                    "window_results": [
+                        {
+                            "window_length": 21,
+                            "metric_summaries": {
+                                "ROLLING_VOLATILITY": {
+                                    "latest": 0.1374,
+                                    "average": 0.1221,
+                                    "minimum": 0.0913,
+                                    "maximum": 0.1662,
+                                    "p05": 0.0975,
+                                    "p50": 0.1218,
+                                    "p95": 0.1611,
+                                },
+                                "ROLLING_MAX_DRAWDOWN": {
+                                    "latest": -0.034,
+                                    "average": -0.028,
+                                    "minimum": -0.051,
+                                    "maximum": -0.012,
+                                    "p05": -0.048,
+                                    "p50": -0.029,
+                                    "p95": -0.015,
+                                },
+                            },
+                            "metric_series": None,
+                        },
+                        {
+                            "window_length": 63,
+                            "metric_summaries": {
+                                "ROLLING_VOLATILITY": {
+                                    "latest": 0.142,
+                                    "average": 0.128,
+                                    "minimum": 0.104,
+                                    "maximum": 0.171,
+                                    "p05": 0.108,
+                                    "p50": 0.129,
+                                    "p95": 0.168,
+                                }
+                            },
+                            "metric_series": None,
+                        },
+                    ],
+                    "quality_flags": ["metric:ROLLING_BETA:benchmark_variance_zero"],
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
+        }
 
     async def post_risk_calculate(self, payload: dict, correlation_id: str):
         self.calculate_calls.append({"payload": payload, "correlation_id": correlation_id})
@@ -131,6 +188,10 @@ class _StubRiskClient:
     async def post_risk_drawdown(self, payload: dict, correlation_id: str):
         self.drawdown_calls.append({"payload": payload, "correlation_id": correlation_id})
         return self.drawdown_status, self.drawdown_payload
+
+    async def post_risk_rolling_metrics(self, payload: dict, correlation_id: str):
+        self.rolling_calls.append({"payload": payload, "correlation_id": correlation_id})
+        return self.rolling_status, self.rolling_payload
 
 
 @pytest.mark.asyncio
@@ -446,3 +507,142 @@ async def test_risk_drawdown_returns_unavailable_envelope_on_upstream_failure() 
     assert response.payload is None
     assert response.partial_failures[0].error_code == "HTTP_503"
     assert response.partial_failures[0].detail == "drawdown unavailable"
+
+
+@pytest.mark.asyncio
+async def test_risk_rolling_uses_stateful_request_and_maps_quality_flags() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_rolling(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_time_series=False,
+    )
+
+    request = client.rolling_calls[0]["payload"]
+    assert request["input_mode"] == "stateful"
+    assert request["stateful_input"]["portfolio_id"] == "PF_1"
+    assert request["stateful_input"]["rolling_options"]["window_lengths"] == [21, 63, 126, 252]
+    assert request["stateful_input"]["rolling_options"]["include_time_series"] is False
+    assert request["stateful_input"]["rolling_options"]["metrics"] == [
+        "ROLLING_VOLATILITY",
+        "ROLLING_MAX_DRAWDOWN",
+        "ROLLING_SHARPE",
+        "ROLLING_BETA",
+        "ROLLING_TRACKING_ERROR",
+        "ROLLING_INFORMATION_RATIO",
+    ]
+    assert response.state == "partial"
+    assert response.payload is not None
+    assert response.payload.periods[0].window_results[0].window_length == 21
+    assert response.payload.periods[0].quality_flags == [
+        "metric:ROLLING_BETA:benchmark_variance_zero"
+    ]
+    assert {item.key: item.state for item in response.supportability} == {
+        "portfolio_returns": "ready",
+        "benchmark_returns": "ready",
+        "risk_free_series": "ready",
+        "rolling_time_series": "partial",
+    }
+
+
+@pytest.mark.asyncio
+async def test_risk_rolling_retries_without_sharpe_when_risk_free_dependency_fails() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    async def _rolling(payload: dict, correlation_id: str):
+        client.rolling_calls.append({"payload": payload, "correlation_id": correlation_id})
+        if len(client.rolling_calls) == 1:
+            return 424, {
+                "detail": {
+                    "message": "lotus-core returned no usable risk-free returns for rolling Sharpe",
+                }
+            }
+        return client.rolling_status, client.rolling_payload
+
+    client.post_risk_rolling_metrics = _rolling  # type: ignore[method-assign]
+
+    response = await service.get_rolling(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_time_series=False,
+    )
+
+    assert len(client.rolling_calls) == 2
+    assert (
+        "ROLLING_SHARPE"
+        in client.rolling_calls[0]["payload"]["stateful_input"]["rolling_options"]["metrics"]
+    )
+    assert (
+        "ROLLING_SHARPE"
+        not in client.rolling_calls[1]["payload"]["stateful_input"]["rolling_options"]["metrics"]
+    )
+    risk_free_support = {item.key: item for item in response.supportability}["risk_free_series"]
+    assert risk_free_support.state == "partial"
+    assert "risk-free returns" in (risk_free_support.reason or "")
+    assert response.partial_failures[-1].error_code == "ROLLING_SHARPE_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+async def test_risk_rolling_time_series_uses_distinct_cache_key() -> None:
+    client = _StubRiskClient()
+    client.rolling_payload["results"]["YTD"]["window_results"][0]["metric_series"] = [
+        {
+            "date": "2026-04-01",
+            "metric_values": {
+                "ROLLING_VOLATILITY": 0.131,
+                "ROLLING_MAX_DRAWDOWN": -0.03,
+            },
+        }
+    ]
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    first = await service.get_rolling(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code=None,
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_time_series=False,
+    )
+    second = await service.get_rolling(
+        portfolio_id="PF_1",
+        correlation_id="corr-2",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code=None,
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_time_series=True,
+    )
+    third = await service.get_rolling(
+        portfolio_id="PF_1",
+        correlation_id="corr-3",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code=None,
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_time_series=True,
+    )
+
+    assert len(client.rolling_calls) == 2
+    assert first.metadata.cache_status == "miss"
+    assert second.metadata.cache_status == "miss"
+    assert third.metadata.cache_status == "hit"
+    assert second.payload is not None
+    assert second.payload.periods[0].window_results[0].metric_series is not None

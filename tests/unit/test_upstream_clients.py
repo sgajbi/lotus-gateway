@@ -273,6 +273,7 @@ async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
     _FakeAsyncClient.queue_json(200, {"results": {}})
     _FakeAsyncClient.queue_json(200, {"risk_proxy": {"hhi_current": 100.0}})
     _FakeAsyncClient.queue_json(200, {"results": {}})
+    _FakeAsyncClient.queue_json(200, {"results": {}})
 
     status_one, _ = await client.post_risk_calculate(
         payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
@@ -286,13 +287,19 @@ async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
         payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
         correlation_id="corr-risk",
     )
+    status_four, _ = await client.post_risk_rolling_metrics(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
 
     assert status_one == 200
     assert status_two == 200
     assert status_three == 200
-    assert _FakeAsyncClient.calls[-3]["url"] == "http://risk/analytics/risk/calculate"
-    assert _FakeAsyncClient.calls[-2]["url"] == "http://risk/analytics/risk/concentration"
-    assert _FakeAsyncClient.calls[-1]["url"] == "http://risk/analytics/risk/drawdown"
+    assert status_four == 200
+    assert _FakeAsyncClient.calls[-4]["url"] == "http://risk/analytics/risk/calculate"
+    assert _FakeAsyncClient.calls[-3]["url"] == "http://risk/analytics/risk/concentration"
+    assert _FakeAsyncClient.calls[-2]["url"] == "http://risk/analytics/risk/drawdown"
+    assert _FakeAsyncClient.calls[-1]["url"] == "http://risk/analytics/risk/rolling-metrics"
 
 
 @pytest.mark.asyncio

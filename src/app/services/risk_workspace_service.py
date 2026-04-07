@@ -19,6 +19,12 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskMetric,
     WorkbenchRiskPeriodResult,
     WorkbenchRiskRelativeDrawdownSummary,
+    WorkbenchRiskRollingMetricSeriesPoint,
+    WorkbenchRiskRollingMetricSummary,
+    WorkbenchRiskRollingPayload,
+    WorkbenchRiskRollingPeriodResult,
+    WorkbenchRiskRollingResponse,
+    WorkbenchRiskRollingWindowResult,
     WorkbenchRiskSummaryPayload,
     WorkbenchRiskSummaryResponse,
     WorkbenchRiskSupportabilityItem,
@@ -40,6 +46,22 @@ _SUMMARY_METRICS = [
 _BENCHMARK_DEPENDENT_METRICS = {"BETA", "TRACKING_ERROR", "INFORMATION_RATIO"}
 _RISK_FREE_DEPENDENT_METRICS = {"SHARPE"}
 _DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK = "benchmark_relative_drawdown"
+_ROLLING_METRIC_LABELS = {
+    "ROLLING_VOLATILITY": "Rolling Volatility",
+    "ROLLING_SHARPE": "Rolling Sharpe",
+    "ROLLING_BETA": "Rolling Beta",
+    "ROLLING_TRACKING_ERROR": "Rolling Tracking Error",
+    "ROLLING_INFORMATION_RATIO": "Rolling Information Ratio",
+    "ROLLING_MAX_DRAWDOWN": "Rolling Max Drawdown",
+}
+_ROLLING_PORTFOLIO_METRICS = ["ROLLING_VOLATILITY", "ROLLING_MAX_DRAWDOWN"]
+_ROLLING_BENCHMARK_METRICS = [
+    "ROLLING_BETA",
+    "ROLLING_TRACKING_ERROR",
+    "ROLLING_INFORMATION_RATIO",
+]
+_ROLLING_SHARPE_METRIC = "ROLLING_SHARPE"
+_ROLLING_DEFAULT_WINDOWS = [21, 63, 126, 252]
 _METRIC_LABELS = {
     "VOLATILITY": "Volatility",
     "DRAWDOWN": "Drawdown",
@@ -64,6 +86,7 @@ class RiskWorkspaceService:
             WorkbenchRiskSummaryResponse
             | WorkbenchRiskConcentrationResponse
             | WorkbenchRiskDrawdownResponse
+            | WorkbenchRiskRollingResponse
         ](ttl_seconds=cache_ttl_seconds or settings.risk_bff_cache_ttl_seconds)
 
     def clear_cache(self) -> None:
@@ -278,6 +301,107 @@ class RiskWorkspaceService:
             deep=True,
         )
 
+    async def get_rolling(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+        include_time_series: bool,
+    ) -> WorkbenchRiskRollingResponse:
+        resolved_as_of_date = _resolve_as_of_date(as_of_date)
+        cache_key = (
+            "rolling",
+            portfolio_id,
+            period,
+            detail_basis,
+            benchmark_code or "",
+            resolved_as_of_date,
+            reporting_currency or "",
+            include_time_series,
+        )
+
+        async def _load() -> WorkbenchRiskRollingResponse:
+            initial_payload = _build_rolling_request(
+                portfolio_id=portfolio_id,
+                period=period,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                as_of_date=resolved_as_of_date,
+                reporting_currency=reporting_currency,
+                include_time_series=include_time_series,
+                include_sharpe=True,
+            )
+            upstream_status, upstream_payload = await self._risk_client.post_risk_rolling_metrics(
+                payload=initial_payload,
+                correlation_id=correlation_id,
+            )
+            sharpe_fallback_reason: str | None = None
+            if _should_retry_rolling_without_sharpe(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            ):
+                sharpe_fallback_reason = _rolling_sharpe_failure_reason(upstream_payload)
+                fallback_payload = _build_rolling_request(
+                    portfolio_id=portfolio_id,
+                    period=period,
+                    detail_basis=detail_basis,
+                    benchmark_code=benchmark_code,
+                    as_of_date=resolved_as_of_date,
+                    reporting_currency=reporting_currency,
+                    include_time_series=include_time_series,
+                    include_sharpe=False,
+                )
+                upstream_status, upstream_payload = (
+                    await self._risk_client.post_risk_rolling_metrics(
+                        payload=fallback_payload,
+                        correlation_id=correlation_id,
+                    )
+                )
+
+            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
+                upstream_payload, dict
+            ):
+                return _unavailable_rolling(
+                    correlation_id=correlation_id,
+                    portfolio_id=portfolio_id,
+                    period=period,
+                    as_of_date=resolved_as_of_date,
+                    benchmark_code=benchmark_code,
+                    include_time_series=include_time_series,
+                    upstream_status=upstream_status,
+                    upstream_payload=upstream_payload,
+                )
+
+            return _map_rolling_response(
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                period=period,
+                as_of_date=resolved_as_of_date,
+                benchmark_code=benchmark_code,
+                include_time_series=include_time_series,
+                sharpe_fallback_reason=sharpe_fallback_reason,
+                upstream_payload=upstream_payload,
+            )
+
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=cache_key, factory=_load
+        )
+        typed_response = cast(WorkbenchRiskRollingResponse, response)
+        return typed_response.model_copy(
+            update={
+                "correlation_id": correlation_id,
+                "metadata": typed_response.metadata.model_copy(
+                    update={"cache_status": "hit" if cache_hit else "miss"}
+                ),
+            },
+            deep=True,
+        )
+
 
 def _build_summary_request(
     *,
@@ -366,6 +490,41 @@ def _build_drawdown_request(
             "duration_unit": "BUSINESS_DAYS",
         },
     }
+
+
+def _build_rolling_request(
+    *,
+    portfolio_id: str,
+    period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    as_of_date: str,
+    reporting_currency: str | None,
+    include_time_series: bool,
+    include_sharpe: bool,
+) -> dict[str, Any]:
+    metrics = list(_ROLLING_PORTFOLIO_METRICS)
+    if include_sharpe:
+        metrics.append(_ROLLING_SHARPE_METRIC)
+    if benchmark_code:
+        metrics.extend(_ROLLING_BENCHMARK_METRICS)
+    stateful_input: dict[str, Any] = {
+        "portfolio_id": portfolio_id,
+        "as_of_date": as_of_date,
+        "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
+        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "rolling_options": {
+            "window_lengths": _ROLLING_DEFAULT_WINDOWS,
+            "metrics": metrics,
+            "annualization_basis": 252,
+            "min_observations_policy": "STRICT",
+            "alignment_policy": "INNER_JOIN",
+            "include_time_series": include_time_series,
+        },
+    }
+    if reporting_currency:
+        stateful_input["reporting_currency"] = reporting_currency
+    return {"input_mode": "stateful", "stateful_input": stateful_input}
 
 
 def _map_summary_response(
@@ -741,6 +900,139 @@ def _map_drawdown_response(
     )
 
 
+def _map_rolling_response(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    as_of_date: str,
+    benchmark_code: str | None,
+    include_time_series: bool,
+    sharpe_fallback_reason: str | None,
+    upstream_payload: dict[str, Any],
+) -> WorkbenchRiskRollingResponse:
+    results = upstream_payload.get("results")
+    warnings: list[str] = []
+    partial_failures: list[WorkbenchPartialFailure] = []
+    period_results: list[WorkbenchRiskRollingPeriodResult] = []
+    supportability = [
+        WorkbenchRiskSupportabilityItem(
+            key="portfolio_returns",
+            label="Portfolio returns",
+            state="ready" if isinstance(results, dict) and results else "unavailable",
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="benchmark_returns",
+            label="Benchmark returns",
+            state="ready" if benchmark_code else "partial",
+            reason=(
+                None
+                if benchmark_code
+                else "Benchmark-relative rolling metrics require benchmark context."
+            ),
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="risk_free_series",
+            label="Risk-free series",
+            state="partial" if sharpe_fallback_reason else "ready",
+            reason=sharpe_fallback_reason,
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="rolling_time_series",
+            label="Rolling time series",
+            state="ready" if include_time_series else "partial",
+            reason=(
+                None
+                if include_time_series
+                else "Rolling metric series is available on demand and excluded from first paint."
+            ),
+            source_service="lotus-risk",
+        ),
+    ]
+
+    if isinstance(results, dict):
+        for key, value in results.items():
+            if not isinstance(value, dict):
+                continue
+            quality_flags = [
+                str(flag)
+                for flag in value.get("quality_flags", [])
+                if isinstance(flag, str) and flag.strip()
+            ]
+            error = value.get("error")
+            if quality_flags:
+                warnings.append("RISK_ROLLING_QUALITY_FLAGS")
+            if isinstance(error, str) and error.strip():
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="risk",
+                        error_code="ROLLING_PERIOD_ERROR",
+                        detail=f"{key}: {error}",
+                    )
+                )
+                warnings.append("RISK_ROLLING_PERIOD_PARTIAL")
+            period_results.append(
+                WorkbenchRiskRollingPeriodResult(
+                    key=str(key),
+                    label=str(key),
+                    start_date=str(value.get("start_date", "")),
+                    end_date=str(value.get("end_date", "")),
+                    series_count=int(value.get("series_count", 0)),
+                    window_results=_map_rolling_window_results(value.get("window_results")),
+                    quality_flags=quality_flags,
+                    error=str(error) if isinstance(error, str) and error.strip() else None,
+                )
+            )
+
+    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    if not period_results:
+        state = "unavailable"
+        warnings.append("RISK_ROLLING_EMPTY")
+        partial_failures.append(
+            WorkbenchPartialFailure(
+                source_service="risk",
+                error_code="EMPTY_RISK_ROLLING",
+                detail="lotus-risk returned no rolling periods.",
+            )
+        )
+    elif all(not period.window_results for period in period_results):
+        state = "unavailable"
+
+    metadata = _metadata(input_mode="stateful", cache_status="miss")
+    upstream_metadata = upstream_payload.get("metadata")
+    if isinstance(upstream_metadata, dict):
+        methodology_version = upstream_metadata.get("methodology_version")
+        if isinstance(methodology_version, str) and methodology_version.strip():
+            metadata = metadata.model_copy(update={"methodology_version": methodology_version})
+
+    if sharpe_fallback_reason:
+        partial_failures.append(
+            WorkbenchPartialFailure(
+                source_service="risk",
+                error_code="ROLLING_SHARPE_UNAVAILABLE",
+                detail=sharpe_fallback_reason,
+            )
+        )
+        warnings.append("RISK_ROLLING_SHARPE_PARTIAL")
+
+    return WorkbenchRiskRollingResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state=state,
+        payload=WorkbenchRiskRollingPayload(periods=period_results) if period_results else None,
+        supportability=supportability,
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=metadata,
+    )
+
+
 def _issuer_supportability_state(payload: Any) -> str:
     if not isinstance(payload, dict):
         return "unavailable"
@@ -868,6 +1160,45 @@ def _unavailable_drawdown(
     )
 
 
+def _unavailable_rolling(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    as_of_date: str,
+    benchmark_code: str | None,
+    include_time_series: bool,
+    upstream_status: int,
+    upstream_payload: Any,
+) -> WorkbenchRiskRollingResponse:
+    reason = (
+        "lotus-risk rolling endpoint is unavailable."
+        if not include_time_series
+        else "lotus-risk rolling detail endpoint is unavailable."
+    )
+    return WorkbenchRiskRollingResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state="unavailable",
+        payload=None,
+        supportability=[
+            WorkbenchRiskSupportabilityItem(
+                key="risk_service",
+                label="Risk service",
+                state="unavailable",
+                reason=reason,
+                source_service="lotus-risk",
+            )
+        ],
+        warnings=["RISK_ROLLING_UNAVAILABLE"],
+        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
+        metadata=_metadata(input_mode="stateful", cache_status="miss"),
+    )
+
+
 def _malformed_concentration(
     *,
     correlation_id: str,
@@ -969,3 +1300,94 @@ def _map_underwater_series(series_payload: list[Any]) -> list[WorkbenchRiskUnder
             continue
         points.append(WorkbenchRiskUnderwaterPoint.model_validate(payload))
     return points
+
+
+def _map_rolling_window_results(window_payload: Any) -> list[WorkbenchRiskRollingWindowResult]:
+    if not isinstance(window_payload, list):
+        return []
+    results: list[WorkbenchRiskRollingWindowResult] = []
+    for entry in window_payload:
+        if not isinstance(entry, dict):
+            continue
+        metric_summaries_payload = entry.get("metric_summaries")
+        metric_series_payload = entry.get("metric_series")
+        metric_summaries = (
+            {
+                str(key): WorkbenchRiskRollingMetricSummary.model_validate(value)
+                for key, value in metric_summaries_payload.items()
+                if isinstance(key, str) and isinstance(value, dict)
+            }
+            if isinstance(metric_summaries_payload, dict)
+            else {}
+        )
+        metric_series = (
+            _map_rolling_metric_series(metric_series_payload)
+            if isinstance(metric_series_payload, list)
+            else None
+        )
+        results.append(
+            WorkbenchRiskRollingWindowResult(
+                window_length=int(entry.get("window_length", 0)),
+                metric_summaries=metric_summaries,
+                metric_series=metric_series,
+            )
+        )
+    results.sort(key=lambda item: item.window_length)
+    return results
+
+
+def _map_rolling_metric_series(
+    series_payload: list[Any],
+) -> list[WorkbenchRiskRollingMetricSeriesPoint]:
+    series: list[WorkbenchRiskRollingMetricSeriesPoint] = []
+    for entry in series_payload:
+        if not isinstance(entry, dict):
+            continue
+        metric_values_payload = entry.get("metric_values")
+        metric_values = (
+            {
+                str(key): float(value) if isinstance(value, int | float) else None
+                for key, value in metric_values_payload.items()
+                if isinstance(key, str)
+            }
+            if isinstance(metric_values_payload, dict)
+            else {}
+        )
+        series.append(
+            WorkbenchRiskRollingMetricSeriesPoint(
+                date=str(entry.get("date", "")),
+                metric_values=metric_values,
+            )
+        )
+    return series
+
+
+def _should_retry_rolling_without_sharpe(
+    *,
+    upstream_status: int,
+    upstream_payload: Any,
+) -> bool:
+    if upstream_status != status.HTTP_424_FAILED_DEPENDENCY:
+        return False
+    if isinstance(upstream_payload, dict):
+        detail = upstream_payload.get("detail")
+        if isinstance(detail, dict):
+            message = detail.get("message")
+            if isinstance(message, str) and "risk-free" in message.lower():
+                return True
+        text = str(upstream_payload.get("detail", "")).lower()
+        return "risk-free" in text
+    return "risk-free" in str(upstream_payload).lower()
+
+
+def _rolling_sharpe_failure_reason(upstream_payload: Any) -> str:
+    if isinstance(upstream_payload, dict):
+        detail = upstream_payload.get("detail")
+        if isinstance(detail, dict):
+            message = detail.get("message")
+            if isinstance(message, str) and message.strip():
+                return message
+        text = upstream_payload.get("detail")
+        if isinstance(text, str) and text.strip():
+            return text
+    return "Rolling Sharpe is unavailable because the risk-free series could not be sourced."

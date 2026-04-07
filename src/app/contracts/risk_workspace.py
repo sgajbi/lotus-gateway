@@ -137,6 +137,42 @@ class WorkbenchRiskDrawdownPayload(BaseModel):
     periods: list[WorkbenchRiskDrawdownPeriodResult] = Field(default_factory=list)
 
 
+class WorkbenchRiskRollingMetricSummary(BaseModel):
+    latest: float | None = None
+    average: float | None = None
+    minimum: float | None = None
+    maximum: float | None = None
+    p05: float | None = None
+    p50: float | None = None
+    p95: float | None = None
+
+
+class WorkbenchRiskRollingMetricSeriesPoint(BaseModel):
+    date: str
+    metric_values: dict[str, float | None] = Field(default_factory=dict)
+
+
+class WorkbenchRiskRollingWindowResult(BaseModel):
+    window_length: int
+    metric_summaries: dict[str, WorkbenchRiskRollingMetricSummary] = Field(default_factory=dict)
+    metric_series: list[WorkbenchRiskRollingMetricSeriesPoint] | None = None
+
+
+class WorkbenchRiskRollingPeriodResult(BaseModel):
+    key: str
+    label: str
+    start_date: str
+    end_date: str
+    series_count: int
+    window_results: list[WorkbenchRiskRollingWindowResult] = Field(default_factory=list)
+    quality_flags: list[str] = Field(default_factory=list)
+    error: str | None = None
+
+
+class WorkbenchRiskRollingPayload(BaseModel):
+    periods: list[WorkbenchRiskRollingPeriodResult] = Field(default_factory=list)
+
+
 class WorkbenchRiskModuleEnvelope(BaseModel):
     correlation_id: str
     contract_version: str = "risk-workspace.v1"
@@ -163,3 +199,7 @@ class WorkbenchRiskConcentrationResponse(WorkbenchRiskModuleEnvelope):
 
 class WorkbenchRiskDrawdownResponse(WorkbenchRiskModuleEnvelope):
     payload: WorkbenchRiskDrawdownPayload | None = None
+
+
+class WorkbenchRiskRollingResponse(WorkbenchRiskModuleEnvelope):
+    payload: WorkbenchRiskRollingPayload | None = None

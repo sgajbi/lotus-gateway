@@ -660,6 +660,83 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     }
 
 
+def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(monkeypatch):
+    async def _risk_rolling(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ROLLING"
+        assert payload["stateful_input"]["rolling_options"]["include_time_series"] is True
+        assert payload["stateful_input"]["rolling_options"]["window_lengths"] == [21, 63, 126, 252]
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "series_count": 66,
+                    "window_results": [
+                        {
+                            "window_length": 21,
+                            "metric_summaries": {
+                                "ROLLING_VOLATILITY": {
+                                    "latest": 0.1374,
+                                    "average": 0.1221,
+                                    "minimum": 0.0913,
+                                    "maximum": 0.1662,
+                                    "p05": 0.0975,
+                                    "p50": 0.1218,
+                                    "p95": 0.1611,
+                                },
+                            },
+                            "metric_series": [
+                                {
+                                    "date": "2026-04-01",
+                                    "metric_values": {
+                                        "ROLLING_VOLATILITY": 0.131,
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                    "quality_flags": ["metric:ROLLING_BETA:benchmark_variance_zero"],
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_rolling_metrics",
+        _risk_rolling,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_ROLLING/risk/rolling"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_time_series=true",
+        headers={"X-Correlation-Id": "corr-risk-rolling"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-rolling"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
+    assert body["payload"]["periods"][0]["window_results"][0]["window_length"] == 21
+    assert len(body["payload"]["periods"][0]["window_results"][0]["metric_series"]) == 1
+    assert body["payload"]["periods"][0]["quality_flags"] == [
+        "metric:ROLLING_BETA:benchmark_variance_zero"
+    ]
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "benchmark_returns": "ready",
+        "risk_free_series": "ready",
+        "rolling_time_series": "ready",
+    }
+
+
 def test_workbench_performance_summary_router(monkeypatch):
     async def _performance_summary(*args, **kwargs):  # noqa: ARG001
         append_server_timing_metric("perf-reference", 1.0)
