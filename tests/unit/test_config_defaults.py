@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from app.config import Settings
 
 
@@ -54,3 +56,22 @@ def test_settings_accept_legacy_platform_stack_env_aliases():
     assert settings.portfolio_data_query_base_url == "http://lotus-core-query:8001"
     assert settings.portfolio_data_control_plane_base_url == "http://lotus-core-control:8002"
     assert settings.portfolio_data_ingestion_base_url == "http://lotus-core-ingestion:8000"
+
+
+def test_settings_reject_local_loopback_upstream_urls():
+    with pytest.raises(ValueError, match="canonical service hostnames"):
+        Settings(
+            _env_file=None,
+            _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+            ai_service_base_url="http://127.0.0.1:8140/",
+        )
+
+
+def test_settings_normalize_trailing_slashes_on_upstream_urls():
+    settings = Settings(
+        _env_file=None,
+        _env_prefix="__LOTUS_GATEWAY_TEST_UNUSED__",
+        performance_analytics_base_url="http://performance.dev.lotus/",
+    )
+
+    assert settings.performance_analytics_base_url == "http://performance.dev.lotus"
