@@ -23,7 +23,6 @@ from app.contracts.workbench import (
     WorkbenchProjectedPositionView,
     WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
-    WorkbenchRiskProxy,
     WorkbenchSandboxStateResponse,
     WorkbenchTopChange,
 )
@@ -31,7 +30,6 @@ from app.precision_policy import (
     quantize_money,
     quantize_performance,
     quantize_quantity,
-    quantize_risk,
 )
 
 
@@ -41,12 +39,10 @@ class WorkbenchService:
         lotus_core_query_client: LotusCoreQueryClient,
         analytics_client: LotusAnalyticsClient,
         dpm_client: DpmClient,
-        risk_client: LotusAnalyticsClient | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
         self._analytics_client = analytics_client
         self._dpm_client = dpm_client
-        self._risk_client = risk_client
 
     async def get_workbench_overview(
         self,
@@ -397,34 +393,22 @@ class WorkbenchService:
                 for item in analytics_response.get("topChanges", [])
                 if isinstance(item, dict)
             ]
-            risk_data = analytics_response.get("riskProxy", {})
-            if self._risk_client is not None:
-                risk_status, risk_response = await self._risk_client.get_workbench_risk_proxy(
-                    payload=analytics_payload,
-                    correlation_id=correlation_id,
+            warnings = list(portfolio_360.warnings)
+            if "RISK_BFF_PENDING" not in warnings:
+                warnings.append("RISK_BFF_PENDING")
+            partial_failures = list(portfolio_360.partial_failures)
+            partial_failures.append(
+                WorkbenchPartialFailure(
+                    source_service="risk",
+                    error_code="RISK_BFF_NOT_IMPLEMENTED",
+                    detail=(
+                        "Legacy workbench risk proxy was removed. Stateful concentration risk "
+                        "will be restored through the RFC-0022 Gateway Risk BFF."
+                    ),
                 )
-                if risk_status < status.HTTP_400_BAD_REQUEST and isinstance(risk_response, dict):
-                    risk_data = risk_response.get("riskProxy", risk_data)
-                else:
-                    warnings = list(portfolio_360.warnings)
-                    warnings.append("RISK_PROXY_FALLBACK_TO_PA")
-                    partial_failures = list(portfolio_360.partial_failures)
-                    partial_failures.append(
-                        WorkbenchPartialFailure(
-                            source_service="risk",
-                            error_code=f"HTTP_{risk_status}",
-                            detail=str(risk_response.get("detail", risk_response)),
-                        )
-                    )
-                    portfolio_360 = portfolio_360.model_copy(
-                        update={"warnings": warnings, "partial_failures": partial_failures}
-                    )
-            if not isinstance(risk_data, dict):
-                risk_data = {}
-            risk_proxy = WorkbenchRiskProxy(
-                hhi_current=float(quantize_risk(risk_data.get("hhiCurrent", 0.0))),
-                hhi_proposed=float(quantize_risk(risk_data.get("hhiProposed", 0.0))),
-                hhi_delta=float(quantize_risk(risk_data.get("hhiDelta", 0.0))),
+            )
+            portfolio_360 = portfolio_360.model_copy(
+                update={"warnings": warnings, "partial_failures": partial_failures}
             )
             portfolio_return = analytics_response.get("portfolioReturnPct")
             benchmark_return = analytics_response.get("benchmarkReturnPct")
@@ -458,7 +442,7 @@ class WorkbenchService:
             ),
             allocation_buckets=allocation_buckets,
             top_changes=top_changes,
-            risk_proxy=risk_proxy,
+            risk_proxy=None,
             warnings=portfolio_360.warnings,
             partial_failures=portfolio_360.partial_failures,
         )

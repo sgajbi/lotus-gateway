@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
-    risk_split_enabled: bool = Field(default=True)
     manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)

@@ -45,9 +45,7 @@ def _service_signature() -> tuple[object, ...]:
         settings.ai_service_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
-        settings.risk_analytics_base_url,
         settings.manage_split_enabled,
-        settings.risk_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
         settings.ai_service_timeout_seconds,
@@ -82,16 +80,6 @@ def _build_workbench_service() -> WorkbenchService:
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        risk_client=(
-            LotusAnalyticsClient(
-                base_url=settings.risk_analytics_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            )
-            if settings.risk_split_enabled
-            else None
         ),
     )
 
@@ -213,9 +201,10 @@ async def get_portfolio_360(
     description=(
         "Returns lotus-performance-owned analytics for current vs "
         "projected portfolio state, including grouped allocation "
-        "deltas, top changes, active return, and concentration "
-        "risk proxy. lotus-gateway orchestrates inputs and "
-        "delegates analytics computation to lotus-performance."
+        "deltas, top changes, and active return. Stateful risk "
+        "analytics are intentionally excluded from this legacy "
+        "Workbench analytics route and will be served by the "
+        "RFC-0022 Risk BFF."
     ),
 )
 async def get_workbench_analytics(

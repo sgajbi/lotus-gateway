@@ -160,6 +160,6 @@ class WorkbenchAnalyticsResponse(BaseModel):
     active_return_pct: float | None = None
     allocation_buckets: list[WorkbenchAnalyticsBucket] = Field(default_factory=list)
     top_changes: list[WorkbenchTopChange] = Field(default_factory=list)
-    risk_proxy: WorkbenchRiskProxy
+    risk_proxy: WorkbenchRiskProxy | None = None
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
