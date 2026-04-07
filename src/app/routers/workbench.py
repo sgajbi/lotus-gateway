@@ -14,6 +14,7 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceSummaryResponse,
 )
 from app.contracts.risk_workspace import (
+    WorkbenchRiskAttributionResponse,
     WorkbenchRiskConcentrationResponse,
     WorkbenchRiskDrawdownResponse,
     WorkbenchRiskRollingResponse,
@@ -378,6 +379,40 @@ async def get_workbench_risk_rolling(
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         include_time_series=include_time_series,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/attribution",
+    response_model=WorkbenchRiskAttributionResponse,
+    summary="Get Workbench Risk Attribution",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
+        "Only supported stateful attribution combinations are surfaced to the UI."
+    ),
+)
+async def get_workbench_risk_attribution(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+    attribution_type: str = "TOTAL_RISK",
+    grouping_dimension: str = "SECTOR",
+) -> WorkbenchRiskAttributionResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_attribution(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
     )
 
 

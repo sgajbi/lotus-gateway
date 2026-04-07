@@ -737,6 +737,83 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     }
 
 
+def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch):
+    async def _risk_attribution(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_ATTRIBUTION"
+        assert payload["stateful_input"]["benchmark_id"] == "BMK_1"
+        assert payload["stateful_input"]["attribution_options"] == {
+            "attribution_types": ["ACTIVE_RISK"],
+            "metrics": ["TRACKING_ERROR"],
+            "grouping_dimensions": ["ASSET_CLASS"],
+            "annualization_basis": 252,
+        }
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "attribution_sets": [
+                        {
+                            "attribution_type": "ACTIVE_RISK",
+                            "metric": "TRACKING_ERROR",
+                            "grouping_dimension": "ASSET_CLASS",
+                            "total_value": 0.034,
+                            "reconciled_sum": 0.033,
+                            "residual": 0.001,
+                            "contributors": [
+                                {
+                                    "group_key": "EQUITY",
+                                    "group_label": "Equity",
+                                    "weight_average": 0.62,
+                                    "marginal_contribution": 0.018,
+                                    "component_contribution": 0.016,
+                                    "percent_contribution": 0.47,
+                                }
+                            ],
+                            "quality_flags": [],
+                        }
+                    ],
+                    "error": None,
+                }
+            },
+            "metadata": {
+                "contract_version": "v1",
+                "methodology_version": "historical_attribution.v1",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_historical_attribution",
+        _risk_attribution,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_ATTRIBUTION/risk/attribution"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD"
+        "&attribution_type=ACTIVE_RISK&grouping_dimension=ASSET_CLASS",
+        headers={"X-Correlation-Id": "corr-risk-attribution"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-attribution"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
+    assert body["payload"]["controls"]["selected_attribution_type"] == "ACTIVE_RISK"
+    assert body["payload"]["controls"]["selected_grouping_dimension"] == "ASSET_CLASS"
+    assert body["payload"]["periods"][0]["attribution_sets"][0]["metric"] == "TRACKING_ERROR"
+    assert (
+        body["payload"]["periods"][0]["attribution_sets"][0]["contributors"][0]["group_label"]
+        == "Equity"
+    )
+
+
 def test_workbench_performance_summary_router(monkeypatch):
     async def _performance_summary(*args, **kwargs):  # noqa: ARG001
         append_server_timing_metric("perf-reference", 1.0)

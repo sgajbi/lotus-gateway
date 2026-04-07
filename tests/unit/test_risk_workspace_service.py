@@ -9,10 +9,12 @@ class _StubRiskClient:
         self.concentration_calls: list[dict] = []
         self.drawdown_calls: list[dict] = []
         self.rolling_calls: list[dict] = []
+        self.attribution_calls: list[dict] = []
         self.calculate_status = 200
         self.concentration_status = 200
         self.drawdown_status = 200
         self.rolling_status = 200
+        self.attribution_status = 200
         self.calculate_payload: dict = {
             "scope": {
                 "as_of_date": "2026-04-04",
@@ -176,6 +178,50 @@ class _StubRiskClient:
             },
             "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
         }
+        self.attribution_payload: dict = {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "attribution_sets": [
+                        {
+                            "attribution_type": "TOTAL_RISK",
+                            "metric": "VOLATILITY",
+                            "grouping_dimension": "SECTOR",
+                            "total_value": 0.124,
+                            "reconciled_sum": 0.123,
+                            "residual": 0.001,
+                            "contributors": [
+                                {
+                                    "group_key": "SECTOR_TECH",
+                                    "group_label": "Technology",
+                                    "weight_average": 0.42,
+                                    "marginal_contribution": 0.051,
+                                    "component_contribution": 0.044,
+                                    "percent_contribution": 0.355,
+                                },
+                                {
+                                    "group_key": "SECTOR_HEALTH",
+                                    "group_label": "Healthcare",
+                                    "weight_average": 0.18,
+                                    "marginal_contribution": 0.022,
+                                    "component_contribution": 0.019,
+                                    "percent_contribution": 0.153,
+                                },
+                            ],
+                            "quality_flags": [],
+                        }
+                    ],
+                    "error": None,
+                }
+            },
+            "metadata": {
+                "contract_version": "v1",
+                "methodology_version": "historical_attribution.v1",
+            },
+        }
 
     async def post_risk_calculate(self, payload: dict, correlation_id: str):
         self.calculate_calls.append({"payload": payload, "correlation_id": correlation_id})
@@ -192,6 +238,10 @@ class _StubRiskClient:
     async def post_risk_rolling_metrics(self, payload: dict, correlation_id: str):
         self.rolling_calls.append({"payload": payload, "correlation_id": correlation_id})
         return self.rolling_status, self.rolling_payload
+
+    async def post_risk_historical_attribution(self, payload: dict, correlation_id: str):
+        self.attribution_calls.append({"payload": payload, "correlation_id": correlation_id})
+        return self.attribution_status, self.attribution_payload
 
 
 @pytest.mark.asyncio
@@ -646,3 +696,138 @@ async def test_risk_rolling_time_series_uses_distinct_cache_key() -> None:
     assert third.metadata.cache_status == "hit"
     assert second.payload is not None
     assert second.payload.periods[0].window_results[0].metric_series is not None
+
+
+@pytest.mark.asyncio
+async def test_risk_attribution_uses_stateful_total_risk_request_and_maps_controls() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_attribution(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        attribution_type="TOTAL_RISK",
+        grouping_dimension="SECTOR",
+    )
+
+    request = client.attribution_calls[0]["payload"]
+    assert request["input_mode"] == "stateful"
+    assert request["stateful_input"]["portfolio_id"] == "PF_1"
+    assert request["stateful_input"]["attribution_options"] == {
+        "attribution_types": ["TOTAL_RISK"],
+        "metrics": ["VOLATILITY"],
+        "grouping_dimensions": ["SECTOR"],
+        "annualization_basis": 252,
+    }
+    assert response.state == "ready"
+    assert response.payload is not None
+    assert response.payload.controls.selected_attribution_type == "TOTAL_RISK"
+    assert response.payload.controls.selected_grouping_dimension == "SECTOR"
+    assert (
+        response.payload.periods[0].attribution_sets[0].contributors[0].group_label
+        == "Technology"
+    )
+    assert {item.key: item.state for item in response.supportability} == {
+        "portfolio_returns": "ready",
+        "exposure_history": "ready",
+        "benchmark_exposure_context": "ready",
+    }
+
+
+@pytest.mark.asyncio
+async def test_risk_attribution_uses_stateful_active_risk_request_for_supported_grouping() -> None:
+    client = _StubRiskClient()
+    client.attribution_payload["results"]["YTD"]["attribution_sets"][0][
+        "attribution_type"
+    ] = "ACTIVE_RISK"
+    client.attribution_payload["results"]["YTD"]["attribution_sets"][0]["metric"] = "TRACKING_ERROR"
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_attribution(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        attribution_type="ACTIVE_RISK",
+        grouping_dimension="ASSET_CLASS",
+    )
+
+    request = client.attribution_calls[0]["payload"]
+    assert request["stateful_input"]["attribution_options"] == {
+        "attribution_types": ["ACTIVE_RISK"],
+        "metrics": ["TRACKING_ERROR"],
+        "grouping_dimensions": ["ASSET_CLASS"],
+        "annualization_basis": 252,
+    }
+    assert response.state == "ready"
+    assert response.payload is not None
+    assert response.payload.controls.attribution_types[1].state == "ready"
+    assert {item.key: item.state for item in response.supportability} == {
+        "portfolio_returns": "ready",
+        "exposure_history": "ready",
+        "benchmark_returns": "ready",
+        "benchmark_exposure_context": "ready",
+    }
+
+
+@pytest.mark.asyncio
+async def test_risk_attribution_blocks_active_risk_issuer_until_supported() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_attribution(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        attribution_type="ACTIVE_RISK",
+        grouping_dimension="ISSUER",
+    )
+
+    assert client.attribution_calls == []
+    assert response.state == "blocked"
+    assert response.payload is not None
+    assert response.payload.controls.selected_grouping_dimension == "ISSUER"
+    issuer_grouping = {
+        option.key: option for option in response.payload.controls.grouping_dimensions
+    }["ISSUER"]
+    assert issuer_grouping.state == "blocked"
+    assert "benchmark issuer exposure semantics" in (issuer_grouping.reason or "")
+
+
+@pytest.mark.asyncio
+async def test_risk_attribution_blocks_active_risk_without_benchmark_context() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_attribution(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code=None,
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        attribution_type="ACTIVE_RISK",
+        grouping_dimension="SECTOR",
+    )
+
+    assert client.attribution_calls == []
+    assert response.state == "blocked"
+    assert response.payload is not None
+    active_risk = {
+        option.key: option for option in response.payload.controls.attribution_types
+    }["ACTIVE_RISK"]
+    assert active_risk.state == "blocked"
+    assert active_risk.reason == "Active risk requires benchmark context."

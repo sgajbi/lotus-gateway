@@ -8,6 +8,14 @@ from app.config import settings
 from app.contracts.risk_workspace import (
     WorkbenchConcentrationRiskProxy,
     WorkbenchIssuerConcentration,
+    WorkbenchRiskAttributionContributor,
+    WorkbenchRiskAttributionControls,
+    WorkbenchRiskAttributionGroupingOption,
+    WorkbenchRiskAttributionPayload,
+    WorkbenchRiskAttributionPeriodResult,
+    WorkbenchRiskAttributionResponse,
+    WorkbenchRiskAttributionSet,
+    WorkbenchRiskAttributionTypeOption,
     WorkbenchRiskConcentrationPayload,
     WorkbenchRiskConcentrationResponse,
     WorkbenchRiskDrawdownEpisode,
@@ -72,6 +80,18 @@ _METRIC_LABELS = {
     "INFORMATION_RATIO": "Information Ratio",
     "VAR": "Value at Risk",
 }
+_RISK_ATTRIBUTION_TYPE_LABELS = {
+    "TOTAL_RISK": "Total Risk",
+    "ACTIVE_RISK": "Active Risk",
+}
+_RISK_ATTRIBUTION_GROUPING_LABELS = {
+    "POSITION": "Position",
+    "ISSUER": "Issuer",
+    "SECTOR": "Sector",
+    "ASSET_CLASS": "Asset Class",
+}
+_RISK_ATTRIBUTION_SUPPORTED_GROUPINGS = ("POSITION", "ISSUER", "SECTOR", "ASSET_CLASS")
+_RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS = ("POSITION", "SECTOR", "ASSET_CLASS")
 
 
 class RiskWorkspaceService:
@@ -87,6 +107,7 @@ class RiskWorkspaceService:
             | WorkbenchRiskConcentrationResponse
             | WorkbenchRiskDrawdownResponse
             | WorkbenchRiskRollingResponse
+            | WorkbenchRiskAttributionResponse
         ](ttl_seconds=cache_ttl_seconds or settings.risk_bff_cache_ttl_seconds)
 
     def clear_cache(self) -> None:
@@ -402,6 +423,102 @@ class RiskWorkspaceService:
             deep=True,
         )
 
+    async def get_attribution(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+        attribution_type: str,
+        grouping_dimension: str,
+    ) -> WorkbenchRiskAttributionResponse:
+        resolved_as_of_date = _resolve_as_of_date(as_of_date)
+        normalized_type = _normalize_risk_attribution_type(attribution_type)
+        normalized_grouping = _normalize_risk_attribution_grouping(grouping_dimension)
+        blocked_response = _blocked_attribution_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            period=period,
+            as_of_date=resolved_as_of_date,
+            benchmark_code=benchmark_code,
+            attribution_type=normalized_type,
+            grouping_dimension=normalized_grouping,
+        )
+        if blocked_response is not None:
+            return blocked_response
+
+        cache_key = (
+            "attribution",
+            portfolio_id,
+            period,
+            detail_basis,
+            benchmark_code or "",
+            resolved_as_of_date,
+            reporting_currency or "",
+            normalized_type,
+            normalized_grouping,
+        )
+
+        async def _load() -> WorkbenchRiskAttributionResponse:
+            payload = _build_attribution_request(
+                portfolio_id=portfolio_id,
+                period=period,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                as_of_date=resolved_as_of_date,
+                reporting_currency=reporting_currency,
+                attribution_type=normalized_type,
+                grouping_dimension=normalized_grouping,
+            )
+            upstream_status, upstream_payload = (
+                await self._risk_client.post_risk_historical_attribution(
+                    payload=payload,
+                    correlation_id=correlation_id,
+                )
+            )
+            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
+                upstream_payload, dict
+            ):
+                return _unavailable_attribution(
+                    correlation_id=correlation_id,
+                    portfolio_id=portfolio_id,
+                    period=period,
+                    as_of_date=resolved_as_of_date,
+                    benchmark_code=benchmark_code,
+                    attribution_type=normalized_type,
+                    grouping_dimension=normalized_grouping,
+                    upstream_status=upstream_status,
+                    upstream_payload=upstream_payload,
+                )
+            return _map_attribution_response(
+                correlation_id=correlation_id,
+                portfolio_id=portfolio_id,
+                period=period,
+                as_of_date=resolved_as_of_date,
+                benchmark_code=benchmark_code,
+                attribution_type=normalized_type,
+                grouping_dimension=normalized_grouping,
+                upstream_payload=upstream_payload,
+            )
+
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=cache_key, factory=_load
+        )
+        typed_response = cast(WorkbenchRiskAttributionResponse, response)
+        return typed_response.model_copy(
+            update={
+                "correlation_id": correlation_id,
+                "metadata": typed_response.metadata.model_copy(
+                    update={"cache_status": "hit" if cache_hit else "miss"}
+                ),
+            },
+            deep=True,
+        )
+
 
 def _build_summary_request(
     *,
@@ -525,6 +642,46 @@ def _build_rolling_request(
     if reporting_currency:
         stateful_input["reporting_currency"] = reporting_currency
     return {"input_mode": "stateful", "stateful_input": stateful_input}
+
+
+def _build_attribution_request(
+    *,
+    portfolio_id: str,
+    period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    as_of_date: str,
+    reporting_currency: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+) -> dict[str, Any]:
+    stateful_input: dict[str, Any] = {
+        "portfolio_id": portfolio_id,
+        "as_of_date": as_of_date,
+        "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
+        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "attribution_options": {
+            "attribution_types": [attribution_type],
+            "metrics": ["TRACKING_ERROR" if attribution_type == "ACTIVE_RISK" else "VOLATILITY"],
+            "grouping_dimensions": [grouping_dimension],
+            "annualization_basis": 252,
+        },
+    }
+    if reporting_currency:
+        stateful_input["reporting_currency"] = reporting_currency
+    if benchmark_code and attribution_type == "ACTIVE_RISK":
+        stateful_input["benchmark_id"] = benchmark_code
+    return {"input_mode": "stateful", "stateful_input": stateful_input}
+
+
+def _normalize_risk_attribution_type(value: str) -> str:
+    normalized = value.upper()
+    return normalized if normalized in _RISK_ATTRIBUTION_TYPE_LABELS else "TOTAL_RISK"
+
+
+def _normalize_risk_attribution_grouping(value: str) -> str:
+    normalized = value.upper()
+    return normalized if normalized in _RISK_ATTRIBUTION_GROUPING_LABELS else "SECTOR"
 
 
 def _map_summary_response(
@@ -1033,6 +1190,307 @@ def _map_rolling_response(
     )
 
 
+def _map_attribution_response(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    as_of_date: str,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+    upstream_payload: dict[str, Any],
+) -> WorkbenchRiskAttributionResponse:
+    results = upstream_payload.get("results")
+    warnings: list[str] = []
+    partial_failures: list[WorkbenchPartialFailure] = []
+    period_results: list[WorkbenchRiskAttributionPeriodResult] = []
+    supportability = _build_attribution_supportability(
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+    )
+
+    if isinstance(results, dict):
+        for key, value in results.items():
+            if not isinstance(value, dict):
+                continue
+            error = value.get("error")
+            attribution_sets_payload = value.get("attribution_sets")
+            attribution_sets: list[WorkbenchRiskAttributionSet] = []
+            if isinstance(attribution_sets_payload, list):
+                for entry in attribution_sets_payload:
+                    if not isinstance(entry, dict):
+                        continue
+                    contributors_payload = entry.get("contributors")
+                    contributors = (
+                        [
+                            WorkbenchRiskAttributionContributor.model_validate(contributor)
+                            for contributor in contributors_payload
+                            if isinstance(contributor, dict)
+                        ]
+                        if isinstance(contributors_payload, list)
+                        else []
+                    )
+                    attribution_sets.append(
+                        WorkbenchRiskAttributionSet(
+                            attribution_type=str(entry.get("attribution_type", attribution_type)),
+                            metric=str(entry.get("metric", "")),
+                            grouping_dimension=str(
+                                entry.get("grouping_dimension", grouping_dimension)
+                            ),
+                            total_value=_safe_float(entry.get("total_value")),
+                            reconciled_sum=_safe_float(entry.get("reconciled_sum")),
+                            residual=_safe_float(entry.get("residual")),
+                            contributors=contributors,
+                            quality_flags=[
+                                str(flag)
+                                for flag in entry.get("quality_flags", [])
+                                if isinstance(flag, str) and flag.strip()
+                            ],
+                        )
+                    )
+            if isinstance(error, str) and error.strip():
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="risk",
+                        error_code="RISK_ATTRIBUTION_PERIOD_ERROR",
+                        detail=f"{key}: {error}",
+                    )
+                )
+                warnings.append("RISK_ATTRIBUTION_PERIOD_PARTIAL")
+            period_results.append(
+                WorkbenchRiskAttributionPeriodResult(
+                    key=str(key),
+                    label=str(key),
+                    start_date=str(value.get("start_date", "")),
+                    end_date=str(value.get("end_date", "")),
+                    attribution_sets=attribution_sets,
+                    error=str(error) if isinstance(error, str) and error.strip() else None,
+                )
+            )
+
+    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    if not period_results:
+        state = "unavailable"
+        warnings.append("RISK_ATTRIBUTION_EMPTY")
+        partial_failures.append(
+            WorkbenchPartialFailure(
+                source_service="risk",
+                error_code="EMPTY_RISK_ATTRIBUTION",
+                detail="lotus-risk returned no attribution periods.",
+            )
+        )
+    elif all(not period.attribution_sets for period in period_results):
+        state = "unavailable"
+
+    metadata = _metadata(input_mode="stateful", cache_status="miss")
+    upstream_metadata = upstream_payload.get("metadata")
+    if isinstance(upstream_metadata, dict):
+        methodology_version = upstream_metadata.get("methodology_version")
+        if isinstance(methodology_version, str) and methodology_version.strip():
+            metadata = metadata.model_copy(update={"methodology_version": methodology_version})
+
+    return WorkbenchRiskAttributionResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state=state,
+        payload=WorkbenchRiskAttributionPayload(
+            controls=_build_attribution_controls(
+                benchmark_code=benchmark_code,
+                attribution_type=attribution_type,
+                grouping_dimension=grouping_dimension,
+            ),
+            periods=period_results,
+        )
+        if period_results
+        else None,
+        supportability=supportability,
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=metadata,
+    )
+
+
+def _build_attribution_controls(
+    *,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+) -> WorkbenchRiskAttributionControls:
+    type_options = [
+        WorkbenchRiskAttributionTypeOption(
+            key="TOTAL_RISK",
+            label=_RISK_ATTRIBUTION_TYPE_LABELS["TOTAL_RISK"],
+            state="ready",
+        ),
+        WorkbenchRiskAttributionTypeOption(
+            key="ACTIVE_RISK",
+            label=_RISK_ATTRIBUTION_TYPE_LABELS["ACTIVE_RISK"],
+            state="ready" if benchmark_code else "blocked",
+            reason=None if benchmark_code else "Active risk requires benchmark context.",
+        ),
+    ]
+    grouping_options: list[WorkbenchRiskAttributionGroupingOption] = []
+    for key in _RISK_ATTRIBUTION_SUPPORTED_GROUPINGS:
+        total_risk_supported = True
+        active_risk_supported = key in _RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS and bool(
+            benchmark_code
+        )
+        state = "ready"
+        reason: str | None = None
+        if key == "ISSUER":
+            state = "partial" if attribution_type == "TOTAL_RISK" else "blocked"
+            reason = (
+                "Issuer is supported for total risk only. Active risk by issuer remains "
+                "unavailable until benchmark issuer exposure semantics are approved."
+            )
+        elif attribution_type == "ACTIVE_RISK" and not benchmark_code:
+            state = "blocked"
+            reason = "Active risk requires benchmark context."
+        grouping_options.append(
+            WorkbenchRiskAttributionGroupingOption(
+                key=key,
+                label=_RISK_ATTRIBUTION_GROUPING_LABELS[key],
+                state=state,
+                reason=reason,
+                supported_attribution_types=[
+                    attribution_key
+                    for attribution_key, supported in (
+                        ("TOTAL_RISK", total_risk_supported),
+                        ("ACTIVE_RISK", active_risk_supported),
+                    )
+                    if supported
+                ],
+            )
+        )
+    return WorkbenchRiskAttributionControls(
+        attribution_types=type_options,
+        grouping_dimensions=grouping_options,
+        selected_attribution_type=attribution_type,
+        selected_grouping_dimension=grouping_dimension,
+    )
+
+
+def _build_attribution_supportability(
+    *,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+) -> list[WorkbenchRiskSupportabilityItem]:
+    supportability = [
+        WorkbenchRiskSupportabilityItem(
+            key="portfolio_returns",
+            label="Portfolio returns",
+            state="ready",
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="exposure_history",
+            label="Exposure history",
+            state="ready",
+            source_service="lotus-core",
+        ),
+    ]
+    if attribution_type == "ACTIVE_RISK":
+        supportability.extend(
+            [
+                WorkbenchRiskSupportabilityItem(
+                    key="benchmark_returns",
+                    label="Benchmark returns",
+                    state="ready" if benchmark_code else "blocked",
+                    reason=None if benchmark_code else "Active risk requires benchmark context.",
+                    source_service="lotus-performance",
+                ),
+                WorkbenchRiskSupportabilityItem(
+                    key="benchmark_exposure_context",
+                    label="Benchmark exposure context",
+                    state=(
+                        "blocked"
+                        if grouping_dimension == "ISSUER" or not benchmark_code
+                        else "ready"
+                    ),
+                    reason=(
+                        "Issuer benchmark exposure semantics are not available."
+                        if grouping_dimension == "ISSUER"
+                        else (
+                            "Active risk requires benchmark context."
+                            if not benchmark_code
+                            else None
+                        )
+                    ),
+                    source_service="lotus-performance",
+                ),
+            ]
+        )
+    else:
+        supportability.append(
+            WorkbenchRiskSupportabilityItem(
+                key="benchmark_exposure_context",
+                label="Benchmark exposure context",
+                state="partial" if grouping_dimension == "ISSUER" else "ready",
+                reason=(
+                    "Issuer benchmark exposure semantics are not required for total risk, but "
+                    "remain unavailable for active-risk decomposition."
+                    if grouping_dimension == "ISSUER"
+                    else None
+                ),
+                source_service="lotus-performance",
+            )
+        )
+    return supportability
+
+
+def _blocked_attribution_response(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    as_of_date: str,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+) -> WorkbenchRiskAttributionResponse | None:
+    is_active_risk_without_benchmark = attribution_type == "ACTIVE_RISK" and not benchmark_code
+    is_active_risk_issuer = attribution_type == "ACTIVE_RISK" and grouping_dimension == "ISSUER"
+    if not is_active_risk_without_benchmark and not is_active_risk_issuer:
+        return None
+    controls = _build_attribution_controls(
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+    )
+    return WorkbenchRiskAttributionResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state="blocked",
+        payload=WorkbenchRiskAttributionPayload(controls=controls, periods=[]),
+        supportability=_build_attribution_supportability(
+            benchmark_code=benchmark_code,
+            attribution_type=attribution_type,
+            grouping_dimension=grouping_dimension,
+        ),
+        warnings=["RISK_ATTRIBUTION_BLOCKED"],
+        partial_failures=[],
+        metadata=_metadata(input_mode="stateful", cache_status="bypass"),
+    )
+
+
+def _safe_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _issuer_supportability_state(payload: Any) -> str:
     if not isinstance(payload, dict):
         return "unavailable"
@@ -1194,6 +1652,44 @@ def _unavailable_rolling(
             )
         ],
         warnings=["RISK_ROLLING_UNAVAILABLE"],
+        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
+        metadata=_metadata(input_mode="stateful", cache_status="miss"),
+    )
+
+
+def _unavailable_attribution(
+    *,
+    correlation_id: str,
+    portfolio_id: str,
+    period: str,
+    as_of_date: str,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+    upstream_status: int,
+    upstream_payload: Any,
+) -> WorkbenchRiskAttributionResponse:
+    return WorkbenchRiskAttributionResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state="unavailable",
+        payload=WorkbenchRiskAttributionPayload(
+            controls=_build_attribution_controls(
+                benchmark_code=benchmark_code,
+                attribution_type=attribution_type,
+                grouping_dimension=grouping_dimension,
+            ),
+            periods=[],
+        ),
+        supportability=_build_attribution_supportability(
+            benchmark_code=benchmark_code,
+            attribution_type=attribution_type,
+            grouping_dimension=grouping_dimension,
+        ),
+        warnings=["RISK_ATTRIBUTION_UNAVAILABLE"],
         partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )

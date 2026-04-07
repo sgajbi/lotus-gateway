@@ -173,6 +173,62 @@ class WorkbenchRiskRollingPayload(BaseModel):
     periods: list[WorkbenchRiskRollingPeriodResult] = Field(default_factory=list)
 
 
+class WorkbenchRiskAttributionTypeOption(BaseModel):
+    key: str
+    label: str
+    state: RiskSupportabilityState
+    reason: str | None = None
+
+
+class WorkbenchRiskAttributionGroupingOption(BaseModel):
+    key: str
+    label: str
+    state: RiskSupportabilityState
+    reason: str | None = None
+    supported_attribution_types: list[str] = Field(default_factory=list)
+
+
+class WorkbenchRiskAttributionContributor(BaseModel):
+    group_key: str
+    group_label: str
+    weight_average: float | None = None
+    marginal_contribution: float | None = None
+    component_contribution: float | None = None
+    percent_contribution: float | None = None
+
+
+class WorkbenchRiskAttributionSet(BaseModel):
+    attribution_type: str
+    metric: str
+    grouping_dimension: str
+    total_value: float | None = None
+    reconciled_sum: float | None = None
+    residual: float | None = None
+    contributors: list[WorkbenchRiskAttributionContributor] = Field(default_factory=list)
+    quality_flags: list[str] = Field(default_factory=list)
+
+
+class WorkbenchRiskAttributionPeriodResult(BaseModel):
+    key: str
+    label: str
+    start_date: str
+    end_date: str
+    attribution_sets: list[WorkbenchRiskAttributionSet] = Field(default_factory=list)
+    error: str | None = None
+
+
+class WorkbenchRiskAttributionControls(BaseModel):
+    attribution_types: list[WorkbenchRiskAttributionTypeOption] = Field(default_factory=list)
+    grouping_dimensions: list[WorkbenchRiskAttributionGroupingOption] = Field(default_factory=list)
+    selected_attribution_type: str
+    selected_grouping_dimension: str
+
+
+class WorkbenchRiskAttributionPayload(BaseModel):
+    controls: WorkbenchRiskAttributionControls
+    periods: list[WorkbenchRiskAttributionPeriodResult] = Field(default_factory=list)
+
+
 class WorkbenchRiskModuleEnvelope(BaseModel):
     correlation_id: str
     contract_version: str = "risk-workspace.v1"
@@ -203,3 +259,7 @@ class WorkbenchRiskDrawdownResponse(WorkbenchRiskModuleEnvelope):
 
 class WorkbenchRiskRollingResponse(WorkbenchRiskModuleEnvelope):
     payload: WorkbenchRiskRollingPayload | None = None
+
+
+class WorkbenchRiskAttributionResponse(WorkbenchRiskModuleEnvelope):
+    payload: WorkbenchRiskAttributionPayload | None = None
