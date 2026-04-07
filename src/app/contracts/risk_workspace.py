@@ -83,6 +83,60 @@ class WorkbenchRiskConcentrationPayload(BaseModel):
     risk_metadata: dict[str, Any] | None = None
 
 
+class WorkbenchRiskDrawdownSummary(BaseModel):
+    max_drawdown: float | None = None
+    max_drawdown_peak_date: str | None = None
+    max_drawdown_trough_date: str | None = None
+    max_drawdown_recovery_date: str | None = None
+    is_recovered: bool
+    days_to_trough: int | None = None
+    days_to_recovery: int | None = None
+    time_under_water_days: int
+    average_drawdown: float | None = None
+    ulcer_index: float | None = None
+    drawdown_at_risk_95: float | None = None
+    conditional_drawdown_at_risk_95: float | None = None
+
+
+class WorkbenchRiskDrawdownEpisode(BaseModel):
+    episode_id: str
+    peak_date: str
+    trough_date: str
+    recovery_date: str | None = None
+    depth: float
+    days_to_trough: int
+    days_to_recovery: int | None = None
+    total_days: int
+    is_recovered: bool
+
+
+class WorkbenchRiskRelativeDrawdownSummary(BaseModel):
+    max_drawdown: float | None = None
+    max_drawdown_peak_date: str | None = None
+    max_drawdown_trough_date: str | None = None
+
+
+class WorkbenchRiskUnderwaterPoint(BaseModel):
+    date: str
+    drawdown: float
+
+
+class WorkbenchRiskDrawdownPeriodResult(BaseModel):
+    key: str
+    label: str
+    start_date: str
+    end_date: str
+    summary: WorkbenchRiskDrawdownSummary | None = None
+    episodes: list[WorkbenchRiskDrawdownEpisode] = Field(default_factory=list)
+    relative_to_benchmark: WorkbenchRiskRelativeDrawdownSummary | None = None
+    underwater_series: list[WorkbenchRiskUnderwaterPoint] | None = None
+    error: str | None = None
+
+
+class WorkbenchRiskDrawdownPayload(BaseModel):
+    periods: list[WorkbenchRiskDrawdownPeriodResult] = Field(default_factory=list)
+
+
 class WorkbenchRiskModuleEnvelope(BaseModel):
     correlation_id: str
     contract_version: str = "risk-workspace.v1"
@@ -105,3 +159,7 @@ class WorkbenchRiskSummaryResponse(WorkbenchRiskModuleEnvelope):
 
 class WorkbenchRiskConcentrationResponse(WorkbenchRiskModuleEnvelope):
     payload: WorkbenchRiskConcentrationPayload | None = None
+
+
+class WorkbenchRiskDrawdownResponse(WorkbenchRiskModuleEnvelope):
+    payload: WorkbenchRiskDrawdownPayload | None = None

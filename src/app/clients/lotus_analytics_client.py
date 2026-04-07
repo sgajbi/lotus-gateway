@@ -416,3 +416,14 @@ class LotusAnalyticsClient:
             payload=payload,
             correlation_id=correlation_id,
         )
+
+    async def post_risk_drawdown(
+        self,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post_analytics_request(
+            path="/analytics/risk/drawdown",
+            payload=payload,
+            correlation_id=correlation_id,
+        )

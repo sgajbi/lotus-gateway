@@ -15,6 +15,7 @@ from app.contracts.performance_workspace import (
 )
 from app.contracts.risk_workspace import (
     WorkbenchRiskConcentrationResponse,
+    WorkbenchRiskDrawdownResponse,
     WorkbenchRiskSummaryResponse,
 )
 from app.contracts.workbench import (
@@ -312,6 +313,38 @@ async def get_workbench_risk_concentration(
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/drawdown",
+    response_model=WorkbenchRiskDrawdownResponse,
+    summary="Get Workbench Risk Drawdown",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench. "
+        "Underwater series detail is optional and requested on demand to keep first paint lean."
+    ),
+)
+async def get_workbench_risk_drawdown(
+    portfolio_id: str,
+    period: str = "YTD",
+    detail_basis: str = "NET",
+    benchmark_code: str | None = None,
+    as_of_date: str | None = None,
+    reporting_currency: str | None = None,
+    include_underwater_series: bool = False,
+) -> WorkbenchRiskDrawdownResponse:
+    service = _risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_drawdown(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        include_underwater_series=include_underwater_series,
     )
 
 

@@ -7,8 +7,10 @@ class _StubRiskClient:
     def __init__(self) -> None:
         self.calculate_calls: list[dict] = []
         self.concentration_calls: list[dict] = []
+        self.drawdown_calls: list[dict] = []
         self.calculate_status = 200
         self.concentration_status = 200
+        self.drawdown_status = 200
         self.calculate_payload: dict = {
             "scope": {
                 "as_of_date": "2026-04-04",
@@ -61,6 +63,62 @@ class _StubRiskClient:
             "valuation_context": {"reporting_currency": "USD"},
             "metadata": {"as_of_date": "2026-04-04", "portfolio_id": "PF_1"},
         }
+        self.drawdown_payload: dict = {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "summary": {
+                        "max_drawdown": -0.124533,
+                        "max_drawdown_peak_date": "2026-01-12",
+                        "max_drawdown_trough_date": "2026-02-03",
+                        "max_drawdown_recovery_date": None,
+                        "is_recovered": False,
+                        "days_to_trough": 16,
+                        "days_to_recovery": None,
+                        "time_under_water_days": 34,
+                        "average_drawdown": -0.041208,
+                        "ulcer_index": 0.053901,
+                        "drawdown_at_risk_95": -0.101552,
+                        "conditional_drawdown_at_risk_95": -0.117884,
+                    },
+                    "episodes": [
+                        {
+                            "episode_id": "dd_0002",
+                            "peak_date": "2026-02-12",
+                            "trough_date": "2026-02-13",
+                            "recovery_date": None,
+                            "depth": -0.055,
+                            "days_to_trough": 1,
+                            "days_to_recovery": None,
+                            "total_days": 7,
+                            "is_recovered": False,
+                        },
+                        {
+                            "episode_id": "dd_0001",
+                            "peak_date": "2026-01-12",
+                            "trough_date": "2026-02-03",
+                            "recovery_date": None,
+                            "depth": -0.124533,
+                            "days_to_trough": 16,
+                            "days_to_recovery": None,
+                            "total_days": 34,
+                            "is_recovered": False,
+                        },
+                    ],
+                    "relative_to_benchmark": {
+                        "max_drawdown": -0.0821,
+                        "max_drawdown_peak_date": "2026-01-11",
+                        "max_drawdown_trough_date": "2026-02-01",
+                    },
+                    "underwater_series": None,
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "drawdown.v1"},
+        }
 
     async def post_risk_calculate(self, payload: dict, correlation_id: str):
         self.calculate_calls.append({"payload": payload, "correlation_id": correlation_id})
@@ -69,6 +127,10 @@ class _StubRiskClient:
     async def post_risk_concentration(self, payload: dict, correlation_id: str):
         self.concentration_calls.append({"payload": payload, "correlation_id": correlation_id})
         return self.concentration_status, self.concentration_payload
+
+    async def post_risk_drawdown(self, payload: dict, correlation_id: str):
+        self.drawdown_calls.append({"payload": payload, "correlation_id": correlation_id})
+        return self.drawdown_status, self.drawdown_payload
 
 
 @pytest.mark.asyncio
@@ -242,3 +304,145 @@ async def test_risk_concentration_returns_unavailable_envelope_on_malformed_succ
     assert response.partial_failures[0].error_code == "MALFORMED_RISK_CONCENTRATION"
     assert "single_position_concentration" in response.partial_failures[0].detail
     assert "issuer_concentration" in response.partial_failures[0].detail
+
+
+@pytest.mark.asyncio
+async def test_risk_drawdown_uses_stateful_request_and_keeps_underwater_out_of_first_paint(
+) -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=False,
+    )
+
+    request = client.drawdown_calls[0]["payload"]
+    assert request["input_mode"] == "stateful"
+    assert request["stateful_input"]["portfolio_id"] == "PF_1"
+    assert request["stateful_input"]["benchmark_policy"] == {
+        "include_benchmark": True,
+        "missing_benchmark_policy": "IGNORE",
+    }
+    assert request["analysis_options"]["include_underwater_series"] is False
+    assert response.state == "partial"
+    assert response.payload is not None
+    assert response.payload.periods[0].summary is not None
+    assert response.payload.periods[0].underwater_series is None
+    assert response.payload.periods[0].episodes[0].episode_id == "dd_0001"
+    assert {item.key: item.state for item in response.supportability} == {
+        "portfolio_returns": "ready",
+        "benchmark_relative_drawdown": "ready",
+        "underwater_series": "partial",
+    }
+
+
+@pytest.mark.asyncio
+async def test_risk_drawdown_requests_underwater_detail_on_demand_with_distinct_cache_key() -> None:
+    client = _StubRiskClient()
+    client.drawdown_payload["results"]["YTD"]["underwater_series"] = [
+        {"date": "2026-01-20", "drawdown": -0.0521},
+        {"date": "2026-01-21", "drawdown": -0.061},
+    ]
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    first = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=False,
+    )
+    second = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-2",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=True,
+    )
+    third = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-3",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=True,
+    )
+
+    assert len(client.drawdown_calls) == 2
+    assert (
+        client.drawdown_calls[0]["payload"]["analysis_options"]["include_underwater_series"]
+        is False
+    )
+    assert (
+        client.drawdown_calls[1]["payload"]["analysis_options"]["include_underwater_series"]
+        is True
+    )
+    assert first.metadata.cache_status == "miss"
+    assert second.metadata.cache_status == "miss"
+    assert third.metadata.cache_status == "hit"
+    assert second.payload is not None
+    assert second.payload.periods[0].underwater_series is not None
+
+
+@pytest.mark.asyncio
+async def test_risk_drawdown_reports_partial_when_benchmark_relative_summary_is_missing() -> None:
+    client = _StubRiskClient()
+    client.drawdown_payload["results"]["YTD"]["relative_to_benchmark"] = None
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=False,
+    )
+
+    assert response.state == "partial"
+    benchmark_support = {
+        item.key: item for item in response.supportability
+    }["benchmark_relative_drawdown"]
+    assert benchmark_support.state == "partial"
+    assert benchmark_support.reason == "Benchmark-relative drawdown was not returned by lotus-risk."
+
+
+@pytest.mark.asyncio
+async def test_risk_drawdown_returns_unavailable_envelope_on_upstream_failure() -> None:
+    client = _StubRiskClient()
+    client.drawdown_status = 503
+    client.drawdown_payload = {"detail": "drawdown unavailable"}
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_drawdown(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        include_underwater_series=False,
+    )
+
+    assert response.state == "unavailable"
+    assert response.payload is None
+    assert response.partial_failures[0].error_code == "HTTP_503"
+    assert response.partial_failures[0].detail == "drawdown unavailable"

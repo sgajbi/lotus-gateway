@@ -573,6 +573,93 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     }
 
 
+def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(monkeypatch):
+    async def _risk_drawdown(self, payload, correlation_id):  # noqa: ARG001
+        assert payload["input_mode"] == "stateful"
+        assert payload["stateful_input"]["portfolio_id"] == "PF_RISK_DRAWDOWN"
+        assert payload["stateful_input"]["benchmark_policy"] == {
+            "include_benchmark": True,
+            "missing_benchmark_policy": "IGNORE",
+        }
+        assert payload["analysis_options"]["include_underwater_series"] is True
+        return 200, {
+            "source_service": "lotus-risk",
+            "input_mode": "stateful",
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "summary": {
+                        "max_drawdown": -0.124533,
+                        "max_drawdown_peak_date": "2026-01-12",
+                        "max_drawdown_trough_date": "2026-02-03",
+                        "max_drawdown_recovery_date": None,
+                        "is_recovered": False,
+                        "days_to_trough": 16,
+                        "days_to_recovery": None,
+                        "time_under_water_days": 34,
+                        "average_drawdown": -0.041208,
+                        "ulcer_index": 0.053901,
+                        "drawdown_at_risk_95": -0.101552,
+                        "conditional_drawdown_at_risk_95": -0.117884,
+                    },
+                    "episodes": [
+                        {
+                            "episode_id": "dd_0001",
+                            "peak_date": "2026-01-12",
+                            "trough_date": "2026-02-03",
+                            "recovery_date": None,
+                            "depth": -0.124533,
+                            "days_to_trough": 16,
+                            "days_to_recovery": None,
+                            "total_days": 34,
+                            "is_recovered": False,
+                        }
+                    ],
+                    "relative_to_benchmark": {
+                        "max_drawdown": -0.0821,
+                        "max_drawdown_peak_date": "2026-01-11",
+                        "max_drawdown_trough_date": "2026-02-01",
+                    },
+                    "underwater_series": [
+                        {"date": "2026-01-20", "drawdown": -0.0521},
+                        {"date": "2026-01-21", "drawdown": -0.061},
+                    ],
+                    "error": None,
+                }
+            },
+            "metadata": {"contract_version": "v1", "methodology_version": "drawdown.v1"},
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_drawdown",
+        _risk_drawdown,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_DRAWDOWN/risk/drawdown"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD&include_underwater_series=true",
+        headers={"X-Correlation-Id": "corr-risk-drawdown"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["contract_version"] == "risk-workspace.v1"
+    assert body["correlation_id"] == "corr-risk-drawdown"
+    assert body["state"] == "ready"
+    assert body["metadata"]["methodology_version"] == "drawdown.v1"
+    assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
+    assert body["payload"]["periods"][0]["episodes"][0]["episode_id"] == "dd_0001"
+    assert len(body["payload"]["periods"][0]["underwater_series"]) == 2
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "benchmark_relative_drawdown": "ready",
+        "underwater_series": "ready",
+    }
+
+
 def test_workbench_performance_summary_router(monkeypatch):
     async def _performance_summary(*args, **kwargs):  # noqa: ARG001
         append_server_timing_metric("perf-reference", 1.0)
