@@ -238,7 +238,7 @@ class WorkbenchRiskModuleEnvelope(BaseModel):
     benchmark_code: str | None = None
     source_service: str = "lotus-risk"
     state: RiskModuleState
-    payload: dict[str, Any] | None = None
+    payload: Any | None = None
     supportability: list[WorkbenchRiskSupportabilityItem] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)

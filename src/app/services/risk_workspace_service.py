@@ -6,6 +6,8 @@ from fastapi import status
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.config import settings
 from app.contracts.risk_workspace import (
+    RiskModuleState,
+    RiskSupportabilityState,
     WorkbenchConcentrationRiskProxy,
     WorkbenchIssuerConcentration,
     WorkbenchRiskAttributionContributor,
@@ -716,7 +718,9 @@ def _map_summary_response(
                 )
             )
     supportability.extend(_metric_dependency_supportability(metric_states, benchmark_code))
-    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    state: RiskModuleState = (
+        "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    )
     if not period_results:
         state = "unavailable"
         warnings.append("RISK_SUMMARY_EMPTY")
@@ -905,9 +909,11 @@ def _map_drawdown_response(
             source_service="lotus-risk",
         )
     ]
-    benchmark_supportability_state = "unavailable"
+    benchmark_supportability_state: RiskSupportabilityState = "unavailable"
     benchmark_supportability_reason: str | None = None
-    underwater_supportability_state = "partial" if not include_underwater_series else "unavailable"
+    underwater_supportability_state: RiskSupportabilityState = (
+        "partial" if not include_underwater_series else "unavailable"
+    )
     underwater_supportability_reason = (
         "Underwater series is available on demand and is not included in first paint."
         if not include_underwater_series
@@ -1001,21 +1007,23 @@ def _map_drawdown_response(
             WorkbenchRiskSupportabilityItem(
                 key=_DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK,
                 label="Benchmark-relative drawdown",
-                state=cast(Any, benchmark_supportability_state),
+                state=benchmark_supportability_state,
                 reason=benchmark_supportability_reason,
                 source_service="lotus-risk",
             ),
             WorkbenchRiskSupportabilityItem(
                 key="underwater_series",
                 label="Underwater series",
-                state=cast(Any, underwater_supportability_state),
+                state=underwater_supportability_state,
                 reason=underwater_supportability_reason,
                 source_service="lotus-risk",
             ),
         ]
     )
 
-    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    state: RiskModuleState = (
+        "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    )
     if not period_results:
         state = "unavailable"
         warnings.append("RISK_DRAWDOWN_EMPTY")
@@ -1138,7 +1146,9 @@ def _map_rolling_response(
                 )
             )
 
-    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    state: RiskModuleState = (
+        "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    )
     if not period_results:
         state = "unavailable"
         warnings.append("RISK_ROLLING_EMPTY")
@@ -1264,7 +1274,9 @@ def _map_attribution_response(
                 )
             )
 
-    state = "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    state: RiskModuleState = (
+        "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    )
     if not period_results:
         state = "unavailable"
         warnings.append("RISK_ATTRIBUTION_EMPTY")
@@ -1334,7 +1346,7 @@ def _build_attribution_controls(
         active_risk_supported = key in _RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS and bool(
             benchmark_code
         )
-        state = "ready"
+        state: RiskSupportabilityState = "ready"
         reason: str | None = None
         if key == "ISSUER":
             state = "partial" if attribution_type == "TOTAL_RISK" else "blocked"
@@ -1485,7 +1497,7 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
-def _issuer_supportability_state(payload: Any) -> str:
+def _issuer_supportability_state(payload: Any) -> RiskSupportabilityState:
     if not isinstance(payload, dict):
         return "unavailable"
     status_value = str(payload.get("coverage_status", "")).lower()
