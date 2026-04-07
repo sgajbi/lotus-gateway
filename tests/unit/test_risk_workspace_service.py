@@ -304,9 +304,7 @@ async def test_risk_summary_reports_partial_when_benchmark_metrics_have_errors()
     assert response.state == "partial"
     assert response.payload is not None
     tracking_error = [
-        metric
-        for metric in response.payload.periods[0].metrics
-        if metric.key == "TRACKING_ERROR"
+        metric for metric in response.payload.periods[0].metrics if metric.key == "TRACKING_ERROR"
     ][0]
     assert tracking_error.state == "partial"
     assert tracking_error.reason == "benchmark returns unavailable"
@@ -418,8 +416,9 @@ async def test_risk_concentration_returns_unavailable_envelope_on_malformed_succ
 
 
 @pytest.mark.asyncio
-async def test_risk_drawdown_uses_stateful_request_and_keeps_underwater_out_of_first_paint(
-) -> None:
+async def test_risk_drawdown_uses_stateful_request_and_keeps_underwater_out_of_first_paint() -> (
+    None
+):
     client = _StubRiskClient()
     service = RiskWorkspaceService(client, cache_ttl_seconds=60)
 
@@ -500,8 +499,7 @@ async def test_risk_drawdown_requests_underwater_detail_on_demand_with_distinct_
         is False
     )
     assert (
-        client.drawdown_calls[1]["payload"]["analysis_options"]["include_underwater_series"]
-        is True
+        client.drawdown_calls[1]["payload"]["analysis_options"]["include_underwater_series"] is True
     )
     assert first.metadata.cache_status == "miss"
     assert second.metadata.cache_status == "miss"
@@ -528,9 +526,9 @@ async def test_risk_drawdown_reports_partial_when_benchmark_relative_summary_is_
     )
 
     assert response.state == "partial"
-    benchmark_support = {
-        item.key: item for item in response.supportability
-    }["benchmark_relative_drawdown"]
+    benchmark_support = {item.key: item for item in response.supportability}[
+        "benchmark_relative_drawdown"
+    ]
     assert benchmark_support.state == "partial"
     assert benchmark_support.reason == "Benchmark-relative drawdown was not returned by lotus-risk."
 
@@ -729,8 +727,7 @@ async def test_risk_attribution_uses_stateful_total_risk_request_and_maps_contro
     assert response.payload.controls.selected_attribution_type == "TOTAL_RISK"
     assert response.payload.controls.selected_grouping_dimension == "SECTOR"
     assert (
-        response.payload.periods[0].attribution_sets[0].contributors[0].group_label
-        == "Technology"
+        response.payload.periods[0].attribution_sets[0].contributors[0].group_label == "Technology"
     )
     assert {item.key: item.state for item in response.supportability} == {
         "portfolio_returns": "ready",
@@ -742,9 +739,9 @@ async def test_risk_attribution_uses_stateful_total_risk_request_and_maps_contro
 @pytest.mark.asyncio
 async def test_risk_attribution_uses_stateful_active_risk_request_for_supported_grouping() -> None:
     client = _StubRiskClient()
-    client.attribution_payload["results"]["YTD"]["attribution_sets"][0][
-        "attribution_type"
-    ] = "ACTIVE_RISK"
+    client.attribution_payload["results"]["YTD"]["attribution_sets"][0]["attribution_type"] = (
+        "ACTIVE_RISK"
+    )
     client.attribution_payload["results"]["YTD"]["attribution_sets"][0]["metric"] = "TRACKING_ERROR"
     service = RiskWorkspaceService(client, cache_ttl_seconds=60)
 
@@ -826,8 +823,8 @@ async def test_risk_attribution_blocks_active_risk_without_benchmark_context() -
     assert client.attribution_calls == []
     assert response.state == "blocked"
     assert response.payload is not None
-    active_risk = {
-        option.key: option for option in response.payload.controls.attribution_types
-    }["ACTIVE_RISK"]
+    active_risk = {option.key: option for option in response.payload.controls.attribution_types}[
+        "ACTIVE_RISK"
+    ]
     assert active_risk.state == "blocked"
     assert active_risk.reason == "Active risk requires benchmark context."

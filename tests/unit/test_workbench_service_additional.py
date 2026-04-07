@@ -118,6 +118,7 @@ class _StubLotusAnalyticsClient:
     async def get_workbench_analytics(self, payload: dict, correlation_id: str):
         return self.analytics_status, self.analytics_payload
 
+
 class _StubDpmClient:
     def __init__(self):
         self.list_runs_status = 200
@@ -480,8 +481,7 @@ async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
     assert [
         failure
         for failure in response.partial_failures
-        if failure.source_service == "risk"
-        and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
+        if failure.source_service == "risk" and failure.error_code == "RISK_BFF_NOT_IMPLEMENTED"
     ]
 
 

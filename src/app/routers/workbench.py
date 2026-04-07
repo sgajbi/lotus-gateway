@@ -157,9 +157,7 @@ def _advisor_brief_service() -> AdvisorBriefService:
     global _ADVISOR_BRIEF_SERVICE, _ADVISOR_BRIEF_SERVICE_SIGNATURE
     signature = _service_signature()
     if _ADVISOR_BRIEF_SERVICE is None or _ADVISOR_BRIEF_SERVICE_SIGNATURE != signature:
-        _ADVISOR_BRIEF_SERVICE = _build_advisor_brief_service(
-            _performance_workspace_service()
-        )
+        _ADVISOR_BRIEF_SERVICE = _build_advisor_brief_service(_performance_workspace_service())
         _ADVISOR_BRIEF_SERVICE_SIGNATURE = signature
     return _ADVISOR_BRIEF_SERVICE
 

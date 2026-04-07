@@ -354,6 +354,7 @@ async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_he
         "expected_output_label": "EXPLANATION_ONLY",
     }
 
+
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)

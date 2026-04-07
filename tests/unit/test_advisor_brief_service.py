@@ -60,8 +60,7 @@ class _StubLotusAiClient:
                                     "metric_label": "Active Return",
                                     "metric_value": "-6.68%",
                                     "source_ref": (
-                                        "lotus-gateway:workbench:PF_1001:"
-                                        "performance-summary:YTD"
+                                        "lotus-gateway:workbench:PF_1001:performance-summary:YTD"
                                     ),
                                 }
                             ],
@@ -84,8 +83,7 @@ class _StubLotusAiClient:
                                     "metric_label": "Attribution",
                                     "metric_value": "Partial",
                                     "source_ref": (
-                                        "lotus-gateway:workbench:PF_1001:"
-                                        "performance-details:YTD"
+                                        "lotus-gateway:workbench:PF_1001:performance-details:YTD"
                                     ),
                                 }
                             ],
