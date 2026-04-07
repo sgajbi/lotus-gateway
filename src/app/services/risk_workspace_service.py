@@ -168,9 +168,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             )
 
-        response, cache_hit = await self._cache.get_or_set_with_status(
-            key=cache_key, factory=_load
-        )
+        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
         typed_response = cast(WorkbenchRiskSummaryResponse, response)
         return typed_response.model_copy(
             update={
@@ -233,9 +231,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             )
 
-        response, cache_hit = await self._cache.get_or_set_with_status(
-            key=cache_key, factory=_load
-        )
+        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
         typed_response = cast(WorkbenchRiskConcentrationResponse, response)
         return typed_response.model_copy(
             update={
@@ -308,9 +304,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             )
 
-        response, cache_hit = await self._cache.get_or_set_with_status(
-            key=cache_key, factory=_load
-        )
+        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
         typed_response = cast(WorkbenchRiskDrawdownResponse, response)
         return typed_response.model_copy(
             update={
@@ -377,11 +371,12 @@ class RiskWorkspaceService:
                     include_time_series=include_time_series,
                     include_sharpe=False,
                 )
-                upstream_status, upstream_payload = (
-                    await self._risk_client.post_risk_rolling_metrics(
-                        payload=fallback_payload,
-                        correlation_id=correlation_id,
-                    )
+                (
+                    upstream_status,
+                    upstream_payload,
+                ) = await self._risk_client.post_risk_rolling_metrics(
+                    payload=fallback_payload,
+                    correlation_id=correlation_id,
                 )
 
             if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
@@ -409,9 +404,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             )
 
-        response, cache_hit = await self._cache.get_or_set_with_status(
-            key=cache_key, factory=_load
-        )
+        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
         typed_response = cast(WorkbenchRiskRollingResponse, response)
         return typed_response.model_copy(
             update={
@@ -474,11 +467,12 @@ class RiskWorkspaceService:
                 attribution_type=normalized_type,
                 grouping_dimension=normalized_grouping,
             )
-            upstream_status, upstream_payload = (
-                await self._risk_client.post_risk_historical_attribution(
-                    payload=payload,
-                    correlation_id=correlation_id,
-                )
+            (
+                upstream_status,
+                upstream_payload,
+            ) = await self._risk_client.post_risk_historical_attribution(
+                payload=payload,
+                correlation_id=correlation_id,
             )
             if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
                 upstream_payload, dict
@@ -505,9 +499,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             )
 
-        response, cache_hit = await self._cache.get_or_set_with_status(
-            key=cache_key, factory=_load
-        )
+        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
         typed_response = cast(WorkbenchRiskAttributionResponse, response)
         return typed_response.model_copy(
             update={
@@ -790,8 +782,10 @@ def _metric_dependency_supportability(
     risk_free_metric_states = [
         metric_states.get(metric, "unavailable") for metric in _RISK_FREE_DEPENDENT_METRICS
     ]
-    benchmark_ready = bool(benchmark_code) and benchmark_metric_states and all(
-        state == "ready" for state in benchmark_metric_states
+    benchmark_ready = (
+        bool(benchmark_code)
+        and benchmark_metric_states
+        and all(state == "ready" for state in benchmark_metric_states)
     )
     risk_free_ready = bool(risk_free_metric_states) and all(
         state == "ready" for state in risk_free_metric_states
@@ -1704,9 +1698,8 @@ def _malformed_concentration(
     benchmark_code: str | None,
     missing_blocks: list[str],
 ) -> WorkbenchRiskConcentrationResponse:
-    detail = (
-        "lotus-risk concentration response omitted required blocks: "
-        + ", ".join(missing_blocks)
+    detail = "lotus-risk concentration response omitted required blocks: " + ", ".join(
+        missing_blocks
     )
     return WorkbenchRiskConcentrationResponse(
         correlation_id=correlation_id,

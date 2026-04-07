@@ -342,8 +342,7 @@ def _build_ai_fact_bundle(
             "top_effects": _top_attribution_effects(attribution=attribution),
         },
         "supportability": [
-            item.model_dump(mode="json")
-            for item in _build_supportability(workspace=workspace)
+            item.model_dump(mode="json") for item in _build_supportability(workspace=workspace)
         ],
         "warnings": workspace.warnings,
         "partial_failures": [item.model_dump(mode="json") for item in workspace.partial_failures],
@@ -392,7 +391,7 @@ def _build_source_summary(
         return (
             "No source-backed advisor brief can be generated from the current performance "
             "selection."
-    )
+        )
     return (
         f"{workspace.period} portfolio return for {_portfolio_display_label(workspace=workspace)} "
         f"is {portfolio_return} versus "
@@ -612,8 +611,7 @@ def _build_source_talking_points(
         points.append(
             AdvisorBriefNarrativeItem(
                 headline=(
-                    f"Top contributor is "
-                    f"{_normalize_position_label(top_position[0].position_id)}."
+                    f"Top contributor is {_normalize_position_label(top_position[0].position_id)}."
                 ),
                 detail=(
                     f"{_normalize_position_label(top_position[0].position_id)} contributed "
@@ -639,8 +637,7 @@ def _build_source_talking_points(
         points.append(
             AdvisorBriefNarrativeItem(
                 headline=(
-                    f"Top detractor is "
-                    f"{_normalize_position_label(bottom_position[0].position_id)}."
+                    f"Top detractor is {_normalize_position_label(bottom_position[0].position_id)}."
                 ),
                 detail=(
                     f"{_normalize_position_label(bottom_position[0].position_id)} contributed "
@@ -986,9 +983,7 @@ def _route_query(
     basis: str,
     benchmark_code: str | None,
 ) -> str:
-    route = (
-        f"/performance?portfolioId={portfolio_id}&period={period}&detailBasis={basis}"
-    )
+    route = f"/performance?portfolioId={portfolio_id}&period={period}&detailBasis={basis}"
     if benchmark_code:
         route += f"&benchmark={benchmark_code}"
     return route
@@ -1031,7 +1026,7 @@ def _normalize_position_label(position_id: str) -> str:
     display_label = position_id.rsplit(":", 1)[-1].strip()
     for prefix in ("FO_EQ_", "FO_FI_", "FO_CASH_", "FO_ALT_", "FO_FX_"):
         if display_label.startswith(prefix):
-            display_label = display_label[len(prefix):]
+            display_label = display_label[len(prefix) :]
             break
     return display_label.replace("_", " ").strip() or position_id
 
