@@ -8,18 +8,22 @@ from app.config import settings
 from app.contracts.risk_workspace import (
     RiskModuleState,
     RiskSupportabilityState,
-    WorkbenchConcentrationRiskProxy,
     WorkbenchIssuerConcentration,
+    WorkbenchPortfolioConcentration,
     WorkbenchRiskAttributionContributor,
     WorkbenchRiskAttributionControls,
     WorkbenchRiskAttributionGroupingOption,
+    WorkbenchRiskAttributionMethodologyContext,
     WorkbenchRiskAttributionPayload,
     WorkbenchRiskAttributionPeriodResult,
     WorkbenchRiskAttributionResponse,
     WorkbenchRiskAttributionSet,
     WorkbenchRiskAttributionTypeOption,
+    WorkbenchRiskConcentrationExecutionContext,
     WorkbenchRiskConcentrationPayload,
     WorkbenchRiskConcentrationResponse,
+    WorkbenchRiskConcentrationValuationContext,
+    WorkbenchRiskDrawdownAnalysisContext,
     WorkbenchRiskDrawdownEpisode,
     WorkbenchRiskDrawdownPayload,
     WorkbenchRiskDrawdownPeriodResult,
@@ -28,11 +32,15 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskMetadata,
     WorkbenchRiskMetric,
     WorkbenchRiskPeriodResult,
+    WorkbenchRiskRelativeDrawdownContext,
     WorkbenchRiskRelativeDrawdownSummary,
+    WorkbenchRiskRollingDependencyContext,
+    WorkbenchRiskRollingMetricSeriesContext,
     WorkbenchRiskRollingMetricSeriesPoint,
     WorkbenchRiskRollingMetricSummary,
     WorkbenchRiskRollingPayload,
     WorkbenchRiskRollingPeriodResult,
+    WorkbenchRiskRollingRequestContext,
     WorkbenchRiskRollingResponse,
     WorkbenchRiskRollingWindowResult,
     WorkbenchRiskSummaryPayload,
@@ -714,6 +722,16 @@ def _map_summary_response(
                     label=str(key),
                     start_date=str(value.get("start_date", "")),
                     end_date=str(value.get("end_date", "")),
+                    portfolio_observation_count=int(value.get("portfolio_observation_count", 0)),
+                    benchmark_observation_count=int(value.get("benchmark_observation_count", 0)),
+                    aligned_benchmark_observation_count=int(
+                        value.get("aligned_benchmark_observation_count", 0)
+                    ),
+                    benchmark_context=(
+                        cast(dict[str, Any], value.get("benchmark_context"))
+                        if isinstance(value.get("benchmark_context"), dict)
+                        else None
+                    ),
                     metrics=metrics,
                 )
             )
@@ -827,7 +845,7 @@ def _map_concentration_response(
     upstream_payload: dict[str, Any],
 ) -> WorkbenchRiskConcentrationResponse:
     required_blocks = {
-        "risk_proxy": upstream_payload.get("risk_proxy"),
+        "portfolio_concentration": upstream_payload.get("risk_proxy"),
         "single_position_concentration": upstream_payload.get("single_position_concentration"),
         "issuer_concentration": upstream_payload.get("issuer_concentration"),
     }
@@ -857,6 +875,20 @@ def _map_concentration_response(
             reason=_issuer_supportability_reason(issuer_payload),
             source_service="lotus-risk",
         ),
+        WorkbenchRiskSupportabilityItem(
+            key="issuer_grouping",
+            label="Issuer grouping",
+            state="ready",
+            reason=_issuer_grouping_reason(upstream_payload.get("metadata")),
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="valuation_basis",
+            label="Valuation basis",
+            state="ready",
+            reason=_valuation_context_reason(upstream_payload.get("valuation_context")),
+            source_service="lotus-risk",
+        ),
     ]
     return WorkbenchRiskConcentrationResponse(
         correlation_id=correlation_id,
@@ -866,8 +898,8 @@ def _map_concentration_response(
         benchmark_code=benchmark_code,
         state="ready" if issuer_state == "ready" else "partial",
         payload=WorkbenchRiskConcentrationPayload(
-            risk_proxy=WorkbenchConcentrationRiskProxy.model_validate(
-                required_blocks["risk_proxy"]
+            portfolio_concentration=WorkbenchPortfolioConcentration.model_validate(
+                required_blocks["portfolio_concentration"]
             ),
             single_position_concentration=WorkbenchSinglePositionConcentration.model_validate(
                 required_blocks["single_position_concentration"]
@@ -875,10 +907,14 @@ def _map_concentration_response(
             issuer_concentration=WorkbenchIssuerConcentration.model_validate(
                 required_blocks["issuer_concentration"]
             ),
-            valuation_context=upstream_payload.get("valuation_context")
+            valuation_context=WorkbenchRiskConcentrationValuationContext.model_validate(
+                upstream_payload.get("valuation_context")
+            )
             if isinstance(upstream_payload.get("valuation_context"), dict)
             else None,
-            risk_metadata=upstream_payload.get("metadata")
+            execution_context=WorkbenchRiskConcentrationExecutionContext.model_validate(
+                upstream_payload.get("metadata")
+            )
             if isinstance(upstream_payload.get("metadata"), dict)
             else None,
         ),
@@ -994,9 +1030,18 @@ def _map_drawdown_response(
                     label=str(key),
                     start_date=str(value.get("start_date", "")),
                     end_date=str(value.get("end_date", "")),
+                    portfolio_observation_count=int(value.get("portfolio_observation_count", 0)),
+                    benchmark_observation_count=int(value.get("benchmark_observation_count", 0)),
                     summary=summary,
                     episodes=episodes,
                     relative_to_benchmark=relative_to_benchmark,
+                    relative_to_benchmark_context=(
+                        WorkbenchRiskRelativeDrawdownContext.model_validate(
+                            value.get("relative_to_benchmark_context")
+                        )
+                        if isinstance(value.get("relative_to_benchmark_context"), dict)
+                        else None
+                    ),
                     underwater_series=underwater_series,
                     error=str(error) if isinstance(error, str) and error.strip() else None,
                 )
@@ -1044,6 +1089,19 @@ def _map_drawdown_response(
         if isinstance(methodology_version, str) and methodology_version.strip():
             metadata = metadata.model_copy(update={"methodology_version": methodology_version})
 
+    drawdown_payload = (
+        WorkbenchRiskDrawdownPayload(
+            periods=period_results,
+            analysis_context=(
+                WorkbenchRiskDrawdownAnalysisContext.model_validate(upstream_metadata)
+                if isinstance(upstream_metadata, dict)
+                else None
+            ),
+        )
+        if period_results
+        else None
+    )
+
     return WorkbenchRiskDrawdownResponse(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
@@ -1051,7 +1109,7 @@ def _map_drawdown_response(
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=state,
-        payload=WorkbenchRiskDrawdownPayload(periods=period_results) if period_results else None,
+        payload=drawdown_payload,
         supportability=supportability,
         warnings=sorted(set(warnings)),
         partial_failures=partial_failures,
@@ -1140,6 +1198,40 @@ def _map_rolling_response(
                     start_date=str(value.get("start_date", "")),
                     end_date=str(value.get("end_date", "")),
                     series_count=int(value.get("series_count", 0)),
+                    benchmark_series_count=int(value.get("benchmark_series_count", 0)),
+                    aligned_benchmark_series_count=int(
+                        value.get("aligned_benchmark_series_count", 0)
+                    ),
+                    risk_free_series_count=int(value.get("risk_free_series_count", 0)),
+                    aligned_risk_free_series_count=int(
+                        value.get("aligned_risk_free_series_count", 0)
+                    ),
+                    window_lengths_requested=[
+                        int(window)
+                        for window in value.get("window_lengths_requested", [])
+                        if isinstance(window, int | float)
+                    ],
+                    window_count_requested=int(value.get("window_count_requested", 0)),
+                    window_lengths_emitted=[
+                        int(window)
+                        for window in value.get("window_lengths_emitted", [])
+                        if isinstance(window, int | float)
+                    ],
+                    window_count_emitted=int(value.get("window_count_emitted", 0)),
+                    benchmark_context=(
+                        WorkbenchRiskRollingDependencyContext.model_validate(
+                            value.get("benchmark_context")
+                        )
+                        if isinstance(value.get("benchmark_context"), dict)
+                        else None
+                    ),
+                    risk_free_context=(
+                        WorkbenchRiskRollingDependencyContext.model_validate(
+                            value.get("risk_free_context")
+                        )
+                        if isinstance(value.get("risk_free_context"), dict)
+                        else None
+                    ),
                     window_results=_map_rolling_window_results(value.get("window_results")),
                     quality_flags=quality_flags,
                     error=str(error) if isinstance(error, str) and error.strip() else None,
@@ -1179,6 +1271,19 @@ def _map_rolling_response(
         )
         warnings.append("RISK_ROLLING_SHARPE_PARTIAL")
 
+    rolling_payload = (
+        WorkbenchRiskRollingPayload(
+            periods=period_results,
+            request_context=(
+                WorkbenchRiskRollingRequestContext.model_validate(upstream_metadata)
+                if isinstance(upstream_metadata, dict)
+                else None
+            ),
+        )
+        if period_results
+        else None
+    )
+
     return WorkbenchRiskRollingResponse(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
@@ -1186,7 +1291,7 @@ def _map_rolling_response(
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=state,
-        payload=WorkbenchRiskRollingPayload(periods=period_results) if period_results else None,
+        payload=rolling_payload,
         supportability=supportability,
         warnings=sorted(set(warnings)),
         partial_failures=partial_failures,
@@ -1297,6 +1402,24 @@ def _map_attribution_response(
         if isinstance(methodology_version, str) and methodology_version.strip():
             metadata = metadata.model_copy(update={"methodology_version": methodology_version})
 
+    attribution_payload = (
+        WorkbenchRiskAttributionPayload(
+            controls=_build_attribution_controls(
+                benchmark_code=benchmark_code,
+                attribution_type=attribution_type,
+                grouping_dimension=grouping_dimension,
+            ),
+            periods=period_results,
+            methodology_context=(
+                WorkbenchRiskAttributionMethodologyContext.model_validate(upstream_metadata)
+                if isinstance(upstream_metadata, dict)
+                else None
+            ),
+        )
+        if period_results
+        else None
+    )
+
     return WorkbenchRiskAttributionResponse(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
@@ -1304,16 +1427,7 @@ def _map_attribution_response(
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=state,
-        payload=WorkbenchRiskAttributionPayload(
-            controls=_build_attribution_controls(
-                benchmark_code=benchmark_code,
-                attribution_type=attribution_type,
-                grouping_dimension=grouping_dimension,
-            ),
-            periods=period_results,
-        )
-        if period_results
-        else None,
+        payload=attribution_payload,
         supportability=supportability,
         warnings=sorted(set(warnings)),
         partial_failures=partial_failures,
@@ -1517,6 +1631,36 @@ def _issuer_supportability_reason(payload: Any) -> str | None:
     if str(payload.get("coverage_status", "")).lower() != "complete":
         return "Issuer coverage is not complete for the selected portfolio context."
     return None
+
+
+def _issuer_grouping_reason(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return "Issuer grouping metadata was not returned by lotus-risk."
+    grouping = payload.get("issuer_grouping_level")
+    policy = payload.get("enrichment_policy")
+    grouping_label = str(grouping).replace("_", " ") if grouping else "unspecified grouping"
+    policy_label = str(policy).replace("_", " ") if policy else "unspecified policy"
+    return f"{grouping_label.title()} grouping with {policy_label} enrichment policy."
+
+
+def _valuation_context_reason(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return "Valuation context was not returned by lotus-risk."
+    reporting_currency = payload.get("reporting_currency")
+    portfolio_currency = payload.get("portfolio_currency")
+    weight_basis = payload.get("weight_basis")
+    basis_label = str(weight_basis).replace("_", " ") if weight_basis else "reported weights"
+    currency_context = " / ".join(
+        part
+        for part in [
+            str(reporting_currency) if reporting_currency else None,
+            str(portfolio_currency) if portfolio_currency else None,
+        ]
+        if part
+    )
+    if currency_context:
+        return f"{basis_label.title()} in {currency_context} context."
+    return f"{basis_label.title()} context."
 
 
 def _unavailable_summary(
@@ -1831,6 +1975,13 @@ def _map_rolling_window_results(window_payload: Any) -> list[WorkbenchRiskRollin
                 window_length=int(entry.get("window_length", 0)),
                 metric_summaries=metric_summaries,
                 metric_series=metric_series,
+                metric_series_context=(
+                    WorkbenchRiskRollingMetricSeriesContext.model_validate(
+                        entry.get("metric_series_context")
+                    )
+                    if isinstance(entry.get("metric_series_context"), dict)
+                    else None
+                ),
             )
         )
     results.sort(key=lambda item: item.window_length)

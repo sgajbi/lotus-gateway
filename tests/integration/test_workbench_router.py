@@ -530,6 +530,16 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
                 "top_n_cumulative_weight_proposed": 0.52,
                 "top_n_cumulative_weight_delta": 0.02,
                 "top_n": 10,
+                "top_position_current": {
+                    "security_id": "FO_FUND_PIMCO_INC",
+                    "security_name": "PIMCO GIS Income Fund",
+                    "weight": 0.2,
+                },
+                "top_position_proposed": {
+                    "security_id": "FO_FUND_PIMCO_INC",
+                    "security_name": "PIMCO GIS Income Fund",
+                    "weight": 0.21,
+                },
             },
             "issuer_concentration": {
                 "hhi_current": 1500.0,
@@ -543,10 +553,36 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
                 "covered_position_count_proposed": 10,
                 "total_position_count_current": 10,
                 "total_position_count_proposed": 10,
+                "uncovered_position_count_current": 0,
+                "uncovered_position_count_proposed": 0,
+                "coverage_ratio_current": 1.0,
+                "coverage_ratio_proposed": 1.0,
                 "note": None,
+                "top_issuer_current": {
+                    "issuer_id": "ULTIMATE_PIMCO",
+                    "issuer_name": "Pacific Investment Management Company LLC",
+                    "weight": 0.25,
+                },
+                "top_issuer_proposed": {
+                    "issuer_id": "ULTIMATE_PIMCO",
+                    "issuer_name": "Pacific Investment Management Company LLC",
+                    "weight": 0.27,
+                },
             },
-            "valuation_context": {"reporting_currency": "USD"},
-            "metadata": {"as_of_date": "2026-04-04", "portfolio_id": "PF_RISK_CONC"},
+            "valuation_context": {
+                "portfolio_currency": "USD",
+                "reporting_currency": "USD",
+                "position_basis": "market_value_base",
+                "weight_basis": "total_market_value_base",
+            },
+            "metadata": {
+                "as_of_date": "2026-04-04",
+                "portfolio_id": "PF_RISK_CONC",
+                "issuer_grouping_level": "ultimate_parent",
+                "enrichment_policy": "merge_caller_then_core",
+                "include_cash_positions": True,
+                "include_zero_quantity_positions": False,
+            },
         }
 
     monkeypatch.setattr(
@@ -565,10 +601,17 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     body = response.json()
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["state"] == "ready"
-    assert body["payload"]["risk_proxy"]["hhi_current"] == 1200.0
+    assert body["payload"]["portfolio_concentration"]["hhi_current"] == 1200.0
+    assert (
+        body["payload"]["single_position_concentration"]["top_position_current"]["security_name"]
+        == "PIMCO GIS Income Fund"
+    )
+    assert body["payload"]["execution_context"]["issuer_grouping_level"] == "ultimate_parent"
     assert {item["key"]: item["state"] for item in body["supportability"]} == {
         "portfolio_positions": "ready",
         "issuer_enrichment": "ready",
+        "issuer_grouping": "ready",
+        "valuation_basis": "ready",
     }
 
 
