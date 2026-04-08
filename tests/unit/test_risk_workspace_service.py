@@ -49,6 +49,16 @@ class _StubRiskClient:
                 "top_n_cumulative_weight_proposed": 0.42,
                 "top_n_cumulative_weight_delta": 0.0,
                 "top_n": 10,
+                "top_position_current": {
+                    "security_id": "FO_FUND_PIMCO_INC",
+                    "security_name": "PIMCO GIS Income Fund",
+                    "weight": 0.18,
+                },
+                "top_position_proposed": {
+                    "security_id": "FO_FUND_PIMCO_INC",
+                    "security_name": "PIMCO GIS Income Fund",
+                    "weight": 0.18,
+                },
             },
             "issuer_concentration": {
                 "hhi_current": 1400.0,
@@ -62,10 +72,36 @@ class _StubRiskClient:
                 "covered_position_count_proposed": 8,
                 "total_position_count_current": 10,
                 "total_position_count_proposed": 10,
+                "uncovered_position_count_current": 2,
+                "uncovered_position_count_proposed": 2,
+                "coverage_ratio_current": 0.8,
+                "coverage_ratio_proposed": 0.8,
                 "note": "Two positions have no issuer enrichment.",
+                "top_issuer_current": {
+                    "issuer_id": "ULTIMATE_PIMCO",
+                    "issuer_name": "Pacific Investment Management Company LLC",
+                    "weight": 0.2,
+                },
+                "top_issuer_proposed": {
+                    "issuer_id": "ULTIMATE_PIMCO",
+                    "issuer_name": "Pacific Investment Management Company LLC",
+                    "weight": 0.21,
+                },
             },
-            "valuation_context": {"reporting_currency": "USD"},
-            "metadata": {"as_of_date": "2026-04-04", "portfolio_id": "PF_1"},
+            "valuation_context": {
+                "portfolio_currency": "USD",
+                "reporting_currency": "USD",
+                "position_basis": "market_value_base",
+                "weight_basis": "total_market_value_base",
+            },
+            "metadata": {
+                "as_of_date": "2026-04-04",
+                "portfolio_id": "PF_1",
+                "issuer_grouping_level": "ultimate_parent",
+                "enrichment_policy": "merge_caller_then_core",
+                "include_cash_positions": True,
+                "include_zero_quantity_positions": False,
+            },
         }
         self.drawdown_payload: dict = {
             "source_service": "lotus-risk",
@@ -331,10 +367,18 @@ async def test_risk_concentration_uses_stateful_request_and_maps_issuer_supporta
     assert request["enrichment_policy"] == "merge_caller_then_core"
     assert response.state == "partial"
     assert response.payload is not None
-    assert response.payload.risk_proxy.hhi_current == 1200.0
+    assert response.payload.portfolio_concentration.hhi_current == 1200.0
+    assert response.payload.single_position_concentration.top_position_current.security_name == (
+        "PIMCO GIS Income Fund"
+    )
+    assert response.payload.issuer_concentration.coverage_ratio_current == 0.8
+    assert response.payload.execution_context is not None
+    assert response.payload.execution_context.issuer_grouping_level == "ultimate_parent"
     assert {item.key: item.state for item in response.supportability} == {
         "portfolio_positions": "ready",
         "issuer_enrichment": "partial",
+        "issuer_grouping": "ready",
+        "valuation_basis": "ready",
     }
 
 
