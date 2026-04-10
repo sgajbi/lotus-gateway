@@ -19,5 +19,5 @@ No runtime or API changes. CI execution reliability improvement only.
 - Substantially reduced false-negative CI failures.
 
 ## High-Level Implementation Approach
-1. Update `.github/workflows/ci.yml` live E2E job steps.
+1. Update `.github/workflows/platform-end-to-end-validation.yml` live E2E job steps.
 2. Re-run CI and confirm job reaches actual live E2E assertions.

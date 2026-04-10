@@ -21,7 +21,7 @@ git commit -m "type: short summary"
 git push -u origin feat/<short-change-name>
 gh pr create --fill --base main --head feat/<short-change-name>
 gh pr checks <PR_NUMBER> --watch
-gh pr merge <PR_NUMBER> --squash --delete-branch
+gh pr merge <PR_NUMBER> --merge --delete-branch
 git checkout main
 git pull origin main
 ```
