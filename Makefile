@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -64,6 +64,9 @@ ci-local-docker-down:
 
 run:
 	uvicorn app.main:app --reload --app-dir src --port 8100
+
+run-canonical:
+	uvicorn app.main:app --reload --app-dir src --host 0.0.0.0 --port 8111
 
 docker-up:
 	docker compose up -d --build

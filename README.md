@@ -32,6 +32,21 @@ Preferred environment-scoped service identity:
 
 - Gateway: `http://gateway.dev.lotus`
 
+Canonical local host runtime:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/Start-CanonicalGateway.ps1
+```
+
+This is the preferred local operator command when Workbench is expected to call the current
+checkout through `http://gateway.dev.lotus`.
+
+Important:
+
+- local Gateway startup on port `8111` must include `--app-dir src`
+- otherwise Windows can resolve a different installed `app` package and serve a misleading
+  health-only process that returns `200` for `/health/ready` but `404` for current Workbench routes
+
 Public-entry repos should depend on the stable service identity above. Raw port mappings remain an
 internal local-runtime detail until the full RFC-0071 rollout is complete.
 
