@@ -6,6 +6,7 @@ pass-through routes into the primary BFF layer for Lotus workspace applications.
 ## Contribution Standards
 
 - Contribution process: `CONTRIBUTING.md`
+- Repository-local engineering context: `REPOSITORY-ENGINEERING-CONTEXT.md`
 - Docs-with-code standard: `docs/documentation/implementation-documentation-standard.md`
 - PR checklist template: `.github/pull_request_template.md`
 - Platform-wide architecture governance source: `https://github.com/sgajbi/lotus-platform`
