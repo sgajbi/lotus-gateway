@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-04-07T13:10:30Z",
+  "generated_at": "2026-04-10T01:52:37Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:112:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -490,22 +490,22 @@
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:152:metric_values: dict[str, float | None] = Field(default_factory=dict)",
+      "finding": "src/app/contracts/risk_workspace.py:140:drawdown_at_risk_95: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:194:weight_average: float | None = None",
+      "finding": "src/app/contracts/risk_workspace.py:141:conditional_drawdown_at_risk_95: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:204:total_value: float | None = None",
+      "finding": "src/app/contracts/risk_workspace.py:230:metric_values: dict[str, float | None] = Field(default_factory=dict)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
       "finding": "src/app/contracts/risk_workspace.py:29:value: float | None = None",
@@ -514,70 +514,82 @@
       "review_by": "2026-10-04"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:54:top_position_weight_current: float",
+      "finding": "src/app/contracts/risk_workspace.py:315:weight_average: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:55:top_position_weight_proposed: float",
+      "finding": "src/app/contracts/risk_workspace.py:325:total_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:56:top_position_weight_delta: float",
+      "finding": "src/app/contracts/risk_workspace.py:60:weight: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:57:top_n_cumulative_weight_current: float",
+      "finding": "src/app/contracts/risk_workspace.py:64:top_position_weight_current: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:58:top_n_cumulative_weight_proposed: float",
+      "finding": "src/app/contracts/risk_workspace.py:65:top_position_weight_proposed: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:59:top_n_cumulative_weight_delta: float",
+      "finding": "src/app/contracts/risk_workspace.py:66:top_position_weight_delta: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:67:top_issuer_weight_current: float",
+      "finding": "src/app/contracts/risk_workspace.py:67:top_n_cumulative_weight_current: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:68:top_issuer_weight_proposed: float",
+      "finding": "src/app/contracts/risk_workspace.py:68:top_n_cumulative_weight_proposed: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:69:top_issuer_weight_delta: float",
+      "finding": "src/app/contracts/risk_workspace.py:69:top_n_cumulative_weight_delta: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:97:drawdown_at_risk_95: float | None = None",
+      "finding": "src/app/contracts/risk_workspace.py:78:weight: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:98:conditional_drawdown_at_risk_95: float | None = None",
+      "finding": "src/app/contracts/risk_workspace.py:85:top_issuer_weight_current: float",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
+    },
+    {
+      "finding": "src/app/contracts/risk_workspace.py:86:top_issuer_weight_proposed: float",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-07"
+    },
+    {
+      "finding": "src/app/contracts/risk_workspace.py:87:top_issuer_weight_delta: float",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-07"
     },
     {
       "finding": "src/app/contracts/workbench.py:12:market_value_base: float",
@@ -802,28 +814,28 @@
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/services/risk_workspace_service.py:1491:def _safe_float(value: Any) -> float | None:",
+      "finding": "src/app/services/risk_workspace_service.py:1605:def _safe_float(value: Any) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/services/risk_workspace_service.py:1495:return float(value)",
+      "finding": "src/app/services/risk_workspace_service.py:1609:return float(value)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/services/risk_workspace_service.py:1850:str(key): float(value) if isinstance(value, int | float) else None",
+      "finding": "src/app/services/risk_workspace_service.py:2001:str(key): float(value) if isinstance(value, int | float) else None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
-      "finding": "src/app/services/risk_workspace_service.py:771:value=float(value) if isinstance(value, int | float) else None,",
+      "finding": "src/app/services/risk_workspace_service.py:789:value=float(value) if isinstance(value, int | float) else None,",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-04"
+      "review_by": "2026-10-07"
     },
     {
       "finding": "src/app/services/workbench_service.py:376:current_weight_pct=float(",
