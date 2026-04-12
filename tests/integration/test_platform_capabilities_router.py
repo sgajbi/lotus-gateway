@@ -105,6 +105,29 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_report": "lotus-report-default-v1",
     }
     assert body["normalized"]["lotusCorePolicyDiagnostics"]["available"] is True
+    shell_bootstrap = body["normalized"]["shellBootstrap"]
+    assert shell_bootstrap["contractVersion"] == "shell-bootstrap.v1"
+    assert shell_bootstrap["supportability"]["state"] == "ready"
+    assert shell_bootstrap["caching"]["cacheMode"] == "request_scoped_composition"
+    assert [workspace["id"] for workspace in shell_bootstrap["workspaces"]] == [
+        "portfolio",
+        "performance",
+        "risk",
+        "proposal",
+        "advisory",
+    ]
+    performance_workspace = next(
+        workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "performance"
+    )
+    assert performance_workspace["enabled"] is True
+    assert performance_workspace["freshness"]["freshnessClass"] == "analytical_summary"
+    assert performance_workspace["caching"]["cacheMode"] == "short_lived_revalidation"
+    proposal_workspace = next(
+        workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "proposal"
+    )
+    assert proposal_workspace["enabled"] is False
+    assert proposal_workspace["supportability"]["state"] == "unavailable"
+    assert proposal_workspace["caching"]["correctnessCritical"] is True
 
 
 def test_platform_capabilities_router_partial_failure(monkeypatch):
@@ -158,3 +181,13 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     assert body["normalized"]["policyVersionsBySource"]["lotus_performance"] == "unknown"
     assert body["normalized"]["policyVersionsBySource"]["lotus_report"] == "unknown"
     assert body["normalized"]["lotusCorePolicyDiagnostics"]["available"] is False
+    shell_bootstrap = body["normalized"]["shellBootstrap"]
+    assert shell_bootstrap["supportability"]["state"] == "partial"
+    assert shell_bootstrap["evidence"]["partialFailure"] is True
+    assert "lotus_performance" in shell_bootstrap["evidence"]["sourceErrorServices"]
+    performance_workspace = next(
+        workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "performance"
+    )
+    assert performance_workspace["enabled"] is False
+    assert performance_workspace["supportability"]["state"] == "partial"
+    assert performance_workspace["evidence"]["state"] == "partial"

@@ -79,11 +79,27 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert "moduleHealth" in payload["normalized"]
     assert "policyVersionsBySource" in payload["normalized"]
     assert "lotusCorePolicyDiagnostics" in payload["normalized"]
+    assert "shellBootstrap" in payload["normalized"]
     assert payload["normalized"]["navigation"]["portfolio_workspace"] is False
     assert payload["normalized"]["navigation"]["performance_workspace"] is False
     assert payload["normalized"]["navigation"]["risk_workspace"] is False
     assert payload["normalized"]["navigation"]["proposal_workspace"] is False
     assert payload["normalized"]["navigation"]["advisory_workspace"] is False
+    assert payload["normalized"]["shellBootstrap"]["contractVersion"] == "shell-bootstrap.v1"
+    assert payload["normalized"]["shellBootstrap"]["supportability"]["state"] == "ready"
+    assert (
+        payload["normalized"]["shellBootstrap"]["freshness"]["freshnessClass"]
+        == "shell_navigation"
+    )
+    assert payload["normalized"]["shellBootstrap"]["evidence"]["state"] == "source_backed"
+    assert (
+        payload["normalized"]["shellBootstrap"]["versioning"]["capabilityContractVersion"] == "v1"
+    )
+    assert (
+        payload["normalized"]["shellBootstrap"]["caching"]["cacheMode"]
+        == "request_scoped_composition"
+    )
+    assert len(payload["normalized"]["shellBootstrap"]["workspaces"]) == 5
 
     for service_name in ("lotus_core", "lotus_performance", "lotus_manage", "lotus_report"):
         source = payload["sources"][service_name]
