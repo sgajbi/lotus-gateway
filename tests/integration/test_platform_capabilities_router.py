@@ -91,6 +91,11 @@ def test_platform_capabilities_router_success(monkeypatch):
     }
     assert body["normalized"]["navigation"]["decision_console"] is True
     assert body["normalized"]["navigation"]["reporting_hub"] is True
+    assert body["normalized"]["navigation"]["portfolio_workspace"] is True
+    assert body["normalized"]["navigation"]["performance_workspace"] is True
+    assert body["normalized"]["navigation"]["risk_workspace"] is True
+    assert body["normalized"]["navigation"]["proposal_workspace"] is False
+    assert body["normalized"]["navigation"]["advisory_workspace"] is False
     assert body["normalized"]["workflowFlags"]["proposal_lifecycle"] is True
     assert body["normalized"]["workflowFlags"]["portfolio_reporting"] is True
     assert body["normalized"]["policyVersionsBySource"] == {
@@ -144,6 +149,9 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     assert set(body["sources"].keys()) == {"lotus_core"}
     assert len(body["errors"]) == 4
     assert body["normalized"]["navigation"]["analytics_studio"] is False
+    assert body["normalized"]["navigation"]["portfolio_workspace"] is True
+    assert body["normalized"]["navigation"]["performance_workspace"] is False
+    assert body["normalized"]["navigation"]["risk_workspace"] is False
     assert body["normalized"]["moduleHealth"]["lotus_performance"] == "unavailable"
     assert body["normalized"]["moduleHealth"]["lotus_report"] == "unavailable"
     assert body["normalized"]["policyVersionsBySource"]["lotus_core"] == "lotus-core-default-v1"

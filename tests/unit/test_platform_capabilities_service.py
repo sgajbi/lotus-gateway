@@ -143,6 +143,11 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.navigation["analytics_studio"] is True
     assert response.data.normalized.navigation["advisory_pipeline"] is True
     assert response.data.normalized.navigation["reporting_hub"] is True
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is True
+    assert response.data.normalized.navigation["risk_workspace"] is True
+    assert response.data.normalized.navigation["proposal_workspace"] is False
+    assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["portfolio_reporting"] is True
     assert "inline_bundle" in response.data.normalized.input_modes_union
@@ -193,6 +198,11 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert len(response.data.errors) == 4
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is False
+    assert response.data.normalized.navigation["risk_workspace"] is False
+    assert response.data.normalized.navigation["proposal_workspace"] is False
+    assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
@@ -267,6 +277,9 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     assert normalized.navigation["portfolio_intake"] is True
     assert normalized.navigation["advisory_pipeline"] is False
     assert normalized.navigation["analytics_studio"] is False
+    assert normalized.navigation["portfolio_workspace"] is True
+    assert normalized.navigation["performance_workspace"] is False
+    assert normalized.navigation["risk_workspace"] is False
     assert normalized.workflow_flags["proposal_lifecycle"] is False
     assert normalized.workflow_flags["performance_snapshot"] is True
     assert normalized.input_modes_by_source["lotus_core"] == []

@@ -308,6 +308,13 @@ class PlatformCapabilitiesService:
                 )
             ),
             "reporting_hub": feature_enabled["lotus_report_reporting"],
+            "portfolio_workspace": (
+                feature_enabled["lotus_core_intake"] or feature_enabled["lotus_core_snapshot"]
+            ),
+            "performance_workspace": feature_enabled["lotus_performance_analytics"],
+            "risk_workspace": feature_enabled["lotus_performance_analytics"],
+            "proposal_workspace": False,
+            "advisory_workspace": False,
         }
         workflow_flags = {
             "proposal_lifecycle": self._workflow_enabled(

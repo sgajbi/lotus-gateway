@@ -79,6 +79,11 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert "moduleHealth" in payload["normalized"]
     assert "policyVersionsBySource" in payload["normalized"]
     assert "lotusCorePolicyDiagnostics" in payload["normalized"]
+    assert payload["normalized"]["navigation"]["portfolio_workspace"] is False
+    assert payload["normalized"]["navigation"]["performance_workspace"] is False
+    assert payload["normalized"]["navigation"]["risk_workspace"] is False
+    assert payload["normalized"]["navigation"]["proposal_workspace"] is False
+    assert payload["normalized"]["navigation"]["advisory_workspace"] is False
 
     for service_name in ("lotus_core", "lotus_performance", "lotus_manage", "lotus_report"):
         source = payload["sources"][service_name]
