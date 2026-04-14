@@ -53,6 +53,7 @@ class _StubWorkbenchService:
 class _StubAnalyticsClient:
     def __init__(self):
         self.workspace_summary_calls: list[dict[str, object]] = []
+        self.contribution_calls: list[dict[str, object]] = []
         self.attribution_calls: list[dict[str, object]] = []
         self.twr_calls: list[dict[str, object]] = []
 
@@ -95,9 +96,14 @@ class _StubAnalyticsClient:
             }
         return 200, source_payload
 
+    async def get_contribution_analytics(self, **kwargs):
+        self.contribution_calls.append(kwargs)
+        return 200, _contribution_payload(dimension=str(kwargs["dimension"]))
+
     async def get_attribution_analytics(self, **kwargs):
         self.attribution_calls.append(kwargs)
         return 200, _attribution_payload(
+            dimension=str(kwargs.get("dimension", "asset_class")),
             report_start_date=str(kwargs["report_start_date"]),
             report_end_date=str(kwargs["report_end_date"]),
         )
@@ -687,7 +693,49 @@ def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
     }
 
 
-def _attribution_payload(*, report_start_date: str, report_end_date: str) -> dict:
+def _contribution_payload(*, dimension: str) -> dict:
+    return {
+        "results_by_period": {
+            "YTD": {
+                "summary": {
+                    "portfolio_contribution": 5.2,
+                    "coverage_mv_pct": 97.4,
+                    "weighting_scheme": "average_weight",
+                    "local_contribution": 4.7,
+                    "fx_contribution": 0.5,
+                },
+                "total_portfolio_return": 5.2,
+                "levels": [
+                    {
+                        "level": 1,
+                        "name": dimension,
+                        "rows": [
+                            {
+                                "key": {dimension: "Technology" if dimension != "currency" else "USD"},
+                                "contribution": 3.1,
+                                "weight_avg": 42.0,
+                                "local_contribution": 2.8,
+                                "fx_contribution": 0.3,
+                            }
+                        ],
+                    }
+                ],
+                "position_contributions": [
+                    {
+                        "position_id": "AAPL_US",
+                        "total_contribution": 1.55,
+                        "average_weight": 8.6,
+                        "total_return": 28.4,
+                        "local_contribution": 1.33,
+                        "fx_contribution": 0.22,
+                    }
+                ],
+            }
+        }
+    }
+
+
+def _attribution_payload(*, dimension: str, report_start_date: str, report_end_date: str) -> dict:
     month = report_start_date[:7]
     totals_by_month = {
         "2026-01": {"allocation": 0.12, "selection": 0.08, "interaction": 0.02, "total": 0.22},
@@ -709,14 +757,68 @@ def _attribution_payload(*, report_start_date: str, report_end_date: str) -> dic
                 },
                 "levels": [
                     {
-                        "dimension": "asset_class",
+                        "dimension": dimension,
                         "totals": {
                             "allocation": totals["allocation"],
                             "selection": totals["selection"],
                             "interaction": totals["interaction"],
                             "total_effect": totals["total"],
                         },
-                        "groups": [],
+                        "groups": [
+                            {
+                                "key": {dimension: "Equity" if dimension != "currency" else "USD"},
+                                "portfolio_weight_avg": 61.0,
+                                "benchmark_weight_avg": 58.0,
+                                "portfolio_return": 7.4,
+                                "benchmark_return": 6.8,
+                                "allocation": totals["allocation"],
+                                "selection": totals["selection"],
+                                "interaction": totals["interaction"],
+                                "total_effect": totals["total"],
+                            }
+                        ],
+                    }
+                ],
+            }
+        },
+    }
+
+
+def _attribution_detail_payload(*, dimension: str) -> dict:
+    return {
+        "benchmark_context": {
+            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "return_source": "calculated",
+        },
+        "results_by_period": {
+            "YTD": {
+                "reconciliation": {
+                    "total_active_return": 0.52,
+                    "sum_of_effects": 0.5,
+                    "residual": 0.02,
+                },
+                "levels": [
+                    {
+                        "dimension": dimension,
+                        "totals": {
+                            "allocation": 0.18,
+                            "selection": 0.24,
+                            "interaction": 0.03,
+                            "total_effect": 0.45,
+                        },
+                        "groups": [
+                            {
+                                "key": {dimension: "Singapore" if dimension == "country" else "Technology"},
+                                "portfolio_weight_avg": 61.0,
+                                "benchmark_weight_avg": 58.0,
+                                "portfolio_return": 7.4,
+                                "benchmark_return": 6.8,
+                                "allocation": 0.18,
+                                "selection": 0.24,
+                                "interaction": 0.03,
+                                "total_effect": 0.45,
+                            }
+                        ],
                     }
                 ],
             }
@@ -851,6 +953,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         "asset_class",
         "sector",
         "country",
+        "currency",
     ]
     assert response.capabilities.attribution_detail.state == "supported"
     assert response.capabilities.attribution_detail.supported_dimensions == [
@@ -1303,7 +1406,7 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.portfolio_id == "DEMO_ADV_USD_001"
     assert len(response.net_chart) == 3
     assert response.contribution is not None
-    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert response.attribution is not None
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
     assert response.capabilities.contribution_ranking.state == "supported"
@@ -1338,7 +1441,7 @@ async def test_performance_workspace_service_normalizes_qtd_workspace_summary_to
     assert response.period == "QTD"
     assert response.report_start_date == "2026-01-01"
     assert response.contribution is not None
-    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert analytics_client.workspace_summary_calls[0]["period"] == "EXPLICIT"
     assert analytics_client.workspace_summary_calls[0]["report_start_date"] == "2026-01-01"
 
@@ -1418,16 +1521,63 @@ async def test_performance_workspace_service_normalizes_unsupported_controls():
     )
 
     assert response.chart_frequency == "monthly"
-    assert response.contribution_dimension == "asset_class"
+    assert response.contribution_dimension == "currency"
     assert response.attribution_dimension == "asset_class"
     assert response.requested_chart_frequency_supported is False
-    assert response.requested_contribution_dimension_supported is False
+    assert response.requested_contribution_dimension_supported is True
     assert response.requested_attribution_dimension_supported is False
     assert "PERFORMANCE_CHART_FREQUENCY_NORMALIZED" in response.warnings
-    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
+    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" not in response.warnings
     assert "PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
-    assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
+    assert analytics_client.workspace_summary_calls[0]["segment"] == "currency"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_details_use_independent_detail_dimensions_and_keep_segment_context():
+    class _DetailAwareAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            return 200, _contribution_payload(dimension=str(kwargs["dimension"]))
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            return 200, _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+
+    analytics_client = _DetailAwareAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="currency",
+        attribution_dimension="country",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution_dimension == "currency"
+    assert response.attribution_dimension == "country"
+    assert response.segment == "currency"
+    assert response.contribution is not None
+    assert response.contribution.levels[0].name == "currency"
+    assert response.attribution is not None
+    assert response.attribution.levels[0].dimension == "country"
+    assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 61.0
+    assert response.attribution.levels[0].rows[0].benchmark_weight_avg_pct == 58.0
+    assert response.attribution.levels[0].rows[0].portfolio_return_pct == 7.4
+    assert response.attribution.levels[0].rows[0].benchmark_return_pct == 6.8
+    assert response.attribution.levels[0].allocation_total_pct == 0.18
+    assert response.attribution.levels[0].selection_total_pct == 0.24
+    assert response.attribution.levels[0].interaction_total_pct == 0.03
+    assert analytics_client.contribution_calls[0]["dimension"] == "currency"
+    assert analytics_client.attribution_calls[0]["dimension"] == "country"
 
 
 @pytest.mark.asyncio
@@ -1559,6 +1709,7 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
         "asset_class",
         "sector",
         "country",
+        "currency",
     ]
     assert response.capabilities.contribution_detail.state == "partial"
 

@@ -52,7 +52,7 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
-SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
+SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
 SUPPORTED_WORKSPACE_SUMMARY_PERIODS = ("YTD", "1Y", "2Y", "5Y", "10Y", "SI", "EXPLICIT")
@@ -132,6 +132,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=True,
+            prefer_independent_detail_analytics=False,
         )
 
     async def get_performance_workspace_summary(
@@ -191,6 +192,7 @@ class PerformanceWorkspaceService:
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=False,
             include_detail_blocks=True,
+            prefer_independent_detail_analytics=True,
         )
         return self._project_workspace_details(workspace)
 
@@ -479,6 +481,7 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None = None,
         include_benchmark_catalog: bool = True,
         include_detail_blocks: bool = True,
+        prefer_independent_detail_analytics: bool = False,
     ) -> PerformanceWorkspaceResponse:
         async with server_timing_span("perf-overview"):
             overview = await self._get_cached_workspace_overview(
@@ -581,6 +584,35 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+        if include_detail_blocks and prefer_independent_detail_analytics:
+            (
+                contribution_detail_result,
+                attribution_detail_result,
+            ) = await self._fetch_workspace_detail_results(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_start_date=report_start_date.isoformat(),
+                report_end_date=report_end_date,
+                requested_period=effective_period,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                contribution_dimension=resolved_contribution_dimension,
+                attribution_dimension=resolved_attribution_dimension,
+            )
+            contribution = self._parse_contribution_result(
+                result=contribution_detail_result,
+                metric_basis=detail_basis,
+                requested_period=effective_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            ) or contribution
+            attribution = self._parse_attribution_result(
+                result=attribution_detail_result,
+                metric_basis=detail_basis,
+                requested_period=effective_period,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            ) or attribution
         benchmark_options = self._parse_benchmark_catalog_result(
             result=benchmark_catalog_result,
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
@@ -1289,7 +1321,7 @@ class PerformanceWorkspaceService:
         portfolio_currency: str,
         segment: str,
         include_detail_blocks: bool = True,
-    ) -> GatheredResult:
+        ) -> GatheredResult:
         return cast(
             GatheredResult,
             await self._get_cached_upstream_result(
@@ -1319,6 +1351,75 @@ class PerformanceWorkspaceService:
                     correlation_id=correlation_id,
                     include_detail_blocks=include_detail_blocks,
                 ),
+            ),
+        )
+
+    async def _fetch_workspace_detail_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_start_date: str,
+        report_end_date: str,
+        requested_period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        contribution_dimension: str,
+        attribution_dimension: str,
+    ) -> tuple[GatheredResult, GatheredResult]:
+        contribution_loader = lambda: self._analytics_client.get_contribution_analytics(
+            portfolio_id=portfolio_id,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            period=requested_period,
+            metric_basis=detail_basis,
+            dimension=contribution_dimension,
+            correlation_id=correlation_id,
+        )
+        attribution_loader = (
+            lambda: self._analytics_client.get_attribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                dimension=attribution_dimension,
+                correlation_id=correlation_id,
+            )
+            if benchmark_code
+            else self._empty_async_result
+        )
+
+        return cast(
+            tuple[GatheredResult, GatheredResult],
+            await asyncio.gather(
+                self._get_cached_upstream_result(
+                    (
+                        "workspace_contribution_detail",
+                        portfolio_id,
+                        report_start_date,
+                        report_end_date,
+                        requested_period,
+                        detail_basis,
+                        contribution_dimension,
+                    ),
+                    contribution_loader,
+                ),
+                self._get_cached_upstream_result(
+                    (
+                        "workspace_attribution_detail",
+                        portfolio_id,
+                        report_start_date,
+                        report_end_date,
+                        requested_period,
+                        detail_basis,
+                        benchmark_code,
+                        attribution_dimension,
+                    ),
+                    attribution_loader,
+                ),
+                return_exceptions=True,
             ),
         )
 
@@ -2696,6 +2797,18 @@ class PerformanceWorkspaceService:
                         rows.append(
                             AttributionRowView(
                                 key_label=self._format_key_label(group_payload.get("key")),
+                                portfolio_weight_avg_pct=self._weight_to_pct(
+                                    group_payload.get("portfolio_weight_avg")
+                                ),
+                                benchmark_weight_avg_pct=self._weight_to_pct(
+                                    group_payload.get("benchmark_weight_avg")
+                                ),
+                                portfolio_return_pct=self._quantize_optional(
+                                    group_payload.get("portfolio_return")
+                                ),
+                                benchmark_return_pct=self._quantize_optional(
+                                    group_payload.get("benchmark_return")
+                                ),
                                 allocation_pct=float(
                                     quantize_performance(group_payload.get("allocation", 0.0))
                                 ),
@@ -2717,6 +2830,15 @@ class PerformanceWorkspaceService:
                 levels.append(
                     AttributionLevelView(
                         dimension=str(level_payload.get("dimension", "Dimension")),
+                        allocation_total_pct=self._quantize_optional(
+                            totals_payload.get("allocation")
+                        ),
+                        selection_total_pct=self._quantize_optional(
+                            totals_payload.get("selection")
+                        ),
+                        interaction_total_pct=self._quantize_optional(
+                            totals_payload.get("interaction")
+                        ),
                         total_effect_pct=total_effect or 0.0,
                         rows=rows,
                     )
