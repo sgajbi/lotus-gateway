@@ -1410,7 +1410,7 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
     assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.attribution_detail.state == "supported"
-    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is True
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert response.segment == "asset_class"
     assert not hasattr(response, "overview")
     assert not hasattr(response, "net_performance")
@@ -1577,6 +1577,7 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
     assert response.attribution.levels[0].interaction_total_pct == 0.03
     assert analytics_client.contribution_calls[0]["dimension"] == "sector"
     assert analytics_client.attribution_calls[0]["dimension"] == "currency"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
 
 
 @pytest.mark.asyncio
