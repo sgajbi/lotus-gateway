@@ -52,7 +52,7 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
-SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
+SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
 SUPPORTED_WORKSPACE_SUMMARY_PERIODS = ("YTD", "1Y", "2Y", "5Y", "10Y", "SI", "EXPLICIT")
@@ -1388,7 +1388,7 @@ class PerformanceWorkspaceService:
                 correlation_id=correlation_id,
             )
             if benchmark_code
-            else self._empty_async_result
+            else self._empty_async_result()
         )
 
         return cast(

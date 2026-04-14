@@ -953,7 +953,6 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         "asset_class",
         "sector",
         "country",
-        "currency",
     ]
     assert response.capabilities.attribution_detail.state == "supported"
     assert response.capabilities.attribution_detail.supported_dimensions == [
@@ -1521,16 +1520,16 @@ async def test_performance_workspace_service_normalizes_unsupported_controls():
     )
 
     assert response.chart_frequency == "monthly"
-    assert response.contribution_dimension == "currency"
+    assert response.contribution_dimension == "asset_class"
     assert response.attribution_dimension == "asset_class"
     assert response.requested_chart_frequency_supported is False
-    assert response.requested_contribution_dimension_supported is True
+    assert response.requested_contribution_dimension_supported is False
     assert response.requested_attribution_dimension_supported is False
     assert "PERFORMANCE_CHART_FREQUENCY_NORMALIZED" in response.warnings
-    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" not in response.warnings
+    assert "PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
     assert "PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED" in response.warnings
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
-    assert analytics_client.workspace_summary_calls[0]["segment"] == "currency"
+    assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
 
 
 @pytest.mark.asyncio
@@ -1556,19 +1555,19 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
         correlation_id="corr-performance",
         period="YTD",
         chart_frequency="monthly",
-        contribution_dimension="currency",
-        attribution_dimension="country",
+        contribution_dimension="sector",
+        attribution_dimension="currency",
         detail_basis="NET",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
     )
 
-    assert response.contribution_dimension == "currency"
-    assert response.attribution_dimension == "country"
-    assert response.segment == "currency"
+    assert response.contribution_dimension == "sector"
+    assert response.attribution_dimension == "currency"
+    assert response.segment == "sector"
     assert response.contribution is not None
-    assert response.contribution.levels[0].name == "currency"
+    assert response.contribution.levels[0].name == "sector"
     assert response.attribution is not None
-    assert response.attribution.levels[0].dimension == "country"
+    assert response.attribution.levels[0].dimension == "currency"
     assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 61.0
     assert response.attribution.levels[0].rows[0].benchmark_weight_avg_pct == 58.0
     assert response.attribution.levels[0].rows[0].portfolio_return_pct == 7.4
@@ -1576,8 +1575,8 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
     assert response.attribution.levels[0].allocation_total_pct == 0.18
     assert response.attribution.levels[0].selection_total_pct == 0.24
     assert response.attribution.levels[0].interaction_total_pct == 0.03
-    assert analytics_client.contribution_calls[0]["dimension"] == "currency"
-    assert analytics_client.attribution_calls[0]["dimension"] == "country"
+    assert analytics_client.contribution_calls[0]["dimension"] == "sector"
+    assert analytics_client.attribution_calls[0]["dimension"] == "currency"
 
 
 @pytest.mark.asyncio
@@ -1709,7 +1708,6 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
         "asset_class",
         "sector",
         "country",
-        "currency",
     ]
     assert response.capabilities.contribution_detail.state == "partial"
 

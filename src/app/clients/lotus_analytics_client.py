@@ -302,6 +302,7 @@ class LotusAnalyticsClient:
         dimension: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        stateful_dimensions = [] if dimension == "currency" else [dimension]
         payload: dict[str, Any] = {
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
@@ -315,7 +316,7 @@ class LotusAnalyticsClient:
             "linking": "carino",
             "stateful_input": {
                 "metric_basis": metric_basis,
-                "dimensions": [dimension],
+                "dimensions": stateful_dimensions,
                 "include_cash_flows": True,
             },
         }
