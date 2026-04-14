@@ -302,6 +302,7 @@ class LotusAnalyticsClient:
         dimension: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        stateful_dimensions = [] if dimension == "currency" else [dimension]
         payload: dict[str, Any] = {
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
@@ -315,7 +316,7 @@ class LotusAnalyticsClient:
             "linking": "carino",
             "stateful_input": {
                 "metric_basis": metric_basis,
-                "dimensions": [dimension],
+                "dimensions": stateful_dimensions,
                 "include_cash_flows": True,
             },
         }
@@ -341,7 +342,7 @@ class LotusAnalyticsClient:
         segment: str,
         correlation_id: str,
         periods: list[dict[str, Any]] | None = None,
-        include_detail_blocks: bool = True,
+        include_detail_blocks: bool = False,
     ) -> tuple[int, dict[str, Any]]:
         frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
         deduped_frequencies: list[str] = []
@@ -366,19 +367,8 @@ class LotusAnalyticsClient:
             "stateful_input": {},
             "mwr_method": "XIRR",
         }
-        if include_detail_blocks:
-            if reporting_currency:
-                payload["report_ccy"] = reporting_currency
-            payload["segmentation"] = {
-                "group_by": [segment],
-            }
-            payload["contribution"] = {
-                "metric_basis": detail_basis,
-                "top_positions": 10,
-            }
-            payload["attribution"] = {
-                "metric_basis": detail_basis,
-            }
+        if reporting_currency:
+            payload["report_ccy"] = reporting_currency
         if report_start_date:
             payload["report_start_date"] = report_start_date
         if benchmark_id:

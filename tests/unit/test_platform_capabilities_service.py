@@ -143,6 +143,11 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.navigation["analytics_studio"] is True
     assert response.data.normalized.navigation["advisory_pipeline"] is True
     assert response.data.normalized.navigation["reporting_hub"] is True
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is True
+    assert response.data.normalized.navigation["risk_workspace"] is True
+    assert response.data.normalized.navigation["proposal_workspace"] is False
+    assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["portfolio_reporting"] is True
     assert "inline_bundle" in response.data.normalized.input_modes_union
@@ -160,6 +165,23 @@ async def test_platform_capabilities_all_sources_success():
         "matchedRuleId": "tenant.default.consumers.lotus-gateway",
         "strictMode": True,
     }
+    shell_bootstrap = response.data.normalized.shell_bootstrap
+    assert shell_bootstrap.contract_version == "shell-bootstrap.v1"
+    assert shell_bootstrap.supportability.state == "ready"
+    assert shell_bootstrap.versioning.capability_contract_version == "v1"
+    assert shell_bootstrap.caching.cache_mode == "request_scoped_composition"
+    performance_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "performance"
+    )
+    assert performance_workspace.enabled is True
+    assert performance_workspace.freshness.freshness_class == "analytical_summary"
+    assert performance_workspace.evidence.state == "source_backed"
+    proposal_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
+    )
+    assert proposal_workspace.enabled is False
+    assert proposal_workspace.supportability.state == "unavailable"
+    assert proposal_workspace.caching.correctness_critical is True
 
 
 @pytest.mark.asyncio
@@ -193,6 +215,11 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert len(response.data.errors) == 4
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is False
+    assert response.data.normalized.navigation["risk_workspace"] is False
+    assert response.data.normalized.navigation["proposal_workspace"] is False
+    assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
@@ -207,6 +234,21 @@ async def test_platform_capabilities_partial_failure_on_error():
         "LOTUS_CORE_POLICY_ENDPOINT_UNAVAILABLE"
         in (response.data.normalized.lotus_core_policy_diagnostics["warnings"])
     )
+    shell_bootstrap = response.data.normalized.shell_bootstrap
+    assert shell_bootstrap.supportability.state == "partial"
+    assert "lotus_performance:502" in shell_bootstrap.supportability.reasons
+    assert shell_bootstrap.evidence.partial_failure is True
+    performance_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "performance"
+    )
+    assert performance_workspace.supportability.state == "partial"
+    assert performance_workspace.evidence.state == "partial"
+    assert performance_workspace.evidence.partial_failure is True
+    proposal_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
+    )
+    assert proposal_workspace.supportability.state == "partial"
+    assert proposal_workspace.evidence.state == "partial"
 
 
 @pytest.mark.asyncio
@@ -267,6 +309,9 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     assert normalized.navigation["portfolio_intake"] is True
     assert normalized.navigation["advisory_pipeline"] is False
     assert normalized.navigation["analytics_studio"] is False
+    assert normalized.navigation["portfolio_workspace"] is True
+    assert normalized.navigation["performance_workspace"] is False
+    assert normalized.navigation["risk_workspace"] is False
     assert normalized.workflow_flags["proposal_lifecycle"] is False
     assert normalized.workflow_flags["performance_snapshot"] is True
     assert normalized.input_modes_by_source["lotus_core"] == []

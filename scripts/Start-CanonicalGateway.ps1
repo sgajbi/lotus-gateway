@@ -15,7 +15,7 @@ $python = if (Test-Path (Join-Path $repoRoot ".venv\\Scripts\\python.exe")) {
 $arguments = @(
   "-m", "uvicorn",
   "app.main:app",
-  "--app-dir", "src",
+  "--app-dir", (Join-Path $repoRoot "src"),
   "--host", $ListenHost,
   "--port", "$Port"
 )
@@ -44,11 +44,17 @@ $stderr = Join-Path $repoRoot "gateway-$Port.err.log"
 try { if (Test-Path $stdout) { Remove-Item $stdout -Force -ErrorAction Stop } } catch {}
 try { if (Test-Path $stderr) { Remove-Item $stderr -Force -ErrorAction Stop } } catch {}
 
-Start-Process -FilePath $python `
-  -ArgumentList $arguments `
-  -WorkingDirectory $repoRoot `
-  -RedirectStandardOutput $stdout `
-  -RedirectStandardError $stderr | Out-Null
+$previousPythonPath = $env:PYTHONPATH
+$env:PYTHONPATH = "$repoRoot\src;$repoRoot"
+try {
+  Start-Process -FilePath $python `
+    -ArgumentList $arguments `
+    -WorkingDirectory $repoRoot `
+    -RedirectStandardOutput $stdout `
+    -RedirectStandardError $stderr | Out-Null
+} finally {
+  $env:PYTHONPATH = $previousPythonPath
+}
 
 Start-Sleep -Seconds 5
 $response = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/health/ready" -UseBasicParsing -TimeoutSec 15

@@ -10,7 +10,6 @@ from app.contracts.performance_workspace import (
     PerformanceAttributionTrendResponse,
     PerformanceHorizonComparisonResponse,
     PerformanceWorkspaceDetailsResponse,
-    PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
 )
 from app.contracts.risk_workspace import (
@@ -544,44 +543,6 @@ async def get_performance_attribution_trend(
         correlation_id=correlation_id,
         period=period,
         chart_frequency=chart_frequency,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/performance",
-    response_model=PerformanceWorkspaceResponse,
-    summary="Get Performance Workspace",
-    description=(
-        "Compatibility endpoint for the legacy monolithic performance workspace contract. "
-        "New Workbench consumers should use the split `summary`, `details`, "
-        "`horizon-comparison`, and `attribution-trend` contracts instead."
-    ),
-    deprecated=True,
-)
-async def get_performance_workspace(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
-) -> PerformanceWorkspaceResponse:
-    service = _performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_workspace(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        contribution_dimension=contribution_dimension,
         attribution_dimension=attribution_dimension,
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,

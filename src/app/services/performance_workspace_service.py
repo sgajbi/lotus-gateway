@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
 from datetime import date, timedelta
 from typing import Any, TypeAlias, cast
 
@@ -132,6 +132,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=True,
+            prefer_independent_detail_analytics=True,
         )
 
     async def get_performance_workspace_summary(
@@ -191,6 +192,7 @@ class PerformanceWorkspaceService:
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=False,
             include_detail_blocks=True,
+            prefer_independent_detail_analytics=True,
         )
         return self._project_workspace_details(workspace)
 
@@ -479,6 +481,7 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None = None,
         include_benchmark_catalog: bool = True,
         include_detail_blocks: bool = True,
+        prefer_independent_detail_analytics: bool = False,
     ) -> PerformanceWorkspaceResponse:
         async with server_timing_span("perf-overview"):
             overview = await self._get_cached_workspace_overview(
@@ -544,6 +547,9 @@ class PerformanceWorkspaceService:
                 include_benchmark_catalog=include_benchmark_catalog,
             )
         async with server_timing_span("perf-summary"):
+            request_workspace_summary_detail_blocks = (
+                include_detail_blocks and not prefer_independent_detail_analytics
+            )
             (
                 workspace_summary_period,
                 workspace_summary_report_start_date,
@@ -562,7 +568,7 @@ class PerformanceWorkspaceService:
                 benchmark_code=resolved_benchmark_code,
                 portfolio_currency=overview.portfolio.base_currency,
                 segment=shared_segment,
-                include_detail_blocks=include_detail_blocks,
+                include_detail_blocks=request_workspace_summary_detail_blocks,
             )
 
         (
@@ -581,6 +587,58 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+        workspace_summary_available = (
+            net_performance.portfolio_return_pct is not None
+            or gross_performance.portfolio_return_pct is not None
+            or money_weighted_return is not None
+            or bool(net_chart)
+            or bool(gross_chart)
+        )
+        if (
+            include_detail_blocks
+            and prefer_independent_detail_analytics
+            and workspace_summary_available
+        ):
+            (
+                contribution_detail_result,
+                attribution_detail_result,
+            ) = await self._fetch_workspace_detail_results(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_start_date=report_start_date.isoformat(),
+                report_end_date=report_end_date,
+                requested_period=effective_period,
+                detail_basis=detail_basis,
+                benchmark_code=resolved_benchmark_code,
+                contribution_dimension=resolved_contribution_dimension,
+                attribution_dimension=resolved_attribution_dimension,
+            )
+            contribution = self._merge_contribution_summary_views(
+                summary_contribution=contribution,
+                detail_contribution=self._parse_contribution_result(
+                    result=contribution_detail_result,
+                    metric_basis=detail_basis,
+                    requested_period=effective_period,
+                    warnings=warnings,
+                    partial_failures=partial_failures,
+                ),
+            )
+            attribution = (
+                self._parse_attribution_result(
+                    result=attribution_detail_result,
+                    metric_basis=detail_basis,
+                    requested_period=effective_period,
+                    warnings=warnings,
+                    partial_failures=partial_failures,
+                )
+                or attribution
+            )
+            contribution = self._align_contribution_portfolio_return(
+                contribution=contribution,
+                detail_basis=detail_basis,
+                net_performance=net_performance,
+                gross_performance=gross_performance,
+            )
         benchmark_options = self._parse_benchmark_catalog_result(
             result=benchmark_catalog_result,
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
@@ -1319,6 +1377,76 @@ class PerformanceWorkspaceService:
                     correlation_id=correlation_id,
                     include_detail_blocks=include_detail_blocks,
                 ),
+            ),
+        )
+
+    async def _fetch_workspace_detail_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_start_date: str,
+        report_end_date: str,
+        requested_period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        contribution_dimension: str,
+        attribution_dimension: str,
+    ) -> tuple[GatheredResult, GatheredResult]:
+        def contribution_loader() -> Awaitable[GatheredResult]:
+            return self._analytics_client.get_contribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                dimension=contribution_dimension,
+                correlation_id=correlation_id,
+            )
+
+        def attribution_loader() -> Awaitable[GatheredResult]:
+            if not benchmark_code:
+                return self._empty_async_result()
+            return self._analytics_client.get_attribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                benchmark_id=benchmark_code,
+                dimension=attribution_dimension,
+                correlation_id=correlation_id,
+            )
+
+        return cast(
+            tuple[GatheredResult, GatheredResult],
+            await asyncio.gather(
+                self._get_cached_upstream_result(
+                    (
+                        "workspace_contribution_detail",
+                        portfolio_id,
+                        report_start_date,
+                        report_end_date,
+                        requested_period,
+                        detail_basis,
+                        contribution_dimension,
+                    ),
+                    contribution_loader,
+                ),
+                self._get_cached_upstream_result(
+                    (
+                        "workspace_attribution_detail",
+                        portfolio_id,
+                        report_start_date,
+                        report_end_date,
+                        requested_period,
+                        detail_basis,
+                        benchmark_code,
+                        attribution_dimension,
+                    ),
+                    attribution_loader,
+                ),
+                return_exceptions=True,
             ),
         )
 
@@ -2696,6 +2824,18 @@ class PerformanceWorkspaceService:
                         rows.append(
                             AttributionRowView(
                                 key_label=self._format_key_label(group_payload.get("key")),
+                                portfolio_weight_avg_pct=self._weight_to_pct(
+                                    group_payload.get("portfolio_weight_avg")
+                                ),
+                                benchmark_weight_avg_pct=self._weight_to_pct(
+                                    group_payload.get("benchmark_weight_avg")
+                                ),
+                                portfolio_return_pct=self._quantize_optional(
+                                    group_payload.get("portfolio_return")
+                                ),
+                                benchmark_return_pct=self._quantize_optional(
+                                    group_payload.get("benchmark_return")
+                                ),
                                 allocation_pct=float(
                                     quantize_performance(group_payload.get("allocation", 0.0))
                                 ),
@@ -2717,6 +2857,15 @@ class PerformanceWorkspaceService:
                 levels.append(
                     AttributionLevelView(
                         dimension=str(level_payload.get("dimension", "Dimension")),
+                        allocation_total_pct=self._quantize_optional(
+                            totals_payload.get("allocation")
+                        ),
+                        selection_total_pct=self._quantize_optional(
+                            totals_payload.get("selection")
+                        ),
+                        interaction_total_pct=self._quantize_optional(
+                            totals_payload.get("interaction")
+                        ),
                         total_effect_pct=total_effect or 0.0,
                         rows=rows,
                     )
@@ -2735,6 +2884,74 @@ class PerformanceWorkspaceService:
             ),
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
             levels=levels,
+        )
+
+    def _merge_contribution_summary_views(
+        self,
+        *,
+        summary_contribution: ContributionSummaryView | None,
+        detail_contribution: ContributionSummaryView | None,
+    ) -> ContributionSummaryView | None:
+        if detail_contribution is None:
+            return summary_contribution
+        if summary_contribution is None:
+            return detail_contribution
+
+        return ContributionSummaryView(
+            metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
+            weighting_scheme=(
+                detail_contribution.weighting_scheme or summary_contribution.weighting_scheme
+            ),
+            portfolio_contribution_pct=(
+                detail_contribution.portfolio_contribution_pct
+                if detail_contribution.portfolio_contribution_pct is not None
+                else summary_contribution.portfolio_contribution_pct
+            ),
+            total_portfolio_return_pct=(
+                detail_contribution.total_portfolio_return_pct
+                if detail_contribution.total_portfolio_return_pct is not None
+                else summary_contribution.total_portfolio_return_pct
+            ),
+            coverage_mv_pct=(
+                detail_contribution.coverage_mv_pct
+                if detail_contribution.coverage_mv_pct is not None
+                else summary_contribution.coverage_mv_pct
+            ),
+            portfolio_local_contribution_pct=(
+                detail_contribution.portfolio_local_contribution_pct
+                if detail_contribution.portfolio_local_contribution_pct is not None
+                else summary_contribution.portfolio_local_contribution_pct
+            ),
+            portfolio_fx_contribution_pct=(
+                detail_contribution.portfolio_fx_contribution_pct
+                if detail_contribution.portfolio_fx_contribution_pct is not None
+                else summary_contribution.portfolio_fx_contribution_pct
+            ),
+            position_rows=(
+                detail_contribution.position_rows
+                if detail_contribution.position_rows
+                else summary_contribution.position_rows
+            ),
+            levels=detail_contribution.levels or summary_contribution.levels,
+        )
+
+    def _align_contribution_portfolio_return(
+        self,
+        *,
+        contribution: ContributionSummaryView | None,
+        detail_basis: str,
+        net_performance: PerformanceComparativeSummary,
+        gross_performance: PerformanceComparativeSummary,
+    ) -> ContributionSummaryView | None:
+        if contribution is None:
+            return None
+        selected_performance = (
+            net_performance if detail_basis.upper() == "NET" else gross_performance
+        )
+        return contribution.model_copy(
+            update={
+                "total_portfolio_return_pct": selected_performance.portfolio_return_pct,
+            }
         )
 
     def _parse_attribution_trend_results(
