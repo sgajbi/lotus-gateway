@@ -88,8 +88,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert payload["normalized"]["shellBootstrap"]["contractVersion"] == "shell-bootstrap.v1"
     assert payload["normalized"]["shellBootstrap"]["supportability"]["state"] == "ready"
     assert (
-        payload["normalized"]["shellBootstrap"]["freshness"]["freshnessClass"]
-        == "shell_navigation"
+        payload["normalized"]["shellBootstrap"]["freshness"]["freshnessClass"] == "shell_navigation"
     )
     assert payload["normalized"]["shellBootstrap"]["evidence"]["state"] == "source_backed"
     assert (

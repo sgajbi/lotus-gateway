@@ -623,13 +623,16 @@ class PerformanceWorkspaceService:
                     partial_failures=partial_failures,
                 ),
             )
-            attribution = self._parse_attribution_result(
-                result=attribution_detail_result,
-                metric_basis=detail_basis,
-                requested_period=effective_period,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            ) or attribution
+            attribution = (
+                self._parse_attribution_result(
+                    result=attribution_detail_result,
+                    metric_basis=detail_basis,
+                    requested_period=effective_period,
+                    warnings=warnings,
+                    partial_failures=partial_failures,
+                )
+                or attribution
+            )
             contribution = self._align_contribution_portfolio_return(
                 contribution=contribution,
                 detail_basis=detail_basis,
@@ -1344,7 +1347,7 @@ class PerformanceWorkspaceService:
         portfolio_currency: str,
         segment: str,
         include_detail_blocks: bool = True,
-        ) -> GatheredResult:
+    ) -> GatheredResult:
         return cast(
             GatheredResult,
             await self._get_cached_upstream_result(
@@ -2897,8 +2900,7 @@ class PerformanceWorkspaceService:
         return ContributionSummaryView(
             metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
             weighting_scheme=(
-                detail_contribution.weighting_scheme
-                or summary_contribution.weighting_scheme
+                detail_contribution.weighting_scheme or summary_contribution.weighting_scheme
             ),
             portfolio_contribution_pct=(
                 detail_contribution.portfolio_contribution_pct

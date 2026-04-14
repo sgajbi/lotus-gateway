@@ -712,9 +712,7 @@ def _contribution_payload(*, dimension: str) -> dict:
                         "rows": [
                             {
                                 "key": {
-                                    dimension: (
-                                        "Technology" if dimension != "currency" else "USD"
-                                    )
+                                    dimension: ("Technology" if dimension != "currency" else "USD")
                                 },
                                 "contribution": 3.1,
                                 "weight_avg": 42.0,
@@ -814,9 +812,7 @@ def _attribution_detail_payload(*, dimension: str) -> dict:
                             {
                                 "key": {
                                     dimension: (
-                                        "Singapore"
-                                        if dimension == "country"
-                                        else "Technology"
+                                        "Singapore" if dimension == "country" else "Technology"
                                     )
                                 },
                                 "portfolio_weight_avg": 61.0,
