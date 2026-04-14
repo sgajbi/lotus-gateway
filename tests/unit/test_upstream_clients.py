@@ -420,7 +420,7 @@ async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_reque
 
 
 @pytest.mark.asyncio
-async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation_contract():
+async def test_lotus_analytics_client_workspace_summary_uses_canonical_summary_contract():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
         200,
@@ -457,9 +457,9 @@ async def test_lotus_analytics_client_workspace_summary_uses_shared_segmentation
     assert request["json"]["periods"][0]["frequencies"] == ["quarterly", "monthly", "yearly"]
     assert request["json"]["report_ccy"] == "USD"
     assert "currency_mode" not in request["json"]
-    assert request["json"]["segmentation"]["group_by"] == ["asset_class"]
-    assert request["json"]["contribution"]["metric_basis"] == "NET"
-    assert request["json"]["attribution"]["metric_basis"] == "NET"
+    assert "segmentation" not in request["json"]
+    assert "contribution" not in request["json"]
+    assert "attribution" not in request["json"]
     assert request["json"]["benchmark"]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
 
 
@@ -589,9 +589,9 @@ async def test_lotus_analytics_client_workspace_summary_omits_unsupported_curren
     request = _FakeAsyncClient.calls[0]["json"]
     assert "currency_mode" not in request
     assert request["report_ccy"] == "USD"
-    assert request["segmentation"]["group_by"] == ["asset_class"]
-    assert request["contribution"]["metric_basis"] == "NET"
-    assert request["attribution"]["metric_basis"] == "NET"
+    assert "segmentation" not in request
+    assert "contribution" not in request
+    assert "attribution" not in request
 
 
 @pytest.mark.asyncio

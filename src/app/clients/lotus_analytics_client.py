@@ -342,7 +342,7 @@ class LotusAnalyticsClient:
         segment: str,
         correlation_id: str,
         periods: list[dict[str, Any]] | None = None,
-        include_detail_blocks: bool = True,
+        include_detail_blocks: bool = False,
     ) -> tuple[int, dict[str, Any]]:
         frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
         deduped_frequencies: list[str] = []
@@ -367,19 +367,8 @@ class LotusAnalyticsClient:
             "stateful_input": {},
             "mwr_method": "XIRR",
         }
-        if include_detail_blocks:
-            if reporting_currency:
-                payload["report_ccy"] = reporting_currency
-            payload["segmentation"] = {
-                "group_by": [segment],
-            }
-            payload["contribution"] = {
-                "metric_basis": detail_basis,
-                "top_positions": 10,
-            }
-            payload["attribution"] = {
-                "metric_basis": detail_basis,
-            }
+        if reporting_currency:
+            payload["report_ccy"] = reporting_currency
         if report_start_date:
             payload["report_start_date"] = report_start_date
         if benchmark_id:

@@ -711,7 +711,11 @@ def _contribution_payload(*, dimension: str) -> dict:
                         "name": dimension,
                         "rows": [
                             {
-                                "key": {dimension: "Technology" if dimension != "currency" else "USD"},
+                                "key": {
+                                    dimension: (
+                                        "Technology" if dimension != "currency" else "USD"
+                                    )
+                                },
                                 "contribution": 3.1,
                                 "weight_avg": 42.0,
                                 "local_contribution": 2.8,
@@ -808,7 +812,13 @@ def _attribution_detail_payload(*, dimension: str) -> dict:
                         },
                         "groups": [
                             {
-                                "key": {dimension: "Singapore" if dimension == "country" else "Technology"},
+                                "key": {
+                                    dimension: (
+                                        "Singapore"
+                                        if dimension == "country"
+                                        else "Technology"
+                                    )
+                                },
                                 "portfolio_weight_avg": 61.0,
                                 "benchmark_weight_avg": 58.0,
                                 "portfolio_return": 7.4,
@@ -933,13 +943,13 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.net_chart[-1].cumulative_active_return_pct == 0.38
     assert response.contribution is not None
     assert response.contribution.total_portfolio_return_pct == 15.1
-    assert response.contribution.levels[0].rows[0].weight_avg_pct == 30.365565
-    assert response.contribution.levels[0].total_weight_avg_pct == 99.999999
-    assert response.contribution.position_rows[0].position_id == "SEC_AAPL_US"
+    assert response.contribution.levels[0].rows[0].weight_avg_pct == 42.0
+    assert response.contribution.levels[0].total_weight_avg_pct is None
+    assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert response.attribution is not None
     assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
-    assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 30.365565
-    assert response.attribution.levels[0].rows[0].benchmark_return_pct == 18.4
+    assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 61.0
+    assert response.attribution.levels[0].rows[0].benchmark_return_pct == 6.8
     assert response.benchmark_options[0].is_assigned is True
     assert response.benchmark_options[0].benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert response.capabilities.return_path.state == "supported"
@@ -971,6 +981,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
 
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
     assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert query_client.reference_calls == 1
     assert query_client.benchmark_catalog_calls[0]["benchmark_currency"] == "USD"
 
@@ -1201,20 +1212,18 @@ async def test_workspace_service_maps_position_contributions_from_upstream_contr
     )
 
     assert response.contribution is not None
-    assert [row.position_id for row in response.contribution.position_rows] == [
-        "SEC_AAPL_US",
-        "SEC_ETF_WORLD_USD",
-    ]
-    assert response.contribution.position_rows[0].contribution_pct == 5.43
+    assert [row.position_id for row in response.contribution.position_rows] == ["AAPL_US"]
+    assert response.contribution.position_rows[0].contribution_pct == 1.55
     assert response.contribution.weighting_scheme == "average_weight"
-    assert response.contribution.portfolio_contribution_pct == 15.1
+    assert response.contribution.portfolio_contribution_pct == 5.2
     assert response.contribution.total_portfolio_return_pct == 15.1
-    assert response.contribution.coverage_mv_pct == 96.4
-    assert response.contribution.portfolio_local_contribution_pct == 13.9
-    assert response.contribution.portfolio_fx_contribution_pct == 1.2
-    assert response.contribution.levels[0].total_contribution_pct == 15.1
-    assert response.contribution.levels[0].total_portfolio_return_pct == 15.1
+    assert response.contribution.coverage_mv_pct == 97.4
+    assert response.contribution.portfolio_local_contribution_pct == 4.7
+    assert response.contribution.portfolio_fx_contribution_pct == 0.5
+    assert response.contribution.levels[0].total_contribution_pct == 3.1
+    assert response.contribution.levels[0].total_portfolio_return_pct is None
     assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "USD"
+    assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert response.capabilities.contribution_ranking.state == "supported"
 
 
@@ -1533,7 +1542,7 @@ async def test_performance_workspace_service_normalizes_unsupported_controls():
 
 
 @pytest.mark.asyncio
-async def test_performance_workspace_details_use_independent_detail_dimensions_and_keep_segment_context():
+async def test_workspace_details_use_independent_dimensions_and_keep_segment_context():
     class _DetailAwareAnalyticsClient(_StubAnalyticsClient):
         async def get_contribution_analytics(self, **kwargs):
             self.contribution_calls.append(kwargs)
@@ -1581,7 +1590,7 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
 
 
 @pytest.mark.asyncio
-async def test_performance_workspace_details_do_not_fallback_to_summary_position_ranking_when_detail_endpoint_is_segment_only():
+async def test_workspace_details_do_not_fallback_when_detail_is_segment_only():
     class _SegmentOnlyContributionAnalyticsClient(_StubAnalyticsClient):
         async def get_contribution_analytics(self, **kwargs):
             self.contribution_calls.append(kwargs)

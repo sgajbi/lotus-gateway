@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
 from datetime import date, timedelta
 from typing import Any, TypeAlias, cast
 
@@ -132,7 +132,7 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=True,
-            prefer_independent_detail_analytics=False,
+            prefer_independent_detail_analytics=True,
         )
 
     async def get_performance_workspace_summary(
@@ -587,7 +587,18 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        if include_detail_blocks and prefer_independent_detail_analytics:
+        workspace_summary_available = (
+            net_performance.portfolio_return_pct is not None
+            or gross_performance.portfolio_return_pct is not None
+            or money_weighted_return is not None
+            or bool(net_chart)
+            or bool(gross_chart)
+        )
+        if (
+            include_detail_blocks
+            and prefer_independent_detail_analytics
+            and workspace_summary_available
+        ):
             (
                 contribution_detail_result,
                 attribution_detail_result,
@@ -1379,17 +1390,21 @@ class PerformanceWorkspaceService:
         contribution_dimension: str,
         attribution_dimension: str,
     ) -> tuple[GatheredResult, GatheredResult]:
-        contribution_loader = lambda: self._analytics_client.get_contribution_analytics(
-            portfolio_id=portfolio_id,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-            period=requested_period,
-            metric_basis=detail_basis,
-            dimension=contribution_dimension,
-            correlation_id=correlation_id,
-        )
-        attribution_loader = (
-            lambda: self._analytics_client.get_attribution_analytics(
+        def contribution_loader() -> Awaitable[GatheredResult]:
+            return self._analytics_client.get_contribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                dimension=contribution_dimension,
+                correlation_id=correlation_id,
+            )
+
+        def attribution_loader() -> Awaitable[GatheredResult]:
+            if not benchmark_code:
+                return self._empty_async_result()
+            return self._analytics_client.get_attribution_analytics(
                 portfolio_id=portfolio_id,
                 report_start_date=report_start_date,
                 report_end_date=report_end_date,
@@ -1399,9 +1414,6 @@ class PerformanceWorkspaceService:
                 dimension=attribution_dimension,
                 correlation_id=correlation_id,
             )
-            if benchmark_code
-            else self._empty_async_result()
-        )
 
         return cast(
             tuple[GatheredResult, GatheredResult],
@@ -2884,7 +2896,10 @@ class PerformanceWorkspaceService:
 
         return ContributionSummaryView(
             metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
-            weighting_scheme=detail_contribution.weighting_scheme or summary_contribution.weighting_scheme,
+            weighting_scheme=(
+                detail_contribution.weighting_scheme
+                or summary_contribution.weighting_scheme
+            ),
             portfolio_contribution_pct=(
                 detail_contribution.portfolio_contribution_pct
                 if detail_contribution.portfolio_contribution_pct is not None
@@ -2928,7 +2943,9 @@ class PerformanceWorkspaceService:
     ) -> ContributionSummaryView | None:
         if contribution is None:
             return None
-        selected_performance = net_performance if detail_basis.upper() == "NET" else gross_performance
+        selected_performance = (
+            net_performance if detail_basis.upper() == "NET" else gross_performance
+        )
         return contribution.model_copy(
             update={
                 "total_portfolio_return_pct": selected_performance.portfolio_return_pct,
