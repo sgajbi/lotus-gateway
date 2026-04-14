@@ -619,31 +619,6 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             ) or attribution
-            if contribution is None or not contribution.position_rows:
-                summary_detail_result = await self._fetch_workspace_summary_result(
-                    portfolio_id=portfolio_id,
-                    correlation_id=correlation_id,
-                    report_end_date=report_end_date,
-                    report_start_date=workspace_summary_report_start_date,
-                    effective_period=workspace_summary_period,
-                    chart_frequency=resolved_chart_frequency,
-                    detail_basis=detail_basis,
-                    benchmark_code=resolved_benchmark_code,
-                    portfolio_currency=overview.portfolio.base_currency,
-                    segment=shared_segment,
-                    include_detail_blocks=True,
-                )
-                fallback_contribution = self._parse_workspace_summary_result(
-                    result=summary_detail_result,
-                    requested_period=effective_period,
-                    chart_frequency=resolved_chart_frequency,
-                    warnings=warnings,
-                    partial_failures=partial_failures,
-                )[5]
-                contribution = self._merge_contribution_summary_views(
-                    summary_contribution=fallback_contribution,
-                    detail_contribution=contribution,
-                )
             contribution = self._align_contribution_portfolio_return(
                 contribution=contribution,
                 detail_basis=detail_basis,

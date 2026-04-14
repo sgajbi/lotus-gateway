@@ -1581,7 +1581,7 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
 
 
 @pytest.mark.asyncio
-async def test_performance_workspace_details_preserve_summary_position_ranking_when_detail_endpoint_is_segment_only():
+async def test_performance_workspace_details_do_not_fallback_to_summary_position_ranking_when_detail_endpoint_is_segment_only():
     class _SegmentOnlyContributionAnalyticsClient(_StubAnalyticsClient):
         async def get_contribution_analytics(self, **kwargs):
             self.contribution_calls.append(kwargs)
@@ -1614,12 +1614,9 @@ async def test_performance_workspace_details_preserve_summary_position_ranking_w
 
     assert response.contribution is not None
     assert response.contribution.levels[0].name == "sector"
-    assert [row.position_id for row in response.contribution.position_rows] == [
-        "SEC_AAPL_US",
-        "SEC_ETF_WORLD_USD",
-    ]
-    assert response.capabilities.contribution_ranking.state == "supported"
-    assert response.capabilities.contribution_ranking.coverage_level == "position"
+    assert response.contribution.position_rows == []
+    assert response.capabilities.contribution_ranking.state == "partial"
+    assert response.capabilities.contribution_ranking.coverage_level == "aggregate"
 
 
 @pytest.mark.asyncio
