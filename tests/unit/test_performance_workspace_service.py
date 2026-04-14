@@ -1580,6 +1580,48 @@ async def test_performance_workspace_details_use_independent_detail_dimensions_a
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_details_preserve_summary_position_ranking_when_detail_endpoint_is_segment_only():
+    class _SegmentOnlyContributionAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            payload = _contribution_payload(dimension=str(kwargs["dimension"]))
+            period_payload = payload["results_by_period"]["YTD"]
+            period_payload.pop("position_contributions", None)
+            return 200, payload
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            return 200, _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+
+    analytics_client = _SegmentOnlyContributionAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="sector",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution is not None
+    assert response.contribution.levels[0].name == "sector"
+    assert [row.position_id for row in response.contribution.position_rows] == [
+        "SEC_AAPL_US",
+        "SEC_ETF_WORLD_USD",
+    ]
+    assert response.capabilities.contribution_ranking.state == "supported"
+    assert response.capabilities.contribution_ranking.coverage_level == "position"
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_skips_reference_lookup_for_explicit_window():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()

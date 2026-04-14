@@ -599,13 +599,16 @@ class PerformanceWorkspaceService:
                 contribution_dimension=resolved_contribution_dimension,
                 attribution_dimension=resolved_attribution_dimension,
             )
-            contribution = self._parse_contribution_result(
-                result=contribution_detail_result,
-                metric_basis=detail_basis,
-                requested_period=effective_period,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            ) or contribution
+            contribution = self._merge_contribution_summary_views(
+                summary_contribution=contribution,
+                detail_contribution=self._parse_contribution_result(
+                    result=contribution_detail_result,
+                    metric_basis=detail_basis,
+                    requested_period=effective_period,
+                    warnings=warnings,
+                    partial_failures=partial_failures,
+                ),
+            )
             attribution = self._parse_attribution_result(
                 result=attribution_detail_result,
                 metric_basis=detail_basis,
@@ -2857,6 +2860,53 @@ class PerformanceWorkspaceService:
             ),
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
             levels=levels,
+        )
+
+    def _merge_contribution_summary_views(
+        self,
+        *,
+        summary_contribution: ContributionSummaryView | None,
+        detail_contribution: ContributionSummaryView | None,
+    ) -> ContributionSummaryView | None:
+        if detail_contribution is None:
+            return summary_contribution
+        if summary_contribution is None:
+            return detail_contribution
+
+        return ContributionSummaryView(
+            metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
+            weighting_scheme=detail_contribution.weighting_scheme or summary_contribution.weighting_scheme,
+            portfolio_contribution_pct=(
+                detail_contribution.portfolio_contribution_pct
+                if detail_contribution.portfolio_contribution_pct is not None
+                else summary_contribution.portfolio_contribution_pct
+            ),
+            total_portfolio_return_pct=(
+                detail_contribution.total_portfolio_return_pct
+                if detail_contribution.total_portfolio_return_pct is not None
+                else summary_contribution.total_portfolio_return_pct
+            ),
+            coverage_mv_pct=(
+                detail_contribution.coverage_mv_pct
+                if detail_contribution.coverage_mv_pct is not None
+                else summary_contribution.coverage_mv_pct
+            ),
+            portfolio_local_contribution_pct=(
+                detail_contribution.portfolio_local_contribution_pct
+                if detail_contribution.portfolio_local_contribution_pct is not None
+                else summary_contribution.portfolio_local_contribution_pct
+            ),
+            portfolio_fx_contribution_pct=(
+                detail_contribution.portfolio_fx_contribution_pct
+                if detail_contribution.portfolio_fx_contribution_pct is not None
+                else summary_contribution.portfolio_fx_contribution_pct
+            ),
+            position_rows=(
+                detail_contribution.position_rows
+                if detail_contribution.position_rows
+                else summary_contribution.position_rows
+            ),
+            levels=detail_contribution.levels or summary_contribution.levels,
         )
 
     def _parse_attribution_trend_results(
