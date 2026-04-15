@@ -365,6 +365,10 @@ class PortfolioService:
             result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
         )
+        self._raise_on_upstream_client_error(
+            readiness_result,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
+        )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         profile = self._parse_portfolio_profile(portfolio_payload)
         warnings: list[str] = []
@@ -420,6 +424,10 @@ class PortfolioService:
                 skip=0,
                 limit=1,
             ),
+        )
+        self._raise_on_upstream_client_error(
+            source_readiness,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
         )
         source_payload = self._optional_payload(
             source_readiness,
@@ -953,6 +961,16 @@ class PortfolioService:
                 detail=f"{unavailable_detail_prefix}: invalid payload",
             )
         return payload
+
+    def _raise_on_upstream_client_error(
+        self,
+        result: tuple[int, dict[str, Any]],
+        *,
+        detail_prefix: str,
+    ) -> None:
+        status_code, payload = result
+        if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+            raise HTTPException(status_code=status_code, detail=f"{detail_prefix}: {payload}")
 
     def _parse_catalog_item(self, item: dict[str, Any]) -> PortfolioCatalogItem:
         portfolio_id = str(item.get("portfolio_id", "")).strip()

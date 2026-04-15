@@ -129,10 +129,19 @@ async def get_portfolios() -> PortfolioCatalogResponse:
     "/portfolios/{portfolio_id}/workspace",
     response_model=PortfolioWorkspaceResponse,
     summary="Get portfolio workspace summary",
+    description=(
+        "Returns the first portfolio workspace surface composed from lotus-core support, "
+        "readiness, cashflow, cash-balance, and AUM contracts. Invalid readiness filters "
+        "from lotus-core are surfaced as client errors rather than degraded workspace data."
+    ),
 )
 async def get_portfolio_workspace(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format for workspace composition.",
+        examples=["2026-04-10"],
+    ),
     reporting_currency: str | None = Query(default=None),
 ) -> PortfolioWorkspaceResponse:
     return await _portfolio_service().get_portfolio_workspace(
@@ -147,10 +156,19 @@ async def get_portfolio_workspace(
     "/portfolios/{portfolio_id}/readiness",
     response_model=PortfolioReadinessResponse,
     summary="Get portfolio readiness indicators",
+    description=(
+        "Returns source-backed portfolio readiness indicators. If lotus-core rejects the "
+        "requested readiness filter, gateway preserves that 4xx client error instead of "
+        "turning it into partial readiness."
+    ),
 )
 async def get_portfolio_readiness(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional readiness as-of date in YYYY-MM-DD format.",
+        examples=["2026-04-10"],
+    ),
 ) -> PortfolioReadinessResponse:
     return await _portfolio_service().get_portfolio_readiness(
         portfolio_id=portfolio_id,

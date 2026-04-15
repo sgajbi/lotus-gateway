@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 
 from app.services.portfolio_service import PortfolioService
 
@@ -600,3 +601,22 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
     assert client.calls["query_asset_allocation"] == 1
     assert client.calls["get_portfolio_transactions"] == 2
     assert client.calls["query_activity_summary"] == 1
+
+
+@pytest.mark.asyncio
+async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
+    class _InvalidReadinessClient(_StubLotusCoreQueryClient):
+        async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+
+    service = PortfolioService(_InvalidReadinessClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_readiness(
+            portfolio_id="PF_1001",
+            correlation_id="corr-400",
+            as_of_date="bad-date",
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "readiness rejected the request" in str(exc_info.value.detail)

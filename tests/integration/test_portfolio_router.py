@@ -145,11 +145,21 @@ def test_portfolio_readiness_router(monkeypatch):
             ],
         }
 
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
@@ -159,6 +169,57 @@ def test_portfolio_readiness_router(monkeypatch):
     assert response.status_code == 200
     assert response.json()["indicators"][0]["key"] == "holdings"
     assert response.json()["indicators"][0]["status"] == "Ready"
+
+
+def test_portfolio_readiness_router_preserves_upstream_bad_request(monkeypatch):
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
+
+    async def _query_aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {"portfolio_id": "PF_1001", "aum_reporting_currency": 1000.0, "position_count": 2}
+            ],
+        }
+
+    async def _support(*args, **kwargs):
+        return 200, {"business_date": "2026-03-27", "publish_allowed": True}
+
+    async def _cashflow(*args, **kwargs):
+        return 200, {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-06",
+            "total_net_cashflow": 0,
+            "projection_days": 10,
+            "include_projected": True,
+            "points": [],
+        }
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
+            "cash_accounts": [],
+        }
+
+    async def _readiness(*args, **kwargs):
+        return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/readiness",
+        params={"as_of_date": "bad-date"},
+    )
+
+    assert response.status_code == 400
+    assert "readiness rejected the request" in response.json()["detail"]
 
 
 def test_portfolio_workflow_router(monkeypatch):
@@ -209,11 +270,21 @@ def test_portfolio_workflow_router(monkeypatch):
             ],
         }
 
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
 
     client = TestClient(app)
@@ -308,11 +379,21 @@ def test_portfolio_insights_router(monkeypatch):
             },
         }
 
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
