@@ -129,6 +129,10 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
     assert status_three == 200
     assert payload_three["allocationBuckets"][0]["bucketKey"] == "EQUITY"
     assert _FakeAsyncClient.calls[0]["url"] == "http://pa/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "default",
+    }
     assert _FakeAsyncClient.calls[1]["url"] == "http://pa/performance/twr"
     assert _FakeAsyncClient.calls[2]["url"] == "http://pa/analytics/workbench"
     assert _FakeAsyncClient.calls[1]["json"]["portfolio_id"] == "P1"
@@ -648,6 +652,10 @@ async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     assert payload_one["detail"] == "pa unavailable"
     assert status_two == 200
     assert payload_two["detail"] == ["analytics"]
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "default",
+    }
 
 
 @pytest.mark.asyncio
@@ -1073,3 +1081,36 @@ async def test_lotus_core_query_client_posts_benchmark_catalog_request():
     assert request["json"]["benchmark_currency"] == "USD"
     assert request["json"]["benchmark_status"] == "active"
     assert request["json"]["benchmark_type"] == "composite"
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_capabilities_supports_nondefault_consumer_and_tenant():
+    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceService": "pa"})
+
+    status_code, payload = await client.get_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-capabilities",
+    )
+
+    assert status_code == 200
+    assert payload["sourceService"] == "pa"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pa/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-workbench",
+        "tenant_id": "tenant-a",
+    }
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_capabilities_omits_query_params_when_contract_is_unshaped():
+    client = LotusAnalyticsClient(base_url="http://risk", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceService": "risk"})
+
+    status_code, payload = await client.get_capabilities(correlation_id="corr-risk-capabilities")
+
+    assert status_code == 200
+    assert payload["sourceService"] == "risk"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://risk/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {}

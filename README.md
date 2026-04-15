@@ -75,7 +75,7 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `POST /api/v1/proposals/{proposal_id}/record-client-consent` (client consent action)
 - `GET /api/v1/proposals/{proposal_id}/workflow-events` (workflow timeline)
 - `GET /api/v1/proposals/{proposal_id}/approvals` (approval records)
-- `GET /api/v1/platform/capabilities` (aggregated lotus-core+lotus-performance+lotus-manage capability contract for UI)
+- `GET /api/v1/platform/capabilities` (aggregated shell/workspace capability contract across lotus-core, lotus-performance, lotus-risk publication, lotus-manage, and lotus-report for UI gating)
 - `GET /api/v1/workbench/{portfolio_id}/overview` (aggregated lotus-core+lotus-performance+lotus-manage decision-console overview)
 - `GET /api/v1/reports/{portfolio_id}/snapshot` (report-ready aggregation rows from lotus-report)
 - `POST /api/v1/intake/portfolio-bundle` (lotus-core ingestion bundle pass-through)

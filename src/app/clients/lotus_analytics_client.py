@@ -112,12 +112,17 @@ class LotusAnalyticsClient:
 
     async def get_capabilities(
         self,
-        consumer_system: str,
-        tenant_id: str,
+        *,
         correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/integration/capabilities"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params: dict[str, str] = {}
+        if consumer_system is not None:
+            params["consumer_system"] = consumer_system
+        if tenant_id is not None:
+            params["tenant_id"] = tenant_id
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",

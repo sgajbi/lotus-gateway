@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add lotus-gateway endpoint `GET /api/v1/platform/capabilities` to aggregate lotus-core, lotus-performance, and lotus-manage integration capability contracts for UI consumption.
+Add lotus-gateway endpoint `GET /api/v1/platform/capabilities` to aggregate lotus-core, lotus-performance, lotus-risk publication, lotus-manage, and lotus-report capability contracts for UI consumption.
 
 ## Contract
 
@@ -26,6 +26,8 @@ Output envelope:
 1. Calls lotus-core, lotus-performance, and lotus-manage `/integration/capabilities`.
 2. Returns partial results when one or more upstream services fail.
 3. Preserves failure metadata in `errors[]` for UI diagnostics.
+4. Calls lotus-performance with canonical snake_case query controls (`consumer_system`, `tenant_id`).
+5. Calls lotus-risk capabilities without consumer or tenant shaping because the canonical risk contract does not publish those query parameters.
 
 ## Rationale
 

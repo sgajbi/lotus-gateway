@@ -27,9 +27,9 @@ class _StubClient:
 
     async def get_capabilities(
         self,
-        consumer_system: str,
-        tenant_id: str,
         correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
     ):
         return self.status_code, self.payload
 
@@ -45,9 +45,9 @@ class _StubClient:
 class _ErrorClient:
     async def get_capabilities(
         self,
-        consumer_system: str,
-        tenant_id: str,
         correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
     ):
         raise RuntimeError("upstream unavailable")
 
@@ -58,6 +58,31 @@ class _ErrorClient:
         correlation_id: str,
     ):
         raise RuntimeError("upstream unavailable")
+
+
+class _RecordingStubClient(_StubClient):
+    def __init__(self, status_code: int, payload: dict):
+        super().__init__(status_code, payload)
+        self.calls: list[dict[str, str | None]] = []
+
+    async def get_capabilities(
+        self,
+        correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
+    ):
+        self.calls.append(
+            {
+                "correlation_id": correlation_id,
+                "consumer_system": consumer_system,
+                "tenant_id": tenant_id,
+            }
+        )
+        return await super().get_capabilities(
+            correlation_id=correlation_id,
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+        )
 
 
 @pytest.mark.asyncio
@@ -405,3 +430,60 @@ def test_platform_capabilities_module_health_marks_unknown_sources():
     assert health["lotus_performance"] == "unknown"
     assert health["lotus_manage"] == "unknown"
     assert health["lotus_report"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_uses_service_specific_upstream_capability_contracts():
+    performance_client = _RecordingStubClient(
+        200,
+        {
+            "sourceService": "lotus_performance",
+            "policyVersion": "pa-v1",
+            "features": [],
+            "workflows": [],
+        },
+    )
+    risk_client = _RecordingStubClient(
+        200,
+        {
+            "sourceService": "lotus_risk",
+            "policyVersion": "risk-v1",
+            "features": [],
+            "workflows": [],
+        },
+    )
+    service = PlatformCapabilitiesService(
+        dpm_client=_StubClient(
+            200, {"sourceService": "lotus_manage", "features": [], "workflows": []}
+        ),
+        lotus_core_query_client=_StubClient(
+            200, {"sourceService": "lotus_core", "features": [], "workflows": []}
+        ),
+        analytics_client=performance_client,
+        reporting_client=_StubClient(
+            200, {"sourceService": "lotus_report", "features": [], "workflows": []}
+        ),
+        risk_client=risk_client,
+        contract_version="v1",
+    )
+
+    await service.get_platform_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-shaped",
+    )
+
+    assert performance_client.calls == [
+        {
+            "correlation_id": "corr-shaped",
+            "consumer_system": "lotus-workbench",
+            "tenant_id": "tenant-a",
+        }
+    ]
+    assert risk_client.calls == [
+        {
+            "correlation_id": "corr-shaped",
+            "consumer_system": None,
+            "tenant_id": None,
+        }
+    ]

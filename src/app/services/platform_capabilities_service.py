@@ -61,9 +61,9 @@ class PlatformCapabilitiesService:
             ),
             self._with_timeout(
                 self._analytics_client.get_capabilities(
+                    correlation_id=correlation_id,
                     consumer_system=consumer_system,
                     tenant_id=tenant_id,
-                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
@@ -93,8 +93,6 @@ class PlatformCapabilitiesService:
             tasks.append(
                 self._with_timeout(
                     self._risk_client.get_capabilities(
-                        consumer_system=consumer_system,
-                        tenant_id=tenant_id,
                         correlation_id=correlation_id,
                     )
                 )

@@ -71,8 +71,24 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
     ),
 )
 async def get_platform_capabilities(
-    consumer_system: str = Query("lotus-gateway", alias="consumerSystem"),
-    tenant_id: str = Query("default", alias="tenantId"),
+    consumer_system: str = Query(
+        "lotus-gateway",
+        alias="consumerSystem",
+        description=(
+            "Gateway consumer identity used when upstream services publish "
+            "consumer-shaped capabilities."
+        ),
+        examples=["lotus-gateway"],
+    ),
+    tenant_id: str = Query(
+        "default",
+        alias="tenantId",
+        description=(
+            "Tenant scope for capability evaluation when an upstream service "
+            "supports tenant-aware capability publication."
+        ),
+        examples=["default"],
+    ),
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> PlatformCapabilitiesResponse:
     service = _platform_capabilities_service()
