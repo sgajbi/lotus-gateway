@@ -5,6 +5,8 @@ from collections.abc import Awaitable, Mapping, Sequence
 from datetime import date, timedelta
 from typing import Any, TypeAlias, cast
 
+from fastapi import HTTPException
+
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
@@ -20,8 +22,13 @@ from app.contracts.performance_workspace import (
     PerformanceAttributionTrendResponse,
     PerformanceAttributionTrendRow,
     PerformanceBenchmarkOptionView,
+    PerformanceCalculationEvidenceView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
+    PerformanceEvidenceArtifactView,
+    PerformanceEvidenceStageView,
+    PerformanceEvidenceUpstreamSnapshotView,
+    PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
     PerformanceHorizonComparisonRow,
     PerformanceModuleCapability,
@@ -599,6 +606,8 @@ class PerformanceWorkspaceService:
             and prefer_independent_detail_analytics
             and workspace_summary_available
         ):
+            contribution_detail_result: GatheredResult | None = None
+            attribution_detail_result: GatheredResult | None = None
             (
                 contribution_detail_result,
                 attribution_detail_result,
@@ -639,9 +648,32 @@ class PerformanceWorkspaceService:
                 net_performance=net_performance,
                 gross_performance=gross_performance,
             )
+        else:
+            contribution_detail_result = None
+            attribution_detail_result = None
         benchmark_options = self._parse_benchmark_catalog_result(
             result=benchmark_catalog_result,
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        evidence_view = await self._build_evidence_view(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            calculations=[
+                (
+                    "workspace_summary",
+                    self._extract_calculation_id_from_result(workspace_summary_result),
+                ),
+                (
+                    "contribution",
+                    self._extract_calculation_id_from_result(contribution_detail_result),
+                ),
+                (
+                    "attribution",
+                    self._extract_calculation_id_from_result(attribution_detail_result),
+                ),
+            ],
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -651,6 +683,7 @@ class PerformanceWorkspaceService:
             net_chart=net_chart,
             contribution=contribution,
             attribution=attribution,
+            evidence_view=evidence_view,
             include_detail_blocks=include_detail_blocks,
         )
 
@@ -673,6 +706,7 @@ class PerformanceWorkspaceService:
             benchmark_code=resolved_benchmark_code or benchmark_code,
             benchmark_options=benchmark_options,
             capabilities=capabilities,
+            evidence_view=evidence_view,
             portfolio=overview.portfolio,
             overview=overview.overview,
             net_performance=net_performance,
@@ -685,6 +719,31 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    async def get_performance_evidence_artifact(
+        self,
+        *,
+        calculation_id: str,
+        artifact_name: str,
+        correlation_id: str,
+    ) -> tuple[bytes, str | None]:
+        status_code, content, content_type = await self._analytics_client.get_lineage_artifact(
+            calculation_id=calculation_id,
+            artifact_name=artifact_name,
+            correlation_id=correlation_id,
+        )
+        if status_code >= 400:
+            detail = "Performance evidence artifact is unavailable."
+            if content:
+                try:
+                    detail = content.decode("utf-8")
+                except UnicodeDecodeError:
+                    detail = "Performance evidence artifact retrieval failed."
+            raise HTTPException(
+                status_code=status_code,
+                detail=detail,
+            )
+        return content, content_type
 
     def _project_workspace_summary(
         self, workspace: PerformanceWorkspaceResponse
@@ -705,6 +764,7 @@ class PerformanceWorkspaceService:
             benchmark_code=workspace.benchmark_code,
             benchmark_options=workspace.benchmark_options,
             capabilities=workspace.capabilities,
+            evidence_view=workspace.evidence_view,
             portfolio=workspace.portfolio,
             overview=workspace.overview,
             net_performance=workspace.net_performance,
@@ -735,6 +795,7 @@ class PerformanceWorkspaceService:
             segment=workspace.segment,
             benchmark_code=workspace.benchmark_code,
             capabilities=workspace.capabilities,
+            evidence_view=workspace.evidence_view,
             net_chart=workspace.net_chart,
             gross_chart=workspace.gross_chart,
             contribution=workspace.contribution,
@@ -822,6 +883,238 @@ class PerformanceWorkspaceService:
             supported_frequencies=list(supported_frequencies) if supported_frequencies else None,
         )
 
+    def _extract_calculation_id_from_result(
+        self,
+        result: GatheredResult | None,
+    ) -> str | None:
+        if result is None or isinstance(result, BaseException):
+            return None
+        _, payload = result
+        if not isinstance(payload, dict):
+            return None
+        calculation_id = payload.get("calculation_id")
+        if calculation_id is None:
+            return None
+        return str(calculation_id)
+
+    async def _build_evidence_view(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        calculations: Sequence[tuple[str, str | None]],
+        warnings: list[str],
+        partial_failures: list[WorkbenchPartialFailure],
+    ) -> PerformanceEvidenceView | None:
+        requested_items = [
+            (role, calculation_id)
+            for role, calculation_id in calculations
+            if calculation_id is not None
+        ]
+        if not requested_items:
+            return PerformanceEvidenceView(
+                state="unavailable",
+                reason="No durable calculation evidence is available for the current selection.",
+                calculations=[],
+            )
+
+        evidence_items = await asyncio.gather(
+            *[
+                self._fetch_calculation_evidence(
+                    portfolio_id=portfolio_id,
+                    calculation_role=role,
+                    calculation_id=calculation_id,
+                    correlation_id=correlation_id,
+                )
+                for role, calculation_id in requested_items
+            ]
+        )
+
+        backed_count = sum(
+            1
+            for item in evidence_items
+            if item.execution_status is not None or item.lineage_status is not None
+        )
+        complete_count = sum(
+            1
+            for item in evidence_items
+            if item.execution_status == "complete" and item.lineage_status == "complete"
+        )
+        if backed_count == 0:
+            warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
+            return PerformanceEvidenceView(
+                state="unavailable",
+                reason=(
+                    "Gateway could not resolve execution or lineage evidence "
+                    "from lotus-performance."
+                ),
+                calculations=evidence_items,
+            )
+        if complete_count == len(evidence_items):
+            return PerformanceEvidenceView(
+                state="supported",
+                reason=(
+                    "Execution status, upstream lineage, and artifact inventory "
+                    "are exposed for the current performance view."
+                ),
+                calculations=evidence_items,
+            )
+
+        warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
+        partial_failures.append(
+            self._performance_failure(
+                "lotus-performance",
+                "PERFORMANCE_EVIDENCE_PARTIAL",
+                (
+                    "Gateway resolved only partial execution or lineage evidence "
+                    "for one or more performance calculations."
+                ),
+            )
+        )
+        return PerformanceEvidenceView(
+            state="partial",
+            reason=(
+                "One or more performance calculations still have pending, failed, "
+                "or unavailable lineage evidence."
+            ),
+            calculations=evidence_items,
+        )
+
+    async def _fetch_calculation_evidence(
+        self,
+        *,
+        portfolio_id: str,
+        calculation_role: str,
+        calculation_id: str,
+        correlation_id: str,
+    ) -> PerformanceCalculationEvidenceView:
+        execution_result, lineage_result = await asyncio.gather(
+            self._analytics_client.get_execution(
+                calculation_id=calculation_id,
+                correlation_id=correlation_id,
+            ),
+            self._analytics_client.get_lineage(
+                calculation_id=calculation_id,
+                correlation_id=correlation_id,
+            ),
+        )
+        return self._build_calculation_evidence_view(
+            portfolio_id=portfolio_id,
+            calculation_role=calculation_role,
+            calculation_id=calculation_id,
+            execution_result=execution_result,
+            lineage_result=lineage_result,
+        )
+
+    def _build_calculation_evidence_view(
+        self,
+        *,
+        portfolio_id: str,
+        calculation_role: str,
+        calculation_id: str,
+        execution_result: UpstreamResult,
+        lineage_result: UpstreamResult,
+    ) -> PerformanceCalculationEvidenceView:
+        execution_status_code, execution_payload = execution_result
+        lineage_status_code, lineage_payload = lineage_result
+
+        execution_data = execution_payload if isinstance(execution_payload, dict) else {}
+        lineage_data = lineage_payload if isinstance(lineage_payload, dict) else {}
+
+        execution_available = execution_status_code < 400 and bool(execution_data)
+        lineage_available = lineage_status_code < 400 and bool(lineage_data)
+        reason_parts: list[str] = []
+        if not execution_available:
+            reason_parts.append(
+                "Execution evidence unavailable "
+                f"({self._evidence_status_reason(execution_status_code, execution_data)})."
+            )
+        if not lineage_available:
+            reason_parts.append(
+                "Lineage evidence unavailable "
+                f"({self._evidence_status_reason(lineage_status_code, lineage_data)})."
+            )
+        elif str(lineage_data.get("status")) != "complete":
+            reason_parts.append(
+                f"Lineage is {str(lineage_data.get('status', 'unavailable'))} in lotus-performance."
+            )
+
+        stages_payload = execution_data.get("stages", [])
+        snapshots_payload = execution_data.get("upstream_snapshots", [])
+        artifacts_payload = lineage_data.get("artifacts", {})
+
+        stage_statuses = []
+        if isinstance(stages_payload, list):
+            stage_statuses = [
+                PerformanceEvidenceStageView(
+                    stage_name=str(stage_payload.get("stage_name", "")),
+                    status=str(stage_payload.get("status", "")),
+                    completed_at_utc=self._safe_str(stage_payload.get("completed_at_utc")),
+                )
+                for stage_payload in stages_payload
+                if isinstance(stage_payload, dict)
+            ]
+        upstream_snapshots = []
+        if isinstance(snapshots_payload, list):
+            upstream_snapshots = [
+                PerformanceEvidenceUpstreamSnapshotView(
+                    upstream_endpoint=str(snapshot_payload.get("upstream_endpoint", "")),
+                    source_identifier=str(snapshot_payload.get("source_identifier", "")),
+                    as_of_date=str(snapshot_payload.get("as_of_date", "")),
+                    retrieval_status=str(snapshot_payload.get("retrieval_status", "")),
+                )
+                for snapshot_payload in snapshots_payload
+                if isinstance(snapshot_payload, dict)
+            ]
+        artifacts = []
+        if isinstance(artifacts_payload, Mapping):
+            artifacts = [
+                PerformanceEvidenceArtifactView(
+                    artifact_name=artifact_name,
+                    url=self._gateway_evidence_artifact_url(
+                        portfolio_id=portfolio_id,
+                        calculation_id=calculation_id,
+                        artifact_name=artifact_name,
+                    ),
+                )
+                for artifact_name in sorted(str(name) for name in artifacts_payload)
+            ]
+
+        return PerformanceCalculationEvidenceView(
+            calculation_role=calculation_role,
+            calculation_id=calculation_id,
+            analytics_type=self._safe_str(execution_data.get("analytics_type")),
+            execution_status=self._safe_str(execution_data.get("status")),
+            execution_mode=self._safe_str(execution_data.get("execution_mode")),
+            lineage_status=self._safe_str(lineage_data.get("status")),
+            stage_statuses=stage_statuses,
+            upstream_snapshots=upstream_snapshots,
+            artifacts=artifacts,
+            reason=" ".join(reason_parts) if reason_parts else None,
+        )
+
+    def _gateway_evidence_artifact_url(
+        self,
+        *,
+        portfolio_id: str,
+        calculation_id: str,
+        artifact_name: str,
+    ) -> str:
+        return (
+            f"/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/"
+            f"{calculation_id}/{artifact_name}"
+        )
+
+    def _evidence_status_reason(
+        self,
+        status_code: int,
+        payload: Mapping[str, Any],
+    ) -> str:
+        if status_code >= 400:
+            detail = payload.get("detail")
+            return str(detail) if detail is not None else f"HTTP_{status_code}"
+        return "missing payload"
+
     def _build_workspace_capabilities(
         self,
         *,
@@ -830,6 +1123,7 @@ class PerformanceWorkspaceService:
         net_chart: list[PerformanceChartPoint],
         contribution: ContributionSummaryView | None,
         attribution: AttributionSummaryView | None,
+        evidence_view: PerformanceEvidenceView | None,
         include_detail_blocks: bool = True,
     ) -> PerformanceWorkspaceCapabilities:
         has_return_history = len(net_chart) > 0
@@ -951,10 +1245,37 @@ class PerformanceWorkspaceService:
                     "Contribution detail is not available for the current selection."
                 ),
             ),
-            evidence=self._capability(
+            evidence=self._build_evidence_capability(evidence_view=evidence_view),
+        )
+
+    def _build_evidence_capability(
+        self,
+        *,
+        evidence_view: PerformanceEvidenceView | None,
+    ) -> PerformanceModuleCapability:
+        if evidence_view is None:
+            return self._capability(
                 "unavailable",
-                "Evidence and lineage surfaces are not exposed by the current gateway contract.",
-            ),
+                "No evidence posture is available for the current selection.",
+            )
+        if evidence_view.state == "supported":
+            return self._capability(
+                "supported",
+                evidence_view.reason,
+                coverage_level="calculation",
+                fallback_available=True,
+            )
+        if evidence_view.state == "partial":
+            return self._capability(
+                "partial",
+                evidence_view.reason,
+                coverage_level="calculation",
+                fallback_available=True,
+            )
+        return self._capability(
+            "unavailable",
+            evidence_view.reason,
+            coverage_level="calculation",
         )
 
     def _build_contribution_capability(

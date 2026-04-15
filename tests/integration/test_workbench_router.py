@@ -754,7 +754,32 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "contribution_ranking": {"state": "supported"},
                 "attribution_detail": {"state": "supported"},
                 "contribution_detail": {"state": "supported"},
-                "evidence": {"state": "unavailable"},
+                "evidence": {"state": "supported"},
+            },
+            "evidence_view": {
+                "state": "supported",
+                "reason": "Execution and lineage evidence are exposed.",
+                "calculations": [
+                    {
+                        "calculation_role": "workspace_summary",
+                        "calculation_id": "calc-workspace-summary",
+                        "analytics_type": "WORKSPACE_SUMMARY",
+                        "execution_status": "complete",
+                        "execution_mode": "sync",
+                        "lineage_status": "complete",
+                        "stage_statuses": [],
+                        "upstream_snapshots": [],
+                        "artifacts": [
+                            {
+                                "artifact_name": "request.json",
+                                "url": (
+                                    "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
+                                    "calc-workspace-summary/request.json"
+                                ),
+                            }
+                        ],
+                    }
+                ],
             },
             "portfolio": {
                 "portfolio_id": "PF_1001",
@@ -824,6 +849,8 @@ def test_workbench_performance_summary_router(monkeypatch):
     assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
     assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
     assert body["money_weighted_return"]["net_cash_flow"] == 42000.0
+    assert body["capabilities"]["evidence"]["state"] == "supported"
+    assert body["evidence_view"]["calculations"][0]["calculation_role"] == "workspace_summary"
     assert "net_chart" not in body
     assert "contribution" not in body
 
@@ -855,7 +882,24 @@ def test_workbench_performance_details_router(monkeypatch):
                 "contribution_ranking": {"state": "supported"},
                 "attribution_detail": {"state": "supported"},
                 "contribution_detail": {"state": "supported"},
-                "evidence": {"state": "unavailable"},
+                "evidence": {"state": "partial"},
+            },
+            "evidence_view": {
+                "state": "partial",
+                "reason": "Lineage is still pending for one or more calculations.",
+                "calculations": [
+                    {
+                        "calculation_role": "workspace_summary",
+                        "calculation_id": "calc-workspace-summary",
+                        "analytics_type": "WORKSPACE_SUMMARY",
+                        "execution_status": "complete",
+                        "execution_mode": "sync",
+                        "lineage_status": "pending",
+                        "stage_statuses": [],
+                        "upstream_snapshots": [],
+                        "artifacts": [],
+                    }
+                ],
             },
             "net_chart": [
                 {
@@ -911,8 +955,30 @@ def test_workbench_performance_details_router(monkeypatch):
     assert body["portfolio_id"] == "PF_1001"
     assert body["net_chart"][0]["label"] == "2026-01"
     assert body["contribution"]["coverage_mv_pct"] == 98.7
+    assert body["capabilities"]["evidence"]["state"] == "partial"
+    assert body["evidence_view"]["state"] == "partial"
     assert "overview" not in body
     assert "net_performance" not in body
+
+
+def test_workbench_performance_evidence_artifact_router(monkeypatch):
+    async def _artifact(*args, **kwargs):  # noqa: ARG001
+        return b"{}", "application/json"
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_evidence_artifact",
+        _artifact,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
+        "calc-workspace-summary/request.json"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.text == "{}"
 
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):

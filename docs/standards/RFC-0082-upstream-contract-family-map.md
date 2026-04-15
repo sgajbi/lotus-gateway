@@ -38,7 +38,7 @@ outputs.
 
 | Upstream service | Consumed surface | Gateway use | Boundary rule |
 | --- | --- | --- | --- |
-| `lotus-performance` | performance summary, TWR, MWR, contribution, attribution, workspace summary, benchmark exposure context | performance workspace and first-paint modules | performance calculations and benchmark-relative interpretation remain in `lotus-performance` |
+| `lotus-performance` | performance summary, TWR, MWR, contribution, attribution, workspace summary, benchmark exposure context, execution polling, lineage artifact inventory | performance workspace, first-paint modules, and gateway-owned evidence posture | performance calculations, execution state, and lineage provenance remain in `lotus-performance`; gateway may reshape them for UI-safe evidence review but must not invent or replace source truth |
 | `lotus-risk` | calculate risk, concentration, drawdown, rolling metrics, historical attribution | risk workspace modules and risk panels | risk methodology, concentration, drawdown, and attribution semantics remain in `lotus-risk` |
 | `lotus-advise` | proposal lifecycle and advisory workflow surfaces | proposal workflow composition | advisory decision workflow remains in `lotus-advise` |
 | `lotus-manage` | management workflow surfaces where split routing still applies | management workflow composition | discretionary management operations remain in `lotus-manage` |
@@ -78,8 +78,12 @@ Existing tests that cover this posture include:
 13. `tests/integration/test_platform_capabilities_router.py`
 14. `tests/e2e/test_workflow_journeys.py`
 
-This RFC-0082 documentation slice did not change runtime behavior, OpenAPI output, or upstream
-request/response contracts.
+This RFC-0082 documentation slice reflects current runtime behavior:
+
+1. `workbench/performance/summary` and `workbench/performance/details` expose a gateway-owned
+   `evidence_view` sourced from lotus-performance execution polling and lineage inventory.
+2. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
+   route rather than exposing direct lotus-performance URLs.
 
 ## Gap Register
 

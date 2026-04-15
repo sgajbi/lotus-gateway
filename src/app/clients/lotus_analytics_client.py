@@ -2,6 +2,8 @@ import asyncio
 from typing import Any
 from uuid import uuid4
 
+import httpx
+
 from app.clients.http_resilience import request_with_retry
 from app.middleware.correlation import propagation_headers
 
@@ -133,6 +135,56 @@ class LotusAnalyticsClient:
             params=params,
             headers=headers,
         )
+
+    async def get_execution(
+        self,
+        *,
+        calculation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/performance/executions/{calculation_id}"
+        headers = propagation_headers(correlation_id)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_lineage(
+        self,
+        *,
+        calculation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/performance/lineage/{calculation_id}"
+        headers = propagation_headers(correlation_id)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_lineage_artifact(
+        self,
+        *,
+        calculation_id: str,
+        artifact_name: str,
+        correlation_id: str,
+    ) -> tuple[int, bytes, str | None]:
+        url = f"{self._base_url}/performance/lineage/{calculation_id}/artifacts/{artifact_name}"
+        headers = propagation_headers(correlation_id)
+        async with httpx.AsyncClient(
+            timeout=self._timeout,
+            follow_redirects=True,
+        ) as client:
+            response = await client.get(url, headers=headers)
+        return response.status_code, response.content, response.headers.get("content-type")
 
     async def get_stateful_twr(
         self,

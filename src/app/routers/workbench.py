@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -423,7 +423,8 @@ async def get_workbench_risk_attribution(
     summary="Get Performance Workspace Summary",
     description=(
         "Returns the first-paint performance summary contract with shared context, "
-        "benchmark options, comparative returns, and money-weighted return."
+        "benchmark options, comparative returns, money-weighted return, and "
+        "gateway-owned execution and lineage evidence posture."
     ),
 )
 async def get_performance_workspace_summary(
@@ -458,8 +459,9 @@ async def get_performance_workspace_summary(
     response_model=PerformanceWorkspaceDetailsResponse,
     summary="Get Performance Workspace Details",
     description=(
-        "Returns the heavier analytical detail contract for charts, contribution, and attribution "
-        "panels while reusing the shared performance state model."
+        "Returns the heavier analytical detail contract for charts, contribution, "
+        "attribution, and gateway-owned execution and lineage evidence while "
+        "reusing the shared performance state model."
     ),
 )
 async def get_performance_workspace_details(
@@ -487,6 +489,31 @@ async def get_performance_workspace_details(
         explicit_start_date=report_start_date,
         explicit_end_date=report_end_date,
     )
+
+
+@router.get(
+    "/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}",
+    summary="Download Performance Evidence Artifact",
+    description=(
+        "Downloads a performance lineage artifact through the gateway boundary. "
+        "Workbench and other downstream clients should use this route instead of "
+        "calling lotus-performance directly."
+    ),
+)
+async def get_performance_evidence_artifact(
+    portfolio_id: str,
+    calculation_id: str,
+    artifact_name: str,
+) -> Response:
+    _ = portfolio_id
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    content, content_type = await service.get_performance_evidence_artifact(
+        calculation_id=calculation_id,
+        artifact_name=artifact_name,
+        correlation_id=correlation_id,
+    )
+    return Response(content=content, media_type=content_type or "application/octet-stream")
 
 
 @router.get(

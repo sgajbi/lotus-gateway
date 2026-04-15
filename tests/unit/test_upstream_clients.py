@@ -599,6 +599,76 @@ async def test_lotus_analytics_client_workspace_summary_omits_unsupported_curren
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_fetches_execution_and_lineage_evidence():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "calculation_id": "calc-workspace-summary",
+            "status": "complete",
+            "execution_mode": "sync",
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "calculation_id": "calc-workspace-summary",
+            "status": "complete",
+            "artifacts": {"request.json": {"url": "http://performance/path"}},
+        },
+    )
+
+    execution_status, execution_payload = await client.get_execution(
+        calculation_id="calc-workspace-summary",
+        correlation_id="corr-performance",
+    )
+    lineage_status, lineage_payload = await client.get_lineage(
+        calculation_id="calc-workspace-summary",
+        correlation_id="corr-performance",
+    )
+
+    assert execution_status == 200
+    assert execution_payload["status"] == "complete"
+    assert lineage_status == 200
+    assert lineage_payload["artifacts"]["request.json"]["url"] == "http://performance/path"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://analytics/performance/executions/calc-workspace-summary"
+    )
+    assert (
+        _FakeAsyncClient.calls[1]["url"]
+        == "http://analytics/performance/lineage/calc-workspace-summary"
+    )
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_downloads_lineage_artifact_bytes():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.responses.append(
+        httpx.Response(
+            status_code=200,
+            content=b"{}",
+            headers={"Content-Type": "application/json"},
+            request=httpx.Request("GET", "http://test"),
+        )
+    )
+
+    status_code, content, content_type = await client.get_lineage_artifact(
+        calculation_id="calc-workspace-summary",
+        artifact_name="request.json",
+        correlation_id="corr-performance",
+    )
+
+    assert status_code == 200
+    assert content == b"{}"
+    assert content_type == "application/json"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://analytics/performance/lineage/calc-workspace-summary/artifacts/request.json"
+    )
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_fetches_benchmark_assignment():
     client = LotusCoreQueryClient(
         base_url="http://core-query",
