@@ -256,6 +256,15 @@ class _StubRiskClient:
             "metadata": {
                 "contract_version": "v1",
                 "methodology_version": "historical_attribution.v1",
+                "stateful_active_risk_supported_grouping_dimensions": [
+                    "POSITION",
+                    "SECTOR",
+                    "ASSET_CLASS",
+                ],
+                "stateful_active_risk_gated_grouping_dimensions": ["ISSUER"],
+                "stateful_active_risk_gate_reason": (
+                    "Benchmark issuer exposure semantics are not available."
+                ),
             },
         }
 
@@ -316,6 +325,9 @@ async def test_risk_summary_uses_stateful_request_and_maps_supportability() -> N
         "benchmark_returns": "ready",
         "risk_free_series": "ready",
     }
+    risk_free_support = {item.key: item for item in response.supportability}["risk_free_series"]
+    assert "zero risk-free" not in (risk_free_support.reason or "").lower()
+    assert "risk-free series" in (risk_free_support.reason or "").lower()
 
 
 @pytest.mark.asyncio
@@ -770,6 +782,14 @@ async def test_risk_attribution_uses_stateful_total_risk_request_and_maps_contro
     assert response.payload is not None
     assert response.payload.controls.selected_attribution_type == "TOTAL_RISK"
     assert response.payload.controls.selected_grouping_dimension == "SECTOR"
+    active_risk_groupings = {
+        option.key: option for option in response.payload.controls.grouping_dimensions
+    }
+    assert active_risk_groupings["ISSUER"].state == "partial"
+    assert (
+        "benchmark issuer exposure semantics"
+        in (active_risk_groupings["ISSUER"].reason or "").lower()
+    )
     assert (
         response.payload.periods[0].attribution_sets[0].contributors[0].group_label == "Technology"
     )
@@ -817,6 +837,51 @@ async def test_risk_attribution_uses_stateful_active_risk_request_for_supported_
         "benchmark_returns": "ready",
         "benchmark_exposure_context": "ready",
     }
+
+
+@pytest.mark.asyncio
+async def test_risk_attribution_controls_follow_upstream_active_risk_grouping_metadata() -> None:
+    client = _StubRiskClient()
+    client.attribution_payload["metadata"]["stateful_active_risk_supported_grouping_dimensions"] = [
+        "POSITION"
+    ]
+    client.attribution_payload["metadata"]["stateful_active_risk_gated_grouping_dimensions"] = [
+        "SECTOR",
+        "ISSUER",
+    ]
+    client.attribution_payload["metadata"]["stateful_active_risk_gate_reason"] = (
+        "Upstream active-risk grouping gate."
+    )
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_attribution(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+        attribution_type="TOTAL_RISK",
+        grouping_dimension="SECTOR",
+    )
+
+    assert response.state == "ready"
+    assert response.payload is not None
+    grouping_options = {
+        option.key: option for option in response.payload.controls.grouping_dimensions
+    }
+    assert grouping_options["POSITION"].supported_attribution_types == [
+        "TOTAL_RISK",
+        "ACTIVE_RISK",
+    ]
+    assert grouping_options["SECTOR"].state == "partial"
+    assert grouping_options["SECTOR"].supported_attribution_types == ["TOTAL_RISK"]
+    assert grouping_options["SECTOR"].reason == (
+        "Supported for total risk. Upstream active-risk grouping gate."
+    )
+    assert grouping_options["ASSET_CLASS"].state == "ready"
+    assert grouping_options["ASSET_CLASS"].supported_attribution_types == ["TOTAL_RISK"]
 
 
 @pytest.mark.asyncio

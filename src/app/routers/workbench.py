@@ -263,7 +263,8 @@ async def get_workbench_analytics(
     description=(
         "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench. "
         "This endpoint uses the RFC-0022 Risk BFF contract and does not expose stateless "
-        "risk execution to the UI."
+        "risk execution to the UI. Sharpe supportability follows lotus-risk "
+        "risk-free dependency status; gateway does not assume a zero risk-free fallback."
     ),
 )
 async def get_workbench_risk_summary(
@@ -353,7 +354,9 @@ async def get_workbench_risk_drawdown(
     summary="Get Workbench Risk Rolling Metrics",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
-        "Rolling series detail is optional and requested on demand to keep first paint lean."
+        "Rolling series detail is optional and requested on demand to keep first paint lean. "
+        "If lotus-risk cannot source the risk-free dependency, gateway omits rolling Sharpe "
+        "and surfaces an explicit partial-failure signal."
     ),
 )
 async def get_workbench_risk_rolling(
@@ -385,7 +388,8 @@ async def get_workbench_risk_rolling(
     summary="Get Workbench Risk Attribution",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
-        "Only supported stateful attribution combinations are surfaced to the UI."
+        "Active-risk grouping availability is derived from lotus-risk metadata so the UI "
+        "stays aligned with the authoritative domain contract."
     ),
 )
 async def get_workbench_risk_attribution(
