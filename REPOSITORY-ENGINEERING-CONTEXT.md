@@ -32,7 +32,8 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
-4. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+4. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
+5. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 
 ## Architecture And Module Map
 
@@ -64,7 +65,9 @@ Boundary rules:
 1. gateway payloads should be product-oriented and governed,
 2. domain ownership must remain upstream,
 3. route contracts should prefer replacement and cleanup over versioned clutter while pre-live,
-4. canonical service identity is part of the operational contract.
+4. gateway must not become the authority for portfolio source data, performance analytics, risk analytics, advisory workflow, management workflow, reporting, or AI outputs,
+5. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current gateway upstream calls,
+6. canonical service identity is part of the operational contract.
 
 ## Repo-Native Commands
 
@@ -111,13 +114,16 @@ Most relevant current governance:
 4. `../lotus-platform/rfcs/RFC-0071-centralized-environment-scoped-service-addressing-and-ingress-governance.md`
 5. `../lotus-platform/rfcs/RFC-0072-platform-wide-multi-lane-ci-validation-and-release-governance.md`
 6. `../lotus-platform/rfcs/RFC-0073-lotus-ecosystem-engineering-context-and-agent-guidance-system.md`
+7. `../lotus-platform/rfcs/RFC-0082-lotus-core-domain-authority-and-analytics-serving-boundary-hardening.md`
+8. `docs/standards/RFC-0082-upstream-contract-family-map.md`
 
 ## Known Constraints And Implementation Notes
 
 1. Windows startup can serve a misleading health-only process if `--app-dir src` is omitted,
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
-4. integration drift is most dangerous here because it directly affects the product UI.
+4. reporting query, cashflow projection, projected summary, and benchmark catalog upstream calls remain RFC-0082 watchlist surfaces,
+5. integration drift is most dangerous here because it directly affects the product UI.
 
 ## Context Maintenance Rule
 
@@ -127,7 +133,8 @@ Update this document when:
 2. canonical startup commands or CI expectations change,
 3. upstream dependency boundaries change,
 4. gateway composition patterns or partial-readiness behavior change materially,
-5. current-state architectural direction changes.
+5. RFC-0082 contract-family classification changes,
+6. current-state architectural direction changes.
 
 ## Cross-Links
 

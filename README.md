@@ -15,6 +15,8 @@ pass-through routes into the primary BFF layer for Lotus workspace applications.
 
 - Experience API foundation blueprint:
   `docs/documentation/experience-api-foundation-blueprint.md`
+- RFC-0082 upstream contract-family conformance map:
+  `docs/standards/RFC-0082-upstream-contract-family-map.md`
 - Current RFC history:
   `docs/rfcs/README.md`
 
