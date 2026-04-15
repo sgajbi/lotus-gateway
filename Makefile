@@ -4,15 +4,15 @@ install:
 	python -m pip install -e ".[dev]"
 
 lint:
-	ruff check .
-	ruff format --check .
+	python -m ruff check .
+	python -m ruff format --check .
 	$(MAKE) monetary-float-guard
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
 
 typecheck:
-	mypy src
+	python -m mypy src
 
 openapi-gate:
 	python -m pytest tests/contract/test_workbench_contract.py -q
