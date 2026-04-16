@@ -297,19 +297,59 @@ class PortfolioReadinessBucket(BaseModel):
 
 
 class PortfolioExceptionSummary(BaseModel):
-    key: str
-    title: str
-    detail: str
-    tone: str
-    href: str
+    key: str = Field(
+        description="Stable exception key used by the workspace to group attention items.",
+        examples=["pricing"],
+    )
+    title: str = Field(
+        description="Advisor-facing exception headline summarizing the blocked or degraded state.",
+        examples=["Pricing coverage incomplete"],
+    )
+    detail: str = Field(
+        description=(
+            "Short explanation of the exception that remains visible in the workspace rail."
+        ),
+        examples=["Some holdings lack complete valuation coverage."],
+    )
+    tone: str = Field(
+        description="Presentation tone for the exception severity in the workspace shell.",
+        examples=["warn"],
+    )
+    href: str = Field(
+        description="In-page anchor or route target that helps resolve the exception.",
+        examples=["#portfolio-attention"],
+    )
 
 
 class PortfolioInsight(BaseModel):
-    key: str
-    title: str
-    detail: str
-    severity: str
-    href: str
+    key: str = Field(
+        description=(
+            "Stable insight key used by product modules to dismiss or group portfolio cues."
+        ),
+        examples=["equity-concentration-high"],
+    )
+    title: str = Field(
+        description="Advisor-facing portfolio insight headline.",
+        examples=["Large position dominates portfolio risk"],
+    )
+    detail: str = Field(
+        description=(
+            "Short explanation of the portfolio insight derived from the current book state."
+        ),
+        examples=[
+            "One holding has become large enough to dominate current portfolio concentration."
+        ],
+    )
+    severity: str = Field(
+        description="Normalized portfolio insight severity used for workspace prioritization.",
+        examples=["warning"],
+    )
+    href: str = Field(
+        description=(
+            "In-page anchor or route target that helps the advisor investigate the insight."
+        ),
+        examples=["#portfolio-insights"],
+    )
 
 
 class PortfolioReadinessResponse(BaseModel):
@@ -352,28 +392,85 @@ class PortfolioReadinessResponse(BaseModel):
 class PortfolioInsightsResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    insights: list[PortfolioInsight] = Field(default_factory=list)
-    exception_summaries: list[PortfolioExceptionSummary] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose insight and exception posture is being summarized.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description=(
+            "Resolved as-of date used for the holdings, allocation, activity, and readiness inputs."
+        ),
+        examples=["2026-03-27"],
+    )
+    insights: list[PortfolioInsight] = Field(
+        default_factory=list,
+        description=(
+            "Advisor-facing portfolio insights derived from source-backed book and activity state."
+        ),
+    )
+    exception_summaries: list[PortfolioExceptionSummary] = Field(
+        default_factory=list,
+        description=(
+            "Compact exception summaries for blocked, empty, or degraded portfolio conditions."
+        ),
+    )
 
 
 class PortfolioWorkflowAction(BaseModel):
-    sequence: int
-    title: str
-    impact: str
-    target: str
-    href: str
-    cta_label: str
-    recommended: bool = False
+    sequence: int = Field(
+        description="Display order for the workflow action within the prioritized action list.",
+        examples=[1],
+    )
+    title: str = Field(
+        description="Advisor-facing workflow action title.",
+        examples=["Review performance"],
+    )
+    impact: str = Field(
+        description="Short explanation of why the workflow action matters now for the portfolio.",
+        examples=[
+            "Review portfolio return, benchmark context, and contribution once the book is valued."
+        ],
+    )
+    target: str = Field(
+        description="Explicit workflow target or operating outcome that the action opens.",
+        examples=["Target: Performance workflow for this portfolio"],
+    )
+    href: str = Field(
+        description="Route or in-page target used to launch the workflow action.",
+        examples=["/performance?portfolioId=PF_1001"],
+    )
+    cta_label: str = Field(
+        description="Short call-to-action label shown on the action button.",
+        examples=["Performance"],
+    )
+    recommended: bool = Field(
+        default=False,
+        description="Whether this action is the highest-priority recommended next step.",
+        examples=[True],
+    )
 
 
 class PortfolioWorkflowResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    actions: list[PortfolioWorkflowAction] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose prioritized workflow actions are being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description=(
+            "Resolved as-of date used to derive workflow actions from "
+            "source-backed portfolio state."
+        ),
+        examples=["2026-03-27"],
+    )
+    actions: list[PortfolioWorkflowAction] = Field(
+        default_factory=list,
+        description=(
+            "Prioritized advisor workflow actions derived from the current "
+            "portfolio workspace state."
+        ),
+    )
 
 
 class PortfolioWorkspaceResponse(BaseModel):

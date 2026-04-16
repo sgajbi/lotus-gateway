@@ -1,6 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
+from app.contracts.portfolio import PortfolioSummary, PortfolioWorkflowLaunchCue
 from app.services.portfolio_service import PortfolioService
 
 
@@ -421,6 +422,85 @@ async def test_portfolio_workflow_returns_prioritized_actions():
         "Holdings",
         "Transactions",
     ]
+
+
+def test_build_workflow_actions_dedupes_and_ignores_unsupported_cues():
+    service = PortfolioService(_StubLotusCoreQueryClient())
+
+    actions = service._build_workflow_actions(
+        portfolio_id="PF_1001",
+        summary=PortfolioSummary(
+            assets_under_management_base=1000.0,
+            invested_market_value_base=900.0,
+            cash_market_value_base=100.0,
+            cash_weight_pct=10.0,
+            position_count=2,
+            cash_balance_count=1,
+        ),
+        operations=None,
+        workflow_cues=[
+            PortfolioWorkflowLaunchCue(
+                key="holdings",
+                label="Holdings",
+                href="/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+            ),
+            PortfolioWorkflowLaunchCue(
+                key="custom",
+                label="Custom",
+                href="/custom",
+            ),
+            PortfolioWorkflowLaunchCue(
+                key="performance",
+                label="Performance",
+                href="/performance?portfolioId=PF_1001",
+            ),
+            PortfolioWorkflowLaunchCue(
+                key="holdings",
+                label="Holdings",
+                href="/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+            ),
+        ],
+        transaction_total=3,
+    )
+
+    assert [action.title for action in actions] == [
+        "Review performance",
+        "Review holdings",
+    ]
+    assert [action.cta_label for action in actions] == [
+        "Performance",
+        "Holdings",
+    ]
+    assert actions[0].recommended is True
+
+
+def test_build_workflow_actions_returns_empty_portfolio_setup_sequence():
+    service = PortfolioService(_StubLotusCoreQueryClient())
+
+    actions = service._build_workflow_actions(
+        portfolio_id="PF_EMPTY",
+        summary=PortfolioSummary(
+            assets_under_management_base=0.0,
+            invested_market_value_base=0.0,
+            cash_market_value_base=0.0,
+            cash_weight_pct=0.0,
+            position_count=0,
+            cash_balance_count=0,
+        ),
+        operations=None,
+        workflow_cues=[],
+        transaction_total=0,
+    )
+
+    assert [action.title for action in actions] == [
+        "Fund portfolio",
+        "Book first trade",
+        "Publish pricing",
+        "Review holdings",
+        "Open performance",
+    ]
+    assert actions[0].recommended is True
+    assert actions[0].href == "/workbench?portfolioId=PF_EMPTY"
 
 
 @pytest.mark.asyncio

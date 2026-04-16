@@ -1909,7 +1909,7 @@ class PortfolioService:
             ]
 
         ordered_cues = sorted(
-            self._dedupe_workflow_cues(workflow_cues),
+            self._supported_workflow_cues(self._dedupe_workflow_cues(workflow_cues)),
             key=lambda cue: self._workflow_order_rank(cue.key),
         )
         return [
@@ -1919,7 +1919,7 @@ class PortfolioService:
                 impact=self._workflow_impact_label(cue.key),
                 target=f"Target: {cue.label} workflow for this portfolio",
                 href=cue.href,
-                cta_label=cue.label,
+                cta_label=self._workflow_cta_label(cue.key),
                 recommended=index == 0,
             )
             for index, cue in enumerate(ordered_cues)
@@ -1991,6 +1991,12 @@ class PortfolioService:
             unique.append(cue)
         return unique
 
+    def _supported_workflow_cues(
+        self, workflow_cues: list[PortfolioWorkflowLaunchCue]
+    ) -> list[PortfolioWorkflowLaunchCue]:
+        supported_keys = {"performance", "holdings", "transactions", "risk", "proposal"}
+        return [cue for cue in workflow_cues if cue.key in supported_keys]
+
     def _workflow_order_rank(self, key: str) -> int:
         order = {
             "performance": 0,
@@ -2008,6 +2014,16 @@ class PortfolioService:
             "transactions": "Review transactions",
             "risk": "Review suitability",
             "proposal": "Prepare recommendation",
+        }
+        return mapping.get(key, "Open workflow")
+
+    def _workflow_cta_label(self, key: str) -> str:
+        mapping = {
+            "performance": "Performance",
+            "holdings": "Holdings",
+            "transactions": "Transactions",
+            "risk": "Suitability",
+            "proposal": "Recommendation",
         }
         return mapping.get(key, "Open workflow")
 
