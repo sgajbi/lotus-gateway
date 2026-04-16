@@ -829,6 +829,24 @@ async def test_portfolio_book_passes_include_projected_to_positions():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_book_does_not_require_cashflow_projection():
+    class _BookClient(_StubLotusCoreQueryClient):
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            raise AssertionError("book endpoint should not request projected cashflow")
+
+    service = PortfolioService(_BookClient())
+    response = await service.get_portfolio_book(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3-book",
+        as_of_date="2026-03-27",
+        include_projected=False,
+    )
+
+    assert response.cash_balances[0].security_id == "CASH_USD"
+    assert response.summary.assets_under_management_base == 1000.0
+
+
+@pytest.mark.asyncio
 async def test_portfolio_liquidity_returns_cash_and_cashflow():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_liquidity(

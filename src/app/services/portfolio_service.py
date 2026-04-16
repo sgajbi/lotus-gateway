@@ -737,27 +737,35 @@ class PortfolioService:
         as_of_date: str | None,
         include_projected: bool,
     ) -> PortfolioBookResponse:
-        allocations = await self.get_portfolio_allocations(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-        )
-        liquidity = await self.get_portfolio_liquidity(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-        )
-        positions = await self.get_portfolio_positions(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            include_projected=include_projected,
+        allocations, positions, cash_balances_result, portfolio_result = await asyncio.gather(
+            self.get_portfolio_allocations(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
+            self.get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=include_projected,
+            ),
+            self._query_cash_balances_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+            ),
+            self._get_portfolio_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
         )
         portfolio_payload = self._require_payload(
-            result=await self._get_portfolio_result(
-                portfolio_id=portfolio_id, correlation_id=correlation_id
-            ),
+            result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
+        )
+        cash_balances_payload = self._require_payload(
+            result=cash_balances_result,
+            unavailable_detail_prefix="lotus-core cash balances unavailable",
         )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         return PortfolioBookResponse(
@@ -766,7 +774,9 @@ class PortfolioService:
             as_of_date=positions.as_of_date,
             portfolio=portfolio,
             summary=positions.summary,
-            cash_balances=liquidity.cash_balances,
+            cash_balances=self._parse_cash_balances(
+                cash_balances_payload, positions.summary.assets_under_management_base
+            ),
             allocation_views=allocations.views,
             top_positions=positions.top_positions,
             positions=positions.positions,
