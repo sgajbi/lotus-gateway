@@ -1177,6 +1177,32 @@ def test_workbench_performance_evidence_openapi_contract():
     assert artifact_schema["properties"]["url"]["description"]
 
 
+def test_workbench_performance_details_attribution_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    details_route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/details"]["get"]
+    attribution_schema = schema["components"]["schemas"]["AttributionSummaryView"]
+    attribution_level_schema = schema["components"]["schemas"]["AttributionLevelView"]
+    attribution_row_schema = schema["components"]["schemas"]["AttributionRowView"]
+
+    assert details_route["description"]
+    assert attribution_schema["properties"]["active_return_pct"]["description"]
+    assert attribution_schema["properties"]["levels"]["description"]
+    assert attribution_level_schema["properties"]["allocation_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["selection_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["interaction_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["total_effect_pct"]["description"]
+    assert (
+        "without gateway-side truncation"
+        in attribution_level_schema["properties"]["rows"]["description"]
+    )
+    assert attribution_row_schema["properties"]["portfolio_weight_avg_pct"]["description"]
+    assert attribution_row_schema["properties"]["benchmark_return_pct"]["description"]
+
+
 def test_workbench_performance_attribution_trend_openapi_contract():
     client = TestClient(app)
     response = client.get("/openapi.json")
