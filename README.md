@@ -63,7 +63,6 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact MTD/QTD/YTD comparison module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/advisor-brief` (source-grounded advisor brief with evidence refs and supportability)
-- `GET /api/v1/workbench/{portfolio_id}/performance` (legacy compatibility endpoint; deprecated in favor of split Performance contracts)
 - `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
 - `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
 - `GET /api/v1/proposals` (list proposals)
