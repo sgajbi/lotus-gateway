@@ -209,10 +209,23 @@ async def get_portfolio_readiness(
     "/portfolios/{portfolio_id}/insights",
     response_model=PortfolioInsightsResponse,
     summary="Get portfolio insight and exception summaries",
+    description=(
+        "Returns advisor-facing portfolio insights and compact exception summaries for the "
+        "current book. Use this endpoint when the UI needs a governed summary of empty, "
+        "blocked, concentration, funding, reporting, or recent-activity signals derived "
+        "from source-backed holdings, readiness, and activity inputs instead of rebuilding "
+        "those cues locally."
+    ),
 )
 async def get_portfolio_insights(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve portfolio insight inputs."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PortfolioInsightsResponse:
     return await _portfolio_service().get_portfolio_insights(
         portfolio_id=portfolio_id,

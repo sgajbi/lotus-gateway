@@ -1742,9 +1742,9 @@ class PortfolioService:
             workspace.reporting.status,
             workspace.reporting.row_count,
         )
-        max_position_weight = max(
-            (position.weight_pct or 0 for position in top_positions),
-            default=0,
+        max_position_weight = self._max_position_weight(
+            positions=positions,
+            top_positions=top_positions,
         )
         requested_window_activity = self._requested_window_activity_amount(activity_summary)
 
@@ -1762,7 +1762,10 @@ class PortfolioService:
                 )
             )
 
-        if workspace.summary.cash_balance_count == 0:
+        if not self._has_cash_funding_evidence(
+            summary=workspace.summary,
+            activity_summary=activity_summary,
+        ):
             insights.append(
                 PortfolioInsight(
                     key="no-cash-funding",
@@ -1837,6 +1840,39 @@ class PortfolioService:
             )
 
         return insights
+
+    def _max_position_weight(
+        self,
+        *,
+        positions: list[PortfolioPositionView],
+        top_positions: list[PortfolioTopPosition],
+    ) -> float:
+        weighted_positions = [
+            *(position.weight_pct or 0 for position in top_positions),
+            *(position.weight_pct or 0 for position in positions),
+        ]
+        return max(weighted_positions, default=0)
+
+    def _has_cash_funding_evidence(
+        self,
+        *,
+        summary: PortfolioSummary,
+        activity_summary: PortfolioActivitySummaryResponse,
+    ) -> bool:
+        if summary.cash_balance_count > 0:
+            return True
+        if summary.cash_market_value_base > 0:
+            return True
+
+        inflow_bucket = next(
+            (bucket for bucket in activity_summary.buckets if bucket.bucket.upper() == "INFLOWS"),
+            None,
+        )
+        if inflow_bucket is None:
+            return False
+        if inflow_bucket.requested_window.transaction_count > 0:
+            return True
+        return inflow_bucket.requested_window.reporting_currency_amount > 0
 
     def _build_workflow_actions(
         self,

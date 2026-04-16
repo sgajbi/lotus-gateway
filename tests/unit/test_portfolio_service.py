@@ -408,6 +408,159 @@ async def test_portfolio_insights_returns_source_backed_insight_and_exception_su
 
 
 @pytest.mark.asyncio
+async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence():
+    class _FundingEvidenceClient(_StubLotusCoreQueryClient):
+        async def query_assets_under_management(self, **kwargs):
+            return 200, {
+                "resolved_as_of_date": "2026-03-27",
+                "portfolios": [
+                    {
+                        "portfolio_id": kwargs["portfolio_id"],
+                        "aum_reporting_currency": 0.0,
+                        "position_count": 0,
+                    }
+                ],
+            }
+
+        async def query_cash_balances(self, **kwargs):
+            return 200, {
+                "totals": {
+                    "cash_account_count": 0,
+                    "total_balance_reporting_currency": 0.0,
+                },
+                "cash_accounts": [],
+            }
+
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 200, {"positions": []}
+
+        async def query_asset_allocation(self, **kwargs):
+            return 200, {"views": []}
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            return 200, {
+                "total": 0,
+                "skip": kwargs["skip"],
+                "limit": kwargs["limit"],
+                "transactions": [],
+            }
+
+        async def query_activity_summary(self, **kwargs):
+            return 200, {
+                "reporting_currency": "USD",
+                "totals": {
+                    "buckets": [
+                        {
+                            "bucket": "INFLOWS",
+                            "requested_window": {
+                                "transaction_count": 1,
+                                "amount_reporting_currency": 100.0,
+                            },
+                            "year_to_date": {
+                                "transaction_count": 1,
+                                "amount_reporting_currency": 100.0,
+                            },
+                        }
+                    ]
+                },
+            }
+
+    service = PortfolioService(_FundingEvidenceClient())
+    response = await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb-funding",
+        as_of_date="2026-03-27",
+    )
+
+    insight_keys = {insight.key for insight in response.insights}
+    assert "no-holdings-booked" in insight_keys
+    assert "no-cash-funding" not in insight_keys
+
+
+@pytest.mark.asyncio
+async def test_portfolio_insights_returns_blocked_exception_summaries():
+    class _BlockedPortfolioClient(_StubLotusCoreQueryClient):
+        async def query_assets_under_management(self, **kwargs):
+            return 200, {
+                "resolved_as_of_date": "2026-03-27",
+                "portfolios": [
+                    {
+                        "portfolio_id": kwargs["portfolio_id"],
+                        "aum_reporting_currency": 0.0,
+                        "position_count": 0,
+                    }
+                ],
+            }
+
+        async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+            return 200, {
+                "business_date": "2026-03-27",
+                "latest_booked_transaction_date": None,
+                "latest_booked_position_snapshot_date": None,
+                "publish_allowed": False,
+                "controls_blocking": True,
+            }
+
+        async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 200, {
+                "holdings": {"status": "MISSING", "reasons": []},
+                "pricing": {"status": "PENDING", "reasons": []},
+                "transactions": {"status": "MISSING", "reasons": []},
+                "reporting": {"status": "MISSING", "reasons": []},
+                "blocking_reasons": [],
+            }
+
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 503, {"detail": "cashflow temporarily unavailable"}
+
+        async def query_cash_balances(self, **kwargs):
+            return 200, {
+                "totals": {
+                    "cash_account_count": 0,
+                    "total_balance_reporting_currency": 0.0,
+                },
+                "cash_accounts": [],
+            }
+
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 200, {"positions": []}
+
+        async def query_asset_allocation(self, **kwargs):
+            return 200, {"views": []}
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            return 200, {
+                "total": 0,
+                "skip": kwargs["skip"],
+                "limit": kwargs["limit"],
+                "transactions": [],
+            }
+
+        async def query_activity_summary(self, **kwargs):
+            return 200, {"reporting_currency": "USD", "totals": {"buckets": []}}
+
+    service = PortfolioService(_BlockedPortfolioClient())
+    response = await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb-blocked",
+        as_of_date="2026-03-27",
+    )
+
+    assert {summary.key for summary in response.exception_summaries} == {
+        "holdings",
+        "pricing",
+        "transactions",
+        "reporting",
+        "controls_blocking",
+        "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
+    }
+
+
+@pytest.mark.asyncio
 async def test_portfolio_workflow_returns_prioritized_actions():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_workflow(

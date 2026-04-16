@@ -253,6 +253,9 @@ def test_portfolio_openapi_contract_registered() -> None:
     rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
     readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
     readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]
+    insights_schema = spec["components"]["schemas"]["PortfolioInsightsResponse"]
+    insight_item_schema = spec["components"]["schemas"]["PortfolioInsight"]
+    exception_item_schema = spec["components"]["schemas"]["PortfolioExceptionSummary"]
     workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
     workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
     assert workspace_schema["properties"]["performance"]["description"]
@@ -262,6 +265,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert readiness_schema["properties"]["blocking_reasons"]["description"]
     assert readiness_schema["properties"]["indicators"]["description"]
     assert readiness_indicator_schema["properties"]["status"]["description"]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"][
+        "description"
+    ]
+    assert insights_schema["properties"]["insights"]["description"]
+    assert insights_schema["properties"]["exception_summaries"]["description"]
+    assert insight_item_schema["properties"]["severity"]["description"]
+    assert exception_item_schema["properties"]["tone"]["description"]
     assert workflow_schema["properties"]["actions"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
     assert workflow_action_schema["properties"]["cta_label"]["description"]
