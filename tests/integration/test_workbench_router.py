@@ -1151,6 +1151,35 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     assert row_schema["properties"]["active_return_pct"]["description"]
 
 
+def test_workbench_performance_attribution_trend_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/attribution-trend"]["get"]
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    dimension_parameter = next(
+        parameter
+        for parameter in route["parameters"]
+        if parameter["name"] == "attribution_dimension"
+    )
+    response_schema = schema["components"]["schemas"]["PerformanceAttributionTrendResponse"]
+    row_schema = schema["components"]["schemas"]["PerformanceAttributionTrendRow"]
+
+    assert "allocation, selection, interaction, and total-effect" in route["description"]
+    assert period_parameter["description"]
+    assert dimension_parameter["description"]
+    assert response_schema["properties"]["rows"]["description"]
+    assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert response_schema["properties"]["requested_attribution_dimension_supported"]["description"]
+    assert row_schema["properties"]["total_effect_pct"]["description"]
+    assert row_schema["properties"]["cumulative_total_effect_pct"]["description"]
+    assert row_schema["properties"]["residual_pct"]["description"]
+
+
 def test_workbench_performance_advisor_brief_router(monkeypatch):
     captured_call = {}
 

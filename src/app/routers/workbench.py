@@ -592,18 +592,64 @@ async def get_performance_horizon_comparison(
     summary="Get Performance Attribution Trend",
     description=(
         "Returns benchmark-relative attribution effects over time for the selected period window "
-        "using a dedicated analytical module contract."
+        "using a dedicated analytical module contract. Use this endpoint when the UI needs "
+        "time-bucketed allocation, selection, interaction, and total-effect context rather than "
+        "the full attribution detail table."
     ),
 )
 async def get_performance_attribution_trend(
     portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested attribution horizon. Use canonical values such as MTD, QTD, YTD, 1Y, or "
+            "EXPLICIT when paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested bucket frequency for the trend chart. Unsupported values are normalized "
+            "and reported back in the response."
+        ),
+        examples=["monthly"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description=(
+            "Requested attribution dimension for the trend analysis, such as asset_class, "
+            "sector, country, or currency."
+        ),
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the attribution trend effects.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller wants an EXPLICIT attribution window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller wants an EXPLICIT attribution window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceAttributionTrendResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
