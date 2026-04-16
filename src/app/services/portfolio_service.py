@@ -97,13 +97,14 @@ class PortfolioService:
         )
 
     async def _get_support_overview_result(
-        self, portfolio_id: str, correlation_id: str
+        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("support_overview", portfolio_id),
+            ("support_overview", portfolio_id, as_of_date),
             lambda: self._lotus_core_query_client.get_support_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
+                as_of_date=as_of_date,
             ),
         )
 
@@ -419,6 +420,7 @@ class PortfolioService:
             self._get_support_overview_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
+                as_of_date=effective_as_of_date,
             ),
             self._get_cashflow_projection_result(
                 portfolio_id=portfolio_id,
@@ -453,6 +455,10 @@ class PortfolioService:
         portfolio_payload = self._require_payload(
             result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
+        )
+        self._raise_on_upstream_client_error(
+            support_result,
+            detail_prefix="lotus-core support overview rejected the request",
         )
         self._raise_on_upstream_client_error(
             readiness_result,

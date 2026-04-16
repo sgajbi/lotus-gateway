@@ -36,7 +36,10 @@ class _StubLotusCoreQueryClient:
             ],
         }
 
-    async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+    async def get_support_overview(
+        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+    ):
+        _ = as_of_date
         return 200, {
             "business_date": "2026-03-27",
             "latest_booked_transaction_date": "2026-03-27",
@@ -270,9 +273,13 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
         self._record("query_assets_under_management")
         return await super().query_assets_under_management(**kwargs)
 
-    async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+    async def get_support_overview(
+        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+    ):
         self._record("get_support_overview")
-        return await super().get_support_overview(portfolio_id, correlation_id)
+        return await super().get_support_overview(
+            portfolio_id, correlation_id, as_of_date=as_of_date
+        )
 
     async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
         self._record("get_portfolio_readiness")
@@ -494,7 +501,10 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
                 ],
             }
 
-        async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+        async def get_support_overview(
+            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+        ):
+            _ = as_of_date
             return 200, {
                 "business_date": "2026-03-27",
                 "latest_booked_transaction_date": None,
@@ -1164,3 +1174,25 @@ async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
 
     assert exc_info.value.status_code == 400
     assert "readiness rejected the request" in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_portfolio_workspace_surfaces_support_overview_client_errors() -> None:
+    class _InvalidSupportOverviewClient(_StubLotusCoreQueryClient):
+        async def get_support_overview(
+            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+        ):
+            _ = portfolio_id, correlation_id, as_of_date
+            return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+
+    service = PortfolioService(_InvalidSupportOverviewClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_workspace(
+            portfolio_id="PF_1001",
+            correlation_id="corr-400",
+            as_of_date="bad-date",
+        )
+
+    assert exc_info.value.status_code == 400
+    assert "support overview rejected the request" in str(exc_info.value.detail)

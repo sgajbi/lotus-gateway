@@ -421,9 +421,13 @@ class LotusCoreQueryClient:
         self,
         portfolio_id: str,
         correlation_id: str,
+        as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/overview"
         headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {}
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
         return await request_with_retry(
             method="GET",
             url=url,
@@ -431,6 +435,7 @@ class LotusCoreQueryClient:
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
+            params=params,
         )
 
     async def get_portfolio_readiness(
