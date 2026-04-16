@@ -8,6 +8,7 @@ class _StubLotusCoreQueryClient:
     def __init__(self, list_payload: dict, snapshot_payload: dict):
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
+        self.snapshot_calls: list[dict[str, object]] = []
 
     async def get_portfolio_lookups(self, correlation_id: str):
         return 200, self.list_payload
@@ -20,6 +21,15 @@ class _StubLotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ):
+        self.snapshot_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "as_of_date": as_of_date,
+                "sections": sections,
+                "consumer_system": consumer_system,
+                "correlation_id": correlation_id,
+            }
+        )
         return 200, self.snapshot_payload
 
 
@@ -89,34 +99,35 @@ async def test_foundation_portfolio_catalog_success():
 
 @pytest.mark.asyncio
 async def test_foundation_workspace_success():
-    service = FoundationService(
-        lotus_core_query_client=_StubLotusCoreQueryClient(
-            list_payload={"items": []},
-            snapshot_payload={
-                "as_of_date": "2026-03-25",
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "portfolio_name": "Alpha Growth",
-                    "base_currency": "USD",
-                    "booking_center": "SG",
-                    "cif_id": "CIF_1001",
-                },
-                "sections": {
-                    "positions_baseline": [
-                        {"security_id": "EQ_1", "market_value_base": 700.0},
-                        {"security_id": "CASH_1", "market_value_base": 100.0},
-                    ],
-                    "portfolio_totals": {
-                        "baseline_total_market_value_base": 1000.0,
-                        "baseline_total_cash_base": 100.0,
-                    },
-                    "instrument_enrichment": [
-                        {"security_id": "EQ_1", "asset_class": "Equity"},
-                        {"security_id": "CASH_1", "asset_class": "Cash"},
-                    ],
-                },
+    lotus_core_client = _StubLotusCoreQueryClient(
+        list_payload={"items": []},
+        snapshot_payload={
+            "as_of_date": "2026-03-25",
+            "portfolio": {
+                "portfolio_id": "PF_1001",
+                "portfolio_name": "Alpha Growth",
+                "base_currency": "USD",
+                "booking_center": "SG",
+                "cif_id": "CIF_1001",
             },
-        ),
+            "sections": {
+                "positions_baseline": [
+                    {"security_id": "EQ_1", "market_value_base": 700.0},
+                    {"security_id": "CASH_1", "market_value_base": 100.0},
+                ],
+                "portfolio_totals": {
+                    "baseline_total_market_value_base": 1000.0,
+                    "baseline_total_cash_base": 100.0,
+                },
+                "instrument_enrichment": [
+                    {"security_id": "EQ_1", "asset_class": "Equity"},
+                    {"security_id": "CASH_1", "asset_class": "Cash"},
+                ],
+            },
+        },
+    )
+    service = FoundationService(
+        lotus_core_query_client=lotus_core_client,
         analytics_client=_StubAnalyticsClient(
             200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 4.3}}}
         ),
@@ -149,6 +160,13 @@ async def test_foundation_workspace_success():
     assert response.portfolio.display_name == "Alpha Growth"
     assert response.summary.cash_weight_pct == 10.0
     assert response.allocations[0].asset_class == "Cash"
+    assert lotus_core_client.snapshot_calls[0]["portfolio_id"] == "PF_1001"
+    assert lotus_core_client.snapshot_calls[0]["sections"] == [
+        "positions_baseline",
+        "portfolio_totals",
+        "instrument_enrichment",
+    ]
+    assert lotus_core_client.snapshot_calls[0]["consumer_system"] == "lotus-gateway"
     assert response.performance is not None
     assert response.performance.return_pct == 4.3
     assert response.rebalance is not None
@@ -407,7 +425,7 @@ def test_foundation_parses_defensive_snapshot_branches():
         reporting_client=_StubReportingClient(200, {}),
     )
 
-    portfolio, summary, allocations, as_of_date = service._parse_core_snapshot(
+    portfolio, summary, allocations, top_positions, as_of_date = service._parse_core_snapshot(
         fallback_portfolio_id="PF_FALLBACK",
         fallback_as_of_date="2026-03-31",
         payload={
@@ -431,6 +449,7 @@ def test_foundation_parses_defensive_snapshot_branches():
     assert portfolio.portfolio_id == "PF_FALLBACK"
     assert portfolio.display_name == "Fallback Name"
     assert summary.market_value_base == 0.0
+    assert len(top_positions) == 2
     assert summary.position_count == 2
     assert [bucket.asset_class for bucket in allocations] == ["Alternatives", "Equity"]
     assert allocations[0].weight_pct is None

@@ -16,6 +16,7 @@ class _StubLotusCoreQueryClient:
         self.snapshot_status_code = snapshot_status_code
         self.snapshot_payload = snapshot_payload
         self.reference_calls = 0
+        self.snapshot_calls: list[dict[str, object]] = []
 
     async def get_portfolio(self, portfolio_id: str, correlation_id: str):  # noqa: ARG002
         return self.portfolio_status_code, self.portfolio_payload
@@ -28,6 +29,15 @@ class _StubLotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ):
+        self.snapshot_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "as_of_date": as_of_date,
+                "sections": sections,
+                "consumer_system": consumer_system,
+                "correlation_id": correlation_id,
+            }
+        )
         return self.snapshot_status_code, self.snapshot_payload
 
     async def get_portfolio_analytics_reference(
@@ -177,60 +187,61 @@ async def test_workbench_overview_success():
             },
         },
     )
+    lotus_core_client = _StubLotusCoreQueryClient(
+        200,
+        {
+            "portfolio_id": "PF_1001",
+            "base_currency": "USD",
+            "booking_center_code": "SG",
+            "client_id": "CIF_1001",
+        },
+        200,
+        {
+            "as_of_date": "2026-02-23",
+            "sections": {
+                "positions_baseline": [
+                    {
+                        "security_id": "EQ_1",
+                        "quantity": 10,
+                        "market_value_base": 400.0,
+                        "weight": 0.4,
+                    },
+                    {
+                        "security_id": "EQ_2",
+                        "quantity": 5,
+                        "market_value_base": 400.0,
+                        "weight": 0.4,
+                    },
+                    {
+                        "security_id": "CASH_USD",
+                        "quantity": 200.0,
+                        "market_value_base": 200.0,
+                        "weight": 0.2,
+                    },
+                ],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                    },
+                    {
+                        "security_id": "EQ_2",
+                        "instrument_name": "Equity 2",
+                        "asset_class": "Equity",
+                    },
+                    {
+                        "security_id": "CASH_USD",
+                        "instrument_name": "US Dollar Cash",
+                        "asset_class": "Cash",
+                    },
+                ],
+            },
+        },
+    )
     service = WorkbenchService(
-        lotus_core_query_client=_StubLotusCoreQueryClient(
-            200,
-            {
-                "portfolio_id": "PF_1001",
-                "base_currency": "USD",
-                "booking_center_code": "SG",
-                "client_id": "CIF_1001",
-            },
-            200,
-            {
-                "as_of_date": "2026-02-23",
-                "sections": {
-                    "positions_baseline": [
-                        {
-                            "security_id": "EQ_1",
-                            "quantity": 10,
-                            "market_value_base": 400.0,
-                            "weight": 0.4,
-                        },
-                        {
-                            "security_id": "EQ_2",
-                            "quantity": 5,
-                            "market_value_base": 400.0,
-                            "weight": 0.4,
-                        },
-                        {
-                            "security_id": "CASH_USD",
-                            "quantity": 200.0,
-                            "market_value_base": 200.0,
-                            "weight": 0.2,
-                        },
-                    ],
-                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
-                    "instrument_enrichment": [
-                        {
-                            "security_id": "EQ_1",
-                            "instrument_name": "Equity 1",
-                            "asset_class": "Equity",
-                        },
-                        {
-                            "security_id": "EQ_2",
-                            "instrument_name": "Equity 2",
-                            "asset_class": "Equity",
-                        },
-                        {
-                            "security_id": "CASH_USD",
-                            "instrument_name": "US Dollar Cash",
-                            "asset_class": "Cash",
-                        },
-                    ],
-                },
-            },
-        ),
+        lotus_core_query_client=lotus_core_client,
         analytics_client=analytics_client,
         dpm_client=_StubDpmClient(
             200,
@@ -254,6 +265,13 @@ async def test_workbench_overview_success():
     assert response.portfolio.portfolio_id == "PF_1001"
     assert response.overview.position_count == 3
     assert response.performance_snapshot is not None
+    assert lotus_core_client.snapshot_calls[0]["portfolio_id"] == "PF_1001"
+    assert lotus_core_client.snapshot_calls[0]["sections"] == [
+        "positions_baseline",
+        "portfolio_totals",
+        "instrument_enrichment",
+    ]
+    assert lotus_core_client.snapshot_calls[0]["consumer_system"] == "lotus-gateway"
     assert response.performance_snapshot.return_pct == 3.2
     assert analytics_client.last_report_end_date == "2026-02-23"
     assert response.rebalance_snapshot is not None
