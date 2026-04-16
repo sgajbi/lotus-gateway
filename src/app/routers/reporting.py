@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, HTTPException, Path, Query, status
 
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
@@ -14,6 +14,42 @@ from app.contracts.reporting import (
 from app.middleware.correlation import correlation_id_var
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reporting"])
+
+SUMMARY_REQUEST_EXAMPLES = {
+    "wealthSummary": {
+        "summary": "Wealth summary in portfolio base currency",
+        "description": "Resolve wealth and allocation sections for one reporting date.",
+        "value": {
+            "asOfDate": "2026-02-24",
+            "sections": ["WEALTH", "ALLOCATION"],
+            "allocationDimensions": ["asset_class", "currency"],
+        },
+    }
+}
+
+REVIEW_REQUEST_EXAMPLES = {
+    "frontOfficeReview": {
+        "summary": "Front-office review payload in USD",
+        "description": (
+            "Resolve a review payload with holdings, transactions, performance, and risk."
+        ),
+        "value": {
+            "asOfDate": "2026-02-24",
+            "reportingCurrency": "USD",
+            "sections": [
+                "OVERVIEW",
+                "ALLOCATION",
+                "INCOME_AND_ACTIVITY",
+                "HOLDINGS",
+                "TRANSACTIONS",
+                "PERFORMANCE",
+                "RISK_ANALYTICS",
+            ],
+            "allocationDimensions": ["asset_class"],
+            "lookThroughMode": "full",
+        },
+    }
+}
 
 
 @router.get(
@@ -97,7 +133,10 @@ async def get_reporting_summary(
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
-    request: ReportingPortfolioRequest,
+    request: Annotated[
+        ReportingPortfolioRequest,
+        Body(openapi_examples=SUMMARY_REQUEST_EXAMPLES),
+    ],
 ) -> ReportingSummaryResponse:
     client = ReportingClient(
         base_url=settings.reporting_aggregation_base_url,
@@ -146,7 +185,10 @@ async def get_reporting_review(
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
-    request: ReportingPortfolioRequest,
+    request: Annotated[
+        ReportingPortfolioRequest,
+        Body(openapi_examples=REVIEW_REQUEST_EXAMPLES),
+    ],
 ) -> ReportingReviewResponse:
     client = ReportingClient(
         base_url=settings.reporting_aggregation_base_url,

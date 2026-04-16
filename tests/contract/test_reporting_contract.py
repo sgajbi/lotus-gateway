@@ -84,9 +84,18 @@ def test_reporting_openapi_contract_registered() -> None:
         summary_path["requestBody"]["content"]["application/json"]["schema"]["$ref"]
         == "#/components/schemas/ReportingPortfolioRequest"
     )
+    assert summary_path["requestBody"]["content"]["application/json"]["examples"]["wealthSummary"][
+        "value"
+    ]["sections"] == ["WEALTH", "ALLOCATION"]
     assert (
         review_path["requestBody"]["content"]["application/json"]["schema"]["$ref"]
         == "#/components/schemas/ReportingPortfolioRequest"
+    )
+    assert (
+        review_path["requestBody"]["content"]["application/json"]["examples"]["frontOfficeReview"][
+            "value"
+        ]["lookThroughMode"]
+        == "full"
     )
     assert request_schema["properties"]["asOfDate"]["description"]
     assert request_schema["properties"]["reportingCurrency"]["description"]

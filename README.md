@@ -78,6 +78,8 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `GET /api/v1/platform/capabilities` (aggregated shell/workspace capability contract across lotus-core, lotus-performance, lotus-risk publication, lotus-manage, and lotus-report for UI gating)
 - `GET /api/v1/workbench/{portfolio_id}/overview` (aggregated lotus-core+lotus-performance+lotus-manage decision-console overview)
 - `GET /api/v1/reports/{portfolio_id}/snapshot` (report-ready aggregation rows from lotus-report)
+- `POST /api/v1/reports/{portfolio_id}/summary` (lotus-report-owned summary payload for one reporting date)
+- `POST /api/v1/reports/{portfolio_id}/review` (lotus-report-owned review payload for one reporting date)
 - `POST /api/v1/intake/portfolio-bundle` (lotus-core ingestion bundle pass-through)
 - `POST /api/v1/intake/uploads/preview` (lotus-core upload preview pass-through)
 - `POST /api/v1/intake/uploads/commit` (lotus-core upload commit pass-through)
