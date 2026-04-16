@@ -665,6 +665,8 @@ def test_portfolio_projected_cashflow_router(monkeypatch):
 
 
 def test_portfolio_allocations_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _query_aum(*args, **kwargs):
         return 200, {
             "resolved_as_of_date": "2026-03-27",
@@ -680,13 +682,21 @@ def test_portfolio_allocations_router(monkeypatch):
         }
 
     async def _allocation(*args, **kwargs):
+        captured["reporting_currency"] = kwargs.get("reporting_currency")
+        captured["look_through_mode"] = kwargs.get("look_through_mode")
         return 200, {
+            "reporting_currency": "USD",
+            "look_through": {
+                "requested_mode": "full",
+                "effective_mode": "direct_only",
+                "applied": False,
+            },
             "views": [
                 {
-                    "dimension": "asset_class",
+                    "dimension": "region",
                     "buckets": [{"dimension_value": "Equity", "position_count": 1, "weight": 0.7}],
                 }
-            ]
+            ],
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
@@ -694,9 +704,18 @@ def test_portfolio_allocations_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/allocations")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/allocations",
+        params={
+            "as_of_date": "2026-03-27",
+            "reporting_currency": "USD",
+            "look_through_mode": "full",
+        },
+    )
     assert response.status_code == 200
-    assert response.json()["views"][0]["dimension"] == "asset_class"
+    assert response.json()["views"][0]["dimension"] == "region"
+    assert captured["reporting_currency"] == "USD"
+    assert captured["look_through_mode"] == "full"
 
 
 def test_portfolio_positions_router(monkeypatch):

@@ -812,6 +812,57 @@ async def test_portfolio_allocations_return_dimension_views():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mode():
+    class _AllocationAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_reporting_currency: str | None = None
+            self.last_look_through_mode: str | None = None
+
+        async def query_asset_allocation(self, **kwargs):
+            self.last_reporting_currency = kwargs.get("reporting_currency")
+            self.last_look_through_mode = kwargs.get("look_through_mode")
+            return 200, {
+                "reporting_currency": "SGD",
+                "look_through": {
+                    "requested_mode": "full",
+                    "effective_mode": "direct_only",
+                    "applied": False,
+                },
+                "views": [
+                    {
+                        "dimension": "region",
+                        "buckets": [
+                            {
+                                "dimension_value": "Asia",
+                                "market_value_reporting_currency": 700.0,
+                                "weight": 0.7,
+                                "position_count": 1,
+                            }
+                        ],
+                    }
+                ],
+            }
+
+    client = _AllocationAwareClient()
+    service = PortfolioService(client)
+    response = await service.get_portfolio_allocations(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3c-lookthrough",
+        as_of_date="2026-03-27",
+        reporting_currency="SGD",
+        look_through_mode="full",
+    )
+
+    assert client.last_reporting_currency == "SGD"
+    assert client.last_look_through_mode == "full"
+    assert response.reporting_currency == "SGD"
+    assert response.look_through is not None
+    assert response.look_through.requested_mode == "full"
+    assert response.look_through.effective_mode == "direct_only"
+    assert response.views[0].dimension == "region"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_positions_return_top_positions_and_full_book():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_positions(

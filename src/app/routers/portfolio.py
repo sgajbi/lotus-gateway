@@ -369,12 +369,29 @@ async def get_portfolio_projected_cashflow(
     "/portfolios/{portfolio_id}/allocations",
     response_model=PortfolioAllocationResponse,
     summary="Get portfolio allocation views",
+    description=(
+        "Returns source-backed portfolio allocation views across the supported reporting "
+        "dimensions. Use this endpoint when the UI needs allocation buckets with optional "
+        "reporting-currency restatement and explicit look-through capability metadata."
+    ),
 )
 async def get_portfolio_allocations(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
-    look_through_mode: str = Query(default="direct_only"),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used to scope allocation views.",
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used for allocation restatement.",
+        examples=["USD"],
+    ),
+    look_through_mode: str = Query(
+        default="direct_only",
+        description="Requested allocation look-through mode for structured or fund exposures.",
+        examples=["direct_only"],
+    ),
 ) -> PortfolioAllocationResponse:
     return await _portfolio_service().get_portfolio_allocations(
         portfolio_id=portfolio_id,

@@ -571,12 +571,35 @@ class PortfolioProjectedCashflowResponse(BaseModel):
 class PortfolioAllocationResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    reporting_currency: str | None = None
-    look_through: PortfolioAllocationLookThroughCapability | None = None
-    summary: PortfolioSummary
-    views: list[PortfolioAllocationView] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose allocation views are being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the allocation query inputs.",
+        examples=["2026-03-27"],
+    )
+    reporting_currency: str | None = Field(
+        default=None,
+        description=(
+            "Reporting currency used for the allocation response when restatement is applied."
+        ),
+        examples=["USD"],
+    )
+    look_through: PortfolioAllocationLookThroughCapability | None = Field(
+        default=None,
+        description=(
+            "Look-through capability and effective mode returned by the "
+            "upstream allocation service."
+        ),
+    )
+    summary: PortfolioSummary = Field(
+        description="Source-backed summary values used to frame the allocation response.",
+    )
+    views: list[PortfolioAllocationView] = Field(
+        default_factory=list,
+        description="Allocation views returned for the supported reporting dimensions.",
+    )
 
 
 class PortfolioPositionBookResponse(BaseModel):
