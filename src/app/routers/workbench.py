@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Path, Query, Response
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -193,7 +193,13 @@ def _risk_workspace_service() -> RiskWorkspaceService:
         "decision-console overview contract."
     ),
 )
-async def get_workbench_overview(portfolio_id: str) -> WorkbenchOverviewResponse:
+async def get_workbench_overview(
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the legacy workbench overview surface.",
+        examples=["PF_1001"],
+    ),
+) -> WorkbenchOverviewResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_overview(
@@ -212,8 +218,16 @@ async def get_workbench_overview(portfolio_id: str) -> WorkbenchOverviewResponse
     ),
 )
 async def get_portfolio_360(
-    portfolio_id: str,
-    session_id: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the portfolio-360 surface.",
+        examples=["PF_1001"],
+    ),
+    session_id: str | None = Query(
+        default=None,
+        description="Optional sandbox session identifier used to overlay projected state.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchPortfolio360Response:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
@@ -238,11 +252,31 @@ async def get_portfolio_360(
     ),
 )
 async def get_workbench_analytics(
-    portfolio_id: str,
-    period: str = "YTD",
-    group_by: str = "ASSET_CLASS",
-    benchmark_code: str = "MODEL_60_40",
-    session_id: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the legacy workbench analytics surface.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Analytics horizon requested for the legacy workbench analytics response.",
+        examples=["YTD"],
+    ),
+    group_by: str = Query(
+        default="ASSET_CLASS",
+        description="Grouping dimension requested for allocation and change analytics.",
+        examples=["ASSET_CLASS"],
+    ),
+    benchmark_code: str = Query(
+        default="MODEL_60_40",
+        description="Benchmark code requested for comparative analytics context.",
+        examples=["MODEL_60_40"],
+    ),
+    session_id: str | None = Query(
+        default=None,
+        description="Optional sandbox session identifier used to compare projected state.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchAnalyticsResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()

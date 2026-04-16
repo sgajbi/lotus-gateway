@@ -123,13 +123,27 @@ def test_workbench_openapi_contract_registered() -> None:
     apply_parameters = {parameter["name"]: parameter for parameter in apply_operation["parameters"]}
 
     assert overview_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert overview_parameters["portfolio_id"]["description"]
+    assert overview_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert portfolio_360_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert portfolio_360_parameters["portfolio_id"]["description"]
+    assert portfolio_360_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert portfolio_360_parameters["session_id"]["schema"]
+    assert portfolio_360_parameters["session_id"]["description"]
     assert analytics_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert analytics_parameters["portfolio_id"]["description"]
+    assert analytics_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert analytics_parameters["period"]["description"]
     assert analytics_parameters["period"]["schema"]["default"] == "YTD"
+    assert analytics_parameters["period"]["schema"]["examples"] == ["YTD"]
+    assert analytics_parameters["group_by"]["description"]
     assert analytics_parameters["group_by"]["schema"]["default"] == "ASSET_CLASS"
+    assert analytics_parameters["group_by"]["schema"]["examples"] == ["ASSET_CLASS"]
+    assert analytics_parameters["benchmark_code"]["description"]
     assert analytics_parameters["benchmark_code"]["schema"]["default"] == "MODEL_60_40"
+    assert analytics_parameters["benchmark_code"]["schema"]["examples"] == ["MODEL_60_40"]
     assert analytics_parameters["session_id"]["schema"]
+    assert analytics_parameters["session_id"]["description"]
 
     assert overview_schema["properties"]["correlation_id"]["description"]
     assert overview_schema["properties"]["contract_version"]["description"]
