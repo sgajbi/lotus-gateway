@@ -67,6 +67,8 @@ def test_portfolio_catalog_router(monkeypatch):
 
 
 def test_portfolio_workspace_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
 
@@ -79,6 +81,7 @@ def test_portfolio_workspace_router(monkeypatch):
         }
 
     async def _support(*args, **kwargs):
+        captured["support_as_of_date"] = kwargs.get("as_of_date")
         return 200, {"business_date": "2026-03-27", "publish_allowed": True}
 
     async def _readiness(*args, **kwargs):
@@ -127,7 +130,10 @@ def test_portfolio_workspace_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/workspace")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/workspace",
+        params={"as_of_date": "2026-03-27"},
+    )
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
@@ -135,6 +141,7 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
+    assert captured["support_as_of_date"] == "2026-03-27"
 
 
 def test_portfolio_readiness_router(monkeypatch):

@@ -1158,6 +1158,44 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
 
 
 @pytest.mark.asyncio
+async def test_portfolio_service_keys_support_overview_cache_by_as_of_date():
+    class _SupportAwareClient(_CountingLotusCoreQueryClient):
+        def __init__(self):
+            super().__init__()
+            self.support_as_of_dates: list[str | None] = []
+
+        async def get_support_overview(
+            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+        ):
+            self.support_as_of_dates.append(as_of_date)
+            return await super().get_support_overview(
+                portfolio_id, correlation_id, as_of_date=as_of_date
+            )
+
+    client = _SupportAwareClient()
+    service = PortfolioService(client, upstream_cache_ttl_seconds=60.0)
+
+    await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-support-1",
+        as_of_date="2026-03-27",
+    )
+    await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-support-2",
+        as_of_date="2026-03-27",
+    )
+    await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-support-3",
+        as_of_date="2026-03-28",
+    )
+
+    assert client.calls["get_support_overview"] == 2
+    assert client.support_as_of_dates == ["2026-03-27", "2026-03-28"]
+
+
+@pytest.mark.asyncio
 async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
     class _InvalidReadinessClient(_StubLotusCoreQueryClient):
         async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
