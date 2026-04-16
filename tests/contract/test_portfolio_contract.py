@@ -187,6 +187,21 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
         correlation_id="corr-8",
         portfolio_id="PF_1001",
         as_of_date="2026-03-27",
+        pricing={
+            "status": "Pending",
+            "reasons": [
+                {
+                    "code": "pricing_not_published",
+                    "detail": "Pricing has not yet been published for the requested date.",
+                }
+            ],
+        },
+        blocking_reasons=[
+            {
+                "code": "awaiting_pricing",
+                "detail": "Reporting remains blocked until pricing is published.",
+            }
+        ],
         indicators=[
             {
                 "key": "holdings",
@@ -213,6 +228,9 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
         ],
     )
     assert readiness.indicators[0].key == "holdings"
+    assert readiness.pricing is not None
+    assert readiness.pricing.reasons[0].code == "pricing_not_published"
+    assert readiness.blocking_reasons[0].code == "awaiting_pricing"
     assert workflow.actions[0].recommended is True
 
 
@@ -233,7 +251,12 @@ def test_portfolio_openapi_contract_registered() -> None:
     workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
     performance_schema = spec["components"]["schemas"]["PortfolioPerformanceSummary"]
     rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
+    readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
+    readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
     assert performance_schema["properties"]["period"]["description"]
     assert rebalance_schema["properties"]["status"]["description"]
+    assert readiness_schema["properties"]["blocking_reasons"]["description"]
+    assert readiness_schema["properties"]["indicators"]["description"]
+    assert readiness_indicator_schema["properties"]["status"]["description"]

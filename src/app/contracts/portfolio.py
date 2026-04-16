@@ -255,20 +255,45 @@ class PortfolioWorkflowLaunchCue(BaseModel):
 
 
 class PortfolioReadinessIndicator(BaseModel):
-    key: str
-    label: str
-    status: str
-    href: str
+    key: str = Field(
+        description="Stable readiness indicator key used by product modules and UI affordances.",
+        examples=["holdings"],
+    )
+    label: str = Field(
+        description="Front-office label for the readiness dimension.",
+        examples=["Holdings"],
+    )
+    status: str = Field(
+        description="Gateway-normalized readiness posture for the dimension.",
+        examples=["Ready"],
+    )
+    href: str = Field(
+        description="In-page anchor or route target that helps the operator resolve the finding.",
+        examples=["#portfolio-insights"],
+    )
 
 
 class PortfolioReadinessReason(BaseModel):
-    code: str
-    detail: str | None = None
+    code: str = Field(
+        description="Source-authored readiness reason code returned by lotus-core.",
+        examples=["pricing_not_published"],
+    )
+    detail: str | None = Field(
+        default=None,
+        description="Optional source-authored explanation for the readiness reason.",
+        examples=["Pricing has not yet been published for the requested business date."],
+    )
 
 
 class PortfolioReadinessBucket(BaseModel):
-    status: str
-    reasons: list[PortfolioReadinessReason] = Field(default_factory=list)
+    status: str = Field(
+        description="Readiness posture for the specific source-backed dimension.",
+        examples=["Pending"],
+    )
+    reasons: list[PortfolioReadinessReason] = Field(
+        default_factory=list,
+        description="Source-authored reasons explaining why the dimension is not fully ready.",
+    )
 
 
 class PortfolioExceptionSummary(BaseModel):
@@ -290,14 +315,38 @@ class PortfolioInsight(BaseModel):
 class PortfolioReadinessResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    holdings: PortfolioReadinessBucket | None = None
-    pricing: PortfolioReadinessBucket | None = None
-    transactions: PortfolioReadinessBucket | None = None
-    reporting: PortfolioReadinessBucket | None = None
-    blocking_reasons: list[PortfolioReadinessReason] = Field(default_factory=list)
-    indicators: list[PortfolioReadinessIndicator] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose operational readiness is being reported.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved readiness as-of date used for the source-backed evaluation.",
+        examples=["2026-03-27"],
+    )
+    holdings: PortfolioReadinessBucket | None = Field(
+        default=None,
+        description="Detailed holdings-book readiness bucket from lotus-core.",
+    )
+    pricing: PortfolioReadinessBucket | None = Field(
+        default=None,
+        description="Detailed pricing readiness bucket from lotus-core.",
+    )
+    transactions: PortfolioReadinessBucket | None = Field(
+        default=None,
+        description="Detailed transaction-book readiness bucket from lotus-core.",
+    )
+    reporting: PortfolioReadinessBucket | None = Field(
+        default=None,
+        description="Detailed reporting readiness bucket from lotus-core.",
+    )
+    blocking_reasons: list[PortfolioReadinessReason] = Field(
+        default_factory=list,
+        description="Portfolio-level blocking reasons that prevent the workspace from being ready.",
+    )
+    indicators: list[PortfolioReadinessIndicator] = Field(
+        default_factory=list,
+        description="Compact readiness indicators derived for the front-office workspace rails.",
+    )
 
 
 class PortfolioInsightsResponse(BaseModel):

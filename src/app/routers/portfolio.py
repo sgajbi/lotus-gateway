@@ -182,9 +182,12 @@ async def get_portfolio_workspace(
     response_model=PortfolioReadinessResponse,
     summary="Get portfolio readiness indicators",
     description=(
-        "Returns source-backed portfolio readiness indicators. If lotus-core rejects the "
-        "requested readiness filter, gateway preserves that 4xx client error instead of "
-        "turning it into partial readiness."
+        "Returns the source-backed portfolio readiness view used to explain whether holdings, "
+        "pricing, transactions, and reporting are operationally ready for front-office use. "
+        "Use this endpoint when the workspace needs explicit readiness reasons or blocking "
+        "causes beyond the shell summary. If lotus-core rejects the requested readiness "
+        "filter, gateway preserves that 4xx client error instead of turning it into partial "
+        "readiness."
     ),
 )
 async def get_portfolio_readiness(

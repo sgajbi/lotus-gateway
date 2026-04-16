@@ -83,10 +83,23 @@ def test_portfolio_workspace_router(monkeypatch):
     async def _readiness(*args, **kwargs):
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
-            "pricing": {"status": "READY", "reasons": []},
+            "pricing": {
+                "status": "PENDING",
+                "reasons": [
+                    {
+                        "code": "pricing_not_published",
+                        "detail": "Pricing has not yet been published for the business date.",
+                    }
+                ],
+            },
             "transactions": {"status": "READY", "reasons": []},
             "reporting": {"status": "READY", "reasons": []},
-            "blocking_reasons": [],
+            "blocking_reasons": [
+                {
+                    "code": "awaiting_pricing",
+                    "detail": "Reporting remains blocked until pricing is published.",
+                }
+            ],
         }
 
     async def _cashflow(*args, **kwargs):
@@ -191,10 +204,23 @@ def test_portfolio_readiness_router(monkeypatch):
     async def _readiness(*args, **kwargs):
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
-            "pricing": {"status": "READY", "reasons": []},
+            "pricing": {
+                "status": "PENDING",
+                "reasons": [
+                    {
+                        "code": "pricing_not_published",
+                        "detail": "Pricing has not yet been published for the business date.",
+                    }
+                ],
+            },
             "transactions": {"status": "READY", "reasons": []},
             "reporting": {"status": "READY", "reasons": []},
-            "blocking_reasons": [],
+            "blocking_reasons": [
+                {
+                    "code": "awaiting_pricing",
+                    "detail": "Reporting remains blocked until pricing is published.",
+                }
+            ],
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
@@ -210,8 +236,12 @@ def test_portfolio_readiness_router(monkeypatch):
     client = TestClient(app)
     response = client.get("/api/v1/portfolio/portfolios/PF_1001/readiness")
     assert response.status_code == 200
-    assert response.json()["indicators"][0]["key"] == "holdings"
-    assert response.json()["indicators"][0]["status"] == "Ready"
+    body = response.json()
+    assert body["indicators"][0]["key"] == "holdings"
+    assert body["indicators"][0]["status"] == "Ready"
+    assert body["pricing"]["status"] == "Pending"
+    assert body["pricing"]["reasons"][0]["code"] == "pricing_not_published"
+    assert body["blocking_reasons"][0]["code"] == "awaiting_pricing"
 
 
 def test_portfolio_readiness_router_preserves_upstream_bad_request(monkeypatch):

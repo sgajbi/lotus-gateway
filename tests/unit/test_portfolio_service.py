@@ -47,10 +47,23 @@ class _StubLotusCoreQueryClient:
     async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
-            "pricing": {"status": "READY", "reasons": []},
+            "pricing": {
+                "status": "PENDING",
+                "reasons": [
+                    {
+                        "code": "pricing_not_published",
+                        "detail": "Pricing has not yet been published for the business date.",
+                    }
+                ],
+            },
             "transactions": {"status": "READY", "reasons": []},
             "reporting": {"status": "READY", "reasons": []},
-            "blocking_reasons": [],
+            "blocking_reasons": [
+                {
+                    "code": "awaiting_pricing",
+                    "detail": "Reporting remains blocked until pricing is published.",
+                }
+            ],
         }
 
     async def get_portfolio_analytics_reference(
@@ -367,10 +380,13 @@ async def test_portfolio_readiness_returns_compact_indicators():
     ]
     assert [indicator.status for indicator in response.indicators] == [
         "Ready",
-        "Ready",
+        "Pending",
         "Ready",
         "Ready",
     ]
+    assert response.pricing is not None
+    assert response.pricing.reasons[0].code == "pricing_not_published"
+    assert response.blocking_reasons[0].code == "awaiting_pricing"
 
 
 @pytest.mark.asyncio
