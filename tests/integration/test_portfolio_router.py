@@ -1172,8 +1172,13 @@ def test_portfolio_income_summary_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["income_types"][0]["income_type"] == "DIVIDEND"
-    assert response.json()["totals_requested_window"]["net"]["reporting_currency_amount"] == 18.0
+    body = response.json()
+    assert body["reporting_currency"] == "USD"
+    assert body["window_start_date"] == "2026-03-01"
+    assert body["window_end_date"] == "2026-03-27"
+    assert body["income_types"][0]["income_type"] == "DIVIDEND"
+    assert body["totals_requested_window"]["net"]["reporting_currency_amount"] == 18.0
+    assert body["totals_year_to_date"]["net"]["reporting_currency_amount"] == 36.0
     assert captured[0]["reporting_currency"] == "USD"
     assert captured[0]["start_date"] == "2026-01-01"
     assert captured[0]["end_date"] == "2026-03-27"
@@ -1227,8 +1232,13 @@ def test_portfolio_activity_summary_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["buckets"][0]["bucket"] == "INFLOWS"
-    assert response.json()["buckets"][0]["requested_window"]["reporting_currency_amount"] == 100.0
+    body = response.json()
+    assert body["reporting_currency"] == "USD"
+    assert body["window_start_date"] == "2026-03-01"
+    assert body["window_end_date"] == "2026-03-27"
+    assert body["buckets"][0]["bucket"] == "INFLOWS"
+    assert body["buckets"][0]["requested_window"]["reporting_currency_amount"] == 100.0
+    assert body["buckets"][0]["year_to_date"]["reporting_currency_amount"] == 150.0
     assert captured[0]["reporting_currency"] == "USD"
     assert captured[0]["start_date"] == "2026-01-01"
     assert captured[0]["end_date"] == "2026-03-27"
