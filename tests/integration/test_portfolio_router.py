@@ -1303,3 +1303,46 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     assert captured["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
     assert captured["explicit_start_date"] == "2026-01-01"
     assert captured["explicit_end_date"] == "2026-03-27"
+
+
+def test_portfolio_performance_snapshot_router_preserves_unavailable_state(monkeypatch):
+    async def _snapshot(*args, **kwargs):
+        return {
+            "correlation_id": "corr-performance-unavailable",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-27",
+            "period": "YTD",
+            "benchmark_code": None,
+            "portfolio_return_pct": None,
+            "benchmark_return_pct": None,
+            "excess_return_pct": None,
+            "sparkline": [],
+            "unavailable": {
+                "title": "Performance data unavailable",
+                "detail": "Performance snapshot requires valuation history and cashflow history.",
+                "requirements": ["valuation history", "cashflow history"],
+            },
+            "warnings": ["PERFORMANCE_SNAPSHOT_UNAVAILABLE"],
+            "partial_failures": [
+                {
+                    "source_service": "lotus-performance",
+                    "error_code": "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
+                    "detail": "valuation history missing",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        portfolio_router._performance_workspace_service(),
+        "get_portfolio_performance_snapshot",
+        _snapshot,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_1001/performance-snapshot")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["unavailable"]["title"] == "Performance data unavailable"
+    assert body["warnings"] == ["PERFORMANCE_SNAPSHOT_UNAVAILABLE"]
+    assert body["partial_failures"][0]["error_code"] == "PERFORMANCE_SNAPSHOT_UNAVAILABLE"

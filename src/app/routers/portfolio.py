@@ -739,7 +739,9 @@ async def get_portfolio_transactions(
         "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
         "Use this endpoint when the UI needs the current period return, benchmark comparison, "
         "compact sparkline, and explicit unavailable-state semantics without loading the full "
-        "performance workspace."
+        "performance workspace. The response keeps warnings and partial failures explicit so "
+        "downstream clients can render degraded or unavailable states without rebuilding "
+        "snapshot logic locally."
     ),
 )
 async def get_portfolio_performance_snapshot(
