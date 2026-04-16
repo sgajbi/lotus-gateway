@@ -243,14 +243,18 @@ async def get_portfolio_insights(
         "Use this endpoint when the UI needs a governed next-step sequence derived from "
         "source-backed holdings, funding, transaction, and readiness state instead of "
         "recomputing workflow priorities locally. The response preserves a stable action "
-        "order and recommended next step for the resolved as-of date."
+        "order, recommended next step, and empty-portfolio setup sequence for the resolved "
+        "as-of date."
     ),
 )
 async def get_portfolio_workflow(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to derive workflow priorities.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to derive workflow priorities and "
+            "the recommended next action."
+        ),
         examples=["2026-03-27"],
     ),
 ) -> PortfolioWorkflowResponse:

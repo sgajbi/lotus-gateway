@@ -61,6 +61,51 @@ from app.services.async_ttl_cache import AsyncTtlCache
 
 
 class PortfolioService:
+    _WORKFLOW_DEFINITIONS: dict[str, dict[str, str | int]] = {
+        "performance": {
+            "order": 0,
+            "title": "Review performance",
+            "cta_label": "Performance",
+            "target_label": "Performance",
+            "impact": (
+                "Review portfolio return, benchmark context, and contribution once the book "
+                "is valued."
+            ),
+        },
+        "holdings": {
+            "order": 1,
+            "title": "Review holdings",
+            "cta_label": "Holdings",
+            "target_label": "Holdings",
+            "impact": (
+                "Confirm funded positions, valuations, and portfolio weights before client review."
+            ),
+        },
+        "transactions": {
+            "order": 2,
+            "title": "Review transactions",
+            "cta_label": "Transactions",
+            "target_label": "Transactions",
+            "impact": "Inspect recent funding, trading, and cash activity affecting the book.",
+        },
+        "risk": {
+            "order": 3,
+            "title": "Review suitability",
+            "cta_label": "Suitability",
+            "target_label": "Suitability",
+            "impact": (
+                "Validate suitability, exposure, and mandate fit before the next client action."
+            ),
+        },
+        "proposal": {
+            "order": 4,
+            "title": "Prepare recommendation",
+            "cta_label": "Recommendation",
+            "target_label": "Recommendation",
+            "impact": "Prepare the next recommended portfolio action or client proposal.",
+        },
+    }
+
     def __init__(
         self,
         lotus_core_query_client: LotusCoreQueryClient,
@@ -2028,7 +2073,7 @@ class PortfolioService:
                     title="Open performance",
                     impact="Review return analytics once holdings are funded and valued.",
                     target="Target: performance workspace after valuation is available",
-                    href="/performance",
+                    href=f"/performance?portfolioId={portfolio_id}",
                     cta_label="Open performance",
                     recommended=False,
                 ),
@@ -2043,7 +2088,9 @@ class PortfolioService:
                 sequence=index + 1,
                 title=self._workflow_task_label(cue.key),
                 impact=self._workflow_impact_label(cue.key),
-                target=f"Target: {cue.label} workflow for this portfolio",
+                target=(
+                    f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio"
+                ),
                 href=cue.href,
                 cta_label=self._workflow_cta_label(cue.key),
                 recommended=index == 0,
@@ -2120,57 +2167,29 @@ class PortfolioService:
     def _supported_workflow_cues(
         self, workflow_cues: list[PortfolioWorkflowLaunchCue]
     ) -> list[PortfolioWorkflowLaunchCue]:
-        supported_keys = {"performance", "holdings", "transactions", "risk", "proposal"}
-        return [cue for cue in workflow_cues if cue.key in supported_keys]
+        return [cue for cue in workflow_cues if cue.key in self._WORKFLOW_DEFINITIONS]
 
     def _workflow_order_rank(self, key: str) -> int:
-        order = {
-            "performance": 0,
-            "holdings": 1,
-            "transactions": 2,
-            "risk": 3,
-            "proposal": 4,
-        }
-        return order.get(key, 99)
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return int(definition["order"]) if definition is not None else 99
 
     def _workflow_task_label(self, key: str) -> str:
-        mapping = {
-            "performance": "Review performance",
-            "holdings": "Review holdings",
-            "transactions": "Review transactions",
-            "risk": "Review suitability",
-            "proposal": "Prepare recommendation",
-        }
-        return mapping.get(key, "Open workflow")
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["title"]) if definition is not None else "Open workflow"
 
     def _workflow_cta_label(self, key: str) -> str:
-        mapping = {
-            "performance": "Performance",
-            "holdings": "Holdings",
-            "transactions": "Transactions",
-            "risk": "Suitability",
-            "proposal": "Recommendation",
-        }
-        return mapping.get(key, "Open workflow")
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["cta_label"]) if definition is not None else "Open workflow"
+
+    def _workflow_target_label(self, key: str) -> str:
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["target_label"]) if definition is not None else "Workflow"
 
     def _workflow_impact_label(self, key: str) -> str:
-        mapping = {
-            "performance": (
-                "Review portfolio return, benchmark context, and contribution once the book "
-                "is valued."
-            ),
-            "holdings": (
-                "Confirm funded positions, valuations, and portfolio weights before client review."
-            ),
-            "transactions": (
-                "Inspect recent funding, trading, and cash activity affecting the book."
-            ),
-            "risk": (
-                "Validate suitability, exposure, and mandate fit before the next client action."
-            ),
-            "proposal": "Prepare the next recommended portfolio action or client proposal.",
-        }
-        return mapping.get(key, "Open the next available workflow for this portfolio.")
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        if definition is None:
+            return "Open the next available workflow for this portfolio."
+        return str(definition["impact"])
 
     def _parse_look_through_capability(
         self, payload: Any

@@ -587,13 +587,33 @@ async def test_portfolio_workflow_returns_prioritized_actions():
         correlation_id="corr-2c",
         as_of_date="2026-03-27",
     )
-    assert response.actions[0].title == "Review performance"
-    assert response.actions[0].recommended is True
+    assert [action.sequence for action in response.actions] == [1, 2, 3]
+    assert [action.title for action in response.actions] == [
+        "Review performance",
+        "Review holdings",
+        "Review transactions",
+    ]
+    assert [action.impact for action in response.actions] == [
+        "Review portfolio return, benchmark context, and contribution once the book is valued.",
+        "Confirm funded positions, valuations, and portfolio weights before client review.",
+        "Inspect recent funding, trading, and cash activity affecting the book.",
+    ]
+    assert [action.target for action in response.actions] == [
+        "Target: Performance workflow for this portfolio",
+        "Target: Holdings workflow for this portfolio",
+        "Target: Transactions workflow for this portfolio",
+    ]
+    assert [action.href for action in response.actions] == [
+        "/performance?portfolioId=PF_1001",
+        "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+        "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+    ]
     assert [action.cta_label for action in response.actions] == [
         "Performance",
         "Holdings",
         "Transactions",
     ]
+    assert [action.recommended for action in response.actions] == [True, False, False]
 
 
 def test_build_workflow_actions_dedupes_and_ignores_unsupported_cues():
@@ -671,8 +691,17 @@ def test_build_workflow_actions_returns_empty_portfolio_setup_sequence():
         "Review holdings",
         "Open performance",
     ]
+    assert [action.sequence for action in actions] == [1, 2, 3, 4, 5]
+    assert [action.target for action in actions] == [
+        "Target: cash funding and opening balance setup",
+        "Target: transaction entry and execution workflow",
+        "Target: pricing publication and valuation refresh",
+        "Target: holdings and allocation review",
+        "Target: performance workspace after valuation is available",
+    ]
     assert actions[0].recommended is True
     assert actions[0].href == "/workbench?portfolioId=PF_EMPTY"
+    assert actions[-1].href == "/performance?portfolioId=PF_EMPTY"
 
 
 @pytest.mark.asyncio

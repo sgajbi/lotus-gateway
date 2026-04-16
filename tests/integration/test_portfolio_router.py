@@ -428,7 +428,21 @@ def test_portfolio_workflow_router(monkeypatch):
     client = TestClient(app)
     response = client.get("/api/v1/portfolio/portfolios/PF_1001/workflow")
     assert response.status_code == 200
-    assert response.json()["actions"][0]["title"] == "Review performance"
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["actions"][0] == {
+        "sequence": 1,
+        "title": "Review performance",
+        "impact": (
+            "Review portfolio return, benchmark context, and contribution once the book is valued."
+        ),
+        "target": "Target: Performance workflow for this portfolio",
+        "href": "/performance?portfolioId=PF_1001",
+        "cta_label": "Performance",
+        "recommended": True,
+    }
+    assert body["actions"][1]["title"] == "Review holdings"
+    assert body["actions"][2]["title"] == "Review transactions"
 
 
 def test_portfolio_insights_router(monkeypatch):

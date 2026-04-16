@@ -312,8 +312,12 @@ def test_portfolio_openapi_contract_registered() -> None:
     transactions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/transactions"][
         "get"
     ]
+    workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
     transaction_parameters = {
         parameter["name"]: parameter for parameter in transactions_path["parameters"]
+    }
+    workflow_parameters = {
+        parameter["name"]: parameter for parameter in workflow_path["parameters"]
     }
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
@@ -376,9 +380,16 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert income_schema["properties"]["income_types"]["description"]
     assert activity_schema["properties"]["reporting_currency"]["description"]
     assert activity_schema["properties"]["buckets"]["description"]
+    assert workflow_path["description"]
+    assert workflow_parameters["as_of_date"]["description"]
     assert workflow_schema["properties"]["actions"]["description"]
+    assert workflow_action_schema["properties"]["sequence"]["description"]
+    assert workflow_action_schema["properties"]["title"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
+    assert workflow_action_schema["properties"]["target"]["description"]
+    assert workflow_action_schema["properties"]["href"]["description"]
     assert workflow_action_schema["properties"]["cta_label"]["description"]
+    assert workflow_action_schema["properties"]["recommended"]["description"]
     assert performance_snapshot_path["description"]
     assert performance_snapshot_period_parameter["description"]
     assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
