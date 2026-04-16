@@ -126,6 +126,13 @@ class LotusCoreQueryClient:
         include_projected: bool = False,
         transaction_type: str | None = None,
         security_id: str | None = None,
+        instrument_id: str | None = None,
+        component_type: str | None = None,
+        linked_transaction_group_id: str | None = None,
+        fx_contract_id: str | None = None,
+        swap_event_id: str | None = None,
+        near_leg_group_id: str | None = None,
+        far_leg_group_id: str | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
@@ -144,6 +151,20 @@ class LotusCoreQueryClient:
             params["transaction_type"] = transaction_type
         if security_id is not None:
             params["security_id"] = security_id
+        if instrument_id is not None:
+            params["instrument_id"] = instrument_id
+        if component_type is not None:
+            params["component_type"] = component_type
+        if linked_transaction_group_id is not None:
+            params["linked_transaction_group_id"] = linked_transaction_group_id
+        if fx_contract_id is not None:
+            params["fx_contract_id"] = fx_contract_id
+        if swap_event_id is not None:
+            params["swap_event_id"] = swap_event_id
+        if near_leg_group_id is not None:
+            params["near_leg_group_id"] = near_leg_group_id
+        if far_leg_group_id is not None:
+            params["far_leg_group_id"] = far_leg_group_id
         if start_date is not None:
             params["start_date"] = start_date
         if end_date is not None:

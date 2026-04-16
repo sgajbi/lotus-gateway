@@ -309,6 +309,12 @@ def test_portfolio_openapi_contract_registered() -> None:
     performance_snapshot_unavailable_schema = spec["components"]["schemas"][
         "PortfolioPerformanceSnapshotUnavailable"
     ]
+    transactions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/transactions"][
+        "get"
+    ]
+    transaction_parameters = {
+        parameter["name"]: parameter for parameter in transactions_path["parameters"]
+    }
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
     assert performance_schema["properties"]["period"]["description"]
@@ -336,9 +342,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/positions"]["get"][
         "description"
     ]
-    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/transactions"]["get"][
-        "description"
-    ]
+    assert transactions_path["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"][
         "description"
     ]
@@ -358,6 +362,15 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert positions_schema["properties"]["positions"]["description"]
     assert transactions_schema["properties"]["include_projected"]["description"]
     assert transactions_schema["properties"]["transactions"]["description"]
+    assert transaction_parameters["instrument_id"]["description"]
+    assert transaction_parameters["component_type"]["description"]
+    assert transaction_parameters["linked_transaction_group_id"]["description"]
+    assert transaction_parameters["fx_contract_id"]["description"]
+    assert transaction_parameters["swap_event_id"]["description"]
+    assert transaction_parameters["near_leg_group_id"]["description"]
+    assert transaction_parameters["far_leg_group_id"]["description"]
+    assert transaction_parameters["sort_by"]["description"]
+    assert transaction_parameters["sort_order"]["description"]
     assert income_schema["properties"]["reporting_currency"]["description"]
     assert income_schema["properties"]["totals_requested_window"]["description"]
     assert income_schema["properties"]["income_types"]["description"]

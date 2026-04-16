@@ -788,6 +788,57 @@ async def test_lotus_core_query_client_endpoints_and_non_json_response_handling(
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_transaction_route_supports_advanced_filters_and_sorting():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"transactions": [{"transaction_id": "TX_1"}]})
+
+    status_code, payload = await client.get_portfolio_transactions(
+        portfolio_id="P1",
+        correlation_id="corr-2-advanced",
+        limit=25,
+        skip=5,
+        sort_by="settlement_date",
+        sort_order="asc",
+        as_of_date="2026-03-27",
+        include_projected=True,
+        transaction_type="FX_FORWARD",
+        security_id="SEC_EQ_1",
+        instrument_id="INST_EQ_1",
+        component_type="FX_CONTRACT_OPEN",
+        linked_transaction_group_id="LTG-FX-2026-0001",
+        fx_contract_id="FXC-2026-0001",
+        swap_event_id="FXSWAP-2026-0001",
+        near_leg_group_id="FXSWAP-2026-0001-NEAR",
+        far_leg_group_id="FXSWAP-2026-0001-FAR",
+        start_date="2026-03-01",
+        end_date="2026-03-27",
+    )
+
+    assert status_code == 200
+    assert payload["transactions"][0]["transaction_id"] == "TX_1"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1/transactions"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "limit": 25,
+        "skip": 5,
+        "sort_by": "settlement_date",
+        "sort_order": "asc",
+        "include_projected": "true",
+        "as_of_date": "2026-03-27",
+        "transaction_type": "FX_FORWARD",
+        "security_id": "SEC_EQ_1",
+        "instrument_id": "INST_EQ_1",
+        "component_type": "FX_CONTRACT_OPEN",
+        "linked_transaction_group_id": "LTG-FX-2026-0001",
+        "fx_contract_id": "FXC-2026-0001",
+        "swap_event_id": "FXSWAP-2026-0001",
+        "near_leg_group_id": "FXSWAP-2026-0001-NEAR",
+        "far_leg_group_id": "FXSWAP-2026-0001-FAR",
+        "start_date": "2026-03-01",
+        "end_date": "2026-03-27",
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_core_endpoints():
     client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})

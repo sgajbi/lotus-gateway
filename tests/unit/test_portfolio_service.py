@@ -1049,13 +1049,31 @@ async def test_transaction_ledger_passes_transaction_filters_upstream():
         include_projected=False,
         skip=0,
         limit=100,
-        transaction_type="BUY",
+        transaction_type="FX_FORWARD",
+        instrument_id="INST_EQ_1",
+        component_type="FX_CONTRACT_OPEN",
+        linked_transaction_group_id="LTG-FX-2026-0001",
+        fx_contract_id="FXC-2026-0001",
+        swap_event_id="FXSWAP-2026-0001",
+        near_leg_group_id="FXSWAP-2026-0001-NEAR",
+        far_leg_group_id="FXSWAP-2026-0001-FAR",
+        sort_by="settlement_date",
+        sort_order="asc",
         start_date="2026-03-01",
         end_date="2026-03-27",
     )
 
     assert client.last_kwargs is not None
-    assert client.last_kwargs["transaction_type"] == "BUY"
+    assert client.last_kwargs["transaction_type"] == "FX_FORWARD"
+    assert client.last_kwargs["instrument_id"] == "INST_EQ_1"
+    assert client.last_kwargs["component_type"] == "FX_CONTRACT_OPEN"
+    assert client.last_kwargs["linked_transaction_group_id"] == "LTG-FX-2026-0001"
+    assert client.last_kwargs["fx_contract_id"] == "FXC-2026-0001"
+    assert client.last_kwargs["swap_event_id"] == "FXSWAP-2026-0001"
+    assert client.last_kwargs["near_leg_group_id"] == "FXSWAP-2026-0001-NEAR"
+    assert client.last_kwargs["far_leg_group_id"] == "FXSWAP-2026-0001-FAR"
+    assert client.last_kwargs["sort_by"] == "settlement_date"
+    assert client.last_kwargs["sort_order"] == "asc"
     assert client.last_kwargs["start_date"] == "2026-03-01"
     assert client.last_kwargs["end_date"] == "2026-03-27"
 
