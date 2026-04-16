@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.contracts.platform_capabilities import PlatformCapabilitiesResponse
 from app.main import app
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
@@ -128,6 +129,98 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert proposal_workspace["enabled"] is False
     assert proposal_workspace["supportability"]["state"] == "unavailable"
     assert proposal_workspace["caching"]["correctnessCritical"] is True
+
+
+def test_platform_capabilities_router_preserves_correlation_and_query_context(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _service(self, consumer_system: str, tenant_id: str, correlation_id: str):
+        captured["consumer_system"] = consumer_system
+        captured["tenant_id"] = tenant_id
+        captured["correlation_id"] = correlation_id
+        return PlatformCapabilitiesResponse.model_validate(
+            {
+                "data": {
+                    "consumerSystem": consumer_system,
+                    "tenantId": tenant_id,
+                    "contractVersion": "v1",
+                    "sources": {},
+                    "partialFailure": False,
+                    "errors": [],
+                    "normalized": {
+                        "navigation": {},
+                        "workflowFlags": {},
+                        "inputModesBySource": {},
+                        "inputModesUnion": [],
+                        "moduleHealth": {},
+                        "policyVersionsBySource": {},
+                        "lotusCorePolicyDiagnostics": {
+                            "available": False,
+                            "allowedSections": [],
+                            "warnings": [],
+                            "policyProvenance": {
+                                "policyVersion": "unknown",
+                                "policySource": "unknown",
+                                "matchedRuleId": "unknown",
+                                "strictMode": False,
+                            },
+                        },
+                        "shellBootstrap": {
+                            "contractVersion": "shell-bootstrap.v1",
+                            "supportability": {"state": "ready", "reasons": []},
+                            "freshness": {
+                                "state": "current",
+                                "freshnessClass": "shell_navigation",
+                                "evaluatedAt": "2026-04-16T00:00:00Z",
+                                "maxAgeSeconds": 60,
+                            },
+                            "evidence": {
+                                "state": "source_backed",
+                                "lineageSources": [],
+                                "partialFailure": False,
+                                "sourceErrorServices": [],
+                            },
+                            "versioning": {
+                                "shellContractVersion": "shell-bootstrap.v1",
+                                "capabilityContractVersion": "v1",
+                                "sourcePolicyVersion": None,
+                                "sourcePolicyVersions": {},
+                            },
+                            "caching": {
+                                "cacheMode": "request_scoped_composition",
+                                "invalidationOwner": "lotus_core",
+                                "staleReadTolerance": "bounded_navigation_refresh",
+                                "revalidateOnNavigation": True,
+                                "ttlSeconds": 60,
+                                "correctnessCritical": False,
+                            },
+                            "workspaces": [],
+                        },
+                    },
+                }
+            }
+        )
+
+    monkeypatch.setattr(
+        "app.services.platform_capabilities_service.PlatformCapabilitiesService.get_platform_capabilities",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=tenant-a",
+        headers={"X-Correlation-Id": "corr-platform-1"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "consumer_system": "lotus-workbench",
+        "tenant_id": "tenant-a",
+        "correlation_id": "corr-platform-1",
+    }
+    body = response.json()["data"]
+    assert body["consumerSystem"] == "lotus-workbench"
+    assert body["tenantId"] == "tenant-a"
 
 
 def test_platform_capabilities_router_partial_failure(monkeypatch):

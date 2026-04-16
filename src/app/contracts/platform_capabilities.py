@@ -156,11 +156,21 @@ class PlatformShellWorkspaceDescriptor(BaseModel):
         description="Whether the workspace should be enabled for the current platform posture.",
         examples=[True],
     )
-    supportability: PlatformBootstrapSupportability
-    freshness: PlatformBootstrapFreshness
-    evidence: PlatformBootstrapEvidence
-    versioning: PlatformBootstrapVersioning
-    caching: PlatformBootstrapCaching
+    supportability: PlatformBootstrapSupportability = Field(
+        description="Supportability posture for the workspace descriptor."
+    )
+    freshness: PlatformBootstrapFreshness = Field(
+        description="Freshness metadata for the workspace descriptor."
+    )
+    evidence: PlatformBootstrapEvidence = Field(
+        description="Evidence lineage and degraded-state metadata for the workspace descriptor."
+    )
+    versioning: PlatformBootstrapVersioning = Field(
+        description="Version metadata for the workspace descriptor."
+    )
+    caching: PlatformBootstrapCaching = Field(
+        description="Caching guidance for the workspace descriptor."
+    )
 
 
 class PlatformShellBootstrap(BaseModel):
@@ -169,12 +179,23 @@ class PlatformShellBootstrap(BaseModel):
         description="Shell-bootstrap contract version emitted by gateway.",
         examples=["shell-bootstrap.v1"],
     )
-    supportability: PlatformBootstrapSupportability
-    freshness: PlatformBootstrapFreshness
-    evidence: PlatformBootstrapEvidence
-    versioning: PlatformBootstrapVersioning
-    caching: PlatformBootstrapCaching
-    workspaces: list[PlatformShellWorkspaceDescriptor]
+    supportability: PlatformBootstrapSupportability = Field(
+        description="Supportability posture for shell bootstrap."
+    )
+    freshness: PlatformBootstrapFreshness = Field(
+        description="Freshness metadata for shell bootstrap."
+    )
+    evidence: PlatformBootstrapEvidence = Field(
+        description="Evidence lineage and degraded-state metadata for shell bootstrap."
+    )
+    versioning: PlatformBootstrapVersioning = Field(
+        description="Version metadata for shell bootstrap."
+    )
+    caching: PlatformBootstrapCaching = Field(description="Caching guidance for shell bootstrap.")
+    workspaces: list[PlatformShellWorkspaceDescriptor] = Field(
+        default_factory=list,
+        description="Workspace descriptors emitted for shell navigation and gating.",
+    )
 
     model_config = {"populate_by_name": True}
 
@@ -226,7 +247,10 @@ class PlatformCapabilitiesNormalized(BaseModel):
             }
         ],
     )
-    shell_bootstrap: PlatformShellBootstrap = Field(alias="shellBootstrap")
+    shell_bootstrap: PlatformShellBootstrap = Field(
+        alias="shellBootstrap",
+        description="Normalized shell bootstrap contract for navigation and workspace gating.",
+    )
 
     model_config = {"populate_by_name": True}
 
@@ -270,7 +294,9 @@ class PlatformCapabilitiesData(BaseModel):
         default_factory=list,
         description="Upstream failures preserved for UI and operator diagnostics.",
     )
-    normalized: PlatformCapabilitiesNormalized
+    normalized: PlatformCapabilitiesNormalized = Field(
+        description="Normalized capability contract used by shell and workspace consumers."
+    )
 
     model_config = {"populate_by_name": True}
 

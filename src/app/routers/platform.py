@@ -95,7 +95,14 @@ async def get_platform_capabilities(
         ),
         examples=["default", "tenant-a"],
     ),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
+    x_correlation_id: str | None = Header(
+        default=None,
+        alias="X-Correlation-Id",
+        description=(
+            "Optional caller-supplied correlation identifier propagated through gateway "
+            "capability composition for cross-service diagnostics."
+        ),
+    ),
 ) -> PlatformCapabilitiesResponse:
     service = _platform_capabilities_service()
     correlation_id = x_correlation_id or correlation_id_var.get() or ""
