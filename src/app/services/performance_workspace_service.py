@@ -1437,6 +1437,8 @@ class PerformanceWorkspaceService:
                 lambda: self._lotus_core_query_client.get_benchmark_catalog(
                     as_of_date=report_end_date,
                     benchmark_currency=portfolio_currency,
+                    benchmark_status="active",
+                    benchmark_type="composite",
                     correlation_id=correlation_id,
                 ),
             )

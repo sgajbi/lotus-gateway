@@ -200,6 +200,7 @@ class _StubAnalyticsClient:
 class _StubLotusCoreQueryClient:
     def __init__(self):
         self.reference_calls = 0
+        self.reference_kwargs: list[dict[str, object]] = []
         self.benchmark_catalog_calls: list[dict[str, object]] = []
         self.benchmark_assignment_calls: list[dict[str, object]] = []
 
@@ -211,6 +212,14 @@ class _StubLotusCoreQueryClient:
         correlation_id: str,
     ):  # noqa: ARG002
         self.reference_calls += 1
+        self.reference_kwargs.append(
+            {
+                "portfolio_id": portfolio_id,
+                "as_of_date": as_of_date,
+                "consumer_system": consumer_system,
+                "correlation_id": correlation_id,
+            }
+        )
         return 200, {"performance_end_date": "2026-03-27"}
 
     async def get_benchmark_catalog(self, **kwargs):
@@ -1123,7 +1132,13 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         "calc-attribution",
     ]
     assert query_client.reference_calls == 1
+    assert query_client.reference_kwargs[0]["consumer_system"] == "lotus-gateway"
+    assert query_client.reference_kwargs[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls == []
+    assert query_client.benchmark_catalog_calls[0]["as_of_date"] == "2026-03-27"
     assert query_client.benchmark_catalog_calls[0]["benchmark_currency"] == "USD"
+    assert query_client.benchmark_catalog_calls[0]["benchmark_status"] == "active"
+    assert query_client.benchmark_catalog_calls[0]["benchmark_type"] == "composite"
 
 
 @pytest.mark.asyncio
@@ -1274,6 +1289,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_when_code
         analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
@@ -1470,6 +1487,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
         analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
@@ -1607,6 +1626,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert analytics_client.attribution_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
