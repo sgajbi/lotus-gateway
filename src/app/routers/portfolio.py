@@ -388,13 +388,20 @@ async def get_portfolio_allocations(
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used for allocation restatement.",
+        description=(
+            "Optional reporting currency used for allocation restatement across bucket "
+            "market values and weights."
+        ),
         examples=["USD"],
     ),
     look_through_mode: str = Query(
         default="direct_only",
-        description="Requested allocation look-through mode for structured or fund exposures.",
-        examples=["direct_only"],
+        description=(
+            "Requested allocation look-through mode for structured or fund exposures. "
+            "Use direct_only for booked exposures or full when downstream needs expanded "
+            "look-through buckets."
+        ),
+        examples=["direct_only", "full"],
     ),
 ) -> PortfolioAllocationResponse:
     return await _portfolio_service().get_portfolio_allocations(
@@ -432,7 +439,10 @@ async def get_portfolio_positions(
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used for position valuation restatement.",
+        description=(
+            "Optional reporting currency used for position valuation restatement across "
+            "market values and gain-loss fields."
+        ),
         examples=["USD"],
     ),
 ) -> PortfolioPositionBookResponse:

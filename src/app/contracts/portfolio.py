@@ -74,9 +74,18 @@ class PortfolioAllocationView(BaseModel):
 
 
 class PortfolioAllocationLookThroughCapability(BaseModel):
-    requested_mode: str
-    effective_mode: str
-    applied: bool
+    requested_mode: str = Field(
+        description="Look-through mode requested by the consumer for the allocation query.",
+        examples=["full"],
+    )
+    effective_mode: str = Field(
+        description="Look-through mode actually applied by the upstream allocation service.",
+        examples=["direct_only"],
+    )
+    applied: bool = Field(
+        description="Whether the requested look-through expansion was applied in the response.",
+        examples=[False],
+    )
 
 
 class PortfolioTopPosition(BaseModel):
@@ -162,8 +171,7 @@ class PortfolioCashflowOutlook(BaseModel):
     )
     total_net_cashflow_base: float = Field(
         description=(
-            "Net projected cashflow across the full returned horizon, expressed in base "
-            "currency."
+            "Net projected cashflow across the full returned horizon, expressed in base currency."
         ),
         examples=[125.0],
     )

@@ -292,6 +292,9 @@ def test_portfolio_openapi_contract_registered() -> None:
     book_schema = spec["components"]["schemas"]["PortfolioBookResponse"]
     workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
     workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
+    allocation_look_through_schema = spec["components"]["schemas"][
+        "PortfolioAllocationLookThroughCapability"
+    ]
     performance_snapshot_path = spec["paths"][
         "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot"
     ]["get"]
@@ -315,11 +318,21 @@ def test_portfolio_openapi_contract_registered() -> None:
         "get"
     ]
     workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
+    allocations_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"][
+        "get"
+    ]
+    positions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/positions"]["get"]
     transaction_parameters = {
         parameter["name"]: parameter for parameter in transactions_path["parameters"]
     }
     workflow_parameters = {
         parameter["name"]: parameter for parameter in workflow_path["parameters"]
+    }
+    allocation_parameters = {
+        parameter["name"]: parameter for parameter in allocations_path["parameters"]
+    }
+    position_parameters = {
+        parameter["name"]: parameter for parameter in positions_path["parameters"]
     }
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
@@ -376,6 +389,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert allocation_schema["properties"]["reporting_currency"]["description"]
     assert allocation_schema["properties"]["look_through"]["description"]
     assert allocation_schema["properties"]["views"]["description"]
+    assert allocation_parameters["reporting_currency"]["description"]
+    assert allocation_parameters["look_through_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["requested_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["effective_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["applied"]["description"]
+    assert position_parameters["include_projected"]["description"]
+    assert position_parameters["reporting_currency"]["description"]
     assert positions_schema["properties"]["top_positions"]["description"]
     assert positions_schema["properties"]["positions"]["description"]
     assert transactions_schema["properties"]["include_projected"]["description"]
