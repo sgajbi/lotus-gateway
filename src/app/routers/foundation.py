@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
@@ -77,7 +77,13 @@ async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
         "and advisor-facing evidence of degraded upstream dependencies in one response."
     ),
 )
-async def get_foundation_workspace(portfolio_id: str) -> FoundationWorkspaceResponse:
+async def get_foundation_workspace(
+    portfolio_id: str = Path(
+        ...,
+        description="Stable portfolio identifier for the Foundation workspace to compose.",
+        examples=["PF_1001"],
+    ),
+) -> FoundationWorkspaceResponse:
     service = _foundation_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_workspace(

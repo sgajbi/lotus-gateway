@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.contracts.foundation import FoundationPortfolioCatalogResponse, FoundationWorkspaceResponse
 from app.main import app
 
 
@@ -29,6 +30,40 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
     body = response.json()
     assert [item["portfolio_id"] for item in body["items"]] == ["PF_1001", "PF_2002"]
     assert body["items"][0]["display_name"] == "Alpha Growth"
+
+
+def test_foundation_portfolio_catalog_router_preserves_correlation_context(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _service(self, correlation_id: str):
+        captured["correlation_id"] = correlation_id
+        return FoundationPortfolioCatalogResponse.model_validate(
+            {
+                "correlation_id": correlation_id,
+                "contract_version": "v1",
+                "items": [
+                    {
+                        "portfolio_id": "PF_1001",
+                        "display_name": "Alpha Growth",
+                        "base_currency": "USD",
+                    }
+                ],
+            }
+        )
+
+    monkeypatch.setattr(
+        "app.services.foundation_service.FoundationService.get_portfolio_catalog",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/foundation/portfolios")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured["correlation_id"]
+    assert body["correlation_id"] == captured["correlation_id"]
+    assert body["items"][0]["portfolio_id"] == "PF_1001"
 
 
 def test_foundation_workspace_router_success(monkeypatch):
@@ -126,6 +161,71 @@ def test_foundation_workspace_router_success(monkeypatch):
     assert body["evidence"]["status"] == "ready"
     assert body["evidence"]["partial_failure_count"] == 0
     assert len(body["workflow_cues"]) == 3
+
+
+def test_foundation_workspace_router_preserves_portfolio_and_correlation_context(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _service(self, portfolio_id: str, correlation_id: str):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        return FoundationWorkspaceResponse.model_validate(
+            {
+                "correlation_id": correlation_id,
+                "contract_version": "v1",
+                "as_of_date": "2026-03-25",
+                "portfolio": {
+                    "portfolio_id": portfolio_id,
+                    "display_name": "Alpha Growth",
+                    "client_id": "CIF_1001",
+                    "base_currency": "USD",
+                    "booking_center_code": "SG",
+                },
+                "summary": {
+                    "market_value_base": 1000.0,
+                    "total_cash_base": 100.0,
+                    "cash_weight_pct": 10.0,
+                    "position_count": 2,
+                },
+                "allocations": [],
+                "top_positions": [],
+                "performance": None,
+                "rebalance": None,
+                "readiness": {
+                    "has_positions": True,
+                    "reporting": {
+                        "status": "READY",
+                        "generated_at_utc": "2026-03-25T10:00:00Z",
+                        "row_count": 1,
+                    },
+                },
+                "workflow_cues": [],
+                "evidence": {
+                    "status": "ready",
+                    "summary": "Foundation workspace inputs are ready for advisor use.",
+                    "warning_count": 0,
+                    "partial_failure_count": 0,
+                    "affected_sources": [],
+                },
+                "warnings": [],
+                "partial_failures": [],
+            }
+        )
+
+    monkeypatch.setattr(
+        "app.services.foundation_service.FoundationService.get_portfolio_workspace",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/foundation/portfolios/PF_1001/workspace")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured["portfolio_id"] == "PF_1001"
+    assert captured["correlation_id"]
+    assert body["correlation_id"] == captured["correlation_id"]
+    assert body["portfolio"]["portfolio_id"] == "PF_1001"
 
 
 def test_foundation_workspace_router_partial_failure(monkeypatch):
