@@ -20,8 +20,9 @@ router = APIRouter(prefix="/api/v1/reports", tags=["Reporting"])
     response_model=ReportingSnapshotResponse,
     summary="Get reporting snapshot",
     description=(
-        "Fetches report-ready aggregated snapshot rows from lotus-report "
-        "for one portfolio and as-of date."
+        "Fetch report-ready aggregated snapshot rows from lotus-report for one portfolio and "
+        "business date. Use this endpoint when the UI needs reporting-ready rows for a specific "
+        "portfolio/date without requesting the larger summary or review payloads."
     ),
 )
 async def get_reporting_snapshot(
@@ -34,7 +35,10 @@ async def get_reporting_snapshot(
     ],
     as_of_date: Annotated[
         str,
-        Query(alias="asOfDate", description="Business as-of date (YYYY-MM-DD)."),
+        Query(
+            alias="asOfDate",
+            description="Business as-of date in YYYY-MM-DD format for the reporting snapshot.",
+        ),
     ],
 ) -> ReportingSnapshotResponse:
     client = ReportingClient(
@@ -79,8 +83,9 @@ async def get_reporting_snapshot(
     response_model=ReportingSummaryResponse,
     summary="Get reporting summary",
     description=(
-        "Fetches report-ready portfolio summary payload from lotus-report "
-        "for one portfolio and as-of date."
+        "Fetch the lotus-report-owned portfolio summary payload for one portfolio and as-of "
+        "date. Use this endpoint when the UI needs the consolidated reporting summary contract "
+        "rather than the lower-level snapshot rows."
     ),
 )
 async def get_reporting_summary(
@@ -126,8 +131,9 @@ async def get_reporting_summary(
     response_model=ReportingReviewResponse,
     summary="Get reporting review",
     description=(
-        "Fetches report-ready portfolio review payload from lotus-report "
-        "for one portfolio and as-of date."
+        "Fetch the lotus-report-owned portfolio review payload for one portfolio and as-of "
+        "date. Use this endpoint when the UI needs the report-review contract prepared for "
+        "front-office or client-review workflows."
     ),
 )
 async def get_reporting_review(
