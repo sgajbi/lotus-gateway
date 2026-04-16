@@ -26,7 +26,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/capabilities"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -45,7 +45,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/policy/effective"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",

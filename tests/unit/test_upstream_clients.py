@@ -828,6 +828,16 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_instruments(limit=10, correlation_id="corr-3"))[0] == 200
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "default",
+    }
+    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/integration/policy/effective"
+    assert _FakeAsyncClient.calls[1]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "default",
+    }
     assert _FakeAsyncClient.calls[3]["url"] == "http://pas/lookups/portfolios"
     assert _FakeAsyncClient.calls[3]["params"] == {}
     assert _FakeAsyncClient.calls[4]["json"] == {
@@ -839,6 +849,43 @@ async def test_lotus_core_query_client_core_endpoints():
         _FakeAsyncClient.calls[5]["url"]
         == "http://pas/integration/portfolios/P1/analytics/reference"
     )
+
+
+@pytest.mark.asyncio
+async def test_lotus_core_query_client_capability_routes_use_canonical_snake_case_query_params():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(200, {"consumer_system": "lotus-workbench"})
+    _FakeAsyncClient.queue_json(200, {"policyProvenance": {"policyVersion": "pas-policy-v7"}})
+
+    capability_status, capability_payload = await client.get_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-core-capabilities",
+    )
+    policy_status, policy_payload = await client.get_effective_policy(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-core-capabilities",
+    )
+
+    assert capability_status == 200
+    assert capability_payload["consumer_system"] == "lotus-workbench"
+    assert policy_status == 200
+    assert policy_payload["policyProvenance"]["policyVersion"] == "pas-policy-v7"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://core-control/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-workbench",
+        "tenant_id": "tenant-a",
+    }
+    assert _FakeAsyncClient.calls[1]["url"] == "http://core-control/integration/policy/effective"
+    assert _FakeAsyncClient.calls[1]["params"] == {
+        "consumer_system": "lotus-workbench",
+        "tenant_id": "tenant-a",
+    }
 
 
 @pytest.mark.asyncio
