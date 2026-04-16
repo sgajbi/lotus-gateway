@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.routers import portfolio as portfolio_router
 from app.routers.portfolio import _portfolio_service
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
@@ -884,3 +885,64 @@ def test_portfolio_activity_summary_router(monkeypatch):
     assert captured["reporting_currency"] == "USD"
     assert captured["start_date"] == "2026-03-01"
     assert captured["end_date"] == "2026-03-27"
+
+
+def test_portfolio_performance_snapshot_router(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _snapshot(*args, **kwargs):
+        captured.update(kwargs)
+        return {
+            "correlation_id": "corr-performance",
+            "contract_version": "v1",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-27",
+            "period": "EXPLICIT",
+            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "portfolio_return_pct": 15.1,
+            "benchmark_return_pct": 14.72,
+            "excess_return_pct": 0.38,
+            "sparkline": [
+                {
+                    "as_of_date": "2026-01-31",
+                    "portfolio_return_pct": 2.0,
+                    "benchmark_return_pct": 1.8,
+                    "excess_return_pct": 0.2,
+                }
+            ],
+            "unavailable": None,
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        portfolio_router._performance_workspace_service(),
+        "get_portfolio_performance_snapshot",
+        _snapshot,
+    )
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/performance-snapshot",
+        params={
+            "period": "EXPLICIT",
+            "chart_frequency": "quarterly",
+            "detail_basis": "GROSS",
+            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "explicit_start_date": "2026-01-01",
+            "explicit_end_date": "2026-03-27",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["portfolio_return_pct"] == 15.1
+    assert body["benchmark_return_pct"] == 14.72
+    assert body["excess_return_pct"] == 0.38
+    assert body["sparkline"][0]["as_of_date"] == "2026-01-31"
+    assert captured["portfolio_id"] == "PF_1001"
+    assert captured["period"] == "EXPLICIT"
+    assert captured["chart_frequency"] == "quarterly"
+    assert captured["detail_basis"] == "GROSS"
+    assert captured["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert captured["explicit_start_date"] == "2026-01-01"
+    assert captured["explicit_end_date"] == "2026-03-27"

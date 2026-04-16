@@ -763,29 +763,110 @@ class PortfolioTransactionLedgerResponse(BaseModel):
 
 
 class PortfolioPerformanceSnapshotPoint(BaseModel):
-    as_of_date: str
-    portfolio_return_pct: float | None = None
-    benchmark_return_pct: float | None = None
-    excess_return_pct: float | None = None
+    as_of_date: str = Field(
+        description="Observation end date represented by the compact performance sparkline point.",
+        examples=["2026-03-27"],
+    )
+    portfolio_return_pct: float | None = Field(
+        default=None,
+        description=(
+            "Cumulative portfolio return percentage through the sparkline observation date."
+        ),
+        examples=[15.1],
+    )
+    benchmark_return_pct: float | None = Field(
+        default=None,
+        description=(
+            "Cumulative benchmark return percentage through the sparkline observation date when "
+            "benchmark context is available."
+        ),
+        examples=[14.72],
+    )
+    excess_return_pct: float | None = Field(
+        default=None,
+        description=(
+            "Cumulative excess return percentage versus benchmark through the sparkline "
+            "observation date."
+        ),
+        examples=[0.38],
+    )
 
 
 class PortfolioPerformanceSnapshotUnavailable(BaseModel):
-    title: str
-    detail: str
-    requirements: list[str] = Field(default_factory=list)
+    title: str = Field(
+        description="Advisor-facing unavailable-state title for the performance snapshot module.",
+        examples=["Performance data unavailable"],
+    )
+    detail: str = Field(
+        description="Short explanation of why the performance snapshot cannot yet be calculated.",
+        examples=[
+            "Performance snapshot requires valuation history, cashflow history, and a selected "
+            "reporting period."
+        ],
+    )
+    requirements: list[str] = Field(
+        default_factory=list,
+        description="Named prerequisites that remain missing before the snapshot becomes usable.",
+        examples=[["valuation history", "cashflow history", "selected reporting period"]],
+    )
 
 
 class PortfolioPerformanceSnapshotResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    period: str
-    benchmark_code: str | None = None
-    portfolio_return_pct: float | None = None
-    benchmark_return_pct: float | None = None
-    excess_return_pct: float | None = None
-    sparkline: list[PortfolioPerformanceSnapshotPoint] = Field(default_factory=list)
-    unavailable: PortfolioPerformanceSnapshotUnavailable | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description=(
+            "Portfolio identifier whose lightweight performance snapshot is being returned."
+        ),
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the snapshot response.",
+        examples=["2026-03-27"],
+    )
+    period: str = Field(
+        description=(
+            "Resolved reporting horizon represented by the snapshot, such as YTD or EXPLICIT."
+        ),
+        examples=["YTD"],
+    )
+    benchmark_code: str | None = Field(
+        default=None,
+        description="Resolved benchmark code used for the comparison values when available.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    )
+    portfolio_return_pct: float | None = Field(
+        default=None,
+        description="Portfolio return percentage for the resolved reporting horizon.",
+        examples=[15.1],
+    )
+    benchmark_return_pct: float | None = Field(
+        default=None,
+        description=(
+            "Benchmark return percentage for the resolved reporting horizon when available."
+        ),
+        examples=[14.72],
+    )
+    excess_return_pct: float | None = Field(
+        default=None,
+        description="Excess return percentage versus benchmark for the resolved reporting horizon.",
+        examples=[0.38],
+    )
+    sparkline: list[PortfolioPerformanceSnapshotPoint] = Field(
+        default_factory=list,
+        description="Compact cumulative return observations suitable for a small trend sparkline.",
+    )
+    unavailable: PortfolioPerformanceSnapshotUnavailable | None = Field(
+        default=None,
+        description=(
+            "Explicit unavailable-state metadata when performance cannot yet be calculated."
+        ),
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded but still usable snapshot output.",
+    )
+    partial_failures: list[PortfolioPartialFailure] = Field(
+        default_factory=list,
+        description="Upstream source failures preserved when optional snapshot inputs are missing.",
+    )

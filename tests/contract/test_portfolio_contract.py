@@ -6,6 +6,7 @@ from app.contracts.portfolio import (
     PortfolioBookResponse,
     PortfolioIncomeSummaryResponse,
     PortfolioLiquidityResponse,
+    PortfolioPerformanceSnapshotResponse,
     PortfolioPositionBookResponse,
     PortfolioReadinessResponse,
     PortfolioWorkflowResponse,
@@ -234,6 +235,30 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
     assert workflow.actions[0].recommended is True
 
 
+def test_portfolio_performance_snapshot_contract_shape() -> None:
+    payload = PortfolioPerformanceSnapshotResponse(
+        correlation_id="corr-10",
+        portfolio_id="PF_1001",
+        as_of_date="2026-03-27",
+        period="YTD",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        portfolio_return_pct=15.1,
+        benchmark_return_pct=14.72,
+        excess_return_pct=0.38,
+        sparkline=[
+            {
+                "as_of_date": "2026-01-31",
+                "portfolio_return_pct": 2.0,
+                "benchmark_return_pct": 1.8,
+                "excess_return_pct": 0.2,
+            }
+        ],
+    )
+    assert payload.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert payload.sparkline[0].benchmark_return_pct == 1.8
+    assert payload.unavailable is None
+
+
 def test_portfolio_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -248,6 +273,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/transactions" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/readiness" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workflow" in spec["paths"]
+    assert "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot" in spec["paths"]
     workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
     performance_schema = spec["components"]["schemas"]["PortfolioPerformanceSummary"]
     rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
@@ -266,6 +292,23 @@ def test_portfolio_openapi_contract_registered() -> None:
     book_schema = spec["components"]["schemas"]["PortfolioBookResponse"]
     workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
     workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
+    performance_snapshot_path = spec["paths"][
+        "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot"
+    ]["get"]
+    performance_snapshot_period_parameter = next(
+        parameter
+        for parameter in performance_snapshot_path["parameters"]
+        if parameter["name"] == "period"
+    )
+    performance_snapshot_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotResponse"
+    ]
+    performance_snapshot_point_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotPoint"
+    ]
+    performance_snapshot_unavailable_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotUnavailable"
+    ]
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
     assert performance_schema["properties"]["period"]["description"]
@@ -323,3 +366,11 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_schema["properties"]["actions"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
     assert workflow_action_schema["properties"]["cta_label"]["description"]
+    assert performance_snapshot_path["description"]
+    assert performance_snapshot_period_parameter["description"]
+    assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["sparkline"]["description"]
+    assert performance_snapshot_schema["properties"]["unavailable"]["description"]
+    assert performance_snapshot_point_schema["properties"]["portfolio_return_pct"]["description"]
+    assert performance_snapshot_unavailable_schema["properties"]["requirements"]["description"]

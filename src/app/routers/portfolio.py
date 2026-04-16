@@ -602,15 +602,60 @@ async def get_portfolio_transactions(
     "/portfolios/{portfolio_id}/performance-snapshot",
     response_model=PortfolioPerformanceSnapshotResponse,
     summary="Get portfolio performance snapshot",
+    description=(
+        "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
+        "Use this endpoint when the UI needs the current period return, benchmark comparison, "
+        "compact sparkline, and explicit unavailable-state semantics without loading the full "
+        "performance workspace."
+    ),
 )
 async def get_portfolio_performance_snapshot(
     portfolio_id: str,
-    period: str = Query(default="YTD"),
-    chart_frequency: str = Query(default="monthly"),
-    detail_basis: str = Query(default="NET"),
-    benchmark_code: str | None = Query(default=None),
-    explicit_start_date: str | None = Query(default=None),
-    explicit_end_date: str | None = Query(default=None),
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested performance horizon. Use canonical values such as MTD, QTD, YTD, 1Y, 3Y, "
+            "5Y, or EXPLICIT."
+        ),
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested sparkline aggregation frequency. Unsupported values are normalized to the "
+            "nearest supported workspace frequency."
+        ),
+        examples=["monthly"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the snapshot return metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    explicit_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when requesting an EXPLICIT window or overriding the "
+            "canonical period boundary."
+        ),
+        examples=["2026-01-01"],
+    ),
+    explicit_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when requesting an EXPLICIT window or overriding the "
+            "resolved analytics reference end date."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PortfolioPerformanceSnapshotResponse:
     return await _performance_workspace_service().get_portfolio_performance_snapshot(
         portfolio_id=portfolio_id,

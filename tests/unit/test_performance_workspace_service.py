@@ -1700,6 +1700,43 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_marks_portfolio_performance_snapshot_unavailable():
+    class _UnavailableSnapshotAnalyticsClient(_StubAnalyticsClient):
+        async def get_workspace_summary(self, **kwargs):
+            self.workspace_summary_calls.append(kwargs)
+            return 503, {"detail": "workspace summary unavailable"}
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_UnavailableSnapshotAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_portfolio_performance_snapshot(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_return_pct is None
+    assert response.benchmark_return_pct is None
+    assert response.excess_return_pct is None
+    assert response.sparkline == []
+    assert response.unavailable is not None
+    assert response.unavailable.title == "Performance data unavailable"
+    assert response.unavailable.requirements == [
+        "valuation history",
+        "cashflow history",
+        "selected reporting period",
+    ]
+    assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
+    assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_aligns_mismatched_dimensions_to_shared_segment():
     analytics_client = _StubAnalyticsClient()
     service = PerformanceWorkspaceService(
