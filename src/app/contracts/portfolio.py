@@ -8,48 +8,137 @@ class PortfolioPartialFailure(BaseModel):
 
 
 class PortfolioCatalogItem(BaseModel):
-    portfolio_id: str
-    display_name: str
-    base_currency: str
-    client_id: str | None = None
-    booking_center_code: str | None = None
-    portfolio_type: str | None = None
-    status: str | None = None
+    portfolio_id: str = Field(
+        description="Canonical Lotus portfolio identifier.",
+        examples=["PF_1001"],
+    )
+    display_name: str = Field(
+        description="Advisor-facing portfolio display label.",
+        examples=["PF_1001"],
+    )
+    base_currency: str = Field(
+        description="Base currency assigned to the portfolio.",
+        examples=["USD"],
+    )
+    client_id: str | None = Field(
+        default=None,
+        description="Optional client or CIF identifier associated with the portfolio.",
+        examples=["CIF_1"],
+    )
+    booking_center_code: str | None = Field(
+        default=None,
+        description="Optional booking-center code for the portfolio record.",
+        examples=["SGPB"],
+    )
+    portfolio_type: str | None = Field(
+        default=None,
+        description="Optional portfolio mandate or operating type.",
+        examples=["ADVISORY"],
+    )
+    status: str | None = Field(
+        default=None,
+        description="Optional upstream portfolio status.",
+        examples=["ACTIVE"],
+    )
 
 
 class PortfolioCatalogResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    items: list[PortfolioCatalogItem] = Field(default_factory=list)
+    items: list[PortfolioCatalogItem] = Field(
+        default_factory=list,
+        description="Sorted portfolio catalog entries available to the caller.",
+    )
 
 
 class PortfolioIdentity(BaseModel):
-    portfolio_id: str
-    display_name: str
-    client_id: str | None = None
-    base_currency: str
-    booking_center_code: str | None = None
+    portfolio_id: str = Field(
+        description="Canonical Lotus portfolio identifier.",
+        examples=["PF_1001"],
+    )
+    display_name: str = Field(
+        description="Advisor-facing portfolio display label.",
+        examples=["PF_1001"],
+    )
+    client_id: str | None = Field(
+        default=None,
+        description="Optional client or CIF identifier associated with the portfolio.",
+        examples=["CIF_1"],
+    )
+    base_currency: str = Field(
+        description="Base currency assigned to the portfolio.",
+        examples=["USD"],
+    )
+    booking_center_code: str | None = Field(
+        default=None,
+        description="Optional booking-center code for the portfolio record.",
+        examples=["SGPB"],
+    )
 
 
 class PortfolioProfile(BaseModel):
-    status: str | None = None
-    portfolio_type: str | None = None
-    risk_exposure: str | None = None
-    investment_time_horizon: str | None = None
-    objective: str | None = None
-    is_leverage_allowed: bool | None = None
-    advisor_id: str | None = None
-    open_date: str | None = None
-    close_date: str | None = None
+    status: str | None = Field(default=None, description="Optional upstream portfolio status.")
+    portfolio_type: str | None = Field(
+        default=None,
+        description="Optional portfolio mandate or operating type.",
+    )
+    risk_exposure: str | None = Field(
+        default=None,
+        description="Optional risk-exposure classification returned by the source portfolio record.",
+    )
+    investment_time_horizon: str | None = Field(
+        default=None,
+        description="Optional investment horizon associated with the portfolio mandate.",
+    )
+    objective: str | None = Field(
+        default=None,
+        description="Optional investment objective associated with the portfolio mandate.",
+    )
+    is_leverage_allowed: bool | None = Field(
+        default=None,
+        description="Whether leverage is permitted for the portfolio when the source exposes it.",
+    )
+    advisor_id: str | None = Field(
+        default=None,
+        description="Optional advisor identifier associated with the portfolio.",
+    )
+    open_date: str | None = Field(
+        default=None,
+        description="Optional portfolio open date in YYYY-MM-DD format.",
+        examples=["2024-01-15"],
+    )
+    close_date: str | None = Field(
+        default=None,
+        description="Optional portfolio close date in YYYY-MM-DD format.",
+        examples=["2026-03-31"],
+    )
 
 
 class PortfolioSummary(BaseModel):
-    assets_under_management_base: float
-    invested_market_value_base: float
-    cash_market_value_base: float
-    cash_weight_pct: float
-    position_count: int
-    cash_balance_count: int
+    assets_under_management_base: float = Field(
+        description="Total assets under management for the portfolio, expressed in base currency.",
+        examples=[1000.0],
+    )
+    invested_market_value_base: float = Field(
+        description="Invested market value excluding cash, expressed in base currency.",
+        examples=[900.0],
+    )
+    cash_market_value_base: float = Field(
+        description="Total cash market value, expressed in base currency.",
+        examples=[100.0],
+    )
+    cash_weight_pct: float = Field(
+        description="Cash weight as a percentage of total assets under management.",
+        examples=[10.0],
+    )
+    position_count: int = Field(
+        description="Count of position rows included in the resolved portfolio snapshot.",
+        examples=[3],
+    )
+    cash_balance_count: int = Field(
+        description="Count of cash balance rows included in the resolved portfolio snapshot.",
+        examples=[1],
+    )
 
 
 class PortfolioCashBalance(BaseModel):

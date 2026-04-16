@@ -136,6 +136,11 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
     "/portfolios",
     response_model=PortfolioCatalogResponse,
     summary="Get portfolio catalog",
+    description=(
+        "Returns the sorted portfolio catalog available to the caller. Use this endpoint to "
+        "discover supported portfolio identifiers and lightweight identity metadata before "
+        "loading portfolio-specific workspace or book endpoints."
+    ),
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
     return await _portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())

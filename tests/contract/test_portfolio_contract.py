@@ -4,6 +4,7 @@ from app.contracts.portfolio import (
     PortfolioActivitySummaryResponse,
     PortfolioAllocationResponse,
     PortfolioBookResponse,
+    PortfolioCatalogResponse,
     PortfolioIncomeSummaryResponse,
     PortfolioLiquidityResponse,
     PortfolioPerformanceSnapshotResponse,
@@ -48,6 +49,26 @@ def test_portfolio_workspace_contract_shape() -> None:
     assert payload.rebalance is not None
     assert payload.rebalance.last_rebalance_run_id == "rr_100"
     assert payload.reporting.status == "READY"
+
+
+def test_portfolio_catalog_contract_shape() -> None:
+    payload = PortfolioCatalogResponse(
+        correlation_id="corr-0",
+        contract_version="v1",
+        items=[
+            {
+                "portfolio_id": "PF_1001",
+                "display_name": "PF_1001",
+                "base_currency": "USD",
+                "client_id": "CIF_1",
+                "booking_center_code": "SGPB",
+                "portfolio_type": "ADVISORY",
+                "status": "ACTIVE",
+            }
+        ],
+    )
+    assert payload.items[0].portfolio_id == "PF_1001"
+    assert payload.items[0].booking_center_code == "SGPB"
 
 
 def test_portfolio_book_contract_shape() -> None:
@@ -274,7 +295,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/readiness" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workflow" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot" in spec["paths"]
+    catalog_path = spec["paths"]["/api/v1/portfolio/portfolios"]["get"]
+    catalog_schema = spec["components"]["schemas"]["PortfolioCatalogResponse"]
+    catalog_item_schema = spec["components"]["schemas"]["PortfolioCatalogItem"]
     workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
+    identity_schema = spec["components"]["schemas"]["PortfolioIdentity"]
+    profile_schema = spec["components"]["schemas"]["PortfolioProfile"]
+    summary_schema = spec["components"]["schemas"]["PortfolioSummary"]
     performance_schema = spec["components"]["schemas"]["PortfolioPerformanceSummary"]
     rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
     readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
@@ -342,8 +369,37 @@ def test_portfolio_openapi_contract_registered() -> None:
     activity_parameters = {
         parameter["name"]: parameter for parameter in activity_path["parameters"]
     }
+    assert catalog_path["description"]
+    assert catalog_schema["properties"]["items"]["description"]
+    assert catalog_item_schema["properties"]["portfolio_id"]["description"]
+    assert catalog_item_schema["properties"]["display_name"]["description"]
+    assert catalog_item_schema["properties"]["base_currency"]["description"]
+    assert catalog_item_schema["properties"]["client_id"]["description"]
+    assert catalog_item_schema["properties"]["booking_center_code"]["description"]
+    assert catalog_item_schema["properties"]["portfolio_type"]["description"]
+    assert catalog_item_schema["properties"]["status"]["description"]
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
+    assert identity_schema["properties"]["portfolio_id"]["description"]
+    assert identity_schema["properties"]["display_name"]["description"]
+    assert identity_schema["properties"]["client_id"]["description"]
+    assert identity_schema["properties"]["base_currency"]["description"]
+    assert identity_schema["properties"]["booking_center_code"]["description"]
+    assert profile_schema["properties"]["status"]["description"]
+    assert profile_schema["properties"]["portfolio_type"]["description"]
+    assert profile_schema["properties"]["risk_exposure"]["description"]
+    assert profile_schema["properties"]["investment_time_horizon"]["description"]
+    assert profile_schema["properties"]["objective"]["description"]
+    assert profile_schema["properties"]["is_leverage_allowed"]["description"]
+    assert profile_schema["properties"]["advisor_id"]["description"]
+    assert profile_schema["properties"]["open_date"]["description"]
+    assert profile_schema["properties"]["close_date"]["description"]
+    assert summary_schema["properties"]["assets_under_management_base"]["description"]
+    assert summary_schema["properties"]["invested_market_value_base"]["description"]
+    assert summary_schema["properties"]["cash_market_value_base"]["description"]
+    assert summary_schema["properties"]["cash_weight_pct"]["description"]
+    assert summary_schema["properties"]["position_count"]["description"]
+    assert summary_schema["properties"]["cash_balance_count"]["description"]
     assert performance_schema["properties"]["period"]["description"]
     assert rebalance_schema["properties"]["status"]["description"]
     assert readiness_schema["properties"]["blocking_reasons"]["description"]
@@ -447,4 +503,4 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["sparkline"]["description"]
     assert performance_snapshot_schema["properties"]["unavailable"]["description"]
     assert performance_snapshot_point_schema["properties"]["portfolio_return_pct"]["description"]
-    assert performance_snapshot_unavailable_schema["properties"]["requirements
+    assert performance_snapshot_unavailable_schema["properties"]["requirements"]["description"]
