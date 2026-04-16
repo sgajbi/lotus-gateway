@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -528,12 +528,49 @@ async def get_performance_evidence_artifact(
 )
 async def get_performance_horizon_comparison(
     portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    chart_frequency: str = "monthly",
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested comparison horizon. Gateway exposes front-office-safe MTD, QTD, and YTD "
+            "rows by default, or EXPLICIT when paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the horizon comparison rows.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested chart frequency for the supporting module context. Unsupported values are "
+            "normalized and reported back in the response."
+        ),
+        examples=["monthly"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller wants an EXPLICIT comparison window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller wants an EXPLICIT comparison window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceHorizonComparisonResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()

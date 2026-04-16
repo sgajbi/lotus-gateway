@@ -1125,6 +1125,32 @@ def test_workbench_performance_monolithic_route_is_absent_from_openapi():
     assert "/api/v1/workbench/{portfolio_id}/performance" not in schema["paths"]
 
 
+def test_workbench_performance_horizon_comparison_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/horizon-comparison"][
+        "get"
+    ]
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    response_schema = schema["components"]["schemas"]["PerformanceHorizonComparisonResponse"]
+    row_schema = schema["components"]["schemas"]["PerformanceHorizonComparisonRow"]
+
+    assert "MTD, QTD, and YTD" in route["description"]
+    assert "front-office-safe" in route["description"]
+    assert period_parameter["description"]
+    assert response_schema["properties"]["rows"]["description"]
+    assert response_schema["properties"]["benchmark_options"]["description"]
+    assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert row_schema["properties"]["period"]["description"]
+    assert row_schema["properties"]["benchmark_return_pct"]["description"]
+    assert row_schema["properties"]["active_return_pct"]["description"]
+
+
 def test_workbench_performance_advisor_brief_router(monkeypatch):
     captured_call = {}
 
