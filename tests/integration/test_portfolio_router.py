@@ -556,6 +556,16 @@ def test_portfolio_insights_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["insights"][0] == {
+        "key": "equity-concentration-high",
+        "title": "Large position dominates portfolio risk",
+        "detail": (
+            "One holding has become large enough to dominate current portfolio "
+            "concentration. Open Risk to review concentration pressure."
+        ),
+        "severity": "warning",
+        "href": "/risk?portfolioId=PF_1001",
+    }
     assert {item["key"] for item in body["insights"]} == {
         "equity-concentration-high",
         "net-outflows-window",

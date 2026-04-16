@@ -416,10 +416,18 @@ async def test_portfolio_insights_returns_source_backed_insight_and_exception_su
     )
 
     assert response.portfolio_id == "PF_1001"
-    assert {insight.key for insight in response.insights} == {
-        "equity-concentration-high",
-    }
-    assert any(insight.severity == "warning" for insight in response.insights)
+    assert [insight.model_dump() for insight in response.insights] == [
+        {
+            "key": "equity-concentration-high",
+            "title": "Large position dominates portfolio risk",
+            "detail": (
+                "One holding has become large enough to dominate current portfolio "
+                "concentration. Open Risk to review concentration pressure."
+            ),
+            "severity": "warning",
+            "href": "/risk?portfolioId=PF_1001",
+        }
+    ]
     assert response.exception_summaries == []
 
 
@@ -569,14 +577,87 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
         as_of_date="2026-03-27",
     )
 
-    assert {summary.key for summary in response.exception_summaries} == {
-        "holdings",
-        "pricing",
-        "transactions",
-        "reporting",
-        "controls_blocking",
-        "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
-    }
+    assert [insight.model_dump() for insight in response.insights] == [
+        {
+            "key": "no-holdings-booked",
+            "title": "No holdings booked",
+            "detail": (
+                "Book the first position to activate holdings, allocation, and valuation views."
+            ),
+            "severity": "critical",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "no-cash-funding",
+            "title": "No cash funding recorded",
+            "detail": (
+                "Add opening cash or a subscription so the portfolio can be funded and invested."
+            ),
+            "severity": "critical",
+            "href": "#portfolio-insights",
+        },
+        {
+            "key": "pricing-not-published",
+            "title": "Pricing not yet published",
+            "detail": "Publish prices to complete valuation and unlock reliable reporting.",
+            "severity": "warning",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "reporting-unavailable",
+            "title": "Reporting cannot be generated yet",
+            "detail": "Reporting remains blocked until book coverage and valuation are complete.",
+            "severity": "warning",
+            "href": "#portfolio-health",
+        },
+    ]
+    assert [summary.model_dump() for summary in response.exception_summaries] == [
+        {
+            "key": "holdings",
+            "title": "Missing holdings",
+            "detail": "No positions are currently booked for this portfolio.",
+            "tone": "danger",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "pricing",
+            "title": "No priced positions",
+            "detail": "Valuation cannot run until priced positions are available.",
+            "tone": "danger",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "transactions",
+            "title": "Empty transaction history",
+            "detail": "No funding, trading, or cash activity has been recorded yet.",
+            "tone": "danger",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "reporting",
+            "title": "Reporting output missing",
+            "detail": "Reporting coverage is not yet available for this portfolio.",
+            "tone": "danger",
+            "href": "#portfolio-health",
+        },
+        {
+            "key": "controls_blocking",
+            "title": "Blocking controls active",
+            "detail": (
+                "Operational controls are currently preventing publication or downstream "
+                "processing."
+            ),
+            "tone": "danger",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
+            "title": "PORTFOLIO CASHFLOW UNAVAILABLE",
+            "detail": "cashflow temporarily unavailable",
+            "tone": "warn",
+            "href": "#portfolio-attention",
+        },
+    ]
 
 
 @pytest.mark.asyncio

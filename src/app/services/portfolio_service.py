@@ -1945,10 +1945,10 @@ class PortfolioService:
                     title="Large position dominates portfolio risk",
                     detail=(
                         "One holding has become large enough to dominate current "
-                        "portfolio concentration."
+                        "portfolio concentration. Open Risk to review concentration pressure."
                     ),
                     severity="warning",
-                    href="#portfolio-insights",
+                    href=f"/risk?portfolioId={workspace.portfolio.portfolio_id}",
                 )
             )
 
@@ -2298,10 +2298,17 @@ class PortfolioService:
             PortfolioPartialFailure(
                 source_service=source_service,
                 error_code=warning_code,
-                detail=str(payload),
+                detail=self._format_upstream_error_detail(payload),
             )
         )
         return None
+
+    def _format_upstream_error_detail(self, payload: Any) -> str:
+        if isinstance(payload, dict):
+            detail = self._optional_str(payload.get("detail"))
+            if detail is not None:
+                return detail
+        return str(payload)
 
     def _extract_resolved_as_of_date(self, result: tuple[int, dict[str, Any]]) -> str | None:
         payload = self._optional_payload(result, "lotus-core", "IGNORED", [], [])
