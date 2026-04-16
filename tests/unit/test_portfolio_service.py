@@ -714,7 +714,7 @@ async def test_portfolio_liquidity_returns_cash_and_cashflow():
 
 
 @pytest.mark.asyncio
-async def test_portfolio_liquidity_passes_reporting_currency_and_preserves_cashflow_partial_failure():
+async def test_portfolio_liquidity_preserves_cashflow_partial_failure():
     class _LiquidityAwareClient(_StubLotusCoreQueryClient):
         def __init__(self):
             self.aum_reporting_currency: str | None = None
@@ -876,6 +876,36 @@ async def test_portfolio_positions_return_top_positions_and_full_book():
     assert response.top_positions[0].security_id == "EQ_1"
     assert response.positions[0].market_value_base == 700.0
     assert response.positions[0].market_value_local is None
+
+
+@pytest.mark.asyncio
+async def test_portfolio_positions_pass_reporting_currency_and_include_projected():
+    class _PositionsAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_reporting_currency: str | None = None
+            self.last_include_projected: bool | None = None
+
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.last_reporting_currency = kwargs.get("reporting_currency")
+            self.last_include_projected = kwargs.get("include_projected")
+            return await super().get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _PositionsAwareClient()
+    service = PortfolioService(client)
+    await service.get_portfolio_positions(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3d-ccy",
+        as_of_date="2026-03-27",
+        include_projected=True,
+        reporting_currency="SGD",
+    )
+
+    assert client.last_include_projected is True
+    assert client.last_reporting_currency == "SGD"
 
 
 @pytest.mark.asyncio

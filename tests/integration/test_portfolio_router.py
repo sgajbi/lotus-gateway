@@ -719,6 +719,8 @@ def test_portfolio_allocations_router(monkeypatch):
 
 
 def test_portfolio_positions_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _query_aum(*args, **kwargs):
         return 200, {
             "resolved_as_of_date": "2026-03-27",
@@ -734,6 +736,8 @@ def test_portfolio_positions_router(monkeypatch):
         }
 
     async def _positions(*args, **kwargs):
+        captured["include_projected"] = kwargs.get("include_projected")
+        captured["reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
             "positions": [
                 {
@@ -750,9 +754,18 @@ def test_portfolio_positions_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/positions")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/positions",
+        params={
+            "as_of_date": "2026-03-27",
+            "include_projected": "true",
+            "reporting_currency": "USD",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["positions"][0]["security_id"] == "EQ_1"
+    assert captured["include_projected"] is True
+    assert captured["reporting_currency"] == "USD"
 
 
 def test_portfolio_income_summary_router(monkeypatch):

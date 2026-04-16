@@ -406,12 +406,31 @@ async def get_portfolio_allocations(
     "/portfolios/{portfolio_id}/positions",
     response_model=PortfolioPositionBookResponse,
     summary="Get portfolio positions view",
+    description=(
+        "Returns the detailed position book for a portfolio, including ranked top holdings. "
+        "Use this endpoint when the UI needs security-level holdings evidence, optional "
+        "projected rows, and reporting-currency-aware valuation fields."
+    ),
 )
 async def get_portfolio_positions(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used to scope position rows.",
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description=(
+            "Whether projected position rows should be included when upstream supports them."
+        ),
+        examples=[False],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used for position valuation restatement.",
+        examples=["USD"],
+    ),
 ) -> PortfolioPositionBookResponse:
     return await _portfolio_service().get_portfolio_positions(
         portfolio_id=portfolio_id,

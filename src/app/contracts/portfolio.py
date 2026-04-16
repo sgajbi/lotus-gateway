@@ -605,11 +605,25 @@ class PortfolioAllocationResponse(BaseModel):
 class PortfolioPositionBookResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    summary: PortfolioSummary
-    top_positions: list[PortfolioTopPosition] = Field(default_factory=list)
-    positions: list[PortfolioPositionView] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose position book is being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the position-book request.",
+        examples=["2026-03-27"],
+    )
+    summary: PortfolioSummary = Field(
+        description="Source-backed summary values used to frame the positions response.",
+    )
+    top_positions: list[PortfolioTopPosition] = Field(
+        default_factory=list,
+        description="Ranked top holdings derived from the returned position rows.",
+    )
+    positions: list[PortfolioPositionView] = Field(
+        default_factory=list,
+        description="Detailed position rows for the requested portfolio book.",
+    )
 
 
 class PortfolioBookResponse(BaseModel):

@@ -210,6 +210,7 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
+                reporting_currency=reporting_currency,
             ),
         )
 

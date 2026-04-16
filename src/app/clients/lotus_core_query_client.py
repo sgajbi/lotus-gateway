@@ -94,12 +94,15 @@ class LotusCoreQueryClient:
         correlation_id: str,
         as_of_date: str | None = None,
         include_projected: bool = False,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
         headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="GET",
             url=url,
