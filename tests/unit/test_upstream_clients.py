@@ -1190,8 +1190,44 @@ async def test_reporting_client_summary_and_review_routes():
     assert review_status == 200
     assert review_payload["portfolio_id"] == "P1"
     assert _FakeAsyncClient.calls[0]["url"] == "http://ras/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumerSystem": "lotus-gateway",
+        "tenantId": "default",
+    }
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-7"
     assert _FakeAsyncClient.calls[1]["url"] == "http://ras/reports/portfolios/P1/summary"
+    assert _FakeAsyncClient.calls[1]["json"] == {
+        "as_of_date": "2026-02-24",
+        "sections": ["WEALTH"],
+    }
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Correlation-Id"] == "corr-7"
     assert _FakeAsyncClient.calls[2]["url"] == "http://ras/reports/portfolios/P1/review"
+    assert _FakeAsyncClient.calls[2]["json"] == {
+        "as_of_date": "2026-02-24",
+        "sections": ["OVERVIEW"],
+    }
+    assert _FakeAsyncClient.calls[2]["headers"]["X-Correlation-Id"] == "corr-7"
+
+
+@pytest.mark.asyncio
+async def test_reporting_client_snapshot_request_uses_live_aggregation_query_contract():
+    client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"rows": []})
+
+    status_code, payload = await client.get_portfolio_snapshot(
+        portfolio_id="P1",
+        as_of_date="2026-02-24",
+        correlation_id="corr-8",
+    )
+
+    assert status_code == 200
+    assert payload["rows"] == []
+    assert _FakeAsyncClient.calls[0]["url"] == "http://ras/aggregations/portfolios/P1"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "asOfDate": "2026-02-24",
+        "live": "true",
+    }
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-8"
 
 
 @pytest.mark.asyncio
