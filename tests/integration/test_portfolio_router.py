@@ -779,7 +779,10 @@ def test_portfolio_positions_router(monkeypatch):
 
 
 def test_portfolio_income_summary_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _income_summary(*args, **kwargs):
+        captured.update(kwargs)
         return 200, {
             "reporting_currency": "USD",
             "totals": {
@@ -825,9 +828,20 @@ def test_portfolio_income_summary_router(monkeypatch):
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_income_summary", _income_summary)
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/income-summary")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/income-summary",
+        params={
+            "as_of_date": "2026-03-27",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-27",
+            "reporting_currency": "USD",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["income_types"][0]["income_type"] == "DIVIDEND"
+    assert captured["reporting_currency"] == "USD"
+    assert captured["start_date"] == "2026-03-01"
+    assert captured["end_date"] == "2026-03-27"
 
 
 def test_portfolio_activity_summary_router(monkeypatch):

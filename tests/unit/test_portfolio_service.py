@@ -1048,6 +1048,31 @@ async def test_income_summary_returns_requested_window_and_income_types():
 
 
 @pytest.mark.asyncio
+async def test_income_summary_passes_reporting_currency_and_uses_as_of_date_as_default_end():
+    class _IncomeAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_kwargs = None
+
+        async def query_income_summary(self, **kwargs):
+            self.last_kwargs = kwargs
+            return await super().query_income_summary(**kwargs)
+
+    client = _IncomeAwareClient()
+    service = PortfolioService(client)
+    response = await service.get_income_summary(
+        portfolio_id="PF_1001",
+        correlation_id="corr-5b",
+        as_of_date="2026-03-27",
+        reporting_currency="SGD",
+    )
+
+    assert client.last_kwargs is not None
+    assert client.last_kwargs["reporting_currency"] == "SGD"
+    assert client.last_kwargs["end_date"] == "2026-03-27"
+    assert response.window_end_date == "2026-03-27"
+
+
+@pytest.mark.asyncio
 async def test_activity_summary_returns_bucket_totals():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_activity_summary(

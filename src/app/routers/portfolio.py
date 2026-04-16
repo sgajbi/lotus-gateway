@@ -445,13 +445,34 @@ async def get_portfolio_positions(
     "/portfolios/{portfolio_id}/income-summary",
     response_model=PortfolioIncomeSummaryResponse,
     summary="Get portfolio income summary",
+    description=(
+        "Returns portfolio income totals for the requested reporting window and year-to-date. "
+        "Use this endpoint for dividend, interest, and other income analysis when the UI needs "
+        "reporting-currency-aware gross, tax, deduction, and net income totals by income type."
+    ),
 )
 async def get_portfolio_income_summary(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used as the default window end date.",
+        examples=["2026-03-27"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description="Optional inclusive reporting-window start date in YYYY-MM-DD format.",
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description="Optional inclusive reporting-window end date in YYYY-MM-DD format.",
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used for income restatement.",
+        examples=["USD"],
+    ),
 ) -> PortfolioIncomeSummaryResponse:
     return await _portfolio_service().get_income_summary(
         portfolio_id=portfolio_id,

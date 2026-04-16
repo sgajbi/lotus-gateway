@@ -150,34 +150,80 @@ class PortfolioCashflowOutlook(BaseModel):
 
 
 class PortfolioMoneySummary(BaseModel):
-    portfolio_currency_amount: float | None = None
-    reporting_currency_amount: float
-    transaction_count: int
+    portfolio_currency_amount: float | None = Field(
+        default=None,
+        description="Optional amount in portfolio currency when the upstream summary provides it.",
+        examples=[26.0],
+    )
+    reporting_currency_amount: float = Field(
+        description="Amount in the resolved reporting currency for the requested summary bucket.",
+        examples=[26.0],
+    )
+    transaction_count: int = Field(
+        description="Number of transactions contributing to the summarized amount.",
+        examples=[2],
+    )
 
 
 class PortfolioIncomePeriodSummary(BaseModel):
-    gross: PortfolioMoneySummary
-    withholding_tax: PortfolioMoneySummary
-    other_deductions: PortfolioMoneySummary
-    net: PortfolioMoneySummary
+    gross: PortfolioMoneySummary = Field(
+        description="Gross income before withholding tax and other deductions.",
+    )
+    withholding_tax: PortfolioMoneySummary = Field(
+        description="Withholding-tax amounts applied to the summarized income.",
+    )
+    other_deductions: PortfolioMoneySummary = Field(
+        description="Other deductions applied to the summarized income.",
+    )
+    net: PortfolioMoneySummary = Field(
+        description="Net income after taxes and deductions.",
+    )
 
 
 class PortfolioIncomeTypeSummary(BaseModel):
-    income_type: str
-    requested_window: PortfolioIncomePeriodSummary
-    year_to_date: PortfolioIncomePeriodSummary
+    income_type: str = Field(
+        description="Canonical Lotus income type represented in the summary row.",
+        examples=["DIVIDEND"],
+    )
+    requested_window: PortfolioIncomePeriodSummary = Field(
+        description="Income totals for the requested reporting window.",
+    )
+    year_to_date: PortfolioIncomePeriodSummary = Field(
+        description=(
+            "Income totals from the start of the calendar year through the window end date."
+        ),
+    )
 
 
 class PortfolioIncomeSummaryResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    reporting_currency: str
-    window_start_date: str
-    window_end_date: str
-    totals_requested_window: PortfolioIncomePeriodSummary
-    totals_year_to_date: PortfolioIncomePeriodSummary
-    income_types: list[PortfolioIncomeTypeSummary] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose income summary is being returned.",
+        examples=["PF_1001"],
+    )
+    reporting_currency: str = Field(
+        description="Resolved reporting currency used for all summary amounts.",
+        examples=["USD"],
+    )
+    window_start_date: str = Field(
+        description="Inclusive start date for the requested reporting window.",
+        examples=["2026-03-01"],
+    )
+    window_end_date: str = Field(
+        description="Inclusive end date for the requested reporting window.",
+        examples=["2026-03-27"],
+    )
+    totals_requested_window: PortfolioIncomePeriodSummary = Field(
+        description="Portfolio-level income totals for the requested reporting window.",
+    )
+    totals_year_to_date: PortfolioIncomePeriodSummary = Field(
+        description="Portfolio-level income totals from year start through the window end date.",
+    )
+    income_types: list[PortfolioIncomeTypeSummary] = Field(
+        default_factory=list,
+        description="Breakdown of income totals by canonical income type.",
+    )
 
 
 class PortfolioActivityBucketSummary(BaseModel):
