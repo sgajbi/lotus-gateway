@@ -43,6 +43,14 @@ class FoundationAllocationBucket(BaseModel):
     weight_pct: float | None = None
 
 
+class FoundationTopPosition(BaseModel):
+    security_id: str
+    display_name: str
+    asset_class: str | None = None
+    market_value_base: float | None = None
+    weight_pct: float | None = None
+
+
 class FoundationPerformanceSummary(BaseModel):
     period: str
     return_pct: float | None = None
@@ -101,6 +109,7 @@ class FoundationWorkspaceResponse(BaseModel):
     portfolio: FoundationPortfolioIdentity
     summary: FoundationPortfolioSummary
     allocations: list[FoundationAllocationBucket] = Field(default_factory=list)
+    top_positions: list[FoundationTopPosition] = Field(default_factory=list)
     performance: FoundationPerformanceSummary | None = None
     rebalance: FoundationRebalanceSummary | None = None
     readiness: FoundationWorkspaceReadiness

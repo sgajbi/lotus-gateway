@@ -30,6 +30,15 @@ def test_foundation_response_model_contract_shape() -> None:
                 "weight_pct": 90.0,
             }
         ],
+        top_positions=[
+            {
+                "security_id": "EQ_1",
+                "display_name": "Global Equity Fund",
+                "asset_class": "Equity",
+                "market_value_base": 600.0,
+                "weight_pct": 60.0,
+            }
+        ],
         performance={"period": "YTD", "return_pct": 4.2},
         rebalance={"status": "READY"},
         readiness={"has_positions": True, "reporting": {"status": "READY", "row_count": 2}},
@@ -46,6 +55,7 @@ def test_foundation_response_model_contract_shape() -> None:
     )
     assert payload.portfolio.portfolio_id == "PF_1001"
     assert payload.summary.position_count == 3
+    assert payload.top_positions[0].security_id == "EQ_1"
     assert payload.readiness.reporting.status == "READY"
     assert payload.evidence.status == "ready"
 

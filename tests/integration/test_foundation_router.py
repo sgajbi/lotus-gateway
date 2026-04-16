@@ -52,8 +52,16 @@ def test_foundation_workspace_router_success(monkeypatch):
                     "baseline_total_cash_base": 100.0,
                 },
                 "instrument_enrichment": [
-                    {"security_id": "EQ_1", "asset_class": "Equity"},
-                    {"security_id": "FI_1", "asset_class": "Fixed Income"},
+                    {
+                        "security_id": "EQ_1",
+                        "asset_class": "Equity",
+                        "instrument_name": "Global Equity Fund",
+                    },
+                    {
+                        "security_id": "FI_1",
+                        "asset_class": "Fixed Income",
+                        "instrument_name": "Investment Grade Bond Fund",
+                    },
                 ],
             },
         }
@@ -97,6 +105,9 @@ def test_foundation_workspace_router_success(monkeypatch):
     assert body["portfolio"]["display_name"] == "Alpha Growth"
     assert body["summary"]["position_count"] == 2
     assert body["allocations"][0]["asset_class"] == "Equity"
+    assert [item["security_id"] for item in body["top_positions"]] == ["EQ_1", "FI_1"]
+    assert body["top_positions"][0]["display_name"] == "Global Equity Fund"
+    assert body["top_positions"][0]["weight_pct"] == 60.0
     assert body["performance"]["period"] == "YTD"
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
     assert body["readiness"]["reporting"]["status"] == "READY"

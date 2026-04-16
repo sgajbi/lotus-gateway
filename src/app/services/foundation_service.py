@@ -20,6 +20,7 @@ from app.contracts.foundation import (
     FoundationPortfolioSummary,
     FoundationRebalanceSummary,
     FoundationReportingReadiness,
+    FoundationTopPosition,
     FoundationWorkflowLaunchCue,
     FoundationWorkspaceReadiness,
     FoundationWorkspaceResponse,
@@ -88,7 +89,7 @@ class FoundationService:
                 detail=f"lotus-core foundation snapshot unavailable: {pas_payload}",
             )
 
-        portfolio, summary, allocations, as_of_date = self._parse_core_snapshot(
+        portfolio, summary, allocations, top_positions, as_of_date = self._parse_core_snapshot(
             fallback_portfolio_id=portfolio_id,
             payload=pas_payload,
             fallback_as_of_date=as_of_date,
@@ -151,6 +152,7 @@ class FoundationService:
             portfolio=portfolio,
             summary=summary,
             allocations=allocations,
+            top_positions=top_positions,
             performance=performance,
             rebalance=rebalance,
             readiness=readiness,
@@ -193,6 +195,7 @@ class FoundationService:
         FoundationPortfolioIdentity,
         FoundationPortfolioSummary,
         list[FoundationAllocationBucket],
+        list[FoundationTopPosition],
         str,
     ]:
         if not isinstance(payload, dict):
@@ -239,6 +242,7 @@ class FoundationService:
                 enrichment_by_security_id[security_id] = row
 
         allocations_by_asset_class: dict[str, FoundationAllocationBucket] = {}
+        top_positions: list[FoundationTopPosition] = []
         position_count = 0
         for row in baseline_rows:
             if not isinstance(row, dict):
@@ -268,8 +272,33 @@ class FoundationService:
                 bucket.market_value_base = float(
                     quantize_money(current_market_value + market_value)
                 )
+            top_positions.append(
+                FoundationTopPosition(
+                    security_id=security_id or "UNKNOWN_SECURITY",
+                    display_name=str(
+                        enrichment.get("instrument_name")
+                        or enrichment.get("security_name")
+                        or enrichment.get("name")
+                        or security_id
+                        or "Unknown Security"
+                    ),
+                    asset_class=self._optional_str(asset_class),
+                    market_value_base=float(quantize_money(market_value))
+                    if market_value is not None
+                    else None,
+                    weight_pct=float(
+                        quantize_performance((market_value / market_value_base) * 100.0)
+                    )
+                    if market_value is not None and market_value_base > 0
+                    else None,
+                )
+            )
 
         allocations = sorted(allocations_by_asset_class.values(), key=lambda item: item.asset_class)
+        top_positions.sort(
+            key=lambda item: (item.market_value_base is not None, item.market_value_base or 0.0),
+            reverse=True,
+        )
         for bucket in allocations:
             if bucket.market_value_base is not None and market_value_base > 0:
                 bucket.weight_pct = float(
@@ -306,7 +335,7 @@ class FoundationService:
             or metadata_payload.get("business_date")
             or fallback_as_of_date
         )
-        return portfolio, summary, allocations, as_of_date
+        return portfolio, summary, allocations, top_positions[:5], as_of_date
 
     def _parse_performance_result(
         self,
