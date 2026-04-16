@@ -488,13 +488,34 @@ async def get_portfolio_income_summary(
     "/portfolios/{portfolio_id}/activity-summary",
     response_model=PortfolioActivitySummaryResponse,
     summary="Get portfolio activity summary",
+    description=(
+        "Returns portfolio flow buckets for the requested reporting window and year-to-date. "
+        "Use this endpoint for inflow, outflow, fee, and tax analysis when the UI needs "
+        "reporting-currency-aware activity totals aligned to the selected portfolio window."
+    ),
 )
 async def get_portfolio_activity_summary(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used as the default window end date.",
+        examples=["2026-03-27"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description="Optional inclusive reporting-window start date in YYYY-MM-DD format.",
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description="Optional inclusive reporting-window end date in YYYY-MM-DD format.",
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used for activity-summary restatement.",
+        examples=["USD"],
+    ),
 ) -> PortfolioActivitySummaryResponse:
     return await _portfolio_service().get_activity_summary(
         portfolio_id=portfolio_id,

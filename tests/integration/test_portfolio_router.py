@@ -845,7 +845,10 @@ def test_portfolio_income_summary_router(monkeypatch):
 
 
 def test_portfolio_activity_summary_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _activity_summary(*args, **kwargs):
+        captured.update(kwargs)
         return 200, {
             "reporting_currency": "USD",
             "totals": {
@@ -867,6 +870,17 @@ def test_portfolio_activity_summary_router(monkeypatch):
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_activity_summary", _activity_summary)
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/activity-summary")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/activity-summary",
+        params={
+            "as_of_date": "2026-03-27",
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-27",
+            "reporting_currency": "USD",
+        },
+    )
     assert response.status_code == 200
     assert response.json()["buckets"][0]["bucket"] == "INFLOWS"
+    assert captured["reporting_currency"] == "USD"
+    assert captured["start_date"] == "2026-03-01"
+    assert captured["end_date"] == "2026-03-27"

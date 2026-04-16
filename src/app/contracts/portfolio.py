@@ -227,19 +227,41 @@ class PortfolioIncomeSummaryResponse(BaseModel):
 
 
 class PortfolioActivityBucketSummary(BaseModel):
-    bucket: str
-    requested_window: PortfolioMoneySummary
-    year_to_date: PortfolioMoneySummary
+    bucket: str = Field(
+        description="Canonical activity bucket represented in the summary row.",
+        examples=["INFLOWS"],
+    )
+    requested_window: PortfolioMoneySummary = Field(
+        description="Activity totals for the requested reporting window.",
+    )
+    year_to_date: PortfolioMoneySummary = Field(
+        description="Activity totals from year start through the window end date.",
+    )
 
 
 class PortfolioActivitySummaryResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    reporting_currency: str
-    window_start_date: str
-    window_end_date: str
-    buckets: list[PortfolioActivityBucketSummary] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose activity summary is being returned.",
+        examples=["PF_1001"],
+    )
+    reporting_currency: str = Field(
+        description="Resolved reporting currency used for all activity summary amounts.",
+        examples=["USD"],
+    )
+    window_start_date: str = Field(
+        description="Inclusive start date for the requested activity window.",
+        examples=["2026-03-01"],
+    )
+    window_end_date: str = Field(
+        description="Inclusive end date for the requested activity window.",
+        examples=["2026-03-27"],
+    )
+    buckets: list[PortfolioActivityBucketSummary] = Field(
+        default_factory=list,
+        description="Portfolio flow buckets for the requested window and year-to-date.",
+    )
 
 
 class PortfolioPerformanceSummary(BaseModel):

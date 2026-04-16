@@ -262,6 +262,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     positions_schema = spec["components"]["schemas"]["PortfolioPositionBookResponse"]
     transactions_schema = spec["components"]["schemas"]["PortfolioTransactionLedgerResponse"]
     income_schema = spec["components"]["schemas"]["PortfolioIncomeSummaryResponse"]
+    activity_schema = spec["components"]["schemas"]["PortfolioActivitySummaryResponse"]
     book_schema = spec["components"]["schemas"]["PortfolioBookResponse"]
     workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
     workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
@@ -298,6 +299,9 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"][
         "description"
     ]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/activity-summary"]["get"][
+        "description"
+    ]
     assert book_schema["properties"]["positions"]["description"]
     assert book_schema["properties"]["allocation_views"]["description"]
     assert liquidity_schema["properties"]["cash_balances"]["description"]
@@ -314,6 +318,8 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert income_schema["properties"]["reporting_currency"]["description"]
     assert income_schema["properties"]["totals_requested_window"]["description"]
     assert income_schema["properties"]["income_types"]["description"]
+    assert activity_schema["properties"]["reporting_currency"]["description"]
+    assert activity_schema["properties"]["buckets"]["description"]
     assert workflow_schema["properties"]["actions"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
     assert workflow_action_schema["properties"]["cta_label"]["description"]

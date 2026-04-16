@@ -1086,6 +1086,31 @@ async def test_activity_summary_returns_bucket_totals():
 
 
 @pytest.mark.asyncio
+async def test_activity_summary_passes_reporting_currency_and_uses_as_of_date_as_default_end():
+    class _ActivityAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_kwargs = None
+
+        async def query_activity_summary(self, **kwargs):
+            self.last_kwargs = kwargs
+            return await super().query_activity_summary(**kwargs)
+
+    client = _ActivityAwareClient()
+    service = PortfolioService(client)
+    response = await service.get_activity_summary(
+        portfolio_id="PF_1001",
+        correlation_id="corr-6b",
+        as_of_date="2026-03-27",
+        reporting_currency="SGD",
+    )
+
+    assert client.last_kwargs is not None
+    assert client.last_kwargs["reporting_currency"] == "SGD"
+    assert client.last_kwargs["end_date"] == "2026-03-27"
+    assert response.window_end_date == "2026-03-27"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_service_reuses_cached_upstream_results_across_modules():
     client = _CountingLotusCoreQueryClient()
     service = PortfolioService(client, upstream_cache_ttl_seconds=60.0)
