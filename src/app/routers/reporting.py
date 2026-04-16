@@ -66,7 +66,7 @@ async def get_reporting_snapshot(
     portfolio_id: Annotated[
         str,
         Path(
-            description="Canonical portfolio identifier.",
+            description="Canonical portfolio identifier for the requested reporting snapshot.",
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
@@ -75,6 +75,7 @@ async def get_reporting_snapshot(
         Query(
             alias="asOfDate",
             description="Business as-of date in YYYY-MM-DD format for the reporting snapshot.",
+            examples=["2026-02-24"],
         ),
     ],
 ) -> ReportingSnapshotResponse:
@@ -129,13 +130,20 @@ async def get_reporting_summary(
     portfolio_id: Annotated[
         str,
         Path(
-            description="Canonical portfolio identifier.",
+            description="Canonical portfolio identifier for the requested reporting summary.",
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
     request: Annotated[
         ReportingPortfolioRequest,
-        Body(openapi_examples=SUMMARY_REQUEST_EXAMPLES),
+        Body(
+            description=(
+                "Summary request payload forwarded to lotus-report after alias normalization. "
+                "Use this when the consumer needs a report-oriented summary contract for one "
+                "portfolio and business date."
+            ),
+            openapi_examples=SUMMARY_REQUEST_EXAMPLES,
+        ),
     ],
 ) -> ReportingSummaryResponse:
     client = ReportingClient(
@@ -181,13 +189,22 @@ async def get_reporting_review(
     portfolio_id: Annotated[
         str,
         Path(
-            description="Canonical portfolio identifier.",
+            description=(
+                "Canonical portfolio identifier for the requested reporting review payload."
+            ),
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
     request: Annotated[
         ReportingPortfolioRequest,
-        Body(openapi_examples=REVIEW_REQUEST_EXAMPLES),
+        Body(
+            description=(
+                "Review request payload forwarded to lotus-report after alias normalization. "
+                "Use this when the consumer needs the full review-ready reporting contract "
+                "for front-office or client-review workflows."
+            ),
+            openapi_examples=REVIEW_REQUEST_EXAMPLES,
+        ),
     ],
 ) -> ReportingReviewResponse:
     client = ReportingClient(

@@ -80,6 +80,23 @@ def test_reporting_openapi_contract_registered() -> None:
     assert snapshot_path["description"]
     assert summary_path["description"]
     assert review_path["description"]
+    snapshot_parameters = {
+        parameter["name"]: parameter for parameter in snapshot_path["parameters"]
+    }
+    summary_parameters = {parameter["name"]: parameter for parameter in summary_path["parameters"]}
+    review_parameters = {parameter["name"]: parameter for parameter in review_path["parameters"]}
+    assert snapshot_parameters["portfolio_id"]["description"].startswith(
+        "Canonical portfolio identifier"
+    )
+    assert snapshot_parameters["portfolio_id"]["schema"]["examples"] == ["DEMO_DPM_EUR_001"]
+    assert snapshot_parameters["asOfDate"]["description"]
+    assert snapshot_parameters["asOfDate"]["schema"]["examples"] == ["2026-02-24"]
+    assert summary_parameters["portfolio_id"]["description"].startswith(
+        "Canonical portfolio identifier"
+    )
+    assert review_parameters["portfolio_id"]["description"].startswith(
+        "Canonical portfolio identifier"
+    )
     assert (
         summary_path["requestBody"]["content"]["application/json"]["schema"]["$ref"]
         == "#/components/schemas/ReportingPortfolioRequest"

@@ -1,5 +1,10 @@
 from fastapi.testclient import TestClient
 
+from app.contracts.reporting import (
+    ReportingReviewResponse,
+    ReportingSnapshotResponse,
+    ReportingSummaryResponse,
+)
 from app.main import app
 
 
@@ -28,6 +33,35 @@ def test_reporting_snapshot_success(monkeypatch):
     assert body["portfolioId"] == "DEMO_DPM_EUR_001"
     assert body["generatedAt"].startswith("2026-02-24T07:00:00")
     assert len(body["rows"]) == 2
+
+
+def test_reporting_snapshot_preserves_portfolio_date_and_correlation_context(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _mock_get_portfolio_snapshot(self, portfolio_id, as_of_date, correlation_id):
+        captured["portfolio_id"] = portfolio_id
+        captured["as_of_date"] = as_of_date
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "generatedAt": "2026-02-24T07:00:00Z",
+            "rows": [{"bucket": "TOTAL", "metric": "market_value_base", "value": 1.0}],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_portfolio_snapshot",
+        _mock_get_portfolio_snapshot,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/reports/DEMO_DPM_EUR_001/snapshot?asOfDate=2026-02-24")
+
+    assert response.status_code == 200
+    body = ReportingSnapshotResponse.model_validate(response.json())
+    assert captured["portfolio_id"] == "DEMO_DPM_EUR_001"
+    assert captured["as_of_date"] == "2026-02-24"
+    assert captured["correlation_id"] == body.correlation_id
+    assert body.portfolio_id == "DEMO_DPM_EUR_001"
+    assert body.as_of_date == "2026-02-24"
 
 
 def test_reporting_snapshot_invalid_generated_at_fallback(monkeypatch):
@@ -94,6 +128,47 @@ def test_reporting_summary_success(monkeypatch):
     assert body["data"]["wealth"]["total_market_value"] == 123.0
 
 
+def test_reporting_summary_preserves_request_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_post_summary(self, portfolio_id, payload, correlation_id):
+        captured["portfolio_id"] = portfolio_id
+        captured["payload"] = payload
+        captured["correlation_id"] = correlation_id
+        return 200, {"scope": {"portfolio_id": portfolio_id}, "wealth": {"total_market_value": 1.0}}
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.post_portfolio_summary",
+        _mock_post_summary,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/DEMO_DPM_EUR_001/summary",
+        json={
+            "asOfDate": "2026-02-24",
+            "reportingCurrency": "USD",
+            "sections": ["WEALTH"],
+            "allocationDimensions": ["asset_class"],
+            "lookThroughMode": "direct_only",
+        },
+    )
+
+    assert response.status_code == 200
+    body = ReportingSummaryResponse.model_validate(response.json())
+    assert captured["portfolio_id"] == "DEMO_DPM_EUR_001"
+    assert captured["payload"] == {
+        "as_of_date": "2026-02-24",
+        "reporting_currency": "USD",
+        "sections": ["WEALTH"],
+        "allocation_dimensions": ["asset_class"],
+        "look_through_mode": "direct_only",
+    }
+    assert captured["correlation_id"] == body.correlation_id
+    assert body.portfolio_id == "DEMO_DPM_EUR_001"
+    assert body.as_of_date == "2026-02-24"
+
+
 def test_reporting_review_success(monkeypatch):
     async def _mock_post_review(self, portfolio_id, payload, correlation_id):  # noqa: ARG001
         assert payload == {
@@ -126,6 +201,47 @@ def test_reporting_review_success(monkeypatch):
     assert body["portfolioId"] == "DEMO_DPM_EUR_001"
     assert body["asOfDate"] == "2026-02-24"
     assert body["data"]["overview"]["total_market_value"] == 1000.0
+
+
+def test_reporting_review_preserves_request_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_post_review(self, portfolio_id, payload, correlation_id):
+        captured["portfolio_id"] = portfolio_id
+        captured["payload"] = payload
+        captured["correlation_id"] = correlation_id
+        return 200, {"overview": {"total_market_value": 1000.0}}
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.post_portfolio_review",
+        _mock_post_review,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/DEMO_DPM_EUR_001/review",
+        json={
+            "asOfDate": "2026-02-24",
+            "reportingCurrency": "USD",
+            "sections": ["OVERVIEW"],
+            "allocationDimensions": ["asset_class"],
+            "lookThroughMode": "full",
+        },
+    )
+
+    assert response.status_code == 200
+    body = ReportingReviewResponse.model_validate(response.json())
+    assert captured["portfolio_id"] == "DEMO_DPM_EUR_001"
+    assert captured["payload"] == {
+        "as_of_date": "2026-02-24",
+        "reporting_currency": "USD",
+        "sections": ["OVERVIEW"],
+        "allocation_dimensions": ["asset_class"],
+        "look_through_mode": "full",
+    }
+    assert captured["correlation_id"] == body.correlation_id
+    assert body.portfolio_id == "DEMO_DPM_EUR_001"
+    assert body.as_of_date == "2026-02-24"
 
 
 def test_reporting_summary_upstream_error(monkeypatch):
