@@ -217,6 +217,52 @@ def test_workbench_portfolio_360_router(monkeypatch):
     assert body["current_positions"][0]["market_value_base"] == 500.0
 
 
+def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(self, portfolio_id: str, correlation_id: str, session_id: str | None):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["session_id"] = session_id
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "as_of_date": "2026-02-23",
+            "portfolio": {
+                "portfolio_id": portfolio_id,
+                "client_id": "CIF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+            },
+            "overview": {
+                "market_value_base": 1000.0,
+                "cash_weight_pct": 25.0,
+                "position_count": 1,
+            },
+            "current_positions": [],
+            "projected_positions": [],
+            "projected_summary": None,
+            "active_session_id": session_id,
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_portfolio_360",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured["portfolio_id"] == "PF_1001"
+    assert captured["session_id"] == "sess_1"
+    assert captured["correlation_id"]
+    assert body["active_session_id"] == "sess_1"
+
+
 def test_workbench_analytics_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
@@ -327,6 +373,67 @@ def test_workbench_analytics_router(monkeypatch):
     assert body["group_by"] == "ASSET_CLASS"
     assert len(body["allocation_buckets"]) >= 1
     assert "risk_proxy" not in body
+
+
+def test_workbench_analytics_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        group_by: str,
+        benchmark_code: str,
+        session_id: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["group_by"] = group_by
+        captured["benchmark_code"] = benchmark_code
+        captured["session_id"] = session_id
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "session_id": session_id,
+            "period": period,
+            "group_by": group_by,
+            "benchmark_code": benchmark_code,
+            "portfolio_return_pct": 1.5,
+            "benchmark_return_pct": 3.1,
+            "active_return_pct": -1.6,
+            "allocation_buckets": [],
+            "top_changes": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_workbench_analytics",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/analytics?period=QTD&group_by=SECTOR"
+        "&benchmark_code=MODEL_70_30&session_id=sess_2"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": body["correlation_id"],
+        "period": "QTD",
+        "group_by": "SECTOR",
+        "benchmark_code": "MODEL_70_30",
+        "session_id": "sess_2",
+    }
+    assert body["period"] == "QTD"
+    assert body["group_by"] == "SECTOR"
+    assert body["benchmark_code"] == "MODEL_70_30"
 
 
 def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatch):
