@@ -282,20 +282,26 @@ async def get_portfolio_workflow(
         "Returns the combined portfolio book view used when the UI needs holdings, top "
         "positions, allocation views, cash balances, and summary identity in one governed "
         "response. Use this endpoint for a source-backed combined book snapshot instead of "
-        "reassembling those sections from separate contracts."
+        "reassembling those sections from separate contracts. The response keeps those book "
+        "sections aligned to one resolved as-of date so downstream clients do not need to "
+        "merge separate holdings, allocation, and liquidity reads."
     ),
 )
 async def get_portfolio_book(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to scope the combined book.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the combined book "
+            "snapshot across positions, allocations, and cash balances."
+        ),
         examples=["2026-03-27"],
     ),
     include_projected: bool = Query(
         default=False,
         description=(
-            "Whether projected position rows should be included when upstream supports them."
+            "Whether projected position rows should be included in the returned book when "
+            "upstream supports them."
         ),
         examples=[False],
     ),

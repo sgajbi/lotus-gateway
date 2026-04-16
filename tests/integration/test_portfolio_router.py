@@ -773,7 +773,13 @@ def test_portfolio_book_router(monkeypatch):
         params={"as_of_date": "2026-03-27", "include_projected": "true"},
     )
     assert response.status_code == 200
-    assert response.json()["positions"][0]["security_id"] == "EQ_1"
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["summary"]["assets_under_management_base"] == 1000.0
+    assert body["positions"][0]["security_id"] == "EQ_1"
+    assert body["allocation_views"][0]["dimension"] == "asset_class"
+    assert body["cash_balances"] == []
     assert captured["include_projected"] is True
 
 

@@ -356,6 +356,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     ]
     workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
     insights_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"]
+    book_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]
     allocations_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"][
         "get"
     ]
@@ -373,6 +374,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     insights_parameters = {
         parameter["name"]: parameter for parameter in insights_path["parameters"]
     }
+    book_parameters = {parameter["name"]: parameter for parameter in book_path["parameters"]}
     allocation_parameters = {
         parameter["name"]: parameter for parameter in allocations_path["parameters"]
     }
@@ -527,7 +529,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert exception_item_schema["properties"]["detail"]["description"]
     assert exception_item_schema["properties"]["tone"]["description"]
     assert exception_item_schema["properties"]["href"]["description"]
-    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]["description"]
+    assert book_path["description"]
+    assert book_parameters["as_of_date"]["description"]
+    assert book_parameters["include_projected"]["description"]
+    assert book_schema["properties"]["as_of_date"]["description"]
+    assert book_schema["properties"]["portfolio"]["description"]
+    assert book_schema["properties"]["summary"]["description"]
+    assert book_schema["properties"]["cash_balances"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"][
         "description"
     ]
