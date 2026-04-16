@@ -445,6 +445,82 @@ def test_portfolio_workflow_router(monkeypatch):
     assert body["actions"][2]["title"] == "Review transactions"
 
 
+def test_portfolio_workflow_router_returns_empty_portfolio_setup_sequence(monkeypatch):
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_EMPTY", "base_currency": "USD", "status": "ACTIVE"}
+
+    async def _query_aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {
+                    "portfolio_id": "PF_EMPTY",
+                    "aum_reporting_currency": 0.0,
+                    "position_count": 0,
+                }
+            ],
+        }
+
+    async def _support(*args, **kwargs):
+        return 200, {"business_date": "2026-03-27", "publish_allowed": True}
+
+    async def _cashflow(*args, **kwargs):
+        return 200, {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-06",
+            "total_net_cashflow": 0,
+            "projection_days": 10,
+            "include_projected": True,
+            "points": [],
+        }
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 0, "total_balance_reporting_currency": 0.0},
+            "cash_accounts": [],
+        }
+
+    async def _transactions(*args, **kwargs):
+        return 200, {"total": 0, "skip": 0, "limit": 1, "transactions": []}
+
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "MISSING", "reasons": []},
+            "pricing": {"status": "PENDING", "reasons": []},
+            "transactions": {"status": "MISSING", "reasons": []},
+            "reporting": {"status": "MISSING", "reasons": []},
+            "blocking_reasons": [],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_EMPTY/workflow")
+    assert response.status_code == 200
+    body = response.json()
+    assert [action["title"] for action in body["actions"]] == [
+        "Fund portfolio",
+        "Book first trade",
+        "Publish pricing",
+        "Review holdings",
+        "Open performance",
+    ]
+    assert [action["sequence"] for action in body["actions"]] == [1, 2, 3, 4, 5]
+    assert [action["recommended"] for action in body["actions"]] == [
+        True,
+        False,
+        False,
+        False,
+        False,
+    ]
+
+
 def test_portfolio_insights_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
@@ -559,6 +635,89 @@ def test_portfolio_insights_router(monkeypatch):
     }
     assert "equity-concentration-high" in {item["key"] for item in body["insights"]}
     assert body["exception_summaries"] == []
+
+
+def test_portfolio_insights_router_returns_blocked_exception_summaries(monkeypatch):
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
+
+    async def _query_aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {"portfolio_id": "PF_1001", "aum_reporting_currency": 0.0, "position_count": 0}
+            ],
+        }
+
+    async def _support(*args, **kwargs):
+        return 200, {
+            "business_date": "2026-03-27",
+            "publish_allowed": False,
+            "controls_blocking": True,
+        }
+
+    async def _cashflow(*args, **kwargs):
+        return 503, {"detail": "cashflow temporarily unavailable"}
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 0, "total_balance_reporting_currency": 0.0},
+            "cash_accounts": [],
+        }
+
+    async def _positions(*args, **kwargs):
+        return 200, {"positions": []}
+
+    async def _allocation(*args, **kwargs):
+        return 200, {"views": []}
+
+    async def _transactions(*args, **kwargs):
+        return 200, {
+            "reporting_currency": "USD",
+            "total": 0,
+            "skip": 0,
+            "limit": kwargs["limit"],
+            "transactions": [],
+        }
+
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "MISSING", "reasons": []},
+            "pricing": {"status": "PENDING", "reasons": []},
+            "transactions": {"status": "MISSING", "reasons": []},
+            "reporting": {"status": "MISSING", "reasons": []},
+            "blocking_reasons": [],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
+    portfolio_router._portfolio_service().clear_upstream_cache()
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_1001/insights")
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["key"] for item in body["insights"]] == [
+        "no-holdings-booked",
+        "no-cash-funding",
+        "pricing-not-published",
+        "reporting-unavailable",
+    ]
+    assert [item["key"] for item in body["exception_summaries"]] == [
+        "holdings",
+        "pricing",
+        "transactions",
+        "reporting",
+        "controls_blocking",
+        "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
+    ]
 
 
 def test_portfolio_book_router(monkeypatch):
