@@ -68,6 +68,10 @@ def test_reporting_snapshot_upstream_error(monkeypatch):
 
 def test_reporting_summary_success(monkeypatch):
     async def _mock_post_summary(self, portfolio_id, payload, correlation_id):  # noqa: ARG001
+        assert payload == {
+            "as_of_date": "2026-02-24",
+            "sections": ["WEALTH"],
+        }
         return 200, {
             "scope": {"portfolio_id": portfolio_id},
             "wealth": {"total_market_value": 123.0},
@@ -92,6 +96,13 @@ def test_reporting_summary_success(monkeypatch):
 
 def test_reporting_review_success(monkeypatch):
     async def _mock_post_review(self, portfolio_id, payload, correlation_id):  # noqa: ARG001
+        assert payload == {
+            "as_of_date": "2026-02-24",
+            "reporting_currency": "USD",
+            "sections": ["OVERVIEW"],
+            "allocation_dimensions": ["asset_class"],
+            "look_through_mode": "full",
+        }
         return 200, {"portfolio_id": portfolio_id, "overview": {"total_market_value": 1000.0}}
 
     monkeypatch.setattr(
@@ -102,7 +113,13 @@ def test_reporting_review_success(monkeypatch):
     client = TestClient(app)
     response = client.post(
         "/api/v1/reports/DEMO_DPM_EUR_001/review",
-        json={"asOfDate": "2026-02-24", "sections": ["OVERVIEW"]},
+        json={
+            "asOfDate": "2026-02-24",
+            "reportingCurrency": "USD",
+            "sections": ["OVERVIEW"],
+            "allocationDimensions": ["asset_class"],
+            "lookThroughMode": "full",
+        },
     )
     assert response.status_code == 200
     body = response.json()

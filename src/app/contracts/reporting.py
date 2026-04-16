@@ -1,6 +1,48 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class ReportingPortfolioRequest(BaseModel):
+    as_of_date: str = Field(
+        ...,
+        alias="asOfDate",
+        description="Business as-of date used to resolve the reporting payload.",
+        examples=["2026-02-24"],
+    )
+    reporting_currency: str | None = Field(
+        default=None,
+        alias="reportingCurrency",
+        description="Optional reporting currency override for reporting-derived figures.",
+        examples=["USD"],
+    )
+    sections: list[str] | None = Field(
+        default=None,
+        description=(
+            "Optional section list used to scope the lotus-report summary or review payload."
+        ),
+        examples=[["WEALTH", "ALLOCATION"]],
+    )
+    allocation_dimensions: list[str] | None = Field(
+        default=None,
+        alias="allocationDimensions",
+        description=(
+            "Optional allocation dimensions requested when allocation sections are included."
+        ),
+        examples=[["asset_class", "currency"]],
+    )
+    look_through_mode: str | None = Field(
+        default=None,
+        alias="lookThroughMode",
+        description="Optional look-through mode for allocation expansion in reporting payloads.",
+        examples=["direct_only"],
+    )
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+    def to_upstream_payload(self) -> dict[str, Any]:
+        return self.model_dump(by_alias=False, exclude_none=True)
 
 
 class ReportingSnapshotResponse(BaseModel):

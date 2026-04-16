@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.contracts.reporting import (
+    ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
@@ -40,6 +41,26 @@ def test_reporting_contract_shapes() -> None:
     assert review.data["overview"]["total_market_value"] == 1000.0
 
 
+def test_reporting_request_normalizes_documented_aliases() -> None:
+    request = ReportingPortfolioRequest(
+        asOfDate="2026-02-24",
+        reportingCurrency="USD",
+        sections=["WEALTH", "ALLOCATION"],
+        allocationDimensions=["asset_class", "currency"],
+        lookThroughMode="direct_only",
+        includeBenchmarks=True,
+    )
+
+    assert request.to_upstream_payload() == {
+        "as_of_date": "2026-02-24",
+        "reporting_currency": "USD",
+        "sections": ["WEALTH", "ALLOCATION"],
+        "allocation_dimensions": ["asset_class", "currency"],
+        "look_through_mode": "direct_only",
+        "includeBenchmarks": True,
+    }
+
+
 def test_reporting_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -51,6 +72,7 @@ def test_reporting_openapi_contract_registered() -> None:
     snapshot_path = spec["paths"]["/api/v1/reports/{portfolio_id}/snapshot"]["get"]
     summary_path = spec["paths"]["/api/v1/reports/{portfolio_id}/summary"]["post"]
     review_path = spec["paths"]["/api/v1/reports/{portfolio_id}/review"]["post"]
+    request_schema = spec["components"]["schemas"]["ReportingPortfolioRequest"]
     snapshot_schema = spec["components"]["schemas"]["ReportingSnapshotResponse"]
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
     review_schema = spec["components"]["schemas"]["ReportingReviewResponse"]
@@ -58,6 +80,19 @@ def test_reporting_openapi_contract_registered() -> None:
     assert snapshot_path["description"]
     assert summary_path["description"]
     assert review_path["description"]
+    assert (
+        summary_path["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/ReportingPortfolioRequest"
+    )
+    assert (
+        review_path["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/ReportingPortfolioRequest"
+    )
+    assert request_schema["properties"]["asOfDate"]["description"]
+    assert request_schema["properties"]["reportingCurrency"]["description"]
+    assert request_schema["properties"]["sections"]["description"]
+    assert request_schema["properties"]["allocationDimensions"]["description"]
+    assert request_schema["properties"]["lookThroughMode"]["description"]
     assert snapshot_schema["properties"]["correlationId"]["description"]
     assert snapshot_schema["properties"]["contractVersion"]["description"]
     assert snapshot_schema["properties"]["sourceService"]["description"]

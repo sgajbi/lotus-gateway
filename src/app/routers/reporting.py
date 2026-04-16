@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, status
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.reporting import (
+    ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
@@ -96,7 +97,7 @@ async def get_reporting_summary(
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
-    request: dict,
+    request: ReportingPortfolioRequest,
 ) -> ReportingSummaryResponse:
     client = ReportingClient(
         base_url=settings.reporting_aggregation_base_url,
@@ -105,9 +106,10 @@ async def get_reporting_summary(
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
     )
     correlation_id = correlation_id_var.get()
+    request_payload = request.to_upstream_payload()
     status_code, payload = await client.post_portfolio_summary(
         portfolio_id=portfolio_id,
-        payload=request,
+        payload=request_payload,
         correlation_id=correlation_id,
     )
     if status_code >= status.HTTP_400_BAD_REQUEST:
@@ -115,7 +117,7 @@ async def get_reporting_summary(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Reporting summary unavailable: {payload}",
         )
-    as_of_date = str(request.get("as_of_date", request.get("asOfDate", "")))
+    as_of_date = request.as_of_date
     return ReportingSummaryResponse(
         correlationId=correlation_id,
         contractVersion=settings.contract_version,
@@ -144,7 +146,7 @@ async def get_reporting_review(
             examples=["DEMO_DPM_EUR_001"],
         ),
     ],
-    request: dict,
+    request: ReportingPortfolioRequest,
 ) -> ReportingReviewResponse:
     client = ReportingClient(
         base_url=settings.reporting_aggregation_base_url,
@@ -153,9 +155,10 @@ async def get_reporting_review(
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
     )
     correlation_id = correlation_id_var.get()
+    request_payload = request.to_upstream_payload()
     status_code, payload = await client.post_portfolio_review(
         portfolio_id=portfolio_id,
-        payload=request,
+        payload=request_payload,
         correlation_id=correlation_id,
     )
     if status_code >= status.HTTP_400_BAD_REQUEST:
@@ -163,7 +166,7 @@ async def get_reporting_review(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Reporting review unavailable: {payload}",
         )
-    as_of_date = str(request.get("as_of_date", request.get("asOfDate", "")))
+    as_of_date = request.as_of_date
     return ReportingReviewResponse(
         correlationId=correlation_id,
         contractVersion=settings.contract_version,
