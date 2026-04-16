@@ -1388,6 +1388,9 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
 
 
 def test_workbench_sandbox_changes_router(monkeypatch):
+    captured_create: dict[str, object] = {}
+    captured_apply: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
 
@@ -1441,10 +1444,29 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     async def _dpm_simulate(*args, **kwargs):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
 
+    async def _create_session(self, portfolio_id, correlation_id, created_by, ttl_hours):
+        captured_create["portfolio_id"] = portfolio_id
+        captured_create["correlation_id"] = correlation_id
+        captured_create["created_by"] = created_by
+        captured_create["ttl_hours"] = ttl_hours
+        return await _pas_create()
+
+    async def _apply_changes(self, session_id, changes, correlation_id):
+        captured_apply["session_id"] = session_id
+        captured_apply["changes"] = changes
+        captured_apply["correlation_id"] = correlation_id
+        return await _pas_add()
+
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session",
+        _create_session,
+    )
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes",
+        _apply_changes,
+    )
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
     monkeypatch.setattr(
@@ -1458,10 +1480,15 @@ def test_workbench_sandbox_changes_router(monkeypatch):
 
     client = TestClient(app)
     created = client.post(
-        "/api/v1/workbench/PF_1001/sandbox/sessions", json={"created_by": "advisor_1"}
+        "/api/v1/workbench/PF_1001/sandbox/sessions",
+        json={"created_by": "advisor_1", "ttl_hours": 48},
     )
     assert created.status_code == 200
     assert created.json()["session_id"] == "sess_1"
+    assert captured_create["portfolio_id"] == "PF_1001"
+    assert captured_create["created_by"] == "advisor_1"
+    assert captured_create["ttl_hours"] == 48
+    assert captured_create["correlation_id"]
 
     updated = client.post(
         "/api/v1/workbench/PF_1001/sandbox/sessions/sess_1/changes",
@@ -1475,3 +1502,8 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     assert body["session_id"] == "sess_1"
     assert body["session_version"] == 2
     assert body["policy_feedback"]["status"] == "PASS"
+    assert captured_apply["session_id"] == "sess_1"
+    assert captured_apply["correlation_id"]
+    assert captured_apply["changes"] == [
+        {"security_id": "EQ_1", "transaction_type": "BUY", "quantity": 2.0}
+    ]
