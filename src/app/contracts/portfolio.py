@@ -544,11 +544,28 @@ class PortfolioLiquidityResponse(BaseModel):
 class PortfolioProjectedCashflowResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    cashflow_outlook: PortfolioCashflowOutlook | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose forward cashflow projection is being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved projection as-of date used for the projected cashflow request.",
+        examples=["2026-03-27"],
+    )
+    cashflow_outlook: PortfolioCashflowOutlook | None = Field(
+        default=None,
+        description="Forward projected cashflow path for the requested horizon when available.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded projected-cashflow output.",
+    )
+    partial_failures: list[PortfolioPartialFailure] = Field(
+        default_factory=list,
+        description=(
+            "Upstream source failures preserved when projected cashflow cannot be returned."
+        ),
+    )
 
 
 class PortfolioAllocationResponse(BaseModel):

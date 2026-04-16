@@ -330,12 +330,31 @@ async def get_portfolio_liquidity(
     "/portfolios/{portfolio_id}/projected-cashflow",
     response_model=PortfolioProjectedCashflowResponse,
     summary="Get portfolio projected cashflow view",
+    description=(
+        "Returns the forward-looking projected cashflow contract for a portfolio. "
+        "Use this endpoint when the UI needs a dedicated projected liquidity path for a "
+        "specific horizon without loading the broader liquidity summary."
+    ),
 )
 async def get_portfolio_projected_cashflow(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    horizon_days: int = Query(default=10, ge=1, le=365),
-    include_projected: bool = Query(default=True),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used to scope the projection.",
+        examples=["2026-03-27"],
+    ),
+    horizon_days: int = Query(
+        default=10,
+        ge=1,
+        le=365,
+        description="Forward projection horizon in business days.",
+        examples=[30],
+    ),
+    include_projected: bool = Query(
+        default=True,
+        description="Whether projected events should be included in the forward cashflow path.",
+        examples=[True],
+    ),
 ) -> PortfolioProjectedCashflowResponse:
     return await _portfolio_service().get_portfolio_projected_cashflow(
         portfolio_id=portfolio_id,

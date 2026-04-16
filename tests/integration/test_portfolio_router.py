@@ -651,12 +651,17 @@ def test_portfolio_projected_cashflow_router(monkeypatch):
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/projected-cashflow",
-        params={"as_of_date": "2026-03-27", "horizon_days": 30},
+        params={
+            "as_of_date": "2026-03-27",
+            "horizon_days": 30,
+            "include_projected": "false",
+        },
     )
     assert response.status_code == 200
     assert response.json()["cashflow_outlook"]["projection_days"] == 30
     assert captured["horizon_days"] == 30
     assert captured["as_of_date"] == "2026-03-27"
+    assert captured["include_projected"] is False
 
 
 def test_portfolio_allocations_router(monkeypatch):

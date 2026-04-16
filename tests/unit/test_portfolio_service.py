@@ -779,6 +779,26 @@ async def test_portfolio_projected_cashflow_returns_requested_horizon():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_projected_cashflow_preserves_partial_failure() -> None:
+    class _UnavailableCashflowClient(_StubLotusCoreQueryClient):
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 503, {"detail": "cashflow temporarily unavailable"}
+
+    service = PortfolioService(_UnavailableCashflowClient())
+    response = await service.get_portfolio_projected_cashflow(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3b3",
+        as_of_date="2026-03-27",
+        horizon_days=30,
+        include_projected=True,
+    )
+
+    assert response.cashflow_outlook is None
+    assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in response.warnings
+    assert response.partial_failures[0].error_code == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_allocations_return_dimension_views():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_allocations(
