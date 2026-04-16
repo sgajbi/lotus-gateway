@@ -134,6 +134,15 @@ class _StubLotusCoreQueryClient:
                     "weight": 0.2,
                     "valuation": {"market_value_base": 200.0, "market_price": 50.0},
                 },
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "asset_class": "Cash",
+                    "currency": "USD",
+                    "quantity": 100.0,
+                    "weight": 0.1,
+                    "valuation": {"market_value_base": 100.0, "market_price": 1.0},
+                },
             ]
         }
 
@@ -817,6 +826,8 @@ async def test_portfolio_allocations_return_dimension_views():
         as_of_date="2026-03-27",
     )
     assert response.summary.assets_under_management_base == 1000.0
+    assert response.summary.cash_market_value_base == 100.0
+    assert response.summary.cash_balance_count == 1
     assert response.views[0].dimension == "asset_class"
     assert response.views[0].buckets[0].bucket == "Equity"
 
@@ -882,6 +893,8 @@ async def test_portfolio_positions_return_top_positions_and_full_book():
         include_projected=False,
     )
     assert response.summary.position_count == 3
+    assert response.summary.cash_market_value_base == 100.0
+    assert response.summary.cash_balance_count == 1
     assert response.positions[0].security_id == "EQ_1"
     assert response.top_positions[0].security_id == "EQ_1"
     assert response.positions[0].market_value_base == 700.0
@@ -894,6 +907,7 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
         def __init__(self):
             self.last_reporting_currency: str | None = None
             self.last_include_projected: bool | None = None
+            self.query_cash_balances_called = False
 
         async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.last_reporting_currency = kwargs.get("reporting_currency")
@@ -903,6 +917,10 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
                 correlation_id=correlation_id,
                 **kwargs,
             )
+
+        async def query_cash_balances(self, **kwargs):
+            self.query_cash_balances_called = True
+            return await super().query_cash_balances(**kwargs)
 
     client = _PositionsAwareClient()
     service = PortfolioService(client)
@@ -916,6 +934,40 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
 
     assert client.last_include_projected is True
     assert client.last_reporting_currency == "SGD"
+    assert client.query_cash_balances_called is False
+
+
+@pytest.mark.asyncio
+async def test_portfolio_allocations_use_positions_not_deprecated_cash_balances():
+    class _HoldingsAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.query_cash_balances_called = False
+            self.positions_calls = 0
+
+        async def query_cash_balances(self, **kwargs):
+            self.query_cash_balances_called = True
+            return await super().query_cash_balances(**kwargs)
+
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.positions_calls += 1
+            return await super().get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _HoldingsAwareClient()
+    service = PortfolioService(client)
+
+    response = await service.get_portfolio_allocations(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3c-positions-only",
+        as_of_date="2026-03-27",
+    )
+
+    assert response.summary.cash_market_value_base == 100.0
+    assert client.positions_calls == 1
+    assert client.query_cash_balances_called is False
 
 
 @pytest.mark.asyncio

@@ -799,7 +799,7 @@ class PortfolioService:
     ) -> PortfolioAllocationResponse:
         (
             aum_result,
-            cash_balances_result,
+            positions_result,
             allocation_result,
         ) = await asyncio.gather(
             self._query_aum_result(
@@ -808,10 +808,11 @@ class PortfolioService:
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
             ),
-            self._query_cash_balances_result(
+            self._get_portfolio_positions_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                include_projected=False,
                 reporting_currency=reporting_currency,
             ),
             self._query_asset_allocation_result(
@@ -831,7 +832,11 @@ class PortfolioService:
             result=allocation_result,
             unavailable_detail_prefix="lotus-core allocation unavailable",
         )
-        summary = self._parse_summary(aum_result, cash_balances_result, [], [])
+        positions_payload = self._require_payload(
+            result=positions_result,
+            unavailable_detail_prefix="lotus-core positions unavailable",
+        )
+        summary = self._parse_summary_from_positions(aum_result, positions_payload)
         return PortfolioAllocationResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -858,18 +863,11 @@ class PortfolioService:
     ) -> PortfolioPositionBookResponse:
         (
             aum_result,
-            cash_balances_result,
             positions_result,
         ) = await asyncio.gather(
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._query_cash_balances_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
             ),
@@ -890,7 +888,7 @@ class PortfolioService:
             unavailable_detail_prefix="lotus-core positions unavailable",
         )
         positions = self._parse_positions(positions_payload)
-        summary = self._parse_summary(aum_result, cash_balances_result, [], [])
+        summary = self._parse_summary_from_positions(aum_result, positions_payload)
         return PortfolioPositionBookResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -1156,6 +1154,30 @@ class PortfolioService:
             cash_balance_count=int(cash_payload.get("totals", {}).get("cash_account_count", 0)),
         )
 
+    def _parse_summary_from_positions(
+        self,
+        aum_result: tuple[int, dict[str, Any]],
+        positions_payload: dict[str, Any],
+    ) -> PortfolioSummary:
+        aum_payload = self._require_payload(
+            result=aum_result,
+            unavailable_detail_prefix="lotus-core aum unavailable",
+        )
+        first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
+        total_aum = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
+        cash_total, cash_balance_count = self._summarize_cash_positions(positions_payload)
+        cash_weight = (
+            float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
+        )
+        return PortfolioSummary(
+            assets_under_management_base=total_aum,
+            invested_market_value_base=float(quantize_money(total_aum - cash_total)),
+            cash_market_value_base=cash_total,
+            cash_weight_pct=cash_weight,
+            position_count=int(first_portfolio.get("position_count", 0)),
+            cash_balance_count=cash_balance_count,
+        )
+
     def _parse_cashflow(
         self,
         result: tuple[int, dict[str, Any]],
@@ -1417,6 +1439,22 @@ class PortfolioService:
                 )
             )
         return balances
+
+    def _summarize_cash_positions(self, payload: dict[str, Any]) -> tuple[float, int]:
+        cash_total = 0.0
+        cash_count = 0
+        for item in payload.get("positions", []):
+            if not isinstance(item, dict):
+                continue
+            asset_class = str(item.get("asset_class") or "").strip().upper()
+            if asset_class != "CASH":
+                continue
+            market_value = self._position_valuation_value(
+                item, "market_value_base", fallback_key="market_value"
+            )
+            cash_total += float(quantize_money(market_value or 0))
+            cash_count += 1
+        return float(quantize_money(cash_total)), cash_count
 
     def _build_top_positions(
         self, positions: list[PortfolioPositionView]

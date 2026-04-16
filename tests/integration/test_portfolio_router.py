@@ -750,10 +750,18 @@ def test_portfolio_allocations_router(monkeypatch):
             ],
         }
 
-    async def _cash_balances(*args, **kwargs):
+    async def _positions(*args, **kwargs):
+        captured["positions_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
-            "totals": {"cash_account_count": 0, "total_balance_reporting_currency": 0},
-            "cash_accounts": [],
+            "positions": [
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "asset_class": "Cash",
+                    "quantity": 100.0,
+                    "valuation": {"market_value_base": 100.0},
+                }
+            ]
         }
 
     async def _allocation(*args, **kwargs):
@@ -775,7 +783,7 @@ def test_portfolio_allocations_router(monkeypatch):
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
 
     client = TestClient(app)
@@ -789,7 +797,9 @@ def test_portfolio_allocations_router(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["views"][0]["dimension"] == "region"
+    assert response.json()["summary"]["cash_market_value_base"] == 100.0
     assert captured["reporting_currency"] == "USD"
+    assert captured["positions_reporting_currency"] == "USD"
     assert captured["look_through_mode"] == "full"
 
 
@@ -804,12 +814,6 @@ def test_portfolio_positions_router(monkeypatch):
             ],
         }
 
-    async def _cash_balances(*args, **kwargs):
-        return 200, {
-            "totals": {"cash_account_count": 0, "total_balance_reporting_currency": 0},
-            "cash_accounts": [],
-        }
-
     async def _positions(*args, **kwargs):
         captured["include_projected"] = kwargs.get("include_projected")
         captured["reporting_currency"] = kwargs.get("reporting_currency")
@@ -820,12 +824,18 @@ def test_portfolio_positions_router(monkeypatch):
                     "instrument_name": "Equity 1",
                     "quantity": 1,
                     "valuation": {"market_value_base": 1000.0},
-                }
+                },
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "asset_class": "Cash",
+                    "quantity": 100.0,
+                    "valuation": {"market_value_base": 100.0},
+                },
             ]
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
 
     client = TestClient(app)
@@ -839,6 +849,7 @@ def test_portfolio_positions_router(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["positions"][0]["security_id"] == "EQ_1"
+    assert response.json()["summary"]["cash_market_value_base"] == 100.0
     assert captured["include_projected"] is True
     assert captured["reporting_currency"] == "USD"
 
