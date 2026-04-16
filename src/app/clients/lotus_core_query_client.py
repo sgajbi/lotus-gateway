@@ -209,6 +209,31 @@ class LotusCoreQueryClient:
             headers=headers,
         )
 
+    async def get_portfolio_cash_balances(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cash-balances"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {}
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+        )
+
     async def query_assets_under_management(
         self,
         *,
@@ -271,31 +296,6 @@ class LotusCoreQueryClient:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_cash_balances(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None = None,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/cash-balances/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {"portfolio_id": portfolio_id}
-        if as_of_date is not None:
-            payload["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="POST",
             url=url,

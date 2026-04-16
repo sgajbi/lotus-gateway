@@ -96,7 +96,7 @@ class _StubLotusCoreQueryClient:
             ],
         }
 
-    async def query_cash_balances(self, **kwargs):
+    async def get_portfolio_cash_balances(self, **kwargs):
         return 200, {
             "totals": {
                 "cash_account_count": 1,
@@ -338,9 +338,9 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
         self._record("get_cashflow_projection")
         return await super().get_cashflow_projection(portfolio_id, correlation_id, **kwargs)
 
-    async def query_cash_balances(self, **kwargs):
-        self._record("query_cash_balances")
-        return await super().query_cash_balances(**kwargs)
+    async def get_portfolio_cash_balances(self, **kwargs):
+        self._record("get_portfolio_cash_balances")
+        return await super().get_portfolio_cash_balances(**kwargs)
 
     async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
         self._record("get_portfolio_positions")
@@ -482,7 +482,7 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
                 ],
             }
 
-        async def query_cash_balances(self, **kwargs):
+        async def get_portfolio_cash_balances(self, **kwargs):
             return 200, {
                 "totals": {
                     "cash_account_count": 0,
@@ -608,7 +608,7 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
         async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
             return 503, {"detail": "cashflow temporarily unavailable"}
 
-        async def query_cash_balances(self, **kwargs):
+        async def get_portfolio_cash_balances(self, **kwargs):
             return 200, {
                 "totals": {
                     "cash_account_count": 0,
@@ -935,9 +935,9 @@ async def test_portfolio_liquidity_preserves_cashflow_partial_failure():
             self.aum_reporting_currency = kwargs.get("reporting_currency")
             return await super().query_assets_under_management(**kwargs)
 
-        async def query_cash_balances(self, **kwargs):
+        async def get_portfolio_cash_balances(self, **kwargs):
             self.cash_reporting_currency = kwargs.get("reporting_currency")
-            return await super().query_cash_balances(**kwargs)
+            return await super().get_portfolio_cash_balances(**kwargs)
 
         async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
             return 503, {"detail": "cashflow temporarily unavailable"}
@@ -1101,7 +1101,7 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
         def __init__(self):
             self.last_reporting_currency: str | None = None
             self.last_include_projected: bool | None = None
-            self.query_cash_balances_called = False
+            self.get_portfolio_cash_balances_called = False
 
         async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.last_reporting_currency = kwargs.get("reporting_currency")
@@ -1112,9 +1112,9 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
                 **kwargs,
             )
 
-        async def query_cash_balances(self, **kwargs):
-            self.query_cash_balances_called = True
-            return await super().query_cash_balances(**kwargs)
+        async def get_portfolio_cash_balances(self, **kwargs):
+            self.get_portfolio_cash_balances_called = True
+            return await super().get_portfolio_cash_balances(**kwargs)
 
     client = _PositionsAwareClient()
     service = PortfolioService(client)
@@ -1128,19 +1128,19 @@ async def test_portfolio_positions_pass_reporting_currency_and_include_projected
 
     assert client.last_include_projected is True
     assert client.last_reporting_currency == "SGD"
-    assert client.query_cash_balances_called is False
+    assert client.get_portfolio_cash_balances_called is False
 
 
 @pytest.mark.asyncio
 async def test_portfolio_allocations_use_positions_not_deprecated_cash_balances():
     class _HoldingsAwareClient(_StubLotusCoreQueryClient):
         def __init__(self):
-            self.query_cash_balances_called = False
+            self.get_portfolio_cash_balances_called = False
             self.positions_calls = 0
 
-        async def query_cash_balances(self, **kwargs):
-            self.query_cash_balances_called = True
-            return await super().query_cash_balances(**kwargs)
+        async def get_portfolio_cash_balances(self, **kwargs):
+            self.get_portfolio_cash_balances_called = True
+            return await super().get_portfolio_cash_balances(**kwargs)
 
         async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.positions_calls += 1
@@ -1161,7 +1161,7 @@ async def test_portfolio_allocations_use_positions_not_deprecated_cash_balances(
 
     assert response.summary.cash_market_value_base == 100.0
     assert client.positions_calls == 1
-    assert client.query_cash_balances_called is False
+    assert client.get_portfolio_cash_balances_called is False
 
 
 @pytest.mark.asyncio
@@ -1426,7 +1426,7 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
     assert client.calls["query_assets_under_management"] == 1
     assert client.calls["get_support_overview"] == 1
     assert client.calls["get_cashflow_projection"] == 1
-    assert client.calls["query_cash_balances"] == 1
+    assert client.calls["get_portfolio_cash_balances"] == 1
     assert client.calls["get_portfolio_positions"] == 1
     assert client.calls["query_asset_allocation"] == 1
     assert client.calls["get_portfolio_transactions"] == 3

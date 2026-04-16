@@ -839,6 +839,27 @@ async def test_lotus_core_query_client_transaction_route_supports_advanced_filte
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_cash_balances_uses_strategic_holdings_route():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"cash_accounts": []})
+
+    status_code, payload = await client.get_portfolio_cash_balances(
+        portfolio_id="P1",
+        correlation_id="corr-cash-balances",
+        as_of_date="2026-03-27",
+        reporting_currency="SGD",
+    )
+
+    assert status_code == 200
+    assert payload["cash_accounts"] == []
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1/cash-balances"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "as_of_date": "2026-03-27",
+        "reporting_currency": "SGD",
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_core_endpoints():
     client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})

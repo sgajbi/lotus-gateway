@@ -179,7 +179,7 @@ class PortfolioService:
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
             ("cash_balances", portfolio_id, as_of_date, reporting_currency),
-            lambda: self._lotus_core_query_client.query_cash_balances(
+            lambda: self._lotus_core_query_client.get_portfolio_cash_balances(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,

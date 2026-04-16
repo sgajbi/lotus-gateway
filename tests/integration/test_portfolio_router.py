@@ -127,7 +127,7 @@ def test_portfolio_workspace_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
 
     client = TestClient(app)
     response = client.get(
@@ -235,7 +235,7 @@ def test_portfolio_readiness_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
@@ -290,7 +290,7 @@ def test_portfolio_readiness_router_preserves_upstream_bad_request(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
 
     client = TestClient(app)
@@ -348,7 +348,7 @@ def test_portfolio_workspace_router_preserves_support_overview_bad_request(monke
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
 
     client = TestClient(app)
     response = client.get(
@@ -421,7 +421,7 @@ def test_portfolio_workflow_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
 
@@ -535,7 +535,7 @@ def test_portfolio_insights_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
@@ -604,7 +604,7 @@ def test_portfolio_book_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
 
     portfolio_router._portfolio_service().clear_upstream_cache()
@@ -723,7 +723,7 @@ def test_portfolio_liquidity_router(monkeypatch):
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
 
     client = TestClient(app)
