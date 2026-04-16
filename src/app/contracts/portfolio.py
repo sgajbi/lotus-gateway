@@ -2,9 +2,18 @@ from pydantic import BaseModel, Field
 
 
 class PortfolioPartialFailure(BaseModel):
-    source_service: str
-    error_code: str
-    detail: str
+    source_service: str = Field(
+        description="Source service that produced the degraded optional response section.",
+        examples=["lotus-core"],
+    )
+    error_code: str = Field(
+        description="Gateway warning or failure code associated with the degraded section.",
+        examples=["PORTFOLIO_CASHFLOW_UNAVAILABLE"],
+    )
+    detail: str = Field(
+        description="Human-readable detail describing the degraded upstream section.",
+        examples=["cashflow temporarily unavailable"],
+    )
 
 
 class PortfolioCatalogItem(BaseModel):
@@ -84,7 +93,9 @@ class PortfolioProfile(BaseModel):
     )
     risk_exposure: str | None = Field(
         default=None,
-        description="Optional risk-exposure classification returned by the source portfolio record.",
+        description=(
+            "Optional risk-exposure classification returned by the source portfolio record."
+        ),
     )
     investment_time_horizon: str | None = Field(
         default=None,
@@ -433,27 +444,92 @@ class PortfolioRebalanceSummary(BaseModel):
 
 
 class PortfolioReportingReadiness(BaseModel):
-    status: str
-    generated_at_utc: str | None = None
-    row_count: int = 0
+    status: str = Field(
+        description="Reporting readiness posture returned or derived for the portfolio.",
+        examples=["READY"],
+    )
+    generated_at_utc: str | None = Field(
+        default=None,
+        description="Optional UTC timestamp of the most recent reporting output generation.",
+        examples=["2026-03-27T12:00:00Z"],
+    )
+    row_count: int = Field(
+        default=0,
+        description="Count of reporting rows currently available for the portfolio snapshot.",
+        examples=[3],
+    )
 
 
 class PortfolioOperationalReadiness(BaseModel):
-    business_date: str | None = None
-    latest_booked_transaction_date: str | None = None
-    latest_booked_position_snapshot_date: str | None = None
-    publish_allowed: bool | None = None
-    controls_blocking: bool | None = None
-    active_reprocessing_keys: int | None = None
-    stale_reprocessing_keys: int | None = None
-    failed_valuation_jobs_within_window: int | None = None
-    failed_aggregation_jobs_within_window: int | None = None
+    business_date: str | None = Field(
+        default=None,
+        description="Current business date used by the operational support overview.",
+        examples=["2026-03-27"],
+    )
+    latest_booked_transaction_date: str | None = Field(
+        default=None,
+        description="Most recent booked transaction date available for the portfolio.",
+        examples=["2026-03-27"],
+    )
+    latest_booked_position_snapshot_date: str | None = Field(
+        default=None,
+        description="Most recent booked position snapshot date available for the portfolio.",
+        examples=["2026-03-27"],
+    )
+    publish_allowed: bool | None = Field(
+        default=None,
+        description=(
+            "Whether the current operational posture allows publication or downstream "
+            "processing."
+        ),
+        examples=[True],
+    )
+    controls_blocking: bool | None = Field(
+        default=None,
+        description=(
+            "Whether blocking controls are preventing publication or downstream processing."
+        ),
+        examples=[False],
+    )
+    active_reprocessing_keys: int | None = Field(
+        default=None,
+        description="Count of active reprocessing keys affecting the portfolio when available.",
+        examples=[0],
+    )
+    stale_reprocessing_keys: int | None = Field(
+        default=None,
+        description="Count of stale reprocessing keys affecting the portfolio when available.",
+        examples=[0],
+    )
+    failed_valuation_jobs_within_window: int | None = Field(
+        default=None,
+        description=(
+            "Count of failed valuation jobs observed within the support window when available."
+        ),
+        examples=[0],
+    )
+    failed_aggregation_jobs_within_window: int | None = Field(
+        default=None,
+        description=(
+            "Count of failed aggregation jobs observed within the support window when available."
+        ),
+        examples=[0],
+    )
 
 
 class PortfolioWorkflowLaunchCue(BaseModel):
-    key: str
-    label: str
-    href: str
+    key: str = Field(
+        description="Stable workflow cue key exposed to product surfaces.",
+        examples=["performance"],
+    )
+    label: str = Field(
+        description="Advisor-facing workflow cue label.",
+        examples=["Performance"],
+    )
+    href: str = Field(
+        description="Route or in-page target used to launch the workflow from the workspace shell.",
+        examples=["/performance?portfolioId=PF_1001"],
+    )
 
 
 class PortfolioReadinessIndicator(BaseModel):
@@ -682,10 +758,19 @@ class PortfolioWorkspaceResponse(BaseModel):
         description="Resolved portfolio workspace as-of date used for all source-backed sections.",
         examples=["2026-03-27"],
     )
-    portfolio: PortfolioIdentity
-    profile: PortfolioProfile
-    summary: PortfolioSummary
-    cashflow_outlook: PortfolioCashflowOutlook | None = None
+    portfolio: PortfolioIdentity = Field(
+        description="Resolved portfolio identity used across the workspace shell.",
+    )
+    profile: PortfolioProfile = Field(
+        description="Source-backed portfolio profile and mandate metadata for the workspace shell.",
+    )
+    summary: PortfolioSummary = Field(
+        description="Source-backed portfolio summary used to frame the workspace shell.",
+    )
+    cashflow_outlook: PortfolioCashflowOutlook | None = Field(
+        default=None,
+        description="Forward-looking cashflow posture used by the workspace shell when available.",
+    )
     performance: PortfolioPerformanceSummary | None = Field(
         default=None,
         description=(
@@ -700,11 +785,27 @@ class PortfolioWorkspaceResponse(BaseModel):
             "exists."
         ),
     )
-    reporting: PortfolioReportingReadiness
-    operations: PortfolioOperationalReadiness | None = None
-    workflow_cues: list[PortfolioWorkflowLaunchCue] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
+    reporting: PortfolioReportingReadiness = Field(
+        description="Reporting readiness posture for the workspace shell.",
+    )
+    operations: PortfolioOperationalReadiness | None = Field(
+        default=None,
+        description="Operational support posture for the workspace shell when available.",
+    )
+    workflow_cues: list[PortfolioWorkflowLaunchCue] = Field(
+        default_factory=list,
+        description="Available workflow launch cues derived for the workspace shell.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded but still usable workspace output.",
+    )
+    partial_failures: list[PortfolioPartialFailure] = Field(
+        default_factory=list,
+        description=(
+            "Upstream source failures preserved when optional workspace sections are unavailable."
+        ),
+    )
 
 
 class PortfolioLiquidityResponse(BaseModel):
