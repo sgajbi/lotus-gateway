@@ -562,16 +562,26 @@ def test_portfolio_transactions_router(monkeypatch):
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/transactions",
         params={
+            "as_of_date": "2026-03-27",
+            "include_projected": "true",
             "transaction_type": "BUY",
+            "security_id": "EQ_1",
             "start_date": "2026-03-01",
             "end_date": "2026-03-27",
+            "skip": 5,
+            "limit": 25,
         },
     )
     assert response.status_code == 200
     assert response.json()["transactions"][0]["transaction_id"] == "TX_1"
+    assert captured["as_of_date"] == "2026-03-27"
+    assert captured["include_projected"] is True
     assert captured["transaction_type"] == "BUY"
+    assert captured["security_id"] == "EQ_1"
     assert captured["start_date"] == "2026-03-01"
     assert captured["end_date"] == "2026-03-27"
+    assert captured["skip"] == 5
+    assert captured["limit"] == 25
 
 
 def test_portfolio_liquidity_router(monkeypatch):

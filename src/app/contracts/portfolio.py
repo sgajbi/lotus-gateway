@@ -660,13 +660,38 @@ class PortfolioBookResponse(BaseModel):
 class PortfolioTransactionLedgerResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str | None = None
-    include_projected: bool
-    total: int
-    skip: int
-    limit: int
-    transactions: list[PortfolioTransactionView] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose transaction ledger is being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str | None = Field(
+        default=None,
+        description=(
+            "Resolved as-of date used for booked transaction state when "
+            "provided by source or caller."
+        ),
+        examples=["2026-03-27"],
+    )
+    include_projected: bool = Field(
+        description="Whether future-dated projected transactions are included in the result set.",
+        examples=[False],
+    )
+    total: int = Field(
+        description="Total number of matching transactions before paging is applied.",
+        examples=[125],
+    )
+    skip: int = Field(
+        description="Number of matching rows skipped before the current page.",
+        examples=[0],
+    )
+    limit: int = Field(
+        description="Maximum number of matching rows requested for the current page.",
+        examples=[50],
+    )
+    transactions: list[PortfolioTransactionView] = Field(
+        default_factory=list,
+        description="Transaction rows returned for the current filter and paging window.",
+    )
 
 
 class PortfolioPerformanceSnapshotPoint(BaseModel):

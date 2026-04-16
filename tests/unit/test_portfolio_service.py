@@ -999,6 +999,41 @@ async def test_transaction_ledger_passes_transaction_filters_upstream():
 
 
 @pytest.mark.asyncio
+async def test_transaction_ledger_passes_security_and_projection_filters_upstream():
+    class _FilterAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_kwargs = None
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.last_kwargs = kwargs
+            return await super().get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _FilterAwareClient()
+    service = PortfolioService(client)
+
+    response = await service.get_transaction_ledger(
+        portfolio_id="PF_1001",
+        correlation_id="corr-4c",
+        as_of_date="2026-03-27",
+        include_projected=True,
+        skip=0,
+        limit=10,
+        security_id="EQ_1",
+    )
+
+    assert client.last_kwargs is not None
+    assert client.last_kwargs["include_projected"] is True
+    assert client.last_kwargs["security_id"] == "EQ_1"
+    assert response.include_projected is True
+
+
+@pytest.mark.asyncio
 async def test_income_summary_returns_requested_window_and_income_types():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_income_summary(

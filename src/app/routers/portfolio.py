@@ -489,17 +489,58 @@ async def get_portfolio_activity_summary(
     "/portfolios/{portfolio_id}/transactions",
     response_model=PortfolioTransactionLedgerResponse,
     summary="Get portfolio transaction ledger",
+    description=(
+        "Returns the portfolio transaction ledger for booked or projected activity. "
+        "Use this endpoint for portfolio cashflow, funding, trading, and holdings drill-down "
+        "when the UI needs date-window filters, transaction-type filters, security-specific "
+        "retrieval, and stable paging metadata."
+    ),
 )
 async def get_portfolio_transactions(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
-    transaction_type: str | None = Query(default=None),
-    security_id: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=500),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used for booked transaction state.",
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description="Whether future-dated projected transactions should be included.",
+        examples=[False],
+    ),
+    transaction_type: str | None = Query(
+        default=None,
+        description="Optional canonical transaction type filter.",
+        examples=["BUY"],
+    ),
+    security_id: str | None = Query(
+        default=None,
+        description="Optional security identifier filter for holdings drill-down.",
+        examples=["EQ_1"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description="Optional inclusive transaction-window start date in YYYY-MM-DD format.",
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description="Optional inclusive transaction-window end date in YYYY-MM-DD format.",
+        examples=["2026-03-27"],
+    ),
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of matching transaction rows to skip before returning the page.",
+        examples=[0],
+    ),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=500,
+        description="Maximum number of matching transaction rows to return.",
+        examples=[50],
+    ),
 ) -> PortfolioTransactionLedgerResponse:
     return await _portfolio_service().get_transaction_ledger(
         portfolio_id=portfolio_id,
