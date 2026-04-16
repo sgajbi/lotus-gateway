@@ -1151,6 +1151,32 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     assert row_schema["properties"]["active_return_pct"]["description"]
 
 
+def test_workbench_performance_evidence_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    artifact_route = schema["paths"][
+        "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}"
+    ]["get"]
+    summary_schema = schema["components"]["schemas"]["PerformanceWorkspaceSummaryResponse"]
+    details_schema = schema["components"]["schemas"]["PerformanceWorkspaceDetailsResponse"]
+    evidence_schema = schema["components"]["schemas"]["PerformanceEvidenceView"]
+    calculation_schema = schema["components"]["schemas"]["PerformanceCalculationEvidenceView"]
+    artifact_schema = schema["components"]["schemas"]["PerformanceEvidenceArtifactView"]
+
+    assert "lineage artifact" in artifact_route["description"]
+    assert summary_schema["properties"]["evidence_view"]["description"]
+    assert details_schema["properties"]["evidence_view"]["description"]
+    assert evidence_schema["properties"]["state"]["description"]
+    assert evidence_schema["properties"]["calculations"]["description"]
+    assert calculation_schema["properties"]["execution_status"]["description"]
+    assert calculation_schema["properties"]["lineage_status"]["description"]
+    assert calculation_schema["properties"]["artifacts"]["description"]
+    assert artifact_schema["properties"]["url"]["description"]
+
+
 def test_workbench_performance_attribution_trend_openapi_contract():
     client = TestClient(app)
     response = client.get("/openapi.json")
