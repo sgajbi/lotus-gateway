@@ -322,6 +322,10 @@ def test_portfolio_openapi_contract_registered() -> None:
         "get"
     ]
     positions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/positions"]["get"]
+    income_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"]
+    activity_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/activity-summary"][
+        "get"
+    ]
     transaction_parameters = {
         parameter["name"]: parameter for parameter in transactions_path["parameters"]
     }
@@ -333,6 +337,10 @@ def test_portfolio_openapi_contract_registered() -> None:
     }
     position_parameters = {
         parameter["name"]: parameter for parameter in positions_path["parameters"]
+    }
+    income_parameters = {parameter["name"]: parameter for parameter in income_path["parameters"]}
+    activity_parameters = {
+        parameter["name"]: parameter for parameter in activity_path["parameters"]
     }
     assert workspace_schema["properties"]["performance"]["description"]
     assert workspace_schema["properties"]["rebalance"]["description"]
@@ -412,8 +420,16 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert income_schema["properties"]["reporting_currency"]["description"]
     assert income_schema["properties"]["totals_requested_window"]["description"]
     assert income_schema["properties"]["income_types"]["description"]
+    assert income_parameters["as_of_date"]["description"]
+    assert income_parameters["start_date"]["description"]
+    assert income_parameters["end_date"]["description"]
+    assert income_parameters["reporting_currency"]["description"]
     assert activity_schema["properties"]["reporting_currency"]["description"]
     assert activity_schema["properties"]["buckets"]["description"]
+    assert activity_parameters["as_of_date"]["description"]
+    assert activity_parameters["start_date"]["description"]
+    assert activity_parameters["end_date"]["description"]
+    assert activity_parameters["reporting_currency"]["description"]
     assert workflow_path["description"]
     assert workflow_parameters["as_of_date"]["description"]
     assert workflow_schema["properties"]["actions"]["description"]
@@ -431,4 +447,4 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["sparkline"]["description"]
     assert performance_snapshot_schema["properties"]["unavailable"]["description"]
     assert performance_snapshot_point_schema["properties"]["portfolio_return_pct"]["description"]
-    assert performance_snapshot_unavailable_schema["properties"]["requirements"]["description"]
+    assert performance_snapshot_unavailable_schema["properties"]["requirements

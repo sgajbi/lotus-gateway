@@ -462,29 +462,40 @@ async def get_portfolio_positions(
     description=(
         "Returns portfolio income totals for the requested reporting window and year-to-date. "
         "Use this endpoint for dividend, interest, and other income analysis when the UI needs "
-        "reporting-currency-aware gross, tax, deduction, and net income totals by income type."
+        "reporting-currency-aware gross, tax, deduction, and net income totals by income type. "
+        "When `end_date` is omitted, gateway uses `as_of_date` when provided or the current "
+        "business date fallback."
     ),
 )
 async def get_portfolio_income_summary(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used as the default window end date.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used as the default window end date when "
+            "`end_date` is omitted."
+        ),
         examples=["2026-03-27"],
     ),
     start_date: str | None = Query(
         default=None,
-        description="Optional inclusive reporting-window start date in YYYY-MM-DD format.",
+        description=(
+            "Optional inclusive reporting-window start date in YYYY-MM-DD format. When omitted, "
+            "gateway uses the standard rolling 30-day window."
+        ),
         examples=["2026-03-01"],
     ),
     end_date: str | None = Query(
         default=None,
-        description="Optional inclusive reporting-window end date in YYYY-MM-DD format.",
+        description=(
+            "Optional inclusive reporting-window end date in YYYY-MM-DD format. Defaults to "
+            "`as_of_date` when provided."
+        ),
         examples=["2026-03-27"],
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used for income restatement.",
+        description="Optional reporting currency used to restate portfolio income totals.",
         examples=["USD"],
     ),
 ) -> PortfolioIncomeSummaryResponse:
@@ -505,29 +516,40 @@ async def get_portfolio_income_summary(
     description=(
         "Returns portfolio flow buckets for the requested reporting window and year-to-date. "
         "Use this endpoint for inflow, outflow, fee, and tax analysis when the UI needs "
-        "reporting-currency-aware activity totals aligned to the selected portfolio window."
+        "reporting-currency-aware activity totals aligned to the selected portfolio window. "
+        "When `end_date` is omitted, gateway uses `as_of_date` when provided or the current "
+        "business date fallback."
     ),
 )
 async def get_portfolio_activity_summary(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used as the default window end date.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used as the default window end date when "
+            "`end_date` is omitted."
+        ),
         examples=["2026-03-27"],
     ),
     start_date: str | None = Query(
         default=None,
-        description="Optional inclusive reporting-window start date in YYYY-MM-DD format.",
+        description=(
+            "Optional inclusive reporting-window start date in YYYY-MM-DD format. When omitted, "
+            "gateway uses the standard rolling 30-day window."
+        ),
         examples=["2026-03-01"],
     ),
     end_date: str | None = Query(
         default=None,
-        description="Optional inclusive reporting-window end date in YYYY-MM-DD format.",
+        description=(
+            "Optional inclusive reporting-window end date in YYYY-MM-DD format. Defaults to "
+            "`as_of_date` when provided."
+        ),
         examples=["2026-03-27"],
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used for activity-summary restatement.",
+        description="Optional reporting currency used to restate portfolio activity totals.",
         examples=["USD"],
     ),
 ) -> PortfolioActivitySummaryResponse:
