@@ -466,10 +466,11 @@ async def get_portfolio_positions(
     summary="Get portfolio income summary",
     description=(
         "Returns portfolio income totals for the requested reporting window and year-to-date. "
-        "Use this endpoint for dividend, interest, and other income analysis when the UI needs "
+        "Use this endpoint for dividend and interest analysis when the UI needs "
         "reporting-currency-aware gross, tax, deduction, and net income totals by income type. "
-        "When `end_date` is omitted, gateway uses `as_of_date` when provided or the current "
-        "business date fallback."
+        "Gateway derives these totals from the strategic lotus-core transaction ledger rather "
+        "than the deprecated income-summary reporting route. When `end_date` is omitted, "
+        "gateway uses `as_of_date` when provided or the current business date fallback."
     ),
 )
 async def get_portfolio_income_summary(
@@ -522,8 +523,9 @@ async def get_portfolio_income_summary(
         "Returns portfolio flow buckets for the requested reporting window and year-to-date. "
         "Use this endpoint for inflow, outflow, fee, and tax analysis when the UI needs "
         "reporting-currency-aware activity totals aligned to the selected portfolio window. "
-        "When `end_date` is omitted, gateway uses `as_of_date` when provided or the current "
-        "business date fallback."
+        "Gateway derives these buckets from the strategic lotus-core transaction ledger rather "
+        "than the deprecated activity-summary reporting route. When `end_date` is omitted, "
+        "gateway uses `as_of_date` when provided or the current business date fallback."
     ),
 )
 async def get_portfolio_activity_summary(

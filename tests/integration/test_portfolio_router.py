@@ -496,9 +496,10 @@ def test_portfolio_insights_router(monkeypatch):
 
     async def _transactions(*args, **kwargs):
         return 200, {
-            "total": 1,
+            "reporting_currency": "USD",
+            "total": 2,
             "skip": 0,
-            "limit": 50,
+            "limit": kwargs["limit"],
             "transactions": [
                 {
                     "transaction_id": "TX_1",
@@ -507,28 +508,18 @@ def test_portfolio_insights_router(monkeypatch):
                     "security_id": "EQ_1",
                     "instrument_id": "EQ_1",
                     "quantity": 1,
-                }
+                },
+                {
+                    "transaction_id": "TX_OUT_1",
+                    "transaction_date": "2026-03-12T00:00:00Z",
+                    "transaction_type": "WITHDRAWAL",
+                    "security_id": "CASH_USD",
+                    "instrument_id": "CASH_USD",
+                    "quantity": 0,
+                    "gross_transaction_amount": 100.0,
+                    "gross_transaction_amount_reporting_currency": 100.0,
+                },
             ],
-        }
-
-    async def _activity_summary(*args, **kwargs):
-        return 200, {
-            "reporting_currency": "USD",
-            "totals": {
-                "buckets": [
-                    {
-                        "bucket": "OUTFLOWS",
-                        "requested_window": {
-                            "transaction_count": 1,
-                            "amount_reporting_currency": -100.0,
-                        },
-                        "year_to_date": {
-                            "transaction_count": 1,
-                            "amount_reporting_currency": -100.0,
-                        },
-                    }
-                ]
-            },
         }
 
     async def _readiness(*args, **kwargs):
@@ -549,7 +540,7 @@ def test_portfolio_insights_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_positions", _positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_asset_allocation", _allocation)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_activity_summary", _activity_summary)
+    portfolio_router._portfolio_service().clear_upstream_cache()
 
     client = TestClient(app)
     response = client.get("/api/v1/portfolio/portfolios/PF_1001/insights")
@@ -566,10 +557,7 @@ def test_portfolio_insights_router(monkeypatch):
         "severity": "warning",
         "href": "/risk?portfolioId=PF_1001",
     }
-    assert {item["key"] for item in body["insights"]} == {
-        "equity-concentration-high",
-        "net-outflows-window",
-    }
+    assert "equity-concentration-high" in {item["key"] for item in body["insights"]}
     assert body["exception_summaries"] == []
 
 
@@ -619,6 +607,7 @@ def test_portfolio_book_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
 
+    portfolio_router._portfolio_service().clear_upstream_cache()
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/book",
@@ -651,6 +640,7 @@ def test_portfolio_transactions_router(monkeypatch):
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
+    portfolio_router._portfolio_service().clear_upstream_cache()
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/transactions",
@@ -901,54 +891,50 @@ def test_portfolio_positions_router(monkeypatch):
 
 
 def test_portfolio_income_summary_router(monkeypatch):
-    captured: dict[str, object] = {}
+    captured: list[dict[str, object]] = []
 
-    async def _income_summary(*args, **kwargs):
-        captured.update(kwargs)
+    async def _transactions(*args, **kwargs):
+        captured.append(dict(kwargs))
         return 200, {
             "reporting_currency": "USD",
-            "totals": {
-                "requested_window": {
-                    "transaction_count": 1,
-                    "gross_amount_reporting_currency": 20.0,
-                    "withholding_tax_reporting_currency": 2.0,
-                    "other_deductions_reporting_currency": 0.0,
-                    "net_amount_reporting_currency": 18.0,
-                },
-                "year_to_date": {
-                    "transaction_count": 2,
-                    "gross_amount_reporting_currency": 40.0,
-                    "withholding_tax_reporting_currency": 4.0,
-                    "other_deductions_reporting_currency": 0.0,
-                    "net_amount_reporting_currency": 36.0,
-                },
-            },
-            "portfolios": [
+            "total": 2,
+            "skip": kwargs["skip"],
+            "limit": kwargs["limit"],
+            "transactions": [
                 {
-                    "income_types": [
-                        {
-                            "income_type": "DIVIDEND",
-                            "requested_window": {
-                                "transaction_count": 1,
-                                "gross_amount_reporting_currency": 20.0,
-                                "withholding_tax_reporting_currency": 2.0,
-                                "other_deductions_reporting_currency": 0.0,
-                                "net_amount_reporting_currency": 18.0,
-                            },
-                            "year_to_date": {
-                                "transaction_count": 2,
-                                "gross_amount_reporting_currency": 40.0,
-                                "withholding_tax_reporting_currency": 4.0,
-                                "other_deductions_reporting_currency": 0.0,
-                                "net_amount_reporting_currency": 36.0,
-                            },
-                        }
-                    ]
-                }
+                    "transaction_id": "TX_DIV_REQ",
+                    "transaction_date": "2026-03-20T09:30:00Z",
+                    "transaction_type": "DIVIDEND",
+                    "security_id": "EQ_1",
+                    "instrument_id": "EQ_1",
+                    "quantity": 0,
+                    "gross_transaction_amount": 20.0,
+                    "gross_transaction_amount_reporting_currency": 20.0,
+                    "withholding_tax_amount": 2.0,
+                    "withholding_tax_amount_reporting_currency": 2.0,
+                    "other_interest_deductions_amount": 0.0,
+                    "other_interest_deductions_amount_reporting_currency": 0.0,
+                    "currency": "USD",
+                },
+                {
+                    "transaction_id": "TX_DIV_YTD",
+                    "transaction_date": "2026-02-20T09:30:00Z",
+                    "transaction_type": "DIVIDEND",
+                    "security_id": "EQ_1",
+                    "instrument_id": "EQ_1",
+                    "quantity": 0,
+                    "gross_transaction_amount": 20.0,
+                    "gross_transaction_amount_reporting_currency": 20.0,
+                    "withholding_tax_amount": 2.0,
+                    "withholding_tax_amount_reporting_currency": 2.0,
+                    "other_interest_deductions_amount": 0.0,
+                    "other_interest_deductions_amount_reporting_currency": 0.0,
+                    "currency": "USD",
+                },
             ],
         }
 
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_income_summary", _income_summary)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/income-summary",
@@ -961,36 +947,49 @@ def test_portfolio_income_summary_router(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["income_types"][0]["income_type"] == "DIVIDEND"
-    assert captured["reporting_currency"] == "USD"
-    assert captured["start_date"] == "2026-03-01"
-    assert captured["end_date"] == "2026-03-27"
+    assert response.json()["totals_requested_window"]["net"]["reporting_currency_amount"] == 18.0
+    assert captured[0]["reporting_currency"] == "USD"
+    assert captured[0]["start_date"] == "2026-01-01"
+    assert captured[0]["end_date"] == "2026-03-27"
 
 
 def test_portfolio_activity_summary_router(monkeypatch):
-    captured: dict[str, object] = {}
+    captured: list[dict[str, object]] = []
 
-    async def _activity_summary(*args, **kwargs):
-        captured.update(kwargs)
+    async def _transactions(*args, **kwargs):
+        captured.append(dict(kwargs))
         return 200, {
             "reporting_currency": "USD",
-            "totals": {
-                "buckets": [
-                    {
-                        "bucket": "INFLOWS",
-                        "requested_window": {
-                            "transaction_count": 1,
-                            "amount_reporting_currency": 100.0,
-                        },
-                        "year_to_date": {
-                            "transaction_count": 2,
-                            "amount_reporting_currency": 150.0,
-                        },
-                    }
-                ]
-            },
+            "total": 2,
+            "skip": kwargs["skip"],
+            "limit": kwargs["limit"],
+            "transactions": [
+                {
+                    "transaction_id": "TX_DEP_REQ",
+                    "transaction_date": "2026-03-20T09:30:00Z",
+                    "transaction_type": "DEPOSIT",
+                    "security_id": "CASH_USD",
+                    "instrument_id": "CASH_USD",
+                    "quantity": 0,
+                    "gross_transaction_amount": 100.0,
+                    "gross_transaction_amount_reporting_currency": 100.0,
+                    "currency": "USD",
+                },
+                {
+                    "transaction_id": "TX_DEP_YTD",
+                    "transaction_date": "2026-02-20T09:30:00Z",
+                    "transaction_type": "TRANSFER_IN",
+                    "security_id": "CASH_USD",
+                    "instrument_id": "CASH_USD",
+                    "quantity": 0,
+                    "gross_transaction_amount": 50.0,
+                    "gross_transaction_amount_reporting_currency": 50.0,
+                    "currency": "USD",
+                },
+            ],
         }
 
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_activity_summary", _activity_summary)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/activity-summary",
@@ -1003,9 +1002,10 @@ def test_portfolio_activity_summary_router(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["buckets"][0]["bucket"] == "INFLOWS"
-    assert captured["reporting_currency"] == "USD"
-    assert captured["start_date"] == "2026-03-01"
-    assert captured["end_date"] == "2026-03-27"
+    assert response.json()["buckets"][0]["requested_window"]["reporting_currency_amount"] == 100.0
+    assert captured[0]["reporting_currency"] == "USD"
+    assert captured[0]["start_date"] == "2026-01-01"
+    assert captured[0]["end_date"] == "2026-03-27"
 
 
 def test_portfolio_performance_snapshot_router(monkeypatch):

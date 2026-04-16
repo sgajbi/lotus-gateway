@@ -135,6 +135,7 @@ class LotusCoreQueryClient:
         far_leg_group_id: str | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
         headers = propagation_headers(correlation_id)
@@ -169,6 +170,8 @@ class LotusCoreQueryClient:
             params["start_date"] = start_date
         if end_date is not None:
             params["end_date"] = end_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="GET",
             url=url,
@@ -291,63 +294,6 @@ class LotusCoreQueryClient:
         payload: dict[str, Any] = {"portfolio_id": portfolio_id}
         if as_of_date is not None:
             payload["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_income_summary(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-        income_types: list[str] | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/income-summary/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {
-            "scope": {"portfolio_id": portfolio_id},
-            "window": {"start_date": start_date, "end_date": end_date},
-        }
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
-        if income_types is not None:
-            payload["income_types"] = income_types
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_activity_summary(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/activity-summary/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {
-            "scope": {"portfolio_id": portfolio_id},
-            "window": {"start_date": start_date, "end_date": end_date},
-        }
         if reporting_currency is not None:
             payload["reporting_currency"] = reporting_currency
         return await request_with_retry(

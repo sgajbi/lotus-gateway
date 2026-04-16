@@ -164,106 +164,146 @@ class _StubLotusCoreQueryClient:
         }
 
     async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
-        return 200, {
-            "total": 1,
-            "skip": kwargs["skip"],
-            "limit": kwargs["limit"],
-            "transactions": [
-                {
-                    "transaction_id": "TX_1",
-                    "transaction_date": "2026-03-27T09:30:00Z",
-                    "transaction_type": "BUY",
-                    "security_id": "EQ_1",
-                    "instrument_id": "EQ_1",
-                    "quantity": 10,
-                    "price": 70.0,
-                    "gross_transaction_amount": 700.0,
-                    "currency": "USD",
-                }
-            ],
-        }
-
-    async def query_income_summary(self, **kwargs):
-        return 200, {
-            "reporting_currency": "USD",
-            "totals": {
-                "requested_window": {
-                    "transaction_count": 2,
-                    "gross_amount_portfolio_currency": 30.0,
-                    "gross_amount_reporting_currency": 30.0,
-                    "withholding_tax_portfolio_currency": 3.0,
-                    "withholding_tax_reporting_currency": 3.0,
-                    "other_deductions_portfolio_currency": 1.0,
-                    "other_deductions_reporting_currency": 1.0,
-                    "net_amount_portfolio_currency": 26.0,
-                    "net_amount_reporting_currency": 26.0,
-                },
-                "year_to_date": {
-                    "transaction_count": 4,
-                    "gross_amount_portfolio_currency": 60.0,
-                    "gross_amount_reporting_currency": 60.0,
-                    "withholding_tax_portfolio_currency": 6.0,
-                    "withholding_tax_reporting_currency": 6.0,
-                    "other_deductions_portfolio_currency": 2.0,
-                    "other_deductions_reporting_currency": 2.0,
-                    "net_amount_portfolio_currency": 52.0,
-                    "net_amount_reporting_currency": 52.0,
-                },
+        transactions = [
+            {
+                "transaction_id": "TX_1",
+                "transaction_date": "2026-03-27T09:30:00Z",
+                "transaction_type": "BUY",
+                "security_id": "EQ_1",
+                "instrument_id": "EQ_1",
+                "quantity": 10,
+                "price": 70.0,
+                "gross_transaction_amount": 700.0,
+                "gross_transaction_amount_reporting_currency": 700.0,
+                "currency": "USD",
             },
-            "portfolios": [
-                {
-                    "portfolio_id": kwargs["portfolio_id"],
-                    "income_types": [
-                        {
-                            "income_type": "DIVIDEND",
-                            "requested_window": {
-                                "transaction_count": 1,
-                                "gross_amount_portfolio_currency": 20.0,
-                                "gross_amount_reporting_currency": 20.0,
-                                "withholding_tax_portfolio_currency": 2.0,
-                                "withholding_tax_reporting_currency": 2.0,
-                                "other_deductions_portfolio_currency": 0.0,
-                                "other_deductions_reporting_currency": 0.0,
-                                "net_amount_portfolio_currency": 18.0,
-                                "net_amount_reporting_currency": 18.0,
-                            },
-                            "year_to_date": {
-                                "transaction_count": 2,
-                                "gross_amount_portfolio_currency": 40.0,
-                                "gross_amount_reporting_currency": 40.0,
-                                "withholding_tax_portfolio_currency": 4.0,
-                                "withholding_tax_reporting_currency": 4.0,
-                                "other_deductions_portfolio_currency": 0.0,
-                                "other_deductions_reporting_currency": 0.0,
-                                "net_amount_portfolio_currency": 36.0,
-                                "net_amount_reporting_currency": 36.0,
-                            },
-                        }
-                    ],
-                }
-            ],
-        }
-
-    async def query_activity_summary(self, **kwargs):
-        return 200, {
-            "reporting_currency": "USD",
-            "totals": {
-                "buckets": [
-                    {
-                        "bucket": "INFLOWS",
-                        "requested_window": {
-                            "transaction_count": 1,
-                            "amount_portfolio_currency": 100.0,
-                            "amount_reporting_currency": 100.0,
-                        },
-                        "year_to_date": {
-                            "transaction_count": 2,
-                            "amount_portfolio_currency": 180.0,
-                            "amount_reporting_currency": 180.0,
-                        },
-                    }
-                ]
+            {
+                "transaction_id": "TX_DIV_REQ",
+                "transaction_date": "2026-03-20T09:30:00Z",
+                "transaction_type": "DIVIDEND",
+                "security_id": "EQ_1",
+                "instrument_id": "EQ_1",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 20.0,
+                "gross_transaction_amount_reporting_currency": 20.0,
+                "withholding_tax_amount": 2.0,
+                "withholding_tax_amount_reporting_currency": 2.0,
+                "other_interest_deductions_amount": 0.0,
+                "other_interest_deductions_amount_reporting_currency": 0.0,
+                "currency": "USD",
             },
+            {
+                "transaction_id": "TX_INT_REQ",
+                "transaction_date": "2026-03-10T09:30:00Z",
+                "transaction_type": "INTEREST",
+                "security_id": "CASH_USD",
+                "instrument_id": "CASH_USD",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 10.0,
+                "gross_transaction_amount_reporting_currency": 10.0,
+                "withholding_tax_amount": 1.0,
+                "withholding_tax_amount_reporting_currency": 1.0,
+                "other_interest_deductions_amount": 1.0,
+                "other_interest_deductions_amount_reporting_currency": 1.0,
+                "net_interest_amount": 8.0,
+                "net_interest_amount_reporting_currency": 8.0,
+                "interest_direction": "INCOME",
+                "currency": "USD",
+            },
+            {
+                "transaction_id": "TX_DIV_YTD",
+                "transaction_date": "2026-02-15T09:30:00Z",
+                "transaction_type": "DIVIDEND",
+                "security_id": "EQ_1",
+                "instrument_id": "EQ_1",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 20.0,
+                "gross_transaction_amount_reporting_currency": 20.0,
+                "withholding_tax_amount": 2.0,
+                "withholding_tax_amount_reporting_currency": 2.0,
+                "other_interest_deductions_amount": 0.0,
+                "other_interest_deductions_amount_reporting_currency": 0.0,
+                "currency": "USD",
+            },
+            {
+                "transaction_id": "TX_INT_YTD",
+                "transaction_date": "2026-01-15T09:30:00Z",
+                "transaction_type": "INTEREST",
+                "security_id": "CASH_USD",
+                "instrument_id": "CASH_USD",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 10.0,
+                "gross_transaction_amount_reporting_currency": 10.0,
+                "withholding_tax_amount": 1.0,
+                "withholding_tax_amount_reporting_currency": 1.0,
+                "other_interest_deductions_amount": 1.0,
+                "other_interest_deductions_amount_reporting_currency": 1.0,
+                "net_interest_amount": 8.0,
+                "net_interest_amount_reporting_currency": 8.0,
+                "interest_direction": "INCOME",
+                "currency": "USD",
+            },
+            {
+                "transaction_id": "TX_DEP_REQ",
+                "transaction_date": "2026-03-05T09:30:00Z",
+                "transaction_type": "DEPOSIT",
+                "security_id": "CASH_USD",
+                "instrument_id": "CASH_USD",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 100.0,
+                "gross_transaction_amount_reporting_currency": 100.0,
+                "currency": "USD",
+            },
+            {
+                "transaction_id": "TX_DEP_YTD",
+                "transaction_date": "2026-02-05T09:30:00Z",
+                "transaction_type": "TRANSFER_IN",
+                "security_id": "CASH_USD",
+                "instrument_id": "CASH_USD",
+                "quantity": 0,
+                "price": None,
+                "gross_transaction_amount": 80.0,
+                "gross_transaction_amount_reporting_currency": 80.0,
+                "currency": "USD",
+            },
+        ]
+        start_date = kwargs.get("start_date")
+        end_date = kwargs.get("end_date")
+        security_id = kwargs.get("security_id")
+        instrument_id = kwargs.get("instrument_id")
+        transaction_type = kwargs.get("transaction_type")
+        sort_order = str(kwargs.get("sort_order", "desc")).lower()
+        skip = int(kwargs.get("skip", 0))
+        limit = int(kwargs.get("limit", 50))
+
+        filtered = transactions
+        if start_date is not None:
+            filtered = [item for item in filtered if item["transaction_date"][:10] >= start_date]
+        if end_date is not None:
+            filtered = [item for item in filtered if item["transaction_date"][:10] <= end_date]
+        if security_id is not None:
+            filtered = [item for item in filtered if item["security_id"] == security_id]
+        if instrument_id is not None:
+            filtered = [item for item in filtered if item["instrument_id"] == instrument_id]
+        if transaction_type is not None:
+            filtered = [item for item in filtered if item["transaction_type"] == transaction_type]
+        filtered = sorted(
+            filtered,
+            key=lambda item: item["transaction_date"],
+            reverse=sort_order != "asc",
+        )
+
+        return 200, {
+            "reporting_currency": kwargs.get("reporting_currency", "USD"),
+            "total": len(filtered),
+            "skip": skip,
+            "limit": limit,
+            "transactions": filtered[skip : skip + limit],
         }
 
 
@@ -313,10 +353,6 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
     async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
         self._record("get_portfolio_transactions")
         return await super().get_portfolio_transactions(portfolio_id, correlation_id, **kwargs)
-
-    async def query_activity_summary(self, **kwargs):
-        self._record("query_activity_summary")
-        return await super().query_activity_summary(**kwargs)
 
 
 class _StubAnalyticsClient:
@@ -465,30 +501,24 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
             self, portfolio_id: str, correlation_id: str, **kwargs
         ):
             return 200, {
-                "total": 0,
+                "reporting_currency": "USD",
+                "total": 1,
                 "skip": kwargs["skip"],
                 "limit": kwargs["limit"],
-                "transactions": [],
-            }
-
-        async def query_activity_summary(self, **kwargs):
-            return 200, {
-                "reporting_currency": "USD",
-                "totals": {
-                    "buckets": [
-                        {
-                            "bucket": "INFLOWS",
-                            "requested_window": {
-                                "transaction_count": 1,
-                                "amount_reporting_currency": 100.0,
-                            },
-                            "year_to_date": {
-                                "transaction_count": 1,
-                                "amount_reporting_currency": 100.0,
-                            },
-                        }
-                    ]
-                },
+                "transactions": [
+                    {
+                        "transaction_id": "TX_DEP_REQ",
+                        "transaction_date": "2026-03-05T09:30:00Z",
+                        "transaction_type": "DEPOSIT",
+                        "security_id": "CASH_USD",
+                        "instrument_id": "CASH_USD",
+                        "quantity": 0,
+                        "price": None,
+                        "gross_transaction_amount": 100.0,
+                        "gross_transaction_amount_reporting_currency": 100.0,
+                        "currency": "USD",
+                    }
+                ],
             }
 
     service = PortfolioService(_FundingEvidenceClient())
@@ -501,6 +531,42 @@ async def test_portfolio_insights_treats_recent_inflows_as_cash_funding_evidence
     insight_keys = {insight.key for insight in response.insights}
     assert "no-holdings-booked" in insight_keys
     assert "no-cash-funding" not in insight_keys
+
+
+@pytest.mark.asyncio
+async def test_portfolio_insights_flags_net_outflows_from_activity_buckets():
+    class _OutflowClient(_StubLotusCoreQueryClient):
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            return 200, {
+                "reporting_currency": "USD",
+                "total": 1,
+                "skip": kwargs["skip"],
+                "limit": kwargs["limit"],
+                "transactions": [
+                    {
+                        "transaction_id": "TX_OUT_1",
+                        "transaction_date": "2026-03-05T09:30:00Z",
+                        "transaction_type": "WITHDRAWAL",
+                        "security_id": "CASH_USD",
+                        "instrument_id": "CASH_USD",
+                        "quantity": 0,
+                        "gross_transaction_amount": 100.0,
+                        "gross_transaction_amount_reporting_currency": 100.0,
+                        "currency": "USD",
+                    }
+                ],
+            }
+
+    service = PortfolioService(_OutflowClient())
+    response = await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb-outflows",
+        as_of_date="2026-03-27",
+    )
+
+    assert "net-outflows-window" in {insight.key for insight in response.insights}
 
 
 @pytest.mark.asyncio
@@ -561,14 +627,12 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
             self, portfolio_id: str, correlation_id: str, **kwargs
         ):
             return 200, {
+                "reporting_currency": "USD",
                 "total": 0,
                 "skip": kwargs["skip"],
                 "limit": kwargs["limit"],
                 "transactions": [],
             }
-
-        async def query_activity_summary(self, **kwargs):
-            return 200, {"reporting_currency": "USD", "totals": {"buckets": []}}
 
     service = PortfolioService(_BlockedPortfolioClient())
     response = await service.get_portfolio_insights(
@@ -1147,10 +1211,10 @@ async def test_transaction_ledger_preserves_paging_metadata():
         skip=20,
         limit=25,
     )
-    assert response.total == 1
+    assert response.total == 7
     assert response.skip == 20
     assert response.limit == 25
-    assert response.transactions[0].transaction_id == "TX_1"
+    assert response.transactions == []
 
 
 @pytest.mark.asyncio
@@ -1263,9 +1327,15 @@ async def test_income_summary_passes_reporting_currency_and_uses_as_of_date_as_d
         def __init__(self):
             self.last_kwargs = None
 
-        async def query_income_summary(self, **kwargs):
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
             self.last_kwargs = kwargs
-            return await super().query_income_summary(**kwargs)
+            return await super().get_portfolio_transactions(
+                portfolio_id,
+                correlation_id,
+                **kwargs,
+            )
 
     client = _IncomeAwareClient()
     service = PortfolioService(client)
@@ -1301,9 +1371,15 @@ async def test_activity_summary_passes_reporting_currency_and_uses_as_of_date_as
         def __init__(self):
             self.last_kwargs = None
 
-        async def query_activity_summary(self, **kwargs):
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
             self.last_kwargs = kwargs
-            return await super().query_activity_summary(**kwargs)
+            return await super().get_portfolio_transactions(
+                portfolio_id,
+                correlation_id,
+                **kwargs,
+            )
 
     client = _ActivityAwareClient()
     service = PortfolioService(client)
@@ -1353,8 +1429,7 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
     assert client.calls["query_cash_balances"] == 1
     assert client.calls["get_portfolio_positions"] == 1
     assert client.calls["query_asset_allocation"] == 1
-    assert client.calls["get_portfolio_transactions"] == 2
-    assert client.calls["query_activity_summary"] == 1
+    assert client.calls["get_portfolio_transactions"] == 3
 
 
 @pytest.mark.asyncio
