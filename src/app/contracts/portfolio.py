@@ -153,24 +153,65 @@ class PortfolioSummary(BaseModel):
 
 
 class PortfolioCashBalance(BaseModel):
-    security_id: str
-    instrument_name: str
-    currency: str | None = None
-    quantity: float
-    market_value_base: float | None = None
-    weight_pct: float | None = None
+    security_id: str = Field(
+        description="Identifier of the cash balance or cash account row.",
+        examples=["CASH_USD"],
+    )
+    instrument_name: str = Field(
+        description="Advisor-facing label for the cash balance row.",
+        examples=["USD Cash"],
+    )
+    currency: str | None = Field(
+        default=None,
+        description="Currency of the cash account or balance row.",
+        examples=["USD"],
+    )
+    quantity: float = Field(
+        description="Cash quantity or balance in account currency units.",
+        examples=[100.0],
+    )
+    market_value_base: float | None = Field(
+        default=None,
+        description="Cash market value expressed in portfolio base currency.",
+        examples=[100.0],
+    )
+    weight_pct: float | None = Field(
+        default=None,
+        description="Cash weight as a percentage of portfolio assets under management.",
+        examples=[10.0],
+    )
 
 
 class PortfolioAllocationBucket(BaseModel):
-    bucket: str
-    position_count: int
-    market_value_base: float | None = None
-    weight_pct: float | None = None
+    bucket: str = Field(
+        description="Bucket label within the requested allocation dimension.",
+        examples=["Equity"],
+    )
+    position_count: int = Field(
+        description="Count of positions contributing to the allocation bucket.",
+        examples=[1],
+    )
+    market_value_base: float | None = Field(
+        default=None,
+        description="Bucket market value expressed in portfolio base currency.",
+        examples=[700.0],
+    )
+    weight_pct: float | None = Field(
+        default=None,
+        description="Bucket weight as a percentage of portfolio assets under management.",
+        examples=[70.0],
+    )
 
 
 class PortfolioAllocationView(BaseModel):
-    dimension: str
-    buckets: list[PortfolioAllocationBucket] = Field(default_factory=list)
+    dimension: str = Field(
+        description="Allocation dimension represented by the current view.",
+        examples=["asset_class"],
+    )
+    buckets: list[PortfolioAllocationBucket] = Field(
+        default_factory=list,
+        description="Allocation buckets returned for the requested dimension.",
+    )
 
 
 class PortfolioAllocationLookThroughCapability(BaseModel):
@@ -189,57 +230,227 @@ class PortfolioAllocationLookThroughCapability(BaseModel):
 
 
 class PortfolioTopPosition(BaseModel):
-    security_id: str
-    instrument_name: str
-    asset_class: str | None = None
-    isin: str | None = None
-    currency: str | None = None
-    quantity: float
-    cost_basis_base: float | None = None
-    market_value_base: float | None = None
-    weight_pct: float | None = None
+    security_id: str = Field(
+        description="Identifier of the ranked top holding.",
+        examples=["EQ_1"],
+    )
+    instrument_name: str = Field(
+        description="Advisor-facing instrument name for the ranked holding.",
+        examples=["Equity 1"],
+    )
+    asset_class: str | None = Field(
+        default=None,
+        description="Asset class assigned to the ranked holding when available.",
+        examples=["Equity"],
+    )
+    isin: str | None = Field(
+        default=None,
+        description="Optional ISIN associated with the ranked holding.",
+        examples=["US1234567890"],
+    )
+    currency: str | None = Field(
+        default=None,
+        description="Trading or instrument currency of the ranked holding.",
+        examples=["USD"],
+    )
+    quantity: float = Field(
+        description="Held quantity of the ranked position.",
+        examples=[10.0],
+    )
+    cost_basis_base: float | None = Field(
+        default=None,
+        description="Cost basis expressed in portfolio base currency.",
+        examples=[500.0],
+    )
+    market_value_base: float | None = Field(
+        default=None,
+        description="Market value expressed in portfolio base currency.",
+        examples=[700.0],
+    )
+    weight_pct: float | None = Field(
+        default=None,
+        description="Position weight as a percentage of portfolio assets under management.",
+        examples=[70.0],
+    )
 
 
 class PortfolioPositionView(BaseModel):
-    security_id: str
-    instrument_name: str
-    asset_class: str | None = None
-    isin: str | None = None
-    currency: str | None = None
-    sector: str | None = None
-    country_of_risk: str | None = None
-    held_since_date: str | None = None
-    quantity: float
-    market_price: float | None = None
-    cost_basis_base: float | None = None
-    cost_basis_local: float | None = None
-    market_value_base: float | None = None
-    market_value_local: float | None = None
-    unrealized_gain_loss_base: float | None = None
-    unrealized_gain_loss_local: float | None = None
-    weight_pct: float | None = None
-    reprocessing_status: str | None = None
+    security_id: str = Field(
+        description="Identifier of the position row.",
+        examples=["EQ_1"],
+    )
+    instrument_name: str = Field(
+        description="Advisor-facing instrument name for the position row.",
+        examples=["Equity 1"],
+    )
+    asset_class: str | None = Field(
+        default=None,
+        description="Asset class assigned to the position when available.",
+        examples=["Equity"],
+    )
+    isin: str | None = Field(
+        default=None,
+        description="Optional ISIN associated with the position.",
+        examples=["US1234567890"],
+    )
+    currency: str | None = Field(
+        default=None,
+        description="Trading or instrument currency of the position.",
+        examples=["USD"],
+    )
+    sector: str | None = Field(
+        default=None,
+        description="Optional sector classification for the position.",
+        examples=["Technology"],
+    )
+    country_of_risk: str | None = Field(
+        default=None,
+        description="Optional country-of-risk classification for the position.",
+        examples=["US"],
+    )
+    held_since_date: str | None = Field(
+        default=None,
+        description="Optional holding start date in YYYY-MM-DD format.",
+        examples=["2025-12-31"],
+    )
+    quantity: float = Field(
+        description="Held quantity of the position.",
+        examples=[10.0],
+    )
+    market_price: float | None = Field(
+        default=None,
+        description="Current market price of the position when valuation is available.",
+        examples=[70.0],
+    )
+    cost_basis_base: float | None = Field(
+        default=None,
+        description="Cost basis expressed in portfolio base currency.",
+        examples=[500.0],
+    )
+    cost_basis_local: float | None = Field(
+        default=None,
+        description="Cost basis expressed in local or instrument currency when available.",
+        examples=[500.0],
+    )
+    market_value_base: float | None = Field(
+        default=None,
+        description="Market value expressed in portfolio base currency.",
+        examples=[700.0],
+    )
+    market_value_local: float | None = Field(
+        default=None,
+        description="Market value expressed in local or instrument currency when available.",
+        examples=[700.0],
+    )
+    unrealized_gain_loss_base: float | None = Field(
+        default=None,
+        description="Unrealized gain or loss expressed in portfolio base currency.",
+        examples=[200.0],
+    )
+    unrealized_gain_loss_local: float | None = Field(
+        default=None,
+        description=(
+            "Unrealized gain or loss expressed in local or instrument currency when available."
+        ),
+        examples=[200.0],
+    )
+    weight_pct: float | None = Field(
+        default=None,
+        description="Position weight as a percentage of portfolio assets under management.",
+        examples=[70.0],
+    )
+    reprocessing_status: str | None = Field(
+        default=None,
+        description="Optional upstream reprocessing or valuation status for the position row.",
+        examples=["READY"],
+    )
 
 
 class PortfolioTransactionView(BaseModel):
-    transaction_id: str
-    transaction_date: str
-    settlement_date: str | None = None
-    transaction_type: str
-    component_type: str | None = None
-    security_id: str
-    instrument_id: str
-    quantity: float
-    price: float | None = None
-    gross_amount: float | None = None
-    currency: str | None = None
-    net_cost_base: float | None = None
-    realized_gain_loss_base: float | None = None
-    settlement_status: str | None = None
-    source_system: str | None = None
-    cash_entry_mode: str | None = None
-    economic_event_id: str | None = None
-    linked_transaction_group_id: str | None = None
+    transaction_id: str = Field(
+        description="Identifier of the transaction row.",
+        examples=["TX_1"],
+    )
+    transaction_date: str = Field(
+        description="Booked transaction date or timestamp for the ledger row.",
+        examples=["2026-03-27T09:30:00Z"],
+    )
+    settlement_date: str | None = Field(
+        default=None,
+        description="Optional settlement date for the transaction row.",
+        examples=["2026-03-29"],
+    )
+    transaction_type: str = Field(
+        description="Canonical transaction type returned by the source ledger.",
+        examples=["BUY"],
+    )
+    component_type: str | None = Field(
+        default=None,
+        description="Optional component type for linked or multi-row economic events.",
+        examples=["FX_CONTRACT_OPEN"],
+    )
+    security_id: str = Field(
+        description="Security identifier associated with the transaction row.",
+        examples=["EQ_1"],
+    )
+    instrument_id: str = Field(
+        description="Instrument identifier associated with the transaction row.",
+        examples=["INST_EQ_1"],
+    )
+    quantity: float = Field(
+        description="Transaction quantity for the ledger row.",
+        examples=[10.0],
+    )
+    price: float | None = Field(
+        default=None,
+        description="Booked transaction price when available.",
+        examples=[70.0],
+    )
+    gross_amount: float | None = Field(
+        default=None,
+        description="Gross transaction amount when available.",
+        examples=[700.0],
+    )
+    currency: str | None = Field(
+        default=None,
+        description="Currency associated with the transaction row when available.",
+        examples=["USD"],
+    )
+    net_cost_base: float | None = Field(
+        default=None,
+        description="Net cost expressed in portfolio base currency when available.",
+        examples=[700.0],
+    )
+    realized_gain_loss_base: float | None = Field(
+        default=None,
+        description="Realized gain or loss expressed in portfolio base currency when available.",
+        examples=[15.0],
+    )
+    settlement_status: str | None = Field(
+        default=None,
+        description="Optional settlement status for the transaction row.",
+        examples=["SETTLED"],
+    )
+    source_system: str | None = Field(
+        default=None,
+        description="Optional upstream source system associated with the transaction row.",
+        examples=["lotus-core"],
+    )
+    cash_entry_mode: str | None = Field(
+        default=None,
+        description="Optional cash-entry mode associated with the transaction row.",
+        examples=["BOOKED"],
+    )
+    economic_event_id: str | None = Field(
+        default=None,
+        description="Optional economic event identifier linking related transaction rows.",
+        examples=["EVT-2026-0001"],
+    )
+    linked_transaction_group_id: str | None = Field(
+        default=None,
+        description="Optional linked transaction group identifier for multi-row events.",
+        examples=["LTG-2026-0001"],
+    )
 
 
 class PortfolioCashflowPoint(BaseModel):
@@ -479,8 +690,7 @@ class PortfolioOperationalReadiness(BaseModel):
     publish_allowed: bool | None = Field(
         default=None,
         description=(
-            "Whether the current operational posture allows publication or downstream "
-            "processing."
+            "Whether the current operational posture allows publication or downstream processing."
         ),
         examples=[True],
     )
