@@ -1180,6 +1180,34 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert row_schema["properties"]["residual_pct"]["description"]
 
 
+def test_workbench_performance_advisor_brief_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/advisor-brief"]["get"]
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    benchmark_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "benchmark_code"
+    )
+    response_schema = schema["components"]["schemas"]["AdvisorBriefResponse"]
+    narrative_schema = schema["components"]["schemas"]["AdvisorBriefNarrativeItem"]
+    evidence_ref_schema = schema["components"]["schemas"]["AdvisorBriefEvidenceRef"]
+
+    assert "lotus-ai" in route["description"]
+    assert period_parameter["description"]
+    assert benchmark_parameter["description"]
+    assert response_schema["properties"]["summary"]["description"]
+    assert response_schema["properties"]["talking_points"]["description"]
+    assert response_schema["properties"]["ai_audit"]["description"]
+    assert response_schema["properties"]["supportability"]["description"]
+    assert narrative_schema["properties"]["evidence_refs"]["description"]
+    assert evidence_ref_schema["properties"]["source_surface"]["description"]
+
+
 def test_workbench_performance_advisor_brief_router(monkeypatch):
     captured_call = {}
 

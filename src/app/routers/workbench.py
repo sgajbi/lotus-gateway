@@ -677,14 +677,52 @@ async def get_performance_attribution_trend(
 )
 async def get_performance_advisor_brief(
     portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
+            "paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested workspace frequency context used to source the advisor brief.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested contribution dimension used to source the advisor brief context.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested attribution dimension used to source the advisor brief context.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the advisor brief analytics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit start date for an EXPLICIT advisor-brief window.",
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date for an EXPLICIT advisor-brief window.",
+        examples=["2026-04-04"],
+    ),
 ) -> AdvisorBriefResponse:
     service = _advisor_brief_service()
     correlation_id = correlation_id_var.get()
