@@ -55,7 +55,9 @@ def _foundation_service() -> FoundationService:
     response_model=FoundationPortfolioCatalogResponse,
     summary="Get Foundation Portfolio Catalog",
     description=(
-        "Returns a selector-ready catalog of portfolios for the Foundation workspace shell."
+        "Returns a selector-ready catalog for the Foundation portfolio entry shell. "
+        "Use this route to populate portfolio pickers before loading the full "
+        "Foundation workspace payload."
     ),
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
@@ -69,8 +71,10 @@ async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
     response_model=FoundationWorkspaceResponse,
     summary="Get Foundation Workspace",
     description=(
-        "Returns the Foundation workspace entry payload with portfolio summary, allocation shape, "
-        "readiness cues, and partial-failure-aware upstream context."
+        "Returns the first-paint Foundation workspace payload for a single portfolio. "
+        "Use this route when the UI needs portfolio identity, valuation summary, "
+        "allocation shape, top positions, readiness posture, workflow launch cues, "
+        "and advisor-facing evidence of degraded upstream dependencies in one response."
     ),
 )
 async def get_foundation_workspace(portfolio_id: str) -> FoundationWorkspaceResponse:

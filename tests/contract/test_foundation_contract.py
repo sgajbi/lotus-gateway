@@ -65,3 +65,14 @@ def test_foundation_openapi_contract_registered() -> None:
     spec = client.get("/openapi.json").json()
     assert "/api/v1/foundation/portfolios" in spec["paths"]
     assert "/api/v1/foundation/portfolios/{portfolio_id}/workspace" in spec["paths"]
+    workspace_operation = spec["paths"]["/api/v1/foundation/portfolios/{portfolio_id}/workspace"][
+        "get"
+    ]
+    assert "top positions" in workspace_operation["description"].lower()
+    foundation_workspace = spec["components"]["schemas"]["FoundationWorkspaceResponse"]
+    assert foundation_workspace["properties"]["top_positions"]["description"].startswith(
+        "Largest holdings ranked"
+    )
+    assert foundation_workspace["properties"]["evidence"]["description"].startswith(
+        "Advisor-facing evidence posture"
+    )
