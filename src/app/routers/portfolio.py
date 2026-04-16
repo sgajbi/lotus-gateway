@@ -218,8 +218,10 @@ async def get_portfolio_readiness(
         "Returns advisor-facing portfolio insights and compact exception summaries for the "
         "current book. Use this endpoint when the UI needs a governed summary of empty, "
         "blocked, concentration, funding, reporting, or recent-activity signals derived "
-        "from source-backed holdings, readiness, and activity inputs instead of rebuilding "
-        "those cues locally."
+        "from source-backed holdings, readiness, allocation, and transaction-ledger inputs "
+        "instead of rebuilding those cues locally. The response keeps advisor-facing "
+        "insights separate from compact exception rails so product surfaces can render "
+        "actionable guidance and degraded-state alerts consistently."
     ),
 )
 async def get_portfolio_insights(
@@ -227,7 +229,8 @@ async def get_portfolio_insights(
     as_of_date: str | None = Query(
         default=None,
         description=(
-            "Optional as-of date in YYYY-MM-DD format used to resolve portfolio insight inputs."
+            "Optional as-of date in YYYY-MM-DD format used to resolve holdings, readiness, "
+            "and activity inputs before insight and exception summaries are derived."
         ),
         examples=["2026-03-27"],
     ),
@@ -249,7 +252,8 @@ async def get_portfolio_insights(
         "source-backed holdings, funding, transaction, and readiness state instead of "
         "recomputing workflow priorities locally. The response preserves a stable action "
         "order, recommended next step, and empty-portfolio setup sequence for the resolved "
-        "as-of date."
+        "as-of date so downstream clients can launch the next workflow without custom "
+        "priority rules."
     ),
 )
 async def get_portfolio_workflow(
@@ -258,7 +262,7 @@ async def get_portfolio_workflow(
         default=None,
         description=(
             "Optional as-of date in YYYY-MM-DD format used to derive workflow priorities and "
-            "the recommended next action."
+            "the recommended next action from the current workspace state."
         ),
         examples=["2026-03-27"],
     ),

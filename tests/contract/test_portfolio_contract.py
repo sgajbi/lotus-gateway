@@ -355,6 +355,7 @@ def test_portfolio_openapi_contract_registered() -> None:
         "get"
     ]
     workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
+    insights_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"]
     allocations_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"][
         "get"
     ]
@@ -368,6 +369,9 @@ def test_portfolio_openapi_contract_registered() -> None:
     }
     workflow_parameters = {
         parameter["name"]: parameter for parameter in workflow_path["parameters"]
+    }
+    insights_parameters = {
+        parameter["name"]: parameter for parameter in insights_path["parameters"]
     }
     allocation_parameters = {
         parameter["name"]: parameter for parameter in allocations_path["parameters"]
@@ -507,13 +511,22 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert readiness_schema["properties"]["blocking_reasons"]["description"]
     assert readiness_schema["properties"]["indicators"]["description"]
     assert readiness_indicator_schema["properties"]["status"]["description"]
-    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"][
-        "description"
-    ]
+    assert insights_path["description"]
+    assert insights_parameters["as_of_date"]["description"]
+    assert insights_schema["properties"]["portfolio_id"]["description"]
+    assert insights_schema["properties"]["as_of_date"]["description"]
     assert insights_schema["properties"]["insights"]["description"]
     assert insights_schema["properties"]["exception_summaries"]["description"]
+    assert insight_item_schema["properties"]["key"]["description"]
+    assert insight_item_schema["properties"]["title"]["description"]
+    assert insight_item_schema["properties"]["detail"]["description"]
     assert insight_item_schema["properties"]["severity"]["description"]
+    assert insight_item_schema["properties"]["href"]["description"]
+    assert exception_item_schema["properties"]["key"]["description"]
+    assert exception_item_schema["properties"]["title"]["description"]
+    assert exception_item_schema["properties"]["detail"]["description"]
     assert exception_item_schema["properties"]["tone"]["description"]
+    assert exception_item_schema["properties"]["href"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"][
         "description"

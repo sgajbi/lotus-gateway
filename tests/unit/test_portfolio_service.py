@@ -570,6 +570,37 @@ async def test_portfolio_insights_flags_net_outflows_from_activity_buckets():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_insights_uses_minimal_transaction_probe_for_exception_totals():
+    class _ProbeClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.transaction_limits: list[int | None] = []
+            self.include_projected_flags: list[bool | None] = []
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.transaction_limits.append(kwargs.get("limit"))
+            self.include_projected_flags.append(kwargs.get("include_projected"))
+            return await super().get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _ProbeClient()
+    service = PortfolioService(client)
+
+    await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb-probe",
+        as_of_date="2026-03-27",
+    )
+
+    assert client.transaction_limits[0] == 1
+    assert client.include_projected_flags[0] is False
+
+
+@pytest.mark.asyncio
 async def test_portfolio_insights_returns_blocked_exception_summaries():
     class _BlockedPortfolioClient(_StubLotusCoreQueryClient):
         async def query_assets_under_management(self, **kwargs):
@@ -1429,7 +1460,7 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
     assert client.calls["get_portfolio_cash_balances"] == 1
     assert client.calls["get_portfolio_positions"] == 1
     assert client.calls["query_asset_allocation"] == 1
-    assert client.calls["get_portfolio_transactions"] == 3
+    assert client.calls["get_portfolio_transactions"] == 2
 
 
 @pytest.mark.asyncio

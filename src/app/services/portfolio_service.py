@@ -631,7 +631,7 @@ class PortfolioService:
                 as_of_date=as_of_date,
                 include_projected=False,
                 skip=0,
-                limit=50,
+                limit=1,
             ),
             self.get_activity_summary(
                 portfolio_id=portfolio_id,
