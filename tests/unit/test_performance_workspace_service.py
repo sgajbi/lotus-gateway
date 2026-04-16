@@ -897,6 +897,65 @@ def _attribution_detail_payload(*, dimension: str) -> dict:
     }
 
 
+def _many_contribution_rows_payload(*, dimension: str) -> dict:
+    payload = _contribution_payload(dimension=dimension)
+    payload["results_by_period"]["YTD"]["levels"][0]["rows"] = [
+        {
+            "key": {dimension: f"group-{index:02d}"},
+            "contribution": 0.1,
+            "weight_avg": 5.0,
+            "local_contribution": 0.08,
+            "fx_contribution": 0.02,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["levels"][0]["total_contribution"] = 1.2
+    payload["results_by_period"]["YTD"]["position_contributions"] = [
+        {
+            "position_id": f"POSITION_{index:02d}",
+            "total_contribution": 0.1,
+            "average_weight": 5.0,
+            "total_return": 1.0,
+            "local_contribution": 0.08,
+            "fx_contribution": 0.02,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["summary"]["portfolio_contribution"] = 1.2
+    payload["results_by_period"]["YTD"]["total_portfolio_return"] = 1.2
+    return payload
+
+
+def _many_attribution_groups_payload(*, dimension: str) -> dict:
+    payload = _attribution_detail_payload(dimension=dimension)
+    payload["results_by_period"]["YTD"]["levels"][0]["groups"] = [
+        {
+            "key": {dimension: f"group-{index:02d}"},
+            "portfolio_weight_avg": 5.0,
+            "benchmark_weight_avg": 4.0,
+            "portfolio_return": 1.0,
+            "benchmark_return": 0.8,
+            "allocation": 0.01,
+            "selection": 0.02,
+            "interaction": 0.0,
+            "total_effect": 0.03,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["levels"][0]["totals"] = {
+        "allocation": 0.12,
+        "selection": 0.24,
+        "interaction": 0.0,
+        "total_effect": 0.36,
+    }
+    payload["results_by_period"]["YTD"]["reconciliation"] = {
+        "total_active_return": 0.36,
+        "sum_of_effects": 0.36,
+        "residual": 0.0,
+    }
+    return payload
+
+
 @pytest.mark.asyncio
 async def test_performance_workspace_service_deduplicates_benchmark_catalog_options():
     service = PerformanceWorkspaceService(
@@ -1311,6 +1370,83 @@ async def test_workspace_service_maps_position_contributions_from_upstream_contr
     assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "USD"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert response.capabilities.contribution_ranking.state == "supported"
+
+
+@pytest.mark.asyncio
+async def test_workspace_service_preserves_full_contribution_row_coverage():
+    class _ManyContributionRowsAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            payload = _many_contribution_rows_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-contribution"
+            return 200, payload
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            payload = _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ManyContributionRowsAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="sector",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution is not None
+    assert len(response.contribution.levels[0].rows) == 12
+    assert len(response.contribution.position_rows) == 12
+    assert response.contribution.levels[0].total_contribution_pct == 1.2
+
+
+@pytest.mark.asyncio
+async def test_workspace_service_preserves_full_attribution_row_coverage():
+    class _ManyAttributionRowsAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            payload = _contribution_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-contribution"
+            return 200, payload
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            payload = _many_attribution_groups_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ManyAttributionRowsAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="country",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.attribution is not None
+    assert len(response.attribution.levels[0].rows) == 12
+    assert response.attribution.levels[0].allocation_total_pct == 0.12
+    assert response.attribution.levels[0].selection_total_pct == 0.24
+    assert response.attribution.levels[0].total_effect_pct == 0.36
 
 
 @pytest.mark.asyncio

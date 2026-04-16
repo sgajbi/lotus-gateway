@@ -3012,7 +3012,7 @@ class PerformanceWorkspaceService:
                 rows: list[ContributionRowView] = []
                 row_payloads = level_payload.get("rows", [])
                 if isinstance(row_payloads, list):
-                    for row_payload in row_payloads[:10]:
+                    for row_payload in row_payloads:
                         if not isinstance(row_payload, dict):
                             continue
                         rows.append(
@@ -3031,20 +3031,31 @@ class PerformanceWorkspaceService:
                                 is_other=bool(row_payload.get("is_other", False)),
                             )
                         )
+                source_level_total = self._quantize_optional(
+                    level_payload.get("total_contribution")
+                )
+                if source_level_total is None:
+                    source_level_total = self._quantize_optional(
+                        period_payload.get("total_contribution")
+                    )
                 levels.append(
                     ContributionLevelView(
                         level=int(level_payload.get("level", len(levels) + 1)),
                         name=str(level_payload.get("name", "Level")),
                         rows=rows,
-                        total_contribution_pct=(
-                            sum(row.contribution_pct for row in rows) if rows else None
+                        total_contribution_pct=source_level_total
+                        if source_level_total is not None
+                        else (
+                            self._quantize_optional(sum(row.contribution_pct for row in rows))
+                            if rows
+                            else None
                         ),
                     )
                 )
         position_rows: list[ContributionPositionView] = []
         position_payloads = period_payload.get("position_contributions", [])
         if isinstance(position_payloads, list):
-            for position_payload in position_payloads[:10]:
+            for position_payload in position_payloads:
                 if not isinstance(position_payload, dict):
                     continue
                 position_rows.append(
@@ -3139,7 +3150,7 @@ class PerformanceWorkspaceService:
                 groups = level_payload.get("groups", [])
                 rows: list[AttributionRowView] = []
                 if isinstance(groups, list):
-                    for group_payload in groups[:10]:
+                    for group_payload in groups:
                         if not isinstance(group_payload, dict):
                             continue
                         rows.append(
