@@ -71,6 +71,29 @@ class FoundationWorkflowLaunchCue(BaseModel):
     href: str
 
 
+class FoundationEvidenceSummary(BaseModel):
+    status: str = Field(
+        description="Advisor-facing degradation status for the foundation workspace boundary."
+    )
+    summary: str = Field(
+        description=(
+            "Short explanation of whether the workspace is fully ready or partially degraded."
+        )
+    )
+    warning_count: int = Field(
+        default=0,
+        description="Number of workspace warnings carried alongside the response.",
+    )
+    partial_failure_count: int = Field(
+        default=0,
+        description="Number of upstream partial failures preserved in the response.",
+    )
+    affected_sources: list[str] = Field(
+        default_factory=list,
+        description="Unique upstream services contributing to the degraded evidence posture.",
+    )
+
+
 class FoundationWorkspaceResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
@@ -82,5 +105,6 @@ class FoundationWorkspaceResponse(BaseModel):
     rebalance: FoundationRebalanceSummary | None = None
     readiness: FoundationWorkspaceReadiness
     workflow_cues: list[FoundationWorkflowLaunchCue] = Field(default_factory=list)
+    evidence: FoundationEvidenceSummary
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[FoundationPartialFailure] = Field(default_factory=list)

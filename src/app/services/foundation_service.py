@@ -11,6 +11,7 @@ from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.foundation import (
     FoundationAllocationBucket,
+    FoundationEvidenceSummary,
     FoundationPartialFailure,
     FoundationPerformanceSummary,
     FoundationPortfolioCatalogItem,
@@ -138,6 +139,10 @@ class FoundationService:
             has_positions=summary.position_count > 0,
             reporting=reporting,
         )
+        evidence = self._build_evidence_summary(
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
 
         return FoundationWorkspaceResponse(
             correlation_id=correlation_id,
@@ -150,6 +155,7 @@ class FoundationService:
             rebalance=rebalance,
             readiness=readiness,
             workflow_cues=self._build_workflow_cues(portfolio_id=portfolio_id),
+            evidence=evidence,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -493,6 +499,32 @@ class FoundationService:
                 href=f"/app/proposal?portfolioId={portfolio_id}",
             ),
         ]
+
+    def _build_evidence_summary(
+        self,
+        *,
+        warnings: list[str],
+        partial_failures: list[FoundationPartialFailure],
+    ) -> FoundationEvidenceSummary:
+        affected_sources = sorted({failure.source_service for failure in partial_failures})
+        if partial_failures or warnings:
+            return FoundationEvidenceSummary(
+                status="partial",
+                summary=(
+                    "Foundation workspace remains usable, but one or more upstream sources "
+                    "are degraded and should be reviewed before advisor use."
+                ),
+                warning_count=len(warnings),
+                partial_failure_count=len(partial_failures),
+                affected_sources=affected_sources,
+            )
+        return FoundationEvidenceSummary(
+            status="ready",
+            summary="Foundation workspace inputs are ready for advisor use.",
+            warning_count=0,
+            partial_failure_count=0,
+            affected_sources=[],
+        )
 
     def _optional_str(self, value: Any) -> str | None:
         if value is None:

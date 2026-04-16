@@ -100,6 +100,8 @@ def test_foundation_workspace_router_success(monkeypatch):
     assert body["performance"]["period"] == "YTD"
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
     assert body["readiness"]["reporting"]["status"] == "READY"
+    assert body["evidence"]["status"] == "ready"
+    assert body["evidence"]["partial_failure_count"] == 0
     assert len(body["workflow_cues"]) == 3
 
 
@@ -150,3 +152,7 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
         "FOUNDATION_REPORTING_UNAVAILABLE",
     ]
     assert len(body["partial_failures"]) == 2
+    assert body["evidence"]["status"] == "partial"
+    assert body["evidence"]["warning_count"] == 2
+    assert body["evidence"]["partial_failure_count"] == 2
+    assert body["evidence"]["affected_sources"] == ["lotus-performance", "lotus-report"]

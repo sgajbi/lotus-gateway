@@ -36,10 +36,18 @@ def test_foundation_response_model_contract_shape() -> None:
         workflow_cues=[
             {"key": "performance", "label": "Open Performance", "href": "/app/performance"}
         ],
+        evidence={
+            "status": "ready",
+            "summary": "Foundation workspace inputs are ready for advisor use.",
+            "warning_count": 0,
+            "partial_failure_count": 0,
+            "affected_sources": [],
+        },
     )
     assert payload.portfolio.portfolio_id == "PF_1001"
     assert payload.summary.position_count == 3
     assert payload.readiness.reporting.status == "READY"
+    assert payload.evidence.status == "ready"
 
 
 def test_foundation_openapi_contract_registered() -> None:
