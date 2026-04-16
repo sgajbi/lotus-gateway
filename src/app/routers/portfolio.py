@@ -405,14 +405,19 @@ async def get_portfolio_projected_cashflow(
     description=(
         "Returns source-backed portfolio allocation views across the supported reporting "
         "dimensions. Use this endpoint when the UI needs allocation buckets with optional "
-        "reporting-currency restatement and explicit look-through capability metadata."
+        "reporting-currency restatement and explicit look-through capability metadata. The "
+        "response preserves the effective look-through mode so downstream clients can tell "
+        "whether expanded exposure decomposition was actually applied."
     ),
 )
 async def get_portfolio_allocations(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to scope allocation views.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve allocation views and "
+            "their summary framing."
+        ),
         examples=["2026-03-27"],
     ),
     reporting_currency: str | None = Query(
@@ -449,14 +454,18 @@ async def get_portfolio_allocations(
     description=(
         "Returns the detailed position book for a portfolio, including ranked top holdings. "
         "Use this endpoint when the UI needs security-level holdings evidence, optional "
-        "projected rows, and reporting-currency-aware valuation fields."
+        "projected rows, and reporting-currency-aware valuation fields. The response keeps "
+        "top holdings and full position rows aligned to one resolved position-book snapshot."
     ),
 )
 async def get_portfolio_positions(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to scope position rows.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the position-book "
+            "snapshot and ranked top holdings."
+        ),
         examples=["2026-03-27"],
     ),
     include_projected: bool = Query(

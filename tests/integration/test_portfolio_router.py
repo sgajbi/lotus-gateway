@@ -1050,8 +1050,13 @@ def test_portfolio_allocations_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["views"][0]["dimension"] == "region"
-    assert response.json()["summary"]["cash_market_value_base"] == 100.0
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["reporting_currency"] == "USD"
+    assert body["look_through"]["requested_mode"] == "full"
+    assert body["look_through"]["effective_mode"] == "direct_only"
+    assert body["views"][0]["dimension"] == "region"
+    assert body["summary"]["cash_market_value_base"] == 100.0
     assert captured["reporting_currency"] == "USD"
     assert captured["positions_reporting_currency"] == "USD"
     assert captured["look_through_mode"] == "full"
@@ -1102,8 +1107,11 @@ def test_portfolio_positions_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["positions"][0]["security_id"] == "EQ_1"
-    assert response.json()["summary"]["cash_market_value_base"] == 100.0
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["positions"][0]["security_id"] == "EQ_1"
+    assert body["top_positions"][0]["security_id"] == "EQ_1"
+    assert body["summary"]["cash_market_value_base"] == 100.0
     assert captured["include_projected"] is True
     assert captured["reporting_currency"] == "USD"
 
