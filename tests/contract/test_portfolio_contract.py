@@ -357,6 +357,10 @@ def test_portfolio_openapi_contract_registered() -> None:
     workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
     insights_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"]
     book_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]
+    liquidity_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"]
+    projected_cashflow_path = spec["paths"][
+        "/api/v1/portfolio/portfolios/{portfolio_id}/projected-cashflow"
+    ]["get"]
     allocations_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"][
         "get"
     ]
@@ -375,6 +379,12 @@ def test_portfolio_openapi_contract_registered() -> None:
         parameter["name"]: parameter for parameter in insights_path["parameters"]
     }
     book_parameters = {parameter["name"]: parameter for parameter in book_path["parameters"]}
+    liquidity_parameters = {
+        parameter["name"]: parameter for parameter in liquidity_path["parameters"]
+    }
+    projected_cashflow_parameters = {
+        parameter["name"]: parameter for parameter in projected_cashflow_path["parameters"]
+    }
     allocation_parameters = {
         parameter["name"]: parameter for parameter in allocations_path["parameters"]
     }
@@ -536,12 +546,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_schema["properties"]["portfolio"]["description"]
     assert book_schema["properties"]["summary"]["description"]
     assert book_schema["properties"]["cash_balances"]["description"]
-    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"][
-        "description"
-    ]
-    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/projected-cashflow"]["get"][
-        "description"
-    ]
+    assert liquidity_path["description"]
+    assert liquidity_parameters["as_of_date"]["description"]
+    assert liquidity_parameters["reporting_currency"]["description"]
+    assert projected_cashflow_path["description"]
+    assert projected_cashflow_parameters["as_of_date"]["description"]
+    assert projected_cashflow_parameters["horizon_days"]["description"]
+    assert projected_cashflow_parameters["include_projected"]["description"]
     assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"]["get"][
         "description"
     ]
@@ -557,9 +568,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     ]
     assert book_schema["properties"]["positions"]["description"]
     assert book_schema["properties"]["allocation_views"]["description"]
+    assert liquidity_schema["properties"]["as_of_date"]["description"]
+    assert liquidity_schema["properties"]["summary"]["description"]
     assert liquidity_schema["properties"]["cash_balances"]["description"]
+    assert liquidity_schema["properties"]["partial_failures"]["description"]
     assert liquidity_schema["properties"]["warnings"]["description"]
     assert liquidity_schema["properties"]["cashflow_outlook"]["description"]
+    assert projected_cashflow_schema["properties"]["as_of_date"]["description"]
     assert projected_cashflow_schema["properties"]["cashflow_outlook"]["description"]
     assert projected_cashflow_schema["properties"]["warnings"]["description"]
     assert projected_cashflow_schema["properties"]["partial_failures"]["description"]

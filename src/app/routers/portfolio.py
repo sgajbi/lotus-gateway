@@ -321,19 +321,27 @@ async def get_portfolio_book(
     description=(
         "Returns the liquidity-focused portfolio view for cash balances, summary liquidity, "
         "and projected cashflow. Use this endpoint when the UI needs current cash inventory "
-        "plus forward liquidity context without loading the full portfolio book."
+        "plus forward liquidity context without loading the full portfolio book. The "
+        "response preserves liquidity warnings and partial failures when forward cashflow "
+        "inputs are temporarily unavailable."
     ),
 )
 async def get_portfolio_liquidity(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to resolve liquidity inputs.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the liquidity snapshot "
+            "and forward cashflow context."
+        ),
         examples=["2026-03-27"],
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used for AUM and cash-balance restatement.",
+        description=(
+            "Optional reporting currency used for AUM and cash-balance restatement in the "
+            "liquidity view."
+        ),
         examples=["USD"],
     ),
 ) -> PortfolioLiquidityResponse:
@@ -352,26 +360,32 @@ async def get_portfolio_liquidity(
     description=(
         "Returns the forward-looking projected cashflow contract for a portfolio. "
         "Use this endpoint when the UI needs a dedicated projected liquidity path for a "
-        "specific horizon without loading the broader liquidity summary."
+        "specific horizon without loading the broader liquidity summary. The response keeps "
+        "projection warnings and partial failures explicit when forward cashflow inputs are "
+        "temporarily degraded."
     ),
 )
 async def get_portfolio_projected_cashflow(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
-        description="Optional as-of date in YYYY-MM-DD format used to scope the projection.",
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to anchor the projected cashflow path."
+        ),
         examples=["2026-03-27"],
     ),
     horizon_days: int = Query(
         default=10,
         ge=1,
         le=365,
-        description="Forward projection horizon in business days.",
+        description="Forward projection horizon in business days for the requested cashflow path.",
         examples=[30],
     ),
     include_projected: bool = Query(
         default=True,
-        description="Whether projected events should be included in the forward cashflow path.",
+        description=(
+            "Whether projected events should be included when deriving the forward cashflow path."
+        ),
         examples=[True],
     ),
 ) -> PortfolioProjectedCashflowResponse:

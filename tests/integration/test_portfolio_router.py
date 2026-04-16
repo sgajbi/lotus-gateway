@@ -897,9 +897,44 @@ def test_portfolio_liquidity_router(monkeypatch):
         params={"as_of_date": "2026-03-27", "reporting_currency": "USD"},
     )
     assert response.status_code == 200
-    assert response.json()["cash_balances"][0]["security_id"] == "CASH_USD"
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["summary"]["assets_under_management_base"] == 1000.0
+    assert body["cash_balances"][0]["security_id"] == "CASH_USD"
+    assert body["cashflow_outlook"]["projection_days"] == 10
     assert captured["aum_reporting_currency"] == "USD"
     assert captured["cash_reporting_currency"] == "USD"
+
+
+def test_portfolio_liquidity_router_preserves_partial_failure(monkeypatch):
+    async def _query_aum(*args, **kwargs):
+        return 200, {
+            "resolved_as_of_date": "2026-03-27",
+            "portfolios": [
+                {"portfolio_id": "PF_1001", "aum_reporting_currency": 1000.0, "position_count": 2}
+            ],
+        }
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
+            "cash_accounts": [],
+        }
+
+    async def _cashflow(*args, **kwargs):
+        return 503, {"detail": "cashflow temporarily unavailable"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_1001/liquidity")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cashflow_outlook"] is None
+    assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in body["warnings"]
+    assert body["partial_failures"][0]["error_code"] == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
 
 
 def test_portfolio_projected_cashflow_router(monkeypatch):
@@ -934,10 +969,28 @@ def test_portfolio_projected_cashflow_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["cashflow_outlook"]["projection_days"] == 30
+    body = response.json()
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["cashflow_outlook"]["projection_days"] == 30
+    assert body["cashflow_outlook"]["include_projected"] is True
     assert captured["horizon_days"] == 30
     assert captured["as_of_date"] == "2026-03-27"
     assert captured["include_projected"] is False
+
+
+def test_portfolio_projected_cashflow_router_preserves_partial_failure(monkeypatch):
+    async def _cashflow(*args, **kwargs):
+        return 503, {"detail": "cashflow temporarily unavailable"}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PF_1001/projected-cashflow")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cashflow_outlook"] is None
+    assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in body["warnings"]
+    assert body["partial_failures"][0]["error_code"] == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
 
 
 def test_portfolio_allocations_router(monkeypatch):

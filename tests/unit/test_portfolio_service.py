@@ -998,11 +998,21 @@ async def test_portfolio_projected_cashflow_returns_requested_horizon():
 
         async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.last_kwargs = kwargs
-            return await super().get_cashflow_projection(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                **kwargs,
-            )
+            horizon_days = int(kwargs["horizon_days"])
+            return 200, {
+                "as_of_date": "2026-03-27",
+                "range_end_date": "2026-04-26",
+                "total_net_cashflow": -25.0,
+                "projection_days": horizon_days,
+                "include_projected": bool(kwargs["include_projected"]),
+                "points": [
+                    {
+                        "projection_date": "2026-03-28",
+                        "net_cashflow": -25.0,
+                        "projected_cumulative_cashflow": -25.0,
+                    }
+                ],
+            }
 
     client = _CashflowAwareClient()
     service = PortfolioService(client)
@@ -1017,7 +1027,8 @@ async def test_portfolio_projected_cashflow_returns_requested_horizon():
     assert client.last_kwargs is not None
     assert client.last_kwargs["horizon_days"] == 30
     assert response.cashflow_outlook is not None
-    assert response.cashflow_outlook.projection_days == 10
+    assert response.cashflow_outlook.projection_days == 30
+    assert response.cashflow_outlook.include_projected is True
     assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
 
 
