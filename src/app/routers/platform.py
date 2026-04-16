@@ -66,8 +66,11 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
     description=(
         "Aggregates lotus-core, lotus-performance, lotus-manage, and "
         "lotus-report integration capabilities into one "
-        "lotus-gateway contract for UI feature control and "
-        "workflow negotiation."
+        "lotus-gateway contract for UI feature control, shell bootstrap, and "
+        "workflow negotiation. Gateway fans out to upstream capability and policy "
+        "sources concurrently, applies a bounded per-source timeout, and returns "
+        "partial-failure diagnostics instead of serially blocking the shell while "
+        "an optional source is degraded."
     ),
 )
 async def get_platform_capabilities(
@@ -76,18 +79,21 @@ async def get_platform_capabilities(
         alias="consumerSystem",
         description=(
             "Gateway consumer identity used when upstream services publish "
-            "consumer-shaped capabilities."
+            "consumer-shaped capabilities. Use the actual downstream product "
+            "identity when a source service varies capability posture by consumer."
         ),
-        examples=["lotus-gateway"],
+        examples=["lotus-gateway", "lotus-workbench"],
     ),
     tenant_id: str = Query(
         "default",
         alias="tenantId",
         description=(
             "Tenant scope for capability evaluation when an upstream service "
-            "supports tenant-aware capability publication."
+            "supports tenant-aware capability publication. Workbench shell "
+            "bootstrap typically uses the governed default tenant unless a "
+            "tenant-specific experience contract is in force."
         ),
-        examples=["default"],
+        examples=["default", "tenant-a"],
     ),
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> PlatformCapabilitiesResponse:

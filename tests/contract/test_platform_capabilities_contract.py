@@ -104,3 +104,25 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         source = payload["sources"][service_name]
         assert source["contractVersion"] == "v1"
         assert "sourceService" in source
+
+
+def test_platform_capabilities_openapi_contract_registered() -> None:
+    client = TestClient(app)
+    spec = client.get("/openapi.json").json()
+
+    operation = spec["paths"]["/api/v1/platform/capabilities"]["get"]
+    assert operation["summary"] == "Get Aggregated Platform Capabilities"
+    assert "concurrently" in operation["description"]
+    assert "partial-failure diagnostics" in operation["description"]
+
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    assert (
+        "actual downstream product identity"
+        in parameters["consumerSystem"]["schema"]["description"]
+    )
+    assert parameters["consumerSystem"]["schema"]["examples"] == [
+        "lotus-gateway",
+        "lotus-workbench",
+    ]
+    assert "default tenant" in parameters["tenantId"]["schema"]["description"]
+    assert parameters["tenantId"]["schema"]["examples"] == ["default", "tenant-a"]

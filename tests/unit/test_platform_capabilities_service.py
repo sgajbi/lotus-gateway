@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 import pytest
 
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
@@ -82,6 +85,55 @@ class _RecordingStubClient(_StubClient):
             correlation_id=correlation_id,
             consumer_system=consumer_system,
             tenant_id=tenant_id,
+        )
+
+
+class _DelayedStubClient(_StubClient):
+    def __init__(
+        self,
+        status_code: int,
+        payload: dict,
+        *,
+        delay_seconds: float,
+        policy_status_code: int = 200,
+        policy_payload: dict | None = None,
+        policy_delay_seconds: float | None = None,
+    ):
+        super().__init__(
+            status_code,
+            payload,
+            policy_status_code=policy_status_code,
+            policy_payload=policy_payload,
+        )
+        self.delay_seconds = delay_seconds
+        self.policy_delay_seconds = (
+            delay_seconds if policy_delay_seconds is None else policy_delay_seconds
+        )
+
+    async def get_capabilities(
+        self,
+        correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
+    ):
+        await asyncio.sleep(self.delay_seconds)
+        return await super().get_capabilities(
+            correlation_id=correlation_id,
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+        )
+
+    async def get_effective_policy(
+        self,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ):
+        await asyncio.sleep(self.policy_delay_seconds)
+        return await super().get_effective_policy(
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
         )
 
 
@@ -487,3 +539,111 @@ async def test_platform_capabilities_uses_service_specific_upstream_capability_c
             "tenant_id": None,
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_fetches_sources_concurrently():
+    delay_seconds = 0.15
+    service = PlatformCapabilitiesService(
+        dpm_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_manage", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        lotus_core_query_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_core", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+            policy_payload={
+                "policyProvenance": {
+                    "policyVersion": "pas-policy-v1",
+                    "policySource": "tenant",
+                    "matchedRuleId": "tenant.default.consumers.lotus-gateway",
+                    "strictMode": False,
+                },
+                "allowedSections": ["OVERVIEW"],
+                "warnings": [],
+            },
+        ),
+        analytics_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_performance", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        reporting_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_report", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        contract_version="v1",
+    )
+
+    started_at = time.perf_counter()
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-concurrency",
+    )
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert response.data.partial_failure is False
+    assert elapsed_seconds < 0.45
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_timeout_budget_preserves_partial_response():
+    service = PlatformCapabilitiesService(
+        dpm_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_manage",
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        lotus_core_query_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_core",
+                "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        analytics_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_performance",
+                "features": [{"key": "pa.analytics.twr", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.25,
+        ),
+        reporting_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_report",
+                "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        contract_version="v1",
+        source_timeout_seconds=0.05,
+    )
+
+    started_at = time.perf_counter()
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-timeout-budget",
+    )
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert elapsed_seconds < 0.2
+    assert response.data.partial_failure is True
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is False
+    assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+    assert {error.service for error in response.data.errors} == {"lotus_performance"}
