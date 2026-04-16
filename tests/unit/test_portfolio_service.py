@@ -673,6 +673,33 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_book_passes_include_projected_to_positions():
+    class _ProjectedAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.last_include_projected: bool | None = None
+
+        async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.last_include_projected = kwargs.get("include_projected")
+            return await super().get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _ProjectedAwareClient()
+    service = PortfolioService(client)
+
+    await service.get_portfolio_book(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3-projected",
+        as_of_date="2026-03-27",
+        include_projected=True,
+    )
+
+    assert client.last_include_projected is True
+
+
+@pytest.mark.asyncio
 async def test_portfolio_liquidity_returns_cash_and_cashflow():
     service = PortfolioService(_StubLotusCoreQueryClient())
     response = await service.get_portfolio_liquidity(
@@ -684,6 +711,40 @@ async def test_portfolio_liquidity_returns_cash_and_cashflow():
     assert response.cash_balances[0].security_id == "CASH_USD"
     assert response.cashflow_outlook is not None
     assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
+
+
+@pytest.mark.asyncio
+async def test_portfolio_liquidity_passes_reporting_currency_and_preserves_cashflow_partial_failure():
+    class _LiquidityAwareClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.aum_reporting_currency: str | None = None
+            self.cash_reporting_currency: str | None = None
+
+        async def query_assets_under_management(self, **kwargs):
+            self.aum_reporting_currency = kwargs.get("reporting_currency")
+            return await super().query_assets_under_management(**kwargs)
+
+        async def query_cash_balances(self, **kwargs):
+            self.cash_reporting_currency = kwargs.get("reporting_currency")
+            return await super().query_cash_balances(**kwargs)
+
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            return 503, {"detail": "cashflow temporarily unavailable"}
+
+    client = _LiquidityAwareClient()
+    service = PortfolioService(client)
+    response = await service.get_portfolio_liquidity(
+        portfolio_id="PF_1001",
+        correlation_id="corr-3b-ccy",
+        as_of_date="2026-03-27",
+        reporting_currency="SGD",
+    )
+
+    assert client.aum_reporting_currency == "SGD"
+    assert client.cash_reporting_currency == "SGD"
+    assert response.cashflow_outlook is None
+    assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in response.warnings
+    assert response.partial_failures[0].error_code == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
 
 
 @pytest.mark.asyncio

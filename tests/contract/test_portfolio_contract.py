@@ -256,6 +256,8 @@ def test_portfolio_openapi_contract_registered() -> None:
     insights_schema = spec["components"]["schemas"]["PortfolioInsightsResponse"]
     insight_item_schema = spec["components"]["schemas"]["PortfolioInsight"]
     exception_item_schema = spec["components"]["schemas"]["PortfolioExceptionSummary"]
+    liquidity_schema = spec["components"]["schemas"]["PortfolioLiquidityResponse"]
+    book_schema = spec["components"]["schemas"]["PortfolioBookResponse"]
     workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
     workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
     assert workspace_schema["properties"]["performance"]["description"]
@@ -272,6 +274,14 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert insights_schema["properties"]["exception_summaries"]["description"]
     assert insight_item_schema["properties"]["severity"]["description"]
     assert exception_item_schema["properties"]["tone"]["description"]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]["description"]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"][
+        "description"
+    ]
+    assert book_schema["properties"]["positions"]["description"]
+    assert book_schema["properties"]["allocation_views"]["description"]
+    assert liquidity_schema["properties"]["cash_balances"]["description"]
+    assert liquidity_schema["properties"]["warnings"]["description"]
     assert workflow_schema["properties"]["actions"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
     assert workflow_action_schema["properties"]["cta_label"]["description"]

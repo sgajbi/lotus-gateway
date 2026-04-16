@@ -265,11 +265,27 @@ async def get_portfolio_workflow(
     "/portfolios/{portfolio_id}/book",
     response_model=PortfolioBookResponse,
     summary="Get portfolio book",
+    description=(
+        "Returns the combined portfolio book view used when the UI needs holdings, top "
+        "positions, allocation views, cash balances, and summary identity in one governed "
+        "response. Use this endpoint for a source-backed combined book snapshot instead of "
+        "reassembling those sections from separate contracts."
+    ),
 )
 async def get_portfolio_book(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used to scope the combined book.",
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description=(
+            "Whether projected position rows should be included when upstream supports them."
+        ),
+        examples=[False],
+    ),
 ) -> PortfolioBookResponse:
     return await _portfolio_service().get_portfolio_book(
         portfolio_id=portfolio_id,
@@ -283,11 +299,24 @@ async def get_portfolio_book(
     "/portfolios/{portfolio_id}/liquidity",
     response_model=PortfolioLiquidityResponse,
     summary="Get portfolio liquidity view",
+    description=(
+        "Returns the liquidity-focused portfolio view for cash balances, summary liquidity, "
+        "and projected cashflow. Use this endpoint when the UI needs current cash inventory "
+        "plus forward liquidity context without loading the full portfolio book."
+    ),
 )
 async def get_portfolio_liquidity(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used to resolve liquidity inputs.",
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used for AUM and cash-balance restatement.",
+        examples=["USD"],
+    ),
 ) -> PortfolioLiquidityResponse:
     return await _portfolio_service().get_portfolio_liquidity(
         portfolio_id=portfolio_id,

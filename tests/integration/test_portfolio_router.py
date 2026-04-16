@@ -485,6 +485,8 @@ def test_portfolio_insights_router(monkeypatch):
 
 
 def test_portfolio_book_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
 
@@ -497,6 +499,7 @@ def test_portfolio_book_router(monkeypatch):
         }
 
     async def _positions(*args, **kwargs):
+        captured["include_projected"] = kwargs.get("include_projected")
         return 200, {
             "positions": [
                 {
@@ -524,9 +527,13 @@ def test_portfolio_book_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_cash_balances", _cash_balances)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/book")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/book",
+        params={"as_of_date": "2026-03-27", "include_projected": "true"},
+    )
     assert response.status_code == 200
     assert response.json()["positions"][0]["security_id"] == "EQ_1"
+    assert captured["include_projected"] is True
 
 
 def test_portfolio_transactions_router(monkeypatch):
@@ -568,7 +575,10 @@ def test_portfolio_transactions_router(monkeypatch):
 
 
 def test_portfolio_liquidity_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _query_aum(*args, **kwargs):
+        captured["aum_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
             "resolved_as_of_date": "2026-03-27",
             "portfolios": [
@@ -577,6 +587,7 @@ def test_portfolio_liquidity_router(monkeypatch):
         }
 
     async def _cash_balances(*args, **kwargs):
+        captured["cash_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
             "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
             "cash_accounts": [
@@ -605,9 +616,14 @@ def test_portfolio_liquidity_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/liquidity")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/liquidity",
+        params={"as_of_date": "2026-03-27", "reporting_currency": "USD"},
+    )
     assert response.status_code == 200
     assert response.json()["cash_balances"][0]["security_id"] == "CASH_USD"
+    assert captured["aum_reporting_currency"] == "USD"
+    assert captured["cash_reporting_currency"] == "USD"
 
 
 def test_portfolio_projected_cashflow_router(monkeypatch):

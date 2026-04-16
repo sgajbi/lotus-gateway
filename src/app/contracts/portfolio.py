@@ -508,13 +508,37 @@ class PortfolioWorkspaceResponse(BaseModel):
 class PortfolioLiquidityResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    portfolio_id: str
-    as_of_date: str
-    summary: PortfolioSummary
-    cash_balances: list[PortfolioCashBalance] = Field(default_factory=list)
-    cashflow_outlook: PortfolioCashflowOutlook | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[PortfolioPartialFailure] = Field(default_factory=list)
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose liquidity snapshot is being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the liquidity summary and cash balances.",
+        examples=["2026-03-27"],
+    )
+    summary: PortfolioSummary = Field(
+        description="Source-backed summary values used to frame available and invested liquidity.",
+    )
+    cash_balances: list[PortfolioCashBalance] = Field(
+        default_factory=list,
+        description=(
+            "Published cash balance rows for the requested portfolio and reporting currency."
+        ),
+    )
+    cashflow_outlook: PortfolioCashflowOutlook | None = Field(
+        default=None,
+        description="Projected liquidity path when forward cashflow evidence is available.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded but still usable liquidity output.",
+    )
+    partial_failures: list[PortfolioPartialFailure] = Field(
+        default_factory=list,
+        description=(
+            "Upstream source failures preserved when optional liquidity sections are unavailable."
+        ),
+    )
 
 
 class PortfolioProjectedCashflowResponse(BaseModel):
@@ -551,13 +575,32 @@ class PortfolioPositionBookResponse(BaseModel):
 class PortfolioBookResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    as_of_date: str
-    portfolio: PortfolioIdentity
-    summary: PortfolioSummary
-    cash_balances: list[PortfolioCashBalance] = Field(default_factory=list)
-    allocation_views: list[PortfolioAllocationView] = Field(default_factory=list)
-    top_positions: list[PortfolioTopPosition] = Field(default_factory=list)
-    positions: list[PortfolioPositionView] = Field(default_factory=list)
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the combined portfolio book sections.",
+        examples=["2026-03-27"],
+    )
+    portfolio: PortfolioIdentity = Field(
+        description="Portfolio identity metadata for the combined book view.",
+    )
+    summary: PortfolioSummary = Field(
+        description="Source-backed summary values for the current portfolio book.",
+    )
+    cash_balances: list[PortfolioCashBalance] = Field(
+        default_factory=list,
+        description="Cash inventory included in the current portfolio book view.",
+    )
+    allocation_views: list[PortfolioAllocationView] = Field(
+        default_factory=list,
+        description="Allocation views included with the portfolio book response.",
+    )
+    top_positions: list[PortfolioTopPosition] = Field(
+        default_factory=list,
+        description="Ranked top holdings for the current book.",
+    )
+    positions: list[PortfolioPositionView] = Field(
+        default_factory=list,
+        description="Detailed position rows included in the current portfolio book.",
+    )
 
 
 class PortfolioTransactionLedgerResponse(BaseModel):
