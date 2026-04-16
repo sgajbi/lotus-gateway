@@ -32,16 +32,25 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
 
 
 def test_foundation_workspace_router_success(monkeypatch):
+    async def _portfolio(*args, **kwargs):
+        return 200, {
+            "portfolio_id": "PF_1001",
+            "portfolio_name": "Alpha Growth",
+            "base_currency": "USD",
+            "booking_center": "SG",
+            "cif_id": "CIF_1001",
+        }
+
     async def _core_snapshot(*args, **kwargs):
         return 200, {
-            "portfolio": {
-                "portfolio_id": "PF_1001",
-                "portfolio_name": "Alpha Growth",
-                "base_currency": "USD",
-                "booking_center": "SG",
-                "cif_id": "CIF_1001",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-25",
+            "valuation_context": {
+                "portfolio_currency": "USD",
+                "reporting_currency": "USD",
+                "position_basis": "market_value_base",
+                "weight_basis": "total_market_value_base",
             },
-            "metadata": {"as_of_date": "2026-03-25"},
             "sections": {
                 "positions_baseline": [
                     {"security_id": "EQ_1", "market_value_base": 600.0},
@@ -87,6 +96,9 @@ def test_foundation_workspace_router_success(monkeypatch):
         }
 
     monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio", _portfolio
+    )
+    monkeypatch.setattr(
         "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_core_snapshot",
         _core_snapshot,
     )
@@ -117,10 +129,17 @@ def test_foundation_workspace_router_success(monkeypatch):
 
 
 def test_foundation_workspace_router_partial_failure(monkeypatch):
+    async def _portfolio(*args, **kwargs):
+        return 200, {
+            "portfolio_id": "PF_1001",
+            "portfolio_name": "Alpha Growth",
+            "base_currency": "USD",
+        }
+
     async def _core_snapshot(*args, **kwargs):
         return 200, {
-            "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
-            "metadata": {"as_of_date": "2026-03-25"},
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-25",
             "sections": {
                 "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 750.0}],
                 "portfolio_totals": {
@@ -140,6 +159,9 @@ def test_foundation_workspace_router_partial_failure(monkeypatch):
     async def _reporting(*args, **kwargs):
         return 503, {"detail": "report unavailable"}
 
+    monkeypatch.setattr(
+        "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_portfolio", _portfolio
+    )
     monkeypatch.setattr(
         "app.clients.lotus_core_query_client.LotusCoreQueryClient.get_core_snapshot",
         _core_snapshot,

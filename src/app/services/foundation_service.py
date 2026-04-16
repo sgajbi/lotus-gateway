@@ -76,13 +76,27 @@ class FoundationService:
         correlation_id: str,
     ) -> FoundationWorkspaceResponse:
         as_of_date = datetime.now(UTC).date().isoformat()
-        pas_status, pas_payload = await self._lotus_core_query_client.get_core_snapshot(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-            consumer_system="lotus-gateway",
-            correlation_id=correlation_id,
+        identity_result, snapshot_result = await asyncio.gather(
+            self._lotus_core_query_client.get_portfolio(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+            self._lotus_core_query_client.get_core_snapshot(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            ),
         )
+        identity_status, identity_payload = identity_result
+        if identity_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"lotus-core portfolio identity unavailable: {identity_payload}",
+            )
+
+        pas_status, pas_payload = snapshot_result
         if pas_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -91,6 +105,7 @@ class FoundationService:
 
         portfolio, summary, allocations, top_positions, as_of_date = self._parse_core_snapshot(
             fallback_portfolio_id=portfolio_id,
+            portfolio_payload=identity_payload,
             payload=pas_payload,
             fallback_as_of_date=as_of_date,
         )
@@ -189,6 +204,7 @@ class FoundationService:
     def _parse_core_snapshot(
         self,
         fallback_portfolio_id: str,
+        portfolio_payload: dict[str, Any],
         payload: dict[str, Any],
         fallback_as_of_date: str,
     ) -> tuple[
@@ -203,11 +219,14 @@ class FoundationService:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Invalid lotus-core foundation snapshot payload structure.",
             )
+        if not isinstance(portfolio_payload, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid lotus-core portfolio identity payload structure.",
+            )
 
-        portfolio_payload = payload.get("portfolio", {})
         sections_payload = payload.get("sections", {})
-        metadata_payload = payload.get("metadata", {})
-        if not isinstance(portfolio_payload, dict) or not isinstance(sections_payload, dict):
+        if not isinstance(sections_payload, dict):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Invalid lotus-core foundation snapshot payload structure.",
@@ -305,7 +324,7 @@ class FoundationService:
                     quantize_performance((bucket.market_value_base / market_value_base) * 100.0)
                 )
 
-        portfolio_id = str(portfolio_payload.get("portfolio_id", fallback_portfolio_id))
+        portfolio_id = str(payload.get("portfolio_id") or fallback_portfolio_id)
         display_name = str(
             portfolio_payload.get("portfolio_name") or portfolio_payload.get("name") or portfolio_id
         )
@@ -315,7 +334,11 @@ class FoundationService:
             client_id=self._optional_str(
                 portfolio_payload.get("cif_id", portfolio_payload.get("client_id"))
             ),
-            base_currency=str(portfolio_payload.get("base_currency", "USD")),
+            base_currency=str(
+                portfolio_payload.get("base_currency")
+                or self._read_valuation_context_currency(payload, "portfolio_currency")
+                or "USD"
+            ),
             booking_center_code=self._optional_str(
                 portfolio_payload.get(
                     "booking_center",
@@ -329,13 +352,18 @@ class FoundationService:
             cash_weight_pct=cash_weight_pct,
             position_count=position_count,
         )
-        as_of_date = str(
-            payload.get("as_of_date")
-            or metadata_payload.get("as_of_date")
-            or metadata_payload.get("business_date")
-            or fallback_as_of_date
-        )
+        as_of_date = str(payload.get("as_of_date") or fallback_as_of_date)
         return portfolio, summary, allocations, top_positions[:5], as_of_date
+
+    def _read_valuation_context_currency(
+        self,
+        payload: dict[str, Any],
+        currency_key: str,
+    ) -> str | None:
+        valuation_context = payload.get("valuation_context")
+        if not isinstance(valuation_context, dict):
+            return None
+        return self._optional_str(valuation_context.get(currency_key))
 
     def _parse_performance_result(
         self,

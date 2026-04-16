@@ -5,13 +5,26 @@ from app.services.foundation_service import FoundationService
 
 
 class _StubLotusCoreQueryClient:
-    def __init__(self, list_payload: dict, snapshot_payload: dict):
+    def __init__(
+        self, list_payload: dict, snapshot_payload: dict, portfolio_payload: dict | None = None
+    ):
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
+        self.portfolio_payload = portfolio_payload or {}
         self.snapshot_calls: list[dict[str, object]] = []
+        self.portfolio_calls: list[dict[str, object]] = []
 
     async def get_portfolio_lookups(self, correlation_id: str):
         return 200, self.list_payload
+
+    async def get_portfolio(self, portfolio_id: str, correlation_id: str):
+        self.portfolio_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return 200, self.portfolio_payload
 
     async def get_core_snapshot(
         self,
@@ -101,14 +114,21 @@ async def test_foundation_portfolio_catalog_success():
 async def test_foundation_workspace_success():
     lotus_core_client = _StubLotusCoreQueryClient(
         list_payload={"items": []},
+        portfolio_payload={
+            "portfolio_id": "PF_1001",
+            "portfolio_name": "Alpha Growth",
+            "base_currency": "USD",
+            "booking_center": "SG",
+            "cif_id": "CIF_1001",
+        },
         snapshot_payload={
+            "portfolio_id": "PF_1001",
             "as_of_date": "2026-03-25",
-            "portfolio": {
-                "portfolio_id": "PF_1001",
-                "portfolio_name": "Alpha Growth",
-                "base_currency": "USD",
-                "booking_center": "SG",
-                "cif_id": "CIF_1001",
+            "valuation_context": {
+                "portfolio_currency": "USD",
+                "reporting_currency": "USD",
+                "position_basis": "market_value_base",
+                "weight_basis": "total_market_value_base",
             },
             "sections": {
                 "positions_baseline": [
@@ -160,6 +180,7 @@ async def test_foundation_workspace_success():
     assert response.portfolio.display_name == "Alpha Growth"
     assert response.summary.cash_weight_pct == 10.0
     assert response.allocations[0].asset_class == "Cash"
+    assert lotus_core_client.portfolio_calls[0]["portfolio_id"] == "PF_1001"
     assert lotus_core_client.snapshot_calls[0]["portfolio_id"] == "PF_1001"
     assert lotus_core_client.snapshot_calls[0]["sections"] == [
         "positions_baseline",
@@ -180,9 +201,14 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
+            portfolio_payload={
+                "portfolio_id": "PF_1001",
+                "portfolio_name": "Alpha Growth",
+                "base_currency": "USD",
+            },
             snapshot_payload={
+                "portfolio_id": "PF_1001",
                 "as_of_date": "2026-03-25",
-                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
                 "sections": {
                     "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
                     "portfolio_totals": {
@@ -259,6 +285,7 @@ async def test_foundation_workspace_rejects_invalid_snapshot_payload():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
+            portfolio_payload={"portfolio_id": "PF_1001", "base_currency": "USD"},
             snapshot_payload={"portfolio": [], "sections": "invalid"},
         ),
         analytics_client=_StubAnalyticsClient(200, {}),
@@ -281,9 +308,10 @@ async def test_foundation_workspace_handles_invalid_optional_upstream_payloads()
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
+            portfolio_payload={"portfolio_id": "PF_1001", "portfolio_name": "Alpha Growth"},
             snapshot_payload={
+                "portfolio_id": "PF_1001",
                 "as_of_date": "2026-03-25",
-                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
                 "sections": {
                     "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
                     "portfolio_totals": {
@@ -324,9 +352,10 @@ async def test_foundation_workspace_records_optional_upstream_exception():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
+            portfolio_payload={"portfolio_id": "PF_1001", "portfolio_name": "Alpha Growth"},
             snapshot_payload={
+                "portfolio_id": "PF_1001",
                 "as_of_date": "2026-03-25",
-                "portfolio": {"portfolio_id": "PF_1001", "base_currency": "USD"},
                 "sections": {
                     "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 450.0}],
                     "portfolio_totals": {
@@ -417,6 +446,34 @@ async def test_foundation_workspace_rejects_snapshot_upstream_error():
     assert "lotus-core foundation snapshot unavailable" in exc_info.value.detail
 
 
+@pytest.mark.asyncio
+async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={"items": []},
+            portfolio_payload={"detail": "portfolio unavailable"},
+            snapshot_payload={"portfolio_id": "PF_503", "sections": {}},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    async def _raise_portfolio_error(portfolio_id: str, correlation_id: str):
+        return 503, {"detail": "portfolio unavailable"}
+
+    service._lotus_core_query_client.get_portfolio = _raise_portfolio_error  # type: ignore[method-assign]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_workspace(
+            portfolio_id="PF_503",
+            correlation_id="corr-portfolio-503",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert "lotus-core portfolio identity unavailable" in exc_info.value.detail
+
+
 def test_foundation_parses_defensive_snapshot_branches():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
@@ -428,9 +485,11 @@ def test_foundation_parses_defensive_snapshot_branches():
     portfolio, summary, allocations, top_positions, as_of_date = service._parse_core_snapshot(
         fallback_portfolio_id="PF_FALLBACK",
         fallback_as_of_date="2026-03-31",
+        portfolio_payload={"name": "Fallback Name"},
         payload={
-            "metadata": {"business_date": "2026-03-30"},
-            "portfolio": {"name": "Fallback Name"},
+            "portfolio_id": "PF_FALLBACK",
+            "as_of_date": "2026-03-30",
+            "valuation_context": {"portfolio_currency": "EUR"},
             "sections": {
                 "positions_baseline": [
                     "skip-me",
@@ -448,12 +507,47 @@ def test_foundation_parses_defensive_snapshot_branches():
 
     assert portfolio.portfolio_id == "PF_FALLBACK"
     assert portfolio.display_name == "Fallback Name"
+    assert portfolio.base_currency == "EUR"
     assert summary.market_value_base == 0.0
     assert len(top_positions) == 2
     assert summary.position_count == 2
     assert [bucket.asset_class for bucket in allocations] == ["Alternatives", "Equity"]
     assert allocations[0].weight_pct is None
     assert allocations[1].market_value_base == 374.45
+    assert as_of_date == "2026-03-30"
+
+
+def test_foundation_snapshot_parser_ignores_legacy_nested_portfolio_and_metadata():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient({"items": []}, {}),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    portfolio, _summary, _allocations, _top_positions, as_of_date = service._parse_core_snapshot(
+        fallback_portfolio_id="PF_IGNORED",
+        fallback_as_of_date="2026-03-31",
+        portfolio_payload={
+            "portfolio_id": "PF_IDENTITY",
+            "portfolio_name": "Identity Name",
+            "base_currency": "USD",
+        },
+        payload={
+            "portfolio_id": "PF_SNAPSHOT",
+            "as_of_date": "2026-03-30",
+            "portfolio": {"portfolio_id": "PF_LEGACY", "portfolio_name": "Legacy Name"},
+            "metadata": {"business_date": "1999-01-01"},
+            "sections": {
+                "positions_baseline": [],
+                "portfolio_totals": {},
+                "instrument_enrichment": [],
+            },
+        },
+    )
+
+    assert portfolio.portfolio_id == "PF_SNAPSHOT"
+    assert portfolio.display_name == "Identity Name"
     assert as_of_date == "2026-03-30"
 
 
