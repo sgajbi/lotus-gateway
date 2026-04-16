@@ -924,6 +924,62 @@ async def test_lotus_core_query_client_core_endpoints():
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_lookup_routes_preserve_filter_query_params():
+    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"items": [{"id": "PF_1", "label": "PF_1"}]})
+    _FakeAsyncClient.queue_json(200, {"items": [{"id": "SEC_1", "label": "SEC_1"}]})
+    _FakeAsyncClient.queue_json(200, {"items": [{"id": "USD", "label": "USD"}]})
+
+    assert (
+        await client.get_portfolio_lookups(
+            correlation_id="corr-lookups",
+            cif_id="CIF_1001",
+            booking_center="SG",
+            q="Alpha",
+            limit=25,
+        )
+    )[0] == 200
+    assert (
+        await client.get_instrument_lookups(
+            limit=50,
+            correlation_id="corr-lookups",
+            product_type="EQUITY",
+            q="Apple",
+        )
+    )[0] == 200
+    assert (
+        await client.get_currency_lookups(
+            correlation_id="corr-lookups",
+            instrument_page_limit=500,
+            source="ALL",
+            q="USD",
+            limit=10,
+        )
+    )[0] == 200
+
+    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/lookups/portfolios"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "cif_id": "CIF_1001",
+        "booking_center": "SG",
+        "q": "Alpha",
+        "limit": 25,
+    }
+    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/lookups/instruments"
+    assert _FakeAsyncClient.calls[1]["params"] == {
+        "limit": 50,
+        "product_type": "EQUITY",
+        "q": "Apple",
+    }
+    assert _FakeAsyncClient.calls[2]["url"] == "http://pas/lookups/currencies"
+    assert _FakeAsyncClient.calls[2]["params"] == {
+        "instrument_page_limit": 500,
+        "source": "ALL",
+        "q": "USD",
+        "limit": 10,
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_capability_routes_use_canonical_snake_case_query_params():
     client = LotusCoreQueryClient(
         base_url="http://core-query",

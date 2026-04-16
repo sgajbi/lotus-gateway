@@ -477,28 +477,64 @@ class LotusCoreQueryClient:
     async def get_portfolio_lookups(
         self,
         correlation_id: str,
+        *,
+        cif_id: str | None = None,
+        booking_center: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if cif_id is not None:
+            params["cif_id"] = cif_id
+        if booking_center is not None:
+            params["booking_center"] = booking_center
+        if q is not None:
+            params["q"] = q
+        if limit is not None:
+            params["limit"] = limit
         return await self._get_lookup(
-            path="/lookups/portfolios", params={}, correlation_id=correlation_id
+            path="/lookups/portfolios", params=params, correlation_id=correlation_id
         )
 
     async def get_instrument_lookups(
         self,
         limit: int,
         correlation_id: str,
+        *,
+        product_type: str | None = None,
+        q: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit}
+        if product_type is not None:
+            params["product_type"] = product_type
+        if q is not None:
+            params["q"] = q
         return await self._get_lookup(
             path="/lookups/instruments",
-            params={"limit": limit},
+            params=params,
             correlation_id=correlation_id,
         )
 
     async def get_currency_lookups(
         self,
         correlation_id: str,
+        *,
+        instrument_page_limit: int | None = None,
+        source: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if instrument_page_limit is not None:
+            params["instrument_page_limit"] = instrument_page_limit
+        if source is not None:
+            params["source"] = source
+        if q is not None:
+            params["q"] = q
+        if limit is not None:
+            params["limit"] = limit
         return await self._get_lookup(
-            path="/lookups/currencies", params={}, correlation_id=correlation_id
+            path="/lookups/currencies", params=params, correlation_id=correlation_id
         )
 
     async def _get_lookup(

@@ -19,24 +19,30 @@ class _PasIngestionStub:
 
 
 class _PasQueryStub:
-    async def get_portfolio_lookups(self, correlation_id):  # noqa: ANN001
-        _ = correlation_id
+    def __init__(self) -> None:
+        self.portfolio_call: dict[str, object] | None = None
+        self.instrument_call: dict[str, object] | None = None
+        self.currency_call: dict[str, object] | None = None
+
+    async def get_portfolio_lookups(self, correlation_id, **kwargs):  # noqa: ANN001
+        self.portfolio_call = {"correlation_id": correlation_id, **kwargs}
         return 200, {"items": [{"id": "PF_1", "label": "PF_1"}]}
 
-    async def get_instrument_lookups(self, limit, correlation_id):  # noqa: ANN001
-        _ = limit, correlation_id
+    async def get_instrument_lookups(self, limit, correlation_id, **kwargs):  # noqa: ANN001
+        self.instrument_call = {"limit": limit, "correlation_id": correlation_id, **kwargs}
         return 200, {"items": [{"id": "SEC_1", "label": "SEC_1 | Apple Inc."}]}
 
-    async def get_currency_lookups(self, correlation_id):  # noqa: ANN001
-        _ = correlation_id
+    async def get_currency_lookups(self, correlation_id, **kwargs):  # noqa: ANN001
+        self.currency_call = {"correlation_id": correlation_id, **kwargs}
         return 200, {"items": [{"id": "EUR", "label": "EUR"}, {"id": "USD", "label": "USD"}]}
 
 
 @pytest.mark.asyncio
 async def test_intake_service_happy_paths():
+    query_client = _PasQueryStub()
     service = IntakeService(
         lotus_core_ingestion_client=_PasIngestionStub(),
-        lotus_core_query_client=_PasQueryStub(),
+        lotus_core_query_client=query_client,
     )
 
     ingest = await service.ingest_portfolio_bundle(
@@ -63,14 +69,51 @@ async def test_intake_service_happy_paths():
     )
     assert commit.data["published_rows"] == 1
 
-    portfolio_lookups = await service.get_portfolio_lookups(correlation_id="corr-1")
+    portfolio_lookups = await service.get_portfolio_lookups(
+        correlation_id="corr-1",
+        cif_id="CIF_1001",
+        booking_center="SG",
+        q="Alpha",
+        limit=25,
+    )
     assert portfolio_lookups.items[0].id == "PF_1"
+    assert query_client.portfolio_call == {
+        "correlation_id": "corr-1",
+        "cif_id": "CIF_1001",
+        "booking_center": "SG",
+        "q": "Alpha",
+        "limit": 25,
+    }
 
-    instrument_lookups = await service.get_instrument_lookups(limit=50, correlation_id="corr-1")
+    instrument_lookups = await service.get_instrument_lookups(
+        limit=50,
+        correlation_id="corr-1",
+        product_type="EQUITY",
+        q="Apple",
+    )
     assert instrument_lookups.items[0].id == "SEC_1"
+    assert query_client.instrument_call == {
+        "limit": 50,
+        "correlation_id": "corr-1",
+        "product_type": "EQUITY",
+        "q": "Apple",
+    }
 
-    currency_lookups = await service.get_currency_lookups(correlation_id="corr-1")
+    currency_lookups = await service.get_currency_lookups(
+        correlation_id="corr-1",
+        instrument_page_limit=500,
+        source="ALL",
+        q="USD",
+        limit=10,
+    )
     assert [item.id for item in currency_lookups.items] == ["EUR", "USD"]
+    assert query_client.currency_call == {
+        "correlation_id": "corr-1",
+        "instrument_page_limit": 500,
+        "source": "ALL",
+        "q": "USD",
+        "limit": 10,
+    }
 
 
 @pytest.mark.asyncio
