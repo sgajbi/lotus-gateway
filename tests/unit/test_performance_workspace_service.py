@@ -1301,7 +1301,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.period == "YTD"
     assert response.report_start_date == "2026-01-01"
     assert response.report_end_date == "2026-03-27"
-    assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
+    assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD"]
     assert response.rows[0].portfolio_return_pct == 1.2
     assert response.rows[0].net_return_pct == 1.2
     assert response.rows[0].gross_return_pct == 1.22
@@ -1310,7 +1310,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[2].beginning_cash_flow == 30000.0
     assert response.rows[2].ending_cash_flow == -7500.0
     assert response.rows[2].flow_adjusted_end_market_value == 486370.0
-    assert response.rows[3].active_return_pct == 0.6
+    assert response.rows[2].active_return_pct == 0.38
     assert response.rows[0].period_start == "2026-03-01"
     assert response.rows[1].period_start == "2026-01-01"
     assert response.rows[2].period_start == "2026-01-01"
@@ -1330,10 +1330,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     ] == ["EXPLICIT"]
     assert [
         analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]
-    ] == [
-        "YTD",
-        "1Y",
-    ]
+    ] == ["YTD"]
 
 
 @pytest.mark.asyncio

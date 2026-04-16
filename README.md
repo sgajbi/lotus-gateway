@@ -60,7 +60,7 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `GET /api/v1/workbench/{portfolio_id}/performance/summary` (first-paint benchmark-aware performance summary with gateway-owned `evidence_view`)
 - `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract with gateway-owned `evidence_view`)
 - `GET /api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}` (gateway-owned proxy for lotus-performance lineage artifacts)
-- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact multi-horizon comparison module)
+- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact MTD/QTD/YTD comparison module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/advisor-brief` (source-grounded advisor brief with evidence refs and supportability)
 - `GET /api/v1/workbench/{portfolio_id}/performance` (legacy compatibility endpoint; deprecated in favor of split Performance contracts)
@@ -158,6 +158,7 @@ Performance evidence posture:
 - `performance/summary` and `performance/details` now expose `capabilities.evidence` plus `evidence_view`
 - `evidence_view.calculations[]` carries calculation-scoped execution status, lineage status, stage state, upstream snapshot summaries, and gateway-owned artifact URLs
 - downstream UI clients should use the gateway artifact route above instead of calling `lotus-performance` lineage URLs directly
+- `performance/horizon-comparison` is intentionally limited to `MTD`, `QTD`, and `YTD`; gateway does not present longer TWR windows as front-office-safe until supportability gating is available
 
 ## Demo Pack
 

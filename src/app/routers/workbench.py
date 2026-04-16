@@ -521,8 +521,9 @@ async def get_performance_evidence_artifact(
     response_model=PerformanceHorizonComparisonResponse,
     summary="Get Performance Horizon Comparison",
     description=(
-        "Returns a compact multi-horizon comparative return module for benchmark-aware "
-        "first-paint analytics panels."
+        "Returns a compact benchmark-aware comparative return module for front-office-safe "
+        "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
+        "analytics surfaces until supportability gating is available through gateway."
     ),
 )
 async def get_performance_horizon_comparison(

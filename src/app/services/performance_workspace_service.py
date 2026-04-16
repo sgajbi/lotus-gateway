@@ -58,7 +58,7 @@ STANDARD_PERIOD_ANALYSES = (
     {"period": "5Y", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},
 )
 
-STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD", "1Y")
+STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
 SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
@@ -1883,7 +1883,6 @@ class PerformanceWorkspaceService:
                 correlation_id=correlation_id,
                 periods=[
                     {"period": "YTD", "frequencies": frequencies},
-                    {"period": "1Y", "frequencies": frequencies},
                 ],
                 include_detail_blocks=False,
             ),
@@ -1940,7 +1939,7 @@ class PerformanceWorkspaceService:
                     }
                 continue
 
-            for period_key in ("YTD", "1Y"):
+            for period_key in ("YTD",):
                 period_payload = results_by_period.get(period_key)
                 if isinstance(period_payload, dict):
                     merged_results[period_key] = period_payload
