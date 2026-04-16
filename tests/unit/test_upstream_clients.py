@@ -1154,6 +1154,36 @@ async def test_lotus_core_query_client_posts_benchmark_catalog_request():
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_support_routes_use_control_plane_contract():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(200, {"publish_allowed": True})
+    _FakeAsyncClient.queue_json(200, {"holdings": {"status": "READY"}})
+
+    overview_status, overview_payload = await client.get_support_overview(
+        portfolio_id="P1",
+        correlation_id="corr-support",
+    )
+    readiness_status, readiness_payload = await client.get_portfolio_readiness(
+        portfolio_id="P1",
+        correlation_id="corr-support",
+        as_of_date="2026-03-27",
+    )
+
+    assert overview_status == 200
+    assert overview_payload["publish_allowed"] is True
+    assert readiness_status == 200
+    assert readiness_payload["holdings"]["status"] == "READY"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://core-control/support/portfolios/P1/overview"
+    assert _FakeAsyncClient.calls[0]["params"] == {}
+    assert _FakeAsyncClient.calls[1]["url"] == "http://core-control/support/portfolios/P1/readiness"
+    assert _FakeAsyncClient.calls[1]["params"] == {"as_of_date": "2026-03-27"}
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_capabilities_supports_nondefault_consumer_and_tenant():
     client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pa"})
