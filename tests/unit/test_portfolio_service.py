@@ -892,6 +892,7 @@ async def test_portfolio_liquidity_preserves_cashflow_partial_failure():
     assert response.cashflow_outlook is None
     assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in response.warnings
     assert response.partial_failures[0].error_code == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
+    assert response.partial_failures[0].detail == "cashflow temporarily unavailable"
 
 
 @pytest.mark.asyncio
@@ -943,6 +944,7 @@ async def test_portfolio_projected_cashflow_preserves_partial_failure() -> None:
     assert response.cashflow_outlook is None
     assert "PORTFOLIO_CASHFLOW_UNAVAILABLE" in response.warnings
     assert response.partial_failures[0].error_code == "PORTFOLIO_CASHFLOW_UNAVAILABLE"
+    assert response.partial_failures[0].detail == "cashflow temporarily unavailable"
 
 
 @pytest.mark.asyncio

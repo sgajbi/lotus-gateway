@@ -309,6 +309,8 @@ def test_portfolio_openapi_contract_registered() -> None:
     performance_snapshot_unavailable_schema = spec["components"]["schemas"][
         "PortfolioPerformanceSnapshotUnavailable"
     ]
+    cashflow_outlook_schema = spec["components"]["schemas"]["PortfolioCashflowOutlook"]
+    cashflow_point_schema = spec["components"]["schemas"]["PortfolioCashflowPoint"]
     transactions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/transactions"][
         "get"
     ]
@@ -357,8 +359,20 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_schema["properties"]["allocation_views"]["description"]
     assert liquidity_schema["properties"]["cash_balances"]["description"]
     assert liquidity_schema["properties"]["warnings"]["description"]
+    assert liquidity_schema["properties"]["cashflow_outlook"]["description"]
     assert projected_cashflow_schema["properties"]["cashflow_outlook"]["description"]
     assert projected_cashflow_schema["properties"]["warnings"]["description"]
+    assert projected_cashflow_schema["properties"]["partial_failures"]["description"]
+    assert cashflow_outlook_schema["properties"]["as_of_date"]["description"]
+    assert cashflow_outlook_schema["properties"]["range_end_date"]["description"]
+    assert cashflow_outlook_schema["properties"]["total_net_cashflow_base"]["description"]
+    assert cashflow_outlook_schema["properties"]["projection_days"]["description"]
+    assert cashflow_outlook_schema["properties"]["include_projected"]["description"]
+    assert cashflow_outlook_schema["properties"]["notes"]["description"]
+    assert cashflow_outlook_schema["properties"]["upcoming_points"]["description"]
+    assert cashflow_point_schema["properties"]["projection_date"]["description"]
+    assert cashflow_point_schema["properties"]["net_cashflow_base"]["description"]
+    assert cashflow_point_schema["properties"]["projected_cumulative_cashflow_base"]["description"]
     assert allocation_schema["properties"]["reporting_currency"]["description"]
     assert allocation_schema["properties"]["look_through"]["description"]
     assert allocation_schema["properties"]["views"]["description"]

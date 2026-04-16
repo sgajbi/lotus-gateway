@@ -134,19 +134,56 @@ class PortfolioTransactionView(BaseModel):
 
 
 class PortfolioCashflowPoint(BaseModel):
-    projection_date: str
-    net_cashflow_base: float
-    projected_cumulative_cashflow_base: float
+    projection_date: str = Field(
+        description="Projected business date represented by the forward cashflow point.",
+        examples=["2026-03-28"],
+    )
+    net_cashflow_base: float = Field(
+        description="Net projected cashflow for the point date, expressed in base currency.",
+        examples=[25.0],
+    )
+    projected_cumulative_cashflow_base: float = Field(
+        description=(
+            "Running cumulative projected cashflow through the point date, expressed in "
+            "base currency."
+        ),
+        examples=[125.0],
+    )
 
 
 class PortfolioCashflowOutlook(BaseModel):
-    as_of_date: str
-    range_end_date: str
-    total_net_cashflow_base: float
-    projection_days: int
-    include_projected: bool
-    notes: str | None = None
-    upcoming_points: list[PortfolioCashflowPoint] = Field(default_factory=list)
+    as_of_date: str = Field(
+        description="As-of date used to resolve the projected cashflow path.",
+        examples=["2026-03-27"],
+    )
+    range_end_date: str = Field(
+        description="Inclusive end date of the projected cashflow horizon.",
+        examples=["2026-04-26"],
+    )
+    total_net_cashflow_base: float = Field(
+        description=(
+            "Net projected cashflow across the full returned horizon, expressed in base "
+            "currency."
+        ),
+        examples=[125.0],
+    )
+    projection_days: int = Field(
+        description="Number of forward projection days covered by the returned liquidity path.",
+        examples=[30],
+    )
+    include_projected: bool = Field(
+        description="Whether projected events were included when generating the liquidity path.",
+        examples=[True],
+    )
+    notes: str | None = Field(
+        default=None,
+        description="Optional upstream note or caveat associated with the projected cashflow path.",
+        examples=["Projection includes booked and projected settlement events."],
+    )
+    upcoming_points: list[PortfolioCashflowPoint] = Field(
+        default_factory=list,
+        description="Ordered forward cashflow points spanning the returned liquidity horizon.",
+    )
 
 
 class PortfolioMoneySummary(BaseModel):
