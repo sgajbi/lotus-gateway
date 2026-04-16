@@ -14,6 +14,46 @@ def clear_portfolio_router_cache():
     _portfolio_service().clear_upstream_cache()
 
 
+@pytest.fixture(autouse=True)
+def stub_portfolio_workspace_enrichments(monkeypatch):
+    async def _analytics_reference(*args, **kwargs):
+        return 200, {"performance_end_date": "2026-03-27"}
+
+    async def _twr(*args, **kwargs):
+        return 200, {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio": {
+                        "summary": {
+                            "period_return": {"base": 2.5},
+                        }
+                    }
+                }
+            }
+        }
+
+    async def _rebalance_runs(*args, **kwargs):
+        return 200, {
+            "items": [
+                {
+                    "status": "PENDING_REVIEW",
+                    "created_at": "2026-03-27T12:00:00Z",
+                    "rebalance_run_id": "rr_100",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference",
+        _analytics_reference,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics",
+        _twr,
+    )
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _rebalance_runs)
+
+
 def test_portfolio_catalog_router(monkeypatch):
     async def _list_portfolios(*args, **kwargs):
         return 200, {"portfolios": [{"portfolio_id": "PF_1001", "base_currency": "USD"}]}
@@ -78,6 +118,9 @@ def test_portfolio_workspace_router(monkeypatch):
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
     assert body["summary"]["assets_under_management_base"] == 1000.0
+    assert body["performance"]["period"] == "YTD"
+    assert body["performance"]["return_pct"] == 2.5
+    assert body["rebalance"]["status"] == "PENDING_REVIEW"
 
 
 def test_portfolio_readiness_router(monkeypatch):

@@ -34,7 +34,23 @@ _PORTFOLIO_SERVICE = PortfolioService(
         timeout_seconds=settings.upstream_timeout_seconds,
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+    ),
+    analytics_client=LotusAnalyticsClient(
+        base_url=settings.performance_analytics_base_url,
+        timeout_seconds=settings.performance_analytics_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    ),
+    dpm_client=DpmClient(
+        base_url=(
+            settings.management_service_base_url
+            if settings.manage_split_enabled
+            else settings.decisioning_service_base_url
+        ),
+        timeout_seconds=settings.upstream_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    ),
 )
 
 _PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
@@ -130,8 +146,10 @@ async def get_portfolios() -> PortfolioCatalogResponse:
     response_model=PortfolioWorkspaceResponse,
     summary="Get portfolio workspace summary",
     description=(
-        "Returns the first portfolio workspace surface composed from lotus-core support, "
-        "readiness, cashflow, cash-balance, and AUM contracts. Invalid readiness filters "
+        "Returns the portfolio workspace shell used to open the front-office portfolio page. "
+        "Use this endpoint to load the initial portfolio identity, summary, readiness, "
+        "cashflow, lightweight performance, and rebalance posture before requesting the more "
+        "detailed book, income, activity, or transaction modules. Invalid readiness filters "
         "from lotus-core are surfaced as client errors rather than degraded workspace data."
     ),
 )
@@ -142,7 +160,14 @@ async def get_portfolio_workspace(
         description="Optional as-of date in YYYY-MM-DD format for workspace composition.",
         examples=["2026-04-10"],
     ),
-    reporting_currency: str | None = Query(default=None),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency override for the summary and liquidity amounts when "
+            "source support allows it."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioWorkspaceResponse:
     return await _portfolio_service().get_portfolio_workspace(
         portfolio_id=portfolio_id,

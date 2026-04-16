@@ -197,14 +197,37 @@ class PortfolioActivitySummaryResponse(BaseModel):
 
 
 class PortfolioPerformanceSummary(BaseModel):
-    period: str
-    return_pct: float | None = None
+    period: str = Field(
+        description=(
+            "Performance horizon represented in the workspace summary snapshot, such as YTD."
+        ),
+        examples=["YTD"],
+    )
+    return_pct: float | None = Field(
+        default=None,
+        description=(
+            "Portfolio time-weighted return percentage for the reported horizon, in percentage "
+            "points."
+        ),
+        examples=[2.5],
+    )
 
 
 class PortfolioRebalanceSummary(BaseModel):
-    status: str
-    last_run_at_utc: str | None = None
-    last_rebalance_run_id: str | None = None
+    status: str = Field(
+        description="Latest rebalance workflow status returned by lotus-manage or decisioning.",
+        examples=["PENDING_REVIEW"],
+    )
+    last_run_at_utc: str | None = Field(
+        default=None,
+        description="UTC timestamp of the latest rebalance workflow run associated with the book.",
+        examples=["2026-03-27T12:00:00Z"],
+    )
+    last_rebalance_run_id: str | None = Field(
+        default=None,
+        description="Identifier of the latest rebalance run when an upstream run exists.",
+        examples=["rr_100"],
+    )
 
 
 class PortfolioReportingReadiness(BaseModel):
@@ -307,13 +330,28 @@ class PortfolioWorkflowResponse(BaseModel):
 class PortfolioWorkspaceResponse(BaseModel):
     correlation_id: str
     contract_version: str = Field(default="v1")
-    as_of_date: str
+    as_of_date: str = Field(
+        description="Resolved portfolio workspace as-of date used for all source-backed sections.",
+        examples=["2026-03-27"],
+    )
     portfolio: PortfolioIdentity
     profile: PortfolioProfile
     summary: PortfolioSummary
     cashflow_outlook: PortfolioCashflowOutlook | None = None
-    performance: PortfolioPerformanceSummary | None = None
-    rebalance: PortfolioRebalanceSummary | None = None
+    performance: PortfolioPerformanceSummary | None = Field(
+        default=None,
+        description=(
+            "Lightweight performance snapshot for the workspace shell, intended to populate the "
+            "portfolio workspace summary before detailed analytics are opened."
+        ),
+    )
+    rebalance: PortfolioRebalanceSummary | None = Field(
+        default=None,
+        description=(
+            "Latest rebalance workflow summary for the workspace shell when a manage-side run "
+            "exists."
+        ),
+    )
     reporting: PortfolioReportingReadiness
     operations: PortfolioOperationalReadiness | None = None
     workflow_cues: list[PortfolioWorkflowLaunchCue] = Field(default_factory=list)

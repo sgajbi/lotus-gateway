@@ -53,6 +53,16 @@ class _StubLotusCoreQueryClient:
             "blocking_reasons": [],
         }
 
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ):
+        _ = portfolio_id, as_of_date, consumer_system, correlation_id
+        return 200, {"performance_end_date": "2026-03-27"}
+
     async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
         return 200, {
             "as_of_date": "2026-03-27",
@@ -279,6 +289,36 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
         return await super().query_activity_summary(**kwargs)
 
 
+class _StubAnalyticsClient:
+    async def get_twr_analytics(self, **kwargs):
+        _ = kwargs
+        return 200, {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio": {
+                        "summary": {
+                            "period_return": {"base": 2.5},
+                        }
+                    }
+                }
+            }
+        }
+
+
+class _StubDpmClient:
+    async def list_runs(self, params: dict[str, object], correlation_id: str):
+        _ = params, correlation_id
+        return 200, {
+            "items": [
+                {
+                    "status": "PENDING_REVIEW",
+                    "created_at": "2026-03-27T12:00:00Z",
+                    "rebalance_run_id": "rr_100",
+                }
+            ]
+        }
+
+
 @pytest.mark.asyncio
 async def test_portfolio_catalog_is_sorted_and_mapped():
     service = PortfolioService(_StubLotusCoreQueryClient())
@@ -289,7 +329,11 @@ async def test_portfolio_catalog_is_sorted_and_mapped():
 
 @pytest.mark.asyncio
 async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
-    service = PortfolioService(_StubLotusCoreQueryClient())
+    service = PortfolioService(
+        _StubLotusCoreQueryClient(),
+        analytics_client=_StubAnalyticsClient(),
+        dpm_client=_StubDpmClient(),
+    )
     response = await service.get_portfolio_workspace(
         portfolio_id="PF_1001",
         correlation_id="corr-2",
@@ -301,6 +345,10 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.reporting.status == "READY"
     assert response.operations is not None
     assert response.cashflow_outlook is not None
+    assert response.performance is not None
+    assert response.performance.return_pct == 2.5
+    assert response.rebalance is not None
+    assert response.rebalance.status == "PENDING_REVIEW"
 
 
 @pytest.mark.asyncio

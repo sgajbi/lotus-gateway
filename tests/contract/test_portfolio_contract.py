@@ -33,9 +33,19 @@ def test_portfolio_workspace_contract_shape() -> None:
             "position_count": 3,
             "cash_balance_count": 1,
         },
+        performance={"period": "YTD", "return_pct": 2.5},
+        rebalance={
+            "status": "PENDING_REVIEW",
+            "last_run_at_utc": "2026-03-27T12:00:00Z",
+            "last_rebalance_run_id": "rr_100",
+        },
         reporting={"status": "READY", "row_count": 3},
     )
     assert payload.summary.assets_under_management_base == 1000.0
+    assert payload.performance is not None
+    assert payload.performance.return_pct == 2.5
+    assert payload.rebalance is not None
+    assert payload.rebalance.last_rebalance_run_id == "rr_100"
     assert payload.reporting.status == "READY"
 
 
@@ -220,3 +230,10 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/transactions" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/readiness" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workflow" in spec["paths"]
+    workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
+    performance_schema = spec["components"]["schemas"]["PortfolioPerformanceSummary"]
+    rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
+    assert workspace_schema["properties"]["performance"]["description"]
+    assert workspace_schema["properties"]["rebalance"]["description"]
+    assert performance_schema["properties"]["period"]["description"]
+    assert rebalance_schema["properties"]["status"]["description"]

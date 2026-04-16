@@ -4,6 +4,8 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from app.clients.dpm_client import DpmClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import (
@@ -30,6 +32,7 @@ from app.contracts.portfolio import (
     PortfolioMoneySummary,
     PortfolioOperationalReadiness,
     PortfolioPartialFailure,
+    PortfolioPerformanceSummary,
     PortfolioPositionBookResponse,
     PortfolioPositionView,
     PortfolioProfile,
@@ -38,6 +41,7 @@ from app.contracts.portfolio import (
     PortfolioReadinessIndicator,
     PortfolioReadinessReason,
     PortfolioReadinessResponse,
+    PortfolioRebalanceSummary,
     PortfolioSummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
@@ -60,9 +64,13 @@ class PortfolioService:
     def __init__(
         self,
         lotus_core_query_client: LotusCoreQueryClient,
+        analytics_client: LotusAnalyticsClient | None = None,
+        dpm_client: DpmClient | None = None,
         upstream_cache_ttl_seconds: float | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
+        self._analytics_client = analytics_client
+        self._dpm_client = dpm_client
         self._upstream_cache = AsyncTtlCache[tuple[int, dict[str, Any]]](
             ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
         )
@@ -299,6 +307,75 @@ class PortfolioService:
             ),
         )
 
+    async def _get_portfolio_analytics_reference_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("portfolio_analytics_reference", portfolio_id, as_of_date),
+            lambda: self._lotus_core_query_client.get_portfolio_analytics_reference(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _get_workspace_performance_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._analytics_client is None:
+            return None
+        reference_result = await self._get_portfolio_analytics_reference_result(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        report_end_date = as_of_date
+        reference_payload = self._optional_payload(
+            reference_result,
+            "lotus-core",
+            "IGNORED",
+            [],
+            [],
+        )
+        if isinstance(reference_payload, dict):
+            reference_end_date = self._optional_str(reference_payload.get("performance_end_date"))
+            if reference_end_date is not None:
+                report_end_date = reference_end_date
+        return await self._get_cached_upstream_result(
+            ("workspace_performance", portfolio_id, report_end_date),
+            lambda: self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=None,
+                period="YTD",
+                metric_basis="NET",
+                benchmark_id=None,
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _get_workspace_rebalance_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._dpm_client is None:
+            return None
+        return await self._get_cached_upstream_result(
+            ("workspace_rebalance", portfolio_id),
+            lambda: self._dpm_client.list_runs(
+                params={"portfolio_id": portfolio_id, "limit": 1},
+                correlation_id=correlation_id,
+            ),
+        )
+
     async def get_portfolio_catalog(self, correlation_id: str) -> PortfolioCatalogResponse:
         status_code, payload = await self._lotus_core_query_client.list_portfolios(
             correlation_id=correlation_id
@@ -361,6 +438,17 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
+        performance_result, rebalance_result = await asyncio.gather(
+            self._get_workspace_performance_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=effective_as_of_date,
+            ),
+            self._get_workspace_rebalance_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+        )
         portfolio_payload = self._require_payload(
             result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
@@ -375,6 +463,16 @@ class PortfolioService:
         partial_failures: list[PortfolioPartialFailure] = []
         summary = self._parse_summary(aum_result, cash_balance_result, warnings, partial_failures)
         cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
+        performance = self._parse_workspace_performance(
+            performance_result,
+            warnings,
+            partial_failures,
+        )
+        rebalance = self._parse_workspace_rebalance(
+            rebalance_result,
+            warnings,
+            partial_failures,
+        )
         operations = self._parse_operations(support_result, warnings, partial_failures)
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
@@ -384,6 +482,8 @@ class PortfolioService:
             profile=profile,
             summary=summary,
             cashflow_outlook=cashflow_outlook,
+            performance=performance,
+            rebalance=rebalance,
             reporting=self._reporting_readiness(summary, readiness_result),
             operations=operations,
             workflow_cues=self._build_workflow_cues(portfolio_id),
@@ -1077,6 +1177,80 @@ class PortfolioService:
                 for point in payload.get("points", [])
                 if isinstance(point, dict)
             ],
+        )
+
+    def _parse_workspace_performance(
+        self,
+        result: tuple[int, dict[str, Any]] | None,
+        warnings: list[str],
+        partial_failures: list[PortfolioPartialFailure],
+    ) -> PortfolioPerformanceSummary | None:
+        if result is None:
+            return None
+        payload = self._optional_payload(
+            result,
+            "lotus-performance",
+            "PORTFOLIO_PERFORMANCE_UNAVAILABLE",
+            warnings,
+            partial_failures,
+        )
+        if payload is None:
+            return None
+        results_by_period = payload.get("results_by_period", payload.get("resultsByPeriod", {}))
+        if not isinstance(results_by_period, dict):
+            warnings.append("PORTFOLIO_PERFORMANCE_INVALID")
+            return None
+        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period), None)
+        if period_key is None:
+            return None
+        period_payload = results_by_period.get(period_key, {})
+        if not isinstance(period_payload, dict):
+            return None
+        portfolio_payload = period_payload.get("portfolio", {})
+        if not isinstance(portfolio_payload, dict):
+            return None
+        summary_payload = portfolio_payload.get("summary", {})
+        if not isinstance(summary_payload, dict):
+            return None
+        period_return_payload = summary_payload.get("period_return", {})
+        if not isinstance(period_return_payload, dict):
+            return None
+        period_return = period_return_payload.get("base")
+        try:
+            return_pct = (
+                float(quantize_performance(period_return)) if period_return is not None else None
+            )
+        except (TypeError, ValueError):
+            return_pct = None
+        return PortfolioPerformanceSummary(period=str(period_key), return_pct=return_pct)
+
+    def _parse_workspace_rebalance(
+        self,
+        result: tuple[int, dict[str, Any]] | None,
+        warnings: list[str],
+        partial_failures: list[PortfolioPartialFailure],
+    ) -> PortfolioRebalanceSummary | None:
+        if result is None:
+            return None
+        payload = self._optional_payload(
+            result,
+            "lotus-manage",
+            "PORTFOLIO_REBALANCE_UNAVAILABLE",
+            warnings,
+            partial_failures,
+        )
+        if payload is None:
+            return None
+        items = payload.get("items", [])
+        if not isinstance(items, list) or not items:
+            return None
+        latest = items[0]
+        if not isinstance(latest, dict):
+            return None
+        return PortfolioRebalanceSummary(
+            status=str(latest.get("status", "UNKNOWN")),
+            last_run_at_utc=self._optional_str(latest.get("created_at")),
+            last_rebalance_run_id=self._optional_str(latest.get("rebalance_run_id")),
         )
 
     def _parse_operations(
