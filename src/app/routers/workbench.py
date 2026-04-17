@@ -797,7 +797,13 @@ async def get_performance_evidence_artifact(
     ),
 )
 async def get_performance_horizon_comparison(
-    portfolio_id: str,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance horizon-comparison module."
+        ),
+        examples=["PF_1001"],
+    ),
     period: str = Query(
         default="YTD",
         description=(
@@ -868,7 +874,13 @@ async def get_performance_horizon_comparison(
     ),
 )
 async def get_performance_attribution_trend(
-    portfolio_id: str,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance attribution-trend module."
+        ),
+        examples=["PF_1001"],
+    ),
     period: str = Query(
         default="YTD",
         description=(
@@ -946,7 +958,13 @@ async def get_performance_attribution_trend(
     ),
 )
 async def get_performance_advisor_brief(
-    portfolio_id: str,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance advisor-brief module."
+        ),
+        examples=["PF_1001"],
+    ),
     period: str = Query(
         default="YTD",
         description=(

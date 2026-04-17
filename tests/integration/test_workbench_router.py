@@ -1417,6 +1417,72 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
 
 
+def test_workbench_performance_horizon_comparison_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        chart_frequency: str,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["chart_frequency"] = chart_frequency
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "detail_basis": detail_basis,
+            "chart_frequency": chart_frequency,
+            "requested_chart_frequency_supported": True,
+            "benchmark_code": benchmark_code,
+            "benchmark_options": [],
+            "rows": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_horizon_comparison",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/horizon-comparison"
+        "?period=EXPLICIT&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&chart_frequency=weekly&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-horizon"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-horizon",
+        "period": "EXPLICIT",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "chart_frequency": "weekly",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+
+
 def test_workbench_performance_attribution_trend_router(monkeypatch):
     async def _performance_attribution_trend(*args, **kwargs):  # noqa: ARG001
         append_server_timing_metric("perf-reference", 1.0)
@@ -1479,6 +1545,77 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
 
 
+def test_workbench_performance_attribution_trend_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "detail_basis": detail_basis,
+            "attribution_dimension": attribution_dimension,
+            "requested_chart_frequency_supported": True,
+            "requested_attribution_dimension_supported": True,
+            "benchmark_code": benchmark_code,
+            "rows": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_attribution_trend",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/attribution-trend"
+        "?period=EXPLICIT&chart_frequency=weekly&attribution_dimension=country"
+        "&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-attribution-trend"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-attribution-trend",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+
+
 def test_workbench_performance_monolithic_route_is_absent_from_openapi():
     client = TestClient(app)
     response = client.get("/openapi.json")
@@ -1497,6 +1634,9 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/horizon-comparison"][
         "get"
     ]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
     period_parameter = next(
         parameter for parameter in route["parameters"] if parameter["name"] == "period"
     )
@@ -1505,6 +1645,8 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
 
     assert "MTD, QTD, and YTD" in route["description"]
     assert "front-office-safe" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert response_schema["properties"]["rows"]["description"]
     assert response_schema["properties"]["benchmark_options"]["description"]
@@ -1573,6 +1715,9 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert response.status_code == 200
     schema = response.json()
     route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/attribution-trend"]["get"]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
     period_parameter = next(
         parameter for parameter in route["parameters"] if parameter["name"] == "period"
     )
@@ -1585,6 +1730,8 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     row_schema = schema["components"]["schemas"]["PerformanceAttributionTrendRow"]
 
     assert "allocation, selection, interaction, and total-effect" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert dimension_parameter["description"]
     assert response_schema["properties"]["rows"]["description"]
@@ -1602,6 +1749,9 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response.status_code == 200
     schema = response.json()
     route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/advisor-brief"]["get"]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
     period_parameter = next(
         parameter for parameter in route["parameters"] if parameter["name"] == "period"
     )
@@ -1613,6 +1763,8 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     evidence_ref_schema = schema["components"]["schemas"]["AdvisorBriefEvidenceRef"]
 
     assert "lotus-ai" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert benchmark_parameter["description"]
     assert response_schema["properties"]["summary"]["description"]
@@ -1748,6 +1900,92 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert captured_call["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
     assert captured_call["explicit_start_date"] == "2026-01-01"
     assert captured_call["explicit_end_date"] == "2026-04-04"
+
+
+def test_workbench_performance_advisor_brief_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return AdvisorBriefResponse(
+            correlation_id=correlation_id,
+            contract_version="v1",
+            portfolio_id=portfolio_id,
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id=portfolio_id,
+                client_id="CIF_1001",
+                base_currency="USD",
+                booking_center_code="SG",
+            ),
+            as_of_date="2026-04-04",
+            period=period,
+            report_start_date=explicit_start_date or "2026-01-01",
+            report_end_date=explicit_end_date or "2026-04-04",
+            detail_basis=detail_basis,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            benchmark_code=benchmark_code,
+            status=AdvisorBriefStatus.READY,
+            summary="Advisor summary.",
+            talking_points=[],
+            recommended_actions=[],
+            risks_and_exceptions=[],
+            source_metrics=[],
+            supportability=[],
+            ai_audit={},
+            ai_evidence={},
+        )
+
+    monkeypatch.setattr(
+        "app.services.advisor_brief_service.AdvisorBriefService.get_performance_advisor_brief",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-advisor-brief"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-advisor-brief",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
 
 
 def test_workbench_sandbox_changes_router(monkeypatch):
