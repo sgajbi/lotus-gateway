@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -903,9 +905,13 @@ class PortfolioExceptionSummary(BaseModel):
         ),
         examples=["Some holdings lack complete valuation coverage."],
     )
-    tone: str = Field(
-        description="Presentation tone for the exception severity in the workspace shell.",
-        examples=["warn"],
+    tone: Literal["warn", "danger"] = Field(
+        description=(
+            "Presentation tone for the exception severity in the workspace shell. Use "
+            "`warn` for degraded but still usable conditions and `danger` for blocked or "
+            "missing coverage."
+        ),
+        examples=["warn", "danger"],
     )
     href: str = Field(
         description="In-page anchor or route target that helps resolve the exception.",
@@ -932,9 +938,12 @@ class PortfolioInsight(BaseModel):
             "One holding has become large enough to dominate current portfolio concentration."
         ],
     )
-    severity: str = Field(
-        description="Normalized portfolio insight severity used for workspace prioritization.",
-        examples=["warning"],
+    severity: Literal["info", "warning", "critical"] = Field(
+        description=(
+            "Normalized portfolio insight severity used for workspace prioritization. "
+            "The contract uses `info`, `warning`, and `critical`."
+        ),
+        examples=["warning", "critical", "info"],
     )
     href: str = Field(
         description=(

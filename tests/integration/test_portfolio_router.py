@@ -365,6 +365,8 @@ def test_portfolio_workspace_router_preserves_support_overview_partial_failure(m
 
 
 def test_portfolio_workflow_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
 
@@ -396,6 +398,7 @@ def test_portfolio_workflow_router(monkeypatch):
         }
 
     async def _transactions(*args, **kwargs):
+        captured["workflow_transaction_limit"] = kwargs.get("limit")
         return 200, {
             "total": 1,
             "skip": 0,
@@ -413,6 +416,7 @@ def test_portfolio_workflow_router(monkeypatch):
         }
 
     async def _readiness(*args, **kwargs):
+        captured["workflow_readiness_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
             "pricing": {"status": "READY", "reasons": []},
@@ -430,9 +434,14 @@ def test_portfolio_workflow_router(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_transactions", _transactions)
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/workflow")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/workflow",
+        params={"as_of_date": "2026-03-27"},
+    )
     assert response.status_code == 200
     body = response.json()
+    assert body["correlation_id"]
+    assert body["contract_version"] == "v1"
     assert body["as_of_date"] == "2026-03-27"
     assert body["actions"][0] == {
         "sequence": 1,
@@ -447,6 +456,10 @@ def test_portfolio_workflow_router(monkeypatch):
     }
     assert body["actions"][1]["title"] == "Review holdings"
     assert body["actions"][2]["title"] == "Review transactions"
+    assert captured == {
+        "workflow_transaction_limit": 1,
+        "workflow_readiness_as_of_date": "2026-03-27",
+    }
 
 
 def test_portfolio_workflow_router_returns_empty_portfolio_setup_sequence(monkeypatch):
@@ -526,6 +539,8 @@ def test_portfolio_workflow_router_returns_empty_portfolio_setup_sequence(monkey
 
 
 def test_portfolio_insights_router(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
 
@@ -575,6 +590,8 @@ def test_portfolio_insights_router(monkeypatch):
         }
 
     async def _transactions(*args, **kwargs):
+        captured["insights_transaction_limit"] = kwargs.get("limit")
+        captured["insights_transaction_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "reporting_currency": "USD",
             "total": 2,
@@ -603,6 +620,7 @@ def test_portfolio_insights_router(monkeypatch):
         }
 
     async def _readiness(*args, **kwargs):
+        captured["insights_readiness_as_of_date"] = kwargs.get("as_of_date")
         return 200, {
             "holdings": {"status": "READY", "reasons": []},
             "pricing": {"status": "READY", "reasons": []},
@@ -623,10 +641,16 @@ def test_portfolio_insights_router(monkeypatch):
     portfolio_router._portfolio_service().clear_upstream_cache()
 
     client = TestClient(app)
-    response = client.get("/api/v1/portfolio/portfolios/PF_1001/insights")
+    response = client.get(
+        "/api/v1/portfolio/portfolios/PF_1001/insights",
+        params={"as_of_date": "2026-03-27"},
+    )
     assert response.status_code == 200
     body = response.json()
+    assert body["correlation_id"]
+    assert body["contract_version"] == "v1"
     assert body["portfolio_id"] == "PF_1001"
+    assert body["as_of_date"] == "2026-03-27"
     assert body["insights"][0] == {
         "key": "equity-concentration-high",
         "title": "Large position dominates portfolio risk",
@@ -639,6 +663,11 @@ def test_portfolio_insights_router(monkeypatch):
     }
     assert "equity-concentration-high" in {item["key"] for item in body["insights"]}
     assert body["exception_summaries"] == []
+    assert captured == {
+        "insights_transaction_limit": 500,
+        "insights_transaction_as_of_date": "2026-03-27",
+        "insights_readiness_as_of_date": "2026-03-27",
+    }
 
 
 def test_portfolio_insights_router_returns_blocked_exception_summaries(monkeypatch):

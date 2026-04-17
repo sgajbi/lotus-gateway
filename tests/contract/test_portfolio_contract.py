@@ -271,7 +271,7 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
                 "key": "pricing",
                 "title": "Pricing still pending",
                 "detail": "Valuation and reporting remain blocked until pricing is published.",
-                "tone": "warning",
+                "tone": "warn",
                 "href": "#portfolio-readiness",
             }
         ],
@@ -603,11 +603,17 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert insight_item_schema["properties"]["title"]["description"]
     assert insight_item_schema["properties"]["detail"]["description"]
     assert insight_item_schema["properties"]["severity"]["description"]
+    assert insight_item_schema["properties"]["severity"]["enum"] == [
+        "info",
+        "warning",
+        "critical",
+    ]
     assert insight_item_schema["properties"]["href"]["description"]
     assert exception_item_schema["properties"]["key"]["description"]
     assert exception_item_schema["properties"]["title"]["description"]
     assert exception_item_schema["properties"]["detail"]["description"]
     assert exception_item_schema["properties"]["tone"]["description"]
+    assert exception_item_schema["properties"]["tone"]["enum"] == ["warn", "danger"]
     assert exception_item_schema["properties"]["href"]["description"]
     assert book_path["description"]
     assert book_parameters["as_of_date"]["description"]
