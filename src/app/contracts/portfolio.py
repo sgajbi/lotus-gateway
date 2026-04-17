@@ -233,6 +233,16 @@ class PortfolioAllocationView(BaseModel):
     buckets: list[PortfolioAllocationBucket] = Field(
         default_factory=list,
         description="Allocation buckets returned for the requested dimension.",
+        examples=[
+            [
+                {
+                    "bucket": "Asia",
+                    "position_count": 3,
+                    "market_value_base": 420000.0,
+                    "weight_pct": 42.0,
+                }
+            ]
+        ],
     )
 
 
@@ -1365,6 +1375,13 @@ class PortfolioAllocationResponse(BaseModel):
             "Look-through capability and effective mode returned by the "
             "upstream allocation service."
         ),
+        examples=[
+            {
+                "requested_mode": "full",
+                "effective_mode": "direct_only",
+                "applied": False,
+            }
+        ],
     )
     summary: PortfolioSummary = Field(
         description="Source-backed summary values used to frame the allocation response.",
@@ -1420,8 +1437,10 @@ class PortfolioPositionBookResponse(BaseModel):
                     "security_id": "EQ_1",
                     "instrument_name": "Equity 1",
                     "asset_class": "Equity",
+                    "isin": "US1234567890",
                     "currency": "USD",
                     "quantity": 10.0,
+                    "cost_basis_base": 320.0,
                     "market_value_base": 400.0,
                     "weight_pct": 40.0,
                 }
@@ -1437,11 +1456,21 @@ class PortfolioPositionBookResponse(BaseModel):
                     "security_id": "EQ_1",
                     "instrument_name": "Equity 1",
                     "asset_class": "Equity",
+                    "isin": "US1234567890",
                     "currency": "USD",
+                    "sector": "Technology",
+                    "country_of_risk": "United States",
+                    "held_since_date": "2025-12-31",
                     "quantity": 10.0,
+                    "market_price": 40.0,
+                    "cost_basis_base": 320.0,
+                    "cost_basis_local": 320.0,
                     "market_value_base": 400.0,
                     "market_value_local": 400.0,
+                    "unrealized_gain_loss_base": 80.0,
+                    "unrealized_gain_loss_local": 80.0,
                     "weight_pct": 40.0,
+                    "reprocessing_status": "READY",
                 }
             ]
         ],

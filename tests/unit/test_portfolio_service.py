@@ -117,10 +117,23 @@ class _StubLotusCoreQueryClient:
                     "security_id": "EQ_1",
                     "instrument_name": "Equity 1",
                     "asset_class": "Equity",
+                    "isin": "US1234567890",
+                    "currency": "USD",
+                    "sector": "Technology",
+                    "country_of_risk": "United States",
+                    "held_since_date": "2025-12-31",
                     "quantity": 10,
                     "cost_basis": 500.0,
+                    "cost_basis_local": 500.0,
                     "weight": 0.7,
-                    "valuation": {"market_value_base": 700.0, "market_price": 70.0},
+                    "reprocessing_status": "READY",
+                    "valuation": {
+                        "market_value_base": 700.0,
+                        "market_value_local": 700.0,
+                        "market_price": 70.0,
+                        "unrealized_gain_loss_base": 200.0,
+                        "unrealized_gain_loss_local": 200.0,
+                    },
                 },
                 {
                     "security_id": "FI_1",
@@ -1262,6 +1275,10 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
     assert response.look_through.requested_mode == "full"
     assert response.look_through.effective_mode == "direct_only"
     assert response.views[0].dimension == "region"
+    assert response.views[0].buckets[0].bucket == "Asia"
+    assert response.views[0].buckets[0].position_count == 1
+    assert response.views[0].buckets[0].market_value_base == 700.0
+    assert response.views[0].buckets[0].weight_pct == 70.0
 
 
 @pytest.mark.asyncio
@@ -1278,8 +1295,21 @@ async def test_portfolio_positions_return_top_positions_and_full_book():
     assert response.summary.cash_balance_count == 1
     assert response.positions[0].security_id == "EQ_1"
     assert response.top_positions[0].security_id == "EQ_1"
+    assert response.top_positions[0].isin == "US1234567890"
+    assert response.top_positions[0].currency == "USD"
+    assert response.top_positions[0].cost_basis_base == 500.0
     assert response.positions[0].market_value_base == 700.0
-    assert response.positions[0].market_value_local is None
+    assert response.positions[0].isin == "US1234567890"
+    assert response.positions[0].sector == "Technology"
+    assert response.positions[0].country_of_risk == "United States"
+    assert response.positions[0].held_since_date == "2025-12-31"
+    assert response.positions[0].market_price == 70.0
+    assert response.positions[0].cost_basis_base == 500.0
+    assert response.positions[0].cost_basis_local == 500.0
+    assert response.positions[0].market_value_local == 700.0
+    assert response.positions[0].unrealized_gain_loss_base == 200.0
+    assert response.positions[0].unrealized_gain_loss_local == 200.0
+    assert response.positions[0].reprocessing_status == "READY"
 
 
 @pytest.mark.asyncio

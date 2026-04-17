@@ -1194,8 +1194,22 @@ def test_portfolio_positions_router(monkeypatch):
                 {
                     "security_id": "EQ_1",
                     "instrument_name": "Equity 1",
+                    "isin": "US1234567890",
+                    "currency": "USD",
+                    "sector": "Technology",
+                    "country_of_risk": "United States",
+                    "held_since_date": "2025-12-31",
                     "quantity": 1,
-                    "valuation": {"market_value_base": 1000.0},
+                    "cost_basis": 800.0,
+                    "cost_basis_local": 800.0,
+                    "reprocessing_status": "READY",
+                    "valuation": {
+                        "market_value_base": 1000.0,
+                        "market_value_local": 1000.0,
+                        "market_price": 1000.0,
+                        "unrealized_gain_loss_base": 200.0,
+                        "unrealized_gain_loss_local": 200.0,
+                    },
                 },
                 {
                     "security_id": "CASH_USD",
@@ -1224,6 +1238,18 @@ def test_portfolio_positions_router(monkeypatch):
     assert body["as_of_date"] == "2026-03-27"
     assert body["positions"][0]["security_id"] == "EQ_1"
     assert body["top_positions"][0]["security_id"] == "EQ_1"
+    assert body["top_positions"][0]["isin"] == "US1234567890"
+    assert body["top_positions"][0]["currency"] == "USD"
+    assert body["top_positions"][0]["cost_basis_base"] == 800.0
+    assert body["positions"][0]["sector"] == "Technology"
+    assert body["positions"][0]["country_of_risk"] == "United States"
+    assert body["positions"][0]["held_since_date"] == "2025-12-31"
+    assert body["positions"][0]["market_price"] == 1000.0
+    assert body["positions"][0]["cost_basis_local"] == 800.0
+    assert body["positions"][0]["market_value_local"] == 1000.0
+    assert body["positions"][0]["unrealized_gain_loss_base"] == 200.0
+    assert body["positions"][0]["unrealized_gain_loss_local"] == 200.0
+    assert body["positions"][0]["reprocessing_status"] == "READY"
     assert body["summary"]["cash_market_value_base"] == 100.0
     assert captured["include_projected"] is True
     assert captured["reporting_currency"] == "USD"
