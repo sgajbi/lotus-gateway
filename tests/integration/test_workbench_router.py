@@ -1427,6 +1427,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
             "rows": [
                 {
                     "period": "MTD",
+                    "period_start": "2026-02-01",
+                    "period_end": "2026-02-24",
+                    "net_return_pct": 1.2,
                     "portfolio_return_pct": 1.2,
                     "benchmark_return_pct": 1.0,
                     "active_return_pct": 0.2,
@@ -1434,6 +1437,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
                 },
                 {
                     "period": "YTD",
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-02-24",
+                    "net_return_pct": 5.4,
                     "portfolio_return_pct": 5.4,
                     "benchmark_return_pct": 4.9,
                     "active_return_pct": 0.5,
@@ -1465,9 +1471,18 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-02-24"
     assert body["chart_frequency"] == "monthly"
+    assert body["detail_basis"] == "NET"
+    assert body["benchmark_code"] == "MODEL_60_40"
+    assert body["benchmark_options"][0]["benchmark_name"] == "Model 60/40"
     assert body["requested_chart_frequency_supported"] is True
     assert body["rows"][0]["period"] == "MTD"
+    assert body["rows"][0]["period_start"] == "2026-02-01"
+    assert body["rows"][0]["portfolio_return_pct"] == 1.2
+    assert body["rows"][0]["net_return_pct"] == 1.2
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
+    assert body["rows"][1]["annualized_return_pct"] == 5.4
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_performance_horizon_comparison_router_preserves_query_context(monkeypatch):
@@ -1592,10 +1607,18 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["chart_frequency"] == "monthly"
+    assert body["detail_basis"] == "NET"
+    assert body["attribution_dimension"] == "asset_class"
+    assert body["benchmark_code"] == "MODEL_60_40"
     assert body["requested_chart_frequency_supported"] is True
     assert body["requested_attribution_dimension_supported"] is True
     assert body["rows"][0]["period_label"] == "2026-01"
+    assert body["rows"][0]["allocation_pct"] == 0.12
+    assert body["rows"][0]["selection_pct"] == 0.08
+    assert body["rows"][0]["interaction_pct"] == 0.02
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_performance_attribution_trend_router_preserves_query_context(monkeypatch):
@@ -1713,6 +1736,11 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     assert row_schema["properties"]["period"]["description"]
     assert row_schema["properties"]["benchmark_return_pct"]["description"]
     assert row_schema["properties"]["active_return_pct"]["description"]
+    assert response_schema["example"]["rows"][0]["period"] == "MTD"
+    assert (
+        response_schema["example"]["benchmark_options"][0]["benchmark_code"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
 
 
 def test_workbench_performance_evidence_openapi_contract():
@@ -1858,6 +1886,8 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert row_schema["properties"]["total_effect_pct"]["description"]
     assert row_schema["properties"]["cumulative_total_effect_pct"]["description"]
     assert row_schema["properties"]["residual_pct"]["description"]
+    assert response_schema["example"]["rows"][0]["period_label"] == "2026-01"
+    assert response_schema["example"]["rows"][1]["cumulative_total_effect_pct"] == 0.4
 
 
 def test_workbench_performance_advisor_brief_openapi_contract():

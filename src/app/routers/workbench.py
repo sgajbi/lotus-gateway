@@ -794,7 +794,9 @@ async def get_performance_evidence_artifact(
     description=(
         "Returns a compact benchmark-aware comparative return module for front-office-safe "
         "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
-        "analytics surfaces until supportability gating is available through gateway."
+        "analytics surfaces until supportability gating is available through gateway. Use this "
+        "route for compact comparative return tables rather than the full summary or details "
+        "workspace contracts."
     ),
 )
 async def get_performance_horizon_comparison(
@@ -871,7 +873,8 @@ async def get_performance_horizon_comparison(
         "Returns benchmark-relative attribution effects over time for the selected period window "
         "using a dedicated analytical module contract. Use this endpoint when the UI needs "
         "time-bucketed allocation, selection, interaction, and total-effect context rather than "
-        "the full attribution detail table."
+        "the full attribution detail table. This route is the strategic source for analytical "
+        "trend buckets in the performance analysis surface."
     ),
 )
 async def get_performance_attribution_trend(
