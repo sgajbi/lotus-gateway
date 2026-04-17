@@ -1922,9 +1922,28 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response_schema["properties"]["summary"]["description"]
     assert response_schema["properties"]["talking_points"]["description"]
     assert response_schema["properties"]["ai_audit"]["description"]
+    assert (
+        response_schema["properties"]["ai_audit"]["examples"][0]["provider_mode"]
+        == "local_openai_compatible"
+    )
+    assert (
+        response_schema["properties"]["ai_evidence"]["examples"][0]["descriptors"][0][
+            "evidence_type"
+        ]
+        == "source_fact_bundle"
+    )
     assert response_schema["properties"]["supportability"]["description"]
+    assert response_schema["properties"]["warnings"]["examples"] == [["AI_DEGRADED"]]
+    assert (
+        response_schema["properties"]["partial_failures"]["examples"][0][0]["source"]
+        == "lotus-performance"
+    )
     assert narrative_schema["properties"]["evidence_refs"]["description"]
     assert evidence_ref_schema["properties"]["source_surface"]["description"]
+    assert response_schema["example"]["source_metrics"][1]["state"] == "partial"
+    assert response_schema["example"]["supportability"][1]["value"] == "Unavailable"
+    assert response_schema["example"]["ai_audit"]["model_id"] == "qwen3:8b"
+    assert response_schema["example"]["partial_failures"][0]["reason"] == "UPSTREAM_TIMEOUT"
 
 
 def test_workbench_performance_advisor_brief_router(monkeypatch):
