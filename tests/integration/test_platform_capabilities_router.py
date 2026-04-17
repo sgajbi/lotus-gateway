@@ -120,7 +120,22 @@ def test_platform_capabilities_router_success(monkeypatch):
     shell_bootstrap = body["normalized"]["shellBootstrap"]
     assert shell_bootstrap["contractVersion"] == "shell-bootstrap.v1"
     assert shell_bootstrap["supportability"]["state"] == "ready"
+    assert shell_bootstrap["evidence"]["lineageSources"] == [
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+        "lotus_risk",
+    ]
+    assert shell_bootstrap["versioning"]["sourcePolicyVersions"] == {
+        "lotus_core": "lotus-core-default-v1",
+        "lotus_performance": "lotus-performance-default-v1",
+        "lotus_risk": "lotus-risk-default-v1",
+        "lotus_manage": "lotus-manage-default-v1",
+        "lotus_report": "lotus-report-default-v1",
+    }
     assert shell_bootstrap["caching"]["cacheMode"] == "request_scoped_composition"
+    assert shell_bootstrap["caching"]["invalidationOwner"] == "upstream_service"
     assert [workspace["id"] for workspace in shell_bootstrap["workspaces"]] == [
         "portfolio",
         "performance",
@@ -298,6 +313,13 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     shell_bootstrap = body["normalized"]["shellBootstrap"]
     assert shell_bootstrap["supportability"]["state"] == "partial"
     assert shell_bootstrap["evidence"]["partialFailure"] is True
+    assert shell_bootstrap["evidence"]["lineageSources"] == [
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+        "lotus_risk",
+    ]
     assert "lotus_performance" in shell_bootstrap["evidence"]["sourceErrorServices"]
     performance_workspace = next(
         workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "performance"

@@ -99,12 +99,30 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         payload["normalized"]["shellBootstrap"]["freshness"]["freshnessClass"] == "shell_navigation"
     )
     assert payload["normalized"]["shellBootstrap"]["evidence"]["state"] == "source_backed"
+    assert payload["normalized"]["shellBootstrap"]["evidence"]["lineageSources"] == [
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+        "lotus_risk",
+    ]
     assert (
         payload["normalized"]["shellBootstrap"]["versioning"]["capabilityContractVersion"] == "v1"
     )
+    assert payload["normalized"]["shellBootstrap"]["versioning"]["sourcePolicyVersions"] == {
+        "lotus_core": "lotus-core-default-v1",
+        "lotus_performance": "lotus-performance-default-v1",
+        "lotus_risk": "lotus-risk-default-v1",
+        "lotus_manage": "lotus-manage-default-v1",
+        "lotus_report": "lotus-report-default-v1",
+    }
     assert (
         payload["normalized"]["shellBootstrap"]["caching"]["cacheMode"]
         == "request_scoped_composition"
+    )
+    assert (
+        payload["normalized"]["shellBootstrap"]["caching"]["invalidationOwner"]
+        == "upstream_service"
     )
     assert len(payload["normalized"]["shellBootstrap"]["workspaces"]) == 5
 
@@ -157,7 +175,12 @@ def test_platform_capabilities_openapi_contract_registered() -> None:
 
     assert response_schema["properties"]["data"]["description"]
     assert data_schema["properties"]["consumerSystem"]["description"]
+    assert data_schema["properties"]["consumerSystem"]["examples"] == [
+        "lotus-gateway",
+        "lotus-workbench",
+    ]
     assert data_schema["properties"]["tenantId"]["description"]
+    assert data_schema["properties"]["tenantId"]["examples"] == ["default", "tenant-a"]
     assert data_schema["properties"]["contractVersion"]["description"]
     assert data_schema["properties"]["sources"]["description"]
     assert data_schema["properties"]["partialFailure"]["description"]
@@ -206,6 +229,7 @@ def test_platform_capabilities_openapi_contract_registered() -> None:
     assert versioning_schema["properties"]["sourcePolicyVersions"]["description"]
     assert caching_schema["properties"]["cacheMode"]["description"]
     assert caching_schema["properties"]["invalidationOwner"]["description"]
+    assert caching_schema["properties"]["invalidationOwner"]["examples"] == ["upstream_service"]
     assert caching_schema["properties"]["staleReadTolerance"]["description"]
     assert caching_schema["properties"]["revalidateOnNavigation"]["description"]
     assert caching_schema["properties"]["ttlSeconds"]["description"]

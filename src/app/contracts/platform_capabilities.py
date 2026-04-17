@@ -118,8 +118,11 @@ class PlatformBootstrapCaching(BaseModel):
     )
     invalidation_owner: str = Field(
         alias="invalidationOwner",
-        description="Upstream owner responsible for invalidating stale capability truth.",
-        examples=["lotus_core"],
+        description=(
+            "Owner responsible for invalidating stale capability truth. Shell bootstrap uses "
+            "`upstream_service`; workspace descriptors use the dependency source key."
+        ),
+        examples=["upstream_service"],
     )
     stale_read_tolerance: str = Field(
         alias="staleReadTolerance",
@@ -271,12 +274,12 @@ class PlatformCapabilitiesData(BaseModel):
     consumer_system: str = Field(
         alias="consumerSystem",
         description="Gateway consumer identity requested by the caller.",
-        examples=["lotus-gateway"],
+        examples=["lotus-gateway", "lotus-workbench"],
     )
     tenant_id: str = Field(
         alias="tenantId",
         description="Gateway tenant scope requested by the caller.",
-        examples=["default"],
+        examples=["default", "tenant-a"],
     )
     contract_version: str = Field(
         alias="contractVersion",

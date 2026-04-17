@@ -257,8 +257,23 @@ async def test_platform_capabilities_all_sources_success():
     shell_bootstrap = response.data.normalized.shell_bootstrap
     assert shell_bootstrap.contract_version == "shell-bootstrap.v1"
     assert shell_bootstrap.supportability.state == "ready"
+    assert shell_bootstrap.evidence.lineage_sources == [
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+        "lotus_risk",
+    ]
     assert shell_bootstrap.versioning.capability_contract_version == "v1"
+    assert shell_bootstrap.versioning.source_policy_versions == {
+        "lotus_core": "pas-tenant-a-v3",
+        "lotus_performance": "pa-tenant-a-v4",
+        "lotus_risk": "risk-tenant-a-v2",
+        "lotus_manage": "dpm-tenant-a-v2",
+        "lotus_report": "ras-tenant-a-v1",
+    }
     assert shell_bootstrap.caching.cache_mode == "request_scoped_composition"
+    assert shell_bootstrap.caching.invalidation_owner == "upstream_service"
     performance_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "performance"
     )
@@ -690,3 +705,62 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
     assert response.data.normalized.navigation["performance_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
     assert {error.service for error in response.data.errors} == {"lotus_performance"}
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_manage_split_merges_distinct_features_workflows_and_modes():
+    service = PlatformCapabilitiesService(
+        dpm_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus_manage",
+                "policyVersion": "dpm-v1",
+                "supportedInputModes": ["pas_ref"],
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+            },
+        ),
+        lotus_core_query_client=_StubClient(
+            200,
+            {"sourceService": "lotus_core", "features": [], "workflows": []},
+        ),
+        analytics_client=_StubClient(
+            200,
+            {"sourceService": "lotus_performance", "features": [], "workflows": []},
+        ),
+        reporting_client=_StubClient(
+            200,
+            {"sourceService": "lotus_report", "features": [], "workflows": []},
+        ),
+        manage_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus_manage_split",
+                "policyVersion": "manage-split-v2",
+                "supportedInputModes": ["inline_bundle", "pas_ref"],
+                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
+                "workflows": [{"workflow_key": "proposal_approval_flow", "enabled": True}],
+            },
+        ),
+        contract_version="v1",
+    )
+
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-manage-merge",
+    )
+
+    lotus_manage = response.data.sources["lotus_manage"]
+    assert lotus_manage["policyVersion"] == "dpm-v1"
+    assert lotus_manage["supportedInputModes"] == ["pas_ref", "inline_bundle"]
+    assert lotus_manage["features"] == [
+        {"key": "dpm.proposals.lifecycle", "enabled": True},
+        {"key": "dpm.support.run_apis", "enabled": True},
+    ]
+    assert lotus_manage["workflows"] == [
+        {"workflow_key": "proposal_lifecycle", "enabled": True},
+        {"workflow_key": "proposal_approval_flow", "enabled": True},
+    ]
+    assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
+    assert response.data.normalized.workflow_flags["proposal_approval_flow"] is True
