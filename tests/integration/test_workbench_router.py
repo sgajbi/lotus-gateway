@@ -2188,7 +2188,15 @@ def test_workbench_sandbox_changes_router(monkeypatch):
         json={"created_by": "advisor_1", "ttl_hours": 48},
     )
     assert created.status_code == 200
-    assert created.json()["session_id"] == "sess_1"
+    created_body = created.json()
+    assert created_body["portfolio_id"] == "PF_1001"
+    assert created_body["session_id"] == "sess_1"
+    assert created_body["session_version"] == 1
+    assert created_body["projected_positions"][0]["security_id"] == "EQ_1"
+    assert created_body["projected_summary"]["net_delta_quantity"] == 2.0
+    assert created_body["policy_feedback"] is None
+    assert created_body["warnings"] == []
+    assert created_body["partial_failures"] == []
     assert captured_create["portfolio_id"] == "PF_1001"
     assert captured_create["created_by"] == "advisor_1"
     assert captured_create["ttl_hours"] == 48
@@ -2205,7 +2213,13 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     body = updated.json()
     assert body["session_id"] == "sess_1"
     assert body["session_version"] == 2
+    assert body["projected_positions"][0]["security_id"] == "EQ_1"
+    assert body["projected_summary"]["total_baseline_positions"] == 1
+    assert body["projected_summary"]["net_delta_quantity"] == 2.0
     assert body["policy_feedback"]["status"] == "PASS"
+    assert body["policy_feedback"]["raw"]["status"] == "COMPLETED"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
     assert captured_apply["session_id"] == "sess_1"
     assert captured_apply["correlation_id"]
     assert captured_apply["changes"] == [

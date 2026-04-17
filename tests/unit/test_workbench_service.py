@@ -480,6 +480,56 @@ async def test_workbench_portfolio_360_with_projected_state():
 
 
 @pytest.mark.asyncio
+async def test_create_sandbox_session_returns_projected_state():
+    service = WorkbenchService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            200,
+            {
+                "portfolio_id": "PF_1001",
+                "base_currency": "USD",
+            },
+            200,
+            {
+                "as_of_date": "2026-02-23",
+                "sections": {
+                    "positions_baseline": [],
+                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                    "instrument_enrichment": [],
+                },
+            },
+        ),
+        analytics_client=_StubLotusAnalyticsClient(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+                }
+            },
+        ),
+        dpm_client=_StubDpmClient(200, {"items": []}),
+    )
+
+    response = await service.create_sandbox_session(
+        portfolio_id="PF_1001",
+        correlation_id="corr-create",
+        created_by="advisor_1",
+        ttl_hours=24,
+    )
+
+    assert response.portfolio_id == "PF_1001"
+    assert response.session_id == "sess_1"
+    assert response.session_version == 1
+    assert response.projected_positions[0].security_id == "EQ_1"
+    assert response.projected_positions[0].proposed_quantity == 15.0
+    assert response.projected_summary.total_baseline_positions == 1
+    assert response.projected_summary.total_proposed_positions == 1
+    assert response.projected_summary.net_delta_quantity == 5.0
+    assert response.policy_feedback is None
+    assert response.warnings == []
+    assert response.partial_failures == []
+
+
+@pytest.mark.asyncio
 async def test_workbench_apply_sandbox_changes_with_policy_eval():
     service = WorkbenchService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
@@ -517,8 +567,16 @@ async def test_workbench_apply_sandbox_changes_with_policy_eval():
     )
     assert response.session_id == "sess_1"
     assert response.session_version == 2
+    assert response.projected_positions[0].security_id == "EQ_1"
+    assert response.projected_positions[0].delta_quantity == 5.0
+    assert response.projected_summary.total_baseline_positions == 1
+    assert response.projected_summary.net_delta_quantity == 5.0
     assert response.policy_feedback is not None
     assert response.policy_feedback.status == "PASS"
+    assert response.policy_feedback.raw == {
+        "status": "COMPLETED",
+        "gate_decision": {"status": "PASS"},
+    }
 
 
 @pytest.mark.asyncio

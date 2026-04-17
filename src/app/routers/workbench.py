@@ -1032,7 +1032,11 @@ async def get_performance_advisor_brief(
     "/{portfolio_id}/sandbox/sessions",
     response_model=WorkbenchSandboxStateResponse,
     summary="Create Workbench Sandbox Session",
-    description="Creates a lotus-core simulation session for iterative advisory lifecycle changes.",
+    description=(
+        "Creates a lotus-core sandbox session for iterative advisory changes and returns the "
+        "projected baseline state immediately. Use this route before the first simulated trade "
+        "or rebalance adjustment for a portfolio."
+    ),
 )
 async def create_sandbox_session(
     request: WorkbenchSandboxSessionCreateRequest,
@@ -1057,8 +1061,9 @@ async def create_sandbox_session(
     response_model=WorkbenchSandboxStateResponse,
     summary="Apply Workbench Sandbox Changes",
     description=(
-        "Applies simulation changes to a sandbox session and returns projected portfolio state "
-        "with optional policy feedback."
+        "Applies ordered sandbox changes to an existing session and returns the refreshed "
+        "projected holdings plus optional policy feedback. Use this route for every incremental "
+        "what-if adjustment after the session exists."
     ),
 )
 async def apply_sandbox_changes(

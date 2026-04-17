@@ -439,9 +439,11 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_schema["properties"]["metadata"]["description"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert "projected baseline state" in create_operation["description"].lower()
     assert create_parameters["portfolio_id"]["description"]
     assert create_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert apply_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert "incremental" in apply_operation["description"].lower()
     assert apply_parameters["portfolio_id"]["description"]
     assert apply_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert apply_parameters["session_id"]["schema"]["type"] == "string"
@@ -454,6 +456,7 @@ def test_workbench_openapi_contract_registered() -> None:
         "#/components/schemas/WorkbenchSandboxApplyChangesRequest"
     )
     assert create_request_schema["properties"]["created_by"]["description"]
+    assert create_request_schema["example"]["ttl_hours"] == 24
     assert create_request_schema["properties"]["ttl_hours"]["description"]
     assert change_input_schema["properties"]["security_id"]["description"]
     assert change_input_schema["properties"]["transaction_type"]["description"]
@@ -464,8 +467,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert change_input_schema["properties"]["effective_date"]["description"]
     assert change_input_schema["properties"]["metadata"]["description"]
     assert apply_request_schema["properties"]["changes"]["description"]
+    assert apply_request_schema["example"]["changes"][0]["security_id"] == "EQ_1"
     assert apply_request_schema["properties"]["evaluate_policy"]["description"]
     assert policy_feedback_schema["properties"]["status"]["description"]
+    assert policy_feedback_schema["example"]["raw"]["gate_decision"]["status"] == "PASS"
     assert policy_feedback_schema["properties"]["detail"]["description"]
     assert policy_feedback_schema["properties"]["raw"]["description"]
     assert sandbox_response_schema["properties"]["correlation_id"]["description"]
@@ -478,3 +483,5 @@ def test_workbench_openapi_contract_registered() -> None:
     assert sandbox_response_schema["properties"]["policy_feedback"]["description"]
     assert sandbox_response_schema["properties"]["warnings"]["description"]
     assert sandbox_response_schema["properties"]["partial_failures"]["description"]
+    assert sandbox_response_schema["example"]["projected_positions"][0]["security_id"] == "EQ_1"
+    assert sandbox_response_schema["example"]["policy_feedback"]["status"] == "PASS"

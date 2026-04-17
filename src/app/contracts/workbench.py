@@ -360,6 +360,15 @@ class WorkbenchSandboxSessionCreateRequest(BaseModel):
         examples=[24],
     )
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "created_by": "advisor_1",
+                "ttl_hours": 24,
+            }
+        }
+    }
+
 
 class WorkbenchSandboxChangeInput(BaseModel):
     security_id: str = Field(
@@ -413,6 +422,25 @@ class WorkbenchSandboxApplyChangesRequest(BaseModel):
         examples=[True],
     )
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "changes": [
+                    {
+                        "security_id": "EQ_1",
+                        "transaction_type": "BUY",
+                        "quantity": 2.0,
+                        "price": 101.25,
+                        "currency": "USD",
+                        "effective_date": "2026-02-24",
+                        "metadata": {"ticket_id": "SIM-101", "rebalance": True},
+                    }
+                ],
+                "evaluate_policy": True,
+            }
+        }
+    }
+
 
 class WorkbenchPolicyFeedback(BaseModel):
     status: str = Field(
@@ -428,6 +456,19 @@ class WorkbenchPolicyFeedback(BaseModel):
         default=None,
         description="Optional raw policy payload preserved for diagnostics and audit review.",
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "status": "PASS",
+                "detail": "Simulation passed portfolio policy checks.",
+                "raw": {
+                    "status": "COMPLETED",
+                    "gate_decision": {"status": "PASS", "reason_code": "ALL_CHECKS_PASSED"},
+                },
+            }
+        }
+    }
 
 
 class WorkbenchSandboxStateResponse(BaseModel):
@@ -471,6 +512,46 @@ class WorkbenchSandboxStateResponse(BaseModel):
         default_factory=list,
         description="Upstream partial failures preserved for sandbox diagnostics.",
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-workbench-sandbox-1",
+                "contract_version": "v1",
+                "portfolio_id": "PF_1001",
+                "session_id": "sess_1",
+                "session_version": 2,
+                "projected_positions": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                        "baseline_quantity": 10.0,
+                        "proposed_quantity": 12.0,
+                        "delta_quantity": 2.0,
+                    }
+                ],
+                "projected_summary": {
+                    "total_baseline_positions": 1,
+                    "total_proposed_positions": 1,
+                    "net_delta_quantity": 2.0,
+                },
+                "policy_feedback": {
+                    "status": "PASS",
+                    "detail": "Simulation passed portfolio policy checks.",
+                    "raw": {
+                        "status": "COMPLETED",
+                        "gate_decision": {
+                            "status": "PASS",
+                            "reason_code": "ALL_CHECKS_PASSED",
+                        },
+                    },
+                },
+                "warnings": [],
+                "partial_failures": [],
+            }
+        }
+    }
 
 
 class WorkbenchAnalyticsBucket(BaseModel):
