@@ -843,6 +843,8 @@ class PerformanceWorkspaceService:
             contract_version=workspace.contract_version,
             portfolio_id=workspace.portfolio_id,
             as_of_date=workspace.as_of_date,
+            report_start_date=workspace.report_start_date,
+            report_end_date=workspace.report_end_date,
             period=workspace.period,
             benchmark_code=workspace.benchmark_code,
             portfolio_return_pct=portfolio_return_pct,

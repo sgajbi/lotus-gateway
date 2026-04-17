@@ -1715,6 +1715,8 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
     assert response.portfolio_return_pct == 15.1
     assert response.benchmark_return_pct == 14.72
     assert response.excess_return_pct == 0.38
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
     assert response.sparkline[0].as_of_date == "2026-01-31"
     assert response.sparkline[0].portfolio_return_pct == 2.0
     assert query_client.benchmark_catalog_calls == []
@@ -1745,6 +1747,8 @@ async def test_performance_workspace_service_marks_portfolio_performance_snapsho
     assert response.portfolio_return_pct is None
     assert response.benchmark_return_pct is None
     assert response.excess_return_pct is None
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
     assert response.sparkline == []
     assert response.unavailable is not None
     assert response.unavailable.title == "Performance data unavailable"

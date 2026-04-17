@@ -293,6 +293,8 @@ def test_portfolio_performance_snapshot_contract_shape() -> None:
         correlation_id="corr-10",
         portfolio_id="PF_1001",
         as_of_date="2026-03-27",
+        report_start_date="2026-01-01",
+        report_end_date="2026-03-27",
         period="YTD",
         benchmark_code="BMK_GLOBAL_BALANCED_60_40",
         portfolio_return_pct=15.1,
@@ -796,6 +798,8 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["contract_version"]["default"] == "v1"
     assert performance_snapshot_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert performance_snapshot_schema["properties"]["as_of_date"]["description"]
+    assert performance_snapshot_schema["properties"]["report_start_date"]["description"]
+    assert performance_snapshot_schema["properties"]["report_end_date"]["description"]
     assert performance_snapshot_schema["properties"]["period"]["description"]
     assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
     assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["description"]

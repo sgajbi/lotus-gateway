@@ -1301,6 +1301,8 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
             "contract_version": "v1",
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-03-27",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-03-27",
             "period": "EXPLICIT",
             "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
             "portfolio_return_pct": 15.1,
@@ -1339,6 +1341,8 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
 
     assert response.status_code == 200
     body = response.json()
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
     assert body["portfolio_return_pct"] == 15.1
     assert body["benchmark_return_pct"] == 14.72
     assert body["excess_return_pct"] == 0.38
@@ -1359,6 +1363,8 @@ def test_portfolio_performance_snapshot_router_preserves_unavailable_state(monke
             "contract_version": "v1",
             "portfolio_id": "PF_1001",
             "as_of_date": "2026-03-27",
+            "report_start_date": "2026-01-01",
+            "report_end_date": "2026-03-27",
             "period": "YTD",
             "benchmark_code": None,
             "portfolio_return_pct": None,
@@ -1390,6 +1396,8 @@ def test_portfolio_performance_snapshot_router_preserves_unavailable_state(monke
 
     assert response.status_code == 200
     body = response.json()
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
     assert body["unavailable"]["title"] == "Performance data unavailable"
     assert body["warnings"] == ["PERFORMANCE_SNAPSHOT_UNAVAILABLE"]
     assert body["partial_failures"][0]["error_code"] == "PERFORMANCE_SNAPSHOT_UNAVAILABLE"

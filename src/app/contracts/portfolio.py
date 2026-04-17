@@ -1635,6 +1635,22 @@ class PortfolioPerformanceSnapshotResponse(BaseModel):
         description="Resolved as-of date used for the snapshot response.",
         examples=["2026-03-27"],
     )
+    report_start_date: str | None = Field(
+        default=None,
+        description=(
+            "Source-authored inclusive start date of the reporting window represented by the "
+            "snapshot when available."
+        ),
+        examples=["2026-01-01"],
+    )
+    report_end_date: str | None = Field(
+        default=None,
+        description=(
+            "Source-authored inclusive end date of the reporting window represented by the "
+            "snapshot when available."
+        ),
+        examples=["2026-03-27"],
+    )
     period: str = Field(
         description=(
             "Resolved reporting horizon represented by the snapshot, such as YTD or EXPLICIT."
