@@ -1042,8 +1042,15 @@ class PortfolioWorkflowResponse(BaseModel):
 
 
 class PortfolioWorkspaceResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the portfolio workspace response envelope.",
+        examples=["corr-portfolio-workspace"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway portfolio workspace response contract.",
+        examples=["v1"],
+    )
     as_of_date: str = Field(
         description="Resolved portfolio workspace as-of date used for all source-backed sections.",
         examples=["2026-03-27"],
@@ -1085,22 +1092,48 @@ class PortfolioWorkspaceResponse(BaseModel):
     workflow_cues: list[PortfolioWorkflowLaunchCue] = Field(
         default_factory=list,
         description="Available workflow launch cues derived for the workspace shell.",
+        examples=[
+            [
+                {
+                    "key": "performance",
+                    "label": "Performance",
+                    "href": "/performance?portfolioId=PF_1001",
+                }
+            ]
+        ],
     )
     warnings: list[str] = Field(
         default_factory=list,
         description="Gateway warning codes describing degraded but still usable workspace output.",
+        examples=[["PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE"]],
     )
     partial_failures: list[PortfolioPartialFailure] = Field(
         default_factory=list,
         description=(
             "Upstream source failures preserved when optional workspace sections are unavailable."
         ),
+        examples=[
+            [
+                {
+                    "source_service": "lotus-core",
+                    "error_code": "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE",
+                    "detail": "support overview unavailable",
+                }
+            ]
+        ],
     )
 
 
 class PortfolioLiquidityResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the liquidity response envelope.",
+        examples=["corr-portfolio-liquidity"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway portfolio liquidity response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose liquidity snapshot is being returned.",
         examples=["PF_1001"],
@@ -1125,18 +1158,35 @@ class PortfolioLiquidityResponse(BaseModel):
     warnings: list[str] = Field(
         default_factory=list,
         description="Gateway warning codes describing degraded but still usable liquidity output.",
+        examples=[["PORTFOLIO_CASHFLOW_UNAVAILABLE"]],
     )
     partial_failures: list[PortfolioPartialFailure] = Field(
         default_factory=list,
         description=(
             "Upstream source failures preserved when optional liquidity sections are unavailable."
         ),
+        examples=[
+            [
+                {
+                    "source_service": "lotus-core",
+                    "error_code": "PORTFOLIO_CASHFLOW_UNAVAILABLE",
+                    "detail": "cashflow temporarily unavailable",
+                }
+            ]
+        ],
     )
 
 
 class PortfolioProjectedCashflowResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the projected-cashflow response envelope.",
+        examples=["corr-portfolio-projected-cashflow"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway projected-cashflow response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose forward cashflow projection is being returned.",
         examples=["PF_1001"],
@@ -1152,18 +1202,35 @@ class PortfolioProjectedCashflowResponse(BaseModel):
     warnings: list[str] = Field(
         default_factory=list,
         description="Gateway warning codes describing degraded projected-cashflow output.",
+        examples=[["PORTFOLIO_PROJECTED_CASHFLOW_UNAVAILABLE"]],
     )
     partial_failures: list[PortfolioPartialFailure] = Field(
         default_factory=list,
         description=(
             "Upstream source failures preserved when projected cashflow cannot be returned."
         ),
+        examples=[
+            [
+                {
+                    "source_service": "lotus-core",
+                    "error_code": "PORTFOLIO_PROJECTED_CASHFLOW_UNAVAILABLE",
+                    "detail": "projected cashflow unavailable",
+                }
+            ]
+        ],
     )
 
 
 class PortfolioAllocationResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the allocation response envelope.",
+        examples=["corr-portfolio-allocation"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway allocation response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose allocation views are being returned.",
         examples=["PF_1001"],
@@ -1192,12 +1259,34 @@ class PortfolioAllocationResponse(BaseModel):
     views: list[PortfolioAllocationView] = Field(
         default_factory=list,
         description="Allocation views returned for the supported reporting dimensions.",
+        examples=[
+            [
+                {
+                    "dimension": "asset_class",
+                    "buckets": [
+                        {
+                            "bucket": "Equity",
+                            "position_count": 3,
+                            "market_value_base": 600.0,
+                            "weight_pct": 60.0,
+                        }
+                    ],
+                }
+            ]
+        ],
     )
 
 
 class PortfolioPositionBookResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the position-book response envelope.",
+        examples=["corr-portfolio-positions"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway position-book response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose position book is being returned.",
         examples=["PF_1001"],
@@ -1212,16 +1301,52 @@ class PortfolioPositionBookResponse(BaseModel):
     top_positions: list[PortfolioTopPosition] = Field(
         default_factory=list,
         description="Ranked top holdings derived from the returned position rows.",
+        examples=[
+            [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "quantity": 10.0,
+                    "market_value_base": 400.0,
+                    "weight_pct": 40.0,
+                }
+            ]
+        ],
     )
     positions: list[PortfolioPositionView] = Field(
         default_factory=list,
         description="Detailed position rows for the requested portfolio book.",
+        examples=[
+            [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "quantity": 10.0,
+                    "market_value_base": 400.0,
+                    "market_value_local": 400.0,
+                    "weight_pct": 40.0,
+                }
+            ]
+        ],
     )
 
 
 class PortfolioBookResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description=(
+            "Opaque correlation identifier for the combined portfolio-book response envelope."
+        ),
+        examples=["corr-portfolio-book"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway combined portfolio-book response contract.",
+        examples=["v1"],
+    )
     as_of_date: str = Field(
         description="Resolved as-of date used for the combined portfolio book sections.",
         examples=["2026-03-27"],
@@ -1247,12 +1372,33 @@ class PortfolioBookResponse(BaseModel):
     positions: list[PortfolioPositionView] = Field(
         default_factory=list,
         description="Detailed position rows included in the current portfolio book.",
+        examples=[
+            [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "quantity": 10.0,
+                    "market_value_base": 400.0,
+                    "market_value_local": 400.0,
+                    "weight_pct": 40.0,
+                }
+            ]
+        ],
     )
 
 
 class PortfolioTransactionLedgerResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the transaction-ledger response envelope.",
+        examples=["corr-portfolio-transactions"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway transaction-ledger response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose transaction ledger is being returned.",
         examples=["PF_1001"],
@@ -1284,6 +1430,20 @@ class PortfolioTransactionLedgerResponse(BaseModel):
     transactions: list[PortfolioTransactionView] = Field(
         default_factory=list,
         description="Transaction rows returned for the current filter and paging window.",
+        examples=[
+            [
+                {
+                    "transaction_id": "TX_1",
+                    "transaction_date": "2026-03-27T00:00:00Z",
+                    "settlement_date": "2026-03-31",
+                    "transaction_type": "BUY",
+                    "security_id": "EQ_1",
+                    "instrument_id": "EQ_1",
+                    "quantity": 1.0,
+                    "currency": "USD",
+                }
+            ]
+        ],
     )
 
 
