@@ -52,11 +52,31 @@ class PortfolioCatalogItem(BaseModel):
 
 
 class PortfolioCatalogResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the portfolio catalog response envelope.",
+        examples=["corr-portfolio-catalog"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway portfolio catalog response contract.",
+        examples=["v1"],
+    )
     items: list[PortfolioCatalogItem] = Field(
         default_factory=list,
         description="Sorted portfolio catalog entries available to the caller.",
+        examples=[
+            [
+                {
+                    "portfolio_id": "PF_1001",
+                    "display_name": "PF_1001",
+                    "base_currency": "USD",
+                    "client_id": "CIF_1",
+                    "booking_center_code": "SGPB",
+                    "portfolio_type": "ADVISORY",
+                    "status": "ACTIVE",
+                }
+            ]
+        ],
     )
 
 
@@ -552,8 +572,15 @@ class PortfolioIncomeTypeSummary(BaseModel):
 
 
 class PortfolioIncomeSummaryResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the income-summary response envelope.",
+        examples=["corr-portfolio-income-summary"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway income-summary response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose income summary is being returned.",
         examples=["PF_1001"],
@@ -579,6 +606,37 @@ class PortfolioIncomeSummaryResponse(BaseModel):
     income_types: list[PortfolioIncomeTypeSummary] = Field(
         default_factory=list,
         description="Breakdown of income totals by canonical income type.",
+        examples=[
+            [
+                {
+                    "income_type": "DIVIDEND",
+                    "requested_window": {
+                        "gross": {"reporting_currency_amount": 42.0, "transaction_count": 2},
+                        "withholding_tax": {
+                            "reporting_currency_amount": 6.0,
+                            "transaction_count": 2,
+                        },
+                        "other_deductions": {
+                            "reporting_currency_amount": 0.0,
+                            "transaction_count": 2,
+                        },
+                        "net": {"reporting_currency_amount": 36.0, "transaction_count": 2},
+                    },
+                    "year_to_date": {
+                        "gross": {"reporting_currency_amount": 42.0, "transaction_count": 2},
+                        "withholding_tax": {
+                            "reporting_currency_amount": 6.0,
+                            "transaction_count": 2,
+                        },
+                        "other_deductions": {
+                            "reporting_currency_amount": 0.0,
+                            "transaction_count": 2,
+                        },
+                        "net": {"reporting_currency_amount": 36.0, "transaction_count": 2},
+                    },
+                }
+            ]
+        ],
     )
 
 
@@ -596,8 +654,15 @@ class PortfolioActivityBucketSummary(BaseModel):
 
 
 class PortfolioActivitySummaryResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the activity-summary response envelope.",
+        examples=["corr-portfolio-activity-summary"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway activity-summary response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose activity summary is being returned.",
         examples=["PF_1001"],
@@ -617,6 +682,21 @@ class PortfolioActivitySummaryResponse(BaseModel):
     buckets: list[PortfolioActivityBucketSummary] = Field(
         default_factory=list,
         description="Portfolio flow buckets for the requested window and year-to-date.",
+        examples=[
+            [
+                {
+                    "bucket": "INFLOWS",
+                    "requested_window": {
+                        "reporting_currency_amount": 100.0,
+                        "transaction_count": 1,
+                    },
+                    "year_to_date": {
+                        "reporting_currency_amount": 150.0,
+                        "transaction_count": 2,
+                    },
+                }
+            ]
+        ],
     )
 
 

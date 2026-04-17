@@ -428,7 +428,13 @@ def test_portfolio_openapi_contract_registered() -> None:
         parameter["name"]: parameter for parameter in activity_path["parameters"]
     }
     assert catalog_path["description"]
+    assert catalog_schema["properties"]["correlation_id"]["description"]
+    assert catalog_schema["properties"]["correlation_id"]["examples"] == ["corr-portfolio-catalog"]
+    assert catalog_schema["properties"]["contract_version"]["description"]
+    assert catalog_schema["properties"]["contract_version"]["default"] == "v1"
+    assert catalog_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert catalog_schema["properties"]["items"]["description"]
+    assert catalog_schema["properties"]["items"]["examples"]
     assert catalog_item_schema["properties"]["portfolio_id"]["description"]
     assert catalog_item_schema["properties"]["display_name"]["description"]
     assert catalog_item_schema["properties"]["base_currency"]["description"]
@@ -719,19 +725,35 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert transaction_parameters["sort_by"]["description"]
     assert transaction_parameters["sort_order"]["description"]
     assert income_schema["properties"]["reporting_currency"]["description"]
+    assert income_schema["properties"]["correlation_id"]["description"]
+    assert income_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-income-summary"
+    ]
+    assert income_schema["properties"]["contract_version"]["description"]
+    assert income_schema["properties"]["contract_version"]["default"] == "v1"
+    assert income_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert income_schema["properties"]["window_start_date"]["description"]
     assert income_schema["properties"]["window_end_date"]["description"]
     assert income_schema["properties"]["totals_requested_window"]["description"]
     assert income_schema["properties"]["totals_year_to_date"]["description"]
     assert income_schema["properties"]["income_types"]["description"]
+    assert income_schema["properties"]["income_types"]["examples"]
     assert income_parameters["as_of_date"]["description"]
     assert income_parameters["start_date"]["description"]
     assert income_parameters["end_date"]["description"]
     assert income_parameters["reporting_currency"]["description"]
     assert activity_schema["properties"]["reporting_currency"]["description"]
+    assert activity_schema["properties"]["correlation_id"]["description"]
+    assert activity_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-activity-summary"
+    ]
+    assert activity_schema["properties"]["contract_version"]["description"]
+    assert activity_schema["properties"]["contract_version"]["default"] == "v1"
+    assert activity_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert activity_schema["properties"]["window_start_date"]["description"]
     assert activity_schema["properties"]["window_end_date"]["description"]
     assert activity_schema["properties"]["buckets"]["description"]
+    assert activity_schema["properties"]["buckets"]["examples"]
     assert activity_parameters["as_of_date"]["description"]
     assert activity_parameters["start_date"]["description"]
     assert activity_parameters["end_date"]["description"]
