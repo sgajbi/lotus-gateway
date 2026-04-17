@@ -925,6 +925,9 @@ def test_portfolio_liquidity_router(monkeypatch):
         }
 
     async def _cashflow(*args, **kwargs):
+        captured["cashflow_as_of_date"] = kwargs.get("as_of_date")
+        captured["cashflow_horizon_days"] = kwargs.get("horizon_days")
+        captured["cashflow_include_projected"] = kwargs.get("include_projected")
         return 200, {
             "as_of_date": "2026-03-27",
             "range_end_date": "2026-04-06",
@@ -951,6 +954,9 @@ def test_portfolio_liquidity_router(monkeypatch):
     assert body["cashflow_outlook"]["projection_days"] == 10
     assert captured["aum_reporting_currency"] == "USD"
     assert captured["cash_reporting_currency"] == "USD"
+    assert captured["cashflow_as_of_date"] == "2026-03-27"
+    assert captured["cashflow_horizon_days"] == 10
+    assert captured["cashflow_include_projected"] is True
 
 
 def test_portfolio_liquidity_router_preserves_partial_failure(monkeypatch):

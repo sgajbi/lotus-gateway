@@ -939,7 +939,20 @@ async def test_portfolio_book_does_not_require_cashflow_projection():
 
 @pytest.mark.asyncio
 async def test_portfolio_liquidity_returns_cash_and_cashflow():
-    service = PortfolioService(_StubLotusCoreQueryClient())
+    class _LiquidityCaptureClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.cashflow_kwargs: dict[str, object] | None = None
+
+        async def get_cashflow_projection(self, portfolio_id: str, correlation_id: str, **kwargs):
+            self.cashflow_kwargs = kwargs
+            return await super().get_cashflow_projection(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _LiquidityCaptureClient()
+    service = PortfolioService(client)
     response = await service.get_portfolio_liquidity(
         portfolio_id="PF_1001",
         correlation_id="corr-3b",
@@ -949,6 +962,11 @@ async def test_portfolio_liquidity_returns_cash_and_cashflow():
     assert response.cash_balances[0].security_id == "CASH_USD"
     assert response.cashflow_outlook is not None
     assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
+    assert client.cashflow_kwargs == {
+        "as_of_date": "2026-03-27",
+        "include_projected": True,
+        "horizon_days": 10,
+    }
 
 
 @pytest.mark.asyncio
