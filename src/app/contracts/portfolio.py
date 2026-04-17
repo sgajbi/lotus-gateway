@@ -1337,8 +1337,15 @@ class PortfolioPerformanceSnapshotUnavailable(BaseModel):
 
 
 class PortfolioPerformanceSnapshotResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the performance snapshot response envelope.",
+        examples=["corr-portfolio-performance-snapshot"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway performance snapshot response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description=(
             "Portfolio identifier whose lightweight performance snapshot is being returned."
@@ -1380,18 +1387,52 @@ class PortfolioPerformanceSnapshotResponse(BaseModel):
     sparkline: list[PortfolioPerformanceSnapshotPoint] = Field(
         default_factory=list,
         description="Compact cumulative return observations suitable for a small trend sparkline.",
+        examples=[
+            [
+                {
+                    "as_of_date": "2026-01-31",
+                    "portfolio_return_pct": 2.0,
+                    "benchmark_return_pct": 1.8,
+                    "excess_return_pct": 0.2,
+                }
+            ]
+        ],
     )
     unavailable: PortfolioPerformanceSnapshotUnavailable | None = Field(
         default=None,
         description=(
             "Explicit unavailable-state metadata when performance cannot yet be calculated."
         ),
+        examples=[
+            {
+                "title": "Performance data unavailable",
+                "detail": (
+                    "Performance snapshot requires valuation history, cashflow history, and a "
+                    "selected reporting period."
+                ),
+                "requirements": [
+                    "valuation history",
+                    "cashflow history",
+                    "selected reporting period",
+                ],
+            }
+        ],
     )
     warnings: list[str] = Field(
         default_factory=list,
         description="Gateway warning codes describing degraded but still usable snapshot output.",
+        examples=[["PERFORMANCE_SNAPSHOT_UNAVAILABLE"]],
     )
     partial_failures: list[PortfolioPartialFailure] = Field(
         default_factory=list,
         description="Upstream source failures preserved when optional snapshot inputs are missing.",
+        examples=[
+            [
+                {
+                    "source_service": "lotus-performance",
+                    "error_code": "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
+                    "detail": "performance summary temporarily unavailable",
+                }
+            ]
+        ],
     )

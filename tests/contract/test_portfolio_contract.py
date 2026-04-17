@@ -703,6 +703,13 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_action_schema["properties"]["recommended"]["description"]
     assert performance_snapshot_path["description"]
     assert performance_snapshot_period_parameter["description"]
+    assert performance_snapshot_schema["properties"]["correlation_id"]["description"]
+    assert performance_snapshot_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-performance-snapshot"
+    ]
+    assert performance_snapshot_schema["properties"]["contract_version"]["description"]
+    assert performance_snapshot_schema["properties"]["contract_version"]["default"] == "v1"
+    assert performance_snapshot_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert performance_snapshot_schema["properties"]["as_of_date"]["description"]
     assert performance_snapshot_schema["properties"]["period"]["description"]
     assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
@@ -710,7 +717,11 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["warnings"]["description"]
     assert performance_snapshot_schema["properties"]["partial_failures"]["description"]
     assert performance_snapshot_schema["properties"]["sparkline"]["description"]
+    assert performance_snapshot_schema["properties"]["sparkline"]["examples"]
     assert performance_snapshot_schema["properties"]["unavailable"]["description"]
+    assert performance_snapshot_schema["properties"]["unavailable"]["examples"]
+    assert performance_snapshot_schema["properties"]["warnings"]["examples"]
+    assert performance_snapshot_schema["properties"]["partial_failures"]["examples"]
     assert performance_snapshot_point_schema["properties"]["as_of_date"]["description"]
     assert performance_snapshot_point_schema["properties"]["portfolio_return_pct"]["description"]
     assert performance_snapshot_unavailable_schema["properties"]["title"]["description"]
