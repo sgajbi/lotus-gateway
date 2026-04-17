@@ -1648,6 +1648,12 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     assert portfolio_parameter["description"]
     assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-horizon-1"
+    ]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
     assert response_schema["properties"]["rows"]["description"]
     assert response_schema["properties"]["benchmark_options"]["description"]
     assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
@@ -1672,6 +1678,18 @@ def test_workbench_performance_evidence_openapi_contract():
     artifact_schema = schema["components"]["schemas"]["PerformanceEvidenceArtifactView"]
 
     assert "lineage artifact" in artifact_route["description"]
+    assert summary_schema["properties"]["correlation_id"]["description"]
+    assert summary_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-summary-1"
+    ]
+    assert summary_schema["properties"]["contract_version"]["description"]
+    assert summary_schema["properties"]["contract_version"]["default"] == "v1"
+    assert details_schema["properties"]["correlation_id"]["description"]
+    assert details_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-details-1"
+    ]
+    assert details_schema["properties"]["contract_version"]["description"]
+    assert details_schema["properties"]["contract_version"]["default"] == "v1"
     assert summary_schema["properties"]["evidence_view"]["description"]
     assert details_schema["properties"]["evidence_view"]["description"]
     assert evidence_schema["properties"]["state"]["description"]
@@ -1734,6 +1752,12 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert dimension_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-attribution-1"
+    ]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
     assert response_schema["properties"]["rows"]["description"]
     assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
     assert response_schema["properties"]["requested_attribution_dimension_supported"]["description"]

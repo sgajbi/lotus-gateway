@@ -482,8 +482,15 @@ class PerformanceHorizonComparisonRow(BaseModel):
 
 
 class PerformanceHorizonComparisonResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the performance module request.",
+        examples=["corr-performance-horizon-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the horizon-comparison response.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose benchmark-aware horizon comparison is returned.",
         examples=["PF_1001"],
@@ -606,8 +613,15 @@ class PerformanceAttributionTrendRow(BaseModel):
 
 
 class PerformanceAttributionTrendResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the performance module request.",
+        examples=["corr-performance-attribution-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the attribution-trend response.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose attribution effects over time are being returned.",
         examples=["PF_1001"],
@@ -678,8 +692,15 @@ class PerformanceAttributionTrendResponse(BaseModel):
 
 
 class PerformanceWorkspaceResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the performance workspace request.",
+        examples=["corr-performance-workspace-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the performance workspace response.",
+        examples=["v1"],
+    )
     portfolio_id: str
     as_of_date: str
     period: str
@@ -717,8 +738,15 @@ class PerformanceWorkspaceResponse(BaseModel):
 
 
 class PerformanceWorkspaceSummaryResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the performance summary request.",
+        examples=["corr-performance-summary-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the performance summary response.",
+        examples=["v1"],
+    )
     portfolio_id: str
     as_of_date: str
     period: str
@@ -749,8 +777,15 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
 
 
 class PerformanceWorkspaceDetailsResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the performance details request.",
+        examples=["corr-performance-details-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the performance details response.",
+        examples=["v1"],
+    )
     portfolio_id: str
     as_of_date: str
     period: str
