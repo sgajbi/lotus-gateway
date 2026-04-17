@@ -295,10 +295,12 @@ async def get_workbench_analytics(
     response_model=WorkbenchRiskSummaryResponse,
     summary="Get Workbench Risk Summary",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench. "
-        "This endpoint uses the RFC-0022 Risk BFF contract and does not expose stateless "
-        "risk execution to the UI. Sharpe supportability follows lotus-risk "
-        "risk-free dependency status; gateway does not assume a zero risk-free fallback."
+        "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench first-paint "
+        "risk posture, supportability, and headline measures before the user drills into "
+        "concentration, drawdown, rolling, or attribution. This endpoint uses the RFC-0022 "
+        "Risk BFF contract and does not expose stateless risk execution to the UI. Sharpe "
+        "supportability follows lotus-risk risk-free dependency status; gateway does not "
+        "assume a zero risk-free fallback."
     ),
 )
 async def get_workbench_risk_summary(

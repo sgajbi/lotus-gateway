@@ -524,8 +524,17 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert body["correlation_id"] == "corr-risk-summary"
     assert body["source_service"] == "lotus-risk"
     assert body["state"] == "ready"
+    assert body["payload"]["periods"][0]["portfolio_observation_count"] == 0
+    assert body["payload"]["periods"][0]["benchmark_context"] is None
     assert body["metadata"]["input_mode"] == "stateful"
+    assert body["supportability"][0]["key"] == "portfolio_returns"
+    assert body["supportability"][1]["key"] == "benchmark_returns"
+    assert body["supportability"][2]["key"] == "risk_free_series"
     assert body["payload"]["periods"][0]["metrics"][0]["label"] == "Volatility"
+    assert body["payload"]["periods"][0]["metrics"][0]["value"] == 0.12
+    assert body["payload"]["periods"][0]["metrics"][1]["key"] == "SHARPE"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeypatch):

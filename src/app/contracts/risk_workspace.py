@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.contracts.workbench import WorkbenchPartialFailure
 
@@ -9,43 +9,123 @@ RiskSupportabilityState = Literal["ready", "partial", "unavailable", "blocked"]
 
 
 class WorkbenchRiskSupportabilityItem(BaseModel):
-    key: str
-    label: str
-    state: RiskSupportabilityState
-    reason: str | None = None
-    source_service: str | None = None
+    key: str = Field(
+        description="Machine-readable supportability key for the required risk dependency.",
+        examples=["portfolio_returns"],
+    )
+    label: str = Field(
+        description="Advisor-facing label for the risk dependency or evidence family.",
+        examples=["Portfolio returns"],
+    )
+    state: RiskSupportabilityState = Field(
+        description="Availability posture of the dependency for the selected risk request.",
+        examples=["ready"],
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Optional explanation when the dependency is partial, blocked, or unavailable.",
+        examples=["Benchmark-relative metrics require benchmark context."],
+    )
+    source_service: str | None = Field(
+        default=None,
+        description="Upstream owner of the dependency posture when known.",
+        examples=["lotus-risk"],
+    )
 
 
 class WorkbenchRiskMetadata(BaseModel):
-    generated_at: str
+    generated_at: str = Field(
+        description="UTC timestamp when gateway normalized the risk module response.",
+        examples=["2026-04-04T08:15:00Z"],
+    )
     input_mode: Literal["stateful", "simulation"] = "stateful"
     methodology_version: str | None = None
     cache_status: Literal["hit", "miss", "bypass"] | None = None
 
 
 class WorkbenchRiskMetric(BaseModel):
-    key: str
-    label: str
-    value: float | None = None
-    state: RiskModuleState = "ready"
-    reason: str | None = None
-    details: dict[str, Any] | None = None
+    key: str = Field(
+        description="Canonical lotus-risk metric key carried through the gateway summary contract.",
+        examples=["VOLATILITY"],
+    )
+    label: str = Field(
+        description="Advisor-facing display label for the metric.",
+        examples=["Volatility"],
+    )
+    value: float | None = Field(
+        default=None,
+        description="Numeric metric value when the measure was produced successfully.",
+        examples=[0.12],
+    )
+    state: RiskModuleState = Field(
+        default="ready",
+        description="Availability posture of the metric for the selected summary request.",
+        examples=["ready"],
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Optional explanation when the metric is partial or unavailable.",
+        examples=["Metric was not returned by lotus-risk."],
+    )
+    details: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional lotus-risk metric detail block preserved for diagnostics.",
+        examples=[{"annualization_basis": 252}],
+    )
 
 
 class WorkbenchRiskPeriodResult(BaseModel):
-    key: str
-    label: str
-    start_date: str
-    end_date: str
-    portfolio_observation_count: int = 0
-    benchmark_observation_count: int = 0
-    aligned_benchmark_observation_count: int = 0
-    benchmark_context: dict[str, Any] | None = None
-    metrics: list[WorkbenchRiskMetric] = Field(default_factory=list)
+    key: str = Field(
+        description="Canonical period key emitted by lotus-risk for the summary window.",
+        examples=["YTD"],
+    )
+    label: str = Field(
+        description="Advisor-facing label for the realized risk period window.",
+        examples=["YTD"],
+    )
+    start_date: str = Field(
+        description="Inclusive start date of the period used for the summary metrics.",
+        examples=["2026-01-01"],
+    )
+    end_date: str = Field(
+        description="Inclusive end date of the period used for the summary metrics.",
+        examples=["2026-04-04"],
+    )
+    portfolio_observation_count: int = Field(
+        default=0,
+        description="Number of portfolio return observations backing the period metrics.",
+        examples=[65],
+    )
+    benchmark_observation_count: int = Field(
+        default=0,
+        description="Number of benchmark observations available for the period when requested.",
+        examples=[65],
+    )
+    aligned_benchmark_observation_count: int = Field(
+        default=0,
+        description=(
+            "Number of aligned portfolio-versus-benchmark observations used in relative metrics."
+        ),
+        examples=[63],
+    )
+    benchmark_context: dict[str, Any] | None = Field(
+        default=None,
+        description="Relative-risk benchmark context preserved from lotus-risk when applicable.",
+        examples=[{"reason": "APPLIED", "requested_metrics": ["BETA", "TRACKING_ERROR"]}],
+    )
+    metrics: list[WorkbenchRiskMetric] = Field(
+        default_factory=list,
+        description="Summary risk metrics emitted for the resolved period.",
+    )
 
 
 class WorkbenchRiskSummaryPayload(BaseModel):
-    periods: list[WorkbenchRiskPeriodResult] = Field(default_factory=list)
+    periods: list[WorkbenchRiskPeriodResult] = Field(
+        default_factory=list,
+        description=(
+            "Resolved summary periods returned by lotus-risk for the requested horizon set."
+        ),
+    )
 
 
 class WorkbenchPortfolioConcentration(BaseModel):
@@ -421,6 +501,100 @@ class WorkbenchRiskModuleEnvelope(BaseModel):
 
 
 class WorkbenchRiskSummaryResponse(WorkbenchRiskModuleEnvelope):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "correlation_id": "corr-risk-summary-1",
+                "contract_version": "risk-workspace.v1",
+                "portfolio_id": "PF_1001",
+                "period": "YTD",
+                "as_of_date": "2026-02-24",
+                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "source_service": "lotus-risk",
+                "state": "partial",
+                "payload": {
+                    "periods": [
+                        {
+                            "key": "YTD",
+                            "label": "YTD",
+                            "start_date": "2026-01-01",
+                            "end_date": "2026-02-24",
+                            "portfolio_observation_count": 37,
+                            "benchmark_observation_count": 37,
+                            "aligned_benchmark_observation_count": 36,
+                            "benchmark_context": {
+                                "reason": "APPLIED",
+                                "requested_metrics": [
+                                    "BETA",
+                                    "TRACKING_ERROR",
+                                    "INFORMATION_RATIO",
+                                ],
+                            },
+                            "metrics": [
+                                {
+                                    "key": "VOLATILITY",
+                                    "label": "Volatility",
+                                    "value": 0.12,
+                                    "state": "ready",
+                                    "reason": None,
+                                    "details": {"annualization_basis": 252},
+                                },
+                                {
+                                    "key": "SHARPE",
+                                    "label": "Sharpe ratio",
+                                    "value": None,
+                                    "state": "partial",
+                                    "reason": (
+                                        "Risk-free series did not align for the selected window."
+                                    ),
+                                    "details": {
+                                        "error": (
+                                            "Risk-free series did not align for the "
+                                            "selected window."
+                                        )
+                                    },
+                                },
+                            ],
+                        }
+                    ]
+                },
+                "supportability": [
+                    {
+                        "key": "portfolio_returns",
+                        "label": "Portfolio returns",
+                        "state": "ready",
+                        "reason": None,
+                        "source_service": "lotus-risk",
+                    },
+                    {
+                        "key": "risk_free_series",
+                        "label": "Risk-free series",
+                        "state": "partial",
+                        "reason": (
+                            "Sharpe is partial or unavailable when lotus-risk cannot "
+                            "source the required risk-free series."
+                        ),
+                        "source_service": "lotus-risk",
+                    },
+                ],
+                "warnings": ["RISK_SUMMARY_PARTIAL"],
+                "partial_failures": [
+                    {
+                        "source_service": "risk",
+                        "error_code": "RISK_FREE_UNAVAILABLE",
+                        "detail": "Sharpe could not be produced for one or more requested periods.",
+                    }
+                ],
+                "metadata": {
+                    "generated_at": "2026-04-04T08:15:00Z",
+                    "input_mode": "stateful",
+                    "methodology_version": "risk-summary.v1",
+                    "cache_status": "miss",
+                },
+            }
+        }
+    )
+
     payload: WorkbenchRiskSummaryPayload | None = None
 
 

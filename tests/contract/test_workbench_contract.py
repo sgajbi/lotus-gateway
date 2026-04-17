@@ -204,6 +204,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert analytics_parameters["session_id"]["description"]
     assert risk_summary_parameters["portfolio_id"]["description"]
     assert risk_summary_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "first-paint" in risk_summary_operation["description"]
     assert risk_summary_parameters["period"]["description"]
     assert risk_summary_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_summary_parameters["period"]["schema"]["examples"] == ["YTD"]
@@ -437,6 +438,35 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_schema["properties"]["warnings"]["description"]
     assert risk_summary_schema["properties"]["partial_failures"]["description"]
     assert risk_summary_schema["properties"]["metadata"]["description"]
+    assert (
+        risk_summary_schema["example"]["payload"]["periods"][0]["metrics"][0]["key"] == "VOLATILITY"
+    )
+    assert (
+        risk_summary_schema["example"]["payload"]["periods"][0]["metrics"][1]["state"] == "partial"
+    )
+    assert risk_summary_schema["example"]["supportability"][1]["key"] == "risk_free_series"
+    assert risk_summary_schema["example"]["warnings"] == ["RISK_SUMMARY_PARTIAL"]
+    assert (
+        risk_summary_schema["example"]["partial_failures"][0]["error_code"]
+        == "RISK_FREE_UNAVAILABLE"
+    )
+    metric_schema = spec["components"]["schemas"]["WorkbenchRiskMetric"]
+    period_result_schema = spec["components"]["schemas"]["WorkbenchRiskPeriodResult"]
+    supportability_item_schema = spec["components"]["schemas"]["WorkbenchRiskSupportabilityItem"]
+    metadata_schema = spec["components"]["schemas"]["WorkbenchRiskMetadata"]
+    summary_payload_schema = spec["components"]["schemas"]["WorkbenchRiskSummaryPayload"]
+    assert metric_schema["properties"]["key"]["description"]
+    assert metric_schema["properties"]["value"]["examples"] == [0.12]
+    assert metric_schema["properties"]["details"]["description"]
+    assert period_result_schema["properties"]["portfolio_observation_count"]["description"]
+    assert (
+        period_result_schema["properties"]["benchmark_context"]["examples"][0]["reason"]
+        == "APPLIED"
+    )
+    assert supportability_item_schema["properties"]["state"]["description"]
+    assert supportability_item_schema["properties"]["source_service"]["examples"] == ["lotus-risk"]
+    assert metadata_schema["properties"]["generated_at"]["description"]
+    assert summary_payload_schema["properties"]["periods"]["description"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "projected baseline state" in create_operation["description"].lower()
