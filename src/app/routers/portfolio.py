@@ -219,12 +219,13 @@ async def get_portfolio_readiness(
     summary="Get portfolio insight and exception summaries",
     description=(
         "Returns advisor-facing portfolio insights and compact exception summaries for the "
-        "current book. Use this endpoint when the UI needs a governed summary of empty, "
-        "blocked, concentration, funding, reporting, or recent-activity signals derived "
-        "from source-backed holdings, readiness, allocation, and transaction-ledger inputs "
-        "instead of rebuilding those cues locally. The response keeps advisor-facing "
-        "insights separate from compact exception rails so product surfaces can render "
-        "actionable guidance and degraded-state alerts consistently."
+        "current book. Use this endpoint when the UI needs a governed summary strip and "
+        "exception rail for empty, blocked, concentration, funding, reporting, or recent-"
+        "activity signals derived from source-backed holdings, readiness, allocation, and "
+        "transaction-ledger inputs instead of rebuilding those cues locally. The response "
+        "keeps advisor-facing insights separate from compact exception rails so product "
+        "surfaces can render concise front-office guidance and degraded-state alerts "
+        "consistently from one source-backed contract."
     ),
 )
 async def get_portfolio_insights(
@@ -254,9 +255,9 @@ async def get_portfolio_insights(
         "Use this endpoint when the UI needs a governed next-step sequence derived from "
         "source-backed holdings, funding, transaction, and readiness state instead of "
         "recomputing workflow priorities locally. The response preserves a stable action "
-        "order, recommended next step, and empty-portfolio setup sequence for the resolved "
-        "as-of date so downstream clients can launch the next workflow without custom "
-        "priority rules."
+        "order, one recommended next step, and an explicit empty-portfolio setup sequence "
+        "for the resolved as-of date so downstream clients can power the Next Actions rail "
+        "without custom priority rules or fallback heuristics."
     ),
 )
 async def get_portfolio_workflow(

@@ -487,8 +487,26 @@ def test_portfolio_workflow_router(monkeypatch):
         "cta_label": "Performance",
         "recommended": True,
     }
-    assert body["actions"][1]["title"] == "Review holdings"
-    assert body["actions"][2]["title"] == "Review transactions"
+    assert body["actions"][1] == {
+        "sequence": 2,
+        "title": "Review holdings",
+        "impact": (
+            "Confirm funded positions, valuations, and portfolio weights before client review."
+        ),
+        "target": "Target: Holdings workflow for this portfolio",
+        "href": "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+        "cta_label": "Holdings",
+        "recommended": False,
+    }
+    assert body["actions"][2] == {
+        "sequence": 3,
+        "title": "Review transactions",
+        "impact": "Inspect recent funding, trading, and cash activity affecting the book.",
+        "target": "Target: Transactions workflow for this portfolio",
+        "href": "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+        "cta_label": "Transactions",
+        "recommended": False,
+    }
     assert transaction_calls == [
         {
             "as_of_date": "2026-03-27",
@@ -808,19 +826,86 @@ def test_portfolio_insights_router_returns_blocked_exception_summaries(monkeypat
     response = client.get("/api/v1/portfolio/portfolios/PF_1001/insights")
     assert response.status_code == 200
     body = response.json()
-    assert [item["key"] for item in body["insights"]] == [
-        "no-holdings-booked",
-        "no-cash-funding",
-        "pricing-not-published",
-        "reporting-unavailable",
+    assert body["insights"] == [
+        {
+            "key": "no-holdings-booked",
+            "title": "No holdings booked",
+            "detail": (
+                "Book the first position to activate holdings, allocation, and valuation views."
+            ),
+            "severity": "critical",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "no-cash-funding",
+            "title": "No cash funding recorded",
+            "detail": (
+                "Add opening cash or a subscription so the portfolio can be funded and invested."
+            ),
+            "severity": "critical",
+            "href": "#portfolio-insights",
+        },
+        {
+            "key": "pricing-not-published",
+            "title": "Pricing not yet published",
+            "detail": "Publish prices to complete valuation and unlock reliable reporting.",
+            "severity": "warning",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "reporting-unavailable",
+            "title": "Reporting cannot be generated yet",
+            "detail": "Reporting remains blocked until book coverage and valuation are complete.",
+            "severity": "warning",
+            "href": "#portfolio-health",
+        },
     ]
-    assert [item["key"] for item in body["exception_summaries"]] == [
-        "holdings",
-        "pricing",
-        "transactions",
-        "reporting",
-        "controls_blocking",
-        "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
+    assert body["exception_summaries"] == [
+        {
+            "key": "holdings",
+            "title": "Missing holdings",
+            "detail": "No positions are currently booked for this portfolio.",
+            "tone": "danger",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "pricing",
+            "title": "No priced positions",
+            "detail": "Valuation cannot run until priced positions are available.",
+            "tone": "danger",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "transactions",
+            "title": "Empty transaction history",
+            "detail": "No funding, trading, or cash activity has been recorded yet.",
+            "tone": "danger",
+            "href": "#portfolio-drilldown",
+        },
+        {
+            "key": "reporting",
+            "title": "Reporting output missing",
+            "detail": "Reporting coverage is not yet available for this portfolio.",
+            "tone": "danger",
+            "href": "#portfolio-health",
+        },
+        {
+            "key": "controls_blocking",
+            "title": "Blocking controls active",
+            "detail": (
+                "Operational controls are currently preventing publication or downstream "
+                "processing."
+            ),
+            "tone": "danger",
+            "href": "#portfolio-attention",
+        },
+        {
+            "key": "partial_failure_PORTFOLIO_CASHFLOW_UNAVAILABLE",
+            "title": "PORTFOLIO CASHFLOW UNAVAILABLE",
+            "detail": "cashflow temporarily unavailable",
+            "tone": "warn",
+            "href": "#portfolio-attention",
+        },
     ]
 
 

@@ -686,6 +686,18 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert insights_schema["properties"]["exception_summaries"]["description"]
     assert insights_schema["properties"]["insights"]["examples"]
     assert insights_schema["properties"]["exception_summaries"]["examples"]
+    assert insights_schema["properties"]["insights"]["examples"][0][0]["href"] == (
+        "/risk?portfolioId=PF_1001"
+    )
+    assert insights_schema["properties"]["insights"]["examples"][0][1]["key"] == (
+        "cash-above-target"
+    )
+    assert insights_schema["properties"]["exception_summaries"]["examples"][0][0]["tone"] == (
+        "warn"
+    )
+    assert insights_schema["properties"]["exception_summaries"]["examples"][0][1]["key"] == (
+        "controls_blocking"
+    )
     assert insight_item_schema["properties"]["key"]["description"]
     assert insight_item_schema["properties"]["title"]["description"]
     assert insight_item_schema["properties"]["detail"]["description"]
@@ -867,11 +879,19 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert workflow_schema["properties"]["actions"]["description"]
     assert workflow_schema["properties"]["actions"]["examples"]
+    assert workflow_schema["properties"]["actions"]["examples"][0][0]["recommended"] is True
+    assert workflow_schema["properties"]["actions"]["examples"][0][1]["title"] == (
+        "Review holdings"
+    )
     assert workflow_action_schema["properties"]["sequence"]["description"]
     assert workflow_action_schema["properties"]["title"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]
     assert workflow_action_schema["properties"]["target"]["description"]
+    assert "cash funding" in workflow_action_schema["properties"]["target"]["examples"][1]
     assert workflow_action_schema["properties"]["href"]["description"]
+    assert workflow_action_schema["properties"]["href"]["examples"][1] == (
+        "/portfolio?portfolioId=PF_1001#portfolio-drilldown"
+    )
     assert workflow_action_schema["properties"]["cta_label"]["description"]
     assert workflow_action_schema["properties"]["recommended"]["description"]
     assert performance_snapshot_path["description"]

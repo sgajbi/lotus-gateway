@@ -1060,8 +1060,15 @@ class PortfolioInsightsResponse(BaseModel):
                         "concentration."
                     ),
                     "severity": "warning",
+                    "href": "/risk?portfolioId=PF_1001",
+                },
+                {
+                    "key": "cash-above-target",
+                    "title": "Cash exceeds target allocation",
+                    "detail": "Available cash is elevated relative to invested assets.",
+                    "severity": "info",
                     "href": "#portfolio-insights",
-                }
+                },
             ]
         ],
     )
@@ -1076,9 +1083,19 @@ class PortfolioInsightsResponse(BaseModel):
                     "key": "pricing",
                     "title": "Pricing still pending",
                     "detail": "Valuation and reporting remain blocked until pricing is published.",
-                    "tone": "warning",
+                    "tone": "warn",
                     "href": "#portfolio-readiness",
-                }
+                },
+                {
+                    "key": "controls_blocking",
+                    "title": "Blocking controls active",
+                    "detail": (
+                        "Operational controls are currently preventing publication or "
+                        "downstream processing."
+                    ),
+                    "tone": "danger",
+                    "href": "#portfolio-attention",
+                },
             ]
         ],
     )
@@ -1101,11 +1118,17 @@ class PortfolioWorkflowAction(BaseModel):
     )
     target: str = Field(
         description="Explicit workflow target or operating outcome that the action opens.",
-        examples=["Target: Performance workflow for this portfolio"],
+        examples=[
+            "Target: Performance workflow for this portfolio",
+            "Target: cash funding and opening balance setup",
+        ],
     )
     href: str = Field(
         description="Route or in-page target used to launch the workflow action.",
-        examples=["/performance?portfolioId=PF_1001"],
+        examples=[
+            "/performance?portfolioId=PF_1001",
+            "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+        ],
     )
     cta_label: str = Field(
         description="Short call-to-action label shown on the action button.",
@@ -1158,7 +1181,19 @@ class PortfolioWorkflowResponse(BaseModel):
                     "href": "/performance?portfolioId=PF_1001",
                     "cta_label": "Performance",
                     "recommended": True,
-                }
+                },
+                {
+                    "sequence": 2,
+                    "title": "Review holdings",
+                    "impact": (
+                        "Confirm funded positions, valuations, and portfolio weights before "
+                        "client review."
+                    ),
+                    "target": "Target: Holdings workflow for this portfolio",
+                    "href": "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+                    "cta_label": "Holdings",
+                    "recommended": False,
+                },
             ]
         ],
     )

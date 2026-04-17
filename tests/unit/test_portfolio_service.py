@@ -893,33 +893,40 @@ async def test_portfolio_workflow_returns_prioritized_actions():
         correlation_id="corr-2c",
         as_of_date="2026-03-27",
     )
-    assert [action.sequence for action in response.actions] == [1, 2, 3]
-    assert [action.title for action in response.actions] == [
-        "Review performance",
-        "Review holdings",
-        "Review transactions",
+    assert [action.model_dump() for action in response.actions] == [
+        {
+            "sequence": 1,
+            "title": "Review performance",
+            "impact": (
+                "Review portfolio return, benchmark context, and contribution once the book "
+                "is valued."
+            ),
+            "target": "Target: Performance workflow for this portfolio",
+            "href": "/performance?portfolioId=PF_1001",
+            "cta_label": "Performance",
+            "recommended": True,
+        },
+        {
+            "sequence": 2,
+            "title": "Review holdings",
+            "impact": (
+                "Confirm funded positions, valuations, and portfolio weights before client review."
+            ),
+            "target": "Target: Holdings workflow for this portfolio",
+            "href": "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+            "cta_label": "Holdings",
+            "recommended": False,
+        },
+        {
+            "sequence": 3,
+            "title": "Review transactions",
+            "impact": "Inspect recent funding, trading, and cash activity affecting the book.",
+            "target": "Target: Transactions workflow for this portfolio",
+            "href": "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
+            "cta_label": "Transactions",
+            "recommended": False,
+        },
     ]
-    assert [action.impact for action in response.actions] == [
-        "Review portfolio return, benchmark context, and contribution once the book is valued.",
-        "Confirm funded positions, valuations, and portfolio weights before client review.",
-        "Inspect recent funding, trading, and cash activity affecting the book.",
-    ]
-    assert [action.target for action in response.actions] == [
-        "Target: Performance workflow for this portfolio",
-        "Target: Holdings workflow for this portfolio",
-        "Target: Transactions workflow for this portfolio",
-    ]
-    assert [action.href for action in response.actions] == [
-        "/performance?portfolioId=PF_1001",
-        "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
-        "/portfolio?portfolioId=PF_1001#portfolio-drilldown",
-    ]
-    assert [action.cta_label for action in response.actions] == [
-        "Performance",
-        "Holdings",
-        "Transactions",
-    ]
-    assert [action.recommended for action in response.actions] == [True, False, False]
 
 
 @pytest.mark.asyncio

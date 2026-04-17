@@ -570,13 +570,10 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=1,
             ),
         )
         self._raise_on_upstream_client_error(
@@ -635,13 +632,10 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=1,
             ),
             self.get_activity_summary(
                 portfolio_id=portfolio_id,
@@ -681,13 +675,10 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=1,
             ),
         )
         actions = self._build_workflow_actions(
@@ -703,6 +694,22 @@ class PortfolioService:
             portfolio_id=portfolio_id,
             as_of_date=workspace.as_of_date,
             actions=actions,
+        )
+
+    async def _get_latest_transaction_probe(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> PortfolioTransactionLedgerResponse:
+        return await self.get_transaction_ledger(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=False,
+            skip=0,
+            limit=1,
         )
 
     async def get_portfolio_book(
