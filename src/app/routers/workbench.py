@@ -1035,8 +1035,12 @@ async def get_performance_advisor_brief(
     description="Creates a lotus-core simulation session for iterative advisory lifecycle changes.",
 )
 async def create_sandbox_session(
-    portfolio_id: str,
     request: WorkbenchSandboxSessionCreateRequest,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the sandbox session to be created.",
+        examples=["PF_1001"],
+    ),
 ) -> WorkbenchSandboxStateResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
@@ -1058,9 +1062,17 @@ async def create_sandbox_session(
     ),
 )
 async def apply_sandbox_changes(
-    portfolio_id: str,
-    session_id: str,
     request: WorkbenchSandboxApplyChangesRequest,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the sandbox session being updated.",
+        examples=["PF_1001"],
+    ),
+    session_id: str = Path(
+        ...,
+        description="Active sandbox session identifier that will receive the proposed changes.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchSandboxStateResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()

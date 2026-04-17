@@ -413,8 +413,14 @@ def test_workbench_openapi_contract_registered() -> None:
     assert top_change_schema["properties"]["direction"]["description"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert create_parameters["portfolio_id"]["description"]
+    assert create_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert apply_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert apply_parameters["portfolio_id"]["description"]
+    assert apply_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert apply_parameters["session_id"]["schema"]["type"] == "string"
+    assert apply_parameters["session_id"]["description"]
+    assert apply_parameters["session_id"]["schema"]["examples"] == ["sess_1"]
     assert create_operation["requestBody"]["content"]["application/json"]["schema"]["$ref"] == (
         "#/components/schemas/WorkbenchSandboxSessionCreateRequest"
     )
