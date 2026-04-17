@@ -364,19 +364,60 @@ class WorkbenchRiskAttributionPayload(BaseModel):
 
 
 class WorkbenchRiskModuleEnvelope(BaseModel):
-    correlation_id: str
-    contract_version: str = "risk-workspace.v1"
-    portfolio_id: str
-    period: str
-    as_of_date: str
-    benchmark_code: str | None = None
-    source_service: str = "lotus-risk"
-    state: RiskModuleState
-    payload: Any | None = None
-    supportability: list[WorkbenchRiskSupportabilityItem] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
-    metadata: WorkbenchRiskMetadata
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the risk module request.",
+        examples=["corr-risk-summary-1"],
+    )
+    contract_version: str = Field(
+        default="risk-workspace.v1",
+        description="Gateway contract version for the risk workspace module responses.",
+        examples=["risk-workspace.v1"],
+    )
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose risk workspace module is being returned.",
+        examples=["PF_1001"],
+    )
+    period: str = Field(
+        description="Resolved horizon requested for the risk module.",
+        examples=["YTD"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the risk module response.",
+        examples=["2026-02-24"],
+    )
+    benchmark_code: str | None = Field(
+        default=None,
+        description="Resolved benchmark code used by the risk module when available.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    )
+    source_service: str = Field(
+        default="lotus-risk",
+        description="Upstream source service that produced the risk module payload.",
+        examples=["lotus-risk"],
+    )
+    state: RiskModuleState = Field(
+        description="Overall availability state of the resolved risk module response.",
+        examples=["ready"],
+    )
+    payload: Any | None = Field(
+        default=None,
+        description="Module-specific lotus-risk payload normalized into the gateway contract.",
+    )
+    supportability: list[WorkbenchRiskSupportabilityItem] = Field(
+        default_factory=list,
+        description="Supportability indicators for the module and its required source inputs.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded but still usable risk output.",
+    )
+    partial_failures: list[WorkbenchPartialFailure] = Field(
+        default_factory=list,
+        description="Upstream source failures preserved when optional risk inputs are unavailable.",
+    )
+    metadata: WorkbenchRiskMetadata = Field(
+        description="Methodology and input metadata carried alongside the module payload."
+    )
 
 
 class WorkbenchRiskSummaryResponse(WorkbenchRiskModuleEnvelope):

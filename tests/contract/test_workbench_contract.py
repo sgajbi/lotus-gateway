@@ -132,6 +132,7 @@ def test_workbench_openapi_contract_registered() -> None:
     analytics_schema = spec["components"]["schemas"]["WorkbenchAnalyticsResponse"]
     analytics_bucket_schema = spec["components"]["schemas"]["WorkbenchAnalyticsBucket"]
     top_change_schema = spec["components"]["schemas"]["WorkbenchTopChange"]
+    risk_summary_schema = spec["components"]["schemas"]["WorkbenchRiskSummaryResponse"]
     create_request_schema = spec["components"]["schemas"]["WorkbenchSandboxSessionCreateRequest"]
     change_input_schema = spec["components"]["schemas"]["WorkbenchSandboxChangeInput"]
     apply_request_schema = spec["components"]["schemas"]["WorkbenchSandboxApplyChangesRequest"]
@@ -411,6 +412,22 @@ def test_workbench_openapi_contract_registered() -> None:
     assert top_change_schema["properties"]["instrument_name"]["description"]
     assert top_change_schema["properties"]["delta_quantity"]["description"]
     assert top_change_schema["properties"]["direction"]["description"]
+    assert risk_summary_schema["properties"]["correlation_id"]["description"]
+    assert risk_summary_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-risk-summary-1"
+    ]
+    assert risk_summary_schema["properties"]["contract_version"]["description"]
+    assert risk_summary_schema["properties"]["contract_version"]["default"] == "risk-workspace.v1"
+    assert risk_summary_schema["properties"]["portfolio_id"]["description"]
+    assert risk_summary_schema["properties"]["period"]["description"]
+    assert risk_summary_schema["properties"]["as_of_date"]["description"]
+    assert risk_summary_schema["properties"]["benchmark_code"]["description"]
+    assert risk_summary_schema["properties"]["source_service"]["description"]
+    assert risk_summary_schema["properties"]["state"]["description"]
+    assert risk_summary_schema["properties"]["supportability"]["description"]
+    assert risk_summary_schema["properties"]["warnings"]["description"]
+    assert risk_summary_schema["properties"]["partial_failures"]["description"]
+    assert risk_summary_schema["properties"]["metadata"]["description"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert create_parameters["portfolio_id"]["description"]
