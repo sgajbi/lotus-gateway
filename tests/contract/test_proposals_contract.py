@@ -180,3 +180,63 @@ def test_proposals_openapi_write_contract() -> None:
     assert consent_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert consent_parameters["Idempotency-Key"]["description"]
     assert consent_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-client-consent-1"]
+
+    simulate_request_schema = spec["components"]["schemas"]["ProposalSimulateRequest"]
+    create_request_schema = spec["components"]["schemas"]["ProposalCreateRequest"]
+    version_request_schema = spec["components"]["schemas"]["ProposalVersionCreateRequest"]
+    submit_request_schema = spec["components"]["schemas"]["ProposalSubmitRequest"]
+    approval_request_schema = spec["components"]["schemas"]["ProposalApprovalActionRequest"]
+    simulate_response_schema = spec["components"]["schemas"]["ProposalSimulateResponse"]
+    envelope_schema = spec["components"]["schemas"]["ProposalEnvelopeResponse"]
+
+    assert simulate_request_schema["properties"]["body"]["description"]
+    assert simulate_request_schema["properties"]["body"]["examples"][0]["portfolio_id"] == "PF_1001"
+    assert create_request_schema["properties"]["body"]["description"]
+    assert create_request_schema["properties"]["body"]["examples"][0]["proposal_name"] == (
+        "Income tilt rebalance"
+    )
+    assert version_request_schema["properties"]["body"]["description"]
+    assert (
+        version_request_schema["properties"]["body"]["examples"][0]["proposed_trades"][0]["action"]
+        == "SELL"
+    )
+
+    assert submit_request_schema["properties"]["actor_id"]["description"]
+    assert submit_request_schema["properties"]["actor_id"]["examples"] == ["advisor_1"]
+    assert submit_request_schema["properties"]["expected_state"]["description"]
+    assert submit_request_schema["properties"]["expected_state"]["default"] == "DRAFT"
+    assert submit_request_schema["properties"]["review_type"]["description"]
+    assert submit_request_schema["properties"]["review_type"]["default"] == "RISK"
+    assert submit_request_schema["properties"]["related_version_no"]["description"]
+    assert submit_request_schema["properties"]["reason"]["description"]
+    assert submit_request_schema["properties"]["reason"]["examples"][0]["ticket_id"] == "REQ-102"
+
+    assert approval_request_schema["properties"]["actor_id"]["description"]
+    assert approval_request_schema["properties"]["actor_id"]["examples"] == ["risk_1"]
+    assert approval_request_schema["properties"]["expected_state"]["description"]
+    assert approval_request_schema["properties"]["expected_state"]["examples"] == ["RISK_REVIEW"]
+    assert approval_request_schema["properties"]["related_version_no"]["description"]
+    assert approval_request_schema["properties"]["details"]["description"]
+    assert approval_request_schema["properties"]["details"]["examples"][0]["decision"] == (
+        "APPROVED"
+    )
+
+    assert simulate_response_schema["properties"]["correlation_id"]["description"]
+    assert simulate_response_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-proposals-1"
+    ]
+    assert simulate_response_schema["properties"]["contract_version"]["description"]
+    assert simulate_response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert simulate_response_schema["properties"]["data"]["description"]
+    assert simulate_response_schema["properties"]["data"]["examples"][0]["proposal_run_id"] == (
+        "pr_1"
+    )
+
+    assert envelope_schema["properties"]["correlation_id"]["description"]
+    assert envelope_schema["properties"]["correlation_id"]["examples"] == ["corr-proposals-2"]
+    assert envelope_schema["properties"]["contract_version"]["description"]
+    assert envelope_schema["properties"]["contract_version"]["default"] == "v1"
+    assert envelope_schema["properties"]["data"]["description"]
+    assert envelope_schema["properties"]["data"]["examples"][0]["items"][0]["proposal_id"] == (
+        "pp_1"
+    )
