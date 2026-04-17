@@ -1271,9 +1271,29 @@ def test_portfolio_projected_cashflow_router(monkeypatch):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["as_of_date"] == "2026-03-27"
-    assert body["cashflow_outlook"]["projection_days"] == 30
-    assert body["cashflow_outlook"]["include_projected"] is True
+    assert body == {
+        "correlation_id": body["correlation_id"],
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "cashflow_outlook": {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-26",
+            "total_net_cashflow_base": 125.0,
+            "projection_days": 30,
+            "include_projected": True,
+            "notes": None,
+            "upcoming_points": [
+                {
+                    "projection_date": "2026-03-28",
+                    "net_cashflow_base": 25.0,
+                    "projected_cumulative_cashflow_base": 25.0,
+                }
+            ],
+        },
+        "warnings": [],
+        "partial_failures": [],
+    }
     assert captured["horizon_days"] == 30
     assert captured["as_of_date"] == "2026-03-27"
     assert captured["include_projected"] is False

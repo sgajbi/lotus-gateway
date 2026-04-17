@@ -1421,10 +1421,29 @@ async def test_portfolio_projected_cashflow_returns_requested_horizon():
 
     assert client.last_kwargs is not None
     assert client.last_kwargs["horizon_days"] == 30
-    assert response.cashflow_outlook is not None
-    assert response.cashflow_outlook.projection_days == 30
-    assert response.cashflow_outlook.include_projected is True
-    assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
+    assert response.model_dump() == {
+        "correlation_id": "corr-3b2",
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "cashflow_outlook": {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-26",
+            "total_net_cashflow_base": -25.0,
+            "projection_days": 30,
+            "include_projected": True,
+            "notes": None,
+            "upcoming_points": [
+                {
+                    "projection_date": "2026-03-28",
+                    "net_cashflow_base": -25.0,
+                    "projected_cumulative_cashflow_base": -25.0,
+                }
+            ],
+        },
+        "warnings": [],
+        "partial_failures": [],
+    }
 
 
 @pytest.mark.asyncio

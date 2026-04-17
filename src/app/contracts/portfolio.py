@@ -1603,6 +1603,23 @@ class PortfolioProjectedCashflowResponse(BaseModel):
     cashflow_outlook: PortfolioCashflowOutlook | None = Field(
         default=None,
         description="Forward projected cashflow path for the requested horizon when available.",
+        examples=[
+            {
+                "as_of_date": "2026-03-27",
+                "range_end_date": "2026-04-26",
+                "total_net_cashflow_base": 125.0,
+                "projection_days": 30,
+                "include_projected": False,
+                "notes": None,
+                "upcoming_points": [
+                    {
+                        "projection_date": "2026-03-28",
+                        "net_cashflow_base": 25.0,
+                        "projected_cumulative_cashflow_base": 25.0,
+                    }
+                ],
+            }
+        ],
     )
     warnings: list[str] = Field(
         default_factory=list,

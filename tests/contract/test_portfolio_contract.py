@@ -837,6 +837,18 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert projected_cashflow_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert projected_cashflow_schema["properties"]["as_of_date"]["description"]
     assert projected_cashflow_schema["properties"]["cashflow_outlook"]["description"]
+    assert (
+        projected_cashflow_schema["properties"]["cashflow_outlook"]["examples"][0][
+            "projection_days"
+        ]
+        == 30
+    )
+    assert (
+        projected_cashflow_schema["properties"]["cashflow_outlook"]["examples"][0][
+            "upcoming_points"
+        ][0]["net_cashflow_base"]
+        == 25.0
+    )
     assert projected_cashflow_schema["properties"]["warnings"]["description"]
     assert projected_cashflow_schema["properties"]["partial_failures"]["description"]
     assert projected_cashflow_schema["properties"]["warnings"]["examples"]
