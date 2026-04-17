@@ -3,11 +3,13 @@ from fastapi.testclient import TestClient
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
     ProposalApprovalsEnvelopeResponse,
+    ProposalCreateEnvelopeResponse,
     ProposalDetailEnvelopeResponse,
     ProposalEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
     ProposalSimulateResponse,
+    ProposalStateTransitionEnvelopeResponse,
     ProposalSubmitRequest,
     ProposalVersionEnvelopeResponse,
     ProposalWorkflowEventsEnvelopeResponse,
@@ -84,6 +86,40 @@ def test_proposal_write_envelope_contract_shape() -> None:
         data={"proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"}},
     )
     assert payload.data["proposal"]["proposal_id"] == "pp_1"
+
+    create_payload = ProposalCreateEnvelopeResponse(
+        correlation_id="corr_9",
+        contract_version="v1",
+        data={
+            "proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"},
+            "version": {"proposal_version_id": "ppv_1", "proposal_id": "pp_1", "version_no": 1},
+            "latest_workflow_event": {
+                "event_id": "pwe_1",
+                "event_type": "CREATED",
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:00:00+00:00",
+            },
+        },
+    )
+    transition_payload = ProposalStateTransitionEnvelopeResponse(
+        correlation_id="corr_10",
+        contract_version="v1",
+        data={
+            "proposal_id": "pp_1",
+            "current_state": "RISK_REVIEW",
+            "latest_workflow_event": {
+                "event_id": "pwe_2",
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "from_state": "DRAFT",
+                "to_state": "RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:07:00+00:00",
+            },
+        },
+    )
+    assert create_payload.data.version.version_no == 1
+    assert transition_payload.data.latest_workflow_event.event_type == "SUBMITTED_FOR_RISK_REVIEW"
 
 
 def test_proposal_submit_request_contract_shape() -> None:
@@ -266,6 +302,25 @@ def test_proposals_openapi_write_contract() -> None:
     assert consent_parameters["Idempotency-Key"]["description"]
     assert consent_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-client-consent-1"]
 
+    assert create_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalCreateEnvelopeResponse")
+    assert create_version_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalCreateEnvelopeResponse")
+    assert submit_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalStateTransitionEnvelopeResponse")
+    assert approve_risk_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalStateTransitionEnvelopeResponse")
+    assert approve_compliance_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/ProposalStateTransitionEnvelopeResponse")
+    assert consent_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalStateTransitionEnvelopeResponse")
+
     simulate_request_schema = spec["components"]["schemas"]["ProposalSimulateRequest"]
     create_request_schema = spec["components"]["schemas"]["ProposalCreateRequest"]
     version_request_schema = spec["components"]["schemas"]["ProposalVersionCreateRequest"]
@@ -280,7 +335,12 @@ def test_proposals_openapi_write_contract() -> None:
     ]
     approvals_envelope_schema = spec["components"]["schemas"]["ProposalApprovalsEnvelopeResponse"]
     lineage_envelope_schema = spec["components"]["schemas"]["ProposalLineageEnvelopeResponse"]
-    envelope_schema = spec["components"]["schemas"]["ProposalEnvelopeResponse"]
+    create_envelope_schema = spec["components"]["schemas"]["ProposalCreateEnvelopeResponse"]
+    transition_envelope_schema = spec["components"]["schemas"][
+        "ProposalStateTransitionEnvelopeResponse"
+    ]
+    create_data_schema = spec["components"]["schemas"]["ProposalCreateData"]
+    transition_data_schema = spec["components"]["schemas"]["ProposalStateTransitionData"]
     summary_schema = spec["components"]["schemas"]["ProposalSummaryData"]
     version_schema = spec["components"]["schemas"]["ProposalVersionData"]
     workflow_event_schema = spec["components"]["schemas"]["ProposalWorkflowEventData"]
@@ -337,7 +397,8 @@ def test_proposals_openapi_write_contract() -> None:
         workflow_envelope_schema,
         approvals_envelope_schema,
         lineage_envelope_schema,
-        envelope_schema,
+        create_envelope_schema,
+        transition_envelope_schema,
     ):
         assert schema["properties"]["correlation_id"]["description"]
         assert schema["properties"]["correlation_id"]["examples"]
@@ -356,5 +417,9 @@ def test_proposals_openapi_write_contract() -> None:
     ]
     assert approval_record_schema["properties"]["approval_type"]["examples"] == ["RISK"]
     assert lineage_item_schema["properties"]["artifact_hash"]["description"]
-
-    assert envelope_schema["properties"]["data"]["examples"][0]["proposal"]["proposal_id"] == "pp_1"
+    assert create_data_schema["properties"]["proposal"]["description"]
+    assert create_data_schema["properties"]["version"]["description"]
+    assert create_data_schema["properties"]["latest_workflow_event"]["description"]
+    assert transition_data_schema["properties"]["proposal_id"]["description"]
+    assert transition_data_schema["properties"]["latest_workflow_event"]["description"]
+    assert transition_data_schema["properties"]["approval"]["description"]

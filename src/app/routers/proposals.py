@@ -5,13 +5,14 @@ from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
     ProposalApprovalsEnvelopeResponse,
+    ProposalCreateEnvelopeResponse,
     ProposalCreateRequest,
     ProposalDetailEnvelopeResponse,
-    ProposalEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
     ProposalSimulateRequest,
     ProposalSimulateResponse,
+    ProposalStateTransitionEnvelopeResponse,
     ProposalSubmitRequest,
     ProposalVersionCreateRequest,
     ProposalVersionEnvelopeResponse,
@@ -63,7 +64,7 @@ async def simulate_proposal(
 
 @router.post(
     "",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalCreateEnvelopeResponse,
     summary="Create Proposal",
     description=(
         "Creates a new advisory proposal draft in lotus-manage using a caller-supplied "
@@ -77,7 +78,7 @@ async def create_proposal(
         description="Caller-supplied idempotency key for proposal creation requests.",
         examples=["idem-create-1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalCreateEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal(
@@ -213,7 +214,7 @@ async def get_proposal_version(
 
 @router.post(
     "/{proposal_id}/versions",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalCreateEnvelopeResponse,
     summary="Create Proposal Version",
     description="Creates the next persisted version for an existing advisory proposal.",
 )
@@ -229,7 +230,7 @@ async def create_proposal_version(
         description="Caller-supplied idempotency key for proposal-version creation requests.",
         examples=["idem-version-2"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalCreateEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_version(
@@ -242,7 +243,7 @@ async def create_proposal_version(
 
 @router.post(
     "/{proposal_id}/submit",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalStateTransitionEnvelopeResponse,
     summary="Submit Proposal",
     description="Submits a proposal into the next workflow review state.",
 )
@@ -258,7 +259,7 @@ async def submit_proposal(
         description="Caller-supplied idempotency key for proposal workflow submission requests.",
         examples=["idem-submit-1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalStateTransitionEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.submit_proposal(
@@ -275,7 +276,7 @@ async def submit_proposal(
 
 @router.post(
     "/{proposal_id}/approve-risk",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalStateTransitionEnvelopeResponse,
     summary="Approve Proposal Risk Review",
     description="Records the risk approval decision for a proposal in risk review.",
 )
@@ -291,7 +292,7 @@ async def approve_risk(
         description="Caller-supplied idempotency key for proposal risk-approval requests.",
         examples=["idem-approve-risk-1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalStateTransitionEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.approve_risk(
@@ -307,7 +308,7 @@ async def approve_risk(
 
 @router.post(
     "/{proposal_id}/approve-compliance",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalStateTransitionEnvelopeResponse,
     summary="Approve Proposal Compliance Review",
     description="Records the compliance approval decision for a proposal in compliance review.",
 )
@@ -323,7 +324,7 @@ async def approve_compliance(
         description="Caller-supplied idempotency key for proposal compliance-approval requests.",
         examples=["idem-approve-compliance-1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalStateTransitionEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.approve_compliance(
@@ -339,7 +340,7 @@ async def approve_compliance(
 
 @router.post(
     "/{proposal_id}/record-client-consent",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalStateTransitionEnvelopeResponse,
     summary="Record Proposal Client Consent",
     description="Records client consent for a proposal that has completed internal approvals.",
 )
@@ -355,7 +356,7 @@ async def record_client_consent(
         description="Caller-supplied idempotency key for client-consent recording requests.",
         examples=["idem-client-consent-1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalStateTransitionEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.record_client_consent(

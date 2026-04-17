@@ -65,7 +65,33 @@ def test_proposal_simulate_requires_idempotency_header():
 def test_proposal_create_success(monkeypatch):
     async def _fake_create_proposal(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         _ = self, body, idempotency_key, correlation_id
-        return 200, {"proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"}}
+        return 200, {
+            "proposal": {
+                "proposal_id": "pp_1",
+                "portfolio_id": "PF_1001",
+                "current_state": "DRAFT",
+                "current_version_no": 1,
+            },
+            "version": {
+                "proposal_version_id": "ppv_1",
+                "proposal_id": "pp_1",
+                "version_no": 1,
+                "status_at_creation": "READY",
+                "proposal_result": {"proposal_run_id": "pr_1", "status": "READY"},
+                "artifact": {"artifact_id": "artifact_1"},
+                "evidence_bundle": {},
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_1",
+                "proposal_id": "pp_1",
+                "event_type": "CREATED",
+                "from_state": None,
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:00:00+00:00",
+                "reason": {},
+            },
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.create_proposal",
@@ -87,6 +113,8 @@ def test_proposal_create_success(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["proposal"]["proposal_id"] == "pp_1"
+    assert payload["data"]["version"]["version_no"] == 1
+    assert payload["data"]["latest_workflow_event"]["event_type"] == "CREATED"
 
 
 def test_proposal_create_requires_idempotency_header():
@@ -340,7 +368,34 @@ def test_create_proposal_version_success(monkeypatch):
         _ = self, idempotency_key, correlation_id
         assert proposal_id == "pp_1"
         assert body["created_by"] == "advisor_1"
-        return 200, {"proposal_id": "pp_1", "current_version_no": 2}
+        return 200, {
+            "proposal": {
+                "proposal_id": "pp_1",
+                "portfolio_id": "PF_1001",
+                "current_state": "DRAFT",
+                "current_version_no": 2,
+            },
+            "version": {
+                "proposal_version_id": "ppv_2",
+                "proposal_id": "pp_1",
+                "version_no": 2,
+                "status_at_creation": "READY",
+                "proposal_result": {"proposal_run_id": "pr_2", "status": "READY"},
+                "artifact": {"artifact_id": "artifact_2"},
+                "evidence_bundle": {},
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_2",
+                "proposal_id": "pp_1",
+                "event_type": "NEW_VERSION_CREATED",
+                "from_state": "DRAFT",
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:06:00+00:00",
+                "reason": {},
+                "related_version_no": 2,
+            },
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.create_proposal_version",
@@ -356,7 +411,9 @@ def test_create_proposal_version_success(monkeypatch):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["data"]["current_version_no"] == 2
+    assert payload["data"]["proposal"]["current_version_no"] == 2
+    assert payload["data"]["version"]["version_no"] == 2
+    assert payload["data"]["latest_workflow_event"]["event_type"] == "NEW_VERSION_CREATED"
 
 
 def test_create_proposal_version_requires_idempotency_header():
@@ -378,7 +435,21 @@ def test_submit_proposal_success(monkeypatch):
         seen["proposal_id"] = proposal_id
         seen["body"] = body
         seen["idempotency_key"] = idempotency_key
-        return 200, {"proposal_id": proposal_id, "current_state": "RISK_REVIEW"}
+        return 200, {
+            "proposal_id": proposal_id,
+            "current_state": "RISK_REVIEW",
+            "latest_workflow_event": {
+                "event_id": "pwe_2",
+                "proposal_id": proposal_id,
+                "event_type": "SUBMITTED_FOR_RISK_REVIEW",
+                "from_state": "DRAFT",
+                "to_state": "RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:07:00+00:00",
+                "reason": {"comment": "submit"},
+            },
+            "approval": None,
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.transition_proposal",
@@ -401,6 +472,10 @@ def test_submit_proposal_success(monkeypatch):
     assert seen["proposal_id"] == "pp_1"
     assert seen["body"]["event_type"] == "SUBMITTED_FOR_RISK_REVIEW"
     assert seen["idempotency_key"] == "idem-submit-1"
+    assert (
+        response.json()["data"]["latest_workflow_event"]["event_type"]
+        == "SUBMITTED_FOR_RISK_REVIEW"
+    )
 
 
 def test_submit_proposal_forwards_upstream_error(monkeypatch):
@@ -434,7 +509,29 @@ def test_approve_risk_success(monkeypatch):
         assert body["approval_type"] == "RISK"
         assert body["expected_state"] == "RISK_REVIEW"
         assert idempotency_key == "idem-approve-risk-1"
-        return 200, {"proposal_id": proposal_id, "current_state": "AWAITING_CLIENT_CONSENT"}
+        return 200, {
+            "proposal_id": proposal_id,
+            "current_state": "AWAITING_CLIENT_CONSENT",
+            "latest_workflow_event": {
+                "event_id": "pwe_3",
+                "proposal_id": proposal_id,
+                "event_type": "RISK_APPROVED",
+                "from_state": "RISK_REVIEW",
+                "to_state": "AWAITING_CLIENT_CONSENT",
+                "actor_id": "risk_1",
+                "occurred_at": "2026-02-19T12:08:00+00:00",
+                "reason": {},
+            },
+            "approval": {
+                "approval_id": "pap_1",
+                "proposal_id": proposal_id,
+                "approval_type": "RISK",
+                "approved": True,
+                "actor_id": "risk_1",
+                "occurred_at": "2026-02-19T12:08:00+00:00",
+                "details": {"comment": "ok"},
+            },
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.record_approval",
@@ -449,6 +546,7 @@ def test_approve_risk_success(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["data"]["current_state"] == "AWAITING_CLIENT_CONSENT"
+    assert response.json()["data"]["approval"]["approval_type"] == "RISK"
 
 
 def test_approve_compliance_success(monkeypatch):
@@ -460,7 +558,29 @@ def test_approve_compliance_success(monkeypatch):
         assert body["approval_type"] == "COMPLIANCE"
         assert body["expected_state"] == "COMPLIANCE_REVIEW"
         assert idempotency_key == "idem-approve-compliance-1"
-        return 200, {"proposal_id": proposal_id, "current_state": "AWAITING_CLIENT_CONSENT"}
+        return 200, {
+            "proposal_id": proposal_id,
+            "current_state": "AWAITING_CLIENT_CONSENT",
+            "latest_workflow_event": {
+                "event_id": "pwe_4",
+                "proposal_id": proposal_id,
+                "event_type": "COMPLIANCE_APPROVED",
+                "from_state": "COMPLIANCE_REVIEW",
+                "to_state": "AWAITING_CLIENT_CONSENT",
+                "actor_id": "compliance_1",
+                "occurred_at": "2026-02-19T12:09:00+00:00",
+                "reason": {},
+            },
+            "approval": {
+                "approval_id": "pap_2",
+                "proposal_id": proposal_id,
+                "approval_type": "COMPLIANCE",
+                "approved": True,
+                "actor_id": "compliance_1",
+                "occurred_at": "2026-02-19T12:09:00+00:00",
+                "details": {},
+            },
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.record_approval",
@@ -474,6 +594,7 @@ def test_approve_compliance_success(monkeypatch):
         headers={"Idempotency-Key": "idem-approve-compliance-1"},
     )
     assert response.status_code == 200
+    assert response.json()["data"]["approval"]["approval_type"] == "COMPLIANCE"
 
 
 def test_record_client_consent_success(monkeypatch):
@@ -483,7 +604,29 @@ def test_record_client_consent_success(monkeypatch):
         _ = self, proposal_id, correlation_id
         assert idempotency_key == "idem-consent-1"
         assert body["approval_type"] == "CLIENT_CONSENT"
-        return 200, {"current_state": "EXECUTION_READY"}
+        return 200, {
+            "proposal_id": proposal_id,
+            "current_state": "EXECUTION_READY",
+            "latest_workflow_event": {
+                "event_id": "pwe_5",
+                "proposal_id": proposal_id,
+                "event_type": "CLIENT_CONSENT_RECORDED",
+                "from_state": "AWAITING_CLIENT_CONSENT",
+                "to_state": "EXECUTION_READY",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:10:00+00:00",
+                "reason": {},
+            },
+            "approval": {
+                "approval_id": "pap_3",
+                "proposal_id": proposal_id,
+                "approval_type": "CLIENT_CONSENT",
+                "approved": True,
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:10:00+00:00",
+                "details": {},
+            },
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.record_approval",
@@ -498,6 +641,7 @@ def test_record_client_consent_success(monkeypatch):
     )
     assert response.status_code == 200
     assert response.json()["data"]["current_state"] == "EXECUTION_READY"
+    assert response.json()["data"]["approval"]["approval_type"] == "CLIENT_CONSENT"
 
 
 @pytest.mark.parametrize(
