@@ -187,10 +187,10 @@ def _risk_workspace_service() -> RiskWorkspaceService:
     response_model=WorkbenchOverviewResponse,
     summary="Get Workbench Overview",
     description=(
-        "Aggregates lotus-core core snapshot, "
-        "lotus-performance performance snapshot, and latest "
-        "lotus-manage rebalance status into a single "
-        "decision-console overview contract."
+        "Returns the legacy first-paint workbench overview for shells that only need "
+        "portfolio identity, headline valuation, latest performance snapshot, and latest "
+        "rebalance status. Use `portfolio-360` when the caller also needs current positions "
+        "or a sandbox-aware projected state."
     ),
 )
 async def get_workbench_overview(
@@ -213,8 +213,9 @@ async def get_workbench_overview(
     response_model=WorkbenchPortfolio360Response,
     summary="Get Portfolio 360",
     description=(
-        "Returns current portfolio 360 baseline and optional projected state for an active "
-        "simulation session."
+        "Returns the baseline position inventory plus optional projected holdings for an active "
+        "sandbox session. Use this route for live position panels, sandbox comparison, and any "
+        "consumer that needs the same overview context with holdings-level detail attached."
     ),
 )
 async def get_portfolio_360(
@@ -243,12 +244,11 @@ async def get_portfolio_360(
     response_model=WorkbenchAnalyticsResponse,
     summary="Get Workbench Analytics",
     description=(
-        "Returns lotus-performance-owned analytics for current vs "
-        "projected portfolio state, including grouped allocation "
-        "deltas, top changes, and active return. Stateful risk "
-        "analytics are intentionally excluded from this legacy "
-        "Workbench analytics route and will be served by the "
-        "RFC-0022 Risk BFF."
+        "Returns lotus-performance-owned grouped delta analytics for the baseline and optional "
+        "projected portfolio state, including allocation buckets, top changes, and active "
+        "return context. This route intentionally carries a warning and partial-failure signal "
+        "for the retired legacy risk proxy; stateful risk modules are served by the dedicated "
+        "Gateway Risk BFF routes instead."
     ),
 )
 async def get_workbench_analytics(

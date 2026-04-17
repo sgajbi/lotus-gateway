@@ -97,9 +97,18 @@ def test_workbench_router_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["portfolio"]["client_id"] == "CIF_1001"
+    assert body["portfolio"]["booking_center_code"] == "SG"
+    assert body["overview"]["market_value_base"] == 1000.0
+    assert body["overview"]["cash_weight_pct"] == 25.0
     assert body["overview"]["position_count"] == 2
     assert body["performance_snapshot"]["period"] == "YTD"
+    assert body["performance_snapshot"]["return_pct"] == 2.5
     assert body["rebalance_snapshot"]["status"] == "PENDING_REVIEW"
+    assert body["rebalance_snapshot"]["last_rebalance_run_id"] == "rr_100"
+    assert body["rebalance_snapshot"]["last_run_at_utc"] == "2026-02-23T01:00:00Z"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_router_partial_failure(monkeypatch):
@@ -163,6 +172,12 @@ def test_workbench_router_partial_failure(monkeypatch):
     assert body["performance_snapshot"] is None
     assert body["rebalance_snapshot"] is None
     assert len(body["partial_failures"]) == 2
+    assert body["warnings"] == [
+        "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
+        "MANAGE_REBALANCE_UNAVAILABLE",
+    ]
+    assert body["partial_failures"][0]["source_service"] == "lotus-performance"
+    assert body["partial_failures"][1]["source_service"] == "lotus-manage"
 
 
 def test_workbench_portfolio_360_router(monkeypatch):
@@ -213,8 +228,20 @@ def test_workbench_portfolio_360_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["as_of_date"] == "2026-02-23"
+    assert body["overview"]["market_value_base"] == 1000.0
+    assert body["performance_snapshot"]["return_pct"] == 1.5
+    assert body["rebalance_snapshot"]["status"] == "NOT_AVAILABLE"
     assert len(body["current_positions"]) == 1
+    assert body["current_positions"][0]["security_id"] == "EQ_1"
+    assert body["current_positions"][0]["instrument_name"] == "Equity 1"
+    assert body["current_positions"][0]["asset_class"] == "Equity"
     assert body["current_positions"][0]["market_value_base"] == 500.0
+    assert body["current_positions"][0]["weight_pct"] == 50.0
+    assert body["projected_positions"] == []
+    assert body["projected_summary"] is None
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
@@ -370,8 +397,22 @@ def test_workbench_analytics_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["session_id"] == "sess_1"
+    assert body["period"] == "YTD"
     assert body["group_by"] == "ASSET_CLASS"
+    assert body["benchmark_code"] == "MODEL_60_40"
+    assert body["portfolio_return_pct"] == 1.5
+    assert body["benchmark_return_pct"] == 3.1
+    assert body["active_return_pct"] == -1.6
     assert len(body["allocation_buckets"]) >= 1
+    assert body["allocation_buckets"][0]["bucket_key"] == "EQUITY"
+    assert body["allocation_buckets"][0]["delta_quantity"] == 2.0
+    assert body["top_changes"][0]["security_id"] == "EQ_1"
+    assert body["top_changes"][0]["direction"] == "INCREASE"
+    assert "RISK_BFF_PENDING" in body["warnings"]
+    assert any(
+        failure["error_code"] == "RISK_BFF_NOT_IMPLEMENTED" for failure in body["partial_failures"]
+    )
     assert "risk_proxy" not in body
 
 

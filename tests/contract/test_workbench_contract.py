@@ -178,14 +178,17 @@ def test_workbench_openapi_contract_registered() -> None:
     apply_parameters = {parameter["name"]: parameter for parameter in apply_operation["parameters"]}
 
     assert overview_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert "portfolio-360" in overview_operation["description"]
     assert overview_parameters["portfolio_id"]["description"]
     assert overview_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert portfolio_360_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert "sandbox" in portfolio_360_operation["description"].lower()
     assert portfolio_360_parameters["portfolio_id"]["description"]
     assert portfolio_360_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert portfolio_360_parameters["session_id"]["schema"]
     assert portfolio_360_parameters["session_id"]["description"]
     assert analytics_parameters["portfolio_id"]["schema"]["type"] == "string"
+    assert "risk proxy" in analytics_operation["description"].lower()
     assert analytics_parameters["portfolio_id"]["description"]
     assert analytics_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert analytics_parameters["period"]["description"]
@@ -346,6 +349,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert artifact_parameters["artifact_name"]["schema"]["examples"] == ["request.json"]
 
     assert overview_schema["properties"]["correlation_id"]["description"]
+    assert overview_schema["example"]["portfolio"]["portfolio_id"] == "PF_1001"
+    assert overview_schema["example"]["rebalance_snapshot"]["status"] == "PENDING_REVIEW"
     assert overview_schema["properties"]["contract_version"]["description"]
     assert overview_schema["properties"]["as_of_date"]["description"]
     assert overview_schema["properties"]["portfolio"]["description"]
@@ -371,6 +376,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert partial_failure_schema["properties"]["error_code"]["description"]
     assert partial_failure_schema["properties"]["detail"]["description"]
     assert portfolio_360_schema["properties"]["current_positions"]["description"]
+    assert portfolio_360_schema["example"]["current_positions"][0]["instrument_name"] == "Equity 1"
+    assert portfolio_360_schema["example"]["active_session_id"] == "sess_1"
     assert portfolio_360_schema["properties"]["projected_positions"]["description"]
     assert portfolio_360_schema["properties"]["projected_summary"]["description"]
     assert portfolio_360_schema["properties"]["active_session_id"]["description"]
@@ -390,6 +397,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert projected_summary_schema["properties"]["total_proposed_positions"]["description"]
     assert projected_summary_schema["properties"]["net_delta_quantity"]["description"]
     assert analytics_schema["properties"]["portfolio_id"]["description"]
+    assert analytics_schema["example"]["benchmark_code"] == "MODEL_60_40"
+    assert analytics_schema["example"]["warnings"] == ["RISK_BFF_PENDING"]
     assert analytics_schema["properties"]["session_id"]["description"]
     assert analytics_schema["properties"]["period"]["description"]
     assert analytics_schema["properties"]["group_by"]["description"]

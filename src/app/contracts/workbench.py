@@ -123,6 +123,39 @@ class WorkbenchOverviewResponse(BaseModel):
         description="Upstream partial failures preserved for diagnostics and support review.",
     )
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-workbench-1",
+                "contract_version": "v1",
+                "as_of_date": "2026-02-23",
+                "portfolio": {
+                    "portfolio_id": "PF_1001",
+                    "client_id": "CIF_1001",
+                    "base_currency": "USD",
+                    "booking_center_code": "SG",
+                },
+                "overview": {
+                    "market_value_base": 1000.0,
+                    "cash_weight_pct": 25.0,
+                    "position_count": 3,
+                },
+                "performance_snapshot": {
+                    "period": "YTD",
+                    "return_pct": 2.5,
+                    "benchmark_return_pct": None,
+                },
+                "rebalance_snapshot": {
+                    "status": "PENDING_REVIEW",
+                    "last_rebalance_run_id": "rr_100",
+                    "last_run_at_utc": "2026-02-23T01:00:00Z",
+                },
+                "warnings": [],
+                "partial_failures": [],
+            }
+        }
+    }
+
 
 class WorkbenchPositionView(BaseModel):
     security_id: str = Field(
@@ -252,6 +285,65 @@ class WorkbenchPortfolio360Response(BaseModel):
         default_factory=list,
         description="Upstream partial failures preserved for diagnostics and support review.",
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-workbench-2",
+                "contract_version": "v1",
+                "as_of_date": "2026-02-23",
+                "portfolio": {
+                    "portfolio_id": "PF_1001",
+                    "client_id": "CIF_1001",
+                    "base_currency": "USD",
+                    "booking_center_code": "SG",
+                },
+                "overview": {
+                    "market_value_base": 1000.0,
+                    "cash_weight_pct": 25.0,
+                    "position_count": 3,
+                },
+                "performance_snapshot": {
+                    "period": "YTD",
+                    "return_pct": 2.5,
+                    "benchmark_return_pct": None,
+                },
+                "rebalance_snapshot": {
+                    "status": "PENDING_REVIEW",
+                    "last_rebalance_run_id": "rr_100",
+                    "last_run_at_utc": "2026-02-23T01:00:00Z",
+                },
+                "current_positions": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                        "quantity": 10.0,
+                        "market_value_base": 750.0,
+                        "weight_pct": 75.0,
+                    }
+                ],
+                "projected_positions": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                        "baseline_quantity": 10.0,
+                        "proposed_quantity": 12.0,
+                        "delta_quantity": 2.0,
+                    }
+                ],
+                "projected_summary": {
+                    "total_baseline_positions": 1,
+                    "total_proposed_positions": 1,
+                    "net_delta_quantity": 2.0,
+                },
+                "active_session_id": "sess_1",
+                "warnings": [],
+                "partial_failures": [],
+            }
+        }
+    }
 
 
 class WorkbenchSandboxSessionCreateRequest(BaseModel):
@@ -493,3 +585,50 @@ class WorkbenchAnalyticsResponse(BaseModel):
         default_factory=list,
         description="Upstream partial failures preserved for analytics diagnostics.",
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-workbench-3",
+                "contract_version": "v1",
+                "portfolio_id": "PF_1001",
+                "session_id": "sess_1",
+                "period": "YTD",
+                "group_by": "ASSET_CLASS",
+                "benchmark_code": "MODEL_60_40",
+                "portfolio_return_pct": 1.5,
+                "benchmark_return_pct": 3.1,
+                "active_return_pct": -1.6,
+                "allocation_buckets": [
+                    {
+                        "bucket_key": "EQUITY",
+                        "bucket_label": "EQUITY",
+                        "current_quantity": 10.0,
+                        "proposed_quantity": 12.0,
+                        "delta_quantity": 2.0,
+                        "current_weight_pct": 100.0,
+                        "proposed_weight_pct": 100.0,
+                    }
+                ],
+                "top_changes": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "delta_quantity": 2.0,
+                        "direction": "INCREASE",
+                    }
+                ],
+                "warnings": ["RISK_BFF_PENDING"],
+                "partial_failures": [
+                    {
+                        "source_service": "risk",
+                        "error_code": "RISK_BFF_NOT_IMPLEMENTED",
+                        "detail": (
+                            "Legacy workbench risk proxy was removed. Stateful concentration "
+                            "risk will be restored through the RFC-0022 Gateway Risk BFF."
+                        ),
+                    }
+                ],
+            }
+        }
+    }

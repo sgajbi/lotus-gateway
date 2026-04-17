@@ -273,9 +273,15 @@ async def test_workbench_overview_success():
     ]
     assert lotus_core_client.snapshot_calls[0]["consumer_system"] == "lotus-gateway"
     assert response.performance_snapshot.return_pct == 3.2
+    assert response.portfolio.client_id == "CIF_1001"
+    assert response.portfolio.booking_center_code == "SG"
+    assert response.overview.market_value_base == 1000.0
+    assert response.overview.cash_weight_pct == pytest.approx(20.0)
     assert analytics_client.last_report_end_date == "2026-02-23"
     assert response.rebalance_snapshot is not None
     assert response.rebalance_snapshot.status == "READY"
+    assert response.rebalance_snapshot.last_rebalance_run_id == "rr_1"
+    assert response.rebalance_snapshot.last_run_at_utc == "2026-02-23T00:00:00Z"
     assert response.partial_failures == []
 
 
@@ -408,38 +414,39 @@ async def test_workbench_overview_can_skip_performance_and_rebalance_fetches():
 
 @pytest.mark.asyncio
 async def test_workbench_portfolio_360_with_projected_state():
+    lotus_core_client = _StubLotusCoreQueryClient(
+        200,
+        {
+            "portfolio_id": "PF_1001",
+            "base_currency": "USD",
+            "booking_center_code": "SG",
+            "client_id": "CIF_1001",
+        },
+        200,
+        {
+            "as_of_date": "2026-02-23",
+            "sections": {
+                "positions_baseline": [
+                    {
+                        "security_id": "EQ_1",
+                        "quantity": 10,
+                        "market_value_base": 420.5,
+                        "weight": 0.4205,
+                    }
+                ],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [
+                    {
+                        "security_id": "EQ_1",
+                        "instrument_name": "Equity 1",
+                        "asset_class": "Equity",
+                    }
+                ],
+            },
+        },
+    )
     service = WorkbenchService(
-        lotus_core_query_client=_StubLotusCoreQueryClient(
-            200,
-            {
-                "portfolio_id": "PF_1001",
-                "base_currency": "USD",
-                "booking_center_code": "SG",
-                "client_id": "CIF_1001",
-            },
-            200,
-            {
-                "as_of_date": "2026-02-23",
-                "sections": {
-                    "positions_baseline": [
-                        {
-                            "security_id": "EQ_1",
-                            "quantity": 10,
-                            "market_value_base": 420.5,
-                            "weight": 0.4205,
-                        }
-                    ],
-                    "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
-                    "instrument_enrichment": [
-                        {
-                            "security_id": "EQ_1",
-                            "instrument_name": "Equity 1",
-                            "asset_class": "Equity",
-                        }
-                    ],
-                },
-            },
-        ),
+        lotus_core_query_client=lotus_core_client,
         analytics_client=_StubLotusAnalyticsClient(
             200,
             {
@@ -456,11 +463,19 @@ async def test_workbench_portfolio_360_with_projected_state():
         session_id="sess_1",
     )
     assert response.active_session_id == "sess_1"
+    assert len(lotus_core_client.snapshot_calls) == 1
     assert len(response.current_positions) == 1
+    assert response.current_positions[0].security_id == "EQ_1"
+    assert response.current_positions[0].instrument_name == "Equity 1"
+    assert response.current_positions[0].asset_class == "Equity"
+    assert response.current_positions[0].quantity == 10.0
     assert response.current_positions[0].market_value_base == 420.5
     assert response.current_positions[0].weight_pct == pytest.approx(42.05)
     assert len(response.projected_positions) == 1
     assert response.projected_summary is not None
+    assert response.projected_positions[0].baseline_quantity == 10.0
+    assert response.projected_positions[0].proposed_quantity == 15.0
+    assert response.projected_positions[0].delta_quantity == 5.0
     assert response.projected_summary.net_delta_quantity == 5.0
 
 
@@ -558,8 +573,21 @@ async def test_workbench_analytics_response():
     )
     assert response.portfolio_id == "PF_1001"
     assert response.group_by == "ASSET_CLASS"
+    assert response.session_id == "sess_1"
+    assert response.period == "YTD"
+    assert response.benchmark_code == "MODEL_60_40"
+    assert response.portfolio_return_pct == pytest.approx(1.0)
+    assert response.benchmark_return_pct == pytest.approx(3.1)
+    assert response.active_return_pct == pytest.approx(-2.1)
     assert len(response.allocation_buckets) == 1
+    assert response.allocation_buckets[0].bucket_key == "EQUITY"
+    assert response.allocation_buckets[0].current_quantity == pytest.approx(10.0)
+    assert response.allocation_buckets[0].proposed_quantity == pytest.approx(15.0)
+    assert response.allocation_buckets[0].delta_quantity == pytest.approx(5.0)
     assert response.top_changes[0].security_id == "EQ_1"
+    assert response.top_changes[0].instrument_name == "Equity 1"
+    assert response.top_changes[0].delta_quantity == pytest.approx(5.0)
+    assert response.top_changes[0].direction == "INCREASE"
     assert "risk_proxy" not in response.model_dump()
     assert "RISK_BFF_PENDING" in response.warnings
     assert any(
