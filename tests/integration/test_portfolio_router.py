@@ -141,7 +141,7 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
-    assert captured["support_as_of_date"] == "2026-03-27"
+    assert captured["support_as_of_date"] is None
 
 
 def test_portfolio_readiness_router(monkeypatch):
@@ -303,7 +303,7 @@ def test_portfolio_readiness_router_preserves_upstream_bad_request(monkeypatch):
     assert "readiness rejected the request" in response.json()["detail"]
 
 
-def test_portfolio_workspace_router_preserves_support_overview_bad_request(monkeypatch):
+def test_portfolio_workspace_router_preserves_support_overview_partial_failure(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
 
@@ -316,7 +316,7 @@ def test_portfolio_workspace_router_preserves_support_overview_bad_request(monke
         }
 
     async def _support(*args, **kwargs):
-        return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+        return 503, {"detail": "support overview unavailable"}
 
     async def _readiness(*args, **kwargs):
         return 200, {
@@ -356,8 +356,12 @@ def test_portfolio_workspace_router_preserves_support_overview_bad_request(monke
         params={"as_of_date": "bad-date"},
     )
 
-    assert response.status_code == 400
-    assert "support overview rejected the request" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert body["operations"] is None
+    assert "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE" in body["warnings"]
+    assert body["partial_failures"][0]["error_code"] == "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE"
+    assert body["partial_failures"][0]["detail"] == "support overview unavailable"
 
 
 def test_portfolio_workflow_router(monkeypatch):

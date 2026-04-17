@@ -142,14 +142,13 @@ class PortfolioService:
         )
 
     async def _get_support_overview_result(
-        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
+        self, portfolio_id: str, correlation_id: str
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            ("support_overview", portfolio_id, as_of_date),
+            ("support_overview", portfolio_id),
             lambda: self._lotus_core_query_client.get_support_overview(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=as_of_date,
             ),
         )
 
@@ -457,7 +456,6 @@ class PortfolioService:
             self._get_support_overview_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=effective_as_of_date,
             ),
             self._get_cashflow_projection_result(
                 portfolio_id=portfolio_id,

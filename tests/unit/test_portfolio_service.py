@@ -36,10 +36,7 @@ class _StubLotusCoreQueryClient:
             ],
         }
 
-    async def get_support_overview(
-        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
-    ):
-        _ = as_of_date
+    async def get_support_overview(self, portfolio_id: str, correlation_id: str):
         return 200, {
             "business_date": "2026-03-27",
             "latest_booked_transaction_date": "2026-03-27",
@@ -322,13 +319,9 @@ class _CountingLotusCoreQueryClient(_StubLotusCoreQueryClient):
         self._record("query_assets_under_management")
         return await super().query_assets_under_management(**kwargs)
 
-    async def get_support_overview(
-        self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
-    ):
+    async def get_support_overview(self, portfolio_id: str, correlation_id: str):
         self._record("get_support_overview")
-        return await super().get_support_overview(
-            portfolio_id, correlation_id, as_of_date=as_of_date
-        )
+        return await super().get_support_overview(portfolio_id, correlation_id)
 
     async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
         self._record("get_portfolio_readiness")
@@ -615,10 +608,7 @@ async def test_portfolio_insights_returns_blocked_exception_summaries():
                 ],
             }
 
-        async def get_support_overview(
-            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
-        ):
-            _ = as_of_date
+        async def get_support_overview(self, portfolio_id: str, correlation_id: str):
             return 200, {
                 "business_date": "2026-03-27",
                 "latest_booked_transaction_date": None,
@@ -1475,19 +1465,15 @@ async def test_portfolio_service_reuses_cached_upstream_results_across_modules()
 
 
 @pytest.mark.asyncio
-async def test_portfolio_service_keys_support_overview_cache_by_as_of_date():
+async def test_portfolio_service_reuses_support_overview_cache_across_workspace_as_of_dates():
     class _SupportAwareClient(_CountingLotusCoreQueryClient):
         def __init__(self):
             super().__init__()
-            self.support_as_of_dates: list[str | None] = []
+            self.support_requests: list[tuple[str, str]] = []
 
-        async def get_support_overview(
-            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
-        ):
-            self.support_as_of_dates.append(as_of_date)
-            return await super().get_support_overview(
-                portfolio_id, correlation_id, as_of_date=as_of_date
-            )
+        async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+            self.support_requests.append((portfolio_id, correlation_id))
+            return await super().get_support_overview(portfolio_id, correlation_id)
 
     client = _SupportAwareClient()
     service = PortfolioService(client, upstream_cache_ttl_seconds=60.0)
@@ -1508,8 +1494,8 @@ async def test_portfolio_service_keys_support_overview_cache_by_as_of_date():
         as_of_date="2026-03-28",
     )
 
-    assert client.calls["get_support_overview"] == 2
-    assert client.support_as_of_dates == ["2026-03-27", "2026-03-28"]
+    assert client.calls["get_support_overview"] == 1
+    assert client.support_requests == [("PF_1001", "corr-support-1")]
 
 
 @pytest.mark.asyncio
@@ -1532,22 +1518,20 @@ async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
 
 
 @pytest.mark.asyncio
-async def test_portfolio_workspace_surfaces_support_overview_client_errors() -> None:
+async def test_portfolio_workspace_preserves_support_overview_partial_failure() -> None:
     class _InvalidSupportOverviewClient(_StubLotusCoreQueryClient):
-        async def get_support_overview(
-            self, portfolio_id: str, correlation_id: str, as_of_date: str | None = None
-        ):
-            _ = portfolio_id, correlation_id, as_of_date
-            return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+        async def get_support_overview(self, portfolio_id: str, correlation_id: str):
+            _ = portfolio_id, correlation_id
+            return 503, {"detail": "support overview unavailable"}
 
     service = PortfolioService(_InvalidSupportOverviewClient())
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-400",
+        as_of_date="bad-date",
+    )
 
-    with pytest.raises(HTTPException) as exc_info:
-        await service.get_portfolio_workspace(
-            portfolio_id="PF_1001",
-            correlation_id="corr-400",
-            as_of_date="bad-date",
-        )
-
-    assert exc_info.value.status_code == 400
-    assert "support overview rejected the request" in str(exc_info.value.detail)
+    assert response.operations is None
+    assert "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE" in response.warnings
+    assert response.partial_failures[0].error_code == "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE"
+    assert response.partial_failures[0].detail == "support overview unavailable"
