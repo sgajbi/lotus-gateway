@@ -120,6 +120,44 @@ def test_proposal_list_success(monkeypatch):
     assert payload["data"]["items"][0]["proposal_id"] == "pp_1"
 
 
+def test_proposal_list_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_list_proposals(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["params"] = params
+        captured["correlation_id"] = correlation_id
+        return 200, {"items": [], "next_cursor": "pp_00042"}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_proposals",
+        _fake_list_proposals,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/proposals"
+        "?portfolio_id=PF_1001&state=DRAFT&created_by=advisor_1"
+        "&created_from=2026-01-01&created_to=2026-03-31&limit=15&cursor=pp_00041",
+        headers={"X-Correlation-Id": "corr-proposal-list"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "params": {
+            "portfolio_id": "PF_1001",
+            "state": "DRAFT",
+            "created_by": "advisor_1",
+            "created_from": "2026-01-01",
+            "created_to": "2026-03-31",
+            "limit": 15,
+            "cursor": "pp_00041",
+        },
+        "correlation_id": "corr-proposal-list",
+    }
+    assert response.json()["data"]["next_cursor"] == "pp_00042"
+
+
 def test_get_proposal_success(monkeypatch):
     async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
         _ = self, include_evidence, correlation_id
@@ -137,6 +175,35 @@ def test_get_proposal_success(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["proposal"]["current_state"] == "DRAFT"
+
+
+def test_get_proposal_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_get_proposal(self, proposal_id, include_evidence, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["proposal_id"] = proposal_id
+        captured["include_evidence"] = include_evidence
+        captured["correlation_id"] = correlation_id
+        return 200, {"proposal": {"proposal_id": proposal_id, "current_state": "DRAFT"}}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_proposal",
+        _fake_get_proposal,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/proposals/pp_1?include_evidence=true",
+        headers={"X-Correlation-Id": "corr-proposal-detail"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "proposal_id": "pp_1",
+        "include_evidence": True,
+        "correlation_id": "corr-proposal-detail",
+    }
 
 
 def test_get_proposal_version_success(monkeypatch):
@@ -159,6 +226,39 @@ def test_get_proposal_version_success(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert payload["data"]["version_no"] == 2
+
+
+def test_get_proposal_version_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_get_proposal_version(  # noqa: ANN001
+        self, proposal_id, version_no, include_evidence, correlation_id
+    ):
+        _ = self
+        captured["proposal_id"] = proposal_id
+        captured["version_no"] = version_no
+        captured["include_evidence"] = include_evidence
+        captured["correlation_id"] = correlation_id
+        return 200, {"proposal_id": proposal_id, "version_no": version_no}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_proposal_version",
+        _fake_get_proposal_version,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/proposals/pp_1/versions/2?include_evidence=true",
+        headers={"X-Correlation-Id": "corr-proposal-version"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "proposal_id": "pp_1",
+        "version_no": 2,
+        "include_evidence": True,
+        "correlation_id": "corr-proposal-version",
+    }
 
 
 def test_create_proposal_version_success(monkeypatch):
@@ -380,3 +480,55 @@ def test_workflow_events_and_approvals_success(monkeypatch):
     assert approvals.status_code == 200
     assert events.json()["data"]["events"][0]["event_type"] == "CREATED"
     assert approvals.json()["data"]["approvals"][0]["approval_type"] == "RISK"
+
+
+def test_workflow_events_and_approvals_preserve_query_context(monkeypatch):
+    captured: dict[str, dict[str, str]] = {}
+
+    async def _fake_get_workflow_events(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["events"] = {
+            "proposal_id": proposal_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"events": []}
+
+    async def _fake_get_approvals(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["approvals"] = {
+            "proposal_id": proposal_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"approvals": []}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_workflow_events",
+        _fake_get_workflow_events,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_approvals",
+        _fake_get_approvals,
+    )
+
+    client = TestClient(app)
+    events = client.get(
+        "/api/v1/proposals/pp_1/workflow-events",
+        headers={"X-Correlation-Id": "corr-proposal-events"},
+    )
+    approvals = client.get(
+        "/api/v1/proposals/pp_1/approvals",
+        headers={"X-Correlation-Id": "corr-proposal-approvals"},
+    )
+
+    assert events.status_code == 200
+    assert approvals.status_code == 200
+    assert captured == {
+        "events": {
+            "proposal_id": "pp_1",
+            "correlation_id": "corr-proposal-events",
+        },
+        "approvals": {
+            "proposal_id": "pp_1",
+            "correlation_id": "corr-proposal-approvals",
+        },
+    }

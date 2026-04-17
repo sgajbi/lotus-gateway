@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, Header, Path, Query
 
 from app.clients.dpm_client import DpmClient
 from app.config import settings
@@ -57,15 +57,53 @@ async def create_proposal(
     )
 
 
-@router.get("", response_model=ProposalEnvelopeResponse)
+@router.get(
+    "",
+    response_model=ProposalEnvelopeResponse,
+    summary="List Proposals",
+    description=(
+        "Lists advisory proposals from lotus-manage using optional portfolio, workflow-state, "
+        "creator, and creation-window filters."
+    ),
+)
 async def list_proposals(
-    portfolio_id: str | None = Query(default=None),
-    state: str | None = Query(default=None),
-    created_by: str | None = Query(default=None),
-    created_from: str | None = Query(default=None),
-    created_to: str | None = Query(default=None),
-    limit: int = Query(default=20, ge=1, le=100),
-    cursor: str | None = Query(default=None),
+    portfolio_id: str | None = Query(
+        default=None,
+        description="Optional portfolio identifier used to scope the proposal list.",
+        examples=["PF_1001"],
+    ),
+    state: str | None = Query(
+        default=None,
+        description="Optional workflow state filter such as DRAFT or RISK_REVIEW.",
+        examples=["DRAFT"],
+    ),
+    created_by: str | None = Query(
+        default=None,
+        description="Optional actor identifier used to filter proposals by creator.",
+        examples=["advisor_1"],
+    ),
+    created_from: str | None = Query(
+        default=None,
+        description="Inclusive creation-date lower bound in YYYY-MM-DD format.",
+        examples=["2026-01-01"],
+    ),
+    created_to: str | None = Query(
+        default=None,
+        description="Inclusive creation-date upper bound in YYYY-MM-DD format.",
+        examples=["2026-03-31"],
+    ),
+    limit: int = Query(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of proposals returned in one page.",
+        examples=[20],
+    ),
+    cursor: str | None = Query(
+        default=None,
+        description="Opaque pagination cursor returned by the previous proposal list response.",
+        examples=["pp_00042"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -81,10 +119,23 @@ async def list_proposals(
     return await service.list_proposals(filters=filters, correlation_id=correlation_id)
 
 
-@router.get("/{proposal_id}", response_model=ProposalEnvelopeResponse)
+@router.get(
+    "/{proposal_id}",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal",
+    description="Returns the latest proposal envelope for a specific advisory proposal id.",
+)
 async def get_proposal(
-    proposal_id: str,
-    include_evidence: bool = Query(default=False),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    include_evidence: bool = Query(
+        default=False,
+        description="Whether to request proposal evidence and support metadata when available.",
+        examples=[True],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -95,11 +146,30 @@ async def get_proposal(
     )
 
 
-@router.get("/{proposal_id}/versions/{version_no}", response_model=ProposalEnvelopeResponse)
+@router.get(
+    "/{proposal_id}/versions/{version_no}",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Version",
+    description="Returns one persisted version of an advisory proposal.",
+)
 async def get_proposal_version(
-    proposal_id: str,
-    version_no: int,
-    include_evidence: bool = Query(default=False),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        description="Persisted proposal version number to retrieve.",
+        examples=[2],
+    ),
+    include_evidence: bool = Query(
+        default=False,
+        description=(
+            "Whether to request version-level evidence and support metadata when available."
+        ),
+        examples=[True],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -204,8 +274,19 @@ async def record_client_consent(
     )
 
 
-@router.get("/{proposal_id}/workflow-events", response_model=ProposalEnvelopeResponse)
-async def get_workflow_events(proposal_id: str) -> ProposalEnvelopeResponse:
+@router.get(
+    "/{proposal_id}/workflow-events",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Workflow Events",
+    description="Returns the workflow event timeline for a specific advisory proposal.",
+)
+async def get_workflow_events(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workflow_events(
@@ -214,8 +295,19 @@ async def get_workflow_events(proposal_id: str) -> ProposalEnvelopeResponse:
     )
 
 
-@router.get("/{proposal_id}/approvals", response_model=ProposalEnvelopeResponse)
-async def get_approvals(proposal_id: str) -> ProposalEnvelopeResponse:
+@router.get(
+    "/{proposal_id}/approvals",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Approvals",
+    description="Returns approval records already captured for a specific advisory proposal.",
+)
+async def get_approvals(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_approvals(
