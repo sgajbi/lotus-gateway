@@ -482,6 +482,63 @@ def test_workflow_events_and_approvals_success(monkeypatch):
     assert approvals.json()["data"]["approvals"][0]["approval_type"] == "RISK"
 
 
+def test_proposal_lineage_success(monkeypatch):
+    async def _fake_get_proposal_lineage(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self, correlation_id
+        assert proposal_id == "pp_1"
+        return 200, {
+            "proposal_id": "pp_1",
+            "versions": [
+                {
+                    "version_no": 1,
+                    "request_hash": "rh_1",
+                    "simulation_hash": "sh_1",
+                    "artifact_hash": "ah_1",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_proposal_lineage",
+        _fake_get_proposal_lineage,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/proposals/pp_1/lineage")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["proposal_id"] == "pp_1"
+    assert payload["data"]["versions"][0]["version_no"] == 1
+
+
+def test_proposal_lineage_preserves_query_context(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _fake_get_proposal_lineage(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["proposal_id"] = proposal_id
+        captured["correlation_id"] = correlation_id
+        return 200, {"proposal_id": proposal_id, "versions": []}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_proposal_lineage",
+        _fake_get_proposal_lineage,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/proposals/pp_1/lineage",
+        headers={"X-Correlation-Id": "corr-proposal-lineage"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "proposal_id": "pp_1",
+        "correlation_id": "corr-proposal-lineage",
+    }
+
+
 def test_workflow_events_and_approvals_preserve_query_context(monkeypatch):
     captured: dict[str, dict[str, str]] = {}
 

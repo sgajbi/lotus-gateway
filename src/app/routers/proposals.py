@@ -403,3 +403,24 @@ async def get_approvals(
         proposal_id=proposal_id,
         correlation_id=correlation_id,
     )
+
+
+@router.get(
+    "/{proposal_id}/lineage",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Lineage",
+    description="Returns immutable version lineage metadata and hashes for a specific proposal.",
+)
+async def get_proposal_lineage(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_lineage(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )

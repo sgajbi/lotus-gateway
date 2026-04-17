@@ -260,6 +260,22 @@ class ProposalService:
             data=upstream_payload,
         )
 
+    async def get_proposal_lineage(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_proposal_lineage(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
     async def _record_approval(
         self,
         proposal_id: str,

@@ -64,6 +64,18 @@ class _FakeDpmClient:
         )
         return 200, {"approvals": [{"approval_type": "RISK"}]}
 
+    async def get_proposal_lineage(self, proposal_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_proposal_lineage",
+                {
+                    "proposal_id": proposal_id,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "versions": [{"version_no": 1}]}
+
 
 class _FakeDpmErrorClient(_FakeDpmClient):
     async def record_approval(
@@ -126,6 +138,17 @@ async def test_get_workflow_events_and_approvals_wrap_envelope() -> None:
 
     assert events.data["events"][0]["event_type"] == "CREATED"
     assert approvals.data["approvals"][0]["approval_type"] == "RISK"
+
+
+@pytest.mark.asyncio
+async def test_get_proposal_lineage_wraps_envelope() -> None:
+    client = _FakeDpmClient()
+    service = ProposalService(dpm_client=client)
+
+    lineage = await service.get_proposal_lineage(proposal_id="pp_1", correlation_id="corr_3")
+
+    assert lineage.data["proposal_id"] == "pp_1"
+    assert lineage.data["versions"][0]["version_no"] == 1
 
 
 @pytest.mark.asyncio

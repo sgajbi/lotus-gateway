@@ -50,6 +50,7 @@ def test_proposals_openapi_read_contract() -> None:
     ]
     events_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/workflow-events"]["get"]
     approvals_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/approvals"]["get"]
+    lineage_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/lineage"]["get"]
 
     list_parameters = {parameter["name"]: parameter for parameter in list_operation["parameters"]}
     detail_parameters = {
@@ -63,6 +64,9 @@ def test_proposals_openapi_read_contract() -> None:
     }
     approvals_parameters = {
         parameter["name"]: parameter for parameter in approvals_operation["parameters"]
+    }
+    lineage_parameters = {
+        parameter["name"]: parameter for parameter in lineage_operation["parameters"]
     }
 
     assert "portfolio" in list_operation["description"].lower()
@@ -98,6 +102,8 @@ def test_proposals_openapi_read_contract() -> None:
     assert events_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert approvals_parameters["proposal_id"]["description"]
     assert approvals_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert lineage_parameters["proposal_id"]["description"]
+    assert lineage_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
 
 
 def test_proposals_openapi_write_contract() -> None:

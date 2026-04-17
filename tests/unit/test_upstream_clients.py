@@ -1173,6 +1173,11 @@ async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
             "http://dpm/api/v1/rebalance/proposals/PR-1/approvals",
         ),
         (
+            "get_proposal_lineage",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/proposals/PR-1/lineage",
+        ),
+        (
             "get_capabilities",
             {
                 "consumer_system": "lotus-gateway",
