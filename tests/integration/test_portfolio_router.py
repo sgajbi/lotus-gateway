@@ -366,6 +366,7 @@ def test_portfolio_workspace_router_preserves_support_overview_partial_failure(m
 
 def test_portfolio_workflow_router(monkeypatch):
     captured: dict[str, object] = {}
+    transaction_calls: list[dict[str, object]] = []
 
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
@@ -398,7 +399,18 @@ def test_portfolio_workflow_router(monkeypatch):
         }
 
     async def _transactions(*args, **kwargs):
-        captured["workflow_transaction_limit"] = kwargs.get("limit")
+        transaction_calls.append(
+            {
+                "as_of_date": kwargs.get("as_of_date"),
+                "start_date": kwargs.get("start_date"),
+                "end_date": kwargs.get("end_date"),
+                "skip": kwargs.get("skip"),
+                "limit": kwargs.get("limit"),
+                "include_projected": kwargs.get("include_projected"),
+                "sort_by": kwargs.get("sort_by"),
+                "sort_order": kwargs.get("sort_order"),
+            }
+        )
         return 200, {
             "total": 1,
             "skip": 0,
@@ -456,10 +468,19 @@ def test_portfolio_workflow_router(monkeypatch):
     }
     assert body["actions"][1]["title"] == "Review holdings"
     assert body["actions"][2]["title"] == "Review transactions"
-    assert captured == {
-        "workflow_transaction_limit": 1,
-        "workflow_readiness_as_of_date": "2026-03-27",
-    }
+    assert transaction_calls == [
+        {
+            "as_of_date": "2026-03-27",
+            "start_date": None,
+            "end_date": None,
+            "skip": 0,
+            "limit": 1,
+            "include_projected": False,
+            "sort_by": "transaction_date",
+            "sort_order": "desc",
+        }
+    ]
+    assert captured == {"workflow_readiness_as_of_date": "2026-03-27"}
 
 
 def test_portfolio_workflow_router_returns_empty_portfolio_setup_sequence(monkeypatch):

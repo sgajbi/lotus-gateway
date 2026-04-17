@@ -851,6 +851,58 @@ async def test_portfolio_workflow_returns_prioritized_actions():
     assert [action.recommended for action in response.actions] == [True, False, False]
 
 
+@pytest.mark.asyncio
+async def test_portfolio_workflow_uses_latest_transaction_probe_for_activity_presence():
+    class _WorkflowProbeClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.transaction_requests: list[dict[str, object | None]] = []
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.transaction_requests.append(
+                {
+                    "as_of_date": kwargs.get("as_of_date"),
+                    "start_date": kwargs.get("start_date"),
+                    "end_date": kwargs.get("end_date"),
+                    "skip": kwargs.get("skip"),
+                    "limit": kwargs.get("limit"),
+                    "include_projected": kwargs.get("include_projected"),
+                    "sort_by": kwargs.get("sort_by"),
+                    "sort_order": kwargs.get("sort_order"),
+                    "reporting_currency": kwargs.get("reporting_currency"),
+                }
+            )
+            return await super().get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _WorkflowProbeClient()
+    service = PortfolioService(client)
+
+    await service.get_portfolio_workflow(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2c-probe",
+        as_of_date="2026-03-27",
+    )
+
+    assert client.transaction_requests == [
+        {
+            "as_of_date": "2026-03-27",
+            "start_date": None,
+            "end_date": None,
+            "skip": 0,
+            "limit": 1,
+            "include_projected": False,
+            "sort_by": "transaction_date",
+            "sort_order": "desc",
+            "reporting_currency": None,
+        }
+    ]
+
+
 def test_build_workflow_actions_dedupes_and_ignores_unsupported_cues():
     service = PortfolioService(_StubLotusCoreQueryClient())
 
