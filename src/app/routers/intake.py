@@ -60,12 +60,33 @@ async def ingest_portfolio_bundle(
     "/api/v1/intake/uploads/preview",
     response_model=EnvelopeResponse,
     summary="Preview lotus-core Upload",
-    description="Pass-through endpoint for lotus-core upload preview /ingest/uploads/preview.",
+    description=(
+        "Validates a CSV upload through lotus-core without publishing records. Use this before "
+        "commit to inspect normalized sample rows and row-level validation errors. Gateway "
+        "accepts camelCase form aliases for UI callers and maps them to lotus-core's canonical "
+        "snake_case multipart contract (`entity_type`, `file`, `sample_size`)."
+    ),
 )
 async def preview_upload(
-    entity_type: str = Form(..., alias="entityType"),
-    file: UploadFile = File(...),
-    sample_size: int = Form(20, alias="sampleSize", ge=1, le=100),
+    entity_type: str = Form(
+        ...,
+        alias="entityType",
+        description="Upload entity family expected in the file.",
+        examples=["transactions"],
+    ),
+    file: UploadFile = File(
+        ...,
+        description="CSV file uploaded for preview validation.",
+        examples=["transactions.csv"],
+    ),
+    sample_size: int = Form(
+        20,
+        alias="sampleSize",
+        ge=1,
+        le=100,
+        description="Maximum number of normalized sample rows returned from lotus-core preview.",
+        examples=[20],
+    ),
 ) -> EnvelopeResponse:
     service = _intake_service()
     correlation_id = correlation_id_var.get()
@@ -82,12 +103,31 @@ async def preview_upload(
     "/api/v1/intake/uploads/commit",
     response_model=EnvelopeResponse,
     summary="Commit lotus-core Upload",
-    description="Pass-through endpoint for lotus-core upload commit /ingest/uploads/commit.",
+    description=(
+        "Validates and commits a CSV upload through lotus-core. Use this only after preview "
+        "results are acceptable. Gateway accepts camelCase form aliases for UI callers and maps "
+        "them to lotus-core's canonical snake_case multipart contract (`entity_type`, `file`, "
+        "`allow_partial`)."
+    ),
 )
 async def commit_upload(
-    entity_type: str = Form(..., alias="entityType"),
-    file: UploadFile = File(...),
-    allow_partial: bool = Form(False, alias="allowPartial"),
+    entity_type: str = Form(
+        ...,
+        alias="entityType",
+        description="Upload entity family expected in the file.",
+        examples=["transactions"],
+    ),
+    file: UploadFile = File(
+        ...,
+        description="CSV file uploaded for commit after preview validation.",
+        examples=["transactions.csv"],
+    ),
+    allow_partial: bool = Form(
+        False,
+        alias="allowPartial",
+        description="Whether lotus-core may publish valid rows when some rows fail validation.",
+        examples=[False],
+    ),
 ) -> EnvelopeResponse:
     service = _intake_service()
     correlation_id = correlation_id_var.get()

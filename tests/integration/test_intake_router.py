@@ -54,7 +54,10 @@ def test_ingest_portfolio_bundle_allows_missing_idempotency_header(monkeypatch):
 
 
 def test_preview_upload_success(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _fake_preview(*args, **kwargs):
+        captured.update(kwargs)
         return 200, {"entity_type": "portfolios", "valid_rows": 1}
 
     monkeypatch.setattr(
@@ -71,10 +74,18 @@ def test_preview_upload_success(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["data"]["entity_type"] == "portfolios"
+    assert captured["entity_type"] == "portfolios"
+    assert captured["filename"] == "sample.csv"
+    assert captured["content"] == b"portfolio_id\nPF1\n"
+    assert captured["sample_size"] == 20
+    assert isinstance(captured["correlation_id"], str)
 
 
 def test_commit_upload_success(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _fake_commit(*args, **kwargs):
+        captured.update(kwargs)
         return 202, {"entity_type": "portfolios", "published_rows": 1}
 
     monkeypatch.setattr(
@@ -91,6 +102,68 @@ def test_commit_upload_success(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["data"]["published_rows"] == 1
+    assert captured["entity_type"] == "portfolios"
+    assert captured["filename"] == "sample.csv"
+    assert captured["content"] == b"portfolio_id\nPF1\n"
+    assert captured["allow_partial"] is True
+    assert isinstance(captured["correlation_id"], str)
+
+
+def test_upload_routes_apply_default_form_options(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_preview(self, entity_type, filename, content, sample_size, correlation_id):
+        captured["preview"] = {
+            "entity_type": entity_type,
+            "filename": filename,
+            "content": content,
+            "sample_size": sample_size,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"entity_type": entity_type, "valid_rows": 1}
+
+    async def _fake_commit(self, entity_type, filename, content, allow_partial, correlation_id):
+        captured["commit"] = {
+            "entity_type": entity_type,
+            "filename": filename,
+            "content": content,
+            "allow_partial": allow_partial,
+            "correlation_id": correlation_id,
+        }
+        return 202, {"entity_type": entity_type, "published_rows": 1}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.preview_upload", _fake_preview)
+    monkeypatch.setattr(f"{LOTUS_CORE_INGESTION_CLIENT}.commit_upload", _fake_commit)
+
+    client = TestClient(app)
+
+    preview_response = client.post(
+        "/api/v1/intake/uploads/preview",
+        data={"entityType": "transactions"},
+        files={"file": ("transactions.csv", b"id,qty\n1,10\n", "text/csv")},
+    )
+    commit_response = client.post(
+        "/api/v1/intake/uploads/commit",
+        data={"entityType": "transactions"},
+        files={"file": ("transactions.csv", b"id,qty\n1,10\n", "text/csv")},
+    )
+
+    assert preview_response.status_code == 200
+    assert commit_response.status_code == 200
+    preview_capture = captured["preview"]
+    commit_capture = captured["commit"]
+    assert isinstance(preview_capture, dict)
+    assert isinstance(commit_capture, dict)
+    assert preview_capture["entity_type"] == "transactions"
+    assert preview_capture["filename"] == "transactions.csv"
+    assert preview_capture["content"] == b"id,qty\n1,10\n"
+    assert preview_capture["sample_size"] == 20
+    assert isinstance(preview_capture["correlation_id"], str)
+    assert commit_capture["entity_type"] == "transactions"
+    assert commit_capture["filename"] == "transactions.csv"
+    assert commit_capture["content"] == b"id,qty\n1,10\n"
+    assert commit_capture["allow_partial"] is False
+    assert isinstance(commit_capture["correlation_id"], str)
 
 
 def test_lookups_success(monkeypatch):

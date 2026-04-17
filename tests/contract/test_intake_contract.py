@@ -58,7 +58,11 @@ def test_intake_openapi_contract_registered() -> None:
     assert bundle_parameters["X-Idempotency-Key"]["description"]
     assert bundle_parameters["X-Idempotency-Key"]["schema"]["examples"] == ["bundle-idem-1001"]
     assert preview_operation["description"]
+    assert "sample rows" in preview_operation["description"]
+    assert "snake_case multipart contract" in preview_operation["description"]
     assert commit_operation["description"]
+    assert "after preview" in commit_operation["description"]
+    assert "allow_partial" in commit_operation["description"]
     assert portfolio_lookup_operation["description"]
     assert "selector-only" in portfolio_lookup_operation["description"]
     assert instrument_lookup_operation["description"]
@@ -115,3 +119,33 @@ def test_intake_openapi_contract_registered() -> None:
     assert lookup_response_schema["properties"]["contract_version"]["default"] == "v1"
     assert lookup_response_schema["properties"]["items"]["description"]
     assert lookup_response_schema["properties"]["items"]["examples"][0][0]["id"] == "PF_1001"
+
+    preview_body_ref = preview_operation["requestBody"]["content"]["multipart/form-data"]["schema"][
+        "$ref"
+    ]
+    commit_body_ref = commit_operation["requestBody"]["content"]["multipart/form-data"]["schema"][
+        "$ref"
+    ]
+    preview_body_schema = spec["components"]["schemas"][preview_body_ref.rsplit("/", 1)[-1]]
+    commit_body_schema = spec["components"]["schemas"][commit_body_ref.rsplit("/", 1)[-1]]
+    preview_entity_type_schema = preview_body_schema["properties"]["entityType"]
+    preview_file_schema = preview_body_schema["properties"]["file"]
+    preview_sample_size_schema = preview_body_schema["properties"]["sampleSize"]
+    commit_entity_type_schema = commit_body_schema["properties"]["entityType"]
+    commit_file_schema = commit_body_schema["properties"]["file"]
+    commit_allow_partial_schema = commit_body_schema["properties"]["allowPartial"]
+
+    assert preview_entity_type_schema["description"]
+    assert preview_entity_type_schema["examples"] == ["transactions"]
+    assert preview_file_schema["description"]
+    assert preview_sample_size_schema["description"]
+    assert preview_sample_size_schema["default"] == 20
+    assert preview_sample_size_schema["minimum"] == 1
+    assert preview_sample_size_schema["maximum"] == 100
+    assert preview_sample_size_schema["examples"] == [20]
+    assert commit_entity_type_schema["description"]
+    assert commit_entity_type_schema["examples"] == ["transactions"]
+    assert commit_file_schema["description"]
+    assert commit_allow_partial_schema["description"]
+    assert commit_allow_partial_schema["default"] is False
+    assert commit_allow_partial_schema["examples"] == [False]
