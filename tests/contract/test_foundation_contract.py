@@ -40,10 +40,25 @@ def test_foundation_response_model_contract_shape() -> None:
             }
         ],
         performance={"period": "YTD", "return_pct": 4.2},
-        rebalance={"status": "READY"},
-        readiness={"has_positions": True, "reporting": {"status": "READY", "row_count": 2}},
+        rebalance={
+            "status": "READY",
+            "last_run_at_utc": "2026-03-25T09:00:00Z",
+            "last_rebalance_run_id": "rr_100",
+        },
+        readiness={
+            "has_positions": True,
+            "reporting": {
+                "status": "READY",
+                "generated_at_utc": "2026-03-25T10:00:00Z",
+                "row_count": 2,
+            },
+        },
         workflow_cues=[
-            {"key": "performance", "label": "Open Performance", "href": "/app/performance"}
+            {
+                "key": "performance",
+                "label": "Open Performance",
+                "href": "/app/performance?portfolioId=PF_1001",
+            }
         ],
         evidence={
             "status": "ready",
@@ -57,6 +72,11 @@ def test_foundation_response_model_contract_shape() -> None:
     assert payload.summary.position_count == 3
     assert payload.top_positions[0].security_id == "EQ_1"
     assert payload.readiness.reporting.status == "READY"
+    assert payload.readiness.reporting.generated_at_utc == "2026-03-25T10:00:00Z"
+    assert payload.readiness.reporting.row_count == 2
+    assert payload.rebalance is not None
+    assert payload.rebalance.last_rebalance_run_id == "rr_100"
+    assert payload.workflow_cues[0].href == "/app/performance?portfolioId=PF_1001"
     assert payload.evidence.status == "ready"
 
 

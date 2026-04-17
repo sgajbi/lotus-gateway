@@ -218,8 +218,19 @@ async def test_foundation_workspace_success():
     )
 
     assert response.portfolio.display_name == "Alpha Growth"
+    assert response.portfolio.client_id == "CIF_1001"
+    assert response.portfolio.base_currency == "USD"
+    assert response.portfolio.booking_center_code == "SG"
+    assert response.summary.market_value_base == 1000.0
+    assert response.summary.total_cash_base == 100.0
     assert response.summary.cash_weight_pct == 10.0
+    assert response.summary.position_count == 2
     assert response.allocations[0].asset_class == "Cash"
+    assert response.allocations[0].market_value_base == 100.0
+    assert response.allocations[0].weight_pct == 10.0
+    assert response.top_positions[0].display_name == "EQ_1"
+    assert response.top_positions[0].market_value_base == 700.0
+    assert response.top_positions[0].weight_pct == 70.0
     assert lotus_core_client.portfolio_calls[0]["portfolio_id"] == "PF_1001"
     assert lotus_core_client.snapshot_calls[0]["portfolio_id"] == "PF_1001"
     assert lotus_core_client.snapshot_calls[0]["sections"] == [
@@ -232,7 +243,19 @@ async def test_foundation_workspace_success():
     assert response.performance.return_pct == 4.3
     assert response.rebalance is not None
     assert response.rebalance.status == "READY"
+    assert response.rebalance.last_run_at_utc == "2026-03-25T08:00:00Z"
+    assert response.rebalance.last_rebalance_run_id == "rr_1"
+    assert response.readiness.has_positions is True
     assert response.readiness.reporting.status == "READY"
+    assert response.readiness.reporting.generated_at_utc == "2026-03-25T09:00:00Z"
+    assert response.readiness.reporting.row_count == 1
+    assert response.workflow_cues[0].key == "performance"
+    assert response.workflow_cues[0].href == "/app/performance?portfolioId=PF_1001"
+    assert response.workflow_cues[1].key == "risk"
+    assert response.workflow_cues[2].key == "proposal"
+    assert response.evidence.status == "ready"
+    assert response.evidence.warning_count == 0
+    assert response.evidence.partial_failure_count == 0
     assert response.partial_failures == []
 
 

@@ -161,17 +161,32 @@ def test_foundation_workspace_router_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["display_name"] == "Alpha Growth"
+    assert body["portfolio"]["client_id"] == "CIF_1001"
+    assert body["portfolio"]["base_currency"] == "USD"
+    assert body["portfolio"]["booking_center_code"] == "SG"
+    assert body["summary"]["market_value_base"] == 1000.0
+    assert body["summary"]["total_cash_base"] == 100.0
     assert body["summary"]["position_count"] == 2
     assert body["allocations"][0]["asset_class"] == "Equity"
+    assert body["allocations"][0]["market_value_base"] == 600.0
+    assert body["allocations"][0]["weight_pct"] == 60.0
     assert [item["security_id"] for item in body["top_positions"]] == ["EQ_1", "FI_1"]
     assert body["top_positions"][0]["display_name"] == "Global Equity Fund"
+    assert body["top_positions"][0]["market_value_base"] == 600.0
     assert body["top_positions"][0]["weight_pct"] == 60.0
     assert body["performance"]["period"] == "YTD"
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
+    assert body["rebalance"]["last_run_at_utc"] == "2026-03-25T09:00:00Z"
+    assert body["rebalance"]["last_rebalance_run_id"] == "rr_100"
+    assert body["readiness"]["has_positions"] is True
     assert body["readiness"]["reporting"]["status"] == "READY"
+    assert body["readiness"]["reporting"]["generated_at_utc"] == "2026-03-25T10:00:00Z"
+    assert body["readiness"]["reporting"]["row_count"] == 2
     assert body["evidence"]["status"] == "ready"
+    assert body["evidence"]["warning_count"] == 0
     assert body["evidence"]["partial_failure_count"] == 0
     assert len(body["workflow_cues"]) == 3
+    assert body["workflow_cues"][0]["href"] == "/app/performance?portfolioId=PF_1001"
 
 
 def test_foundation_workspace_router_preserves_portfolio_and_correlation_context(monkeypatch):
