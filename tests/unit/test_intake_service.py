@@ -5,8 +5,8 @@ from app.services.intake_service import IntakeService
 
 
 class _PasIngestionStub:
-    async def ingest_portfolio_bundle(self, body, correlation_id):  # noqa: ANN001
-        _ = body, correlation_id
+    async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+        _ = body, correlation_id, idempotency_key
         return 202, {"message": "ok"}
 
     async def preview_upload(self, entity_type, filename, content, sample_size, correlation_id):  # noqa: ANN001
@@ -48,6 +48,7 @@ async def test_intake_service_happy_paths():
     ingest = await service.ingest_portfolio_bundle(
         body={"sourceSystem": "UI"},
         correlation_id="corr-1",
+        idempotency_key="bundle-idem-1001",
     )
     assert ingest.data["message"] == "ok"
 
@@ -119,8 +120,8 @@ async def test_intake_service_happy_paths():
 @pytest.mark.asyncio
 async def test_intake_service_raises_upstream_error():
     class _ErrorPasIngestionStub(_PasIngestionStub):
-        async def ingest_portfolio_bundle(self, body, correlation_id):  # noqa: ANN001
-            _ = body, correlation_id
+        async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+            _ = body, correlation_id, idempotency_key
             return 400, {"detail": "bad request"}
 
     service = IntakeService(
@@ -134,3 +135,44 @@ async def test_intake_service_raises_upstream_error():
         assert exc.status_code == 400
     else:
         raise AssertionError("Expected HTTPException")
+
+
+@pytest.mark.asyncio
+async def test_intake_service_forwards_idempotency_key_to_pas_ingestion():
+    class _IdempotencyAwarePasIngestionStub(_PasIngestionStub):
+        def __init__(self) -> None:
+            self.calls: list[dict[str, object | None]] = []
+
+        async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
+            self.calls.append(
+                {
+                    "body": body,
+                    "correlation_id": correlation_id,
+                    "idempotency_key": idempotency_key,
+                }
+            )
+            return await super().ingest_portfolio_bundle(
+                body=body,
+                correlation_id=correlation_id,
+                idempotency_key=idempotency_key,
+            )
+
+    ingestion_client = _IdempotencyAwarePasIngestionStub()
+    service = IntakeService(
+        lotus_core_ingestion_client=ingestion_client,
+        lotus_core_query_client=_PasQueryStub(),
+    )
+
+    await service.ingest_portfolio_bundle(
+        body={"sourceSystem": "UI"},
+        correlation_id="corr-1",
+        idempotency_key="bundle-idem-1001",
+    )
+
+    assert ingestion_client.calls == [
+        {
+            "body": {"sourceSystem": "UI"},
+            "correlation_id": "corr-1",
+            "idempotency_key": "bundle-idem-1001",
+        }
+    ]

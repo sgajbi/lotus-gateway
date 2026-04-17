@@ -1064,6 +1064,7 @@ async def test_pas_ingestion_client_upload_paths():
         "entity_type": "transactions",
         "allow_partial": "false",
     }
+    assert "X-Idempotency-Key" not in _FakeAsyncClient.calls[0]["headers"]
 
 
 @pytest.mark.asyncio
@@ -1098,6 +1099,21 @@ async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
         "entity_type": "transactions",
         "allow_partial": "true",
     }
+
+
+@pytest.mark.asyncio
+async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
+    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(202, {"status": "accepted"})
+
+    status_ingest, _ = await client.ingest_portfolio_bundle(
+        body={"portfolio": {"portfolio_id": "P1"}},
+        correlation_id="corr-4",
+        idempotency_key="bundle-idem-1001",
+    )
+
+    assert status_ingest == 202
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Idempotency-Key"] == "bundle-idem-1001"
 
 
 @pytest.mark.asyncio

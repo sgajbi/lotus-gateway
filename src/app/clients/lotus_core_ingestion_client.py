@@ -21,9 +21,12 @@ class LotusCoreIngestionClient:
         self,
         body: dict[str, Any],
         correlation_id: str,
+        idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/ingest/portfolio-bundle"
         headers = propagation_headers(correlation_id)
+        if idempotency_key:
+            headers["X-Idempotency-Key"] = idempotency_key
         return await request_with_retry(
             method="POST",
             url=url,

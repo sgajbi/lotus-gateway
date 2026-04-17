@@ -52,6 +52,11 @@ def test_intake_openapi_contract_registered() -> None:
     lookup_response_schema = spec["components"]["schemas"]["LookupResponse"]
 
     assert bundle_operation["description"]
+    bundle_parameters = {
+        parameter["name"]: parameter for parameter in bundle_operation["parameters"]
+    }
+    assert bundle_parameters["X-Idempotency-Key"]["description"]
+    assert bundle_parameters["X-Idempotency-Key"]["schema"]["examples"] == ["bundle-idem-1001"]
     assert preview_operation["description"]
     assert commit_operation["description"]
     assert portfolio_lookup_operation["description"]

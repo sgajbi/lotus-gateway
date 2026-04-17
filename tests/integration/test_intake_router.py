@@ -8,7 +8,34 @@ LOTUS_CORE_INGESTION_CLIENT = "app.clients.lotus_core_ingestion_client.LotusCore
 
 
 def test_ingest_portfolio_bundle_success(monkeypatch):
+    captured: dict[str, object] = {}
+
     async def _fake_ingest(*args, **kwargs):
+        captured.update(kwargs)
+        return 202, {"message": "queued"}
+
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_INGESTION_CLIENT}.ingest_portfolio_bundle",
+        _fake_ingest,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/intake/portfolio-bundle",
+        json={"body": {"sourceSystem": "UI", "portfolios": []}},
+        headers={"X-Idempotency-Key": "bundle-idem-1001"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["message"] == "queued"
+    assert captured["idempotency_key"] == "bundle-idem-1001"
+
+
+def test_ingest_portfolio_bundle_allows_missing_idempotency_header(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_ingest(*args, **kwargs):
+        captured.update(kwargs)
         return 202, {"message": "queued"}
 
     monkeypatch.setattr(
@@ -23,7 +50,7 @@ def test_ingest_portfolio_bundle_success(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert response.json()["data"]["message"] == "queued"
+    assert captured["idempotency_key"] is None
 
 
 def test_preview_upload_success(monkeypatch):

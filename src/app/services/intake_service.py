@@ -22,6 +22,7 @@ class IntakeService:
         self,
         body: dict[str, Any],
         correlation_id: str,
+        idempotency_key: str | None = None,
     ) -> EnvelopeResponse:
         (
             upstream_status,
@@ -29,6 +30,7 @@ class IntakeService:
         ) = await self._lotus_core_ingestion_client.ingest_portfolio_bundle(
             body=body,
             correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)

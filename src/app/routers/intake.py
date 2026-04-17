@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, Form, Query, UploadFile
+from fastapi import APIRouter, File, Form, Header, Query, UploadFile
 
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -32,12 +32,28 @@ def _intake_service() -> IntakeService:
     "/api/v1/intake/portfolio-bundle",
     response_model=EnvelopeResponse,
     summary="Ingest Portfolio Bundle via lotus-core",
-    description="Pass-through endpoint for lotus-core ingestion /ingest/portfolio-bundle.",
+    description=(
+        "Pass-through endpoint for lotus-core ingestion /ingest/portfolio-bundle. "
+        "Accept an optional idempotency header when callers need safe retry semantics "
+        "for bundle submission."
+    ),
 )
-async def ingest_portfolio_bundle(request: IntakeBundleRequest) -> EnvelopeResponse:
+async def ingest_portfolio_bundle(
+    request: IntakeBundleRequest,
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="X-Idempotency-Key",
+        description="Optional caller-supplied idempotency key forwarded unchanged to lotus-core.",
+        examples=["bundle-idem-1001"],
+    ),
+) -> EnvelopeResponse:
     service = _intake_service()
     correlation_id = correlation_id_var.get()
-    return await service.ingest_portfolio_bundle(body=request.body, correlation_id=correlation_id)
+    return await service.ingest_portfolio_bundle(
+        body=request.body,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+    )
 
 
 @router.post(
