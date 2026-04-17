@@ -198,9 +198,13 @@ def test_lookups_success(monkeypatch):
 
     assert instrument_response.status_code == 200
     assert instrument_response.json()["items"][0]["id"] == "SEC_1"
+    instrument_body = LookupResponse.model_validate(instrument_response.json())
+    assert instrument_body.items[0].label == "SEC_1 | Apple Inc."
 
     assert currency_response.status_code == 200
     assert currency_response.json()["items"][0]["id"] == "USD"
+    currency_body = LookupResponse.model_validate(currency_response.json())
+    assert currency_body.items[0].label == "USD"
 
 
 def test_lookup_routes_preserve_query_filters_and_correlation_context(monkeypatch):
@@ -272,6 +276,49 @@ def test_lookup_routes_preserve_query_filters_and_correlation_context(monkeypatc
         "q": "USD",
         "limit": 10,
     }
+
+
+def test_lookup_routes_apply_default_query_options(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_instruments(self, limit, correlation_id, **kwargs):
+        captured["instrument"] = {
+            "limit": limit,
+            "correlation_id": correlation_id,
+            **kwargs,
+        }
+        return 200, {"items": [{"id": "SEC_1", "label": "SEC_1 | Apple Inc."}]}
+
+    async def _fake_currencies(self, correlation_id, **kwargs):
+        captured["currency"] = {
+            "correlation_id": correlation_id,
+            **kwargs,
+        }
+        return 200, {"items": [{"id": "USD", "label": "USD"}]}
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_instrument_lookups", _fake_instruments)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_currency_lookups", _fake_currencies)
+
+    client = TestClient(app)
+
+    instrument_response = client.get("/api/v1/lookups/instruments")
+    currency_response = client.get("/api/v1/lookups/currencies")
+
+    assert instrument_response.status_code == 200
+    assert currency_response.status_code == 200
+    instrument_capture = captured["instrument"]
+    currency_capture = captured["currency"]
+    assert isinstance(instrument_capture, dict)
+    assert isinstance(currency_capture, dict)
+    assert instrument_capture["limit"] == 200
+    assert instrument_capture["product_type"] is None
+    assert instrument_capture["q"] is None
+    assert isinstance(instrument_capture["correlation_id"], str)
+    assert currency_capture["instrument_page_limit"] is None
+    assert currency_capture["source"] is None
+    assert currency_capture["q"] is None
+    assert currency_capture["limit"] is None
+    assert isinstance(currency_capture["correlation_id"], str)
 
 
 def test_upload_routes_preserve_form_payload_and_correlation_context(monkeypatch):

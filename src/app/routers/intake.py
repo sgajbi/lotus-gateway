@@ -200,7 +200,11 @@ async def get_portfolio_lookups(
     "/api/v1/lookups/instruments",
     response_model=LookupResponse,
     summary="Instrument Lookup Catalog",
-    description="Returns lotus-core-backed instrument lookup options for UI selectors.",
+    description=(
+        "Returns selector-only instrument lookup options backed by lotus-core. Use this route for "
+        "intake and trade-form selector population, not canonical instrument reference detail or "
+        "enrichment reads."
+    ),
 )
 async def get_instrument_lookups(
     limit: int = Query(
@@ -237,7 +241,9 @@ async def get_instrument_lookups(
     response_model=LookupResponse,
     summary="Currency Lookup Catalog",
     description=(
-        "Returns lotus-core-backed currency codes from portfolio and instrument reference data."
+        "Returns selector-only currency codes derived by lotus-core from portfolio base currencies "
+        "and instrument reference data. Use `source` to scope the catalog to ALL, PORTFOLIOS, or "
+        "INSTRUMENTS when the UI wants a narrower selector."
     ),
 )
 async def get_currency_lookups(

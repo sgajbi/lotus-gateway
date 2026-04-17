@@ -72,7 +72,11 @@ def test_intake_openapi_contract_registered() -> None:
     assert portfolio_lookup_operation["description"]
     assert "selector-only" in portfolio_lookup_operation["description"]
     assert instrument_lookup_operation["description"]
+    assert "selector-only" in instrument_lookup_operation["description"]
+    assert "trade-form selector population" in instrument_lookup_operation["description"]
     assert currency_lookup_operation["description"]
+    assert "selector-only currency codes" in currency_lookup_operation["description"]
+    assert "ALL, PORTFOLIOS, or INSTRUMENTS" in currency_lookup_operation["description"]
 
     portfolio_parameters = {
         parameter["name"]: parameter for parameter in portfolio_lookup_operation["parameters"]
