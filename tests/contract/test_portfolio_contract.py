@@ -84,12 +84,34 @@ def test_portfolio_workspace_contract_shape() -> None:
             },
         },
         reporting={"status": "READY", "row_count": 3},
+        operations={
+            "business_date": "2026-03-27",
+            "latest_booked_transaction_date": "2026-03-27",
+            "latest_booked_position_snapshot_date": "2026-03-27",
+            "publish_allowed": True,
+            "controls_blocking": False,
+            "active_reprocessing_keys": 0,
+            "stale_reprocessing_keys": 0,
+            "failed_valuation_jobs_within_window": 0,
+        },
     )
     assert payload.summary.assets_under_management_base == 1000.0
     assert payload.performance is not None
     assert payload.performance.return_pct == 2.5
     assert payload.rebalance is not None
     assert payload.rebalance.last_rebalance_run_id == "rr_100"
+    assert payload.reporting.status == "READY"
+    assert payload.reporting.generated_at_utc is None
+    assert payload.reporting.row_count == 3
+    assert payload.operations is not None
+    assert payload.operations.business_date == "2026-03-27"
+    assert payload.operations.latest_booked_transaction_date == "2026-03-27"
+    assert payload.operations.latest_booked_position_snapshot_date == "2026-03-27"
+    assert payload.operations.publish_allowed is True
+    assert payload.operations.controls_blocking is False
+    assert payload.operations.active_reprocessing_keys == 0
+    assert payload.operations.stale_reprocessing_keys == 0
+    assert payload.operations.failed_valuation_jobs_within_window == 0
     assert payload.profile.portfolio_type == "ADVISORY"
     assert payload.profile.risk_exposure == "Moderate Growth"
     assert payload.profile.investment_time_horizon == "Long Term"
@@ -693,21 +715,39 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert rebalance_schema["properties"]["status"]["description"]
     assert reporting_readiness_schema["properties"]["status"]["description"]
     assert reporting_readiness_schema["properties"]["generated_at_utc"]["description"]
+    assert reporting_readiness_schema["properties"]["generated_at_utc"]["examples"] == [
+        "2026-03-27T12:00:00Z"
+    ]
     assert reporting_readiness_schema["properties"]["row_count"]["description"]
+    assert reporting_readiness_schema["properties"]["row_count"]["examples"] == [3]
     assert operational_readiness_schema["properties"]["business_date"]["description"]
+    assert operational_readiness_schema["properties"]["business_date"]["examples"] == ["2026-03-27"]
     assert operational_readiness_schema["properties"]["latest_booked_transaction_date"][
         "description"
     ]
+    assert operational_readiness_schema["properties"]["latest_booked_transaction_date"][
+        "examples"
+    ] == ["2026-03-27"]
     assert operational_readiness_schema["properties"]["latest_booked_position_snapshot_date"][
         "description"
     ]
+    assert operational_readiness_schema["properties"]["latest_booked_position_snapshot_date"][
+        "examples"
+    ] == ["2026-03-27"]
     assert operational_readiness_schema["properties"]["publish_allowed"]["description"]
+    assert operational_readiness_schema["properties"]["publish_allowed"]["examples"] == [True]
     assert operational_readiness_schema["properties"]["controls_blocking"]["description"]
+    assert operational_readiness_schema["properties"]["controls_blocking"]["examples"] == [False]
     assert operational_readiness_schema["properties"]["active_reprocessing_keys"]["description"]
+    assert operational_readiness_schema["properties"]["active_reprocessing_keys"]["examples"] == [0]
     assert operational_readiness_schema["properties"]["stale_reprocessing_keys"]["description"]
+    assert operational_readiness_schema["properties"]["stale_reprocessing_keys"]["examples"] == [0]
     assert operational_readiness_schema["properties"]["failed_valuation_jobs_within_window"][
         "description"
     ]
+    assert operational_readiness_schema["properties"]["failed_valuation_jobs_within_window"][
+        "examples"
+    ] == [0]
     assert operational_readiness_schema["properties"]["failed_aggregation_jobs_within_window"][
         "description"
     ]

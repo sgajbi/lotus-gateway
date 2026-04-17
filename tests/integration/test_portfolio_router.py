@@ -191,6 +191,17 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["profile"]["open_date"] == "2024-01-15"
     assert body["profile"]["close_date"] is None
     assert body["summary"]["assets_under_management_base"] == 1000.0
+    assert body["reporting"]["status"] == "READY"
+    assert body["reporting"]["generated_at_utc"] is None
+    assert body["reporting"]["row_count"] == 2
+    assert body["operations"]["business_date"] == "2026-03-27"
+    assert body["operations"]["latest_booked_transaction_date"] is None
+    assert body["operations"]["latest_booked_position_snapshot_date"] is None
+    assert body["operations"]["publish_allowed"] is True
+    assert body["operations"]["controls_blocking"] is None
+    assert body["operations"]["active_reprocessing_keys"] is None
+    assert body["operations"]["stale_reprocessing_keys"] is None
+    assert body["operations"]["failed_valuation_jobs_within_window"] is None
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
     assert body["rebalance"]["status"] == "PENDING_REVIEW"

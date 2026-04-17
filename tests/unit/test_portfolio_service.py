@@ -477,7 +477,17 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.summary.invested_market_value_base == 900.0
     assert response.summary.cash_balance_count == 1
     assert response.reporting.status == "READY"
+    assert response.reporting.generated_at_utc is None
+    assert response.reporting.row_count == 3
     assert response.operations is not None
+    assert response.operations.business_date == "2026-03-27"
+    assert response.operations.latest_booked_transaction_date == "2026-03-27"
+    assert response.operations.latest_booked_position_snapshot_date == "2026-03-27"
+    assert response.operations.publish_allowed is True
+    assert response.operations.controls_blocking is False
+    assert response.operations.active_reprocessing_keys is None
+    assert response.operations.stale_reprocessing_keys is None
+    assert response.operations.failed_valuation_jobs_within_window is None
     assert response.cashflow_outlook is not None
     assert response.portfolio.display_name == "Alpha Growth"
     assert response.profile.status == "ACTIVE"
