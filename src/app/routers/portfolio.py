@@ -139,7 +139,9 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
     description=(
         "Returns the sorted portfolio catalog available to the caller. Use this endpoint to "
         "discover supported portfolio identifiers and lightweight identity metadata before "
-        "loading portfolio-specific workspace or book endpoints."
+        "loading portfolio-specific workspace or book endpoints. The catalog is the strategic "
+        "portfolio-picker feed and preserves routing metadata such as client, booking-center, "
+        "mandate type, and upstream status when the source publishes them."
     ),
 )
 async def get_portfolios() -> PortfolioCatalogResponse:

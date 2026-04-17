@@ -536,6 +536,7 @@ def test_portfolio_openapi_contract_registered() -> None:
         parameter["name"]: parameter for parameter in activity_path["parameters"]
     }
     assert catalog_path["description"]
+    assert "portfolio-picker feed" in catalog_path["description"]
     assert catalog_schema["properties"]["correlation_id"]["description"]
     assert catalog_schema["properties"]["correlation_id"]["examples"] == ["corr-portfolio-catalog"]
     assert catalog_schema["properties"]["contract_version"]["description"]
@@ -549,6 +550,11 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert catalog_item_schema["properties"]["client_id"]["description"]
     assert catalog_item_schema["properties"]["booking_center_code"]["description"]
     assert catalog_item_schema["properties"]["portfolio_type"]["description"]
+    assert catalog_item_schema["properties"]["status"]["description"]
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["client_id"] == "CIF_1"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["booking_center_code"] == "SGPB"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["portfolio_type"] == "ADVISORY"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["status"] == "ACTIVE"
     assert catalog_item_schema["properties"]["status"]["description"]
     assert workspace_schema["properties"]["correlation_id"]["description"]
     assert workspace_schema["properties"]["correlation_id"]["examples"] == [

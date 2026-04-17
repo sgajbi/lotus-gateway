@@ -1185,21 +1185,30 @@ class PortfolioService:
         portfolio_id = str(item.get("portfolio_id", "")).strip()
         return PortfolioCatalogItem(
             portfolio_id=portfolio_id,
-            display_name=portfolio_id,
+            display_name=self._resolve_portfolio_display_name(
+                item, fallback_portfolio_id=portfolio_id
+            ),
             base_currency=str(item.get("base_currency", "USD")),
-            client_id=self._optional_str(item.get("client_id")),
-            booking_center_code=self._optional_str(item.get("booking_center_code")),
+            client_id=self._optional_str(item.get("client_id", item.get("cif_id"))),
+            booking_center_code=self._optional_str(
+                item.get("booking_center_code", item.get("booking_center"))
+            ),
             portfolio_type=self._optional_str(item.get("portfolio_type")),
             status=self._optional_str(item.get("status")),
         )
 
     def _parse_portfolio_identity(self, payload: dict[str, Any]) -> PortfolioIdentity:
+        portfolio_id = str(payload.get("portfolio_id", ""))
         return PortfolioIdentity(
-            portfolio_id=str(payload.get("portfolio_id", "")),
-            display_name=str(payload.get("portfolio_id", "")),
-            client_id=self._optional_str(payload.get("client_id")),
+            portfolio_id=portfolio_id,
+            display_name=self._resolve_portfolio_display_name(
+                payload, fallback_portfolio_id=portfolio_id
+            ),
+            client_id=self._optional_str(payload.get("client_id", payload.get("cif_id"))),
             base_currency=str(payload.get("base_currency", "USD")),
-            booking_center_code=self._optional_str(payload.get("booking_center_code")),
+            booking_center_code=self._optional_str(
+                payload.get("booking_center_code", payload.get("booking_center"))
+            ),
         )
 
     def _parse_portfolio_profile(self, payload: dict[str, Any]) -> PortfolioProfile:
@@ -2837,6 +2846,17 @@ class PortfolioService:
             return None
         text = str(value).strip()
         return text or None
+
+    def _resolve_portfolio_display_name(
+        self, payload: dict[str, Any], *, fallback_portfolio_id: str
+    ) -> str:
+        return str(
+            payload.get("portfolio_name")
+            or payload.get("name")
+            or payload.get("label")
+            or payload.get("display_name")
+            or fallback_portfolio_id
+        )
 
     def _resolve_reporting_window(
         self,

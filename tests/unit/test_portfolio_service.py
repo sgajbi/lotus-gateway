@@ -406,9 +406,58 @@ async def test_portfolio_catalog_is_sorted_and_mapped():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_catalog_preserves_identity_metadata_and_display_name_fallbacks():
+    class _CatalogAwareClient(_StubLotusCoreQueryClient):
+        async def list_portfolios(self, correlation_id: str):
+            return 200, {
+                "portfolios": [
+                    {
+                        "portfolio_id": "PF_2002",
+                        "portfolio_name": "Income Reserve",
+                        "base_currency": "EUR",
+                        "cif_id": "CIF_2",
+                        "booking_center": "CHPB",
+                        "portfolio_type": "DISCRETIONARY",
+                        "status": "PENDING_REVIEW",
+                    },
+                    {
+                        "portfolio_id": "PF_1001",
+                        "base_currency": "USD",
+                        "client_id": "CIF_1",
+                        "booking_center_code": "SGPB",
+                        "portfolio_type": "ADVISORY",
+                        "status": "ACTIVE",
+                    },
+                ]
+            }
+
+    service = PortfolioService(_CatalogAwareClient())
+
+    response = await service.get_portfolio_catalog(correlation_id="corr-1b")
+
+    assert [item.portfolio_id for item in response.items] == ["PF_1001", "PF_2002"]
+    assert response.items[0].display_name == "PF_1001"
+    assert response.items[0].client_id == "CIF_1"
+    assert response.items[0].booking_center_code == "SGPB"
+    assert response.items[0].portfolio_type == "ADVISORY"
+    assert response.items[0].status == "ACTIVE"
+    assert response.items[1].display_name == "Income Reserve"
+    assert response.items[1].client_id == "CIF_2"
+    assert response.items[1].booking_center_code == "CHPB"
+    assert response.items[1].portfolio_type == "DISCRETIONARY"
+    assert response.items[1].status == "PENDING_REVIEW"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
+    class _NamedPortfolioClient(_StubLotusCoreQueryClient):
+        async def get_portfolio(self, portfolio_id: str, correlation_id: str):
+            payload = await super().get_portfolio(portfolio_id, correlation_id)
+            payload[1]["portfolio_name"] = "Alpha Growth"
+            return payload
+
     service = PortfolioService(
-        _StubLotusCoreQueryClient(),
+        _NamedPortfolioClient(),
         analytics_client=_StubAnalyticsClient(),
         dpm_client=_StubDpmClient(),
     )
@@ -423,6 +472,7 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.reporting.status == "READY"
     assert response.operations is not None
     assert response.cashflow_outlook is not None
+    assert response.portfolio.display_name == "Alpha Growth"
     assert response.performance is not None
     assert response.performance.return_pct == 2.5
     assert response.rebalance is not None

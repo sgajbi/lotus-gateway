@@ -57,20 +57,56 @@ def stub_portfolio_workspace_enrichments(monkeypatch):
 
 def test_portfolio_catalog_router(monkeypatch):
     async def _list_portfolios(*args, **kwargs):
-        return 200, {"portfolios": [{"portfolio_id": "PF_1001", "base_currency": "USD"}]}
+        return 200, {
+            "portfolios": [
+                {
+                    "portfolio_id": "PF_2002",
+                    "portfolio_name": "Income Reserve",
+                    "base_currency": "EUR",
+                    "cif_id": "CIF_2",
+                    "booking_center": "CHPB",
+                    "portfolio_type": "DISCRETIONARY",
+                    "status": "PENDING_REVIEW",
+                },
+                {
+                    "portfolio_id": "PF_1001",
+                    "base_currency": "USD",
+                    "client_id": "CIF_1",
+                    "booking_center_code": "SGPB",
+                    "portfolio_type": "ADVISORY",
+                    "status": "ACTIVE",
+                },
+            ]
+        }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.list_portfolios", _list_portfolios)
     client = TestClient(app)
     response = client.get("/api/v1/portfolio/portfolios")
     assert response.status_code == 200
-    assert response.json()["items"][0]["portfolio_id"] == "PF_1001"
+    body = response.json()
+    assert [item["portfolio_id"] for item in body["items"]] == ["PF_1001", "PF_2002"]
+    assert body["items"][0]["display_name"] == "PF_1001"
+    assert body["items"][0]["client_id"] == "CIF_1"
+    assert body["items"][0]["booking_center_code"] == "SGPB"
+    assert body["items"][0]["portfolio_type"] == "ADVISORY"
+    assert body["items"][0]["status"] == "ACTIVE"
+    assert body["items"][1]["display_name"] == "Income Reserve"
+    assert body["items"][1]["client_id"] == "CIF_2"
+    assert body["items"][1]["booking_center_code"] == "CHPB"
+    assert body["items"][1]["portfolio_type"] == "DISCRETIONARY"
+    assert body["items"][1]["status"] == "PENDING_REVIEW"
 
 
 def test_portfolio_workspace_router(monkeypatch):
     captured: dict[str, object] = {}
 
     async def _get_portfolio(*args, **kwargs):
-        return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}
+        return 200, {
+            "portfolio_id": "PF_1001",
+            "portfolio_name": "Alpha Growth",
+            "base_currency": "USD",
+            "status": "ACTIVE",
+        }
 
     async def _query_aum(*args, **kwargs):
         return 200, {
@@ -137,6 +173,7 @@ def test_portfolio_workspace_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["portfolio"]["display_name"] == "Alpha Growth"
     assert body["summary"]["assets_under_management_base"] == 1000.0
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
