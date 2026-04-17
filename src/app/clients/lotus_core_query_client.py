@@ -481,9 +481,9 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         params: dict[str, Any] = {}
         if cif_id is not None:
-            params["cif_id"] = cif_id
+            params["client_id"] = cif_id
         if booking_center is not None:
-            params["booking_center"] = booking_center
+            params["booking_center_code"] = booking_center
         if q is not None:
             params["q"] = q
         if limit is not None:

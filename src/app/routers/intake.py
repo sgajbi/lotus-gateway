@@ -104,19 +104,28 @@ async def commit_upload(
     "/api/v1/lookups/portfolios",
     response_model=LookupResponse,
     summary="Portfolio Lookup Catalog",
-    description="Returns lotus-core-backed portfolio lookup options for UI selectors.",
+    description=(
+        "Returns selector-only portfolio lookup options backed by lotus-core. Use this route for "
+        "intake and picker population, not canonical portfolio detail or workspace composition."
+    ),
 )
 async def get_portfolio_lookups(
     cif_id: str | None = Query(
         default=None,
         alias="cif_id",
-        description="Optional client identifier filter for the portfolio selector catalog.",
+        description=(
+            "Optional CIF/client identifier filter for the portfolio selector catalog. Gateway "
+            "maps this to lotus-core `client_id` when querying the canonical lookup route."
+        ),
         examples=["CIF_1001"],
     ),
     booking_center: str | None = Query(
         default=None,
         alias="booking_center",
-        description="Optional booking-center filter for the portfolio selector catalog.",
+        description=(
+            "Optional booking-center filter for the portfolio selector catalog. Gateway maps "
+            "this to lotus-core `booking_center_code` when querying the canonical lookup route."
+        ),
         examples=["SG"],
     ),
     q: str | None = Query(

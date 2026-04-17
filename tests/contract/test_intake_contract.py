@@ -60,6 +60,7 @@ def test_intake_openapi_contract_registered() -> None:
     assert preview_operation["description"]
     assert commit_operation["description"]
     assert portfolio_lookup_operation["description"]
+    assert "selector-only" in portfolio_lookup_operation["description"]
     assert instrument_lookup_operation["description"]
     assert currency_lookup_operation["description"]
 
@@ -74,8 +75,12 @@ def test_intake_openapi_contract_registered() -> None:
     }
 
     assert portfolio_parameters["cif_id"]["description"]
+    assert "lotus-core `client_id`" in portfolio_parameters["cif_id"]["description"]
     assert portfolio_parameters["cif_id"]["schema"]["examples"] == ["CIF_1001"]
     assert portfolio_parameters["booking_center"]["description"]
+    assert (
+        "lotus-core `booking_center_code`" in portfolio_parameters["booking_center"]["description"]
+    )
     assert portfolio_parameters["booking_center"]["schema"]["examples"] == ["SG"]
     assert portfolio_parameters["q"]["description"]
     assert portfolio_parameters["q"]["schema"]["examples"] == ["Alpha"]

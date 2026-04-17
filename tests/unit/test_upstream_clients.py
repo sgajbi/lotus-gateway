@@ -959,8 +959,8 @@ async def test_lotus_core_query_client_lookup_routes_preserve_filter_query_param
 
     assert _FakeAsyncClient.calls[0]["url"] == "http://pas/lookups/portfolios"
     assert _FakeAsyncClient.calls[0]["params"] == {
-        "cif_id": "CIF_1001",
-        "booking_center": "SG",
+        "client_id": "CIF_1001",
+        "booking_center_code": "SG",
         "q": "Alpha",
         "limit": 25,
     }
