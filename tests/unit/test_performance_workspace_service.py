@@ -2,6 +2,7 @@ import asyncio
 from datetime import date
 
 import pytest
+from fastapi import HTTPException
 
 from app.contracts.performance_workspace import PerformanceChartPoint
 from app.contracts.workbench import (
@@ -2279,3 +2280,48 @@ def test_performance_workspace_service_keeps_ytd_distinct_from_1y():
     assert ytd_start == date(2026, 1, 1)
     assert one_year_start == date(2025, 4, 1)
     assert ytd_start != one_year_start
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_downloads_evidence_artifact_bytes():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    content, content_type = await service.get_performance_evidence_artifact(
+        calculation_id="calc-workspace-summary",
+        artifact_name="request.json",
+        correlation_id="corr-performance",
+    )
+
+    assert content == b"{}"
+    assert content_type == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_surfaces_evidence_artifact_failure_detail():
+    class _ArtifactFailingAnalyticsClient(_StubAnalyticsClient):
+        async def get_lineage_artifact(
+            self, *, calculation_id: str, artifact_name: str, correlation_id: str
+        ):
+            _ = calculation_id, artifact_name, correlation_id
+            return 404, b"artifact not found", "text/plain"
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ArtifactFailingAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_performance_evidence_artifact(
+            calculation_id="calc-workspace-summary",
+            artifact_name="request.json",
+            correlation_id="corr-performance",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert "artifact not found" in str(exc_info.value)

@@ -771,8 +771,10 @@ async def get_performance_workspace_details(
     summary="Download Performance Evidence Artifact",
     description=(
         "Downloads a performance lineage artifact through the gateway boundary. "
-        "Workbench and other downstream clients should use this route instead of "
-        "calling lotus-performance directly."
+        "Artifact links published in `evidence_view.calculations[].artifacts[]` resolve through "
+        "this route, and gateway preserves the upstream content type when the download succeeds. "
+        "Workbench and other downstream clients should use this route instead of calling "
+        "lotus-performance directly."
     ),
 )
 async def get_performance_evidence_artifact(

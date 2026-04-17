@@ -1528,7 +1528,7 @@ def test_workbench_performance_evidence_artifact_router(monkeypatch):
         captured["calculation_id"] = calculation_id
         captured["artifact_name"] = artifact_name
         captured["correlation_id"] = correlation_id
-        return b"{}", "application/json"
+        return b"col_a,col_b\n1,2\n", "text/csv"
 
     monkeypatch.setattr(
         "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_evidence_artifact",
@@ -1542,8 +1542,8 @@ def test_workbench_performance_evidence_artifact_router(monkeypatch):
     )
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith("application/json")
-    assert response.text == "{}"
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.text == "col_a,col_b\n1,2\n"
     assert captured["calculation_id"] == "calc-workspace-summary"
     assert captured["artifact_name"] == "request.json"
     assert captured["correlation_id"]

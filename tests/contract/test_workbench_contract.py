@@ -353,6 +353,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert performance_details_parameters["report_end_date"]["schema"]["examples"] == ["2026-03-27"]
     assert artifact_parameters["portfolio_id"]["description"]
     assert artifact_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "evidence_view.calculations[].artifacts[]" in artifact_operation["description"]
+    assert "preserves the upstream content type" in artifact_operation["description"]
     assert artifact_parameters["calculation_id"]["description"]
     assert artifact_parameters["calculation_id"]["schema"]["examples"] == ["calc-workspace-summary"]
     assert artifact_parameters["artifact_name"]["description"]
