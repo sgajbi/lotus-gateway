@@ -1078,11 +1078,146 @@ async def test_portfolio_book_returns_allocations_cash_and_positions():
         as_of_date="2026-03-27",
         include_projected=False,
     )
-    assert response.summary.assets_under_management_base == 1000.0
-    assert response.cash_balances[0].security_id == "CASH_USD"
-    assert response.allocation_views[0].dimension == "asset_class"
-    assert response.positions[0].security_id == "EQ_1"
-    assert response.top_positions[0].security_id == "EQ_1"
+    assert response.model_dump() == {
+        "correlation_id": "corr-3",
+        "contract_version": "v1",
+        "as_of_date": "2026-03-27",
+        "portfolio": {
+            "portfolio_id": "PF_1001",
+            "display_name": "PF_1001",
+            "client_id": "CIF_1",
+            "base_currency": "USD",
+            "booking_center_code": "SGPB",
+        },
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 900.0,
+            "cash_market_value_base": 100.0,
+            "cash_weight_pct": 10.0,
+            "position_count": 3,
+            "cash_balance_count": 1,
+        },
+        "cash_balances": [
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "currency": "USD",
+                "quantity": 100.0,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            }
+        ],
+        "allocation_views": [
+            {
+                "dimension": "asset_class",
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_base": 700.0,
+                        "weight_pct": 70.0,
+                    }
+                ],
+            }
+        ],
+        "top_positions": [
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "isin": "US1234567890",
+                "currency": "USD",
+                "quantity": 10.0,
+                "cost_basis_base": 500.0,
+                "market_value_base": 700.0,
+                "weight_pct": 70.0,
+            },
+            {
+                "security_id": "FI_1",
+                "instrument_name": "Bond 1",
+                "asset_class": "Fixed Income",
+                "isin": None,
+                "currency": None,
+                "quantity": 4.0,
+                "cost_basis_base": 200.0,
+                "market_value_base": 200.0,
+                "weight_pct": 20.0,
+            },
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "asset_class": "Cash",
+                "isin": None,
+                "currency": "USD",
+                "quantity": 100.0,
+                "cost_basis_base": None,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            },
+        ],
+        "positions": [
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "isin": "US1234567890",
+                "currency": "USD",
+                "sector": "Technology",
+                "country_of_risk": "United States",
+                "held_since_date": "2025-12-31",
+                "quantity": 10.0,
+                "market_price": 70.0,
+                "cost_basis_base": 500.0,
+                "cost_basis_local": 500.0,
+                "market_value_base": 700.0,
+                "market_value_local": 700.0,
+                "unrealized_gain_loss_base": 200.0,
+                "unrealized_gain_loss_local": 200.0,
+                "weight_pct": 70.0,
+                "reprocessing_status": "READY",
+            },
+            {
+                "security_id": "FI_1",
+                "instrument_name": "Bond 1",
+                "asset_class": "Fixed Income",
+                "isin": None,
+                "currency": None,
+                "sector": None,
+                "country_of_risk": None,
+                "held_since_date": None,
+                "quantity": 4.0,
+                "market_price": 50.0,
+                "cost_basis_base": 200.0,
+                "cost_basis_local": None,
+                "market_value_base": 200.0,
+                "market_value_local": None,
+                "unrealized_gain_loss_base": None,
+                "unrealized_gain_loss_local": None,
+                "weight_pct": 20.0,
+                "reprocessing_status": None,
+            },
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "asset_class": "Cash",
+                "isin": None,
+                "currency": "USD",
+                "sector": None,
+                "country_of_risk": None,
+                "held_since_date": None,
+                "quantity": 100.0,
+                "market_price": 1.0,
+                "cost_basis_base": None,
+                "cost_basis_local": None,
+                "market_value_base": 100.0,
+                "market_value_local": None,
+                "unrealized_gain_loss_base": None,
+                "unrealized_gain_loss_local": None,
+                "weight_pct": 10.0,
+                "reprocessing_status": None,
+            },
+        ],
+    }
 
 
 @pytest.mark.asyncio

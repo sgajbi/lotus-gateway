@@ -970,12 +970,63 @@ def test_portfolio_book_router(monkeypatch):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["as_of_date"] == "2026-03-27"
-    assert body["portfolio"]["portfolio_id"] == "PF_1001"
-    assert body["summary"]["assets_under_management_base"] == 1000.0
-    assert body["positions"][0]["security_id"] == "EQ_1"
-    assert body["allocation_views"][0]["dimension"] == "asset_class"
-    assert body["cash_balances"] == []
+    assert body == {
+        "correlation_id": body["correlation_id"],
+        "contract_version": "v1",
+        "as_of_date": "2026-03-27",
+        "portfolio": {
+            "portfolio_id": "PF_1001",
+            "display_name": "PF_1001",
+            "client_id": None,
+            "base_currency": "USD",
+            "booking_center_code": None,
+        },
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 1000.0,
+            "cash_market_value_base": 0.0,
+            "cash_weight_pct": 0.0,
+            "position_count": 2,
+            "cash_balance_count": 0,
+        },
+        "cash_balances": [],
+        "allocation_views": [{"dimension": "asset_class", "buckets": []}],
+        "top_positions": [
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": None,
+                "isin": None,
+                "currency": None,
+                "quantity": 1.0,
+                "cost_basis_base": None,
+                "market_value_base": 1000.0,
+                "weight_pct": None,
+            }
+        ],
+        "positions": [
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": None,
+                "isin": None,
+                "currency": None,
+                "sector": None,
+                "country_of_risk": None,
+                "held_since_date": None,
+                "quantity": 1.0,
+                "market_price": None,
+                "cost_basis_base": None,
+                "cost_basis_local": None,
+                "market_value_base": 1000.0,
+                "market_value_local": None,
+                "unrealized_gain_loss_base": None,
+                "unrealized_gain_loss_local": None,
+                "weight_pct": None,
+                "reprocessing_status": None,
+            }
+        ],
+    }
     assert captured["include_projected"] is True
     assert captured["positions_reporting_currency"] == "USD"
     assert captured["allocation_reporting_currency"] == "USD"

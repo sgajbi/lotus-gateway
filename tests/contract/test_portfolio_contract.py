@@ -113,7 +113,13 @@ def test_portfolio_book_contract_shape() -> None:
         correlation_id="corr-2",
         contract_version="v1",
         as_of_date="2026-03-27",
-        portfolio={"portfolio_id": "PF_1001", "display_name": "PF_1001", "base_currency": "USD"},
+        portfolio={
+            "portfolio_id": "PF_1001",
+            "display_name": "PF_1001",
+            "base_currency": "USD",
+            "client_id": "CIF_1",
+            "booking_center_code": "SGPB",
+        },
         summary={
             "assets_under_management_base": 1000.0,
             "invested_market_value_base": 900.0,
@@ -123,10 +129,55 @@ def test_portfolio_book_contract_shape() -> None:
             "cash_balance_count": 1,
         },
         cash_balances=[
-            {"security_id": "CASH_USD", "instrument_name": "USD Cash", "quantity": 100.0}
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "currency": "USD",
+                "quantity": 100.0,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            }
         ],
-        positions=[{"security_id": "EQ_1", "instrument_name": "Equity 1", "quantity": 10.0}],
+        allocation_views=[
+            {
+                "dimension": "asset_class",
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_base": 900.0,
+                        "weight_pct": 90.0,
+                    }
+                ],
+            }
+        ],
+        top_positions=[
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "currency": "USD",
+                "quantity": 10.0,
+                "cost_basis_base": 500.0,
+                "market_value_base": 900.0,
+                "weight_pct": 90.0,
+            }
+        ],
+        positions=[
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "currency": "USD",
+                "quantity": 10.0,
+                "market_value_base": 900.0,
+            }
+        ],
     )
+    assert payload.portfolio.booking_center_code == "SGPB"
+    assert payload.cash_balances[0].currency == "USD"
+    assert payload.allocation_views[0].dimension == "asset_class"
+    assert payload.top_positions[0].security_id == "EQ_1"
     assert payload.positions[0].security_id == "EQ_1"
 
 
@@ -720,8 +771,11 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_parameters["reporting_currency"]["description"]
     assert book_schema["properties"]["as_of_date"]["description"]
     assert book_schema["properties"]["portfolio"]["description"]
+    assert book_schema["properties"]["portfolio"]["examples"][0]["base_currency"] == "USD"
     assert book_schema["properties"]["summary"]["description"]
+    assert book_schema["properties"]["summary"]["examples"][0]["cash_weight_pct"] == 10.0
     assert book_schema["properties"]["cash_balances"]["description"]
+    assert book_schema["properties"]["cash_balances"]["examples"][0][0]["security_id"] == "CASH_USD"
     assert liquidity_path["description"]
     assert liquidity_parameters["as_of_date"]["description"]
     assert liquidity_parameters["reporting_currency"]["description"]
@@ -751,6 +805,11 @@ def test_portfolio_openapi_contract_registered() -> None:
     ]
     assert book_schema["properties"]["positions"]["description"]
     assert book_schema["properties"]["allocation_views"]["description"]
+    assert (
+        book_schema["properties"]["allocation_views"]["examples"][0][0]["buckets"][0]["bucket"]
+        == "Equity"
+    )
+    assert book_schema["properties"]["top_positions"]["examples"][0][0]["security_id"] == "EQ_1"
     assert liquidity_schema["properties"]["as_of_date"]["description"]
     assert liquidity_schema["properties"]["summary"]["description"]
     assert liquidity_schema["properties"]["cash_balances"]["description"]

@@ -1738,21 +1738,73 @@ class PortfolioBookResponse(BaseModel):
     )
     portfolio: PortfolioIdentity = Field(
         description="Portfolio identity metadata for the combined book view.",
+        examples=[{"portfolio_id": "PF_1001", "display_name": "PF_1001", "base_currency": "USD"}],
     )
     summary: PortfolioSummary = Field(
         description="Source-backed summary values for the current portfolio book.",
+        examples=[
+            {
+                "assets_under_management_base": 1000.0,
+                "invested_market_value_base": 900.0,
+                "cash_market_value_base": 100.0,
+                "cash_weight_pct": 10.0,
+                "position_count": 1,
+                "cash_balance_count": 1,
+            }
+        ],
     )
     cash_balances: list[PortfolioCashBalance] = Field(
         default_factory=list,
         description="Cash inventory included in the current portfolio book view.",
+        examples=[
+            [
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "currency": "USD",
+                    "quantity": 100.0,
+                    "market_value_base": 100.0,
+                    "weight_pct": 10.0,
+                }
+            ]
+        ],
     )
     allocation_views: list[PortfolioAllocationView] = Field(
         default_factory=list,
         description="Allocation views included with the portfolio book response.",
+        examples=[
+            [
+                {
+                    "dimension": "asset_class",
+                    "buckets": [
+                        {
+                            "bucket": "Equity",
+                            "position_count": 1,
+                            "market_value_base": 900.0,
+                            "weight_pct": 90.0,
+                        }
+                    ],
+                }
+            ]
+        ],
     )
     top_positions: list[PortfolioTopPosition] = Field(
         default_factory=list,
         description="Ranked top holdings for the current book.",
+        examples=[
+            [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "asset_class": "Equity",
+                    "currency": "USD",
+                    "quantity": 10.0,
+                    "cost_basis_base": 500.0,
+                    "market_value_base": 900.0,
+                    "weight_pct": 90.0,
+                }
+            ]
+        ],
     )
     positions: list[PortfolioPositionView] = Field(
         default_factory=list,
