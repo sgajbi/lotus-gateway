@@ -272,6 +272,11 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_rolling_parameters["include_time_series"]["schema"]["examples"] == [True]
     assert risk_attribution_parameters["portfolio_id"]["description"]
     assert risk_attribution_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "total-risk or active-risk decomposition" in risk_attribution_operation["description"]
+    assert (
+        "benchmark-required and grouping-gated combinations"
+        in (risk_attribution_operation["description"])
+    )
     assert risk_attribution_parameters["period"]["description"]
     assert risk_attribution_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_attribution_parameters["detail_basis"]["description"]
@@ -589,6 +594,50 @@ def test_workbench_openapi_contract_registered() -> None:
     assert rolling_request_dependency_schema["properties"]["requested_metrics"]["examples"] == [
         ["ROLLING_SHARPE"]
     ]
+    attribution_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionResponse"]
+    attribution_payload_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionPayload"]
+    attribution_controls_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionControls"]
+    attribution_period_schema = spec["components"]["schemas"][
+        "WorkbenchRiskAttributionPeriodResult"
+    ]
+    attribution_set_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionSet"]
+    attribution_contributor_schema = spec["components"]["schemas"][
+        "WorkbenchRiskAttributionContributor"
+    ]
+    attribution_type_schema = spec["components"]["schemas"]["WorkbenchRiskAttributionTypeOption"]
+    attribution_grouping_schema = spec["components"]["schemas"][
+        "WorkbenchRiskAttributionGroupingOption"
+    ]
+    attribution_methodology_schema = spec["components"]["schemas"][
+        "WorkbenchRiskAttributionMethodologyContext"
+    ]
+    assert attribution_schema["example"]["payload"]["controls"]["selected_attribution_type"] == (
+        "ACTIVE_RISK"
+    )
+    assert (
+        attribution_schema["example"]["payload"]["controls"]["grouping_dimensions"][3]["state"]
+        == "blocked"
+    )
+    assert attribution_schema["example"]["supportability"][3]["key"] == (
+        "benchmark_exposure_context"
+    )
+    assert attribution_schema["example"]["warnings"] == ["RISK_ATTRIBUTION_PARTIAL"]
+    assert (
+        attribution_schema["example"]["partial_failures"][0]["error_code"]
+        == "RISK_ATTRIBUTION_PERIOD_ERROR"
+    )
+    assert attribution_payload_schema["properties"]["controls"]["description"]
+    assert attribution_controls_schema["properties"]["selected_grouping_dimension"]["description"]
+    assert attribution_period_schema["properties"]["attribution_sets"]["description"]
+    assert attribution_set_schema["properties"]["quality_flags"]["description"]
+    assert attribution_contributor_schema["properties"]["percent_contribution"]["description"]
+    assert attribution_type_schema["properties"]["state"]["description"]
+    assert attribution_grouping_schema["properties"]["supported_attribution_types"]["examples"][
+        0
+    ] == ["TOTAL_RISK", "ACTIVE_RISK"]
+    assert attribution_methodology_schema["properties"][
+        "stateful_active_risk_gated_grouping_dimensions"
+    ]["examples"][0] == ["ISSUER"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "projected baseline state" in create_operation["description"].lower()

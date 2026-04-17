@@ -942,15 +942,30 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
                                     "percent_contribution": 0.47,
                                 }
                             ],
-                            "quality_flags": [],
+                            "quality_flags": ["covariance:benchmark_overlap_warning"],
                         }
                     ],
-                    "error": None,
+                    "error": "Benchmark overlap required manual review.",
                 }
             },
             "metadata": {
                 "contract_version": "v1",
                 "methodology_version": "historical_attribution.v1",
+                "covariance_method": "EMPIRICAL",
+                "annualization_basis": 252,
+                "requested_attribution_types": ["ACTIVE_RISK"],
+                "requested_metrics": ["TRACKING_ERROR"],
+                "requested_grouping_dimensions": ["ASSET_CLASS"],
+                "min_observations_policy": "STRICT",
+                "stateful_active_risk_supported_grouping_dimensions": [
+                    "POSITION",
+                    "SECTOR",
+                    "ASSET_CLASS",
+                ],
+                "stateful_active_risk_gated_grouping_dimensions": ["ISSUER"],
+                "stateful_active_risk_gate_reason": (
+                    "Benchmark issuer exposure semantics are not yet approved for active risk."
+                ),
             },
         }
 
@@ -974,13 +989,38 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
     assert body["correlation_id"] == "corr-risk-attribution"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
+    assert body["warnings"] == ["RISK_ATTRIBUTION_PERIOD_PARTIAL"]
+    assert body["partial_failures"] == [
+        {
+            "source_service": "risk",
+            "error_code": "RISK_ATTRIBUTION_PERIOD_ERROR",
+            "detail": "YTD: Benchmark overlap required manual review.",
+        }
+    ]
     assert body["payload"]["controls"]["selected_attribution_type"] == "ACTIVE_RISK"
     assert body["payload"]["controls"]["selected_grouping_dimension"] == "ASSET_CLASS"
+    assert body["payload"]["methodology_context"]["covariance_method"] == "EMPIRICAL"
+    assert body["payload"]["methodology_context"][
+        "stateful_active_risk_gated_grouping_dimensions"
+    ] == ["ISSUER"]
     assert body["payload"]["periods"][0]["attribution_sets"][0]["metric"] == "TRACKING_ERROR"
+    assert body["payload"]["periods"][0]["attribution_sets"][0]["quality_flags"] == [
+        "covariance:benchmark_overlap_warning"
+    ]
+    assert body["payload"]["periods"][0]["error"] == "Benchmark overlap required manual review."
     assert (
         body["payload"]["periods"][0]["attribution_sets"][0]["contributors"][0]["group_label"]
         == "Equity"
     )
+    controls = {item["key"]: item for item in body["payload"]["controls"]["grouping_dimensions"]}
+    assert controls["ISSUER"]["state"] == "blocked"
+    assert "issuer exposure semantics" in controls["ISSUER"]["reason"]
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "exposure_history": "ready",
+        "benchmark_returns": "ready",
+        "benchmark_exposure_context": "ready",
+    }
 
 
 def test_workbench_performance_summary_router(monkeypatch):

@@ -538,8 +538,10 @@ async def get_workbench_risk_rolling(
     summary="Get Workbench Risk Attribution",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
-        "Active-risk grouping availability is derived from lotus-risk metadata so the UI "
-        "stays aligned with the authoritative domain contract."
+        "Use this endpoint for historical total-risk or active-risk decomposition by grouping. "
+        "Active-risk availability is derived from lotus-risk metadata so the UI stays aligned "
+        "with the authoritative domain contract, including benchmark-required and "
+        "grouping-gated combinations."
     ),
 )
 async def get_workbench_risk_attribution(
@@ -577,12 +579,18 @@ async def get_workbench_risk_attribution(
     ),
     attribution_type: str = Query(
         default="TOTAL_RISK",
-        description="Requested attribution mode such as TOTAL_RISK or ACTIVE_RISK.",
+        description=(
+            "Requested attribution mode such as TOTAL_RISK or ACTIVE_RISK. ACTIVE_RISK "
+            "requires benchmark context."
+        ),
         examples=["ACTIVE_RISK"],
     ),
     grouping_dimension: str = Query(
         default="SECTOR",
-        description="Requested grouping dimension for risk attribution output.",
+        description=(
+            "Requested grouping dimension for attribution output. Gateway reflects upstream "
+            "grouping gates in the returned controls and supportability."
+        ),
         examples=["SECTOR"],
     ),
 ) -> WorkbenchRiskAttributionResponse:
