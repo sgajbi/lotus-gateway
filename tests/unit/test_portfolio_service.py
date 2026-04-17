@@ -600,6 +600,69 @@ async def test_portfolio_insights_uses_minimal_transaction_probe_for_exception_t
 
 
 @pytest.mark.asyncio
+async def test_portfolio_insights_requests_activity_window_from_start_of_year():
+    class _ActivityProbeClient(_StubLotusCoreQueryClient):
+        def __init__(self):
+            self.transaction_requests: list[dict[str, object | None]] = []
+
+        async def get_portfolio_transactions(
+            self, portfolio_id: str, correlation_id: str, **kwargs
+        ):
+            self.transaction_requests.append(
+                {
+                    "as_of_date": kwargs.get("as_of_date"),
+                    "start_date": kwargs.get("start_date"),
+                    "end_date": kwargs.get("end_date"),
+                    "skip": kwargs.get("skip"),
+                    "limit": kwargs.get("limit"),
+                    "include_projected": kwargs.get("include_projected"),
+                    "sort_by": kwargs.get("sort_by"),
+                    "sort_order": kwargs.get("sort_order"),
+                    "reporting_currency": kwargs.get("reporting_currency"),
+                }
+            )
+            return await super().get_portfolio_transactions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                **kwargs,
+            )
+
+    client = _ActivityProbeClient()
+    service = PortfolioService(client)
+
+    await service.get_portfolio_insights(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2bb-activity-window",
+        as_of_date="2026-03-27",
+    )
+
+    assert client.transaction_requests == [
+        {
+            "as_of_date": "2026-03-27",
+            "start_date": None,
+            "end_date": None,
+            "skip": 0,
+            "limit": 1,
+            "include_projected": False,
+            "sort_by": "transaction_date",
+            "sort_order": "desc",
+            "reporting_currency": None,
+        },
+        {
+            "as_of_date": "2026-03-27",
+            "start_date": "2026-01-01",
+            "end_date": "2026-03-27",
+            "skip": 0,
+            "limit": 500,
+            "include_projected": False,
+            "sort_by": "transaction_date",
+            "sort_order": "asc",
+            "reporting_currency": None,
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_portfolio_insights_returns_blocked_exception_summaries():
     class _BlockedPortfolioClient(_StubLotusCoreQueryClient):
         async def query_assets_under_management(self, **kwargs):
