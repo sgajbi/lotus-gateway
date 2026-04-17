@@ -4,7 +4,26 @@ from fastapi import HTTPException, status
 
 from app.clients.dpm_client import DpmClient
 from app.config import settings
-from app.contracts.proposals import ProposalEnvelopeResponse, ProposalSimulateResponse
+from app.contracts.proposals import (
+    ProposalApprovalsData,
+    ProposalApprovalsEnvelopeResponse,
+    ProposalCreateData,
+    ProposalCreateEnvelopeResponse,
+    ProposalDetailData,
+    ProposalDetailEnvelopeResponse,
+    ProposalLineageData,
+    ProposalLineageEnvelopeResponse,
+    ProposalListData,
+    ProposalListEnvelopeResponse,
+    ProposalSimulateResponse,
+    ProposalSimulationData,
+    ProposalStateTransitionData,
+    ProposalStateTransitionEnvelopeResponse,
+    ProposalVersionData,
+    ProposalVersionEnvelopeResponse,
+    ProposalWorkflowEventsData,
+    ProposalWorkflowEventsEnvelopeResponse,
+)
 
 
 class ProposalService:
@@ -32,7 +51,7 @@ class ProposalService:
         return ProposalSimulateResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalSimulationData.model_validate(upstream_payload),
         )
 
     async def create_proposal(
@@ -40,33 +59,33 @@ class ProposalService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalCreateEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.create_proposal(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalCreateEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalCreateData.model_validate(upstream_payload),
         )
 
     async def list_proposals(
         self,
         filters: dict[str, Any],
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalListEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.list_proposals(
             params=filters,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalListEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalListData.model_validate(upstream_payload),
         )
 
     async def get_proposal(
@@ -74,17 +93,17 @@ class ProposalService:
         proposal_id: str,
         include_evidence: bool,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalDetailEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_proposal(
             proposal_id=proposal_id,
             include_evidence=include_evidence,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalDetailEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalDetailData.model_validate(upstream_payload),
         )
 
     async def get_proposal_version(
@@ -93,7 +112,7 @@ class ProposalService:
         version_no: int,
         include_evidence: bool,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalVersionEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_proposal_version(
             proposal_id=proposal_id,
             version_no=version_no,
@@ -101,10 +120,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalVersionEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalVersionData.model_validate(upstream_payload),
         )
 
     async def create_proposal_version(
@@ -113,7 +132,7 @@ class ProposalService:
         body: dict[str, Any],
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalCreateEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.create_proposal_version(
             proposal_id=proposal_id,
             body=body,
@@ -121,10 +140,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalCreateEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalCreateData.model_validate(upstream_payload),
         )
 
     async def submit_proposal(
@@ -137,7 +156,7 @@ class ProposalService:
         related_version_no: int | None,
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalStateTransitionEnvelopeResponse:
         event_type = (
             "SUBMITTED_FOR_COMPLIANCE_REVIEW"
             if review_type == "COMPLIANCE"
@@ -159,10 +178,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalStateTransitionEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalStateTransitionData.model_validate(upstream_payload),
         )
 
     async def approve_risk(
@@ -174,7 +193,7 @@ class ProposalService:
         related_version_no: int | None,
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalStateTransitionEnvelopeResponse:
         return await self._record_approval(
             proposal_id=proposal_id,
             approval_type="RISK",
@@ -195,7 +214,7 @@ class ProposalService:
         related_version_no: int | None,
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalStateTransitionEnvelopeResponse:
         return await self._record_approval(
             proposal_id=proposal_id,
             approval_type="COMPLIANCE",
@@ -216,7 +235,7 @@ class ProposalService:
         related_version_no: int | None,
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalStateTransitionEnvelopeResponse:
         return await self._record_approval(
             proposal_id=proposal_id,
             approval_type="CLIENT_CONSENT",
@@ -232,32 +251,48 @@ class ProposalService:
         self,
         proposal_id: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalWorkflowEventsEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_workflow_events(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalWorkflowEventsEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalWorkflowEventsData.model_validate(upstream_payload),
         )
 
     async def get_approvals(
         self,
         proposal_id: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalApprovalsEnvelopeResponse:
         upstream_status, upstream_payload = await self._dpm_client.get_approvals(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalApprovalsEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalApprovalsData.model_validate(upstream_payload),
+        )
+
+    async def get_proposal_lineage(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalLineageEnvelopeResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_proposal_lineage(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalLineageEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=ProposalLineageData.model_validate(upstream_payload),
         )
 
     async def _record_approval(
@@ -270,7 +305,7 @@ class ProposalService:
         related_version_no: int | None,
         idempotency_key: str,
         correlation_id: str,
-    ) -> ProposalEnvelopeResponse:
+    ) -> ProposalStateTransitionEnvelopeResponse:
         payload: dict[str, Any] = {
             "approval_type": approval_type,
             "approved": True,
@@ -288,10 +323,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalEnvelopeResponse(
+        return ProposalStateTransitionEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalStateTransitionData.model_validate(upstream_payload),
         )
 
     def _raise_for_upstream_error(

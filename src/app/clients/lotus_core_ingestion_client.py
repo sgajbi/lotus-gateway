@@ -21,9 +21,12 @@ class LotusCoreIngestionClient:
         self,
         body: dict[str, Any],
         correlation_id: str,
+        idempotency_key: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/ingest/portfolio-bundle"
         headers = propagation_headers(correlation_id)
+        if idempotency_key:
+            headers["X-Idempotency-Key"] = idempotency_key
         return await request_with_retry(
             method="POST",
             url=url,
@@ -47,7 +50,7 @@ class LotusCoreIngestionClient:
             entity_type=entity_type,
             filename=filename,
             content=content,
-            extra_data={"sampleSize": str(sample_size)},
+            extra_data={"sample_size": str(sample_size)},
             correlation_id=correlation_id,
         )
 
@@ -64,7 +67,7 @@ class LotusCoreIngestionClient:
             entity_type=entity_type,
             filename=filename,
             content=content,
-            extra_data={"allowPartial": "true" if allow_partial else "false"},
+            extra_data={"allow_partial": "true" if allow_partial else "false"},
             correlation_id=correlation_id,
         )
 
@@ -79,7 +82,7 @@ class LotusCoreIngestionClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         headers = propagation_headers(correlation_id)
-        form_data = {"entityType": entity_type, **extra_data}
+        form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
         return await request_with_retry(
             method="POST",

@@ -57,12 +57,12 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 
 - `GET /api/v1/foundation/portfolios` (selector-ready Foundation portfolio catalog)
 - `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace` (Foundation workspace entry payload with readiness and partial-failure-aware upstream context)
-- `GET /api/v1/workbench/{portfolio_id}/performance/summary` (first-paint benchmark-aware performance summary)
-- `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract)
-- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact multi-horizon comparison module)
+- `GET /api/v1/workbench/{portfolio_id}/performance/summary` (first-paint benchmark-aware performance summary with gateway-owned `evidence_view`)
+- `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract with gateway-owned `evidence_view`)
+- `GET /api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}` (gateway-owned proxy for lotus-performance lineage artifacts)
+- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact MTD/QTD/YTD comparison module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
 - `GET /api/v1/workbench/{portfolio_id}/performance/advisor-brief` (source-grounded advisor brief with evidence refs and supportability)
-- `GET /api/v1/workbench/{portfolio_id}/performance` (legacy compatibility endpoint; deprecated in favor of split Performance contracts)
 - `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
 - `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
 - `GET /api/v1/proposals` (list proposals)
@@ -75,9 +75,11 @@ internal local-runtime detail until the full RFC-0071 rollout is complete.
 - `POST /api/v1/proposals/{proposal_id}/record-client-consent` (client consent action)
 - `GET /api/v1/proposals/{proposal_id}/workflow-events` (workflow timeline)
 - `GET /api/v1/proposals/{proposal_id}/approvals` (approval records)
-- `GET /api/v1/platform/capabilities` (aggregated lotus-core+lotus-performance+lotus-manage capability contract for UI)
+- `GET /api/v1/platform/capabilities` (aggregated shell/workspace capability contract across lotus-core, lotus-performance, lotus-risk publication, lotus-manage, and lotus-report for UI gating)
 - `GET /api/v1/workbench/{portfolio_id}/overview` (aggregated lotus-core+lotus-performance+lotus-manage decision-console overview)
 - `GET /api/v1/reports/{portfolio_id}/snapshot` (report-ready aggregation rows from lotus-report)
+- `POST /api/v1/reports/{portfolio_id}/summary` (lotus-report-owned summary payload for one reporting date)
+- `POST /api/v1/reports/{portfolio_id}/review` (lotus-report-owned review payload for one reporting date)
 - `POST /api/v1/intake/portfolio-bundle` (lotus-core ingestion bundle pass-through)
 - `POST /api/v1/intake/uploads/preview` (lotus-core upload preview pass-through)
 - `POST /api/v1/intake/uploads/commit` (lotus-core upload commit pass-through)
@@ -138,6 +140,8 @@ curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/sum
 
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
+curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/evidence/artifacts/calc-workspace-summary/request.json"
+
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
 
 curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
@@ -149,6 +153,13 @@ Expected benchmark catalog for the seeded flagship mandate:
 
 - `BMK_GLOBAL_BALANCED_60_40` (`Global Balanced 60/40`)
 - `BMK_GLOBAL_GROWTH_80_20` (`Global Growth 80/20`)
+
+Performance evidence posture:
+
+- `performance/summary` and `performance/details` now expose `capabilities.evidence` plus `evidence_view`
+- `evidence_view.calculations[]` carries calculation-scoped execution status, lineage status, stage state, upstream snapshot summaries, and gateway-owned artifact URLs
+- downstream UI clients should use the gateway artifact route above instead of calling `lotus-performance` lineage URLs directly
+- `performance/horizon-comparison` is intentionally limited to `MTD`, `QTD`, and `YTD`; gateway does not present longer TWR windows as front-office-safe until supportability gating is available
 
 ## Demo Pack
 

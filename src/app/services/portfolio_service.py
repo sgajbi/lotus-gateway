@@ -4,6 +4,8 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from app.clients.dpm_client import DpmClient
+from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import (
@@ -30,6 +32,7 @@ from app.contracts.portfolio import (
     PortfolioMoneySummary,
     PortfolioOperationalReadiness,
     PortfolioPartialFailure,
+    PortfolioPerformanceSummary,
     PortfolioPositionBookResponse,
     PortfolioPositionView,
     PortfolioProfile,
@@ -38,6 +41,7 @@ from app.contracts.portfolio import (
     PortfolioReadinessIndicator,
     PortfolioReadinessReason,
     PortfolioReadinessResponse,
+    PortfolioRebalanceSummary,
     PortfolioSummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
@@ -45,6 +49,10 @@ from app.contracts.portfolio import (
     PortfolioWorkflowAction,
     PortfolioWorkflowLaunchCue,
     PortfolioWorkflowResponse,
+    PortfolioWorkspaceControlCapabilities,
+    PortfolioWorkspaceHistoricalSnapshotCapability,
+    PortfolioWorkspaceModuleCapability,
+    PortfolioWorkspaceReportingCurrencyCapability,
     PortfolioWorkspaceResponse,
 )
 from app.precision_policy import (
@@ -57,12 +65,61 @@ from app.services.async_ttl_cache import AsyncTtlCache
 
 
 class PortfolioService:
+    _WORKFLOW_DEFINITIONS: dict[str, dict[str, str | int]] = {
+        "performance": {
+            "order": 0,
+            "title": "Review performance",
+            "cta_label": "Performance",
+            "target_label": "Performance",
+            "impact": (
+                "Review portfolio return, benchmark context, and contribution once the book "
+                "is valued."
+            ),
+        },
+        "holdings": {
+            "order": 1,
+            "title": "Review holdings",
+            "cta_label": "Holdings",
+            "target_label": "Holdings",
+            "impact": (
+                "Confirm funded positions, valuations, and portfolio weights before client review."
+            ),
+        },
+        "transactions": {
+            "order": 2,
+            "title": "Review transactions",
+            "cta_label": "Transactions",
+            "target_label": "Transactions",
+            "impact": "Inspect recent funding, trading, and cash activity affecting the book.",
+        },
+        "risk": {
+            "order": 3,
+            "title": "Review suitability",
+            "cta_label": "Suitability",
+            "target_label": "Suitability",
+            "impact": (
+                "Validate suitability, exposure, and mandate fit before the next client action."
+            ),
+        },
+        "proposal": {
+            "order": 4,
+            "title": "Prepare recommendation",
+            "cta_label": "Recommendation",
+            "target_label": "Recommendation",
+            "impact": "Prepare the next recommended portfolio action or client proposal.",
+        },
+    }
+
     def __init__(
         self,
         lotus_core_query_client: LotusCoreQueryClient,
+        analytics_client: LotusAnalyticsClient | None = None,
+        dpm_client: DpmClient | None = None,
         upstream_cache_ttl_seconds: float | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
+        self._analytics_client = analytics_client
+        self._dpm_client = dpm_client
         self._upstream_cache = AsyncTtlCache[tuple[int, dict[str, Any]]](
             ttl_seconds=upstream_cache_ttl_seconds or settings.portfolio_upstream_cache_ttl_seconds
         )
@@ -125,7 +182,7 @@ class PortfolioService:
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
             ("cash_balances", portfolio_id, as_of_date, reporting_currency),
-            lambda: self._lotus_core_query_client.query_cash_balances(
+            lambda: self._lotus_core_query_client.get_portfolio_cash_balances(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
@@ -202,6 +259,7 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
+                reporting_currency=reporting_currency,
             ),
         )
 
@@ -216,8 +274,18 @@ class PortfolioService:
         limit: int,
         transaction_type: str | None,
         security_id: str | None,
+        instrument_id: str | None,
+        component_type: str | None,
+        linked_transaction_group_id: str | None,
+        fx_contract_id: str | None,
+        swap_event_id: str | None,
+        near_leg_group_id: str | None,
+        far_leg_group_id: str | None,
+        sort_by: str,
+        sort_order: str,
         start_date: str | None,
         end_date: str | None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
             (
@@ -229,8 +297,18 @@ class PortfolioService:
                 limit,
                 transaction_type,
                 security_id,
+                instrument_id,
+                component_type,
+                linked_transaction_group_id,
+                fx_contract_id,
+                swap_event_id,
+                near_leg_group_id,
+                far_leg_group_id,
+                sort_by,
+                sort_order,
                 start_date,
                 end_date,
+                reporting_currency,
             ),
             lambda: self._lotus_core_query_client.get_portfolio_transactions(
                 portfolio_id=portfolio_id,
@@ -239,45 +317,17 @@ class PortfolioService:
                 include_projected=include_projected,
                 skip=skip,
                 limit=limit,
+                sort_by=sort_by,
+                sort_order=sort_order,
                 transaction_type=transaction_type,
                 security_id=security_id,
-                start_date=start_date,
-                end_date=end_date,
-            ),
-        )
-
-    async def _query_income_summary_result(
-        self,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get_cached_upstream_result(
-            ("income_summary", portfolio_id, start_date, end_date, reporting_currency),
-            lambda: self._lotus_core_query_client.query_income_summary(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                start_date=start_date,
-                end_date=end_date,
-                reporting_currency=reporting_currency,
-            ),
-        )
-
-    async def _query_activity_summary_result(
-        self,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get_cached_upstream_result(
-            ("activity_summary", portfolio_id, start_date, end_date, reporting_currency),
-            lambda: self._lotus_core_query_client.query_activity_summary(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
+                instrument_id=instrument_id,
+                component_type=component_type,
+                linked_transaction_group_id=linked_transaction_group_id,
+                fx_contract_id=fx_contract_id,
+                swap_event_id=swap_event_id,
+                near_leg_group_id=near_leg_group_id,
+                far_leg_group_id=far_leg_group_id,
                 start_date=start_date,
                 end_date=end_date,
                 reporting_currency=reporting_currency,
@@ -296,6 +346,75 @@ class PortfolioService:
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+            ),
+        )
+
+    async def _get_portfolio_analytics_reference_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get_cached_upstream_result(
+            ("portfolio_analytics_reference", portfolio_id, as_of_date),
+            lambda: self._lotus_core_query_client.get_portfolio_analytics_reference(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _get_workspace_performance_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._analytics_client is None:
+            return None
+        reference_result = await self._get_portfolio_analytics_reference_result(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        report_end_date = as_of_date
+        reference_payload = self._optional_payload(
+            reference_result,
+            "lotus-core",
+            "IGNORED",
+            [],
+            [],
+        )
+        if isinstance(reference_payload, dict):
+            reference_end_date = self._optional_str(reference_payload.get("performance_end_date"))
+            if reference_end_date is not None:
+                report_end_date = reference_end_date
+        return await self._get_cached_upstream_result(
+            ("workspace_performance", portfolio_id, report_end_date),
+            lambda: self._analytics_client.get_twr_analytics(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                report_start_date=None,
+                period="YTD",
+                metric_basis="NET",
+                benchmark_id=None,
+                correlation_id=correlation_id,
+            ),
+        )
+
+    async def _get_workspace_rebalance_result(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._dpm_client is None:
+            return None
+        return await self._get_cached_upstream_result(
+            ("workspace_rebalance", portfolio_id),
+            lambda: self._dpm_client.list_runs(
+                params={"portfolio_id": portfolio_id, "limit": 1},
+                correlation_id=correlation_id,
             ),
         )
 
@@ -361,9 +480,28 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
+        performance_result, rebalance_result = await asyncio.gather(
+            self._get_workspace_performance_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=effective_as_of_date,
+            ),
+            self._get_workspace_rebalance_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+        )
         portfolio_payload = self._require_payload(
             result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
+        )
+        self._raise_on_upstream_client_error(
+            support_result,
+            detail_prefix="lotus-core support overview rejected the request",
+        )
+        self._raise_on_upstream_client_error(
+            readiness_result,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
         )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         profile = self._parse_portfolio_profile(portfolio_payload)
@@ -371,17 +509,37 @@ class PortfolioService:
         partial_failures: list[PortfolioPartialFailure] = []
         summary = self._parse_summary(aum_result, cash_balance_result, warnings, partial_failures)
         cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
+        performance = self._parse_workspace_performance(
+            performance_result,
+            warnings,
+            partial_failures,
+        )
+        rebalance = self._parse_workspace_rebalance(
+            rebalance_result,
+            warnings,
+            partial_failures,
+        )
         operations = self._parse_operations(support_result, warnings, partial_failures)
+        resolved_as_of_date = self._extract_resolved_as_of_date(aum_result) or effective_as_of_date
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=self._extract_resolved_as_of_date(aum_result) or effective_as_of_date,
+            as_of_date=resolved_as_of_date,
             portfolio=portfolio,
             profile=profile,
             summary=summary,
             cashflow_outlook=cashflow_outlook,
+            performance=performance,
+            rebalance=rebalance,
             reporting=self._reporting_readiness(summary, readiness_result),
             operations=operations,
+            control_capabilities=self._build_workspace_control_capabilities(
+                portfolio=portfolio,
+                profile=profile,
+                requested_as_of_date=effective_as_of_date,
+                effective_as_of_date=resolved_as_of_date,
+                requested_reporting_currency=reporting_currency,
+            ),
             workflow_cues=self._build_workflow_cues(portfolio_id),
             warnings=warnings,
             partial_failures=partial_failures,
@@ -412,14 +570,15 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=1,
             ),
+        )
+        self._raise_on_upstream_client_error(
+            source_readiness,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
         )
         source_payload = self._optional_payload(
             source_readiness,
@@ -473,13 +632,10 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=50,
             ),
             self.get_activity_summary(
                 portfolio_id=portfolio_id,
@@ -519,13 +675,10 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_transaction_ledger(
+            self._get_latest_transaction_probe(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                skip=0,
-                limit=1,
             ),
         )
         actions = self._build_workflow_actions(
@@ -543,34 +696,62 @@ class PortfolioService:
             actions=actions,
         )
 
+    async def _get_latest_transaction_probe(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> PortfolioTransactionLedgerResponse:
+        return await self.get_transaction_ledger(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=False,
+            skip=0,
+            limit=1,
+        )
+
     async def get_portfolio_book(
         self,
         portfolio_id: str,
         correlation_id: str,
         as_of_date: str | None,
         include_projected: bool,
+        reporting_currency: str | None = None,
     ) -> PortfolioBookResponse:
-        allocations = await self.get_portfolio_allocations(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-        )
-        liquidity = await self.get_portfolio_liquidity(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-        )
-        positions = await self.get_portfolio_positions(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            include_projected=include_projected,
+        allocations, positions, cash_balances_result, portfolio_result = await asyncio.gather(
+            self.get_portfolio_allocations(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
+            ),
+            self.get_portfolio_positions(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=include_projected,
+                reporting_currency=reporting_currency,
+            ),
+            self._query_cash_balances_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
+            ),
+            self._get_portfolio_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
         )
         portfolio_payload = self._require_payload(
-            result=await self._get_portfolio_result(
-                portfolio_id=portfolio_id, correlation_id=correlation_id
-            ),
+            result=portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
+        )
+        cash_balances_payload = self._require_payload(
+            result=cash_balances_result,
+            unavailable_detail_prefix="lotus-core cash balances unavailable",
         )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         return PortfolioBookResponse(
@@ -579,7 +760,9 @@ class PortfolioService:
             as_of_date=positions.as_of_date,
             portfolio=portfolio,
             summary=positions.summary,
-            cash_balances=liquidity.cash_balances,
+            cash_balances=self._parse_cash_balances(
+                cash_balances_payload, positions.summary.assets_under_management_base
+            ),
             allocation_views=allocations.views,
             top_positions=positions.top_positions,
             positions=positions.positions,
@@ -684,7 +867,7 @@ class PortfolioService:
     ) -> PortfolioAllocationResponse:
         (
             aum_result,
-            cash_balances_result,
+            positions_result,
             allocation_result,
         ) = await asyncio.gather(
             self._query_aum_result(
@@ -693,10 +876,11 @@ class PortfolioService:
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
             ),
-            self._query_cash_balances_result(
+            self._get_portfolio_positions_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                include_projected=False,
                 reporting_currency=reporting_currency,
             ),
             self._query_asset_allocation_result(
@@ -716,7 +900,11 @@ class PortfolioService:
             result=allocation_result,
             unavailable_detail_prefix="lotus-core allocation unavailable",
         )
-        summary = self._parse_summary(aum_result, cash_balances_result, [], [])
+        positions_payload = self._require_payload(
+            result=positions_result,
+            unavailable_detail_prefix="lotus-core positions unavailable",
+        )
+        summary = self._parse_summary_from_positions(aum_result, positions_payload)
         return PortfolioAllocationResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -743,18 +931,11 @@ class PortfolioService:
     ) -> PortfolioPositionBookResponse:
         (
             aum_result,
-            cash_balances_result,
             positions_result,
         ) = await asyncio.gather(
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._query_cash_balances_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
             ),
@@ -775,7 +956,7 @@ class PortfolioService:
             unavailable_detail_prefix="lotus-core positions unavailable",
         )
         positions = self._parse_positions(positions_payload)
-        summary = self._parse_summary(aum_result, cash_balances_result, [], [])
+        summary = self._parse_summary_from_positions(aum_result, positions_payload)
         return PortfolioPositionBookResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -798,8 +979,18 @@ class PortfolioService:
         limit: int,
         transaction_type: str | None = None,
         security_id: str | None = None,
+        instrument_id: str | None = None,
+        component_type: str | None = None,
+        linked_transaction_group_id: str | None = None,
+        fx_contract_id: str | None = None,
+        swap_event_id: str | None = None,
+        near_leg_group_id: str | None = None,
+        far_leg_group_id: str | None = None,
+        sort_by: str = "transaction_date",
+        sort_order: str = "desc",
         start_date: str | None = None,
         end_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
         status_code, payload = await self._get_portfolio_transactions_result(
             portfolio_id=portfolio_id,
@@ -810,8 +1001,18 @@ class PortfolioService:
             limit=limit,
             transaction_type=transaction_type,
             security_id=security_id,
+            instrument_id=instrument_id,
+            component_type=component_type,
+            linked_transaction_group_id=linked_transaction_group_id,
+            fx_contract_id=fx_contract_id,
+            swap_event_id=swap_event_id,
+            near_leg_group_id=near_leg_group_id,
+            far_leg_group_id=far_leg_group_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
             start_date=start_date,
             end_date=end_date,
+            reporting_currency=reporting_currency,
         )
         result_payload = self._require_payload(
             result=(status_code, payload),
@@ -852,45 +1053,48 @@ class PortfolioService:
             end_date,
             default_end_date=as_of_date,
         )
-        status_code, payload = await self._query_income_summary_result(
+        ytd_start = date(window_end.year, 1, 1)
+        resolved_reporting_currency, year_to_date_rows = await self._list_transaction_rows(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
-            start_date=window_start.isoformat(),
+            start_date=ytd_start.isoformat(),
             end_date=window_end.isoformat(),
+            as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         )
-        result_payload = self._require_payload(
-            result=(status_code, payload),
-            unavailable_detail_prefix="lotus-core income summary unavailable",
-        )
-        portfolio_payload: dict[str, Any] = next(iter(result_payload.get("portfolios", [])), {})
-        income_types = [
-            PortfolioIncomeTypeSummary(
-                income_type=str(item.get("income_type", "")),
-                requested_window=self._parse_income_period_summary(
-                    item.get("requested_window", {}),
-                ),
-                year_to_date=self._parse_income_period_summary(item.get("year_to_date", {})),
+        requested_window_rows = [
+            item
+            for item in year_to_date_rows
+            if self._transaction_date_in_range(
+                transaction_date=self._transaction_date_value(item),
+                start_date=window_start,
+                end_date=window_end,
             )
-            for item in portfolio_payload.get("income_types", [])
-            if isinstance(item, dict)
         ]
+        requested_totals, income_type_totals = self._summarize_income_rows(requested_window_rows)
+        year_to_date_totals, income_type_ytd_totals = self._summarize_income_rows(year_to_date_rows)
+        income_types = sorted(set(income_type_totals) | set(income_type_ytd_totals))
         return PortfolioIncomeSummaryResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            reporting_currency=str(
-                result_payload.get("reporting_currency", reporting_currency or "USD")
-            ),
+            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
             window_start_date=window_start.isoformat(),
             window_end_date=window_end.isoformat(),
-            totals_requested_window=self._parse_income_period_summary(
-                result_payload.get("totals", {}).get("requested_window", {})
-            ),
-            totals_year_to_date=self._parse_income_period_summary(
-                result_payload.get("totals", {}).get("year_to_date", {})
-            ),
-            income_types=income_types,
+            totals_requested_window=self._build_income_period_summary(requested_totals),
+            totals_year_to_date=self._build_income_period_summary(year_to_date_totals),
+            income_types=[
+                PortfolioIncomeTypeSummary(
+                    income_type=income_type,
+                    requested_window=self._build_income_period_summary(
+                        income_type_totals.get(income_type, self._new_income_metric())
+                    ),
+                    year_to_date=self._build_income_period_summary(
+                        income_type_ytd_totals.get(income_type, self._new_income_metric())
+                    ),
+                )
+                for income_type in income_types
+            ],
         )
 
     async def get_activity_summary(
@@ -907,34 +1111,47 @@ class PortfolioService:
             end_date,
             default_end_date=as_of_date,
         )
-        status_code, payload = await self._query_activity_summary_result(
+        ytd_start = date(window_end.year, 1, 1)
+        resolved_reporting_currency, year_to_date_rows = await self._list_transaction_rows(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
-            start_date=window_start.isoformat(),
+            start_date=ytd_start.isoformat(),
             end_date=window_end.isoformat(),
+            as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         )
-        result_payload = self._require_payload(
-            result=(status_code, payload),
-            unavailable_detail_prefix="lotus-core activity summary unavailable",
+        requested_window_rows = [
+            item
+            for item in year_to_date_rows
+            if self._transaction_date_in_range(
+                transaction_date=self._transaction_date_value(item),
+                start_date=window_start,
+                end_date=window_end,
+            )
+        ]
+        requested_buckets = self._summarize_activity_rows(requested_window_rows)
+        year_to_date_buckets = self._summarize_activity_rows(year_to_date_rows)
+        bucket_names = list(
+            dict.fromkeys([*requested_buckets.keys(), *year_to_date_buckets.keys()])
         )
         return PortfolioActivitySummaryResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            reporting_currency=str(
-                result_payload.get("reporting_currency", reporting_currency or "USD")
-            ),
+            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
             window_start_date=window_start.isoformat(),
             window_end_date=window_end.isoformat(),
             buckets=[
                 PortfolioActivityBucketSummary(
-                    bucket=str(item.get("bucket", "")),
-                    requested_window=self._parse_money_summary(item.get("requested_window", {})),
-                    year_to_date=self._parse_money_summary(item.get("year_to_date", {})),
+                    bucket=bucket,
+                    requested_window=self._build_money_summary(
+                        requested_buckets.get(bucket, self._new_flow_metric())
+                    ),
+                    year_to_date=self._build_money_summary(
+                        year_to_date_buckets.get(bucket, self._new_flow_metric())
+                    ),
                 )
-                for item in result_payload.get("totals", {}).get("buckets", [])
-                if isinstance(item, dict)
+                for bucket in bucket_names
             ],
         )
 
@@ -954,25 +1171,44 @@ class PortfolioService:
             )
         return payload
 
+    def _raise_on_upstream_client_error(
+        self,
+        result: tuple[int, dict[str, Any]],
+        *,
+        detail_prefix: str,
+    ) -> None:
+        status_code, payload = result
+        if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
+            raise HTTPException(status_code=status_code, detail=f"{detail_prefix}: {payload}")
+
     def _parse_catalog_item(self, item: dict[str, Any]) -> PortfolioCatalogItem:
         portfolio_id = str(item.get("portfolio_id", "")).strip()
         return PortfolioCatalogItem(
             portfolio_id=portfolio_id,
-            display_name=portfolio_id,
+            display_name=self._resolve_portfolio_display_name(
+                item, fallback_portfolio_id=portfolio_id
+            ),
             base_currency=str(item.get("base_currency", "USD")),
-            client_id=self._optional_str(item.get("client_id")),
-            booking_center_code=self._optional_str(item.get("booking_center_code")),
+            client_id=self._optional_str(item.get("client_id", item.get("cif_id"))),
+            booking_center_code=self._optional_str(
+                item.get("booking_center_code", item.get("booking_center"))
+            ),
             portfolio_type=self._optional_str(item.get("portfolio_type")),
             status=self._optional_str(item.get("status")),
         )
 
     def _parse_portfolio_identity(self, payload: dict[str, Any]) -> PortfolioIdentity:
+        portfolio_id = str(payload.get("portfolio_id", ""))
         return PortfolioIdentity(
-            portfolio_id=str(payload.get("portfolio_id", "")),
-            display_name=str(payload.get("portfolio_id", "")),
-            client_id=self._optional_str(payload.get("client_id")),
+            portfolio_id=portfolio_id,
+            display_name=self._resolve_portfolio_display_name(
+                payload, fallback_portfolio_id=portfolio_id
+            ),
+            client_id=self._optional_str(payload.get("client_id", payload.get("cif_id"))),
             base_currency=str(payload.get("base_currency", "USD")),
-            booking_center_code=self._optional_str(payload.get("booking_center_code")),
+            booking_center_code=self._optional_str(
+                payload.get("booking_center_code", payload.get("booking_center"))
+            ),
         )
 
     def _parse_portfolio_profile(self, payload: dict[str, Any]) -> PortfolioProfile:
@@ -1031,6 +1267,30 @@ class PortfolioService:
             cash_balance_count=int(cash_payload.get("totals", {}).get("cash_account_count", 0)),
         )
 
+    def _parse_summary_from_positions(
+        self,
+        aum_result: tuple[int, dict[str, Any]],
+        positions_payload: dict[str, Any],
+    ) -> PortfolioSummary:
+        aum_payload = self._require_payload(
+            result=aum_result,
+            unavailable_detail_prefix="lotus-core aum unavailable",
+        )
+        first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
+        total_aum = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
+        cash_total, cash_balance_count = self._summarize_cash_positions(positions_payload)
+        cash_weight = (
+            float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
+        )
+        return PortfolioSummary(
+            assets_under_management_base=total_aum,
+            invested_market_value_base=float(quantize_money(total_aum - cash_total)),
+            cash_market_value_base=cash_total,
+            cash_weight_pct=cash_weight,
+            position_count=int(first_portfolio.get("position_count", 0)),
+            cash_balance_count=cash_balance_count,
+        )
+
     def _parse_cashflow(
         self,
         result: tuple[int, dict[str, Any]],
@@ -1059,6 +1319,80 @@ class PortfolioService:
                 for point in payload.get("points", [])
                 if isinstance(point, dict)
             ],
+        )
+
+    def _parse_workspace_performance(
+        self,
+        result: tuple[int, dict[str, Any]] | None,
+        warnings: list[str],
+        partial_failures: list[PortfolioPartialFailure],
+    ) -> PortfolioPerformanceSummary | None:
+        if result is None:
+            return None
+        payload = self._optional_payload(
+            result,
+            "lotus-performance",
+            "PORTFOLIO_PERFORMANCE_UNAVAILABLE",
+            warnings,
+            partial_failures,
+        )
+        if payload is None:
+            return None
+        results_by_period = payload.get("results_by_period", payload.get("resultsByPeriod", {}))
+        if not isinstance(results_by_period, dict):
+            warnings.append("PORTFOLIO_PERFORMANCE_INVALID")
+            return None
+        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period), None)
+        if period_key is None:
+            return None
+        period_payload = results_by_period.get(period_key, {})
+        if not isinstance(period_payload, dict):
+            return None
+        portfolio_payload = period_payload.get("portfolio", {})
+        if not isinstance(portfolio_payload, dict):
+            return None
+        summary_payload = portfolio_payload.get("summary", {})
+        if not isinstance(summary_payload, dict):
+            return None
+        period_return_payload = summary_payload.get("period_return", {})
+        if not isinstance(period_return_payload, dict):
+            return None
+        period_return = period_return_payload.get("base")
+        try:
+            return_pct = (
+                float(quantize_performance(period_return)) if period_return is not None else None
+            )
+        except (TypeError, ValueError):
+            return_pct = None
+        return PortfolioPerformanceSummary(period=str(period_key), return_pct=return_pct)
+
+    def _parse_workspace_rebalance(
+        self,
+        result: tuple[int, dict[str, Any]] | None,
+        warnings: list[str],
+        partial_failures: list[PortfolioPartialFailure],
+    ) -> PortfolioRebalanceSummary | None:
+        if result is None:
+            return None
+        payload = self._optional_payload(
+            result,
+            "lotus-manage",
+            "PORTFOLIO_REBALANCE_UNAVAILABLE",
+            warnings,
+            partial_failures,
+        )
+        if payload is None:
+            return None
+        items = payload.get("items", [])
+        if not isinstance(items, list) or not items:
+            return None
+        latest = items[0]
+        if not isinstance(latest, dict):
+            return None
+        return PortfolioRebalanceSummary(
+            status=str(latest.get("status", "UNKNOWN")),
+            last_run_at_utc=self._optional_str(latest.get("created_at")),
+            last_rebalance_run_id=self._optional_str(latest.get("rebalance_run_id")),
         )
 
     def _parse_operations(
@@ -1219,6 +1553,22 @@ class PortfolioService:
             )
         return balances
 
+    def _summarize_cash_positions(self, payload: dict[str, Any]) -> tuple[float, int]:
+        cash_total = 0.0
+        cash_count = 0
+        for item in payload.get("positions", []):
+            if not isinstance(item, dict):
+                continue
+            asset_class = str(item.get("asset_class") or "").strip().upper()
+            if asset_class != "CASH":
+                continue
+            market_value = self._position_valuation_value(
+                item, "market_value_base", fallback_key="market_value"
+            )
+            cash_total += float(quantize_money(market_value or 0))
+            cash_count += 1
+        return float(quantize_money(cash_total)), cash_count
+
     def _build_top_positions(
         self, positions: list[PortfolioPositionView]
     ) -> list[PortfolioTopPosition]:
@@ -1253,7 +1603,308 @@ class PortfolioService:
             cash_entry_mode=self._optional_str(item.get("cash_entry_mode")),
             economic_event_id=self._optional_str(item.get("economic_event_id")),
             linked_transaction_group_id=self._optional_str(item.get("linked_transaction_group_id")),
+            fx_contract_id=self._optional_str(item.get("fx_contract_id")),
+            swap_event_id=self._optional_str(item.get("swap_event_id")),
+            near_leg_group_id=self._optional_str(item.get("near_leg_group_id")),
+            far_leg_group_id=self._optional_str(item.get("far_leg_group_id")),
         )
+
+    async def _list_transaction_rows(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        start_date: str,
+        end_date: str,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+    ) -> tuple[str | None, list[dict[str, Any]]]:
+        page_size = 500
+        rows: list[dict[str, Any]] = []
+        resolved_reporting_currency: str | None = None
+        skip = 0
+
+        while True:
+            status_code, payload = await self._get_portfolio_transactions_result(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                as_of_date=as_of_date,
+                include_projected=False,
+                skip=skip,
+                limit=page_size,
+                transaction_type=None,
+                security_id=None,
+                instrument_id=None,
+                component_type=None,
+                linked_transaction_group_id=None,
+                fx_contract_id=None,
+                swap_event_id=None,
+                near_leg_group_id=None,
+                far_leg_group_id=None,
+                sort_by="transaction_date",
+                sort_order="asc",
+                start_date=start_date,
+                end_date=end_date,
+                reporting_currency=reporting_currency,
+            )
+            result_payload = self._require_payload(
+                result=(status_code, payload),
+                unavailable_detail_prefix="lotus-core transactions unavailable",
+            )
+            if resolved_reporting_currency is None:
+                resolved_reporting_currency = self._optional_str(
+                    result_payload.get("reporting_currency")
+                )
+            page_rows = [
+                item for item in result_payload.get("transactions", []) if isinstance(item, dict)
+            ]
+            rows.extend(page_rows)
+            total = int(result_payload.get("total", len(page_rows)))
+            skip += len(page_rows)
+            if not page_rows or skip >= total:
+                break
+
+        return resolved_reporting_currency, rows
+
+    def _summarize_income_rows(
+        self,
+        rows: list[dict[str, Any]],
+    ) -> tuple[dict[str, float | int], dict[str, dict[str, float | int]]]:
+        totals = self._new_income_metric()
+        by_income_type: dict[str, dict[str, float | int]] = {}
+        for row in rows:
+            income_type = str(row.get("transaction_type") or "").strip().upper()
+            if income_type not in {"DIVIDEND", "INTEREST"}:
+                continue
+            bucket = by_income_type.setdefault(income_type, self._new_income_metric())
+            self._accumulate_income_metric(totals, row)
+            self._accumulate_income_metric(bucket, row)
+        return totals, by_income_type
+
+    def _summarize_activity_rows(
+        self, rows: list[dict[str, Any]]
+    ) -> dict[str, dict[str, float | int]]:
+        buckets: dict[str, dict[str, float | int]] = {}
+        for row in rows:
+            transaction_type = str(row.get("transaction_type") or "").strip().upper()
+            bucket_name = self._activity_bucket_name(transaction_type)
+            if bucket_name is not None:
+                bucket = buckets.setdefault(bucket_name, self._new_flow_metric())
+                self._accumulate_flow_metric(
+                    bucket,
+                    portfolio_amount=self._activity_portfolio_amount(row),
+                    reporting_amount=self._activity_reporting_amount(row),
+                )
+            withholding_portfolio = self._absolute_money(row.get("withholding_tax_amount"))
+            withholding_reporting = self._absolute_money(
+                row.get("withholding_tax_amount_reporting_currency")
+            )
+            if withholding_portfolio > 0 or withholding_reporting > 0:
+                tax_bucket = buckets.setdefault("TAXES", self._new_flow_metric())
+                self._accumulate_flow_metric(
+                    tax_bucket,
+                    portfolio_amount=withholding_portfolio,
+                    reporting_amount=withholding_reporting,
+                )
+        return buckets
+
+    def _new_income_metric(self) -> dict[str, float | int]:
+        return {
+            "transaction_count": 0,
+            "gross_amount_portfolio_currency": 0.0,
+            "gross_amount_reporting_currency": 0.0,
+            "withholding_tax_portfolio_currency": 0.0,
+            "withholding_tax_reporting_currency": 0.0,
+            "other_deductions_portfolio_currency": 0.0,
+            "other_deductions_reporting_currency": 0.0,
+            "net_amount_portfolio_currency": 0.0,
+            "net_amount_reporting_currency": 0.0,
+        }
+
+    def _new_flow_metric(self) -> dict[str, float | int]:
+        return {
+            "transaction_count": 0,
+            "amount_portfolio_currency": 0.0,
+            "amount_reporting_currency": 0.0,
+        }
+
+    def _accumulate_income_metric(
+        self,
+        accumulator: dict[str, float | int],
+        row: dict[str, Any],
+    ) -> None:
+        accumulator["transaction_count"] = int(accumulator["transaction_count"]) + 1
+        accumulator["gross_amount_portfolio_currency"] = float(
+            accumulator["gross_amount_portfolio_currency"]
+        ) + self._absolute_money(row.get("gross_transaction_amount"))
+        accumulator["gross_amount_reporting_currency"] = float(
+            accumulator["gross_amount_reporting_currency"]
+        ) + self._reporting_money(
+            row,
+            reporting_key="gross_transaction_amount_reporting_currency",
+            portfolio_key="gross_transaction_amount",
+        )
+        accumulator["withholding_tax_portfolio_currency"] = float(
+            accumulator["withholding_tax_portfolio_currency"]
+        ) + self._absolute_money(row.get("withholding_tax_amount"))
+        accumulator["withholding_tax_reporting_currency"] = float(
+            accumulator["withholding_tax_reporting_currency"]
+        ) + self._reporting_money(
+            row,
+            reporting_key="withholding_tax_amount_reporting_currency",
+            portfolio_key="withholding_tax_amount",
+        )
+        accumulator["other_deductions_portfolio_currency"] = float(
+            accumulator["other_deductions_portfolio_currency"]
+        ) + self._absolute_money(row.get("other_interest_deductions_amount"))
+        accumulator["other_deductions_reporting_currency"] = float(
+            accumulator["other_deductions_reporting_currency"]
+        ) + self._reporting_money(
+            row,
+            reporting_key="other_interest_deductions_amount_reporting_currency",
+            portfolio_key="other_interest_deductions_amount",
+        )
+        accumulator["net_amount_portfolio_currency"] = float(
+            accumulator["net_amount_portfolio_currency"]
+        ) + self._income_net_portfolio_amount(row)
+        accumulator["net_amount_reporting_currency"] = float(
+            accumulator["net_amount_reporting_currency"]
+        ) + self._income_net_reporting_amount(row)
+
+    def _accumulate_flow_metric(
+        self,
+        accumulator: dict[str, float | int],
+        *,
+        portfolio_amount: float,
+        reporting_amount: float,
+    ) -> None:
+        accumulator["transaction_count"] = int(accumulator["transaction_count"]) + 1
+        accumulator["amount_portfolio_currency"] = (
+            float(accumulator["amount_portfolio_currency"]) + portfolio_amount
+        )
+        accumulator["amount_reporting_currency"] = (
+            float(accumulator["amount_reporting_currency"]) + reporting_amount
+        )
+
+    def _build_income_period_summary(
+        self,
+        payload: dict[str, float | int],
+    ) -> PortfolioIncomePeriodSummary:
+        return self._parse_income_period_summary(payload)
+
+    def _build_money_summary(self, payload: dict[str, float | int]) -> PortfolioMoneySummary:
+        return self._parse_money_summary(payload)
+
+    def _activity_bucket_name(self, transaction_type: str) -> str | None:
+        if transaction_type in {"DEPOSIT", "TRANSFER_IN"}:
+            return "INFLOWS"
+        if transaction_type in {"WITHDRAWAL", "TRANSFER_OUT"}:
+            return "OUTFLOWS"
+        if transaction_type == "FEE":
+            return "FEES"
+        if transaction_type == "TAX":
+            return "TAXES"
+        return None
+
+    def _activity_portfolio_amount(self, row: dict[str, Any]) -> float:
+        if str(row.get("transaction_type") or "").strip().upper() == "FEE":
+            return self._absolute_money(row.get("gross_transaction_amount")) + self._absolute_money(
+                row.get("trade_fee")
+            )
+        return self._absolute_money(row.get("gross_transaction_amount"))
+
+    def _activity_reporting_amount(self, row: dict[str, Any]) -> float:
+        if str(row.get("transaction_type") or "").strip().upper() == "FEE":
+            return self._reporting_money(
+                row,
+                reporting_key="gross_transaction_amount_reporting_currency",
+                portfolio_key="gross_transaction_amount",
+            ) + self._reporting_money(
+                row,
+                reporting_key="trade_fee_reporting_currency",
+                portfolio_key="trade_fee",
+            )
+        return self._reporting_money(
+            row,
+            reporting_key="gross_transaction_amount_reporting_currency",
+            portfolio_key="gross_transaction_amount",
+        )
+
+    def _income_net_portfolio_amount(self, row: dict[str, Any]) -> float:
+        if (
+            str(row.get("transaction_type") or "").strip().upper() == "INTEREST"
+            and row.get("net_interest_amount") is not None
+        ):
+            return self._absolute_money(row.get("net_interest_amount"))
+        gross = self._absolute_money(row.get("gross_transaction_amount"))
+        withholding = self._absolute_money(row.get("withholding_tax_amount"))
+        other_deductions = self._absolute_money(row.get("other_interest_deductions_amount"))
+        trade_fee = self._absolute_money(row.get("trade_fee"))
+        return float(quantize_money(gross - withholding - other_deductions - trade_fee))
+
+    def _income_net_reporting_amount(self, row: dict[str, Any]) -> float:
+        if (
+            str(row.get("transaction_type") or "").strip().upper() == "INTEREST"
+            and row.get("net_interest_amount_reporting_currency") is not None
+        ):
+            return self._absolute_money(row.get("net_interest_amount_reporting_currency"))
+        gross = self._reporting_money(
+            row,
+            reporting_key="gross_transaction_amount_reporting_currency",
+            portfolio_key="gross_transaction_amount",
+        )
+        withholding = self._reporting_money(
+            row,
+            reporting_key="withholding_tax_amount_reporting_currency",
+            portfolio_key="withholding_tax_amount",
+        )
+        other_deductions = self._reporting_money(
+            row,
+            reporting_key="other_interest_deductions_amount_reporting_currency",
+            portfolio_key="other_interest_deductions_amount",
+        )
+        trade_fee = self._reporting_money(
+            row,
+            reporting_key="trade_fee_reporting_currency",
+            portfolio_key="trade_fee",
+        )
+        return float(quantize_money(gross - withholding - other_deductions - trade_fee))
+
+    def _reporting_money(
+        self,
+        row: dict[str, Any],
+        *,
+        reporting_key: str,
+        portfolio_key: str,
+    ) -> float:
+        if row.get(reporting_key) is not None:
+            return self._absolute_money(row.get(reporting_key))
+        return self._absolute_money(row.get(portfolio_key))
+
+    def _absolute_money(self, value: Any) -> float:
+        if value is None:
+            return 0.0
+        return float(quantize_money(abs(float(value))))
+
+    def _transaction_date_value(self, item: dict[str, Any]) -> date | None:
+        raw_value = self._optional_str(item.get("transaction_date"))
+        if raw_value is None:
+            return None
+        try:
+            return date.fromisoformat(raw_value[:10])
+        except ValueError:
+            return None
+
+    def _transaction_date_in_range(
+        self,
+        *,
+        transaction_date: date | None,
+        start_date: date,
+        end_date: date,
+    ) -> bool:
+        if transaction_date is None:
+            return False
+        return start_date <= transaction_date <= end_date
 
     def _parse_income_period_summary(
         self,
@@ -1550,9 +2201,9 @@ class PortfolioService:
             workspace.reporting.status,
             workspace.reporting.row_count,
         )
-        max_position_weight = max(
-            (position.weight_pct or 0 for position in top_positions),
-            default=0,
+        max_position_weight = self._max_position_weight(
+            positions=positions,
+            top_positions=top_positions,
         )
         requested_window_activity = self._requested_window_activity_amount(activity_summary)
 
@@ -1570,7 +2221,10 @@ class PortfolioService:
                 )
             )
 
-        if workspace.summary.cash_balance_count == 0:
+        if not self._has_cash_funding_evidence(
+            summary=workspace.summary,
+            activity_summary=activity_summary,
+        ):
             insights.append(
                 PortfolioInsight(
                     key="no-cash-funding",
@@ -1615,10 +2269,10 @@ class PortfolioService:
                     title="Large position dominates portfolio risk",
                     detail=(
                         "One holding has become large enough to dominate current "
-                        "portfolio concentration."
+                        "portfolio concentration. Open Risk to review concentration pressure."
                     ),
                     severity="warning",
-                    href="#portfolio-insights",
+                    href=f"/risk?portfolioId={workspace.portfolio.portfolio_id}",
                 )
             )
 
@@ -1645,6 +2299,39 @@ class PortfolioService:
             )
 
         return insights
+
+    def _max_position_weight(
+        self,
+        *,
+        positions: list[PortfolioPositionView],
+        top_positions: list[PortfolioTopPosition],
+    ) -> float:
+        weighted_positions = [
+            *(position.weight_pct or 0 for position in top_positions),
+            *(position.weight_pct or 0 for position in positions),
+        ]
+        return max(weighted_positions, default=0)
+
+    def _has_cash_funding_evidence(
+        self,
+        *,
+        summary: PortfolioSummary,
+        activity_summary: PortfolioActivitySummaryResponse,
+    ) -> bool:
+        if summary.cash_balance_count > 0:
+            return True
+        if summary.cash_market_value_base > 0:
+            return True
+
+        inflow_bucket = next(
+            (bucket for bucket in activity_summary.buckets if bucket.bucket.upper() == "INFLOWS"),
+            None,
+        )
+        if inflow_bucket is None:
+            return False
+        if inflow_bucket.requested_window.transaction_count > 0:
+            return True
+        return inflow_bucket.requested_window.reporting_currency_amount > 0
 
     def _build_workflow_actions(
         self,
@@ -1710,14 +2397,14 @@ class PortfolioService:
                     title="Open performance",
                     impact="Review return analytics once holdings are funded and valued.",
                     target="Target: performance workspace after valuation is available",
-                    href="/performance",
+                    href=f"/performance?portfolioId={portfolio_id}",
                     cta_label="Open performance",
                     recommended=False,
                 ),
             ]
 
         ordered_cues = sorted(
-            self._dedupe_workflow_cues(workflow_cues),
+            self._supported_workflow_cues(self._dedupe_workflow_cues(workflow_cues)),
             key=lambda cue: self._workflow_order_rank(cue.key),
         )
         return [
@@ -1725,9 +2412,11 @@ class PortfolioService:
                 sequence=index + 1,
                 title=self._workflow_task_label(cue.key),
                 impact=self._workflow_impact_label(cue.key),
-                target=f"Target: {cue.label} workflow for this portfolio",
+                target=(
+                    f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio"
+                ),
                 href=cue.href,
-                cta_label=cue.label,
+                cta_label=self._workflow_cta_label(cue.key),
                 recommended=index == 0,
             )
             for index, cue in enumerate(ordered_cues)
@@ -1783,6 +2472,13 @@ class PortfolioService:
         return float(
             sum(
                 bucket.requested_window.reporting_currency_amount
+                * (
+                    1
+                    if bucket.bucket.upper() == "INFLOWS"
+                    else -1
+                    if bucket.bucket.upper() in {"OUTFLOWS", "FEES", "TAXES"}
+                    else 0
+                )
                 for bucket in activity_summary.buckets
             )
         )
@@ -1799,44 +2495,32 @@ class PortfolioService:
             unique.append(cue)
         return unique
 
+    def _supported_workflow_cues(
+        self, workflow_cues: list[PortfolioWorkflowLaunchCue]
+    ) -> list[PortfolioWorkflowLaunchCue]:
+        return [cue for cue in workflow_cues if cue.key in self._WORKFLOW_DEFINITIONS]
+
     def _workflow_order_rank(self, key: str) -> int:
-        order = {
-            "performance": 0,
-            "holdings": 1,
-            "transactions": 2,
-            "risk": 3,
-            "proposal": 4,
-        }
-        return order.get(key, 99)
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return int(definition["order"]) if definition is not None else 99
 
     def _workflow_task_label(self, key: str) -> str:
-        mapping = {
-            "performance": "Review performance",
-            "holdings": "Review holdings",
-            "transactions": "Review transactions",
-            "risk": "Review suitability",
-            "proposal": "Prepare recommendation",
-        }
-        return mapping.get(key, "Open workflow")
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["title"]) if definition is not None else "Open workflow"
+
+    def _workflow_cta_label(self, key: str) -> str:
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["cta_label"]) if definition is not None else "Open workflow"
+
+    def _workflow_target_label(self, key: str) -> str:
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        return str(definition["target_label"]) if definition is not None else "Workflow"
 
     def _workflow_impact_label(self, key: str) -> str:
-        mapping = {
-            "performance": (
-                "Review portfolio return, benchmark context, and contribution once the book "
-                "is valued."
-            ),
-            "holdings": (
-                "Confirm funded positions, valuations, and portfolio weights before client review."
-            ),
-            "transactions": (
-                "Inspect recent funding, trading, and cash activity affecting the book."
-            ),
-            "risk": (
-                "Validate suitability, exposure, and mandate fit before the next client action."
-            ),
-            "proposal": "Prepare the next recommended portfolio action or client proposal.",
-        }
-        return mapping.get(key, "Open the next available workflow for this portfolio.")
+        definition = self._WORKFLOW_DEFINITIONS.get(key)
+        if definition is None:
+            return "Open the next available workflow for this portfolio."
+        return str(definition["impact"])
 
     def _parse_look_through_capability(
         self, payload: Any
@@ -1945,10 +2629,17 @@ class PortfolioService:
             PortfolioPartialFailure(
                 source_service=source_service,
                 error_code=warning_code,
-                detail=str(payload),
+                detail=self._format_upstream_error_detail(payload),
             )
         )
         return None
+
+    def _format_upstream_error_detail(self, payload: Any) -> str:
+        if isinstance(payload, dict):
+            detail = self._optional_str(payload.get("detail"))
+            if detail is not None:
+                return detail
+        return str(payload)
 
     def _extract_resolved_as_of_date(self, result: tuple[int, dict[str, Any]]) -> str | None:
         payload = self._optional_payload(result, "lotus-core", "IGNORED", [], [])
@@ -1958,11 +2649,214 @@ class PortfolioService:
             else None
         )
 
+    def _build_workspace_control_capabilities(
+        self,
+        *,
+        portfolio: PortfolioIdentity,
+        profile: PortfolioProfile,
+        requested_as_of_date: str,
+        effective_as_of_date: str,
+        requested_reporting_currency: str | None,
+    ) -> PortfolioWorkspaceControlCapabilities:
+        effective_reporting_currency = requested_reporting_currency or portfolio.base_currency
+        supported_currencies: list[str] = []
+        for currency in (portfolio.base_currency, effective_reporting_currency):
+            if currency not in supported_currencies:
+                supported_currencies.append(currency)
+
+        return PortfolioWorkspaceControlCapabilities(
+            historical_snapshots=PortfolioWorkspaceHistoricalSnapshotCapability(
+                state="partial",
+                reason=(
+                    "Most portfolio modules honor as_of_date, but rebalance and performance "
+                    "snapshot still follow separate control semantics."
+                ),
+                requested_as_of_date=requested_as_of_date,
+                effective_as_of_date=effective_as_of_date,
+                earliest_available_as_of_date=profile.open_date,
+                latest_available_as_of_date=effective_as_of_date,
+                module_capabilities=[
+                    PortfolioWorkspaceModuleCapability(
+                        module="workspace",
+                        state="supported",
+                        reason=(
+                            "Workspace shell summary, cashflow, and readiness resolve the "
+                            "selected as_of_date."
+                        ),
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="book",
+                        state="supported",
+                        reason="Book accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="liquidity",
+                        state="supported",
+                        reason="Liquidity accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="allocations",
+                        state="supported",
+                        reason="Allocations accept and honor as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="positions",
+                        state="supported",
+                        reason="Positions accept and honor as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="transactions",
+                        state="supported",
+                        reason="Transactions accept and honor as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="income_summary",
+                        state="supported",
+                        reason="Income summary accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="activity_summary",
+                        state="supported",
+                        reason="Activity summary accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="readiness",
+                        state="supported",
+                        reason="Readiness accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="workflow",
+                        state="supported",
+                        reason="Workflow accepts and honors as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="insights",
+                        state="supported",
+                        reason="Insights accept and honor as_of_date directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="performance_snapshot",
+                        state="partial",
+                        reason=(
+                            "Performance snapshot aligns through explicit report window controls "
+                            "rather than a first-class as_of_date parameter."
+                        ),
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="rebalance",
+                        state="unsupported",
+                        reason=(
+                            "Rebalance shell summary is always sourced from the latest "
+                            "available run."
+                        ),
+                    ),
+                ],
+            ),
+            reporting_currency_restatement=PortfolioWorkspaceReportingCurrencyCapability(
+                state="partial",
+                reason=(
+                    "Book-style holdings and transaction modules honor reporting_currency, but "
+                    "workflow, readiness, and performance snapshot do not yet share that control."
+                ),
+                requested_reporting_currency=requested_reporting_currency,
+                effective_reporting_currency=effective_reporting_currency,
+                supported_currencies=supported_currencies,
+                module_capabilities=[
+                    PortfolioWorkspaceModuleCapability(
+                        module="workspace",
+                        state="partial",
+                        reason=(
+                            "Workspace shell summary honors reporting_currency for holdings and "
+                            "cash, but not for every shell section."
+                        ),
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="book",
+                        state="supported",
+                        reason="Book accepts and honors reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="liquidity",
+                        state="supported",
+                        reason="Liquidity accepts and honors reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="allocations",
+                        state="supported",
+                        reason="Allocations accept and honor reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="positions",
+                        state="supported",
+                        reason="Positions accept and honor reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="transactions",
+                        state="supported",
+                        reason="Transactions accept and honor reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="income_summary",
+                        state="supported",
+                        reason="Income summary accepts and honors reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="activity_summary",
+                        state="supported",
+                        reason="Activity summary accepts and honors reporting_currency directly.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="readiness",
+                        state="unsupported",
+                        reason="Readiness does not expose reporting_currency-aware semantics.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="workflow",
+                        state="unsupported",
+                        reason=(
+                            "Workflow priorities do not expose reporting_currency-aware semantics."
+                        ),
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="insights",
+                        state="unsupported",
+                        reason=(
+                            "Insights do not currently expose reporting_currency-aware semantics."
+                        ),
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="performance_snapshot",
+                        state="unsupported",
+                        reason="Performance snapshot does not expose reporting_currency.",
+                    ),
+                    PortfolioWorkspaceModuleCapability(
+                        module="rebalance",
+                        state="unsupported",
+                        reason=(
+                            "Rebalance shell summary does not expose reporting_currency-aware "
+                            "state."
+                        ),
+                    ),
+                ],
+            ),
+        )
+
     def _optional_str(self, value: Any) -> str | None:
         if value is None:
             return None
         text = str(value).strip()
         return text or None
+
+    def _resolve_portfolio_display_name(
+        self, payload: dict[str, Any], *, fallback_portfolio_id: str
+    ) -> str:
+        return str(
+            payload.get("portfolio_name")
+            or payload.get("name")
+            or payload.get("label")
+            or payload.get("display_name")
+            or fallback_portfolio_id
+        )
 
     def _resolve_reporting_window(
         self,

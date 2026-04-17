@@ -2,7 +2,9 @@ import asyncio
 from datetime import date
 
 import pytest
+from fastapi import HTTPException
 
+from app.contracts.performance_workspace import PerformanceChartPoint
 from app.contracts.workbench import (
     WorkbenchOverviewResponse,
     WorkbenchOverviewSummary,
@@ -56,6 +58,8 @@ class _StubAnalyticsClient:
         self.contribution_calls: list[dict[str, object]] = []
         self.attribution_calls: list[dict[str, object]] = []
         self.twr_calls: list[dict[str, object]] = []
+        self.execution_calls: list[str] = []
+        self.lineage_calls: list[str] = []
 
     async def get_workspace_summary(self, **kwargs):
         self.workspace_summary_calls.append(kwargs)
@@ -77,36 +81,46 @@ class _StubAnalyticsClient:
                     continue
                 if period_key in source_results:
                     results_by_period[period_key] = source_results[period_key]
-            return 200, {"results_by_period": results_by_period}
+            return 200, {
+                "calculation_id": "calc-workspace-summary",
+                "results_by_period": results_by_period,
+            }
 
         requested_period = kwargs.get("period")
         if requested_period == "EXPLICIT":
             report_start_date = str(kwargs.get("report_start_date"))
             explicit_label = "MTD" if report_start_date.endswith("-03-01") else "QTD"
             return 200, {
+                "calculation_id": "calc-workspace-summary",
                 "results_by_period": {
                     "EXPLICIT": source_payload["results_by_period"][explicit_label]
-                }
+                },
             }
         if requested_period in {"YTD", "1Y"}:
             return 200, {
+                "calculation_id": "calc-workspace-summary",
                 "results_by_period": {
                     requested_period: source_payload["results_by_period"][requested_period]
-                }
+                },
             }
+        source_payload["calculation_id"] = "calc-workspace-summary"
         return 200, source_payload
 
     async def get_contribution_analytics(self, **kwargs):
         self.contribution_calls.append(kwargs)
-        return 200, _contribution_payload(dimension=str(kwargs["dimension"]))
+        payload = _contribution_payload(dimension=str(kwargs["dimension"]))
+        payload["calculation_id"] = "calc-contribution"
+        return 200, payload
 
     async def get_attribution_analytics(self, **kwargs):
         self.attribution_calls.append(kwargs)
-        return 200, _attribution_payload(
+        payload = _attribution_payload(
             dimension=str(kwargs.get("dimension", "asset_class")),
             report_start_date=str(kwargs["report_start_date"]),
             report_end_date=str(kwargs["report_end_date"]),
         )
+        payload["calculation_id"] = "calc-attribution"
+        return 200, payload
 
     async def get_twr_analytics(self, **kwargs):
         self.twr_calls.append(kwargs)
@@ -125,16 +139,70 @@ class _StubAnalyticsClient:
                     "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                 },
+                "calculation_id": "calc-twr",
                 "results_by_period": results_by_period,
             }
 
         requested_period = str(kwargs["period"])
         return 200, _twr_payload_for_period(requested_period, requested_period)
 
+    async def get_execution(self, *, calculation_id: str, correlation_id: str):
+        _ = correlation_id
+        self.execution_calls.append(calculation_id)
+        return 200, {
+            "calculation_id": calculation_id,
+            "analytics_type": calculation_id.replace("calc-", "").replace("-", "_").upper(),
+            "execution_mode": "sync",
+            "status": "complete",
+            "stages": [
+                {
+                    "stage_name": "execution",
+                    "status": "complete",
+                    "completed_at_utc": "2026-03-27T12:00:00Z",
+                },
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "complete",
+                    "completed_at_utc": "2026-03-27T12:00:01Z",
+                },
+            ],
+            "upstream_snapshots": [
+                {
+                    "upstream_endpoint": "portfolio_timeseries",
+                    "source_identifier": "DEMO_ADV_USD_001",
+                    "as_of_date": "2026-03-27",
+                    "retrieval_status": "200",
+                }
+            ],
+        }
+
+    async def get_lineage(self, *, calculation_id: str, correlation_id: str):
+        _ = correlation_id
+        self.lineage_calls.append(calculation_id)
+        return 200, {
+            "calculation_id": calculation_id,
+            "status": "complete",
+            "artifacts": {
+                "request.json": {
+                    "url": f"http://performance.dev.lotus/performance/lineage/{calculation_id}/artifacts/request.json"
+                },
+                "response.json": {
+                    "url": f"http://performance.dev.lotus/performance/lineage/{calculation_id}/artifacts/response.json"
+                },
+            },
+        }
+
+    async def get_lineage_artifact(
+        self, *, calculation_id: str, artifact_name: str, correlation_id: str
+    ):
+        _ = calculation_id, artifact_name, correlation_id
+        return 200, b"{}", "application/json"
+
 
 class _StubLotusCoreQueryClient:
     def __init__(self):
         self.reference_calls = 0
+        self.reference_kwargs: list[dict[str, object]] = []
         self.benchmark_catalog_calls: list[dict[str, object]] = []
         self.benchmark_assignment_calls: list[dict[str, object]] = []
 
@@ -146,6 +214,14 @@ class _StubLotusCoreQueryClient:
         correlation_id: str,
     ):  # noqa: ARG002
         self.reference_calls += 1
+        self.reference_kwargs.append(
+            {
+                "portfolio_id": portfolio_id,
+                "as_of_date": as_of_date,
+                "consumer_system": consumer_system,
+                "correlation_id": correlation_id,
+            }
+        )
         return 200, {"performance_end_date": "2026-03-27"}
 
     async def get_benchmark_catalog(self, **kwargs):
@@ -832,6 +908,65 @@ def _attribution_detail_payload(*, dimension: str) -> dict:
     }
 
 
+def _many_contribution_rows_payload(*, dimension: str) -> dict:
+    payload = _contribution_payload(dimension=dimension)
+    payload["results_by_period"]["YTD"]["levels"][0]["rows"] = [
+        {
+            "key": {dimension: f"group-{index:02d}"},
+            "contribution": 0.1,
+            "weight_avg": 5.0,
+            "local_contribution": 0.08,
+            "fx_contribution": 0.02,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["levels"][0]["total_contribution"] = 1.2
+    payload["results_by_period"]["YTD"]["position_contributions"] = [
+        {
+            "position_id": f"POSITION_{index:02d}",
+            "total_contribution": 0.1,
+            "average_weight": 5.0,
+            "total_return": 1.0,
+            "local_contribution": 0.08,
+            "fx_contribution": 0.02,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["summary"]["portfolio_contribution"] = 1.2
+    payload["results_by_period"]["YTD"]["total_portfolio_return"] = 1.2
+    return payload
+
+
+def _many_attribution_groups_payload(*, dimension: str) -> dict:
+    payload = _attribution_detail_payload(dimension=dimension)
+    payload["results_by_period"]["YTD"]["levels"][0]["groups"] = [
+        {
+            "key": {dimension: f"group-{index:02d}"},
+            "portfolio_weight_avg": 5.0,
+            "benchmark_weight_avg": 4.0,
+            "portfolio_return": 1.0,
+            "benchmark_return": 0.8,
+            "allocation": 0.01,
+            "selection": 0.02,
+            "interaction": 0.0,
+            "total_effect": 0.03,
+        }
+        for index in range(12)
+    ]
+    payload["results_by_period"]["YTD"]["levels"][0]["totals"] = {
+        "allocation": 0.12,
+        "selection": 0.24,
+        "interaction": 0.0,
+        "total_effect": 0.36,
+    }
+    payload["results_by_period"]["YTD"]["reconciliation"] = {
+        "total_active_return": 0.36,
+        "sum_of_effects": 0.36,
+        "residual": 0.0,
+    }
+    return payload
+
+
 @pytest.mark.asyncio
 async def test_performance_workspace_service_deduplicates_benchmark_catalog_options():
     service = PerformanceWorkspaceService(
@@ -971,15 +1106,41 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         "monthly",
         "quarterly",
     ]
-    assert response.capabilities.evidence.state == "unavailable"
+    assert response.capabilities.evidence.state == "supported"
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "supported"
+    assert response.evidence_view.calculations[0].calculation_role == "workspace_summary"
+    assert response.evidence_view.calculations[0].execution_status == "complete"
+    assert response.evidence_view.calculations[0].lineage_status == "complete"
+    assert (
+        response.evidence_view.calculations[0]
+        .artifacts[0]
+        .url.startswith("/api/v1/workbench/DEMO_ADV_USD_001/performance/evidence/artifacts/")
+    )
     assert response.warnings == ["FOUNDATION_WARNING"]
     assert response.partial_failures[0].error_code == "STALE_REPORTING"
 
     assert analytics_client.workspace_summary_calls[0]["chart_frequency"] == "monthly"
     assert analytics_client.workspace_summary_calls[0]["segment"] == "asset_class"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
+    assert analytics_client.execution_calls == [
+        "calc-workspace-summary",
+        "calc-contribution",
+        "calc-attribution",
+    ]
+    assert analytics_client.lineage_calls == [
+        "calc-workspace-summary",
+        "calc-contribution",
+        "calc-attribution",
+    ]
     assert query_client.reference_calls == 1
+    assert query_client.reference_kwargs[0]["consumer_system"] == "lotus-gateway"
+    assert query_client.reference_kwargs[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls == []
+    assert query_client.benchmark_catalog_calls[0]["as_of_date"] == "2026-03-27"
     assert query_client.benchmark_catalog_calls[0]["benchmark_currency"] == "USD"
+    assert query_client.benchmark_catalog_calls[0]["benchmark_status"] == "active"
+    assert query_client.benchmark_catalog_calls[0]["benchmark_type"] == "composite"
 
 
 @pytest.mark.asyncio
@@ -1014,6 +1175,11 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.contribution_detail.state == "supported"
     assert response.capabilities.attribution_detail.state == "supported"
+    assert response.capabilities.evidence.state == "supported"
+    assert response.evidence_view is not None
+    assert [item.calculation_role for item in response.evidence_view.calculations] == [
+        "workspace_summary"
+    ]
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
@@ -1125,6 +1291,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_when_code
         analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
@@ -1152,7 +1320,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.period == "YTD"
     assert response.report_start_date == "2026-01-01"
     assert response.report_end_date == "2026-03-27"
-    assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD", "1Y"]
+    assert [row.period for row in response.rows] == ["MTD", "QTD", "YTD"]
     assert response.rows[0].portfolio_return_pct == 1.2
     assert response.rows[0].net_return_pct == 1.2
     assert response.rows[0].gross_return_pct == 1.22
@@ -1161,7 +1329,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     assert response.rows[2].beginning_cash_flow == 30000.0
     assert response.rows[2].ending_cash_flow == -7500.0
     assert response.rows[2].flow_adjusted_end_market_value == 486370.0
-    assert response.rows[3].active_return_pct == 0.6
+    assert response.rows[2].active_return_pct == 0.38
     assert response.rows[0].period_start == "2026-03-01"
     assert response.rows[1].period_start == "2026-01-01"
     assert response.rows[2].period_start == "2026-01-01"
@@ -1181,10 +1349,7 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
     ] == ["EXPLICIT"]
     assert [
         analysis["period"] for analysis in analytics_client.workspace_summary_calls[2]["periods"]
-    ] == [
-        "YTD",
-        "1Y",
-    ]
+    ] == ["YTD"]
 
 
 @pytest.mark.asyncio
@@ -1224,6 +1389,83 @@ async def test_workspace_service_maps_position_contributions_from_upstream_contr
 
 
 @pytest.mark.asyncio
+async def test_workspace_service_preserves_full_contribution_row_coverage():
+    class _ManyContributionRowsAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            payload = _many_contribution_rows_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-contribution"
+            return 200, payload
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            payload = _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ManyContributionRowsAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="sector",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.contribution is not None
+    assert len(response.contribution.levels[0].rows) == 12
+    assert len(response.contribution.position_rows) == 12
+    assert response.contribution.levels[0].total_contribution_pct == 1.2
+
+
+@pytest.mark.asyncio
+async def test_workspace_service_preserves_full_attribution_row_coverage():
+    class _ManyAttributionRowsAnalyticsClient(_StubAnalyticsClient):
+        async def get_contribution_analytics(self, **kwargs):
+            self.contribution_calls.append(kwargs)
+            payload = _contribution_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-contribution"
+            return 200, payload
+
+        async def get_attribution_analytics(self, **kwargs):
+            self.attribution_calls.append(kwargs)
+            payload = _many_attribution_groups_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ManyAttributionRowsAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_details(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="country",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.attribution is not None
+    assert len(response.attribution.levels[0].rows) == 12
+    assert response.attribution.levels[0].allocation_total_pct == 0.12
+    assert response.attribution.levels[0].selection_total_pct == 0.24
+    assert response.attribution.levels[0].total_effect_pct == 0.36
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_resolves_linked_benchmark_for_horizon_comparison():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
@@ -1247,6 +1489,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
         analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
@@ -1384,6 +1628,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
     assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
     assert analytics_client.attribution_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
+    assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
+    assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
 
 
 @pytest.mark.asyncio
@@ -1471,9 +1717,77 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
     assert response.portfolio_return_pct == 15.1
     assert response.benchmark_return_pct == 14.72
     assert response.excess_return_pct == 0.38
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
     assert response.sparkline[0].as_of_date == "2026-01-31"
     assert response.sparkline[0].portfolio_return_pct == 2.0
     assert query_client.benchmark_catalog_calls == []
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_projects_snapshot_point_dates_from_fallback_fields():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    point_with_period_start = PerformanceChartPoint(
+        label="2026-01-31",
+        frequency="monthly",
+        period_start="2026-01-01",
+        period_end=None,
+        portfolio_return_pct=2.0,
+    )
+    point_with_label_only = PerformanceChartPoint(
+        label="2026-02-28",
+        frequency="monthly",
+        period_start=None,
+        period_end=None,
+        portfolio_return_pct=4.1,
+    )
+
+    assert service._snapshot_point_as_of_date(point_with_period_start) == "2026-01-01"
+    assert service._snapshot_point_as_of_date(point_with_label_only) == "2026-02-28"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_portfolio_performance_snapshot_unavailable():
+    class _UnavailableSnapshotAnalyticsClient(_StubAnalyticsClient):
+        async def get_workspace_summary(self, **kwargs):
+            self.workspace_summary_calls.append(kwargs)
+            return 503, {"detail": "workspace summary unavailable"}
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_UnavailableSnapshotAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_portfolio_performance_snapshot(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.portfolio_return_pct is None
+    assert response.benchmark_return_pct is None
+    assert response.excess_return_pct is None
+    assert response.report_start_date == "2026-01-01"
+    assert response.report_end_date == "2026-03-27"
+    assert response.sparkline == []
+    assert response.unavailable is not None
+    assert response.unavailable.title == "Performance data unavailable"
+    assert response.unavailable.requirements == [
+        "valuation history",
+        "cashflow history",
+        "selected reporting period",
+    ]
+    assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
+    assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
 
 
 @pytest.mark.asyncio
@@ -1542,11 +1856,15 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
     class _DetailAwareAnalyticsClient(_StubAnalyticsClient):
         async def get_contribution_analytics(self, **kwargs):
             self.contribution_calls.append(kwargs)
-            return 200, _contribution_payload(dimension=str(kwargs["dimension"]))
+            payload = _contribution_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-contribution"
+            return 200, payload
 
         async def get_attribution_analytics(self, **kwargs):
             self.attribution_calls.append(kwargs)
-            return 200, _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload = _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
 
     analytics_client = _DetailAwareAnalyticsClient()
     service = PerformanceWorkspaceService(
@@ -1593,11 +1911,14 @@ async def test_workspace_details_do_not_fallback_when_detail_is_segment_only():
             payload = _contribution_payload(dimension=str(kwargs["dimension"]))
             period_payload = payload["results_by_period"]["YTD"]
             period_payload.pop("position_contributions", None)
+            payload["calculation_id"] = "calc-contribution"
             return 200, payload
 
         async def get_attribution_analytics(self, **kwargs):
             self.attribution_calls.append(kwargs)
-            return 200, _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload = _attribution_detail_payload(dimension=str(kwargs["dimension"]))
+            payload["calculation_id"] = "calc-attribution"
+            return 200, payload
 
     analytics_client = _SegmentOnlyContributionAnalyticsClient()
     service = PerformanceWorkspaceService(
@@ -1685,8 +2006,89 @@ async def test_performance_workspace_service_handles_workspace_summary_failure()
     assert response.capabilities.return_path.state == "unavailable"
     assert response.capabilities.contribution_detail.state == "unavailable"
     assert response.capabilities.attribution_detail.state == "unavailable"
+    assert response.capabilities.evidence.state == "unavailable"
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "unavailable"
     assert "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE" in response.warnings
     assert any(failure.error_code == "HTTP_503" for failure in response.partial_failures)
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_pending_lineage_as_partial_evidence():
+    class _PendingLineageAnalyticsClient(_StubAnalyticsClient):
+        async def get_lineage(self, *, calculation_id: str, correlation_id: str):
+            _ = correlation_id
+            self.lineage_calls.append(calculation_id)
+            return 200, {
+                "calculation_id": calculation_id,
+                "status": "pending",
+                "artifacts": {},
+            }
+
+    analytics_client = _PendingLineageAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.capabilities.evidence.state == "partial"
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "partial"
+    assert response.evidence_view.calculations[0].lineage_status == "pending"
+    assert "PERFORMANCE_EVIDENCE_PARTIAL" in response.warnings
+    assert any(
+        failure.error_code == "PERFORMANCE_EVIDENCE_PARTIAL"
+        for failure in response.partial_failures
+    )
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_marks_missing_execution_and_lineage_as_unavailable():
+    class _UnavailableEvidenceAnalyticsClient(_StubAnalyticsClient):
+        async def get_execution(self, *, calculation_id: str, correlation_id: str):
+            _ = correlation_id
+            self.execution_calls.append(calculation_id)
+            return 404, {"detail": "Execution data not found for the given calculation_id."}
+
+        async def get_lineage(self, *, calculation_id: str, correlation_id: str):
+            _ = correlation_id
+            self.lineage_calls.append(calculation_id)
+            return 404, {"detail": "Lineage data not found for the given calculation_id."}
+
+    analytics_client = _UnavailableEvidenceAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.capabilities.evidence.state == "unavailable"
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "unavailable"
+    assert "PERFORMANCE_EVIDENCE_UNAVAILABLE" in response.warnings
 
 
 @pytest.mark.asyncio
@@ -1744,6 +2146,7 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
         net_chart=response.net_chart,
         contribution=response.contribution,
         attribution=response.attribution,
+        evidence_view=response.evidence_view,
     )
 
     assert response.capabilities.contribution_ranking.state == "partial"
@@ -1785,6 +2188,7 @@ async def test_performance_workspace_service_marks_summary_only_attribution_as_p
         net_chart=response.net_chart,
         contribution=response.contribution,
         attribution=response.attribution,
+        evidence_view=response.evidence_view,
     )
 
     assert response.capabilities.attribution_detail.state == "partial"
@@ -1876,3 +2280,48 @@ def test_performance_workspace_service_keeps_ytd_distinct_from_1y():
     assert ytd_start == date(2026, 1, 1)
     assert one_year_start == date(2025, 4, 1)
     assert ytd_start != one_year_start
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_downloads_evidence_artifact_bytes():
+    analytics_client = _StubAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    content, content_type = await service.get_performance_evidence_artifact(
+        calculation_id="calc-workspace-summary",
+        artifact_name="request.json",
+        correlation_id="corr-performance",
+    )
+
+    assert content == b"{}"
+    assert content_type == "application/json"
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_surfaces_evidence_artifact_failure_detail():
+    class _ArtifactFailingAnalyticsClient(_StubAnalyticsClient):
+        async def get_lineage_artifact(
+            self, *, calculation_id: str, artifact_name: str, correlation_id: str
+        ):
+            _ = calculation_id, artifact_name, correlation_id
+            return 404, b"artifact not found", "text/plain"
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_ArtifactFailingAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_performance_evidence_artifact(
+            calculation_id="calc-workspace-summary",
+            artifact_name="request.json",
+            correlation_id="corr-performance",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert "artifact not found" in str(exc_info.value)

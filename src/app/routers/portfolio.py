@@ -34,7 +34,23 @@ _PORTFOLIO_SERVICE = PortfolioService(
         timeout_seconds=settings.upstream_timeout_seconds,
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+    ),
+    analytics_client=LotusAnalyticsClient(
+        base_url=settings.performance_analytics_base_url,
+        timeout_seconds=settings.performance_analytics_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    ),
+    dpm_client=DpmClient(
+        base_url=(
+            settings.management_service_base_url
+            if settings.manage_split_enabled
+            else settings.decisioning_service_base_url
+        ),
+        timeout_seconds=settings.upstream_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    ),
 )
 
 _PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
@@ -120,6 +136,13 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
     "/portfolios",
     response_model=PortfolioCatalogResponse,
     summary="Get portfolio catalog",
+    description=(
+        "Returns the sorted portfolio catalog available to the caller. Use this endpoint to "
+        "discover supported portfolio identifiers and lightweight identity metadata before "
+        "loading portfolio-specific workspace or book endpoints. The catalog is the strategic "
+        "portfolio-picker feed and preserves routing metadata such as client, booking-center, "
+        "mandate type, and upstream status when the source publishes them."
+    ),
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
     return await _portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
@@ -129,11 +152,32 @@ async def get_portfolios() -> PortfolioCatalogResponse:
     "/portfolios/{portfolio_id}/workspace",
     response_model=PortfolioWorkspaceResponse,
     summary="Get portfolio workspace summary",
+    description=(
+        "Returns the portfolio workspace shell used to open the front-office portfolio page. "
+        "Use this endpoint to load the initial portfolio identity, summary, readiness, "
+        "cashflow, lightweight performance, and rebalance posture before requesting the more "
+        "detailed book, income, activity, or transaction modules. The response also publishes "
+        "source-backed workspace control capabilities so downstream clients can decide whether "
+        "As of and Reporting Currency controls are fully supported, partially supported, or "
+        "still unavailable. Invalid readiness filters from lotus-core are surfaced as client "
+        "errors rather than degraded workspace data."
+    ),
 )
 async def get_portfolio_workspace(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format for workspace composition.",
+        examples=["2026-04-10"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency override for the summary and liquidity amounts when "
+            "source support allows it."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioWorkspaceResponse:
     return await _portfolio_service().get_portfolio_workspace(
         portfolio_id=portfolio_id,
@@ -147,10 +191,22 @@ async def get_portfolio_workspace(
     "/portfolios/{portfolio_id}/readiness",
     response_model=PortfolioReadinessResponse,
     summary="Get portfolio readiness indicators",
+    description=(
+        "Returns the source-backed portfolio readiness view used to explain whether holdings, "
+        "pricing, transactions, and reporting are operationally ready for front-office use. "
+        "Use this endpoint when the workspace needs explicit readiness reasons or blocking "
+        "causes beyond the shell summary. If lotus-core rejects the requested readiness "
+        "filter, gateway preserves that 4xx client error instead of turning it into partial "
+        "readiness."
+    ),
 )
 async def get_portfolio_readiness(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional readiness as-of date in YYYY-MM-DD format.",
+        examples=["2026-04-10"],
+    ),
 ) -> PortfolioReadinessResponse:
     return await _portfolio_service().get_portfolio_readiness(
         portfolio_id=portfolio_id,
@@ -163,10 +219,27 @@ async def get_portfolio_readiness(
     "/portfolios/{portfolio_id}/insights",
     response_model=PortfolioInsightsResponse,
     summary="Get portfolio insight and exception summaries",
+    description=(
+        "Returns advisor-facing portfolio insights and compact exception summaries for the "
+        "current book. Use this endpoint when the UI needs a governed summary strip and "
+        "exception rail for empty, blocked, concentration, funding, reporting, or recent-"
+        "activity signals derived from source-backed holdings, readiness, allocation, and "
+        "transaction-ledger inputs instead of rebuilding those cues locally. The response "
+        "keeps advisor-facing insights separate from compact exception rails so product "
+        "surfaces can render concise front-office guidance and degraded-state alerts "
+        "consistently from one source-backed contract."
+    ),
 )
 async def get_portfolio_insights(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve holdings, readiness, "
+            "and activity inputs before insight and exception summaries are derived."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PortfolioInsightsResponse:
     return await _portfolio_service().get_portfolio_insights(
         portfolio_id=portfolio_id,
@@ -179,10 +252,26 @@ async def get_portfolio_insights(
     "/portfolios/{portfolio_id}/workflow",
     response_model=PortfolioWorkflowResponse,
     summary="Get prioritized portfolio workflow actions",
+    description=(
+        "Returns the advisor workflow action list for the current portfolio workspace. "
+        "Use this endpoint when the UI needs a governed next-step sequence derived from "
+        "source-backed holdings, funding, transaction, and readiness state instead of "
+        "recomputing workflow priorities locally. The response preserves a stable action "
+        "order, one recommended next step, and an explicit empty-portfolio setup sequence "
+        "for the resolved as-of date so downstream clients can power the Next Actions rail "
+        "without custom priority rules or fallback heuristics."
+    ),
 )
 async def get_portfolio_workflow(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to derive workflow priorities and "
+            "the recommended next action from the current workspace state."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PortfolioWorkflowResponse:
     return await _portfolio_service().get_portfolio_workflow(
         portfolio_id=portfolio_id,
@@ -195,17 +284,48 @@ async def get_portfolio_workflow(
     "/portfolios/{portfolio_id}/book",
     response_model=PortfolioBookResponse,
     summary="Get portfolio book",
+    description=(
+        "Returns the combined portfolio book view used when the UI needs holdings, top "
+        "positions, allocation views, cash balances, and summary identity in one governed "
+        "response. Use this endpoint for a source-backed combined book snapshot instead of "
+        "reassembling those sections from separate contracts. The response keeps those book "
+        "sections aligned to one resolved as-of date so downstream clients do not need to "
+        "merge separate holdings, allocation, and liquidity reads."
+    ),
 )
 async def get_portfolio_book(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the combined book "
+            "snapshot across positions, allocations, and cash balances."
+        ),
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description=(
+            "Whether projected position rows should be included in the returned book when "
+            "upstream supports them."
+        ),
+        examples=[False],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency used for book-level valuation restatement across "
+            "summary, holdings, allocations, and cash balances."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioBookResponse:
     return await _portfolio_service().get_portfolio_book(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         include_projected=include_projected,
+        reporting_currency=reporting_currency,
     )
 
 
@@ -213,11 +333,32 @@ async def get_portfolio_book(
     "/portfolios/{portfolio_id}/liquidity",
     response_model=PortfolioLiquidityResponse,
     summary="Get portfolio liquidity view",
+    description=(
+        "Returns the liquidity-focused portfolio view for cash balances, summary liquidity, "
+        "and projected cashflow. Use this endpoint when the UI needs current cash inventory "
+        "plus forward liquidity context without loading the full portfolio book. The "
+        "response preserves liquidity warnings and partial failures when forward cashflow "
+        "inputs are temporarily unavailable."
+    ),
 )
 async def get_portfolio_liquidity(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the liquidity snapshot "
+            "and forward cashflow context."
+        ),
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency used for AUM and cash-balance restatement in the "
+            "liquidity view."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioLiquidityResponse:
     return await _portfolio_service().get_portfolio_liquidity(
         portfolio_id=portfolio_id,
@@ -231,12 +372,37 @@ async def get_portfolio_liquidity(
     "/portfolios/{portfolio_id}/projected-cashflow",
     response_model=PortfolioProjectedCashflowResponse,
     summary="Get portfolio projected cashflow view",
+    description=(
+        "Returns the forward-looking projected cashflow contract for a portfolio. "
+        "Use this endpoint when the UI needs a dedicated projected liquidity path for a "
+        "specific horizon without loading the broader liquidity summary. The response keeps "
+        "projection warnings and partial failures explicit when forward cashflow inputs are "
+        "temporarily degraded."
+    ),
 )
 async def get_portfolio_projected_cashflow(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    horizon_days: int = Query(default=10, ge=1, le=365),
-    include_projected: bool = Query(default=True),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to anchor the projected cashflow path."
+        ),
+        examples=["2026-03-27"],
+    ),
+    horizon_days: int = Query(
+        default=10,
+        ge=1,
+        le=365,
+        description="Forward projection horizon in business days for the requested cashflow path.",
+        examples=[30],
+    ),
+    include_projected: bool = Query(
+        default=True,
+        description=(
+            "Whether projected events should be included when deriving the forward cashflow path."
+        ),
+        examples=[True],
+    ),
 ) -> PortfolioProjectedCashflowResponse:
     return await _portfolio_service().get_portfolio_projected_cashflow(
         portfolio_id=portfolio_id,
@@ -251,12 +417,41 @@ async def get_portfolio_projected_cashflow(
     "/portfolios/{portfolio_id}/allocations",
     response_model=PortfolioAllocationResponse,
     summary="Get portfolio allocation views",
+    description=(
+        "Returns source-backed portfolio allocation views across the supported reporting "
+        "dimensions. Use this endpoint when the UI needs allocation buckets with optional "
+        "reporting-currency restatement and explicit look-through capability metadata. The "
+        "response preserves the effective look-through mode so downstream clients can tell "
+        "whether expanded exposure decomposition was actually applied."
+    ),
 )
 async def get_portfolio_allocations(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
-    look_through_mode: str = Query(default="direct_only"),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve allocation views and "
+            "their summary framing."
+        ),
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency used for allocation restatement across bucket "
+            "market values and weights."
+        ),
+        examples=["USD"],
+    ),
+    look_through_mode: str = Query(
+        default="direct_only",
+        description=(
+            "Requested allocation look-through mode for structured or fund exposures. "
+            "Use direct_only for booked exposures or full when downstream needs expanded "
+            "look-through buckets."
+        ),
+        examples=["direct_only", "full"],
+    ),
 ) -> PortfolioAllocationResponse:
     return await _portfolio_service().get_portfolio_allocations(
         portfolio_id=portfolio_id,
@@ -271,12 +466,38 @@ async def get_portfolio_allocations(
     "/portfolios/{portfolio_id}/positions",
     response_model=PortfolioPositionBookResponse,
     summary="Get portfolio positions view",
+    description=(
+        "Returns the detailed position book for a portfolio, including ranked top holdings. "
+        "Use this endpoint when the UI needs security-level holdings evidence, optional "
+        "projected rows, and reporting-currency-aware valuation fields. The response keeps "
+        "top holdings and full position rows aligned to one resolved position-book snapshot."
+    ),
 )
 async def get_portfolio_positions(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used to resolve the position-book "
+            "snapshot and ranked top holdings."
+        ),
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description=(
+            "Whether projected position rows should be included when upstream supports them."
+        ),
+        examples=[False],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency used for position valuation restatement across "
+            "market values and gain-loss fields."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioPositionBookResponse:
     return await _portfolio_service().get_portfolio_positions(
         portfolio_id=portfolio_id,
@@ -291,13 +512,47 @@ async def get_portfolio_positions(
     "/portfolios/{portfolio_id}/income-summary",
     response_model=PortfolioIncomeSummaryResponse,
     summary="Get portfolio income summary",
+    description=(
+        "Returns portfolio income totals for the requested reporting window and year-to-date. "
+        "Use this endpoint for dividend and interest analysis when the UI needs "
+        "reporting-currency-aware gross, tax, deduction, and net income totals by income type. "
+        "Gateway derives these totals from the strategic lotus-core transaction ledger rather "
+        "than the deprecated income-summary reporting route. The response keeps requested-window "
+        "and year-to-date income cuts aligned to one reporting currency. When `end_date` is "
+        "omitted, gateway uses `as_of_date` when provided or the current business date fallback."
+    ),
 )
 async def get_portfolio_income_summary(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used as the default window end date when "
+            "`end_date` is omitted."
+        ),
+        examples=["2026-03-27"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional inclusive reporting-window start date in YYYY-MM-DD format. When omitted, "
+            "gateway uses the standard rolling 30-day window."
+        ),
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional inclusive reporting-window end date in YYYY-MM-DD format. Defaults to "
+            "`as_of_date` when provided."
+        ),
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used to restate portfolio income totals.",
+        examples=["USD"],
+    ),
 ) -> PortfolioIncomeSummaryResponse:
     return await _portfolio_service().get_income_summary(
         portfolio_id=portfolio_id,
@@ -313,13 +568,47 @@ async def get_portfolio_income_summary(
     "/portfolios/{portfolio_id}/activity-summary",
     response_model=PortfolioActivitySummaryResponse,
     summary="Get portfolio activity summary",
+    description=(
+        "Returns portfolio flow buckets for the requested reporting window and year-to-date. "
+        "Use this endpoint for inflow, outflow, fee, and tax analysis when the UI needs "
+        "reporting-currency-aware activity totals aligned to the selected portfolio window. "
+        "Gateway derives these buckets from the strategic lotus-core transaction ledger rather "
+        "than the deprecated activity-summary reporting route. The response keeps requested-window "
+        "and year-to-date bucket totals aligned to one reporting currency. When `end_date` is "
+        "omitted, gateway uses `as_of_date` when provided or the current business date fallback."
+    ),
 )
 async def get_portfolio_activity_summary(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    reporting_currency: str | None = Query(default=None),
+    as_of_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional as-of date in YYYY-MM-DD format used as the default window end date when "
+            "`end_date` is omitted."
+        ),
+        examples=["2026-03-27"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional inclusive reporting-window start date in YYYY-MM-DD format. When omitted, "
+            "gateway uses the standard rolling 30-day window."
+        ),
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description=(
+            "Optional inclusive reporting-window end date in YYYY-MM-DD format. Defaults to "
+            "`as_of_date` when provided."
+        ),
+        examples=["2026-03-27"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency used to restate portfolio activity totals.",
+        examples=["USD"],
+    ),
 ) -> PortfolioActivitySummaryResponse:
     return await _portfolio_service().get_activity_summary(
         portfolio_id=portfolio_id,
@@ -335,17 +624,104 @@ async def get_portfolio_activity_summary(
     "/portfolios/{portfolio_id}/transactions",
     response_model=PortfolioTransactionLedgerResponse,
     summary="Get portfolio transaction ledger",
+    description=(
+        "Return the gateway transaction-ledger view for booked or projected portfolio activity. "
+        "Use this endpoint for holdings drill-down, instrument-specific inspection, FX and "
+        "linked-event analysis, and stable paging over the strategic lotus-core transaction "
+        "ledger. The default ordering is latest-first by transaction date unless explicit "
+        "sorting is requested."
+    ),
 )
 async def get_portfolio_transactions(
     portfolio_id: str,
-    as_of_date: str | None = Query(default=None),
-    include_projected: bool = Query(default=False),
-    transaction_type: str | None = Query(default=None),
-    security_id: str | None = Query(default=None),
-    start_date: str | None = Query(default=None),
-    end_date: str | None = Query(default=None),
-    skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=50, ge=1, le=500),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional as-of date in YYYY-MM-DD format used for booked transaction state.",
+        examples=["2026-03-27"],
+    ),
+    include_projected: bool = Query(
+        default=False,
+        description="Whether future-dated projected transactions should be included.",
+        examples=[False],
+    ),
+    transaction_type: str | None = Query(
+        default=None,
+        description="Optional canonical transaction type filter.",
+        examples=["BUY"],
+    ),
+    security_id: str | None = Query(
+        default=None,
+        description="Optional security identifier filter for holdings drill-down.",
+        examples=["EQ_1"],
+    ),
+    instrument_id: str | None = Query(
+        default=None,
+        description="Optional instrument identifier filter for instrument-specific inspection.",
+        examples=["INST-AAPL-USD"],
+    ),
+    component_type: str | None = Query(
+        default=None,
+        description="Optional component-type filter for linked cash, trade, or FX event rows.",
+        examples=["FX_CONTRACT_OPEN"],
+    ),
+    linked_transaction_group_id: str | None = Query(
+        default=None,
+        description="Optional linked-transaction-group filter for multi-row economic events.",
+        examples=["LTG-FX-2026-0001"],
+    ),
+    fx_contract_id: str | None = Query(
+        default=None,
+        description="Optional FX contract identifier filter.",
+        examples=["FXC-2026-0001"],
+    ),
+    swap_event_id: str | None = Query(
+        default=None,
+        description="Optional FX swap event identifier filter.",
+        examples=["FXSWAP-2026-0001"],
+    ),
+    near_leg_group_id: str | None = Query(
+        default=None,
+        description="Optional FX swap near-leg group identifier filter.",
+        examples=["FXSWAP-2026-0001-NEAR"],
+    ),
+    far_leg_group_id: str | None = Query(
+        default=None,
+        description="Optional FX swap far-leg group identifier filter.",
+        examples=["FXSWAP-2026-0001-FAR"],
+    ),
+    start_date: str | None = Query(
+        default=None,
+        description="Optional inclusive transaction-window start date in YYYY-MM-DD format.",
+        examples=["2026-03-01"],
+    ),
+    end_date: str | None = Query(
+        default=None,
+        description="Optional inclusive transaction-window end date in YYYY-MM-DD format.",
+        examples=["2026-03-27"],
+    ),
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of matching transaction rows to skip before returning the page.",
+        examples=[0],
+    ),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=500,
+        description="Maximum number of matching transaction rows to return.",
+        examples=[50],
+    ),
+    sort_by: str = Query(
+        default="transaction_date",
+        description="Transaction sort field. Defaults to transaction_date for latest-first review.",
+        examples=["transaction_date"],
+    ),
+    sort_order: str = Query(
+        default="desc",
+        description="Transaction sort order. Use asc or desc.",
+        examples=["desc"],
+    ),
 ) -> PortfolioTransactionLedgerResponse:
     return await _portfolio_service().get_transaction_ledger(
         portfolio_id=portfolio_id,
@@ -354,6 +730,15 @@ async def get_portfolio_transactions(
         include_projected=include_projected,
         transaction_type=transaction_type,
         security_id=security_id,
+        instrument_id=instrument_id,
+        component_type=component_type,
+        linked_transaction_group_id=linked_transaction_group_id,
+        fx_contract_id=fx_contract_id,
+        swap_event_id=swap_event_id,
+        near_leg_group_id=near_leg_group_id,
+        far_leg_group_id=far_leg_group_id,
+        sort_by=sort_by,
+        sort_order=sort_order,
         start_date=start_date,
         end_date=end_date,
         skip=skip,
@@ -365,15 +750,81 @@ async def get_portfolio_transactions(
     "/portfolios/{portfolio_id}/performance-snapshot",
     response_model=PortfolioPerformanceSnapshotResponse,
     summary="Get portfolio performance snapshot",
+    description=(
+        "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
+        "Use this endpoint when the UI needs the current period return, benchmark comparison, "
+        "compact sparkline, and explicit unavailable-state semantics without loading the full "
+        "performance workspace. The response keeps warnings and partial failures explicit so "
+        "downstream clients can render degraded or unavailable states without rebuilding "
+        "snapshot logic locally."
+    ),
 )
 async def get_portfolio_performance_snapshot(
     portfolio_id: str,
-    period: str = Query(default="YTD"),
-    chart_frequency: str = Query(default="monthly"),
-    detail_basis: str = Query(default="NET"),
-    benchmark_code: str | None = Query(default=None),
-    explicit_start_date: str | None = Query(default=None),
-    explicit_end_date: str | None = Query(default=None),
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested performance horizon. Use canonical values such as MTD, QTD, YTD, 1Y, 3Y, "
+            "5Y, or EXPLICIT."
+        ),
+        examples=["YTD"],
+        openapi_examples={"standard": {"summary": "Year to date", "value": "YTD"}},
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested sparkline aggregation frequency for the compact return trend. "
+            "Unsupported values are normalized to the nearest supported workspace frequency "
+            "instead of failing the request."
+        ),
+        examples=["monthly"],
+        openapi_examples={"monthly": {"summary": "Monthly sparkline", "value": "monthly"}},
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description=(
+            "Performance basis requested for the snapshot return metrics. Use NET for the "
+            "advisor-facing post-fee view or GROSS when the cockpit needs pre-fee return context."
+        ),
+        examples=["NET"],
+        openapi_examples={"net": {"summary": "Net of fees", "value": "NET"}},
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        openapi_examples={
+            "balanced": {
+                "summary": "Balanced benchmark override",
+                "value": "BMK_GLOBAL_BALANCED_60_40",
+            }
+        },
+    ),
+    explicit_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when requesting an EXPLICIT window or overriding the "
+            "canonical period boundary for the resolved snapshot horizon."
+        ),
+        examples=["2026-01-01"],
+        openapi_examples={
+            "quarter_start": {"summary": "Explicit quarter start", "value": "2026-01-01"}
+        },
+    ),
+    explicit_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when requesting an EXPLICIT window or overriding the "
+            "resolved analytics reference end date for the snapshot horizon."
+        ),
+        examples=["2026-03-27"],
+        openapi_examples={
+            "quarter_end": {"summary": "Explicit quarter end", "value": "2026-03-27"}
+        },
+    ),
 ) -> PortfolioPerformanceSnapshotResponse:
     return await _performance_workspace_service().get_portfolio_performance_snapshot(
         portfolio_id=portfolio_id,

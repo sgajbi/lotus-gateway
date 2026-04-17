@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
@@ -55,7 +55,11 @@ def _foundation_service() -> FoundationService:
     response_model=FoundationPortfolioCatalogResponse,
     summary="Get Foundation Portfolio Catalog",
     description=(
-        "Returns a selector-ready catalog of portfolios for the Foundation workspace shell."
+        "Returns a selector-ready catalog for the Foundation portfolio entry shell. "
+        "Use this route to populate portfolio pickers before loading the full "
+        "Foundation workspace payload. The response preserves lightweight portfolio "
+        "identity metadata such as client and booking-center codes when the source "
+        "publishes them."
     ),
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
@@ -69,11 +73,19 @@ async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
     response_model=FoundationWorkspaceResponse,
     summary="Get Foundation Workspace",
     description=(
-        "Returns the Foundation workspace entry payload with portfolio summary, allocation shape, "
-        "readiness cues, and partial-failure-aware upstream context."
+        "Returns the first-paint Foundation workspace payload for a single portfolio. "
+        "Use this route when the UI needs portfolio identity, valuation summary, "
+        "allocation shape, top positions, readiness posture, workflow launch cues, "
+        "and advisor-facing evidence of degraded upstream dependencies in one response."
     ),
 )
-async def get_foundation_workspace(portfolio_id: str) -> FoundationWorkspaceResponse:
+async def get_foundation_workspace(
+    portfolio_id: str = Path(
+        ...,
+        description="Stable portfolio identifier for the Foundation workspace to compose.",
+        examples=["PF_1001"],
+    ),
+) -> FoundationWorkspaceResponse:
     service = _foundation_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_workspace(

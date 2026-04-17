@@ -23,6 +23,21 @@ from app.contracts.platform_capabilities import (
 
 class PlatformCapabilitiesService:
     _SHELL_BOOTSTRAP_CONTRACT_VERSION = "shell-bootstrap.v1"
+    _PRIMARY_CAPABILITY_SOURCES = (
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+    )
+    _OPTIONAL_CAPABILITY_SOURCES = ("lotus_risk",)
+    _RISK_ANALYTICS_FEATURE_KEYS = (
+        "risk.analytics.risk_analytics",
+        "risk.analytics.drawdown",
+        "risk.analytics.concentration",
+        "risk.analytics.rolling_metrics",
+        "risk.analytics.historical_attribution",
+        "risk.analytics.metrics",
+    )
 
     def __init__(
         self,
@@ -61,9 +76,9 @@ class PlatformCapabilitiesService:
             ),
             self._with_timeout(
                 self._analytics_client.get_capabilities(
+                    correlation_id=correlation_id,
                     consumer_system=consumer_system,
                     tenant_id=tenant_id,
-                    correlation_id=correlation_id,
                 )
             ),
             self._with_timeout(
@@ -93,8 +108,6 @@ class PlatformCapabilitiesService:
             tasks.append(
                 self._with_timeout(
                     self._risk_client.get_capabilities(
-                        consumer_system=consumer_system,
-                        tenant_id=tenant_id,
                         correlation_id=correlation_id,
                     )
                 )
@@ -116,9 +129,7 @@ class PlatformCapabilitiesService:
 
         sources: dict[str, dict[str, Any]] = {}
         errors: list[CapabilitySourceError] = []
-        service_names = ["lotus_core", "lotus_performance", "lotus_manage", "lotus_report"]
-
-        for service_name, result in zip(service_names, results[:4], strict=True):
+        for service_name, result in zip(self._PRIMARY_CAPABILITY_SOURCES, results[:4], strict=True):
             if isinstance(result, BaseException):
                 errors.append(
                     CapabilitySourceError(
@@ -171,10 +182,10 @@ class PlatformCapabilitiesService:
         for index, source in enumerate(optional_sources, start=5):
             optional_result_map[source] = results[index]
 
-        self._merge_optional_source_into_primary(
+        self._merge_optional_source(
             optional_result_map=optional_result_map,
             source_name="risk",
-            primary_source_name="lotus_performance",
+            gateway_source_name="lotus_risk",
             sources=sources,
             errors=errors,
         )
@@ -229,12 +240,7 @@ class PlatformCapabilitiesService:
             for mode in normalized_modes:
                 if mode not in input_modes_union:
                     input_modes_union.append(mode)
-        for source_name in (
-            "lotus_core",
-            "lotus_performance",
-            "lotus_manage",
-            "lotus_report",
-        ):
+        for source_name in (*self._PRIMARY_CAPABILITY_SOURCES, *self._OPTIONAL_CAPABILITY_SOURCES):
             policy_versions_by_source.setdefault(source_name, "unknown")
 
         feature_enabled = {
@@ -302,6 +308,14 @@ class PlatformCapabilitiesService:
                     "ras.aggregation.portfolio_snapshot",
                 )
             ),
+            "lotus_risk_analytics": any(
+                self._feature_enabled(
+                    sources=sources,
+                    source_name="lotus_risk",
+                    feature_keys=(key,),
+                )
+                for key in self._RISK_ANALYTICS_FEATURE_KEYS
+            ),
         }
 
         module_health = self._module_health(sources=sources, errors=errors)
@@ -325,7 +339,7 @@ class PlatformCapabilitiesService:
                 feature_enabled["lotus_core_intake"] or feature_enabled["lotus_core_snapshot"]
             ),
             "performance_workspace": feature_enabled["lotus_performance_analytics"],
-            "risk_workspace": feature_enabled["lotus_performance_analytics"],
+            "risk_workspace": feature_enabled["lotus_risk_analytics"],
             "proposal_workspace": False,
             "advisory_workspace": False,
         }
@@ -458,7 +472,7 @@ class PlatformCapabilitiesService:
                     label="Risk",
                     href="/performance?mode=risk",
                     enabled=navigation["risk_workspace"],
-                    dependency_source="lotus_performance",
+                    dependency_source="lotus_risk",
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -619,12 +633,7 @@ class PlatformCapabilitiesService:
     ) -> dict[str, str]:
         errored_sources = {error.service for error in errors}
         health: dict[str, str] = {}
-        for source_name in (
-            "lotus_core",
-            "lotus_performance",
-            "lotus_manage",
-            "lotus_report",
-        ):
+        for source_name in (*self._PRIMARY_CAPABILITY_SOURCES, *self._OPTIONAL_CAPABILITY_SOURCES):
             if source_name in sources:
                 health[source_name] = "available"
             elif source_name in errored_sources:
@@ -677,6 +686,39 @@ class PlatformCapabilitiesService:
                 "LOTUS_CORE_POLICY_ENDPOINT_UNAVAILABLE"
             ]
         return diagnostics
+
+    def _merge_optional_source(
+        self,
+        *,
+        optional_result_map: dict[str, Any],
+        source_name: str,
+        gateway_source_name: str,
+        sources: dict[str, dict[str, Any]],
+        errors: list[CapabilitySourceError],
+    ) -> None:
+        result = optional_result_map.get(source_name)
+        if result is None:
+            return
+        if isinstance(result, BaseException):
+            errors.append(
+                CapabilitySourceError(
+                    service=gateway_source_name,
+                    status_code=500,
+                    detail=f"upstream_exception: {result}",
+                )
+            )
+            return
+        status_code, payload = cast(tuple[int, dict[str, Any]], result)
+        if status_code >= 400:
+            errors.append(
+                CapabilitySourceError(
+                    service=gateway_source_name,
+                    status_code=status_code,
+                    detail=str(payload.get("detail", payload)),
+                )
+            )
+            return
+        sources[gateway_source_name] = payload
 
     def _merge_optional_source_into_primary(
         self,

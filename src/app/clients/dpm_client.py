@@ -151,6 +151,17 @@ class DpmClient:
             headers=self._headers(correlation_id),
         )
 
+    async def get_proposal_lineage(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/proposals/{proposal_id}/lineage",
+            params={},
+            headers=self._headers(correlation_id),
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,

@@ -39,7 +39,7 @@ Verify:
 
 1. summary returns both benchmark options
 2. details returns chart, contribution, and attribution blocks
-3. horizon comparison returns `MTD`, `QTD`, `YTD`, and `1Y`
+3. horizon comparison returns `MTD`, `QTD`, and `YTD`
 4. attribution trend returns benchmark-relative effect rows when available
 
 ## Proposal Flow Run

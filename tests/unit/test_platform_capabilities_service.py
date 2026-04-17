@@ -1,3 +1,6 @@
+import asyncio
+import time
+
 import pytest
 
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
@@ -27,9 +30,9 @@ class _StubClient:
 
     async def get_capabilities(
         self,
-        consumer_system: str,
-        tenant_id: str,
         correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
     ):
         return self.status_code, self.payload
 
@@ -45,9 +48,9 @@ class _StubClient:
 class _ErrorClient:
     async def get_capabilities(
         self,
-        consumer_system: str,
-        tenant_id: str,
         correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
     ):
         raise RuntimeError("upstream unavailable")
 
@@ -58,6 +61,80 @@ class _ErrorClient:
         correlation_id: str,
     ):
         raise RuntimeError("upstream unavailable")
+
+
+class _RecordingStubClient(_StubClient):
+    def __init__(self, status_code: int, payload: dict):
+        super().__init__(status_code, payload)
+        self.calls: list[dict[str, str | None]] = []
+
+    async def get_capabilities(
+        self,
+        correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
+    ):
+        self.calls.append(
+            {
+                "correlation_id": correlation_id,
+                "consumer_system": consumer_system,
+                "tenant_id": tenant_id,
+            }
+        )
+        return await super().get_capabilities(
+            correlation_id=correlation_id,
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+        )
+
+
+class _DelayedStubClient(_StubClient):
+    def __init__(
+        self,
+        status_code: int,
+        payload: dict,
+        *,
+        delay_seconds: float,
+        policy_status_code: int = 200,
+        policy_payload: dict | None = None,
+        policy_delay_seconds: float | None = None,
+    ):
+        super().__init__(
+            status_code,
+            payload,
+            policy_status_code=policy_status_code,
+            policy_payload=policy_payload,
+        )
+        self.delay_seconds = delay_seconds
+        self.policy_delay_seconds = (
+            delay_seconds if policy_delay_seconds is None else policy_delay_seconds
+        )
+
+    async def get_capabilities(
+        self,
+        correlation_id: str,
+        consumer_system: str | None = None,
+        tenant_id: str | None = None,
+    ):
+        await asyncio.sleep(self.delay_seconds)
+        return await super().get_capabilities(
+            correlation_id=correlation_id,
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+        )
+
+    async def get_effective_policy(
+        self,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ):
+        await asyncio.sleep(self.policy_delay_seconds)
+        return await super().get_effective_policy(
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
+        )
 
 
 @pytest.mark.asyncio
@@ -122,6 +199,16 @@ async def test_platform_capabilities_all_sources_success():
                 "workflows": [{"workflow_key": "portfolio_reporting", "enabled": True}],
             },
         ),
+        risk_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus-risk",
+                "policyVersion": "risk-tenant-a-v2",
+                "supportedInputModes": ["pas_ref"],
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+            },
+        ),
         contract_version="v1",
     )
 
@@ -135,6 +222,7 @@ async def test_platform_capabilities_all_sources_success():
     assert set(response.data.sources.keys()) == {
         "lotus_core",
         "lotus_performance",
+        "lotus_risk",
         "lotus_manage",
         "lotus_report",
     }
@@ -155,6 +243,7 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-a-v3",
         "lotus_performance": "pa-tenant-a-v4",
+        "lotus_risk": "risk-tenant-a-v2",
         "lotus_manage": "dpm-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
     }
@@ -168,14 +257,35 @@ async def test_platform_capabilities_all_sources_success():
     shell_bootstrap = response.data.normalized.shell_bootstrap
     assert shell_bootstrap.contract_version == "shell-bootstrap.v1"
     assert shell_bootstrap.supportability.state == "ready"
+    assert shell_bootstrap.evidence.lineage_sources == [
+        "lotus_core",
+        "lotus_performance",
+        "lotus_manage",
+        "lotus_report",
+        "lotus_risk",
+    ]
     assert shell_bootstrap.versioning.capability_contract_version == "v1"
+    assert shell_bootstrap.versioning.source_policy_versions == {
+        "lotus_core": "pas-tenant-a-v3",
+        "lotus_performance": "pa-tenant-a-v4",
+        "lotus_risk": "risk-tenant-a-v2",
+        "lotus_manage": "dpm-tenant-a-v2",
+        "lotus_report": "ras-tenant-a-v1",
+    }
     assert shell_bootstrap.caching.cache_mode == "request_scoped_composition"
+    assert shell_bootstrap.caching.invalidation_owner == "upstream_service"
     performance_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "performance"
     )
     assert performance_workspace.enabled is True
     assert performance_workspace.freshness.freshness_class == "analytical_summary"
     assert performance_workspace.evidence.state == "source_backed"
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "risk"
+    )
+    assert risk_workspace.enabled is True
+    assert risk_workspace.versioning.source_policy_version == "risk-tenant-a-v2"
+    assert risk_workspace.evidence.lineage_sources == ["lotus_risk"]
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
@@ -201,6 +311,7 @@ async def test_platform_capabilities_partial_failure_on_error():
         ),
         analytics_client=_StubClient(502, {"detail": "bad gateway"}),
         reporting_client=_StubClient(503, {"detail": "upstream failed"}),
+        risk_client=_StubClient(504, {"detail": "risk timeout"}),
         contract_version="v1",
     )
 
@@ -212,7 +323,7 @@ async def test_platform_capabilities_partial_failure_on_error():
 
     assert response.data.partial_failure is True
     assert set(response.data.sources.keys()) == {"lotus_core"}
-    assert len(response.data.errors) == 4
+    assert len(response.data.errors) == 5
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
     assert response.data.normalized.navigation["portfolio_workspace"] is True
@@ -221,11 +332,13 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.navigation["proposal_workspace"] is False
     assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_risk"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-default-v1",
         "lotus_performance": "unknown",
+        "lotus_risk": "unknown",
         "lotus_manage": "unknown",
         "lotus_report": "unknown",
     }
@@ -244,6 +357,12 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert performance_workspace.supportability.state == "partial"
     assert performance_workspace.evidence.state == "partial"
     assert performance_workspace.evidence.partial_failure is True
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "risk"
+    )
+    assert risk_workspace.enabled is False
+    assert risk_workspace.supportability.state == "partial"
+    assert risk_workspace.evidence.source_error_services == ["lotus_risk"]
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
@@ -296,6 +415,15 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
                 "workflows": [{"workflow_key": "portfolio_reporting", "enabled": False}],
             },
         ),
+        risk_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus-risk",
+                "policyVersion": "risk-v1",
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+            },
+        ),
         contract_version="v1",
     )
 
@@ -311,7 +439,7 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     assert normalized.navigation["analytics_studio"] is False
     assert normalized.navigation["portfolio_workspace"] is True
     assert normalized.navigation["performance_workspace"] is False
-    assert normalized.navigation["risk_workspace"] is False
+    assert normalized.navigation["risk_workspace"] is True
     assert normalized.workflow_flags["proposal_lifecycle"] is False
     assert normalized.workflow_flags["performance_snapshot"] is True
     assert normalized.input_modes_by_source["lotus_core"] == []
@@ -403,5 +531,236 @@ def test_platform_capabilities_module_health_marks_unknown_sources():
     health = service._module_health(sources={"lotus_core": {}}, errors=[])
     assert health["lotus_core"] == "available"
     assert health["lotus_performance"] == "unknown"
+    assert health["lotus_risk"] == "unknown"
     assert health["lotus_manage"] == "unknown"
     assert health["lotus_report"] == "unknown"
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_uses_service_specific_upstream_capability_contracts():
+    performance_client = _RecordingStubClient(
+        200,
+        {
+            "sourceService": "lotus_performance",
+            "policyVersion": "pa-v1",
+            "features": [],
+            "workflows": [],
+        },
+    )
+    risk_client = _RecordingStubClient(
+        200,
+        {
+            "sourceService": "lotus_risk",
+            "policyVersion": "risk-v1",
+            "features": [],
+            "workflows": [],
+        },
+    )
+    service = PlatformCapabilitiesService(
+        dpm_client=_StubClient(
+            200, {"sourceService": "lotus_manage", "features": [], "workflows": []}
+        ),
+        lotus_core_query_client=_StubClient(
+            200, {"sourceService": "lotus_core", "features": [], "workflows": []}
+        ),
+        analytics_client=performance_client,
+        reporting_client=_StubClient(
+            200, {"sourceService": "lotus_report", "features": [], "workflows": []}
+        ),
+        risk_client=risk_client,
+        contract_version="v1",
+    )
+
+    await service.get_platform_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-shaped",
+    )
+
+    assert performance_client.calls == [
+        {
+            "correlation_id": "corr-shaped",
+            "consumer_system": "lotus-workbench",
+            "tenant_id": "tenant-a",
+        }
+    ]
+    assert risk_client.calls == [
+        {
+            "correlation_id": "corr-shaped",
+            "consumer_system": None,
+            "tenant_id": None,
+        }
+    ]
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-shaped-repeat",
+    )
+    assert response.data.sources["lotus_risk"]["sourceService"] == "lotus_risk"
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_fetches_sources_concurrently():
+    delay_seconds = 0.15
+    service = PlatformCapabilitiesService(
+        dpm_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_manage", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        lotus_core_query_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_core", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+            policy_payload={
+                "policyProvenance": {
+                    "policyVersion": "pas-policy-v1",
+                    "policySource": "tenant",
+                    "matchedRuleId": "tenant.default.consumers.lotus-gateway",
+                    "strictMode": False,
+                },
+                "allowedSections": ["OVERVIEW"],
+                "warnings": [],
+            },
+        ),
+        analytics_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_performance", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        reporting_client=_DelayedStubClient(
+            200,
+            {"sourceService": "lotus_report", "features": [], "workflows": []},
+            delay_seconds=delay_seconds,
+        ),
+        contract_version="v1",
+    )
+
+    started_at = time.perf_counter()
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-concurrency",
+    )
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert response.data.partial_failure is False
+    assert elapsed_seconds < 0.45
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_timeout_budget_preserves_partial_response():
+    service = PlatformCapabilitiesService(
+        dpm_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_manage",
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        lotus_core_query_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_core",
+                "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        analytics_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_performance",
+                "features": [{"key": "pa.analytics.twr", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.25,
+        ),
+        reporting_client=_DelayedStubClient(
+            200,
+            {
+                "sourceService": "lotus_report",
+                "features": [{"key": "ras.reporting.portfolio_summary", "enabled": True}],
+                "workflows": [],
+            },
+            delay_seconds=0.01,
+        ),
+        contract_version="v1",
+        source_timeout_seconds=0.05,
+    )
+
+    started_at = time.perf_counter()
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-timeout-budget",
+    )
+    elapsed_seconds = time.perf_counter() - started_at
+
+    assert elapsed_seconds < 0.2
+    assert response.data.partial_failure is True
+    assert response.data.normalized.navigation["portfolio_workspace"] is True
+    assert response.data.normalized.navigation["performance_workspace"] is False
+    assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+    assert {error.service for error in response.data.errors} == {"lotus_performance"}
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_manage_split_merges_distinct_features_workflows_and_modes():
+    service = PlatformCapabilitiesService(
+        dpm_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus_manage",
+                "policyVersion": "dpm-v1",
+                "supportedInputModes": ["pas_ref"],
+                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
+                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+            },
+        ),
+        lotus_core_query_client=_StubClient(
+            200,
+            {"sourceService": "lotus_core", "features": [], "workflows": []},
+        ),
+        analytics_client=_StubClient(
+            200,
+            {"sourceService": "lotus_performance", "features": [], "workflows": []},
+        ),
+        reporting_client=_StubClient(
+            200,
+            {"sourceService": "lotus_report", "features": [], "workflows": []},
+        ),
+        manage_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus_manage_split",
+                "policyVersion": "manage-split-v2",
+                "supportedInputModes": ["inline_bundle", "pas_ref"],
+                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
+                "workflows": [{"workflow_key": "proposal_approval_flow", "enabled": True}],
+            },
+        ),
+        contract_version="v1",
+    )
+
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-manage-merge",
+    )
+
+    lotus_manage = response.data.sources["lotus_manage"]
+    assert lotus_manage["policyVersion"] == "dpm-v1"
+    assert lotus_manage["supportedInputModes"] == ["pas_ref", "inline_bundle"]
+    assert lotus_manage["features"] == [
+        {"key": "dpm.proposals.lifecycle", "enabled": True},
+        {"key": "dpm.support.run_apis", "enabled": True},
+    ]
+    assert lotus_manage["workflows"] == [
+        {"workflow_key": "proposal_lifecycle", "enabled": True},
+        {"workflow_key": "proposal_approval_flow", "enabled": True},
+    ]
+    assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
+    assert response.data.normalized.workflow_flags["proposal_approval_flow"] is True

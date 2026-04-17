@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable
+from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any, cast
 
@@ -51,87 +52,29 @@ class WorkbenchService:
         include_performance_snapshot: bool = True,
         include_rebalance_snapshot: bool = True,
     ) -> WorkbenchOverviewResponse:
-        as_of_date = date.today().isoformat()
+        context = await self._load_workbench_snapshot_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
         (
-            portfolio_result,
-            snapshot_result,
-        ) = await asyncio.gather(
-            self._lotus_core_query_client.get_portfolio(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            ),
-            self._lotus_core_query_client.get_core_snapshot(
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-                consumer_system="lotus-gateway",
-                correlation_id=correlation_id,
-            ),
+            performance_snapshot,
+            rebalance_snapshot,
+            warnings,
+            partial_failures,
+        ) = await self._load_overview_enrichment(
+            portfolio_id=portfolio_id,
+            as_of_date=context.as_of_date,
+            correlation_id=correlation_id,
+            include_performance_snapshot=include_performance_snapshot,
+            include_rebalance_snapshot=include_rebalance_snapshot,
         )
-        portfolio_status, portfolio_payload = portfolio_result
-        snapshot_status, snapshot_payload = snapshot_result
-        self._raise_for_lotus_core_error(portfolio_status, portfolio_payload)
-        self._raise_for_lotus_core_error(snapshot_status, snapshot_payload)
-
-        portfolio, overview, as_of_date = self._parse_lotus_core_snapshot(
-            fallback_portfolio_id=portfolio_id,
-            portfolio_payload=portfolio_payload,
-            snapshot_payload=snapshot_payload,
-            fallback_as_of_date=as_of_date,
-        )
-        partial_failures: list[WorkbenchPartialFailure] = []
-        warnings: list[str] = []
-        performance_snapshot = None
-        rebalance_snapshot = None
-
-        if include_performance_snapshot or include_rebalance_snapshot:
-            performance_task: Awaitable[tuple[int, dict[str, Any]]]
-            if include_performance_snapshot:
-                performance_end_date = await self._resolve_performance_snapshot_end_date(
-                    portfolio_id=portfolio_id,
-                    as_of_date=as_of_date,
-                    correlation_id=correlation_id,
-                )
-                performance_task = self._analytics_client.get_twr_analytics(
-                    portfolio_id=portfolio_id,
-                    report_end_date=performance_end_date,
-                    report_start_date=None,
-                    period="YTD",
-                    metric_basis="NET",
-                    benchmark_id=None,
-                    correlation_id=correlation_id,
-                )
-            else:
-                performance_task = self._empty_async_result()
-
-            dpm_task = (
-                self._dpm_client.list_runs(
-                    params={"portfolio_id": portfolio_id, "limit": 1},
-                    correlation_id=correlation_id,
-                )
-                if include_rebalance_snapshot
-                else self._empty_async_result()
-            )
-            gathered = await asyncio.gather(performance_task, dpm_task, return_exceptions=True)
-            if include_performance_snapshot:
-                performance_snapshot = self._parse_performance_snapshot(
-                    result=cast(object, gathered[0]),
-                    partial_failures=partial_failures,
-                    warnings=warnings,
-                )
-            if include_rebalance_snapshot:
-                rebalance_snapshot = self._parse_dpm_snapshot(
-                    result=cast(object, gathered[1]),
-                    partial_failures=partial_failures,
-                    warnings=warnings,
-                )
 
         return WorkbenchOverviewResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=as_of_date,
-            portfolio=portfolio,
-            overview=overview,
+            as_of_date=context.as_of_date,
+            portfolio=context.portfolio,
+            overview=context.overview,
             performance_snapshot=performance_snapshot,
             rebalance_snapshot=rebalance_snapshot,
             warnings=warnings,
@@ -171,23 +114,22 @@ class WorkbenchService:
         correlation_id: str,
         session_id: str | None = None,
     ) -> WorkbenchPortfolio360Response:
-        overview = await self.get_workbench_overview(
+        context = await self._load_workbench_snapshot_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-
         (
-            passthrough_status,
-            passthrough_payload,
-        ) = await self._lotus_core_query_client.get_core_snapshot(
+            performance_snapshot,
+            rebalance_snapshot,
+            warnings,
+            partial_failures,
+        ) = await self._load_overview_enrichment(
             portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-            consumer_system="lotus-gateway",
+            as_of_date=context.as_of_date,
             correlation_id=correlation_id,
+            include_performance_snapshot=True,
+            include_rebalance_snapshot=True,
         )
-        self._raise_for_lotus_core_error(passthrough_status, passthrough_payload)
-        current_positions = self._extract_current_positions(passthrough_payload)
 
         projected_positions: list[WorkbenchProjectedPositionView] = []
         projected_summary: WorkbenchProjectedSummary | None = None
@@ -200,17 +142,17 @@ class WorkbenchService:
         return WorkbenchPortfolio360Response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=overview.as_of_date,
-            portfolio=overview.portfolio,
-            overview=overview.overview,
-            performance_snapshot=overview.performance_snapshot,
-            rebalance_snapshot=overview.rebalance_snapshot,
-            current_positions=current_positions,
+            as_of_date=context.as_of_date,
+            portfolio=context.portfolio,
+            overview=context.overview,
+            performance_snapshot=performance_snapshot,
+            rebalance_snapshot=rebalance_snapshot,
+            current_positions=context.current_positions,
             projected_positions=projected_positions,
             projected_summary=projected_summary,
             active_session_id=session_id,
-            warnings=overview.warnings,
-            partial_failures=overview.partial_failures,
+            warnings=warnings,
+            partial_failures=partial_failures,
         )
 
     async def create_sandbox_session(
@@ -445,6 +387,110 @@ class WorkbenchService:
             warnings=portfolio_360.warnings,
             partial_failures=portfolio_360.partial_failures,
         )
+
+    async def _load_workbench_snapshot_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> "_WorkbenchSnapshotContext":
+        fallback_as_of_date = date.today().isoformat()
+        (
+            portfolio_result,
+            snapshot_result,
+        ) = await asyncio.gather(
+            self._lotus_core_query_client.get_portfolio(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+            self._lotus_core_query_client.get_core_snapshot(
+                portfolio_id=portfolio_id,
+                as_of_date=fallback_as_of_date,
+                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            ),
+        )
+        portfolio_status, portfolio_payload = portfolio_result
+        snapshot_status, snapshot_payload = snapshot_result
+        self._raise_for_lotus_core_error(portfolio_status, portfolio_payload)
+        self._raise_for_lotus_core_error(snapshot_status, snapshot_payload)
+
+        portfolio, overview, as_of_date = self._parse_lotus_core_snapshot(
+            fallback_portfolio_id=portfolio_id,
+            portfolio_payload=portfolio_payload,
+            snapshot_payload=snapshot_payload,
+            fallback_as_of_date=fallback_as_of_date,
+        )
+        return _WorkbenchSnapshotContext(
+            portfolio=portfolio,
+            overview=overview,
+            as_of_date=as_of_date,
+            current_positions=self._extract_current_positions(snapshot_payload),
+        )
+
+    async def _load_overview_enrichment(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        include_performance_snapshot: bool,
+        include_rebalance_snapshot: bool,
+    ) -> tuple[
+        WorkbenchPerformanceSnapshot | None,
+        WorkbenchRebalanceSnapshot | None,
+        list[str],
+        list[WorkbenchPartialFailure],
+    ]:
+        partial_failures: list[WorkbenchPartialFailure] = []
+        warnings: list[str] = []
+        performance_snapshot = None
+        rebalance_snapshot = None
+
+        if include_performance_snapshot or include_rebalance_snapshot:
+            performance_task: Awaitable[tuple[int, dict[str, Any]]]
+            if include_performance_snapshot:
+                performance_end_date = await self._resolve_performance_snapshot_end_date(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    correlation_id=correlation_id,
+                )
+                performance_task = self._analytics_client.get_twr_analytics(
+                    portfolio_id=portfolio_id,
+                    report_end_date=performance_end_date,
+                    report_start_date=None,
+                    period="YTD",
+                    metric_basis="NET",
+                    benchmark_id=None,
+                    correlation_id=correlation_id,
+                )
+            else:
+                performance_task = self._empty_async_result()
+
+            dpm_task = (
+                self._dpm_client.list_runs(
+                    params={"portfolio_id": portfolio_id, "limit": 1},
+                    correlation_id=correlation_id,
+                )
+                if include_rebalance_snapshot
+                else self._empty_async_result()
+            )
+            gathered = await asyncio.gather(performance_task, dpm_task, return_exceptions=True)
+            if include_performance_snapshot:
+                performance_snapshot = self._parse_performance_snapshot(
+                    result=cast(object, gathered[0]),
+                    partial_failures=partial_failures,
+                    warnings=warnings,
+                )
+            if include_rebalance_snapshot:
+                rebalance_snapshot = self._parse_dpm_snapshot(
+                    result=cast(object, gathered[1]),
+                    partial_failures=partial_failures,
+                    warnings=warnings,
+                )
+
+        return performance_snapshot, rebalance_snapshot, warnings, partial_failures
 
     def _raise_for_lotus_core_error(self, upstream_status: int, payload: dict[str, Any]) -> None:
         if upstream_status < status.HTTP_400_BAD_REQUEST:
@@ -936,3 +982,11 @@ class WorkbenchService:
             ),
             last_run_at_utc=last_run_at_utc,
         )
+
+
+@dataclass(slots=True)
+class _WorkbenchSnapshotContext:
+    portfolio: WorkbenchPortfolioSummary
+    overview: WorkbenchOverviewSummary
+    as_of_date: str
+    current_positions: list[WorkbenchPositionView]

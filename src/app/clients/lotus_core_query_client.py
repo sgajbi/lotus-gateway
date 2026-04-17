@@ -26,7 +26,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/capabilities"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -45,7 +45,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/policy/effective"
-        params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
+        params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
         return await request_with_retry(
             method="GET",
@@ -94,12 +94,15 @@ class LotusCoreQueryClient:
         correlation_id: str,
         as_of_date: str | None = None,
         include_projected: bool = False,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
         headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="GET",
             url=url,
@@ -123,8 +126,16 @@ class LotusCoreQueryClient:
         include_projected: bool = False,
         transaction_type: str | None = None,
         security_id: str | None = None,
+        instrument_id: str | None = None,
+        component_type: str | None = None,
+        linked_transaction_group_id: str | None = None,
+        fx_contract_id: str | None = None,
+        swap_event_id: str | None = None,
+        near_leg_group_id: str | None = None,
+        far_leg_group_id: str | None = None,
         start_date: str | None = None,
         end_date: str | None = None,
+        reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
         headers = propagation_headers(correlation_id)
@@ -141,10 +152,26 @@ class LotusCoreQueryClient:
             params["transaction_type"] = transaction_type
         if security_id is not None:
             params["security_id"] = security_id
+        if instrument_id is not None:
+            params["instrument_id"] = instrument_id
+        if component_type is not None:
+            params["component_type"] = component_type
+        if linked_transaction_group_id is not None:
+            params["linked_transaction_group_id"] = linked_transaction_group_id
+        if fx_contract_id is not None:
+            params["fx_contract_id"] = fx_contract_id
+        if swap_event_id is not None:
+            params["swap_event_id"] = swap_event_id
+        if near_leg_group_id is not None:
+            params["near_leg_group_id"] = near_leg_group_id
+        if far_leg_group_id is not None:
+            params["far_leg_group_id"] = far_leg_group_id
         if start_date is not None:
             params["start_date"] = start_date
         if end_date is not None:
             params["end_date"] = end_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="GET",
             url=url,
@@ -172,6 +199,31 @@ class LotusCoreQueryClient:
         }
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+        )
+
+    async def get_portfolio_cash_balances(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        reporting_currency: str | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cash-balances"
+        headers = propagation_headers(correlation_id)
+        params: dict[str, Any] = {}
+        if as_of_date is not None:
+            params["as_of_date"] = as_of_date
+        if reporting_currency is not None:
+            params["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="GET",
             url=url,
@@ -244,88 +296,6 @@ class LotusCoreQueryClient:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_cash_balances(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None = None,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/cash-balances/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {"portfolio_id": portfolio_id}
-        if as_of_date is not None:
-            payload["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_income_summary(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-        income_types: list[str] | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/income-summary/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {
-            "scope": {"portfolio_id": portfolio_id},
-            "window": {"start_date": start_date, "end_date": end_date},
-        }
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
-        if income_types is not None:
-            payload["income_types"] = income_types
-        return await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-        )
-
-    async def query_activity_summary(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None = None,
-    ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/activity-summary/query"
-        headers = propagation_headers(correlation_id)
-        payload: dict[str, Any] = {
-            "scope": {"portfolio_id": portfolio_id},
-            "window": {"start_date": start_date, "end_date": end_date},
-        }
-        if reporting_currency is not None:
-            payload["reporting_currency"] = reporting_currency
         return await request_with_retry(
             method="POST",
             url=url,
@@ -428,6 +398,7 @@ class LotusCoreQueryClient:
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
+            params={},
         )
 
     async def get_portfolio_readiness(
@@ -502,28 +473,64 @@ class LotusCoreQueryClient:
     async def get_portfolio_lookups(
         self,
         correlation_id: str,
+        *,
+        cif_id: str | None = None,
+        booking_center: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if cif_id is not None:
+            params["client_id"] = cif_id
+        if booking_center is not None:
+            params["booking_center_code"] = booking_center
+        if q is not None:
+            params["q"] = q
+        if limit is not None:
+            params["limit"] = limit
         return await self._get_lookup(
-            path="/lookups/portfolios", params={}, correlation_id=correlation_id
+            path="/lookups/portfolios", params=params, correlation_id=correlation_id
         )
 
     async def get_instrument_lookups(
         self,
         limit: int,
         correlation_id: str,
+        *,
+        product_type: str | None = None,
+        q: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit}
+        if product_type is not None:
+            params["product_type"] = product_type
+        if q is not None:
+            params["q"] = q
         return await self._get_lookup(
             path="/lookups/instruments",
-            params={"limit": limit},
+            params=params,
             correlation_id=correlation_id,
         )
 
     async def get_currency_lookups(
         self,
         correlation_id: str,
+        *,
+        instrument_page_limit: int | None = None,
+        source: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if instrument_page_limit is not None:
+            params["instrument_page_limit"] = instrument_page_limit
+        if source is not None:
+            params["source"] = source
+        if q is not None:
+            params["q"] = q
+        if limit is not None:
+            params["limit"] = limit
         return await self._get_lookup(
-            path="/lookups/currencies", params={}, correlation_id=correlation_id
+            path="/lookups/currencies", params=params, correlation_id=correlation_id
         )
 
     async def _get_lookup(

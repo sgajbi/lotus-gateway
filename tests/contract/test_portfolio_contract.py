@@ -4,8 +4,11 @@ from app.contracts.portfolio import (
     PortfolioActivitySummaryResponse,
     PortfolioAllocationResponse,
     PortfolioBookResponse,
+    PortfolioCatalogResponse,
     PortfolioIncomeSummaryResponse,
+    PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
+    PortfolioPerformanceSnapshotResponse,
     PortfolioPositionBookResponse,
     PortfolioReadinessResponse,
     PortfolioWorkflowResponse,
@@ -24,7 +27,17 @@ def test_portfolio_workspace_contract_shape() -> None:
             "display_name": "PF_1001",
             "base_currency": "USD",
         },
-        profile={"status": "ACTIVE"},
+        profile={
+            "status": "ACTIVE",
+            "portfolio_type": "ADVISORY",
+            "risk_exposure": "Moderate Growth",
+            "investment_time_horizon": "Long Term",
+            "objective": "Long-term capital appreciation.",
+            "is_leverage_allowed": False,
+            "advisor_id": "ADV_1001",
+            "open_date": "2024-01-15",
+            "close_date": None,
+        },
         summary={
             "assets_under_management_base": 1000.0,
             "invested_market_value_base": 900.0,
@@ -33,10 +46,106 @@ def test_portfolio_workspace_contract_shape() -> None:
             "position_count": 3,
             "cash_balance_count": 1,
         },
+        performance={"period": "YTD", "return_pct": 2.5},
+        rebalance={
+            "status": "PENDING_REVIEW",
+            "last_run_at_utc": "2026-03-27T12:00:00Z",
+            "last_rebalance_run_id": "rr_100",
+        },
+        control_capabilities={
+            "historical_snapshots": {
+                "state": "partial",
+                "reason": "Most portfolio modules honor as_of_date.",
+                "requested_as_of_date": "2026-03-27",
+                "effective_as_of_date": "2026-03-27",
+                "earliest_available_as_of_date": "2024-01-15",
+                "latest_available_as_of_date": "2026-03-27",
+                "module_capabilities": [
+                    {
+                        "module": "book",
+                        "state": "supported",
+                        "reason": "Book accepts and honors as_of_date directly.",
+                    }
+                ],
+            },
+            "reporting_currency_restatement": {
+                "state": "partial",
+                "reason": "Only some modules honor reporting_currency.",
+                "requested_reporting_currency": "SGD",
+                "effective_reporting_currency": "USD",
+                "supported_currencies": ["USD", "SGD"],
+                "module_capabilities": [
+                    {
+                        "module": "positions",
+                        "state": "supported",
+                        "reason": "Positions accept and honor reporting_currency directly.",
+                    }
+                ],
+            },
+        },
         reporting={"status": "READY", "row_count": 3},
+        operations={
+            "business_date": "2026-03-27",
+            "latest_booked_transaction_date": "2026-03-27",
+            "latest_booked_position_snapshot_date": "2026-03-27",
+            "publish_allowed": True,
+            "controls_blocking": False,
+            "active_reprocessing_keys": 0,
+            "stale_reprocessing_keys": 0,
+            "failed_valuation_jobs_within_window": 0,
+        },
     )
     assert payload.summary.assets_under_management_base == 1000.0
+    assert payload.performance is not None
+    assert payload.performance.return_pct == 2.5
+    assert payload.rebalance is not None
+    assert payload.rebalance.last_rebalance_run_id == "rr_100"
     assert payload.reporting.status == "READY"
+    assert payload.reporting.generated_at_utc is None
+    assert payload.reporting.row_count == 3
+    assert payload.operations is not None
+    assert payload.operations.business_date == "2026-03-27"
+    assert payload.operations.latest_booked_transaction_date == "2026-03-27"
+    assert payload.operations.latest_booked_position_snapshot_date == "2026-03-27"
+    assert payload.operations.publish_allowed is True
+    assert payload.operations.controls_blocking is False
+    assert payload.operations.active_reprocessing_keys == 0
+    assert payload.operations.stale_reprocessing_keys == 0
+    assert payload.operations.failed_valuation_jobs_within_window == 0
+    assert payload.profile.portfolio_type == "ADVISORY"
+    assert payload.profile.risk_exposure == "Moderate Growth"
+    assert payload.profile.investment_time_horizon == "Long Term"
+    assert payload.profile.objective == "Long-term capital appreciation."
+    assert payload.profile.is_leverage_allowed is False
+    assert payload.profile.advisor_id == "ADV_1001"
+    assert payload.profile.open_date == "2024-01-15"
+    assert payload.profile.close_date is None
+    assert payload.control_capabilities.historical_snapshots.state == "partial"
+    assert payload.control_capabilities.reporting_currency_restatement.supported_currencies == [
+        "USD",
+        "SGD",
+    ]
+    assert payload.reporting.status == "READY"
+
+
+def test_portfolio_catalog_contract_shape() -> None:
+    payload = PortfolioCatalogResponse(
+        correlation_id="corr-0",
+        contract_version="v1",
+        items=[
+            {
+                "portfolio_id": "PF_1001",
+                "display_name": "PF_1001",
+                "base_currency": "USD",
+                "client_id": "CIF_1",
+                "booking_center_code": "SGPB",
+                "portfolio_type": "ADVISORY",
+                "status": "ACTIVE",
+            }
+        ],
+    )
+    assert payload.items[0].portfolio_id == "PF_1001"
+    assert payload.items[0].booking_center_code == "SGPB"
 
 
 def test_portfolio_book_contract_shape() -> None:
@@ -44,7 +153,13 @@ def test_portfolio_book_contract_shape() -> None:
         correlation_id="corr-2",
         contract_version="v1",
         as_of_date="2026-03-27",
-        portfolio={"portfolio_id": "PF_1001", "display_name": "PF_1001", "base_currency": "USD"},
+        portfolio={
+            "portfolio_id": "PF_1001",
+            "display_name": "PF_1001",
+            "base_currency": "USD",
+            "client_id": "CIF_1",
+            "booking_center_code": "SGPB",
+        },
         summary={
             "assets_under_management_base": 1000.0,
             "invested_market_value_base": 900.0,
@@ -54,10 +169,55 @@ def test_portfolio_book_contract_shape() -> None:
             "cash_balance_count": 1,
         },
         cash_balances=[
-            {"security_id": "CASH_USD", "instrument_name": "USD Cash", "quantity": 100.0}
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "currency": "USD",
+                "quantity": 100.0,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            }
         ],
-        positions=[{"security_id": "EQ_1", "instrument_name": "Equity 1", "quantity": 10.0}],
+        allocation_views=[
+            {
+                "dimension": "asset_class",
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_base": 900.0,
+                        "weight_pct": 90.0,
+                    }
+                ],
+            }
+        ],
+        top_positions=[
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "currency": "USD",
+                "quantity": 10.0,
+                "cost_basis_base": 500.0,
+                "market_value_base": 900.0,
+                "weight_pct": 90.0,
+            }
+        ],
+        positions=[
+            {
+                "security_id": "EQ_1",
+                "instrument_name": "Equity 1",
+                "asset_class": "Equity",
+                "currency": "USD",
+                "quantity": 10.0,
+                "market_value_base": 900.0,
+            }
+        ],
     )
+    assert payload.portfolio.booking_center_code == "SGPB"
+    assert payload.cash_balances[0].currency == "USD"
+    assert payload.allocation_views[0].dimension == "asset_class"
+    assert payload.top_positions[0].security_id == "EQ_1"
     assert payload.positions[0].security_id == "EQ_1"
 
 
@@ -177,6 +337,21 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
         correlation_id="corr-8",
         portfolio_id="PF_1001",
         as_of_date="2026-03-27",
+        pricing={
+            "status": "Pending",
+            "reasons": [
+                {
+                    "code": "pricing_not_published",
+                    "detail": "Pricing has not yet been published for the requested date.",
+                }
+            ],
+        },
+        blocking_reasons=[
+            {
+                "code": "awaiting_pricing",
+                "detail": "Reporting remains blocked until pricing is published.",
+            }
+        ],
         indicators=[
             {
                 "key": "holdings",
@@ -202,8 +377,72 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
             }
         ],
     )
+    insights = PortfolioInsightsResponse(
+        correlation_id="corr-10",
+        portfolio_id="PF_1001",
+        as_of_date="2026-03-27",
+        insights=[
+            {
+                "key": "equity-concentration-high",
+                "title": "Large position dominates portfolio risk",
+                "detail": (
+                    "One holding has become large enough to dominate current portfolio "
+                    "concentration."
+                ),
+                "severity": "warning",
+                "href": "#portfolio-insights",
+            }
+        ],
+        exception_summaries=[
+            {
+                "key": "pricing",
+                "title": "Pricing still pending",
+                "detail": "Valuation and reporting remain blocked until pricing is published.",
+                "tone": "warn",
+                "href": "#portfolio-readiness",
+            }
+        ],
+    )
+    assert readiness.contract_version == "v1"
     assert readiness.indicators[0].key == "holdings"
+    assert readiness.pricing is not None
+    assert readiness.pricing.reasons[0].code == "pricing_not_published"
+    assert readiness.blocking_reasons[0].code == "awaiting_pricing"
+    assert insights.contract_version == "v1"
+    assert insights.insights[0].key == "equity-concentration-high"
+    assert insights.exception_summaries[0].key == "pricing"
+    assert workflow.contract_version == "v1"
     assert workflow.actions[0].recommended is True
+
+
+def test_portfolio_performance_snapshot_contract_shape() -> None:
+    payload = PortfolioPerformanceSnapshotResponse(
+        correlation_id="corr-10",
+        portfolio_id="PF_1001",
+        as_of_date="2026-03-27",
+        report_start_date="2026-01-01",
+        report_end_date="2026-03-27",
+        period="YTD",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        portfolio_return_pct=15.1,
+        benchmark_return_pct=14.72,
+        excess_return_pct=0.38,
+        sparkline=[
+            {
+                "as_of_date": "2026-01-31",
+                "portfolio_return_pct": 2.0,
+                "benchmark_return_pct": 1.8,
+                "excess_return_pct": 0.2,
+            }
+        ],
+    )
+    assert payload.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert payload.portfolio_return_pct == 15.1
+    assert payload.benchmark_return_pct == 14.72
+    assert payload.excess_return_pct == 0.38
+    assert payload.sparkline[0].benchmark_return_pct == 1.8
+    assert payload.sparkline[0].excess_return_pct == 0.2
+    assert payload.unavailable is None
 
 
 def test_portfolio_openapi_contract_registered() -> None:
@@ -220,3 +459,662 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/transactions" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/readiness" in spec["paths"]
     assert "/api/v1/portfolio/portfolios/{portfolio_id}/workflow" in spec["paths"]
+    assert "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot" in spec["paths"]
+    catalog_path = spec["paths"]["/api/v1/portfolio/portfolios"]["get"]
+    catalog_schema = spec["components"]["schemas"]["PortfolioCatalogResponse"]
+    catalog_item_schema = spec["components"]["schemas"]["PortfolioCatalogItem"]
+    workspace_schema = spec["components"]["schemas"]["PortfolioWorkspaceResponse"]
+    identity_schema = spec["components"]["schemas"]["PortfolioIdentity"]
+    profile_schema = spec["components"]["schemas"]["PortfolioProfile"]
+    summary_schema = spec["components"]["schemas"]["PortfolioSummary"]
+    cash_balance_schema = spec["components"]["schemas"]["PortfolioCashBalance"]
+    allocation_bucket_schema = spec["components"]["schemas"]["PortfolioAllocationBucket"]
+    allocation_view_schema = spec["components"]["schemas"]["PortfolioAllocationView"]
+    partial_failure_schema = spec["components"]["schemas"]["PortfolioPartialFailure"]
+    top_position_schema = spec["components"]["schemas"]["PortfolioTopPosition"]
+    position_view_schema = spec["components"]["schemas"]["PortfolioPositionView"]
+    transaction_view_schema = spec["components"]["schemas"]["PortfolioTransactionView"]
+    performance_schema = spec["components"]["schemas"]["PortfolioPerformanceSummary"]
+    rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
+    reporting_readiness_schema = spec["components"]["schemas"]["PortfolioReportingReadiness"]
+    operational_readiness_schema = spec["components"]["schemas"]["PortfolioOperationalReadiness"]
+    workspace_control_capabilities_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceControlCapabilities"
+    ]
+    workspace_historical_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceHistoricalSnapshotCapability"
+    ]
+    workspace_reporting_currency_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceReportingCurrencyCapability"
+    ]
+    workspace_module_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceModuleCapability"
+    ]
+    workflow_launch_cue_schema = spec["components"]["schemas"]["PortfolioWorkflowLaunchCue"]
+    readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
+    readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]
+    insights_schema = spec["components"]["schemas"]["PortfolioInsightsResponse"]
+    insight_item_schema = spec["components"]["schemas"]["PortfolioInsight"]
+    exception_item_schema = spec["components"]["schemas"]["PortfolioExceptionSummary"]
+    liquidity_schema = spec["components"]["schemas"]["PortfolioLiquidityResponse"]
+    projected_cashflow_schema = spec["components"]["schemas"]["PortfolioProjectedCashflowResponse"]
+    allocation_schema = spec["components"]["schemas"]["PortfolioAllocationResponse"]
+    positions_schema = spec["components"]["schemas"]["PortfolioPositionBookResponse"]
+    transactions_schema = spec["components"]["schemas"]["PortfolioTransactionLedgerResponse"]
+    income_schema = spec["components"]["schemas"]["PortfolioIncomeSummaryResponse"]
+    activity_schema = spec["components"]["schemas"]["PortfolioActivitySummaryResponse"]
+    book_schema = spec["components"]["schemas"]["PortfolioBookResponse"]
+    workflow_schema = spec["components"]["schemas"]["PortfolioWorkflowResponse"]
+    workflow_action_schema = spec["components"]["schemas"]["PortfolioWorkflowAction"]
+    allocation_look_through_schema = spec["components"]["schemas"][
+        "PortfolioAllocationLookThroughCapability"
+    ]
+    performance_snapshot_path = spec["paths"][
+        "/api/v1/portfolio/portfolios/{portfolio_id}/performance-snapshot"
+    ]["get"]
+    performance_snapshot_period_parameter = next(
+        parameter
+        for parameter in performance_snapshot_path["parameters"]
+        if parameter["name"] == "period"
+    )
+    performance_snapshot_parameters = {
+        parameter["name"]: parameter for parameter in performance_snapshot_path["parameters"]
+    }
+    performance_snapshot_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotResponse"
+    ]
+    performance_snapshot_point_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotPoint"
+    ]
+    performance_snapshot_unavailable_schema = spec["components"]["schemas"][
+        "PortfolioPerformanceSnapshotUnavailable"
+    ]
+    cashflow_outlook_schema = spec["components"]["schemas"]["PortfolioCashflowOutlook"]
+    cashflow_point_schema = spec["components"]["schemas"]["PortfolioCashflowPoint"]
+    transactions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/transactions"][
+        "get"
+    ]
+    workflow_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/workflow"]["get"]
+    insights_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/insights"]["get"]
+    book_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/book"]["get"]
+    liquidity_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/liquidity"]["get"]
+    projected_cashflow_path = spec["paths"][
+        "/api/v1/portfolio/portfolios/{portfolio_id}/projected-cashflow"
+    ]["get"]
+    allocations_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"][
+        "get"
+    ]
+    positions_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/positions"]["get"]
+    income_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"]
+    activity_path = spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/activity-summary"][
+        "get"
+    ]
+    transaction_parameters = {
+        parameter["name"]: parameter for parameter in transactions_path["parameters"]
+    }
+    workflow_parameters = {
+        parameter["name"]: parameter for parameter in workflow_path["parameters"]
+    }
+    insights_parameters = {
+        parameter["name"]: parameter for parameter in insights_path["parameters"]
+    }
+    book_parameters = {parameter["name"]: parameter for parameter in book_path["parameters"]}
+    liquidity_parameters = {
+        parameter["name"]: parameter for parameter in liquidity_path["parameters"]
+    }
+    projected_cashflow_parameters = {
+        parameter["name"]: parameter for parameter in projected_cashflow_path["parameters"]
+    }
+    allocation_parameters = {
+        parameter["name"]: parameter for parameter in allocations_path["parameters"]
+    }
+    position_parameters = {
+        parameter["name"]: parameter for parameter in positions_path["parameters"]
+    }
+    income_parameters = {parameter["name"]: parameter for parameter in income_path["parameters"]}
+    activity_parameters = {
+        parameter["name"]: parameter for parameter in activity_path["parameters"]
+    }
+    assert catalog_path["description"]
+    assert "portfolio-picker feed" in catalog_path["description"]
+    assert catalog_schema["properties"]["correlation_id"]["description"]
+    assert catalog_schema["properties"]["correlation_id"]["examples"] == ["corr-portfolio-catalog"]
+    assert catalog_schema["properties"]["contract_version"]["description"]
+    assert catalog_schema["properties"]["contract_version"]["default"] == "v1"
+    assert catalog_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert catalog_schema["properties"]["items"]["description"]
+    assert catalog_schema["properties"]["items"]["examples"]
+    assert catalog_item_schema["properties"]["portfolio_id"]["description"]
+    assert catalog_item_schema["properties"]["display_name"]["description"]
+    assert catalog_item_schema["properties"]["base_currency"]["description"]
+    assert catalog_item_schema["properties"]["client_id"]["description"]
+    assert catalog_item_schema["properties"]["booking_center_code"]["description"]
+    assert catalog_item_schema["properties"]["portfolio_type"]["description"]
+    assert catalog_item_schema["properties"]["status"]["description"]
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["client_id"] == "CIF_1"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["booking_center_code"] == "SGPB"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["portfolio_type"] == "ADVISORY"
+    assert catalog_schema["properties"]["items"]["examples"][0][0]["status"] == "ACTIVE"
+    assert catalog_item_schema["properties"]["status"]["description"]
+    assert workspace_schema["properties"]["correlation_id"]["description"]
+    assert workspace_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-workspace"
+    ]
+    assert workspace_schema["properties"]["contract_version"]["description"]
+    assert workspace_schema["properties"]["contract_version"]["default"] == "v1"
+    assert workspace_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert workspace_schema["properties"]["performance"]["description"]
+    assert workspace_schema["properties"]["rebalance"]["description"]
+    assert workspace_schema["properties"]["portfolio"]["description"]
+    assert workspace_schema["properties"]["profile"]["description"]
+    assert workspace_schema["properties"]["summary"]["description"]
+    assert workspace_schema["properties"]["cashflow_outlook"]["description"]
+    assert workspace_schema["properties"]["reporting"]["description"]
+    assert workspace_schema["properties"]["operations"]["description"]
+    assert workspace_schema["properties"]["control_capabilities"]["description"]
+    assert workspace_schema["properties"]["workflow_cues"]["description"]
+    assert workspace_schema["properties"]["warnings"]["description"]
+    assert workspace_schema["properties"]["partial_failures"]["description"]
+    assert workspace_schema["properties"]["workflow_cues"]["examples"]
+    assert workspace_schema["properties"]["warnings"]["examples"]
+    assert workspace_schema["properties"]["partial_failures"]["examples"]
+    assert identity_schema["properties"]["portfolio_id"]["description"]
+    assert identity_schema["properties"]["display_name"]["description"]
+    assert identity_schema["properties"]["client_id"]["description"]
+    assert identity_schema["properties"]["base_currency"]["description"]
+    assert identity_schema["properties"]["booking_center_code"]["description"]
+    assert profile_schema["properties"]["status"]["description"]
+    assert profile_schema["properties"]["status"]["examples"] == ["ACTIVE"]
+    assert profile_schema["properties"]["portfolio_type"]["description"]
+    assert profile_schema["properties"]["portfolio_type"]["examples"] == ["ADVISORY"]
+    assert profile_schema["properties"]["risk_exposure"]["description"]
+    assert profile_schema["properties"]["risk_exposure"]["examples"] == ["Moderate Growth"]
+    assert profile_schema["properties"]["investment_time_horizon"]["description"]
+    assert profile_schema["properties"]["investment_time_horizon"]["examples"] == ["Long Term"]
+    assert profile_schema["properties"]["objective"]["description"]
+    assert profile_schema["properties"]["objective"]["examples"] == [
+        "Long-term capital appreciation."
+    ]
+    assert profile_schema["properties"]["is_leverage_allowed"]["description"]
+    assert profile_schema["properties"]["is_leverage_allowed"]["examples"] == [False]
+    assert profile_schema["properties"]["advisor_id"]["description"]
+    assert profile_schema["properties"]["advisor_id"]["examples"] == ["ADV_1001"]
+    assert profile_schema["properties"]["open_date"]["description"]
+    assert profile_schema["properties"]["close_date"]["description"]
+    assert summary_schema["properties"]["assets_under_management_base"]["description"]
+    assert summary_schema["properties"]["invested_market_value_base"]["description"]
+    assert summary_schema["properties"]["cash_market_value_base"]["description"]
+    assert summary_schema["properties"]["cash_weight_pct"]["description"]
+    assert summary_schema["properties"]["position_count"]["description"]
+    assert summary_schema["properties"]["cash_balance_count"]["description"]
+    assert cash_balance_schema["properties"]["security_id"]["description"]
+    assert cash_balance_schema["properties"]["instrument_name"]["description"]
+    assert cash_balance_schema["properties"]["currency"]["description"]
+    assert cash_balance_schema["properties"]["quantity"]["description"]
+    assert cash_balance_schema["properties"]["market_value_base"]["description"]
+    assert cash_balance_schema["properties"]["weight_pct"]["description"]
+    assert allocation_bucket_schema["properties"]["bucket"]["description"]
+    assert allocation_bucket_schema["properties"]["position_count"]["description"]
+    assert allocation_bucket_schema["properties"]["market_value_base"]["description"]
+    assert allocation_bucket_schema["properties"]["weight_pct"]["description"]
+    assert allocation_view_schema["properties"]["dimension"]["description"]
+    assert allocation_view_schema["properties"]["buckets"]["description"]
+    assert partial_failure_schema["properties"]["source_service"]["description"]
+    assert partial_failure_schema["properties"]["error_code"]["description"]
+    assert partial_failure_schema["properties"]["detail"]["description"]
+    assert top_position_schema["properties"]["security_id"]["description"]
+    assert top_position_schema["properties"]["instrument_name"]["description"]
+    assert top_position_schema["properties"]["asset_class"]["description"]
+    assert top_position_schema["properties"]["isin"]["description"]
+    assert top_position_schema["properties"]["currency"]["description"]
+    assert top_position_schema["properties"]["quantity"]["description"]
+    assert top_position_schema["properties"]["cost_basis_base"]["description"]
+    assert top_position_schema["properties"]["market_value_base"]["description"]
+    assert top_position_schema["properties"]["weight_pct"]["description"]
+    assert position_view_schema["properties"]["security_id"]["description"]
+    assert position_view_schema["properties"]["instrument_name"]["description"]
+    assert position_view_schema["properties"]["asset_class"]["description"]
+    assert position_view_schema["properties"]["isin"]["description"]
+    assert position_view_schema["properties"]["currency"]["description"]
+    assert position_view_schema["properties"]["sector"]["description"]
+    assert position_view_schema["properties"]["country_of_risk"]["description"]
+    assert position_view_schema["properties"]["held_since_date"]["description"]
+    assert position_view_schema["properties"]["quantity"]["description"]
+    assert position_view_schema["properties"]["market_price"]["description"]
+    assert position_view_schema["properties"]["cost_basis_base"]["description"]
+    assert position_view_schema["properties"]["cost_basis_local"]["description"]
+    assert position_view_schema["properties"]["market_value_base"]["description"]
+    assert position_view_schema["properties"]["market_value_local"]["description"]
+    assert position_view_schema["properties"]["unrealized_gain_loss_base"]["description"]
+    assert position_view_schema["properties"]["unrealized_gain_loss_local"]["description"]
+    assert position_view_schema["properties"]["weight_pct"]["description"]
+    assert position_view_schema["properties"]["reprocessing_status"]["description"]
+    assert transaction_view_schema["properties"]["transaction_id"]["description"]
+    assert transaction_view_schema["properties"]["transaction_date"]["description"]
+    assert transaction_view_schema["properties"]["settlement_date"]["description"]
+    assert transaction_view_schema["properties"]["transaction_type"]["description"]
+    assert transaction_view_schema["properties"]["component_type"]["description"]
+    assert transaction_view_schema["properties"]["security_id"]["description"]
+    assert transaction_view_schema["properties"]["instrument_id"]["description"]
+    assert transaction_view_schema["properties"]["quantity"]["description"]
+    assert transaction_view_schema["properties"]["price"]["description"]
+    assert transaction_view_schema["properties"]["gross_amount"]["description"]
+    assert transaction_view_schema["properties"]["currency"]["description"]
+    assert transaction_view_schema["properties"]["net_cost_base"]["description"]
+    assert transaction_view_schema["properties"]["realized_gain_loss_base"]["description"]
+    assert transaction_view_schema["properties"]["settlement_status"]["description"]
+    assert transaction_view_schema["properties"]["source_system"]["description"]
+    assert transaction_view_schema["properties"]["cash_entry_mode"]["description"]
+    assert transaction_view_schema["properties"]["economic_event_id"]["description"]
+    assert transaction_view_schema["properties"]["linked_transaction_group_id"]["description"]
+    assert transaction_view_schema["properties"]["fx_contract_id"]["description"]
+    assert transaction_view_schema["properties"]["swap_event_id"]["description"]
+    assert transaction_view_schema["properties"]["near_leg_group_id"]["description"]
+    assert transaction_view_schema["properties"]["far_leg_group_id"]["description"]
+    assert performance_schema["properties"]["period"]["description"]
+    assert rebalance_schema["properties"]["status"]["description"]
+    assert reporting_readiness_schema["properties"]["status"]["description"]
+    assert reporting_readiness_schema["properties"]["generated_at_utc"]["description"]
+    assert reporting_readiness_schema["properties"]["generated_at_utc"]["examples"] == [
+        "2026-03-27T12:00:00Z"
+    ]
+    assert reporting_readiness_schema["properties"]["row_count"]["description"]
+    assert reporting_readiness_schema["properties"]["row_count"]["examples"] == [3]
+    assert operational_readiness_schema["properties"]["business_date"]["description"]
+    assert operational_readiness_schema["properties"]["business_date"]["examples"] == ["2026-03-27"]
+    assert operational_readiness_schema["properties"]["latest_booked_transaction_date"][
+        "description"
+    ]
+    assert operational_readiness_schema["properties"]["latest_booked_transaction_date"][
+        "examples"
+    ] == ["2026-03-27"]
+    assert operational_readiness_schema["properties"]["latest_booked_position_snapshot_date"][
+        "description"
+    ]
+    assert operational_readiness_schema["properties"]["latest_booked_position_snapshot_date"][
+        "examples"
+    ] == ["2026-03-27"]
+    assert operational_readiness_schema["properties"]["publish_allowed"]["description"]
+    assert operational_readiness_schema["properties"]["publish_allowed"]["examples"] == [True]
+    assert operational_readiness_schema["properties"]["controls_blocking"]["description"]
+    assert operational_readiness_schema["properties"]["controls_blocking"]["examples"] == [False]
+    assert operational_readiness_schema["properties"]["active_reprocessing_keys"]["description"]
+    assert operational_readiness_schema["properties"]["active_reprocessing_keys"]["examples"] == [0]
+    assert operational_readiness_schema["properties"]["stale_reprocessing_keys"]["description"]
+    assert operational_readiness_schema["properties"]["stale_reprocessing_keys"]["examples"] == [0]
+    assert operational_readiness_schema["properties"]["failed_valuation_jobs_within_window"][
+        "description"
+    ]
+    assert operational_readiness_schema["properties"]["failed_valuation_jobs_within_window"][
+        "examples"
+    ] == [0]
+    assert operational_readiness_schema["properties"]["failed_aggregation_jobs_within_window"][
+        "description"
+    ]
+    assert workspace_control_capabilities_schema["properties"]["historical_snapshots"][
+        "description"
+    ]
+    assert workspace_control_capabilities_schema["properties"]["historical_snapshots"]["examples"]
+    assert workspace_control_capabilities_schema["properties"]["reporting_currency_restatement"][
+        "description"
+    ]
+    assert workspace_control_capabilities_schema["properties"]["reporting_currency_restatement"][
+        "examples"
+    ]
+    assert workspace_historical_capability_schema["properties"]["state"]["description"]
+    assert workspace_historical_capability_schema["properties"]["reason"]["description"]
+    assert workspace_historical_capability_schema["properties"]["requested_as_of_date"][
+        "description"
+    ]
+    assert workspace_historical_capability_schema["properties"]["effective_as_of_date"][
+        "description"
+    ]
+    assert workspace_historical_capability_schema["properties"]["module_capabilities"]["examples"]
+    assert workspace_reporting_currency_capability_schema["properties"]["state"]["description"]
+    assert workspace_reporting_currency_capability_schema["properties"][
+        "effective_reporting_currency"
+    ]["description"]
+    assert workspace_reporting_currency_capability_schema["properties"]["supported_currencies"][
+        "examples"
+    ]
+    assert workspace_module_capability_schema["properties"]["module"]["description"]
+    assert workspace_module_capability_schema["properties"]["state"]["description"]
+    assert workspace_module_capability_schema["properties"]["reason"]["description"]
+    assert workflow_launch_cue_schema["properties"]["key"]["description"]
+    assert workflow_launch_cue_schema["properties"]["label"]["description"]
+    assert workflow_launch_cue_schema["properties"]["href"]["description"]
+    assert readiness_schema["properties"]["blocking_reasons"]["description"]
+    assert readiness_schema["properties"]["indicators"]["description"]
+    assert readiness_schema["properties"]["correlation_id"]["description"]
+    assert readiness_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-readiness"
+    ]
+    assert readiness_schema["properties"]["contract_version"]["description"]
+    assert readiness_schema["properties"]["contract_version"]["default"] == "v1"
+    assert readiness_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert readiness_schema["properties"]["blocking_reasons"]["examples"]
+    assert readiness_schema["properties"]["indicators"]["examples"]
+    assert readiness_indicator_schema["properties"]["status"]["description"]
+    assert insights_path["description"]
+    assert insights_parameters["as_of_date"]["description"]
+    assert insights_schema["properties"]["correlation_id"]["description"]
+    assert insights_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-insights"
+    ]
+    assert insights_schema["properties"]["contract_version"]["description"]
+    assert insights_schema["properties"]["contract_version"]["default"] == "v1"
+    assert insights_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert insights_schema["properties"]["portfolio_id"]["description"]
+    assert insights_schema["properties"]["as_of_date"]["description"]
+    assert insights_schema["properties"]["insights"]["description"]
+    assert insights_schema["properties"]["exception_summaries"]["description"]
+    assert insights_schema["properties"]["insights"]["examples"]
+    assert insights_schema["properties"]["exception_summaries"]["examples"]
+    assert insights_schema["properties"]["insights"]["examples"][0][0]["href"] == (
+        "/risk?portfolioId=PF_1001"
+    )
+    assert insights_schema["properties"]["insights"]["examples"][0][1]["key"] == (
+        "cash-above-target"
+    )
+    assert insights_schema["properties"]["exception_summaries"]["examples"][0][0]["tone"] == (
+        "warn"
+    )
+    assert insights_schema["properties"]["exception_summaries"]["examples"][0][1]["key"] == (
+        "controls_blocking"
+    )
+    assert insight_item_schema["properties"]["key"]["description"]
+    assert insight_item_schema["properties"]["title"]["description"]
+    assert insight_item_schema["properties"]["detail"]["description"]
+    assert insight_item_schema["properties"]["severity"]["description"]
+    assert insight_item_schema["properties"]["severity"]["enum"] == [
+        "info",
+        "warning",
+        "critical",
+    ]
+    assert insight_item_schema["properties"]["href"]["description"]
+    assert exception_item_schema["properties"]["key"]["description"]
+    assert exception_item_schema["properties"]["title"]["description"]
+    assert exception_item_schema["properties"]["detail"]["description"]
+    assert exception_item_schema["properties"]["tone"]["description"]
+    assert exception_item_schema["properties"]["tone"]["enum"] == ["warn", "danger"]
+    assert exception_item_schema["properties"]["href"]["description"]
+    assert book_path["description"]
+    assert book_parameters["as_of_date"]["description"]
+    assert book_parameters["include_projected"]["description"]
+    assert book_parameters["reporting_currency"]["description"]
+    assert book_schema["properties"]["as_of_date"]["description"]
+    assert book_schema["properties"]["portfolio"]["description"]
+    assert book_schema["properties"]["portfolio"]["examples"][0]["base_currency"] == "USD"
+    assert book_schema["properties"]["summary"]["description"]
+    assert book_schema["properties"]["summary"]["examples"][0]["cash_weight_pct"] == 10.0
+    assert book_schema["properties"]["cash_balances"]["description"]
+    assert book_schema["properties"]["cash_balances"]["examples"][0][0]["security_id"] == "CASH_USD"
+    assert liquidity_path["description"]
+    assert liquidity_parameters["as_of_date"]["description"]
+    assert liquidity_parameters["reporting_currency"]["description"]
+    assert liquidity_schema["properties"]["correlation_id"]["description"]
+    assert liquidity_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-liquidity"
+    ]
+    assert liquidity_schema["properties"]["contract_version"]["description"]
+    assert liquidity_schema["properties"]["contract_version"]["default"] == "v1"
+    assert liquidity_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert projected_cashflow_path["description"]
+    assert projected_cashflow_parameters["as_of_date"]["description"]
+    assert projected_cashflow_parameters["horizon_days"]["description"]
+    assert projected_cashflow_parameters["include_projected"]["description"]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/allocations"]["get"][
+        "description"
+    ]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/positions"]["get"][
+        "description"
+    ]
+    assert transactions_path["description"]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/income-summary"]["get"][
+        "description"
+    ]
+    assert spec["paths"]["/api/v1/portfolio/portfolios/{portfolio_id}/activity-summary"]["get"][
+        "description"
+    ]
+    assert book_schema["properties"]["positions"]["description"]
+    assert book_schema["properties"]["allocation_views"]["description"]
+    assert (
+        book_schema["properties"]["allocation_views"]["examples"][0][0]["buckets"][0]["bucket"]
+        == "Equity"
+    )
+    assert book_schema["properties"]["top_positions"]["examples"][0][0]["security_id"] == "EQ_1"
+    assert liquidity_schema["properties"]["as_of_date"]["description"]
+    assert liquidity_schema["properties"]["summary"]["description"]
+    assert (
+        liquidity_schema["properties"]["summary"]["examples"][0]["cash_market_value_base"] == 100.0
+    )
+    assert liquidity_schema["properties"]["cash_balances"]["description"]
+    assert liquidity_schema["properties"]["cash_balances"]["examples"][0][0]["currency"] == "USD"
+    assert liquidity_schema["properties"]["partial_failures"]["description"]
+    assert liquidity_schema["properties"]["warnings"]["description"]
+    assert liquidity_schema["properties"]["cashflow_outlook"]["description"]
+    assert (
+        liquidity_schema["properties"]["cashflow_outlook"]["examples"][0]["upcoming_points"][0][
+            "projection_date"
+        ]
+        == "2026-03-28"
+    )
+    assert liquidity_schema["properties"]["warnings"]["examples"]
+    assert liquidity_schema["properties"]["partial_failures"]["examples"]
+    assert projected_cashflow_schema["properties"]["correlation_id"]["description"]
+    assert projected_cashflow_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-projected-cashflow"
+    ]
+    assert projected_cashflow_schema["properties"]["contract_version"]["description"]
+    assert projected_cashflow_schema["properties"]["contract_version"]["default"] == "v1"
+    assert projected_cashflow_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert projected_cashflow_schema["properties"]["as_of_date"]["description"]
+    assert projected_cashflow_schema["properties"]["cashflow_outlook"]["description"]
+    assert (
+        projected_cashflow_schema["properties"]["cashflow_outlook"]["examples"][0][
+            "projection_days"
+        ]
+        == 30
+    )
+    assert (
+        projected_cashflow_schema["properties"]["cashflow_outlook"]["examples"][0][
+            "upcoming_points"
+        ][0]["net_cashflow_base"]
+        == 25.0
+    )
+    assert projected_cashflow_schema["properties"]["warnings"]["description"]
+    assert projected_cashflow_schema["properties"]["partial_failures"]["description"]
+    assert projected_cashflow_schema["properties"]["warnings"]["examples"]
+    assert projected_cashflow_schema["properties"]["partial_failures"]["examples"]
+    assert cashflow_outlook_schema["properties"]["as_of_date"]["description"]
+    assert cashflow_outlook_schema["properties"]["range_end_date"]["description"]
+    assert cashflow_outlook_schema["properties"]["total_net_cashflow_base"]["description"]
+    assert cashflow_outlook_schema["properties"]["projection_days"]["description"]
+    assert cashflow_outlook_schema["properties"]["include_projected"]["description"]
+    assert cashflow_outlook_schema["properties"]["notes"]["description"]
+    assert cashflow_outlook_schema["properties"]["upcoming_points"]["description"]
+    assert cashflow_point_schema["properties"]["projection_date"]["description"]
+    assert cashflow_point_schema["properties"]["net_cashflow_base"]["description"]
+    assert cashflow_point_schema["properties"]["projected_cumulative_cashflow_base"]["description"]
+    assert allocation_schema["properties"]["as_of_date"]["description"]
+    assert allocation_schema["properties"]["reporting_currency"]["description"]
+    assert allocation_schema["properties"]["look_through"]["description"]
+    assert allocation_schema["properties"]["summary"]["description"]
+    assert allocation_schema["properties"]["views"]["description"]
+    assert allocation_schema["properties"]["correlation_id"]["description"]
+    assert allocation_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-allocation"
+    ]
+    assert allocation_schema["properties"]["contract_version"]["description"]
+    assert allocation_schema["properties"]["contract_version"]["default"] == "v1"
+    assert allocation_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert (
+        allocation_schema["properties"]["summary"]["examples"][0]["cash_market_value_base"] == 100.0
+    )
+    assert allocation_schema["properties"]["views"]["examples"]
+    assert allocation_schema["properties"]["views"]["examples"][0][0]["dimension"] == "region"
+    assert allocation_schema["properties"]["views"]["examples"][0][0]["buckets"][0]["bucket"] == (
+        "Asia"
+    )
+    assert allocation_parameters["reporting_currency"]["description"]
+    assert allocation_parameters["look_through_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["requested_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["effective_mode"]["description"]
+    assert allocation_look_through_schema["properties"]["applied"]["description"]
+    assert position_parameters["include_projected"]["description"]
+    assert position_parameters["reporting_currency"]["description"]
+    assert positions_schema["properties"]["as_of_date"]["description"]
+    assert positions_schema["properties"]["summary"]["description"]
+    assert positions_schema["properties"]["top_positions"]["description"]
+    assert positions_schema["properties"]["positions"]["description"]
+    assert positions_schema["properties"]["correlation_id"]["description"]
+    assert positions_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-positions"
+    ]
+    assert positions_schema["properties"]["contract_version"]["description"]
+    assert positions_schema["properties"]["contract_version"]["default"] == "v1"
+    assert positions_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert positions_schema["properties"]["top_positions"]["examples"]
+    assert positions_schema["properties"]["positions"]["examples"]
+    assert transactions_schema["properties"]["include_projected"]["description"]
+    assert transactions_schema["properties"]["transactions"]["description"]
+    assert transactions_schema["properties"]["correlation_id"]["description"]
+    assert transactions_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-transactions"
+    ]
+    assert transactions_schema["properties"]["contract_version"]["description"]
+    assert transactions_schema["properties"]["contract_version"]["default"] == "v1"
+    assert transactions_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert transactions_schema["properties"]["transactions"]["examples"]
+    assert transaction_parameters["instrument_id"]["description"]
+    assert transaction_parameters["component_type"]["description"]
+    assert transaction_parameters["linked_transaction_group_id"]["description"]
+    assert transaction_parameters["fx_contract_id"]["description"]
+    assert transaction_parameters["swap_event_id"]["description"]
+    assert transaction_parameters["near_leg_group_id"]["description"]
+    assert transaction_parameters["far_leg_group_id"]["description"]
+    assert transaction_parameters["sort_by"]["description"]
+    assert transaction_parameters["sort_order"]["description"]
+    assert income_schema["properties"]["reporting_currency"]["description"]
+    assert income_schema["properties"]["correlation_id"]["description"]
+    assert income_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-income-summary"
+    ]
+    assert income_schema["properties"]["contract_version"]["description"]
+    assert income_schema["properties"]["contract_version"]["default"] == "v1"
+    assert income_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert income_schema["properties"]["window_start_date"]["description"]
+    assert income_schema["properties"]["window_end_date"]["description"]
+    assert income_schema["properties"]["totals_requested_window"]["description"]
+    assert income_schema["properties"]["totals_year_to_date"]["description"]
+    assert income_schema["properties"]["income_types"]["description"]
+    assert income_schema["properties"]["income_types"]["examples"]
+    assert income_parameters["as_of_date"]["description"]
+    assert income_parameters["start_date"]["description"]
+    assert income_parameters["end_date"]["description"]
+    assert income_parameters["reporting_currency"]["description"]
+    assert activity_schema["properties"]["reporting_currency"]["description"]
+    assert activity_schema["properties"]["correlation_id"]["description"]
+    assert activity_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-activity-summary"
+    ]
+    assert activity_schema["properties"]["contract_version"]["description"]
+    assert activity_schema["properties"]["contract_version"]["default"] == "v1"
+    assert activity_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert activity_schema["properties"]["window_start_date"]["description"]
+    assert activity_schema["properties"]["window_end_date"]["description"]
+    assert activity_schema["properties"]["buckets"]["description"]
+    assert activity_schema["properties"]["buckets"]["examples"]
+    assert activity_parameters["as_of_date"]["description"]
+    assert activity_parameters["start_date"]["description"]
+    assert activity_parameters["end_date"]["description"]
+    assert activity_parameters["reporting_currency"]["description"]
+    assert workflow_path["description"]
+    assert workflow_parameters["as_of_date"]["description"]
+    assert workflow_schema["properties"]["correlation_id"]["description"]
+    assert workflow_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-workflow"
+    ]
+    assert workflow_schema["properties"]["contract_version"]["description"]
+    assert workflow_schema["properties"]["contract_version"]["default"] == "v1"
+    assert workflow_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert workflow_schema["properties"]["actions"]["description"]
+    assert workflow_schema["properties"]["actions"]["examples"]
+    assert workflow_schema["properties"]["actions"]["examples"][0][0]["recommended"] is True
+    assert workflow_schema["properties"]["actions"]["examples"][0][1]["title"] == (
+        "Review holdings"
+    )
+    assert workflow_action_schema["properties"]["sequence"]["description"]
+    assert workflow_action_schema["properties"]["title"]["description"]
+    assert workflow_action_schema["properties"]["impact"]["description"]
+    assert workflow_action_schema["properties"]["target"]["description"]
+    assert "cash funding" in workflow_action_schema["properties"]["target"]["examples"][1]
+    assert workflow_action_schema["properties"]["href"]["description"]
+    assert workflow_action_schema["properties"]["href"]["examples"][1] == (
+        "/portfolio?portfolioId=PF_1001#portfolio-drilldown"
+    )
+    assert workflow_action_schema["properties"]["cta_label"]["description"]
+    assert workflow_action_schema["properties"]["recommended"]["description"]
+    assert performance_snapshot_path["description"]
+    assert performance_snapshot_period_parameter["description"]
+    assert performance_snapshot_parameters["chart_frequency"]["description"]
+    assert performance_snapshot_parameters["chart_frequency"]["examples"]["monthly"]["value"] == (
+        "monthly"
+    )
+    assert performance_snapshot_parameters["detail_basis"]["description"]
+    assert performance_snapshot_parameters["detail_basis"]["examples"]["net"]["value"] == "NET"
+    assert performance_snapshot_parameters["benchmark_code"]["description"]
+    assert performance_snapshot_parameters["benchmark_code"]["examples"]["balanced"]["value"] == (
+        "BMK_GLOBAL_BALANCED_60_40"
+    )
+    assert performance_snapshot_parameters["explicit_start_date"]["description"]
+    assert (
+        performance_snapshot_parameters["explicit_start_date"]["examples"]["quarter_start"]["value"]
+        == "2026-01-01"
+    )
+    assert performance_snapshot_parameters["explicit_end_date"]["description"]
+    assert (
+        performance_snapshot_parameters["explicit_end_date"]["examples"]["quarter_end"]["value"]
+        == "2026-03-27"
+    )
+    assert performance_snapshot_schema["properties"]["correlation_id"]["description"]
+    assert performance_snapshot_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-performance-snapshot"
+    ]
+    assert performance_snapshot_schema["properties"]["contract_version"]["description"]
+    assert performance_snapshot_schema["properties"]["contract_version"]["default"] == "v1"
+    assert performance_snapshot_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert performance_snapshot_schema["properties"]["as_of_date"]["description"]
+    assert performance_snapshot_schema["properties"]["report_start_date"]["description"]
+    assert performance_snapshot_schema["properties"]["report_end_date"]["description"]
+    assert performance_snapshot_schema["properties"]["period"]["description"]
+    assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_code"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_code"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["examples"] == [15.1]
+    assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["examples"] == [14.72]
+    assert performance_snapshot_schema["properties"]["excess_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["excess_return_pct"]["examples"] == [0.38]
+    assert performance_snapshot_schema["properties"]["warnings"]["description"]
+    assert performance_snapshot_schema["properties"]["partial_failures"]["description"]
+    assert performance_snapshot_schema["properties"]["sparkline"]["description"]
+    assert performance_snapshot_schema["properties"]["sparkline"]["examples"]
+    assert performance_snapshot_schema["properties"]["unavailable"]["description"]
+    assert performance_snapshot_schema["properties"]["unavailable"]["examples"]
+    assert performance_snapshot_schema["properties"]["warnings"]["examples"]
+    assert performance_snapshot_schema["properties"]["partial_failures"]["examples"]
+    assert performance_snapshot_point_schema["properties"]["as_of_date"]["description"]
+    assert performance_snapshot_point_schema["properties"]["portfolio_return_pct"]["description"]
+    assert performance_snapshot_unavailable_schema["properties"]["title"]["description"]
+    assert performance_snapshot_unavailable_schema["properties"]["detail"]["description"]
+    assert performance_snapshot_unavailable_schema["properties"]["requirements"]["description"]
+    assert book_schema["properties"]["correlation_id"]["description"]
+    assert book_schema["properties"]["correlation_id"]["examples"] == ["corr-portfolio-book"]
+    assert book_schema["properties"]["contract_version"]["description"]
+    assert book_schema["properties"]["contract_version"]["default"] == "v1"
+    assert book_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert book_schema["properties"]["positions"]["examples"]

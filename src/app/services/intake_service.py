@@ -22,6 +22,7 @@ class IntakeService:
         self,
         body: dict[str, Any],
         correlation_id: str,
+        idempotency_key: str | None = None,
     ) -> EnvelopeResponse:
         (
             upstream_status,
@@ -29,6 +30,7 @@ class IntakeService:
         ) = await self._lotus_core_ingestion_client.ingest_portfolio_bundle(
             body=body,
             correlation_id=correlation_id,
+            idempotency_key=idempotency_key,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
@@ -69,37 +71,70 @@ class IntakeService:
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id=correlation_id, data=upstream_payload)
 
-    async def get_portfolio_lookups(self, correlation_id: str) -> LookupResponse:
+    async def get_portfolio_lookups(
+        self,
+        correlation_id: str,
+        *,
+        cif_id: str | None = None,
+        booking_center: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+    ) -> LookupResponse:
         (
             upstream_status,
             upstream_payload,
         ) = await self._lotus_core_query_client.get_portfolio_lookups(
             correlation_id=correlation_id,
+            cif_id=cif_id,
+            booking_center=booking_center,
+            q=q,
+            limit=limit,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._lookup_response(
             correlation_id=correlation_id, upstream_payload=upstream_payload
         )
 
-    async def get_instrument_lookups(self, limit: int, correlation_id: str) -> LookupResponse:
+    async def get_instrument_lookups(
+        self,
+        limit: int,
+        correlation_id: str,
+        *,
+        product_type: str | None = None,
+        q: str | None = None,
+    ) -> LookupResponse:
         (
             upstream_status,
             upstream_payload,
         ) = await self._lotus_core_query_client.get_instrument_lookups(
             limit=limit,
             correlation_id=correlation_id,
+            product_type=product_type,
+            q=q,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._lookup_response(
             correlation_id=correlation_id, upstream_payload=upstream_payload
         )
 
-    async def get_currency_lookups(self, correlation_id: str) -> LookupResponse:
+    async def get_currency_lookups(
+        self,
+        correlation_id: str,
+        *,
+        instrument_page_limit: int | None = None,
+        source: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+    ) -> LookupResponse:
         (
             upstream_status,
             upstream_payload,
         ) = await self._lotus_core_query_client.get_currency_lookups(
             correlation_id=correlation_id,
+            instrument_page_limit=instrument_page_limit,
+            source=source,
+            q=q,
+            limit=limit,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._lookup_response(

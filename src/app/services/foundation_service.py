@@ -11,6 +11,7 @@ from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.foundation import (
     FoundationAllocationBucket,
+    FoundationEvidenceSummary,
     FoundationPartialFailure,
     FoundationPerformanceSummary,
     FoundationPortfolioCatalogItem,
@@ -19,6 +20,7 @@ from app.contracts.foundation import (
     FoundationPortfolioSummary,
     FoundationRebalanceSummary,
     FoundationReportingReadiness,
+    FoundationTopPosition,
     FoundationWorkflowLaunchCue,
     FoundationWorkspaceReadiness,
     FoundationWorkspaceResponse,
@@ -74,21 +76,36 @@ class FoundationService:
         correlation_id: str,
     ) -> FoundationWorkspaceResponse:
         as_of_date = datetime.now(UTC).date().isoformat()
-        pas_status, pas_payload = await self._lotus_core_query_client.get_core_snapshot(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-            consumer_system="lotus-gateway",
-            correlation_id=correlation_id,
+        identity_result, snapshot_result = await asyncio.gather(
+            self._lotus_core_query_client.get_portfolio(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+            self._lotus_core_query_client.get_core_snapshot(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
+            ),
         )
+        identity_status, identity_payload = identity_result
+        if identity_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"lotus-core portfolio identity unavailable: {identity_payload}",
+            )
+
+        pas_status, pas_payload = snapshot_result
         if pas_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"lotus-core foundation snapshot unavailable: {pas_payload}",
             )
 
-        portfolio, summary, allocations, as_of_date = self._parse_core_snapshot(
+        portfolio, summary, allocations, top_positions, as_of_date = self._parse_core_snapshot(
             fallback_portfolio_id=portfolio_id,
+            portfolio_payload=identity_payload,
             payload=pas_payload,
             fallback_as_of_date=as_of_date,
         )
@@ -138,6 +155,10 @@ class FoundationService:
             has_positions=summary.position_count > 0,
             reporting=reporting,
         )
+        evidence = self._build_evidence_summary(
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
 
         return FoundationWorkspaceResponse(
             correlation_id=correlation_id,
@@ -146,10 +167,12 @@ class FoundationService:
             portfolio=portfolio,
             summary=summary,
             allocations=allocations,
+            top_positions=top_positions,
             performance=performance,
             rebalance=rebalance,
             readiness=readiness,
             workflow_cues=self._build_workflow_cues(portfolio_id=portfolio_id),
+            evidence=evidence,
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -181,12 +204,14 @@ class FoundationService:
     def _parse_core_snapshot(
         self,
         fallback_portfolio_id: str,
+        portfolio_payload: dict[str, Any],
         payload: dict[str, Any],
         fallback_as_of_date: str,
     ) -> tuple[
         FoundationPortfolioIdentity,
         FoundationPortfolioSummary,
         list[FoundationAllocationBucket],
+        list[FoundationTopPosition],
         str,
     ]:
         if not isinstance(payload, dict):
@@ -194,11 +219,14 @@ class FoundationService:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Invalid lotus-core foundation snapshot payload structure.",
             )
+        if not isinstance(portfolio_payload, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Invalid lotus-core portfolio identity payload structure.",
+            )
 
-        portfolio_payload = payload.get("portfolio", {})
         sections_payload = payload.get("sections", {})
-        metadata_payload = payload.get("metadata", {})
-        if not isinstance(portfolio_payload, dict) or not isinstance(sections_payload, dict):
+        if not isinstance(sections_payload, dict):
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Invalid lotus-core foundation snapshot payload structure.",
@@ -233,6 +261,7 @@ class FoundationService:
                 enrichment_by_security_id[security_id] = row
 
         allocations_by_asset_class: dict[str, FoundationAllocationBucket] = {}
+        top_positions: list[FoundationTopPosition] = []
         position_count = 0
         for row in baseline_rows:
             if not isinstance(row, dict):
@@ -262,15 +291,40 @@ class FoundationService:
                 bucket.market_value_base = float(
                     quantize_money(current_market_value + market_value)
                 )
+            top_positions.append(
+                FoundationTopPosition(
+                    security_id=security_id or "UNKNOWN_SECURITY",
+                    display_name=str(
+                        enrichment.get("instrument_name")
+                        or enrichment.get("security_name")
+                        or enrichment.get("name")
+                        or security_id
+                        or "Unknown Security"
+                    ),
+                    asset_class=self._optional_str(asset_class),
+                    market_value_base=float(quantize_money(market_value))
+                    if market_value is not None
+                    else None,
+                    weight_pct=float(
+                        quantize_performance((market_value / market_value_base) * 100.0)
+                    )
+                    if market_value is not None and market_value_base > 0
+                    else None,
+                )
+            )
 
         allocations = sorted(allocations_by_asset_class.values(), key=lambda item: item.asset_class)
+        top_positions.sort(
+            key=lambda item: (item.market_value_base is not None, item.market_value_base or 0.0),
+            reverse=True,
+        )
         for bucket in allocations:
             if bucket.market_value_base is not None and market_value_base > 0:
                 bucket.weight_pct = float(
                     quantize_performance((bucket.market_value_base / market_value_base) * 100.0)
                 )
 
-        portfolio_id = str(portfolio_payload.get("portfolio_id", fallback_portfolio_id))
+        portfolio_id = str(payload.get("portfolio_id") or fallback_portfolio_id)
         display_name = str(
             portfolio_payload.get("portfolio_name") or portfolio_payload.get("name") or portfolio_id
         )
@@ -280,7 +334,11 @@ class FoundationService:
             client_id=self._optional_str(
                 portfolio_payload.get("cif_id", portfolio_payload.get("client_id"))
             ),
-            base_currency=str(portfolio_payload.get("base_currency", "USD")),
+            base_currency=str(
+                portfolio_payload.get("base_currency")
+                or self._read_valuation_context_currency(payload, "portfolio_currency")
+                or "USD"
+            ),
             booking_center_code=self._optional_str(
                 portfolio_payload.get(
                     "booking_center",
@@ -294,13 +352,18 @@ class FoundationService:
             cash_weight_pct=cash_weight_pct,
             position_count=position_count,
         )
-        as_of_date = str(
-            payload.get("as_of_date")
-            or metadata_payload.get("as_of_date")
-            or metadata_payload.get("business_date")
-            or fallback_as_of_date
-        )
-        return portfolio, summary, allocations, as_of_date
+        as_of_date = str(payload.get("as_of_date") or fallback_as_of_date)
+        return portfolio, summary, allocations, top_positions[:5], as_of_date
+
+    def _read_valuation_context_currency(
+        self,
+        payload: dict[str, Any],
+        currency_key: str,
+    ) -> str | None:
+        valuation_context = payload.get("valuation_context")
+        if not isinstance(valuation_context, dict):
+            return None
+        return self._optional_str(valuation_context.get(currency_key))
 
     def _parse_performance_result(
         self,
@@ -493,6 +556,32 @@ class FoundationService:
                 href=f"/app/proposal?portfolioId={portfolio_id}",
             ),
         ]
+
+    def _build_evidence_summary(
+        self,
+        *,
+        warnings: list[str],
+        partial_failures: list[FoundationPartialFailure],
+    ) -> FoundationEvidenceSummary:
+        affected_sources = sorted({failure.source_service for failure in partial_failures})
+        if partial_failures or warnings:
+            return FoundationEvidenceSummary(
+                status="partial",
+                summary=(
+                    "Foundation workspace remains usable, but one or more upstream sources "
+                    "are degraded and should be reviewed before advisor use."
+                ),
+                warning_count=len(warnings),
+                partial_failure_count=len(partial_failures),
+                affected_sources=affected_sources,
+            )
+        return FoundationEvidenceSummary(
+            status="ready",
+            summary="Foundation workspace inputs are ready for advisor use.",
+            warning_count=0,
+            partial_failure_count=0,
+            affected_sources=[],
+        )
 
     def _optional_str(self, value: Any) -> str | None:
         if value is None:

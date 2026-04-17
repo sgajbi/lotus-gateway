@@ -97,9 +97,18 @@ def test_workbench_router_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["portfolio"]["client_id"] == "CIF_1001"
+    assert body["portfolio"]["booking_center_code"] == "SG"
+    assert body["overview"]["market_value_base"] == 1000.0
+    assert body["overview"]["cash_weight_pct"] == 25.0
     assert body["overview"]["position_count"] == 2
     assert body["performance_snapshot"]["period"] == "YTD"
+    assert body["performance_snapshot"]["return_pct"] == 2.5
     assert body["rebalance_snapshot"]["status"] == "PENDING_REVIEW"
+    assert body["rebalance_snapshot"]["last_rebalance_run_id"] == "rr_100"
+    assert body["rebalance_snapshot"]["last_run_at_utc"] == "2026-02-23T01:00:00Z"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_router_partial_failure(monkeypatch):
@@ -163,6 +172,12 @@ def test_workbench_router_partial_failure(monkeypatch):
     assert body["performance_snapshot"] is None
     assert body["rebalance_snapshot"] is None
     assert len(body["partial_failures"]) == 2
+    assert body["warnings"] == [
+        "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
+        "MANAGE_REBALANCE_UNAVAILABLE",
+    ]
+    assert body["partial_failures"][0]["source_service"] == "lotus-performance"
+    assert body["partial_failures"][1]["source_service"] == "lotus-manage"
 
 
 def test_workbench_portfolio_360_router(monkeypatch):
@@ -213,8 +228,66 @@ def test_workbench_portfolio_360_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
+    assert body["as_of_date"] == "2026-02-23"
+    assert body["overview"]["market_value_base"] == 1000.0
+    assert body["performance_snapshot"]["return_pct"] == 1.5
+    assert body["rebalance_snapshot"]["status"] == "NOT_AVAILABLE"
     assert len(body["current_positions"]) == 1
+    assert body["current_positions"][0]["security_id"] == "EQ_1"
+    assert body["current_positions"][0]["instrument_name"] == "Equity 1"
+    assert body["current_positions"][0]["asset_class"] == "Equity"
     assert body["current_positions"][0]["market_value_base"] == 500.0
+    assert body["current_positions"][0]["weight_pct"] == 50.0
+    assert body["projected_positions"] == []
+    assert body["projected_summary"] is None
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
+
+
+def test_workbench_portfolio_360_router_preserves_session_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(self, portfolio_id: str, correlation_id: str, session_id: str | None):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["session_id"] = session_id
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "as_of_date": "2026-02-23",
+            "portfolio": {
+                "portfolio_id": portfolio_id,
+                "client_id": "CIF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+            },
+            "overview": {
+                "market_value_base": 1000.0,
+                "cash_weight_pct": 25.0,
+                "position_count": 1,
+            },
+            "current_positions": [],
+            "projected_positions": [],
+            "projected_summary": None,
+            "active_session_id": session_id,
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_portfolio_360",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/portfolio-360?session_id=sess_1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured["portfolio_id"] == "PF_1001"
+    assert captured["session_id"] == "sess_1"
+    assert captured["correlation_id"]
+    assert body["active_session_id"] == "sess_1"
 
 
 def test_workbench_analytics_router(monkeypatch):
@@ -324,9 +397,84 @@ def test_workbench_analytics_router(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["session_id"] == "sess_1"
+    assert body["period"] == "YTD"
     assert body["group_by"] == "ASSET_CLASS"
+    assert body["benchmark_code"] == "MODEL_60_40"
+    assert body["portfolio_return_pct"] == 1.5
+    assert body["benchmark_return_pct"] == 3.1
+    assert body["active_return_pct"] == -1.6
     assert len(body["allocation_buckets"]) >= 1
+    assert body["allocation_buckets"][0]["bucket_key"] == "EQUITY"
+    assert body["allocation_buckets"][0]["delta_quantity"] == 2.0
+    assert body["top_changes"][0]["security_id"] == "EQ_1"
+    assert body["top_changes"][0]["direction"] == "INCREASE"
+    assert "RISK_BFF_PENDING" in body["warnings"]
+    assert any(
+        failure["error_code"] == "RISK_BFF_NOT_IMPLEMENTED" for failure in body["partial_failures"]
+    )
     assert "risk_proxy" not in body
+
+
+def test_workbench_analytics_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        group_by: str,
+        benchmark_code: str,
+        session_id: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["group_by"] = group_by
+        captured["benchmark_code"] = benchmark_code
+        captured["session_id"] = session_id
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "session_id": session_id,
+            "period": period,
+            "group_by": group_by,
+            "benchmark_code": benchmark_code,
+            "portfolio_return_pct": 1.5,
+            "benchmark_return_pct": 3.1,
+            "active_return_pct": -1.6,
+            "allocation_buckets": [],
+            "top_changes": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.workbench_service.WorkbenchService.get_workbench_analytics",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/analytics?period=QTD&group_by=SECTOR"
+        "&benchmark_code=MODEL_70_30&session_id=sess_2"
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": body["correlation_id"],
+        "period": "QTD",
+        "group_by": "SECTOR",
+        "benchmark_code": "MODEL_70_30",
+        "session_id": "sess_2",
+    }
+    assert body["period"] == "QTD"
+    assert body["group_by"] == "SECTOR"
+    assert body["benchmark_code"] == "MODEL_70_30"
 
 
 def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatch):
@@ -376,8 +524,17 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert body["correlation_id"] == "corr-risk-summary"
     assert body["source_service"] == "lotus-risk"
     assert body["state"] == "ready"
+    assert body["payload"]["periods"][0]["portfolio_observation_count"] == 0
+    assert body["payload"]["periods"][0]["benchmark_context"] is None
     assert body["metadata"]["input_mode"] == "stateful"
+    assert body["supportability"][0]["key"] == "portfolio_returns"
+    assert body["supportability"][1]["key"] == "benchmark_returns"
+    assert body["supportability"][2]["key"] == "risk_free_series"
     assert body["payload"]["periods"][0]["metrics"][0]["label"] == "Volatility"
+    assert body["payload"]["periods"][0]["metrics"][0]["value"] == 0.12
+    assert body["payload"]["periods"][0]["metrics"][1]["key"] == "SHARPE"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeypatch):
@@ -469,11 +626,30 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["state"] == "ready"
     assert body["payload"]["portfolio_concentration"]["hhi_current"] == 1200.0
+    assert body["payload"]["portfolio_concentration"]["hhi_delta"] == 25.0
     assert (
         body["payload"]["single_position_concentration"]["top_position_current"]["security_name"]
         == "PIMCO GIS Income Fund"
     )
+    assert (
+        body["payload"]["single_position_concentration"]["top_n_cumulative_weight_proposed"] == 0.52
+    )
+    assert body["payload"]["issuer_concentration"]["coverage_status"] == "complete"
+    assert (
+        body["payload"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
+        == "ULTIMATE_PIMCO"
+    )
+    assert body["payload"]["valuation_context"]["weight_basis"] == "total_market_value_base"
     assert body["payload"]["execution_context"]["issuer_grouping_level"] == "ultimate_parent"
+    assert body["payload"]["execution_context"]["include_cash_positions"] is True
+    assert {item["key"] for item in body["supportability"]} == {
+        "portfolio_positions",
+        "issuer_enrichment",
+        "issuer_grouping",
+        "valuation_basis",
+    }
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
     assert {item["key"]: item["state"] for item in body["supportability"]} == {
         "portfolio_positions": "ready",
         "issuer_enrichment": "ready",
@@ -560,13 +736,19 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "drawdown.v1"
     assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
+    assert body["payload"]["periods"][0]["summary"]["ulcer_index"] == 0.053901
     assert body["payload"]["periods"][0]["episodes"][0]["episode_id"] == "dd_0001"
+    assert body["payload"]["periods"][0]["relative_to_benchmark"]["max_drawdown"] == -0.0821
+    assert body["payload"]["periods"][0]["relative_to_benchmark_context"] is None
     assert len(body["payload"]["periods"][0]["underwater_series"]) == 2
+    assert body["payload"]["analysis_context"]["top_n_episodes"] == 5
     assert {item["key"]: item["state"] for item in body["supportability"]} == {
         "portfolio_returns": "ready",
         "benchmark_relative_drawdown": "ready",
         "underwater_series": "ready",
     }
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(monkeypatch):
@@ -588,6 +770,14 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
                             "window_length": 21,
                             "metric_summaries": {
                                 "ROLLING_VOLATILITY": {
+                                    "total_point_count": 66,
+                                    "computed_point_count": 46,
+                                    "coverage_ratio": 0.697,
+                                    "min_observations_required": 21,
+                                    "warmup_point_count": 20,
+                                    "non_computed_point_count": 20,
+                                    "post_warmup_gap_point_count": 0,
+                                    "latest_observation_date": "2026-04-04",
                                     "latest": 0.1374,
                                     "average": 0.1221,
                                     "minimum": 0.0913,
@@ -605,13 +795,61 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
                                     },
                                 }
                             ],
+                            "metric_series_context": {
+                                "requested": True,
+                                "included": True,
+                                "emitted_point_count": 1,
+                                "reason": "Included for drill-down request.",
+                            },
                         }
                     ],
+                    "benchmark_series_count": 66,
+                    "aligned_benchmark_series_count": 64,
+                    "risk_free_series_count": 65,
+                    "aligned_risk_free_series_count": 65,
+                    "window_lengths_requested": [21, 63, 126, 252],
+                    "window_count_requested": 4,
+                    "window_lengths_emitted": [21],
+                    "window_count_emitted": 1,
+                    "benchmark_context": {
+                        "requested": True,
+                        "available": True,
+                        "aligned": True,
+                        "reason": "APPLIED",
+                    },
+                    "risk_free_context": {
+                        "requested": True,
+                        "available": True,
+                        "aligned": True,
+                        "reason": "APPLIED",
+                    },
                     "quality_flags": ["metric:ROLLING_BETA:benchmark_variance_zero"],
                     "error": None,
                 }
             },
-            "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
+            "metadata": {
+                "contract_version": "v1",
+                "methodology_version": "rolling_metrics.v1",
+                "annualization_basis": 252,
+                "requested_metrics": [
+                    "ROLLING_VOLATILITY",
+                    "ROLLING_BETA",
+                    "ROLLING_SHARPE",
+                ],
+                "window_lengths_requested": [21, 63, 126, 252],
+                "window_count_requested": 4,
+                "alignment_policy": "INNER_JOIN",
+                "min_observations_policy": "STRICT",
+                "include_time_series": True,
+                "benchmark_context": {
+                    "requested": True,
+                    "requested_metrics": ["ROLLING_BETA"],
+                },
+                "risk_free_context": {
+                    "requested": True,
+                    "requested_metrics": ["ROLLING_SHARPE"],
+                },
+            },
         }
 
     monkeypatch.setattr(
@@ -633,7 +871,29 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     assert body["correlation_id"] == "corr-risk-rolling"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
+    assert body["warnings"] == ["RISK_ROLLING_QUALITY_FLAGS"]
+    assert body["partial_failures"] == []
+    assert body["payload"]["request_context"]["include_time_series"] is True
+    assert body["payload"]["request_context"]["requested_metrics"] == [
+        "ROLLING_VOLATILITY",
+        "ROLLING_BETA",
+        "ROLLING_SHARPE",
+    ]
     assert body["payload"]["periods"][0]["window_results"][0]["window_length"] == 21
+    assert (
+        body["payload"]["periods"][0]["window_results"][0]["metric_summaries"][
+            "ROLLING_VOLATILITY"
+        ]["latest"]
+        == 0.1374
+    )
+    assert (
+        body["payload"]["periods"][0]["window_results"][0]["metric_series_context"][
+            "emitted_point_count"
+        ]
+        == 1
+    )
+    assert body["payload"]["periods"][0]["benchmark_context"]["reason"] == "APPLIED"
+    assert body["payload"]["periods"][0]["risk_free_context"]["aligned"] is True
     assert len(body["payload"]["periods"][0]["window_results"][0]["metric_series"]) == 1
     assert body["payload"]["periods"][0]["quality_flags"] == [
         "metric:ROLLING_BETA:benchmark_variance_zero"
@@ -682,15 +942,30 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
                                     "percent_contribution": 0.47,
                                 }
                             ],
-                            "quality_flags": [],
+                            "quality_flags": ["covariance:benchmark_overlap_warning"],
                         }
                     ],
-                    "error": None,
+                    "error": "Benchmark overlap required manual review.",
                 }
             },
             "metadata": {
                 "contract_version": "v1",
                 "methodology_version": "historical_attribution.v1",
+                "covariance_method": "EMPIRICAL",
+                "annualization_basis": 252,
+                "requested_attribution_types": ["ACTIVE_RISK"],
+                "requested_metrics": ["TRACKING_ERROR"],
+                "requested_grouping_dimensions": ["ASSET_CLASS"],
+                "min_observations_policy": "STRICT",
+                "stateful_active_risk_supported_grouping_dimensions": [
+                    "POSITION",
+                    "SECTOR",
+                    "ASSET_CLASS",
+                ],
+                "stateful_active_risk_gated_grouping_dimensions": ["ISSUER"],
+                "stateful_active_risk_gate_reason": (
+                    "Benchmark issuer exposure semantics are not yet approved for active risk."
+                ),
             },
         }
 
@@ -714,13 +989,38 @@ def test_workbench_risk_attribution_router_maps_stateful_attribution(monkeypatch
     assert body["correlation_id"] == "corr-risk-attribution"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "historical_attribution.v1"
+    assert body["warnings"] == ["RISK_ATTRIBUTION_PERIOD_PARTIAL"]
+    assert body["partial_failures"] == [
+        {
+            "source_service": "risk",
+            "error_code": "RISK_ATTRIBUTION_PERIOD_ERROR",
+            "detail": "YTD: Benchmark overlap required manual review.",
+        }
+    ]
     assert body["payload"]["controls"]["selected_attribution_type"] == "ACTIVE_RISK"
     assert body["payload"]["controls"]["selected_grouping_dimension"] == "ASSET_CLASS"
+    assert body["payload"]["methodology_context"]["covariance_method"] == "EMPIRICAL"
+    assert body["payload"]["methodology_context"][
+        "stateful_active_risk_gated_grouping_dimensions"
+    ] == ["ISSUER"]
     assert body["payload"]["periods"][0]["attribution_sets"][0]["metric"] == "TRACKING_ERROR"
+    assert body["payload"]["periods"][0]["attribution_sets"][0]["quality_flags"] == [
+        "covariance:benchmark_overlap_warning"
+    ]
+    assert body["payload"]["periods"][0]["error"] == "Benchmark overlap required manual review."
     assert (
         body["payload"]["periods"][0]["attribution_sets"][0]["contributors"][0]["group_label"]
         == "Equity"
     )
+    controls = {item["key"]: item for item in body["payload"]["controls"]["grouping_dimensions"]}
+    assert controls["ISSUER"]["state"] == "blocked"
+    assert "issuer exposure semantics" in controls["ISSUER"]["reason"]
+    assert {item["key"]: item["state"] for item in body["supportability"]} == {
+        "portfolio_returns": "ready",
+        "exposure_history": "ready",
+        "benchmark_returns": "ready",
+        "benchmark_exposure_context": "ready",
+    }
 
 
 def test_workbench_performance_summary_router(monkeypatch):
@@ -754,7 +1054,32 @@ def test_workbench_performance_summary_router(monkeypatch):
                 "contribution_ranking": {"state": "supported"},
                 "attribution_detail": {"state": "supported"},
                 "contribution_detail": {"state": "supported"},
-                "evidence": {"state": "unavailable"},
+                "evidence": {"state": "supported"},
+            },
+            "evidence_view": {
+                "state": "supported",
+                "reason": "Execution and lineage evidence are exposed.",
+                "calculations": [
+                    {
+                        "calculation_role": "workspace_summary",
+                        "calculation_id": "calc-workspace-summary",
+                        "analytics_type": "WORKSPACE_SUMMARY",
+                        "execution_status": "complete",
+                        "execution_mode": "sync",
+                        "lineage_status": "complete",
+                        "stage_statuses": [],
+                        "upstream_snapshots": [],
+                        "artifacts": [
+                            {
+                                "artifact_name": "request.json",
+                                "url": (
+                                    "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
+                                    "calc-workspace-summary/request.json"
+                                ),
+                            }
+                        ],
+                    }
+                ],
             },
             "portfolio": {
                 "portfolio_id": "PF_1001",
@@ -818,12 +1143,20 @@ def test_workbench_performance_summary_router(monkeypatch):
     assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_contribution_dimension_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
+    assert body["benchmark_options"][0]["benchmark_code"] == "MODEL_60_40"
+    assert body["overview"]["market_value_base"] == 1250000.0
+    assert body["gross_performance"]["portfolio_return_pct"] == 5.88
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
     assert body["net_performance"]["benchmark_input_mode"] == "stateful"
     assert body["money_weighted_return"]["input_mode"] == "stateful"
     assert body["money_weighted_return"]["begin_market_value"] == 1200000.0
     assert body["money_weighted_return"]["flow_adjusted_end_market_value"] == 1208000.0
     assert body["money_weighted_return"]["net_cash_flow"] == 42000.0
+    assert body["capabilities"]["evidence"]["state"] == "supported"
+    assert body["evidence_view"]["calculations"][0]["calculation_role"] == "workspace_summary"
     assert "net_chart" not in body
     assert "contribution" not in body
 
@@ -855,7 +1188,24 @@ def test_workbench_performance_details_router(monkeypatch):
                 "contribution_ranking": {"state": "supported"},
                 "attribution_detail": {"state": "supported"},
                 "contribution_detail": {"state": "supported"},
-                "evidence": {"state": "unavailable"},
+                "evidence": {"state": "partial"},
+            },
+            "evidence_view": {
+                "state": "partial",
+                "reason": "Lineage is still pending for one or more calculations.",
+                "calculations": [
+                    {
+                        "calculation_role": "workspace_summary",
+                        "calculation_id": "calc-workspace-summary",
+                        "analytics_type": "WORKSPACE_SUMMARY",
+                        "execution_status": "complete",
+                        "execution_mode": "sync",
+                        "lineage_status": "pending",
+                        "stage_statuses": [],
+                        "upstream_snapshots": [],
+                        "artifacts": [],
+                    }
+                ],
             },
             "net_chart": [
                 {
@@ -909,10 +1259,294 @@ def test_workbench_performance_details_router(monkeypatch):
     assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_contribution_dimension_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
+    assert body["segment"] == "asset_class"
     assert body["net_chart"][0]["label"] == "2026-01"
+    assert body["gross_chart"] == []
     assert body["contribution"]["coverage_mv_pct"] == 98.7
+    assert body["attribution"]["benchmark_id"] == "MODEL_60_40"
+    assert body["capabilities"]["evidence"]["state"] == "partial"
+    assert body["evidence_view"]["state"] == "partial"
     assert "overview" not in body
     assert "net_performance" not in body
+
+
+def test_workbench_performance_summary_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "detail_basis": detail_basis,
+            "benchmark_code": benchmark_code,
+            "portfolio": {
+                "portfolio_id": portfolio_id,
+                "client_id": "CIF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+            },
+            "overview": {
+                "market_value_base": 1250000.0,
+                "cash_weight_pct": 0.08,
+                "position_count": 42,
+            },
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "supported"},
+            },
+            "net_performance": {
+                "metric_basis": detail_basis,
+                "portfolio_return_pct": 5.42,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.52,
+                "requested_period_supported": True,
+                "requested_chart_frequency_supported": True,
+                "requested_attribution_dimension_supported": True,
+                "benchmark_input_mode": "stateful",
+                "lineage_state": "supported",
+                "net_chart": [],
+                "benchmark_options": [],
+            },
+            "gross_performance": {
+                "metric_basis": "GROSS",
+                "portfolio_return_pct": 5.88,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.98,
+                "benchmark_input_mode": "stateful",
+            },
+            "money_weighted_return": {
+                "input_mode": "stateful",
+                "method": "XIRR",
+                "start_date": "2026-01-01",
+                "end_date": "2026-02-24",
+                "begin_market_value": 1200000.0,
+                "end_market_value": 1250000.0,
+                "beginning_cash_flow": 50000.0,
+                "ending_cash_flow": -8000.0,
+                "flow_adjusted_end_market_value": 1208000.0,
+                "net_cash_flow": 42000.0,
+                "fees": 0.0,
+                "notes": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+            "evidence_view": {"state": "supported", "reason": None, "calculations": []},
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_summary",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/summary"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-performance-summary"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-performance-summary",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
+    assert body["detail_basis"] == "GROSS"
+    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+def test_workbench_performance_details_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "contribution_dimension": contribution_dimension,
+            "attribution_dimension": attribution_dimension,
+            "detail_basis": detail_basis,
+            "segment": attribution_dimension,
+            "benchmark_code": benchmark_code,
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "partial"},
+            },
+            "evidence_view": {
+                "state": "partial",
+                "reason": "Lineage is still pending for one or more calculations.",
+                "calculations": [],
+            },
+            "net_chart": [],
+            "gross_chart": [],
+            "contribution": {
+                "metric_basis": detail_basis,
+                "weighting_scheme": "average_weight",
+                "portfolio_contribution_pct": 5.42,
+                "total_portfolio_return_pct": 5.42,
+                "coverage_mv_pct": 98.7,
+                "levels": [],
+            },
+            "attribution": {
+                "metric_basis": detail_basis,
+                "model": "BF",
+                "linking": "carino",
+                "benchmark_id": benchmark_code,
+                "active_return_pct": 0.52,
+                "sum_of_effects_pct": 0.5,
+                "residual_pct": 0.02,
+                "levels": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_details",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/details"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-performance-details"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-performance-details",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
+    assert body["detail_basis"] == "GROSS"
+    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+def test_workbench_performance_evidence_artifact_router(monkeypatch):
+    captured: dict[str, str] = {}
+
+    async def _artifact(self, calculation_id, artifact_name, correlation_id):
+        captured["calculation_id"] = calculation_id
+        captured["artifact_name"] = artifact_name
+        captured["correlation_id"] = correlation_id
+        return b"col_a,col_b\n1,2\n", "text/csv"
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_evidence_artifact",
+        _artifact,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
+        "calc-workspace-summary/request.json"
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert response.text == "col_a,col_b\n1,2\n"
+    assert captured["calculation_id"] == "calc-workspace-summary"
+    assert captured["artifact_name"] == "request.json"
+    assert captured["correlation_id"]
 
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):
@@ -945,6 +1579,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
             "rows": [
                 {
                     "period": "MTD",
+                    "period_start": "2026-02-01",
+                    "period_end": "2026-02-24",
+                    "net_return_pct": 1.2,
                     "portfolio_return_pct": 1.2,
                     "benchmark_return_pct": 1.0,
                     "active_return_pct": 0.2,
@@ -952,6 +1589,9 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
                 },
                 {
                     "period": "YTD",
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-02-24",
+                    "net_return_pct": 5.4,
                     "portfolio_return_pct": 5.4,
                     "benchmark_return_pct": 4.9,
                     "active_return_pct": 0.5,
@@ -983,9 +1623,84 @@ def test_workbench_performance_horizon_comparison_router(monkeypatch):
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-02-24"
     assert body["chart_frequency"] == "monthly"
+    assert body["detail_basis"] == "NET"
+    assert body["benchmark_code"] == "MODEL_60_40"
+    assert body["benchmark_options"][0]["benchmark_name"] == "Model 60/40"
     assert body["requested_chart_frequency_supported"] is True
     assert body["rows"][0]["period"] == "MTD"
+    assert body["rows"][0]["period_start"] == "2026-02-01"
+    assert body["rows"][0]["portfolio_return_pct"] == 1.2
+    assert body["rows"][0]["net_return_pct"] == 1.2
     assert body["rows"][1]["benchmark_return_pct"] == 4.9
+    assert body["rows"][1]["annualized_return_pct"] == 5.4
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
+
+
+def test_workbench_performance_horizon_comparison_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        chart_frequency: str,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["chart_frequency"] = chart_frequency
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "detail_basis": detail_basis,
+            "chart_frequency": chart_frequency,
+            "requested_chart_frequency_supported": True,
+            "benchmark_code": benchmark_code,
+            "benchmark_options": [],
+            "rows": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_horizon_comparison",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/horizon-comparison"
+        "?period=EXPLICIT&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&chart_frequency=weekly&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-horizon"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-horizon",
+        "period": "EXPLICIT",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "chart_frequency": "weekly",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
 
 
 def test_workbench_performance_attribution_trend_router(monkeypatch):
@@ -1044,10 +1759,89 @@ def test_workbench_performance_attribution_trend_router(monkeypatch):
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
     assert body["chart_frequency"] == "monthly"
+    assert body["detail_basis"] == "NET"
+    assert body["attribution_dimension"] == "asset_class"
+    assert body["benchmark_code"] == "MODEL_60_40"
     assert body["requested_chart_frequency_supported"] is True
     assert body["requested_attribution_dimension_supported"] is True
     assert body["rows"][0]["period_label"] == "2026-01"
+    assert body["rows"][0]["allocation_pct"] == 0.12
+    assert body["rows"][0]["selection_pct"] == 0.08
+    assert body["rows"][0]["interaction_pct"] == 0.02
     assert body["rows"][0]["cumulative_total_effect_pct"] == 0.22
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
+
+
+def test_workbench_performance_attribution_trend_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "detail_basis": detail_basis,
+            "attribution_dimension": attribution_dimension,
+            "requested_chart_frequency_supported": True,
+            "requested_attribution_dimension_supported": True,
+            "benchmark_code": benchmark_code,
+            "rows": [],
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_attribution_trend",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/attribution-trend"
+        "?period=EXPLICIT&chart_frequency=weekly&attribution_dimension=country"
+        "&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-attribution-trend"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-attribution-trend",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
 
 
 def test_workbench_performance_monolithic_route_is_absent_from_openapi():
@@ -1057,6 +1851,251 @@ def test_workbench_performance_monolithic_route_is_absent_from_openapi():
     assert response.status_code == 200
     schema = response.json()
     assert "/api/v1/workbench/{portfolio_id}/performance" not in schema["paths"]
+
+
+def test_workbench_performance_horizon_comparison_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/horizon-comparison"][
+        "get"
+    ]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    response_schema = schema["components"]["schemas"]["PerformanceHorizonComparisonResponse"]
+    row_schema = schema["components"]["schemas"]["PerformanceHorizonComparisonRow"]
+
+    assert "MTD, QTD, and YTD" in route["description"]
+    assert "front-office-safe" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
+    assert period_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-horizon-1"
+    ]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert response_schema["properties"]["rows"]["description"]
+    assert response_schema["properties"]["benchmark_options"]["description"]
+    assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert row_schema["properties"]["period"]["description"]
+    assert row_schema["properties"]["benchmark_return_pct"]["description"]
+    assert row_schema["properties"]["active_return_pct"]["description"]
+    assert response_schema["example"]["rows"][0]["period"] == "MTD"
+    assert (
+        response_schema["example"]["benchmark_options"][0]["benchmark_code"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
+
+
+def test_workbench_performance_evidence_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    artifact_route = schema["paths"][
+        "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}"
+    ]["get"]
+    summary_schema = schema["components"]["schemas"]["PerformanceWorkspaceSummaryResponse"]
+    details_schema = schema["components"]["schemas"]["PerformanceWorkspaceDetailsResponse"]
+    evidence_schema = schema["components"]["schemas"]["PerformanceEvidenceView"]
+    calculation_schema = schema["components"]["schemas"]["PerformanceCalculationEvidenceView"]
+    artifact_schema = schema["components"]["schemas"]["PerformanceEvidenceArtifactView"]
+
+    assert "lineage artifact" in artifact_route["description"]
+    assert summary_schema["properties"]["correlation_id"]["description"]
+    assert summary_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-summary-1"
+    ]
+    assert summary_schema["properties"]["contract_version"]["description"]
+    assert summary_schema["properties"]["contract_version"]["default"] == "v1"
+    assert summary_schema["properties"]["portfolio_id"]["description"]
+    assert summary_schema["properties"]["as_of_date"]["description"]
+    assert summary_schema["properties"]["period"]["description"]
+    assert summary_schema["properties"]["report_start_date"]["description"]
+    assert summary_schema["properties"]["report_end_date"]["description"]
+    assert summary_schema["properties"]["chart_frequency"]["description"]
+    assert summary_schema["properties"]["detail_basis"]["description"]
+    assert summary_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert summary_schema["properties"]["requested_contribution_dimension_supported"]["description"]
+    assert summary_schema["properties"]["requested_attribution_dimension_supported"]["description"]
+    assert summary_schema["properties"]["benchmark_code"]["description"]
+    assert summary_schema["properties"]["benchmark_options"]["description"]
+    assert summary_schema["properties"]["capabilities"]["description"]
+    assert (
+        summary_schema["example"]["benchmark_options"][0]["benchmark_code"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
+    assert summary_schema["example"]["evidence_view"]["state"] == "partial"
+    assert details_schema["properties"]["correlation_id"]["description"]
+    assert details_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-details-1"
+    ]
+    assert details_schema["properties"]["contract_version"]["description"]
+    assert details_schema["properties"]["contract_version"]["default"] == "v1"
+    assert details_schema["properties"]["portfolio_id"]["description"]
+    assert details_schema["properties"]["as_of_date"]["description"]
+    assert details_schema["properties"]["period"]["description"]
+    assert details_schema["properties"]["report_start_date"]["description"]
+    assert details_schema["properties"]["report_end_date"]["description"]
+    assert details_schema["properties"]["chart_frequency"]["description"]
+    assert details_schema["properties"]["contribution_dimension"]["description"]
+    assert details_schema["properties"]["attribution_dimension"]["description"]
+    assert details_schema["properties"]["detail_basis"]["description"]
+    assert details_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert details_schema["properties"]["requested_contribution_dimension_supported"]["description"]
+    assert details_schema["properties"]["requested_attribution_dimension_supported"]["description"]
+    assert details_schema["properties"]["segment"]["description"]
+    assert details_schema["properties"]["benchmark_code"]["description"]
+    assert details_schema["properties"]["capabilities"]["description"]
+    assert details_schema["example"]["segment"] == "asset_class"
+    assert details_schema["example"]["contribution"]["coverage_mv_pct"] == 98.7
+    assert summary_schema["properties"]["evidence_view"]["description"]
+    assert details_schema["properties"]["evidence_view"]["description"]
+    assert details_schema["properties"]["net_chart"]["description"]
+    assert details_schema["properties"]["gross_chart"]["description"]
+    assert details_schema["properties"]["contribution"]["description"]
+    assert details_schema["properties"]["attribution"]["description"]
+    assert details_schema["properties"]["warnings"]["description"]
+    assert details_schema["properties"]["partial_failures"]["description"]
+    assert evidence_schema["properties"]["state"]["description"]
+    assert evidence_schema["properties"]["calculations"]["description"]
+    assert calculation_schema["properties"]["execution_status"]["description"]
+    assert calculation_schema["properties"]["lineage_status"]["description"]
+    assert calculation_schema["properties"]["artifacts"]["description"]
+    assert artifact_schema["properties"]["url"]["description"]
+
+
+def test_workbench_performance_details_attribution_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    details_route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/details"]["get"]
+    attribution_schema = schema["components"]["schemas"]["AttributionSummaryView"]
+    attribution_level_schema = schema["components"]["schemas"]["AttributionLevelView"]
+    attribution_row_schema = schema["components"]["schemas"]["AttributionRowView"]
+
+    assert details_route["description"]
+    assert attribution_schema["properties"]["active_return_pct"]["description"]
+    assert attribution_schema["properties"]["levels"]["description"]
+    assert attribution_level_schema["properties"]["allocation_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["selection_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["interaction_total_pct"]["description"]
+    assert attribution_level_schema["properties"]["total_effect_pct"]["description"]
+    assert (
+        "without gateway-side truncation"
+        in attribution_level_schema["properties"]["rows"]["description"]
+    )
+    assert attribution_row_schema["properties"]["portfolio_weight_avg_pct"]["description"]
+    assert attribution_row_schema["properties"]["benchmark_return_pct"]["description"]
+
+
+def test_workbench_performance_attribution_trend_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/attribution-trend"]["get"]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    dimension_parameter = next(
+        parameter
+        for parameter in route["parameters"]
+        if parameter["name"] == "attribution_dimension"
+    )
+    response_schema = schema["components"]["schemas"]["PerformanceAttributionTrendResponse"]
+    row_schema = schema["components"]["schemas"]["PerformanceAttributionTrendRow"]
+
+    assert "allocation, selection, interaction, and total-effect" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
+    assert period_parameter["description"]
+    assert dimension_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-performance-attribution-1"
+    ]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert response_schema["properties"]["rows"]["description"]
+    assert response_schema["properties"]["requested_chart_frequency_supported"]["description"]
+    assert response_schema["properties"]["requested_attribution_dimension_supported"]["description"]
+    assert row_schema["properties"]["total_effect_pct"]["description"]
+    assert row_schema["properties"]["cumulative_total_effect_pct"]["description"]
+    assert row_schema["properties"]["residual_pct"]["description"]
+    assert response_schema["example"]["rows"][0]["period_label"] == "2026-01"
+    assert response_schema["example"]["rows"][1]["cumulative_total_effect_pct"] == 0.4
+
+
+def test_workbench_performance_advisor_brief_openapi_contract():
+    client = TestClient(app)
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    route = schema["paths"]["/api/v1/workbench/{portfolio_id}/performance/advisor-brief"]["get"]
+    portfolio_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "portfolio_id"
+    )
+    period_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "period"
+    )
+    benchmark_parameter = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "benchmark_code"
+    )
+    response_schema = schema["components"]["schemas"]["AdvisorBriefResponse"]
+    narrative_schema = schema["components"]["schemas"]["AdvisorBriefNarrativeItem"]
+    evidence_ref_schema = schema["components"]["schemas"]["AdvisorBriefEvidenceRef"]
+
+    assert "lotus-ai" in route["description"]
+    assert portfolio_parameter["description"]
+    assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
+    assert period_parameter["description"]
+    assert benchmark_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == ["corr-advisor-brief-1"]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
+    assert response_schema["properties"]["summary"]["description"]
+    assert response_schema["properties"]["talking_points"]["description"]
+    assert response_schema["properties"]["ai_audit"]["description"]
+    assert (
+        response_schema["properties"]["ai_audit"]["examples"][0]["provider_mode"]
+        == "local_openai_compatible"
+    )
+    assert (
+        response_schema["properties"]["ai_evidence"]["examples"][0]["descriptors"][0][
+            "evidence_type"
+        ]
+        == "source_fact_bundle"
+    )
+    assert response_schema["properties"]["supportability"]["description"]
+    assert response_schema["properties"]["warnings"]["examples"] == [["AI_DEGRADED"]]
+    assert (
+        response_schema["properties"]["partial_failures"]["examples"][0][0]["source"]
+        == "lotus-performance"
+    )
+    assert narrative_schema["properties"]["evidence_refs"]["description"]
+    assert evidence_ref_schema["properties"]["source_surface"]["description"]
+    assert response_schema["example"]["source_metrics"][1]["state"] == "partial"
+    assert response_schema["example"]["supportability"][1]["value"] == "Unavailable"
+    assert response_schema["example"]["ai_audit"]["model_id"] == "qwen3:8b"
+    assert response_schema["example"]["partial_failures"][0]["reason"] == "UPSTREAM_TIMEOUT"
 
 
 def test_workbench_performance_advisor_brief_router(monkeypatch):
@@ -1186,7 +2225,96 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert captured_call["explicit_end_date"] == "2026-04-04"
 
 
+def test_workbench_performance_advisor_brief_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return AdvisorBriefResponse(
+            correlation_id=correlation_id,
+            contract_version="v1",
+            portfolio_id=portfolio_id,
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id=portfolio_id,
+                client_id="CIF_1001",
+                base_currency="USD",
+                booking_center_code="SG",
+            ),
+            as_of_date="2026-04-04",
+            period=period,
+            report_start_date=explicit_start_date or "2026-01-01",
+            report_end_date=explicit_end_date or "2026-04-04",
+            detail_basis=detail_basis,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            benchmark_code=benchmark_code,
+            status=AdvisorBriefStatus.READY,
+            summary="Advisor summary.",
+            talking_points=[],
+            recommended_actions=[],
+            risks_and_exceptions=[],
+            source_metrics=[],
+            supportability=[],
+            ai_audit={},
+            ai_evidence={},
+        )
+
+    monkeypatch.setattr(
+        "app.services.advisor_brief_service.AdvisorBriefService.get_performance_advisor_brief",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-advisor-brief"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-advisor-brief",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+
+
 def test_workbench_sandbox_changes_router(monkeypatch):
+    captured_create: dict[str, object] = {}
+    captured_apply: dict[str, object] = {}
+
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD"}
 
@@ -1240,10 +2368,29 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     async def _dpm_simulate(*args, **kwargs):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
 
+    async def _create_session(self, portfolio_id, correlation_id, created_by, ttl_hours):
+        captured_create["portfolio_id"] = portfolio_id
+        captured_create["correlation_id"] = correlation_id
+        captured_create["created_by"] = created_by
+        captured_create["ttl_hours"] = ttl_hours
+        return await _pas_create()
+
+    async def _apply_changes(self, session_id, changes, correlation_id):
+        captured_apply["session_id"] = session_id
+        captured_apply["changes"] = changes
+        captured_apply["correlation_id"] = correlation_id
+        return await _pas_add()
+
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_core_snapshot", _pas_core)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session", _pas_create)
-    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes", _pas_add)
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.create_simulation_session",
+        _create_session,
+    )
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.add_simulation_changes",
+        _apply_changes,
+    )
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
     monkeypatch.setattr(
@@ -1257,10 +2404,23 @@ def test_workbench_sandbox_changes_router(monkeypatch):
 
     client = TestClient(app)
     created = client.post(
-        "/api/v1/workbench/PF_1001/sandbox/sessions", json={"created_by": "advisor_1"}
+        "/api/v1/workbench/PF_1001/sandbox/sessions",
+        json={"created_by": "advisor_1", "ttl_hours": 48},
     )
     assert created.status_code == 200
-    assert created.json()["session_id"] == "sess_1"
+    created_body = created.json()
+    assert created_body["portfolio_id"] == "PF_1001"
+    assert created_body["session_id"] == "sess_1"
+    assert created_body["session_version"] == 1
+    assert created_body["projected_positions"][0]["security_id"] == "EQ_1"
+    assert created_body["projected_summary"]["net_delta_quantity"] == 2.0
+    assert created_body["policy_feedback"] is None
+    assert created_body["warnings"] == []
+    assert created_body["partial_failures"] == []
+    assert captured_create["portfolio_id"] == "PF_1001"
+    assert captured_create["created_by"] == "advisor_1"
+    assert captured_create["ttl_hours"] == 48
+    assert captured_create["correlation_id"]
 
     updated = client.post(
         "/api/v1/workbench/PF_1001/sandbox/sessions/sess_1/changes",
@@ -1273,4 +2433,15 @@ def test_workbench_sandbox_changes_router(monkeypatch):
     body = updated.json()
     assert body["session_id"] == "sess_1"
     assert body["session_version"] == 2
+    assert body["projected_positions"][0]["security_id"] == "EQ_1"
+    assert body["projected_summary"]["total_baseline_positions"] == 1
+    assert body["projected_summary"]["net_delta_quantity"] == 2.0
     assert body["policy_feedback"]["status"] == "PASS"
+    assert body["policy_feedback"]["raw"]["status"] == "COMPLETED"
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
+    assert captured_apply["session_id"] == "sess_1"
+    assert captured_apply["correlation_id"]
+    assert captured_apply["changes"] == [
+        {"security_id": "EQ_1", "transaction_type": "BUY", "quantity": 2.0}
+    ]

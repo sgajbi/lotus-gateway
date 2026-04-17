@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path, Query, Response
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -187,13 +187,19 @@ def _risk_workspace_service() -> RiskWorkspaceService:
     response_model=WorkbenchOverviewResponse,
     summary="Get Workbench Overview",
     description=(
-        "Aggregates lotus-core core snapshot, "
-        "lotus-performance performance snapshot, and latest "
-        "lotus-manage rebalance status into a single "
-        "decision-console overview contract."
+        "Returns the legacy first-paint workbench overview for shells that only need "
+        "portfolio identity, headline valuation, latest performance snapshot, and latest "
+        "rebalance status. Use `portfolio-360` when the caller also needs current positions "
+        "or a sandbox-aware projected state."
     ),
 )
-async def get_workbench_overview(portfolio_id: str) -> WorkbenchOverviewResponse:
+async def get_workbench_overview(
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the legacy workbench overview surface.",
+        examples=["PF_1001"],
+    ),
+) -> WorkbenchOverviewResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_overview(
@@ -207,13 +213,22 @@ async def get_workbench_overview(portfolio_id: str) -> WorkbenchOverviewResponse
     response_model=WorkbenchPortfolio360Response,
     summary="Get Portfolio 360",
     description=(
-        "Returns current portfolio 360 baseline and optional projected state for an active "
-        "simulation session."
+        "Returns the baseline position inventory plus optional projected holdings for an active "
+        "sandbox session. Use this route for live position panels, sandbox comparison, and any "
+        "consumer that needs the same overview context with holdings-level detail attached."
     ),
 )
 async def get_portfolio_360(
-    portfolio_id: str,
-    session_id: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the portfolio-360 surface.",
+        examples=["PF_1001"],
+    ),
+    session_id: str | None = Query(
+        default=None,
+        description="Optional sandbox session identifier used to overlay projected state.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchPortfolio360Response:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
@@ -229,20 +244,39 @@ async def get_portfolio_360(
     response_model=WorkbenchAnalyticsResponse,
     summary="Get Workbench Analytics",
     description=(
-        "Returns lotus-performance-owned analytics for current vs "
-        "projected portfolio state, including grouped allocation "
-        "deltas, top changes, and active return. Stateful risk "
-        "analytics are intentionally excluded from this legacy "
-        "Workbench analytics route and will be served by the "
-        "RFC-0022 Risk BFF."
+        "Returns lotus-performance-owned grouped delta analytics for the baseline and optional "
+        "projected portfolio state, including allocation buckets, top changes, and active "
+        "return context. This route intentionally carries a warning and partial-failure signal "
+        "for the retired legacy risk proxy; stateful risk modules are served by the dedicated "
+        "Gateway Risk BFF routes instead."
     ),
 )
 async def get_workbench_analytics(
-    portfolio_id: str,
-    period: str = "YTD",
-    group_by: str = "ASSET_CLASS",
-    benchmark_code: str = "MODEL_60_40",
-    session_id: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the legacy workbench analytics surface.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Analytics horizon requested for the legacy workbench analytics response.",
+        examples=["YTD"],
+    ),
+    group_by: str = Query(
+        default="ASSET_CLASS",
+        description="Grouping dimension requested for allocation and change analytics.",
+        examples=["ASSET_CLASS"],
+    ),
+    benchmark_code: str = Query(
+        default="MODEL_60_40",
+        description="Benchmark code requested for comparative analytics context.",
+        examples=["MODEL_60_40"],
+    ),
+    session_id: str | None = Query(
+        default=None,
+        description="Optional sandbox session identifier used to compare projected state.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchAnalyticsResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
@@ -261,18 +295,45 @@ async def get_workbench_analytics(
     response_model=WorkbenchRiskSummaryResponse,
     summary="Get Workbench Risk Summary",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench. "
-        "This endpoint uses the RFC-0022 Risk BFF contract and does not expose stateless "
-        "risk execution to the UI."
+        "Returns Gateway-shaped, stateful lotus-risk summary metrics for Workbench first-paint "
+        "risk posture, supportability, and headline measures before the user drills into "
+        "concentration, drawdown, rolling, or attribution. This endpoint uses the RFC-0022 "
+        "Risk BFF contract and does not expose stateless risk execution to the UI. Sharpe "
+        "supportability follows lotus-risk risk-free dependency status; gateway does not "
+        "assume a zero risk-free fallback."
     ),
 )
 async def get_workbench_risk_summary(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the stateful workbench risk summary.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk summary horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for the risk summary metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative risk context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for the risk summary.",
+        examples=["USD"],
+    ),
 ) -> WorkbenchRiskSummaryResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -292,16 +353,41 @@ async def get_workbench_risk_summary(
     response_model=WorkbenchRiskConcentrationResponse,
     summary="Get Workbench Risk Concentration",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk concentration analytics for Workbench. "
-        "Simulation concentration remains gated to a future sandbox-aware slice."
+        "Returns Gateway-shaped, stateful lotus-risk concentration analytics for Workbench "
+        "position, issuer, and coverage concentration review. Use this route when the user "
+        "needs issuer mapping coverage, top-position concentration, or concentration posture "
+        "beyond the headline risk summary. Simulation concentration remains gated to a future "
+        "sandbox-aware slice."
     ),
 )
 async def get_workbench_risk_concentration(
-    portfolio_id: str,
-    period: str = "YTD",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk concentration surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk concentration horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative concentration context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for concentration analytics.",
+        examples=["USD"],
+    ),
 ) -> WorkbenchRiskConcentrationResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -320,18 +406,50 @@ async def get_workbench_risk_concentration(
     response_model=WorkbenchRiskDrawdownResponse,
     summary="Get Workbench Risk Drawdown",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench. "
-        "Underwater series detail is optional and requested on demand to keep first paint lean."
+        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench "
+        "max-drawdown, episode, and benchmark-relative review. Use this route for first-paint "
+        "drawdown posture and request `include_underwater_series=true` only for the heavier "
+        "underwater-path drill-down surface."
     ),
 )
 async def get_workbench_risk_drawdown(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    include_underwater_series: bool = False,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk drawdown surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk drawdown horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for drawdown metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative drawdown context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for drawdown analytics.",
+        examples=["USD"],
+    ),
+    include_underwater_series: bool = Query(
+        default=False,
+        description="Whether to include the heavier underwater-series detail for drill-down flows.",
+        examples=[True],
+    ),
 ) -> WorkbenchRiskDrawdownResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -353,17 +471,52 @@ async def get_workbench_risk_drawdown(
     summary="Get Workbench Risk Rolling Metrics",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
-        "Rolling series detail is optional and requested on demand to keep first paint lean."
+        "Rolling series detail is optional and requested on demand via "
+        "`include_time_series=true` to keep first paint lean. "
+        "If lotus-risk cannot source the risk-free dependency, gateway omits rolling Sharpe "
+        "and surfaces an explicit partial-failure signal."
     ),
 )
 async def get_workbench_risk_rolling(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    include_time_series: bool = False,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench rolling-risk surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Rolling-risk horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for rolling-risk metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative rolling-risk context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for rolling-risk analytics.",
+        examples=["USD"],
+    ),
+    include_time_series: bool = Query(
+        default=False,
+        description=(
+            "Whether to include the heavier rolling time-series detail for drill-down flows."
+        ),
+        examples=[True],
+    ),
 ) -> WorkbenchRiskRollingResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -385,18 +538,61 @@ async def get_workbench_risk_rolling(
     summary="Get Workbench Risk Attribution",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
-        "Only supported stateful attribution combinations are surfaced to the UI."
+        "Use this endpoint for historical total-risk or active-risk decomposition by grouping. "
+        "Active-risk availability is derived from lotus-risk metadata so the UI stays aligned "
+        "with the authoritative domain contract, including benchmark-required and "
+        "grouping-gated combinations."
     ),
 )
 async def get_workbench_risk_attribution(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    attribution_type: str = "TOTAL_RISK",
-    grouping_dimension: str = "SECTOR",
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk attribution surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk attribution horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for risk attribution metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative attribution context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for risk attribution analytics.",
+        examples=["USD"],
+    ),
+    attribution_type: str = Query(
+        default="TOTAL_RISK",
+        description=(
+            "Requested attribution mode such as TOTAL_RISK or ACTIVE_RISK. ACTIVE_RISK "
+            "requires benchmark context."
+        ),
+        examples=["ACTIVE_RISK"],
+    ),
+    grouping_dimension: str = Query(
+        default="SECTOR",
+        description=(
+            "Requested grouping dimension for attribution output. Gateway reflects upstream "
+            "grouping gates in the returned controls and supportability."
+        ),
+        examples=["SECTOR"],
+    ),
 ) -> WorkbenchRiskAttributionResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -418,20 +614,64 @@ async def get_workbench_risk_attribution(
     response_model=PerformanceWorkspaceSummaryResponse,
     summary="Get Performance Workspace Summary",
     description=(
-        "Returns the first-paint performance summary contract with shared context, "
-        "benchmark options, comparative returns, and money-weighted return."
+        "Returns the first-paint performance workspace payload for overview and benchmark-aware "
+        "return panels. Use this route when the consumer needs mandate context, comparative "
+        "performance, money-weighted return, benchmark options, and current evidence posture "
+        "without loading the heavier chart, contribution, and attribution tables."
     ),
 )
 async def get_performance_workspace_summary(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance summary workspace."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Requested performance horizon for the summary workspace.",
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested chart frequency for summary sparkline and supporting modules.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for summary contribution context.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for summary attribution context.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for summary performance metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for summary-relative performance context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit summary window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller requests an explicit summary window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceWorkspaceSummaryResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -454,20 +694,61 @@ async def get_performance_workspace_summary(
     response_model=PerformanceWorkspaceDetailsResponse,
     summary="Get Performance Workspace Details",
     description=(
-        "Returns the heavier analytical detail contract for charts, contribution, and attribution "
-        "panels while reusing the shared performance state model."
+        "Returns the heavier analytical detail payload for chart history, contribution rows, "
+        "attribution rows, and execution evidence. Use this route after the summary route when "
+        "the caller needs drill-down analytics rather than first-paint KPI context only."
     ),
 )
 async def get_performance_workspace_details(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the stateful performance detail workspace.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Requested performance horizon for the analytical detail workspace.",
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested chart frequency for detail charts and time-series modules.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for detailed contribution analytics.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for detailed attribution analytics.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for detailed performance analytics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for detailed relative performance context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit detail window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller requests an explicit detail window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceWorkspaceDetailsResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -486,22 +767,107 @@ async def get_performance_workspace_details(
 
 
 @router.get(
+    "/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}",
+    summary="Download Performance Evidence Artifact",
+    description=(
+        "Downloads a performance lineage artifact through the gateway boundary. "
+        "Artifact links published in `evidence_view.calculations[].artifacts[]` resolve through "
+        "this route, and gateway preserves the upstream content type when the download succeeds. "
+        "Workbench and other downstream clients should use this route instead of calling "
+        "lotus-performance directly."
+    ),
+)
+async def get_performance_evidence_artifact(
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier used to scope the evidence artifact download.",
+        examples=["PF_1001"],
+    ),
+    calculation_id: str = Path(
+        ...,
+        description="Gateway-visible calculation identifier for the requested evidence artifact.",
+        examples=["calc-workspace-summary"],
+    ),
+    artifact_name: str = Path(
+        ...,
+        description="Artifact filename published for the selected calculation.",
+        examples=["request.json"],
+    ),
+) -> Response:
+    _ = portfolio_id
+    service = _performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    content, content_type = await service.get_performance_evidence_artifact(
+        calculation_id=calculation_id,
+        artifact_name=artifact_name,
+        correlation_id=correlation_id,
+    )
+    return Response(content=content, media_type=content_type or "application/octet-stream")
+
+
+@router.get(
     "/{portfolio_id}/performance/horizon-comparison",
     response_model=PerformanceHorizonComparisonResponse,
     summary="Get Performance Horizon Comparison",
     description=(
-        "Returns a compact multi-horizon comparative return module for benchmark-aware "
-        "first-paint analytics panels."
+        "Returns a compact benchmark-aware comparative return module for front-office-safe "
+        "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
+        "analytics surfaces until supportability gating is available through gateway. Use this "
+        "route for compact comparative return tables rather than the full summary or details "
+        "workspace contracts."
     ),
 )
 async def get_performance_horizon_comparison(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    chart_frequency: str = "monthly",
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance horizon-comparison module."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested comparison horizon. Gateway exposes front-office-safe MTD, QTD, and YTD "
+            "rows by default, or EXPLICIT when paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the horizon comparison rows.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested chart frequency for the supporting module context. Unsupported values are "
+            "normalized and reported back in the response."
+        ),
+        examples=["monthly"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller wants an EXPLICIT comparison window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller wants an EXPLICIT comparison window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceHorizonComparisonResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -523,18 +889,71 @@ async def get_performance_horizon_comparison(
     summary="Get Performance Attribution Trend",
     description=(
         "Returns benchmark-relative attribution effects over time for the selected period window "
-        "using a dedicated analytical module contract."
+        "using a dedicated analytical module contract. Use this endpoint when the UI needs "
+        "time-bucketed allocation, selection, interaction, and total-effect context rather than "
+        "the full attribution detail table. This route is the strategic source for analytical "
+        "trend buckets in the performance analysis surface."
     ),
 )
 async def get_performance_attribution_trend(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance attribution-trend module."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested attribution horizon. Use canonical values such as MTD, QTD, YTD, 1Y, or "
+            "EXPLICIT when paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description=(
+            "Requested bucket frequency for the trend chart. Unsupported values are normalized "
+            "and reported back in the response."
+        ),
+        examples=["monthly"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description=(
+            "Requested attribution dimension for the trend analysis, such as asset_class, "
+            "sector, country, or currency."
+        ),
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the attribution trend effects.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller wants an EXPLICIT attribution window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller wants an EXPLICIT attribution window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceAttributionTrendResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -561,15 +980,59 @@ async def get_performance_attribution_trend(
     ),
 )
 async def get_performance_advisor_brief(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance advisor-brief module."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description=(
+            "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
+            "paired with report dates."
+        ),
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested workspace frequency context used to source the advisor brief.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested contribution dimension used to source the advisor brief context.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested attribution dimension used to source the advisor brief context.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Performance basis requested for the advisor brief analytics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description=(
+            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+            "when available."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit start date for an EXPLICIT advisor-brief window.",
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date for an EXPLICIT advisor-brief window.",
+        examples=["2026-04-04"],
+    ),
 ) -> AdvisorBriefResponse:
     service = _advisor_brief_service()
     correlation_id = correlation_id_var.get()
@@ -591,11 +1054,19 @@ async def get_performance_advisor_brief(
     "/{portfolio_id}/sandbox/sessions",
     response_model=WorkbenchSandboxStateResponse,
     summary="Create Workbench Sandbox Session",
-    description="Creates a lotus-core simulation session for iterative advisory lifecycle changes.",
+    description=(
+        "Creates a lotus-core sandbox session for iterative advisory changes and returns the "
+        "projected baseline state immediately. Use this route before the first simulated trade "
+        "or rebalance adjustment for a portfolio."
+    ),
 )
 async def create_sandbox_session(
-    portfolio_id: str,
     request: WorkbenchSandboxSessionCreateRequest,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the sandbox session to be created.",
+        examples=["PF_1001"],
+    ),
 ) -> WorkbenchSandboxStateResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()
@@ -612,14 +1083,23 @@ async def create_sandbox_session(
     response_model=WorkbenchSandboxStateResponse,
     summary="Apply Workbench Sandbox Changes",
     description=(
-        "Applies simulation changes to a sandbox session and returns projected portfolio state "
-        "with optional policy feedback."
+        "Applies ordered sandbox changes to an existing session and returns the refreshed "
+        "projected holdings plus optional policy feedback. Use this route for every incremental "
+        "what-if adjustment after the session exists."
     ),
 )
 async def apply_sandbox_changes(
-    portfolio_id: str,
-    session_id: str,
     request: WorkbenchSandboxApplyChangesRequest,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the sandbox session being updated.",
+        examples=["PF_1001"],
+    ),
+    session_id: str = Path(
+        ...,
+        description="Active sandbox session identifier that will receive the proposed changes.",
+        examples=["sess_1"],
+    ),
 ) -> WorkbenchSandboxStateResponse:
     service = _workbench_service()
     correlation_id = correlation_id_var.get()

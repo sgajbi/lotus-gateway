@@ -20,13 +20,20 @@ def _assert_payload(payload: dict) -> None:
         raise AssertionError(f"Expected no partial failure, got: {payload}")
 
     sources = payload.get("data", {}).get("sources", {})
-    expected = {"lotus_core", "lotus_performance", "lotus_manage", "lotus_report"}
+    expected = {
+        "lotus_core",
+        "lotus_performance",
+        "lotus_risk",
+        "lotus_manage",
+        "lotus_report",
+    }
     if set(sources.keys()) != expected:
         raise AssertionError(f"Expected sources {expected}, got {set(sources.keys())}")
 
     passthrough = {
         "lotus_core": "lotus-core",
         "lotus_performance": "performance-analytics",
+        "lotus_risk": "lotus-risk",
         "lotus_manage": "lotus-advise",
         "lotus_report": "lotus-report",
     }
