@@ -22,6 +22,13 @@ class _StubLotusCoreQueryClient:
             "client_id": "CIF_1",
             "status": "ACTIVE",
             "portfolio_type": "ADVISORY",
+            "risk_exposure": "Moderate Growth",
+            "investment_time_horizon": "Long Term",
+            "objective": "Long-term capital appreciation.",
+            "is_leverage_allowed": False,
+            "advisor_id": "ADV_1001",
+            "open_date": "2024-01-15",
+            "close_date": None,
         }
 
     async def query_assets_under_management(self, **kwargs):
@@ -473,12 +480,24 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.operations is not None
     assert response.cashflow_outlook is not None
     assert response.portfolio.display_name == "Alpha Growth"
+    assert response.profile.status == "ACTIVE"
+    assert response.profile.portfolio_type == "ADVISORY"
+    assert response.profile.risk_exposure == "Moderate Growth"
+    assert response.profile.investment_time_horizon == "Long Term"
+    assert response.profile.objective == "Long-term capital appreciation."
+    assert response.profile.is_leverage_allowed is False
+    assert response.profile.advisor_id == "ADV_1001"
+    assert response.profile.open_date == "2024-01-15"
+    assert response.profile.close_date is None
     assert response.performance is not None
     assert response.performance.return_pct == 2.5
     assert response.rebalance is not None
     assert response.rebalance.status == "PENDING_REVIEW"
     assert response.control_capabilities.historical_snapshots.state == "partial"
-    assert response.control_capabilities.historical_snapshots.earliest_available_as_of_date is None
+    assert (
+        response.control_capabilities.historical_snapshots.earliest_available_as_of_date
+        == "2024-01-15"
+    )
     assert (
         response.control_capabilities.historical_snapshots.module_capabilities[-2].module
         == "performance_snapshot"

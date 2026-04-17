@@ -108,32 +108,42 @@ class PortfolioIdentity(BaseModel):
 
 
 class PortfolioProfile(BaseModel):
-    status: str | None = Field(default=None, description="Optional upstream portfolio status.")
+    status: str | None = Field(
+        default=None,
+        description="Optional upstream portfolio status.",
+        examples=["ACTIVE"],
+    )
     portfolio_type: str | None = Field(
         default=None,
         description="Optional portfolio mandate or operating type.",
+        examples=["ADVISORY"],
     )
     risk_exposure: str | None = Field(
         default=None,
         description=(
             "Optional risk-exposure classification returned by the source portfolio record."
         ),
+        examples=["Moderate Growth"],
     )
     investment_time_horizon: str | None = Field(
         default=None,
         description="Optional investment horizon associated with the portfolio mandate.",
+        examples=["Long Term"],
     )
     objective: str | None = Field(
         default=None,
         description="Optional investment objective associated with the portfolio mandate.",
+        examples=["Long-term capital appreciation."],
     )
     is_leverage_allowed: bool | None = Field(
         default=None,
         description="Whether leverage is permitted for the portfolio when the source exposes it.",
+        examples=[False],
     )
     advisor_id: str | None = Field(
         default=None,
         description="Optional advisor identifier associated with the portfolio.",
+        examples=["ADV_1001"],
     )
     open_date: str | None = Field(
         default=None,

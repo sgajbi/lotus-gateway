@@ -106,6 +106,13 @@ def test_portfolio_workspace_router(monkeypatch):
             "portfolio_name": "Alpha Growth",
             "base_currency": "USD",
             "status": "ACTIVE",
+            "portfolio_type": "ADVISORY",
+            "risk_exposure": "Moderate Growth",
+            "investment_time_horizon": "Long Term",
+            "objective": "Long-term capital appreciation.",
+            "is_leverage_allowed": False,
+            "advisor_id": "ADV_1001",
+            "open_date": "2024-01-15",
         }
 
     async def _query_aum(*args, **kwargs):
@@ -174,6 +181,15 @@ def test_portfolio_workspace_router(monkeypatch):
     body = response.json()
     assert body["portfolio"]["portfolio_id"] == "PF_1001"
     assert body["portfolio"]["display_name"] == "Alpha Growth"
+    assert body["profile"]["status"] == "ACTIVE"
+    assert body["profile"]["portfolio_type"] == "ADVISORY"
+    assert body["profile"]["risk_exposure"] == "Moderate Growth"
+    assert body["profile"]["investment_time_horizon"] == "Long Term"
+    assert body["profile"]["objective"] == "Long-term capital appreciation."
+    assert body["profile"]["is_leverage_allowed"] is False
+    assert body["profile"]["advisor_id"] == "ADV_1001"
+    assert body["profile"]["open_date"] == "2024-01-15"
+    assert body["profile"]["close_date"] is None
     assert body["summary"]["assets_under_management_base"] == 1000.0
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5

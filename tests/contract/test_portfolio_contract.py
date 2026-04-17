@@ -27,7 +27,17 @@ def test_portfolio_workspace_contract_shape() -> None:
             "display_name": "PF_1001",
             "base_currency": "USD",
         },
-        profile={"status": "ACTIVE"},
+        profile={
+            "status": "ACTIVE",
+            "portfolio_type": "ADVISORY",
+            "risk_exposure": "Moderate Growth",
+            "investment_time_horizon": "Long Term",
+            "objective": "Long-term capital appreciation.",
+            "is_leverage_allowed": False,
+            "advisor_id": "ADV_1001",
+            "open_date": "2024-01-15",
+            "close_date": None,
+        },
         summary={
             "assets_under_management_base": 1000.0,
             "invested_market_value_base": 900.0,
@@ -80,6 +90,14 @@ def test_portfolio_workspace_contract_shape() -> None:
     assert payload.performance.return_pct == 2.5
     assert payload.rebalance is not None
     assert payload.rebalance.last_rebalance_run_id == "rr_100"
+    assert payload.profile.portfolio_type == "ADVISORY"
+    assert payload.profile.risk_exposure == "Moderate Growth"
+    assert payload.profile.investment_time_horizon == "Long Term"
+    assert payload.profile.objective == "Long-term capital appreciation."
+    assert payload.profile.is_leverage_allowed is False
+    assert payload.profile.advisor_id == "ADV_1001"
+    assert payload.profile.open_date == "2024-01-15"
+    assert payload.profile.close_date is None
     assert payload.control_capabilities.historical_snapshots.state == "partial"
     assert payload.control_capabilities.reporting_currency_restatement.supported_currencies == [
         "USD",
@@ -584,12 +602,21 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert identity_schema["properties"]["base_currency"]["description"]
     assert identity_schema["properties"]["booking_center_code"]["description"]
     assert profile_schema["properties"]["status"]["description"]
+    assert profile_schema["properties"]["status"]["examples"] == ["ACTIVE"]
     assert profile_schema["properties"]["portfolio_type"]["description"]
+    assert profile_schema["properties"]["portfolio_type"]["examples"] == ["ADVISORY"]
     assert profile_schema["properties"]["risk_exposure"]["description"]
+    assert profile_schema["properties"]["risk_exposure"]["examples"] == ["Moderate Growth"]
     assert profile_schema["properties"]["investment_time_horizon"]["description"]
+    assert profile_schema["properties"]["investment_time_horizon"]["examples"] == ["Long Term"]
     assert profile_schema["properties"]["objective"]["description"]
+    assert profile_schema["properties"]["objective"]["examples"] == [
+        "Long-term capital appreciation."
+    ]
     assert profile_schema["properties"]["is_leverage_allowed"]["description"]
+    assert profile_schema["properties"]["is_leverage_allowed"]["examples"] == [False]
     assert profile_schema["properties"]["advisor_id"]["description"]
+    assert profile_schema["properties"]["advisor_id"]["examples"] == ["ADV_1001"]
     assert profile_schema["properties"]["open_date"]["description"]
     assert profile_schema["properties"]["close_date"]["description"]
     assert summary_schema["properties"]["assets_under_management_base"]["description"]
