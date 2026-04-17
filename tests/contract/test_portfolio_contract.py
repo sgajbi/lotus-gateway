@@ -6,6 +6,7 @@ from app.contracts.portfolio import (
     PortfolioBookResponse,
     PortfolioCatalogResponse,
     PortfolioIncomeSummaryResponse,
+    PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
     PortfolioPerformanceSnapshotResponse,
     PortfolioPositionBookResponse,
@@ -249,10 +250,41 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
             }
         ],
     )
+    insights = PortfolioInsightsResponse(
+        correlation_id="corr-10",
+        portfolio_id="PF_1001",
+        as_of_date="2026-03-27",
+        insights=[
+            {
+                "key": "equity-concentration-high",
+                "title": "Large position dominates portfolio risk",
+                "detail": (
+                    "One holding has become large enough to dominate current portfolio "
+                    "concentration."
+                ),
+                "severity": "warning",
+                "href": "#portfolio-insights",
+            }
+        ],
+        exception_summaries=[
+            {
+                "key": "pricing",
+                "title": "Pricing still pending",
+                "detail": "Valuation and reporting remain blocked until pricing is published.",
+                "tone": "warning",
+                "href": "#portfolio-readiness",
+            }
+        ],
+    )
+    assert readiness.contract_version == "v1"
     assert readiness.indicators[0].key == "holdings"
     assert readiness.pricing is not None
     assert readiness.pricing.reasons[0].code == "pricing_not_published"
     assert readiness.blocking_reasons[0].code == "awaiting_pricing"
+    assert insights.contract_version == "v1"
+    assert insights.insights[0].key == "equity-concentration-high"
+    assert insights.exception_summaries[0].key == "pricing"
+    assert workflow.contract_version == "v1"
     assert workflow.actions[0].recommended is True
 
 
@@ -522,13 +554,31 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_launch_cue_schema["properties"]["href"]["description"]
     assert readiness_schema["properties"]["blocking_reasons"]["description"]
     assert readiness_schema["properties"]["indicators"]["description"]
+    assert readiness_schema["properties"]["correlation_id"]["description"]
+    assert readiness_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-readiness"
+    ]
+    assert readiness_schema["properties"]["contract_version"]["description"]
+    assert readiness_schema["properties"]["contract_version"]["default"] == "v1"
+    assert readiness_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert readiness_schema["properties"]["blocking_reasons"]["examples"]
+    assert readiness_schema["properties"]["indicators"]["examples"]
     assert readiness_indicator_schema["properties"]["status"]["description"]
     assert insights_path["description"]
     assert insights_parameters["as_of_date"]["description"]
+    assert insights_schema["properties"]["correlation_id"]["description"]
+    assert insights_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-insights"
+    ]
+    assert insights_schema["properties"]["contract_version"]["description"]
+    assert insights_schema["properties"]["contract_version"]["default"] == "v1"
+    assert insights_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert insights_schema["properties"]["portfolio_id"]["description"]
     assert insights_schema["properties"]["as_of_date"]["description"]
     assert insights_schema["properties"]["insights"]["description"]
     assert insights_schema["properties"]["exception_summaries"]["description"]
+    assert insights_schema["properties"]["insights"]["examples"]
+    assert insights_schema["properties"]["exception_summaries"]["examples"]
     assert insight_item_schema["properties"]["key"]["description"]
     assert insight_item_schema["properties"]["title"]["description"]
     assert insight_item_schema["properties"]["detail"]["description"]
@@ -635,7 +685,15 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert activity_parameters["reporting_currency"]["description"]
     assert workflow_path["description"]
     assert workflow_parameters["as_of_date"]["description"]
+    assert workflow_schema["properties"]["correlation_id"]["description"]
+    assert workflow_schema["properties"]["correlation_id"]["examples"] == [
+        "corr-portfolio-workflow"
+    ]
+    assert workflow_schema["properties"]["contract_version"]["description"]
+    assert workflow_schema["properties"]["contract_version"]["default"] == "v1"
+    assert workflow_schema["properties"]["contract_version"]["examples"] == ["v1"]
     assert workflow_schema["properties"]["actions"]["description"]
+    assert workflow_schema["properties"]["actions"]["examples"]
     assert workflow_action_schema["properties"]["sequence"]["description"]
     assert workflow_action_schema["properties"]["title"]["description"]
     assert workflow_action_schema["properties"]["impact"]["description"]

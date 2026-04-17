@@ -841,8 +841,15 @@ class PortfolioInsight(BaseModel):
 
 
 class PortfolioReadinessResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the readiness response envelope.",
+        examples=["corr-portfolio-readiness"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway readiness response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose operational readiness is being reported.",
         examples=["PF_1001"],
@@ -870,16 +877,41 @@ class PortfolioReadinessResponse(BaseModel):
     blocking_reasons: list[PortfolioReadinessReason] = Field(
         default_factory=list,
         description="Portfolio-level blocking reasons that prevent the workspace from being ready.",
+        examples=[
+            [
+                {
+                    "code": "awaiting_pricing",
+                    "detail": "Reporting remains blocked until pricing is published.",
+                }
+            ]
+        ],
     )
     indicators: list[PortfolioReadinessIndicator] = Field(
         default_factory=list,
         description="Compact readiness indicators derived for the front-office workspace rails.",
+        examples=[
+            [
+                {
+                    "key": "holdings",
+                    "label": "Holdings",
+                    "status": "Ready",
+                    "href": "#portfolio-insights",
+                }
+            ]
+        ],
     )
 
 
 class PortfolioInsightsResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the insights response envelope.",
+        examples=["corr-portfolio-insights"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway insights response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose insight and exception posture is being summarized.",
         examples=["PF_1001"],
@@ -895,12 +927,37 @@ class PortfolioInsightsResponse(BaseModel):
         description=(
             "Advisor-facing portfolio insights derived from source-backed book and activity state."
         ),
+        examples=[
+            [
+                {
+                    "key": "equity-concentration-high",
+                    "title": "Large position dominates portfolio risk",
+                    "detail": (
+                        "One holding has become large enough to dominate current portfolio "
+                        "concentration."
+                    ),
+                    "severity": "warning",
+                    "href": "#portfolio-insights",
+                }
+            ]
+        ],
     )
     exception_summaries: list[PortfolioExceptionSummary] = Field(
         default_factory=list,
         description=(
             "Compact exception summaries for blocked, empty, or degraded portfolio conditions."
         ),
+        examples=[
+            [
+                {
+                    "key": "pricing",
+                    "title": "Pricing still pending",
+                    "detail": "Valuation and reporting remain blocked until pricing is published.",
+                    "tone": "warning",
+                    "href": "#portfolio-readiness",
+                }
+            ]
+        ],
     )
 
 
@@ -939,8 +996,15 @@ class PortfolioWorkflowAction(BaseModel):
 
 
 class PortfolioWorkflowResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Opaque correlation identifier for the workflow response envelope.",
+        examples=["corr-portfolio-workflow"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Version of the gateway workflow response contract.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose prioritized workflow actions are being returned.",
         examples=["PF_1001"],
@@ -958,6 +1022,22 @@ class PortfolioWorkflowResponse(BaseModel):
             "Prioritized advisor workflow actions derived from the current "
             "portfolio workspace state."
         ),
+        examples=[
+            [
+                {
+                    "sequence": 1,
+                    "title": "Review performance",
+                    "impact": (
+                        "Review portfolio return, benchmark context, and contribution once "
+                        "the book is valued."
+                    ),
+                    "target": "Target: Performance workflow for this portfolio",
+                    "href": "/performance?portfolioId=PF_1001",
+                    "cta_label": "Performance",
+                    "recommended": True,
+                }
+            ]
+        ],
     )
 
 
