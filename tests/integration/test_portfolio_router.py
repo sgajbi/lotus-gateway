@@ -1372,12 +1372,39 @@ def test_portfolio_allocations_router(monkeypatch):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["as_of_date"] == "2026-03-27"
-    assert body["reporting_currency"] == "USD"
-    assert body["look_through"]["requested_mode"] == "full"
-    assert body["look_through"]["effective_mode"] == "direct_only"
-    assert body["views"][0]["dimension"] == "region"
-    assert body["summary"]["cash_market_value_base"] == 100.0
+    assert body == {
+        "correlation_id": body["correlation_id"],
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "reporting_currency": "USD",
+        "look_through": {
+            "requested_mode": "full",
+            "effective_mode": "direct_only",
+            "applied": False,
+        },
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 900.0,
+            "cash_market_value_base": 100.0,
+            "cash_weight_pct": 10.0,
+            "position_count": 2,
+            "cash_balance_count": 1,
+        },
+        "views": [
+            {
+                "dimension": "region",
+                "buckets": [
+                    {
+                        "bucket": "Equity",
+                        "position_count": 1,
+                        "market_value_base": 0.0,
+                        "weight_pct": 70.0,
+                    }
+                ],
+            }
+        ],
+    }
     assert captured["reporting_currency"] == "USD"
     assert captured["positions_reporting_currency"] == "USD"
     assert captured["look_through_mode"] == "full"

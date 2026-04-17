@@ -1526,15 +1526,39 @@ async def test_portfolio_allocations_pass_reporting_currency_and_look_through_mo
 
     assert client.last_reporting_currency == "SGD"
     assert client.last_look_through_mode == "full"
-    assert response.reporting_currency == "SGD"
-    assert response.look_through is not None
-    assert response.look_through.requested_mode == "full"
-    assert response.look_through.effective_mode == "direct_only"
-    assert response.views[0].dimension == "region"
-    assert response.views[0].buckets[0].bucket == "Asia"
-    assert response.views[0].buckets[0].position_count == 1
-    assert response.views[0].buckets[0].market_value_base == 700.0
-    assert response.views[0].buckets[0].weight_pct == 70.0
+    assert response.model_dump() == {
+        "correlation_id": "corr-3c-lookthrough",
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "reporting_currency": "SGD",
+        "look_through": {
+            "requested_mode": "full",
+            "effective_mode": "direct_only",
+            "applied": False,
+        },
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 900.0,
+            "cash_market_value_base": 100.0,
+            "cash_weight_pct": 10.0,
+            "position_count": 3,
+            "cash_balance_count": 1,
+        },
+        "views": [
+            {
+                "dimension": "region",
+                "buckets": [
+                    {
+                        "bucket": "Asia",
+                        "position_count": 1,
+                        "market_value_base": 700.0,
+                        "weight_pct": 70.0,
+                    }
+                ],
+            }
+        ],
+    }
 
 
 @pytest.mark.asyncio

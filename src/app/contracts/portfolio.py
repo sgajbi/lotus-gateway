@@ -1684,6 +1684,16 @@ class PortfolioAllocationResponse(BaseModel):
     )
     summary: PortfolioSummary = Field(
         description="Source-backed summary values used to frame the allocation response.",
+        examples=[
+            {
+                "assets_under_management_base": 1000.0,
+                "invested_market_value_base": 900.0,
+                "cash_market_value_base": 100.0,
+                "cash_weight_pct": 10.0,
+                "position_count": 3,
+                "cash_balance_count": 1,
+            }
+        ],
     )
     views: list[PortfolioAllocationView] = Field(
         default_factory=list,
@@ -1691,13 +1701,13 @@ class PortfolioAllocationResponse(BaseModel):
         examples=[
             [
                 {
-                    "dimension": "asset_class",
+                    "dimension": "region",
                     "buckets": [
                         {
-                            "bucket": "Equity",
-                            "position_count": 3,
-                            "market_value_base": 600.0,
-                            "weight_pct": 60.0,
+                            "bucket": "Asia",
+                            "position_count": 1,
+                            "market_value_base": 700.0,
+                            "weight_pct": 70.0,
                         }
                     ],
                 }

@@ -875,7 +875,14 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert allocation_schema["properties"]["contract_version"]["description"]
     assert allocation_schema["properties"]["contract_version"]["default"] == "v1"
     assert allocation_schema["properties"]["contract_version"]["examples"] == ["v1"]
+    assert (
+        allocation_schema["properties"]["summary"]["examples"][0]["cash_market_value_base"] == 100.0
+    )
     assert allocation_schema["properties"]["views"]["examples"]
+    assert allocation_schema["properties"]["views"]["examples"][0][0]["dimension"] == "region"
+    assert allocation_schema["properties"]["views"]["examples"][0][0]["buckets"][0]["bucket"] == (
+        "Asia"
+    )
     assert allocation_parameters["reporting_currency"]["description"]
     assert allocation_parameters["look_through_mode"]["description"]
     assert allocation_look_through_schema["properties"]["requested_mode"]["description"]
