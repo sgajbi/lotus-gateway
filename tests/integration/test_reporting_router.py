@@ -31,8 +31,14 @@ def test_reporting_snapshot_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolioId"] == "DEMO_DPM_EUR_001"
+    assert body["sourceService"] == "lotus-report"
+    assert body["contractVersion"] == "v1"
+    assert isinstance(body["correlationId"], str)
+    assert body["asOfDate"] == "2026-02-24"
     assert body["generatedAt"].startswith("2026-02-24T07:00:00")
     assert len(body["rows"]) == 2
+    assert body["rows"][0]["metric"] == "market_value_base"
+    assert body["rows"][1]["value"] == 4.2
 
 
 def test_reporting_snapshot_preserves_portfolio_date_and_correlation_context(monkeypatch):
@@ -124,7 +130,11 @@ def test_reporting_summary_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolioId"] == "DEMO_DPM_EUR_001"
+    assert body["sourceService"] == "lotus-report"
+    assert body["contractVersion"] == "v1"
+    assert isinstance(body["correlationId"], str)
     assert body["asOfDate"] == "2026-02-24"
+    assert body["data"]["scope"]["portfolio_id"] == "DEMO_DPM_EUR_001"
     assert body["data"]["wealth"]["total_market_value"] == 123.0
 
 
@@ -199,7 +209,11 @@ def test_reporting_review_success(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["portfolioId"] == "DEMO_DPM_EUR_001"
+    assert body["sourceService"] == "lotus-report"
+    assert body["contractVersion"] == "v1"
+    assert isinstance(body["correlationId"], str)
     assert body["asOfDate"] == "2026-02-24"
+    assert body["data"]["portfolio_id"] == "DEMO_DPM_EUR_001"
     assert body["data"]["overview"]["total_market_value"] == 1000.0
 
 

@@ -126,15 +126,23 @@ def test_reporting_openapi_contract_registered() -> None:
     assert snapshot_schema["properties"]["asOfDate"]["description"]
     assert snapshot_schema["properties"]["generatedAt"]["description"]
     assert snapshot_schema["properties"]["rows"]["description"]
+    assert snapshot_schema["properties"]["rows"]["examples"][0][0]["metric"] == "market_value_base"
     assert summary_schema["properties"]["correlationId"]["description"]
     assert summary_schema["properties"]["contractVersion"]["description"]
     assert summary_schema["properties"]["sourceService"]["description"]
     assert summary_schema["properties"]["portfolioId"]["description"]
     assert summary_schema["properties"]["asOfDate"]["description"]
     assert summary_schema["properties"]["data"]["description"]
+    assert (
+        summary_schema["properties"]["data"]["examples"][0]["wealth"]["total_market_value"] == 123.0
+    )
     assert review_schema["properties"]["correlationId"]["description"]
     assert review_schema["properties"]["contractVersion"]["description"]
     assert review_schema["properties"]["sourceService"]["description"]
     assert review_schema["properties"]["portfolioId"]["description"]
     assert review_schema["properties"]["asOfDate"]["description"]
     assert review_schema["properties"]["data"]["description"]
+    assert (
+        review_schema["properties"]["data"]["examples"][0]["risk_analytics"]["volatility_30d_pct"]
+        == 9.4
+    )

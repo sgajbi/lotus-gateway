@@ -85,6 +85,12 @@ class ReportingSnapshotResponse(BaseModel):
     rows: list[dict] = Field(
         default_factory=list,
         description="Report-ready snapshot rows returned by lotus-report for the portfolio/date.",
+        examples=[
+            [
+                {"bucket": "TOTAL", "metric": "market_value_base", "value": 1250000.0},
+                {"bucket": "TOTAL", "metric": "return_ytd_pct", "value": 4.2},
+            ]
+        ],
     )
 
     model_config = {"populate_by_name": True}
@@ -124,6 +130,16 @@ class ReportingSummaryResponse(BaseModel):
     data: dict = Field(
         default_factory=dict,
         description="Opaque lotus-report summary payload returned unchanged by gateway.",
+        examples=[
+            {
+                "scope": {"portfolio_id": "DEMO_DPM_EUR_001"},
+                "wealth": {"total_market_value": 123.0},
+                "allocation": {
+                    "dimensions": ["asset_class"],
+                    "rows": [{"asset_class": "Equity", "weight_pct": 61.5}],
+                },
+            }
+        ],
     )
 
     model_config = {"populate_by_name": True}
@@ -163,6 +179,14 @@ class ReportingReviewResponse(BaseModel):
     data: dict = Field(
         default_factory=dict,
         description="Opaque lotus-report review payload returned unchanged by gateway.",
+        examples=[
+            {
+                "portfolio_id": "DEMO_DPM_EUR_001",
+                "overview": {"total_market_value": 1000.0},
+                "performance": {"portfolio_return_ytd_pct": 4.2},
+                "risk_analytics": {"volatility_30d_pct": 9.4},
+            }
+        ],
     )
 
     model_config = {"populate_by_name": True}
