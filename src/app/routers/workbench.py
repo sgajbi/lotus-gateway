@@ -353,8 +353,11 @@ async def get_workbench_risk_summary(
     response_model=WorkbenchRiskConcentrationResponse,
     summary="Get Workbench Risk Concentration",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk concentration analytics for Workbench. "
-        "Simulation concentration remains gated to a future sandbox-aware slice."
+        "Returns Gateway-shaped, stateful lotus-risk concentration analytics for Workbench "
+        "position, issuer, and coverage concentration review. Use this route when the user "
+        "needs issuer mapping coverage, top-position concentration, or concentration posture "
+        "beyond the headline risk summary. Simulation concentration remains gated to a future "
+        "sandbox-aware slice."
     ),
 )
 async def get_workbench_risk_concentration(

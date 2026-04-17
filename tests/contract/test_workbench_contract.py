@@ -221,6 +221,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
     assert risk_concentration_parameters["portfolio_id"]["description"]
     assert risk_concentration_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "issuer mapping coverage" in risk_concentration_operation["description"]
     assert risk_concentration_parameters["period"]["description"]
     assert risk_concentration_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_concentration_parameters["period"]["schema"]["examples"] == ["YTD"]
@@ -467,6 +468,47 @@ def test_workbench_openapi_contract_registered() -> None:
     assert supportability_item_schema["properties"]["source_service"]["examples"] == ["lotus-risk"]
     assert metadata_schema["properties"]["generated_at"]["description"]
     assert summary_payload_schema["properties"]["periods"]["description"]
+    concentration_schema = spec["components"]["schemas"]["WorkbenchRiskConcentrationResponse"]
+    concentration_payload_schema = spec["components"]["schemas"][
+        "WorkbenchRiskConcentrationPayload"
+    ]
+    issuer_concentration_schema = spec["components"]["schemas"]["WorkbenchIssuerConcentration"]
+    execution_context_schema = spec["components"]["schemas"][
+        "WorkbenchRiskConcentrationExecutionContext"
+    ]
+    valuation_context_schema = spec["components"]["schemas"][
+        "WorkbenchRiskConcentrationValuationContext"
+    ]
+    single_position_schema = spec["components"]["schemas"]["WorkbenchSinglePositionConcentration"]
+    top_position_schema = spec["components"]["schemas"]["WorkbenchTopPositionDriver"]
+    top_issuer_schema = spec["components"]["schemas"]["WorkbenchTopIssuerDriver"]
+    assert (
+        concentration_schema["example"]["payload"]["issuer_concentration"]["coverage_status"]
+        == "complete"
+    )
+    assert (
+        concentration_schema["example"]["payload"]["execution_context"]["issuer_grouping_level"]
+        == "ultimate_parent"
+    )
+    assert concentration_schema["example"]["supportability"][1]["key"] == "issuer_enrichment"
+    assert (
+        concentration_schema["example"]["partial_failures"][0]["error_code"]
+        == "ISSUER_ENRICHMENT_PARTIAL"
+    )
+    assert concentration_payload_schema["example"]["portfolio_concentration"]["hhi_delta"] == 25.0
+    assert issuer_concentration_schema["properties"]["coverage_ratio_current"]["description"]
+    assert issuer_concentration_schema["properties"]["top_issuer_current"]["description"]
+    assert execution_context_schema["properties"]["enrichment_policy"]["description"]
+    assert valuation_context_schema["properties"]["weight_basis"]["examples"] == [
+        "total_market_value_base"
+    ]
+    assert single_position_schema["properties"]["top_n"]["description"]
+    assert top_position_schema["properties"]["security_name"]["examples"] == [
+        "PIMCO GIS Income Fund"
+    ]
+    assert top_issuer_schema["properties"]["issuer_name"]["examples"] == [
+        "Pacific Investment Management Company LLC"
+    ]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "projected baseline state" in create_operation["description"].lower()

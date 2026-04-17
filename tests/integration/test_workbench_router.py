@@ -626,11 +626,30 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
     assert body["contract_version"] == "risk-workspace.v1"
     assert body["state"] == "ready"
     assert body["payload"]["portfolio_concentration"]["hhi_current"] == 1200.0
+    assert body["payload"]["portfolio_concentration"]["hhi_delta"] == 25.0
     assert (
         body["payload"]["single_position_concentration"]["top_position_current"]["security_name"]
         == "PIMCO GIS Income Fund"
     )
+    assert (
+        body["payload"]["single_position_concentration"]["top_n_cumulative_weight_proposed"] == 0.52
+    )
+    assert body["payload"]["issuer_concentration"]["coverage_status"] == "complete"
+    assert (
+        body["payload"]["issuer_concentration"]["top_issuer_current"]["issuer_id"]
+        == "ULTIMATE_PIMCO"
+    )
+    assert body["payload"]["valuation_context"]["weight_basis"] == "total_market_value_base"
     assert body["payload"]["execution_context"]["issuer_grouping_level"] == "ultimate_parent"
+    assert body["payload"]["execution_context"]["include_cash_positions"] is True
+    assert {item["key"] for item in body["supportability"]} == {
+        "portfolio_positions",
+        "issuer_enrichment",
+        "issuer_grouping",
+        "valuation_basis",
+    }
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
     assert {item["key"]: item["state"] for item in body["supportability"]} == {
         "portfolio_positions": "ready",
         "issuer_enrichment": "ready",
