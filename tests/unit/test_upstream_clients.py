@@ -1056,6 +1056,14 @@ async def test_pas_ingestion_client_upload_paths():
     assert status_commit == 201
     assert _FakeAsyncClient.calls[1]["url"] == "http://pas-ingest/ingest/uploads/preview"
     assert _FakeAsyncClient.calls[2]["url"] == "http://pas-ingest/ingest/uploads/commit"
+    assert _FakeAsyncClient.calls[1]["data"] == {
+        "entity_type": "transactions",
+        "sample_size": "5",
+    }
+    assert _FakeAsyncClient.calls[2]["data"] == {
+        "entity_type": "transactions",
+        "allow_partial": "false",
+    }
 
 
 @pytest.mark.asyncio
@@ -1082,7 +1090,14 @@ async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
     assert preview_payload["detail"] == [{"preview": "row"}]
     assert commit_status == 503
     assert commit_payload["detail"] == "ingestion unavailable"
-    assert _FakeAsyncClient.calls[1]["data"]["allowPartial"] == "true"
+    assert _FakeAsyncClient.calls[0]["data"] == {
+        "entity_type": "transactions",
+        "sample_size": "1",
+    }
+    assert _FakeAsyncClient.calls[1]["data"] == {
+        "entity_type": "transactions",
+        "allow_partial": "true",
+    }
 
 
 @pytest.mark.asyncio
