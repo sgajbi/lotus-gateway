@@ -812,10 +812,20 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_schema["properties"]["top_positions"]["examples"][0][0]["security_id"] == "EQ_1"
     assert liquidity_schema["properties"]["as_of_date"]["description"]
     assert liquidity_schema["properties"]["summary"]["description"]
+    assert (
+        liquidity_schema["properties"]["summary"]["examples"][0]["cash_market_value_base"] == 100.0
+    )
     assert liquidity_schema["properties"]["cash_balances"]["description"]
+    assert liquidity_schema["properties"]["cash_balances"]["examples"][0][0]["currency"] == "USD"
     assert liquidity_schema["properties"]["partial_failures"]["description"]
     assert liquidity_schema["properties"]["warnings"]["description"]
     assert liquidity_schema["properties"]["cashflow_outlook"]["description"]
+    assert (
+        liquidity_schema["properties"]["cashflow_outlook"]["examples"][0]["upcoming_points"][0][
+            "projection_date"
+        ]
+        == "2026-03-28"
+    )
     assert liquidity_schema["properties"]["warnings"]["examples"]
     assert liquidity_schema["properties"]["partial_failures"]["examples"]
     assert projected_cashflow_schema["properties"]["correlation_id"]["description"]

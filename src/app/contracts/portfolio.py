@@ -1510,16 +1510,55 @@ class PortfolioLiquidityResponse(BaseModel):
     )
     summary: PortfolioSummary = Field(
         description="Source-backed summary values used to frame available and invested liquidity.",
+        examples=[
+            {
+                "assets_under_management_base": 1000.0,
+                "invested_market_value_base": 900.0,
+                "cash_market_value_base": 100.0,
+                "cash_weight_pct": 10.0,
+                "position_count": 3,
+                "cash_balance_count": 1,
+            }
+        ],
     )
     cash_balances: list[PortfolioCashBalance] = Field(
         default_factory=list,
         description=(
             "Published cash balance rows for the requested portfolio and reporting currency."
         ),
+        examples=[
+            [
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "currency": "USD",
+                    "quantity": 100.0,
+                    "market_value_base": 100.0,
+                    "weight_pct": 10.0,
+                }
+            ]
+        ],
     )
     cashflow_outlook: PortfolioCashflowOutlook | None = Field(
         default=None,
         description="Projected liquidity path when forward cashflow evidence is available.",
+        examples=[
+            {
+                "as_of_date": "2026-03-27",
+                "range_end_date": "2026-04-06",
+                "total_net_cashflow_base": -25.0,
+                "projection_days": 10,
+                "include_projected": True,
+                "notes": [],
+                "upcoming_points": [
+                    {
+                        "projection_date": "2026-03-28",
+                        "net_cashflow_base": -25.0,
+                        "projected_cumulative_cashflow_base": -25.0,
+                    }
+                ],
+            }
+        ],
     )
     warnings: list[str] = Field(
         default_factory=list,

@@ -1165,10 +1165,41 @@ def test_portfolio_liquidity_router(monkeypatch):
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["as_of_date"] == "2026-03-27"
-    assert body["summary"]["assets_under_management_base"] == 1000.0
-    assert body["cash_balances"][0]["security_id"] == "CASH_USD"
-    assert body["cashflow_outlook"]["projection_days"] == 10
+    assert body == {
+        "correlation_id": body["correlation_id"],
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 900.0,
+            "cash_market_value_base": 100.0,
+            "cash_weight_pct": 10.0,
+            "position_count": 2,
+            "cash_balance_count": 1,
+        },
+        "cash_balances": [
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "currency": "USD",
+                "quantity": 100.0,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            }
+        ],
+        "cashflow_outlook": {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-06",
+            "total_net_cashflow_base": 0.0,
+            "projection_days": 10,
+            "include_projected": True,
+            "notes": None,
+            "upcoming_points": [],
+        },
+        "warnings": [],
+        "partial_failures": [],
+    }
     assert captured["aum_reporting_currency"] == "USD"
     assert captured["cash_reporting_currency"] == "USD"
     assert captured["cashflow_as_of_date"] == "2026-03-27"

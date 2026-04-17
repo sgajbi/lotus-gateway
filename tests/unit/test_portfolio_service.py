@@ -1302,10 +1302,47 @@ async def test_portfolio_liquidity_returns_cash_and_cashflow():
         correlation_id="corr-3b",
         as_of_date="2026-03-27",
     )
-    assert response.summary.cash_market_value_base == 100.0
-    assert response.cash_balances[0].security_id == "CASH_USD"
-    assert response.cashflow_outlook is not None
-    assert response.cashflow_outlook.upcoming_points[0].projection_date == "2026-03-28"
+    assert response.model_dump() == {
+        "correlation_id": "corr-3b",
+        "contract_version": "v1",
+        "portfolio_id": "PF_1001",
+        "as_of_date": "2026-03-27",
+        "summary": {
+            "assets_under_management_base": 1000.0,
+            "invested_market_value_base": 900.0,
+            "cash_market_value_base": 100.0,
+            "cash_weight_pct": 10.0,
+            "position_count": 3,
+            "cash_balance_count": 1,
+        },
+        "cash_balances": [
+            {
+                "security_id": "CASH_USD",
+                "instrument_name": "USD Cash",
+                "currency": "USD",
+                "quantity": 100.0,
+                "market_value_base": 100.0,
+                "weight_pct": 10.0,
+            }
+        ],
+        "cashflow_outlook": {
+            "as_of_date": "2026-03-27",
+            "range_end_date": "2026-04-06",
+            "total_net_cashflow_base": -25.0,
+            "projection_days": 10,
+            "include_projected": True,
+            "notes": None,
+            "upcoming_points": [
+                {
+                    "projection_date": "2026-03-28",
+                    "net_cashflow_base": -25.0,
+                    "projected_cumulative_cashflow_base": -25.0,
+                }
+            ],
+        },
+        "warnings": [],
+        "partial_failures": [],
+    }
     assert client.cashflow_kwargs == {
         "as_of_date": "2026-03-27",
         "include_projected": True,
