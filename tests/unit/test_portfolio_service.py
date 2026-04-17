@@ -429,6 +429,14 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.rebalance.status == "PENDING_REVIEW"
     assert response.control_capabilities.historical_snapshots.state == "partial"
     assert response.control_capabilities.historical_snapshots.earliest_available_as_of_date is None
+    assert (
+        response.control_capabilities.historical_snapshots.module_capabilities[-2].module
+        == "performance_snapshot"
+    )
+    assert (
+        response.control_capabilities.historical_snapshots.module_capabilities[-2].state
+        == "partial"
+    )
     assert response.control_capabilities.historical_snapshots.module_capabilities[-1].module == (
         "rebalance"
     )
@@ -443,6 +451,14 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.control_capabilities.reporting_currency_restatement.supported_currencies == [
         "USD"
     ]
+    assert (
+        response.control_capabilities.reporting_currency_restatement.module_capabilities[-2].module
+        == "performance_snapshot"
+    )
+    assert (
+        response.control_capabilities.reporting_currency_restatement.module_capabilities[-2].state
+        == "unsupported"
+    )
 
 
 @pytest.mark.asyncio

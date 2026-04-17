@@ -154,8 +154,11 @@ async def get_portfolios() -> PortfolioCatalogResponse:
         "Returns the portfolio workspace shell used to open the front-office portfolio page. "
         "Use this endpoint to load the initial portfolio identity, summary, readiness, "
         "cashflow, lightweight performance, and rebalance posture before requesting the more "
-        "detailed book, income, activity, or transaction modules. Invalid readiness filters "
-        "from lotus-core are surfaced as client errors rather than degraded workspace data."
+        "detailed book, income, activity, or transaction modules. The response also publishes "
+        "source-backed workspace control capabilities so downstream clients can decide whether "
+        "As of and Reporting Currency controls are fully supported, partially supported, or "
+        "still unavailable. Invalid readiness filters from lotus-core are surfaced as client "
+        "errors rather than degraded workspace data."
     ),
 )
 async def get_portfolio_workspace(

@@ -1300,9 +1300,69 @@ class PortfolioWorkspaceReportingCurrencyCapability(BaseModel):
 class PortfolioWorkspaceControlCapabilities(BaseModel):
     historical_snapshots: PortfolioWorkspaceHistoricalSnapshotCapability = Field(
         description="Historical as-of capability posture for the portfolio workspace controls.",
+        examples=[
+            {
+                "state": "partial",
+                "reason": (
+                    "Most portfolio modules honor as_of_date, but rebalance and performance "
+                    "snapshot still follow separate control semantics."
+                ),
+                "requested_as_of_date": "2026-03-27",
+                "effective_as_of_date": "2026-03-27",
+                "earliest_available_as_of_date": "2024-01-15",
+                "latest_available_as_of_date": "2026-03-27",
+                "module_capabilities": [
+                    {
+                        "module": "book",
+                        "state": "supported",
+                        "reason": "Book accepts and honors as_of_date directly.",
+                    },
+                    {
+                        "module": "performance_snapshot",
+                        "state": "partial",
+                        "reason": (
+                            "Performance snapshot aligns through explicit report window controls "
+                            "rather than a first-class as_of_date parameter."
+                        ),
+                    },
+                    {
+                        "module": "rebalance",
+                        "state": "unsupported",
+                        "reason": (
+                            "Rebalance shell summary is always sourced from the latest "
+                            "available run."
+                        ),
+                    },
+                ],
+            }
+        ],
     )
     reporting_currency_restatement: PortfolioWorkspaceReportingCurrencyCapability = Field(
         description="Reporting-currency capability posture for the portfolio workspace controls.",
+        examples=[
+            {
+                "state": "partial",
+                "reason": (
+                    "Book-style holdings and transaction modules honor reporting_currency, but "
+                    "workflow, readiness, and performance snapshot do not yet share that control."
+                ),
+                "requested_reporting_currency": "SGD",
+                "effective_reporting_currency": "SGD",
+                "supported_currencies": ["USD", "SGD"],
+                "module_capabilities": [
+                    {
+                        "module": "positions",
+                        "state": "supported",
+                        "reason": "Positions accept and honor reporting_currency directly.",
+                    },
+                    {
+                        "module": "performance_snapshot",
+                        "state": "unsupported",
+                        "reason": "Performance snapshot does not expose reporting_currency.",
+                    },
+                ],
+            }
+        ],
     )
 
 

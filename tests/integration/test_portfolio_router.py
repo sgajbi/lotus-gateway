@@ -143,8 +143,18 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
     assert body["control_capabilities"]["historical_snapshots"]["state"] == "partial"
     assert (
+        body["control_capabilities"]["historical_snapshots"]["module_capabilities"][-2]["module"]
+        == "performance_snapshot"
+    )
+    assert (
         body["control_capabilities"]["historical_snapshots"]["module_capabilities"][-1]["module"]
         == "rebalance"
+    )
+    assert (
+        body["control_capabilities"]["reporting_currency_restatement"]["module_capabilities"][-2][
+            "module"
+        ]
+        == "performance_snapshot"
     )
     assert (
         body["control_capabilities"]["reporting_currency_restatement"][

@@ -630,8 +630,12 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workspace_control_capabilities_schema["properties"]["historical_snapshots"][
         "description"
     ]
+    assert workspace_control_capabilities_schema["properties"]["historical_snapshots"]["examples"]
     assert workspace_control_capabilities_schema["properties"]["reporting_currency_restatement"][
         "description"
+    ]
+    assert workspace_control_capabilities_schema["properties"]["reporting_currency_restatement"][
+        "examples"
     ]
     assert workspace_historical_capability_schema["properties"]["state"]["description"]
     assert workspace_historical_capability_schema["properties"]["reason"]["description"]
