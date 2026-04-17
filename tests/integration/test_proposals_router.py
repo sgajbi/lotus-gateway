@@ -7,7 +7,35 @@ from app.main import app
 def test_proposal_simulate_success(monkeypatch):
     async def _fake_simulate_proposal(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         _ = self, body, idempotency_key, correlation_id
-        return 200, {"status": "READY", "proposal_run_id": "pr_1"}
+        return 200, {
+            "proposal_run_id": "pr_1",
+            "correlation_id": "corr_engine_1",
+            "status": "READY",
+            "before": {"portfolio_value": {"amount": "100000.00", "currency": "USD"}},
+            "intents": [
+                {
+                    "intent_type": "CASH_FLOW",
+                    "intent_id": "oi_cf_1",
+                    "currency": "USD",
+                    "amount": "2000.00",
+                }
+            ],
+            "after_simulated": {"portfolio_value": {"amount": "102000.00", "currency": "USD"}},
+            "reconciliation": {"cash_balance_delta": {"amount": "2000.00", "currency": "USD"}},
+            "rule_results": [{"rule_id": "CASH_BAND", "severity": "SOFT", "status": "PASS"}],
+            "explanation": {"summary": "Within mandate concentration limits."},
+            "diagnostics": {
+                "warnings": [],
+                "data_quality": {"price_missing": [], "fx_missing": []},
+            },
+            "drift_analysis": {"tracking_error_pct": 1.2},
+            "suitability": {"status": "PASS", "issues": []},
+            "gate_decision": {
+                "gate": "CLIENT_CONSENT_REQUIRED",
+                "recommended_next_step": "REQUEST_CLIENT_CONSENT",
+            },
+            "lineage": {"request_hash": "sha256:req-1", "idempotency_key": "idem-1"},
+        }
 
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.simulate_proposal",
@@ -34,6 +62,12 @@ def test_proposal_simulate_success(monkeypatch):
     payload = response.json()
     assert payload["correlation_id"] == "corr-1"
     assert payload["data"]["status"] == "READY"
+    assert payload["data"]["proposal_run_id"] == "pr_1"
+    assert payload["data"]["correlation_id"] == "corr_engine_1"
+    assert payload["data"]["intents"][0]["intent_type"] == "CASH_FLOW"
+    assert payload["data"]["diagnostics"]["data_quality"]["price_missing"] == []
+    assert payload["data"]["gate_decision"]["gate"] == "CLIENT_CONSENT_REQUIRED"
+    assert payload["data"]["lineage"]["idempotency_key"] == "idem-1"
 
 
 def test_proposal_simulate_forwards_upstream_error(monkeypatch):

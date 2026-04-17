@@ -21,9 +21,20 @@ def test_proposals_contract_shape() -> None:
     payload = ProposalSimulateResponse(
         correlation_id="corr_1",
         contract_version="v1",
-        data={"status": "READY", "proposal_run_id": "pr_1"},
+        data={
+            "proposal_run_id": "pr_1",
+            "correlation_id": "corr_engine_1",
+            "status": "READY",
+            "before": {},
+            "intents": [],
+            "after_simulated": {},
+            "rule_results": [],
+            "explanation": {},
+            "diagnostics": {},
+            "lineage": {},
+        },
     )
-    assert payload.data["status"] == "READY"
+    assert payload.data.status == "READY"
 
 
 def test_proposal_read_envelope_contract_shapes() -> None:
@@ -327,6 +338,7 @@ def test_proposals_openapi_write_contract() -> None:
     submit_request_schema = spec["components"]["schemas"]["ProposalSubmitRequest"]
     approval_request_schema = spec["components"]["schemas"]["ProposalApprovalActionRequest"]
     simulate_response_schema = spec["components"]["schemas"]["ProposalSimulateResponse"]
+    simulate_data_schema = spec["components"]["schemas"]["ProposalSimulationData"]
     list_envelope_schema = spec["components"]["schemas"]["ProposalListEnvelopeResponse"]
     detail_envelope_schema = spec["components"]["schemas"]["ProposalDetailEnvelopeResponse"]
     version_envelope_schema = spec["components"]["schemas"]["ProposalVersionEnvelopeResponse"]
@@ -386,9 +398,23 @@ def test_proposals_openapi_write_contract() -> None:
     assert simulate_response_schema["properties"]["contract_version"]["description"]
     assert simulate_response_schema["properties"]["contract_version"]["default"] == "v1"
     assert simulate_response_schema["properties"]["data"]["description"]
-    assert simulate_response_schema["properties"]["data"]["examples"][0]["proposal_run_id"] == (
-        "pr_1"
+    assert simulate_response_schema["properties"]["data"]["$ref"].endswith(
+        "/ProposalSimulationData"
     )
+    assert simulate_data_schema["properties"]["proposal_run_id"]["examples"] == ["pr_1"]
+    assert simulate_data_schema["properties"]["correlation_id"]["examples"] == ["corr_engine_1"]
+    assert simulate_data_schema["properties"]["status"]["examples"] == ["READY"]
+    assert simulate_data_schema["properties"]["before"]["description"]
+    assert simulate_data_schema["properties"]["intents"]["description"]
+    assert simulate_data_schema["properties"]["after_simulated"]["description"]
+    assert simulate_data_schema["properties"]["reconciliation"]["description"]
+    assert simulate_data_schema["properties"]["rule_results"]["description"]
+    assert simulate_data_schema["properties"]["explanation"]["description"]
+    assert simulate_data_schema["properties"]["diagnostics"]["description"]
+    assert simulate_data_schema["properties"]["drift_analysis"]["description"]
+    assert simulate_data_schema["properties"]["suitability"]["description"]
+    assert simulate_data_schema["properties"]["gate_decision"]["description"]
+    assert simulate_data_schema["properties"]["lineage"]["description"]
 
     for schema in (
         list_envelope_schema,

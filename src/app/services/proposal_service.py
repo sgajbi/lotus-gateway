@@ -16,6 +16,7 @@ from app.contracts.proposals import (
     ProposalListData,
     ProposalListEnvelopeResponse,
     ProposalSimulateResponse,
+    ProposalSimulationData,
     ProposalStateTransitionData,
     ProposalStateTransitionEnvelopeResponse,
     ProposalVersionData,
@@ -50,7 +51,7 @@ class ProposalService:
         return ProposalSimulateResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=upstream_payload,
+            data=ProposalSimulationData.model_validate(upstream_payload),
         )
 
     async def create_proposal(

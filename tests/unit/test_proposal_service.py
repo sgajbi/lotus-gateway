@@ -8,6 +8,47 @@ class _FakeDpmClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict]] = []
 
+    async def simulate_proposal(self, body: dict, idempotency_key: str, correlation_id: str):
+        self.calls.append(
+            (
+                "simulate_proposal",
+                {
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal_run_id": "pr_1",
+            "correlation_id": "corr_engine_1",
+            "status": "READY",
+            "before": {"portfolio_value": {"amount": "100000.00", "currency": "USD"}},
+            "intents": [
+                {
+                    "intent_type": "CASH_FLOW",
+                    "intent_id": "oi_cf_1",
+                    "currency": "USD",
+                    "amount": "2000.00",
+                }
+            ],
+            "after_simulated": {"portfolio_value": {"amount": "102000.00", "currency": "USD"}},
+            "reconciliation": {"cash_balance_delta": {"amount": "2000.00", "currency": "USD"}},
+            "rule_results": [{"rule_id": "CASH_BAND", "severity": "SOFT", "status": "PASS"}],
+            "explanation": {"summary": "Within mandate concentration limits."},
+            "diagnostics": {
+                "warnings": [],
+                "data_quality": {"price_missing": [], "fx_missing": []},
+            },
+            "drift_analysis": {"tracking_error_pct": 1.2},
+            "suitability": {"status": "PASS", "issues": []},
+            "gate_decision": {
+                "gate": "CLIENT_CONSENT_REQUIRED",
+                "recommended_next_step": "REQUEST_CLIENT_CONSENT",
+            },
+            "lineage": {"request_hash": "sha256:req-1", "idempotency_key": "idem-simulate-1"},
+        }
+
     async def list_proposals(self, params: dict, correlation_id: str):
         self.calls.append(("list_proposals", {"params": params, "correlation_id": correlation_id}))
         return 200, {
@@ -245,6 +286,25 @@ class _FakeDpmErrorClient(_FakeDpmClient):
     ):
         _ = proposal_id, body, idempotency_key, correlation_id
         return 409, {"detail": "STATE_CONFLICT"}
+
+
+@pytest.mark.asyncio
+async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
+    client = _FakeDpmClient()
+    service = ProposalService(dpm_client=client)
+
+    result = await service.simulate_proposal(
+        body={"portfolio_snapshot": {"portfolio_id": "PF_1001"}},
+        idempotency_key="idem-simulate-1",
+        correlation_id="corr_0",
+    )
+
+    assert result.data.proposal_run_id == "pr_1"
+    assert result.data.status == "READY"
+    assert result.data.gate_decision["gate"] == "CLIENT_CONSENT_REQUIRED"
+    assert result.data.lineage["idempotency_key"] == "idem-simulate-1"
+    _, payload = client.calls[0]
+    assert payload["idempotency_key"] == "idem-simulate-1"
 
 
 @pytest.mark.asyncio
