@@ -98,3 +98,79 @@ def test_proposals_openapi_read_contract() -> None:
     assert events_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert approvals_parameters["proposal_id"]["description"]
     assert approvals_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+
+
+def test_proposals_openapi_write_contract() -> None:
+    client = TestClient(app)
+    spec = client.get("/openapi.json").json()
+
+    simulate_operation = spec["paths"]["/api/v1/proposals/simulate"]["post"]
+    create_operation = spec["paths"]["/api/v1/proposals"]["post"]
+    create_version_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/versions"]["post"]
+    submit_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/submit"]["post"]
+    approve_risk_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/approve-risk"]["post"]
+    approve_compliance_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/approve-compliance"
+    ]["post"]
+    consent_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/record-client-consent"][
+        "post"
+    ]
+
+    simulate_parameters = {
+        parameter["name"]: parameter for parameter in simulate_operation["parameters"]
+    }
+    create_parameters = {
+        parameter["name"]: parameter for parameter in create_operation["parameters"]
+    }
+    create_version_parameters = {
+        parameter["name"]: parameter for parameter in create_version_operation["parameters"]
+    }
+    submit_parameters = {
+        parameter["name"]: parameter for parameter in submit_operation["parameters"]
+    }
+    approve_risk_parameters = {
+        parameter["name"]: parameter for parameter in approve_risk_operation["parameters"]
+    }
+    approve_compliance_parameters = {
+        parameter["name"]: parameter for parameter in approve_compliance_operation["parameters"]
+    }
+    consent_parameters = {
+        parameter["name"]: parameter for parameter in consent_operation["parameters"]
+    }
+
+    assert "idempotency" in simulate_operation["description"].lower()
+    assert simulate_parameters["Idempotency-Key"]["description"]
+    assert simulate_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-simulate-1"]
+
+    assert "idempotency" in create_operation["description"].lower()
+    assert create_parameters["Idempotency-Key"]["description"]
+    assert create_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-create-1"]
+
+    assert create_version_parameters["proposal_id"]["description"]
+    assert create_version_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert create_version_parameters["Idempotency-Key"]["description"]
+    assert create_version_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-version-2"]
+
+    assert submit_parameters["proposal_id"]["description"]
+    assert submit_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert submit_parameters["Idempotency-Key"]["description"]
+    assert submit_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-submit-1"]
+
+    assert approve_risk_parameters["proposal_id"]["description"]
+    assert approve_risk_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert approve_risk_parameters["Idempotency-Key"]["description"]
+    assert approve_risk_parameters["Idempotency-Key"]["schema"]["examples"] == [
+        "idem-approve-risk-1"
+    ]
+
+    assert approve_compliance_parameters["proposal_id"]["description"]
+    assert approve_compliance_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert approve_compliance_parameters["Idempotency-Key"]["description"]
+    assert approve_compliance_parameters["Idempotency-Key"]["schema"]["examples"] == [
+        "idem-approve-compliance-1"
+    ]
+
+    assert consent_parameters["proposal_id"]["description"]
+    assert consent_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert consent_parameters["Idempotency-Key"]["description"]
+    assert consent_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-client-consent-1"]

@@ -29,10 +29,22 @@ def _proposal_service() -> ProposalService:
     )
 
 
-@router.post("/simulate", response_model=ProposalSimulateResponse)
+@router.post(
+    "/simulate",
+    response_model=ProposalSimulateResponse,
+    summary="Simulate Proposal",
+    description=(
+        "Runs proposal simulation through lotus-manage using a caller-supplied idempotency key "
+        "to protect against duplicate submission."
+    ),
+)
 async def simulate_proposal(
     request: ProposalSimulateRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal simulation requests.",
+        examples=["idem-simulate-1"],
+    ),
 ) -> ProposalSimulateResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -43,10 +55,22 @@ async def simulate_proposal(
     )
 
 
-@router.post("", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal",
+    description=(
+        "Creates a new advisory proposal draft in lotus-manage using a caller-supplied "
+        "idempotency key."
+    ),
+)
 async def create_proposal(
     request: ProposalCreateRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal creation requests.",
+        examples=["idem-create-1"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -181,11 +205,24 @@ async def get_proposal_version(
     )
 
 
-@router.post("/{proposal_id}/versions", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "/{proposal_id}/versions",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal Version",
+    description="Creates the next persisted version for an existing advisory proposal.",
+)
 async def create_proposal_version(
-    proposal_id: str,
     request: ProposalVersionCreateRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal-version creation requests.",
+        examples=["idem-version-2"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -197,11 +234,24 @@ async def create_proposal_version(
     )
 
 
-@router.post("/{proposal_id}/submit", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "/{proposal_id}/submit",
+    response_model=ProposalEnvelopeResponse,
+    summary="Submit Proposal",
+    description="Submits a proposal into the next workflow review state.",
+)
 async def submit_proposal(
-    proposal_id: str,
     request: ProposalSubmitRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal workflow submission requests.",
+        examples=["idem-submit-1"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -217,11 +267,24 @@ async def submit_proposal(
     )
 
 
-@router.post("/{proposal_id}/approve-risk", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "/{proposal_id}/approve-risk",
+    response_model=ProposalEnvelopeResponse,
+    summary="Approve Proposal Risk Review",
+    description="Records the risk approval decision for a proposal in risk review.",
+)
 async def approve_risk(
-    proposal_id: str,
     request: ProposalApprovalActionRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal risk-approval requests.",
+        examples=["idem-approve-risk-1"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -236,11 +299,24 @@ async def approve_risk(
     )
 
 
-@router.post("/{proposal_id}/approve-compliance", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "/{proposal_id}/approve-compliance",
+    response_model=ProposalEnvelopeResponse,
+    summary="Approve Proposal Compliance Review",
+    description="Records the compliance approval decision for a proposal in compliance review.",
+)
 async def approve_compliance(
-    proposal_id: str,
     request: ProposalApprovalActionRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal compliance-approval requests.",
+        examples=["idem-approve-compliance-1"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
@@ -255,11 +331,24 @@ async def approve_compliance(
     )
 
 
-@router.post("/{proposal_id}/record-client-consent", response_model=ProposalEnvelopeResponse)
+@router.post(
+    "/{proposal_id}/record-client-consent",
+    response_model=ProposalEnvelopeResponse,
+    summary="Record Proposal Client Consent",
+    description="Records client consent for a proposal that has completed internal approvals.",
+)
 async def record_client_consent(
-    proposal_id: str,
     request: ProposalApprovalActionRequest,
-    idempotency_key: str = Header(alias="Idempotency-Key"),
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for client-consent recording requests.",
+        examples=["idem-client-consent-1"],
+    ),
 ) -> ProposalEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
