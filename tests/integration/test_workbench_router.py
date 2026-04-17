@@ -736,13 +736,19 @@ def test_workbench_risk_drawdown_router_maps_stateful_drawdown_and_detail_flag(m
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "drawdown.v1"
     assert body["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
+    assert body["payload"]["periods"][0]["summary"]["ulcer_index"] == 0.053901
     assert body["payload"]["periods"][0]["episodes"][0]["episode_id"] == "dd_0001"
+    assert body["payload"]["periods"][0]["relative_to_benchmark"]["max_drawdown"] == -0.0821
+    assert body["payload"]["periods"][0]["relative_to_benchmark_context"] is None
     assert len(body["payload"]["periods"][0]["underwater_series"]) == 2
+    assert body["payload"]["analysis_context"]["top_n_episodes"] == 5
     assert {item["key"]: item["state"] for item in body["supportability"]} == {
         "portfolio_returns": "ready",
         "benchmark_relative_drawdown": "ready",
         "underwater_series": "ready",
     }
+    assert body["warnings"] == []
+    assert body["partial_failures"] == []
 
 
 def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(monkeypatch):

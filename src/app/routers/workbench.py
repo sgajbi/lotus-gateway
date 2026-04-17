@@ -406,8 +406,10 @@ async def get_workbench_risk_concentration(
     response_model=WorkbenchRiskDrawdownResponse,
     summary="Get Workbench Risk Drawdown",
     description=(
-        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench. "
-        "Underwater series detail is optional and requested on demand to keep first paint lean."
+        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench "
+        "max-drawdown, episode, and benchmark-relative review. Use this route for first-paint "
+        "drawdown posture and request `include_underwater_series=true` only for the heavier "
+        "underwater-path drill-down surface."
     ),
 )
 async def get_workbench_risk_drawdown(

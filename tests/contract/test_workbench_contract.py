@@ -235,6 +235,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_concentration_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
     assert risk_drawdown_parameters["portfolio_id"]["description"]
     assert risk_drawdown_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "include_underwater_series=true" in risk_drawdown_operation["description"]
     assert risk_drawdown_parameters["period"]["description"]
     assert risk_drawdown_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_drawdown_parameters["detail_basis"]["description"]
@@ -509,6 +510,40 @@ def test_workbench_openapi_contract_registered() -> None:
     assert top_issuer_schema["properties"]["issuer_name"]["examples"] == [
         "Pacific Investment Management Company LLC"
     ]
+    drawdown_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownResponse"]
+    drawdown_payload_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownPayload"]
+    drawdown_period_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownPeriodResult"]
+    drawdown_summary_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownSummary"]
+    drawdown_episode_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownEpisode"]
+    relative_drawdown_schema = spec["components"]["schemas"]["WorkbenchRiskRelativeDrawdownSummary"]
+    relative_context_schema = spec["components"]["schemas"]["WorkbenchRiskRelativeDrawdownContext"]
+    underwater_point_schema = spec["components"]["schemas"]["WorkbenchRiskUnderwaterPoint"]
+    analysis_context_schema = spec["components"]["schemas"]["WorkbenchRiskDrawdownAnalysisContext"]
+    assert (
+        drawdown_schema["example"]["payload"]["periods"][0]["summary"]["max_drawdown"] == -0.124533
+    )
+    assert (
+        drawdown_schema["example"]["payload"]["periods"][0]["relative_to_benchmark_context"][
+            "reason"
+        ]
+        == "APPLIED"
+    )
+    assert drawdown_schema["example"]["supportability"][2]["key"] == "underwater_series"
+    assert (
+        drawdown_schema["example"]["partial_failures"][0]["error_code"]
+        == "BENCHMARK_RELATIVE_DRAWDOWN_UNAVAILABLE"
+    )
+    assert drawdown_payload_schema["properties"]["periods"]["description"]
+    assert drawdown_period_schema["properties"]["underwater_series"]["description"]
+    assert drawdown_summary_schema["properties"]["ulcer_index"]["description"]
+    assert drawdown_summary_schema["properties"]["conditional_drawdown_at_risk_95"]["examples"] == [
+        -0.117884
+    ]
+    assert drawdown_episode_schema["properties"]["depth"]["examples"] == [-0.124533]
+    assert relative_drawdown_schema["properties"]["time_under_water_days"]["description"]
+    assert relative_context_schema["properties"]["aligned_observation_count"]["examples"] == [36]
+    assert underwater_point_schema["properties"]["drawdown"]["examples"] == [-0.0521]
+    assert analysis_context_schema["properties"]["include_underwater_series"]["description"]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "projected baseline state" in create_operation["description"].lower()
