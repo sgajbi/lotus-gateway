@@ -471,6 +471,30 @@ class PortfolioTransactionView(BaseModel):
         description="Optional linked transaction group identifier for multi-row events.",
         examples=["LTG-2026-0001"],
     )
+    fx_contract_id: str | None = Field(
+        default=None,
+        description="Optional FX contract identifier associated with the transaction row.",
+        examples=["FXC-2026-0001"],
+    )
+    swap_event_id: str | None = Field(
+        default=None,
+        description="Optional FX swap event identifier associated with the transaction row.",
+        examples=["FXSWAP-2026-0001"],
+    )
+    near_leg_group_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional FX swap near-leg group identifier associated with the transaction row."
+        ),
+        examples=["FXSWAP-2026-0001-NEAR"],
+    )
+    far_leg_group_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional FX swap far-leg group identifier associated with the transaction row."
+        ),
+        examples=["FXSWAP-2026-0001-FAR"],
+    )
 
 
 class PortfolioCashflowPoint(BaseModel):
@@ -1517,10 +1541,16 @@ class PortfolioTransactionLedgerResponse(BaseModel):
                     "transaction_date": "2026-03-27T00:00:00Z",
                     "settlement_date": "2026-03-31",
                     "transaction_type": "BUY",
+                    "component_type": "FX_CONTRACT_OPEN",
                     "security_id": "EQ_1",
-                    "instrument_id": "EQ_1",
+                    "instrument_id": "INST_EQ_1",
                     "quantity": 1.0,
                     "currency": "USD",
+                    "linked_transaction_group_id": "LTG-2026-0001",
+                    "fx_contract_id": "FXC-2026-0001",
+                    "swap_event_id": "FXSWAP-2026-0001",
+                    "near_leg_group_id": "FXSWAP-2026-0001-NEAR",
+                    "far_leg_group_id": "FXSWAP-2026-0001-FAR",
                 }
             ]
         ],

@@ -1571,6 +1571,10 @@ class PortfolioService:
             cash_entry_mode=self._optional_str(item.get("cash_entry_mode")),
             economic_event_id=self._optional_str(item.get("economic_event_id")),
             linked_transaction_group_id=self._optional_str(item.get("linked_transaction_group_id")),
+            fx_contract_id=self._optional_str(item.get("fx_contract_id")),
+            swap_event_id=self._optional_str(item.get("swap_event_id")),
+            near_leg_group_id=self._optional_str(item.get("near_leg_group_id")),
+            far_leg_group_id=self._optional_str(item.get("far_leg_group_id")),
         )
 
     async def _list_transaction_rows(

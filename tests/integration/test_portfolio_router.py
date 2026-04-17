@@ -801,9 +801,15 @@ def test_portfolio_transactions_router(monkeypatch):
                     "transaction_id": "TX_1",
                     "transaction_date": "2026-03-27T00:00:00Z",
                     "transaction_type": "BUY",
+                    "component_type": "FX_CONTRACT_OPEN",
                     "security_id": "EQ_1",
-                    "instrument_id": "EQ_1",
+                    "instrument_id": "INST_EQ_1",
                     "quantity": 1,
+                    "linked_transaction_group_id": "LTG-2026-0001",
+                    "fx_contract_id": "FXC-2026-0001",
+                    "swap_event_id": "FXSWAP-2026-0001",
+                    "near_leg_group_id": "FXSWAP-2026-0001-NEAR",
+                    "far_leg_group_id": "FXSWAP-2026-0001-FAR",
                 }
             ],
         }
@@ -834,7 +840,15 @@ def test_portfolio_transactions_router(monkeypatch):
         },
     )
     assert response.status_code == 200
-    assert response.json()["transactions"][0]["transaction_id"] == "TX_1"
+    transaction = response.json()["transactions"][0]
+    assert transaction["transaction_id"] == "TX_1"
+    assert transaction["component_type"] == "FX_CONTRACT_OPEN"
+    assert transaction["instrument_id"] == "INST_EQ_1"
+    assert transaction["linked_transaction_group_id"] == "LTG-2026-0001"
+    assert transaction["fx_contract_id"] == "FXC-2026-0001"
+    assert transaction["swap_event_id"] == "FXSWAP-2026-0001"
+    assert transaction["near_leg_group_id"] == "FXSWAP-2026-0001-NEAR"
+    assert transaction["far_leg_group_id"] == "FXSWAP-2026-0001-FAR"
     assert captured["as_of_date"] == "2026-03-27"
     assert captured["include_projected"] is True
     assert captured["transaction_type"] == "BUY"

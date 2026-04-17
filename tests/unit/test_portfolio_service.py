@@ -166,13 +166,19 @@ class _StubLotusCoreQueryClient:
                 "transaction_id": "TX_1",
                 "transaction_date": "2026-03-27T09:30:00Z",
                 "transaction_type": "BUY",
+                "component_type": "FX_CONTRACT_OPEN",
                 "security_id": "EQ_1",
-                "instrument_id": "EQ_1",
+                "instrument_id": "INST_EQ_1",
                 "quantity": 10,
                 "price": 70.0,
                 "gross_transaction_amount": 700.0,
                 "gross_transaction_amount_reporting_currency": 700.0,
                 "currency": "USD",
+                "linked_transaction_group_id": "LTG-FX-2026-0001",
+                "fx_contract_id": "FXC-2026-0001",
+                "swap_event_id": "FXSWAP-2026-0001",
+                "near_leg_group_id": "FXSWAP-2026-0001-NEAR",
+                "far_leg_group_id": "FXSWAP-2026-0001-FAR",
             },
             {
                 "transaction_id": "TX_DIV_REQ",
@@ -1247,6 +1253,28 @@ async def test_transaction_ledger_preserves_paging_metadata():
     assert response.skip == 20
     assert response.limit == 25
     assert response.transactions == []
+
+
+@pytest.mark.asyncio
+async def test_transaction_ledger_preserves_group_and_fx_identifiers():
+    service = PortfolioService(_StubLotusCoreQueryClient())
+    response = await service.get_transaction_ledger(
+        portfolio_id="PF_1001",
+        correlation_id="corr-4-fx",
+        as_of_date="2026-03-27",
+        include_projected=False,
+        skip=0,
+        limit=10,
+    )
+
+    row = response.transactions[0]
+    assert row.component_type == "FX_CONTRACT_OPEN"
+    assert row.instrument_id == "INST_EQ_1"
+    assert row.linked_transaction_group_id == "LTG-FX-2026-0001"
+    assert row.fx_contract_id == "FXC-2026-0001"
+    assert row.swap_event_id == "FXSWAP-2026-0001"
+    assert row.near_leg_group_id == "FXSWAP-2026-0001-NEAR"
+    assert row.far_leg_group_id == "FXSWAP-2026-0001-FAR"
 
 
 @pytest.mark.asyncio
