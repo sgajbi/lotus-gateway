@@ -70,6 +70,7 @@ def test_foundation_openapi_contract_registered() -> None:
         "get"
     ]
     assert "selector-ready catalog" in catalog_operation["description"].lower()
+    assert "client and booking-center codes" in catalog_operation["description"].lower()
     assert "top positions" in workspace_operation["description"].lower()
     parameters = {
         parameter["name"]: parameter
@@ -98,6 +99,10 @@ def test_foundation_openapi_contract_registered() -> None:
     assert foundation_catalog["properties"]["contract_version"]["description"]
     assert foundation_catalog["properties"]["items"]["description"]
     assert foundation_catalog["properties"]["items"]["examples"]
+    assert foundation_catalog["properties"]["items"]["examples"][0][0]["client_id"] == "CIF_1001"
+    assert (
+        foundation_catalog["properties"]["items"]["examples"][0][0]["booking_center_code"] == "SG"
+    )
     assert foundation_catalog_item["properties"]["portfolio_id"]["description"]
     assert foundation_catalog_item["properties"]["display_name"]["description"]
     assert foundation_catalog_item["properties"]["base_currency"]["description"]

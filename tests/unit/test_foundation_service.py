@@ -111,6 +111,46 @@ async def test_foundation_portfolio_catalog_success():
 
 
 @pytest.mark.asyncio
+async def test_foundation_portfolio_catalog_preserves_identity_aliases():
+    service = FoundationService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            list_payload={
+                "items": [
+                    {
+                        "portfolio_id": "PF_2002",
+                        "portfolio_name": "Income Reserve",
+                        "base_currency": "EUR",
+                        "cif_id": "CIF_2002",
+                        "booking_center": "CHPB",
+                    },
+                    {
+                        "id": "PF_1001",
+                        "label": "Alpha Growth",
+                        "base_currency": "USD",
+                        "client_id": "CIF_1001",
+                        "booking_center_code": "SGPB",
+                    },
+                ]
+            },
+            snapshot_payload={},
+        ),
+        analytics_client=_StubAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+        reporting_client=_StubReportingClient(200, {}),
+    )
+
+    response = await service.get_portfolio_catalog(correlation_id="corr-1b")
+
+    assert [item.portfolio_id for item in response.items] == ["PF_1001", "PF_2002"]
+    assert response.items[0].display_name == "Alpha Growth"
+    assert response.items[0].client_id == "CIF_1001"
+    assert response.items[0].booking_center_code == "SGPB"
+    assert response.items[1].display_name == "Income Reserve"
+    assert response.items[1].client_id == "CIF_2002"
+    assert response.items[1].booking_center_code == "CHPB"
+
+
+@pytest.mark.asyncio
 async def test_foundation_workspace_success():
     lotus_core_client = _StubLotusCoreQueryClient(
         list_payload={"items": []},

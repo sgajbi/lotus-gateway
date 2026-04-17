@@ -11,10 +11,16 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
                 {
                     "id": "PF_2002",
                     "label": "Income",
+                    "base_currency": "EUR",
+                    "cif_id": "CIF_2002",
+                    "booking_center": "CHPB",
                 },
                 {
                     "id": "PF_1001",
                     "label": "Alpha Growth",
+                    "base_currency": "USD",
+                    "client_id": "CIF_1001",
+                    "booking_center_code": "SGPB",
                 },
             ]
         }
@@ -30,6 +36,11 @@ def test_foundation_portfolio_catalog_router(monkeypatch):
     body = response.json()
     assert [item["portfolio_id"] for item in body["items"]] == ["PF_1001", "PF_2002"]
     assert body["items"][0]["display_name"] == "Alpha Growth"
+    assert body["items"][0]["client_id"] == "CIF_1001"
+    assert body["items"][0]["booking_center_code"] == "SGPB"
+    assert body["items"][1]["display_name"] == "Income"
+    assert body["items"][1]["client_id"] == "CIF_2002"
+    assert body["items"][1]["booking_center_code"] == "CHPB"
 
 
 def test_foundation_portfolio_catalog_router_preserves_correlation_context(monkeypatch):

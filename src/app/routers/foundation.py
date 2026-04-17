@@ -57,7 +57,9 @@ def _foundation_service() -> FoundationService:
     description=(
         "Returns a selector-ready catalog for the Foundation portfolio entry shell. "
         "Use this route to populate portfolio pickers before loading the full "
-        "Foundation workspace payload."
+        "Foundation workspace payload. The response preserves lightweight portfolio "
+        "identity metadata such as client and booking-center codes when the source "
+        "publishes them."
     ),
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
