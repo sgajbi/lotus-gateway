@@ -817,6 +817,138 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-performance-summary-1",
+                "contract_version": "v1",
+                "portfolio_id": "PF_1001",
+                "as_of_date": "2026-02-24",
+                "period": "YTD",
+                "report_start_date": "2026-01-01",
+                "report_end_date": "2026-02-24",
+                "chart_frequency": "monthly",
+                "detail_basis": "NET",
+                "requested_chart_frequency_supported": True,
+                "requested_contribution_dimension_supported": True,
+                "requested_attribution_dimension_supported": True,
+                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_options": [
+                    {
+                        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_name": "Global Balanced 60/40",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "multi_asset_strategic",
+                        "benchmark_provider": "LOTUS_DEMO",
+                        "is_assigned": True,
+                    }
+                ],
+                "capabilities": {
+                    "summary_kpis": {"state": "supported"},
+                    "return_path": {"state": "supported"},
+                    "benchmark_comparison": {"state": "supported"},
+                    "multi_horizon_returns": {"state": "supported"},
+                    "contribution_ranking": {"state": "supported"},
+                    "attribution_detail": {"state": "supported"},
+                    "contribution_detail": {"state": "supported"},
+                    "evidence": {"state": "partial"},
+                },
+                "evidence_view": {
+                    "state": "partial",
+                    "reason": (
+                        "Lineage artifacts are available, but execution evidence is incomplete."
+                    ),
+                    "calculations": [
+                        {
+                            "calculation_role": "workspace_summary",
+                            "calculation_id": "calc-workspace-summary",
+                            "analytics_type": "WORKSPACE_SUMMARY",
+                            "execution_status": "complete",
+                            "execution_mode": "sync",
+                            "lineage_status": "pending",
+                            "stage_statuses": [],
+                            "upstream_snapshots": [],
+                            "artifacts": [
+                                {
+                                    "artifact_name": "request.json",
+                                    "url": (
+                                        "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
+                                        "calc-workspace-summary/request.json"
+                                    ),
+                                    "content_type": "application/json",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                "portfolio": {
+                    "portfolio_id": "PF_1001",
+                    "client_id": "CIF_1001",
+                    "base_currency": "USD",
+                    "booking_center_code": "SG",
+                },
+                "overview": {
+                    "market_value_base": 1250000.0,
+                    "cash_weight_pct": 6.8,
+                    "position_count": 18,
+                },
+                "net_performance": {
+                    "metric_basis": "NET",
+                    "portfolio_return_pct": 5.42,
+                    "benchmark_return_pct": 4.91,
+                    "active_return_pct": 0.52,
+                    "annualized_return_pct": 5.42,
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_return_source": "calculated",
+                    "benchmark_input_mode": "stateful",
+                    "begin_market_value": 1200000.0,
+                    "end_market_value": 1250000.0,
+                    "beginning_cash_flow": 50000.0,
+                    "ending_cash_flow": -8000.0,
+                    "flow_adjusted_end_market_value": 1208000.0,
+                    "net_cash_flow": 42000.0,
+                    "fees": 0.0,
+                },
+                "gross_performance": {
+                    "metric_basis": "GROSS",
+                    "portfolio_return_pct": 5.88,
+                    "benchmark_return_pct": 5.12,
+                    "active_return_pct": 0.76,
+                    "annualized_return_pct": 5.88,
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_return_source": "calculated",
+                    "benchmark_input_mode": "stateful",
+                    "begin_market_value": 1200000.0,
+                    "end_market_value": 1250000.0,
+                    "beginning_cash_flow": 50000.0,
+                    "ending_cash_flow": -8000.0,
+                    "flow_adjusted_end_market_value": 1208000.0,
+                    "net_cash_flow": 42000.0,
+                    "fees": 0.0,
+                },
+                "money_weighted_return": {
+                    "money_weighted_return_pct": 5.12,
+                    "annualized_return_pct": 5.12,
+                    "input_mode": "stateful",
+                    "method": "XIRR",
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-02-24",
+                    "begin_market_value": 1200000.0,
+                    "end_market_value": 1250000.0,
+                    "beginning_cash_flow": 50000.0,
+                    "ending_cash_flow": -8000.0,
+                    "flow_adjusted_end_market_value": 1208000.0,
+                    "net_cash_flow": 42000.0,
+                    "fees": 0.0,
+                    "notes": ["cash-flow aware"],
+                },
+                "warnings": [],
+                "partial_failures": [],
+            }
+        }
+    }
+
 
 class PerformanceWorkspaceDetailsResponse(BaseModel):
     correlation_id: str = Field(
@@ -924,3 +1056,156 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
             "Upstream source failures preserved when optional details inputs are unavailable."
         ),
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "correlation_id": "corr-performance-details-1",
+                "contract_version": "v1",
+                "portfolio_id": "PF_1001",
+                "as_of_date": "2026-02-24",
+                "period": "YTD",
+                "report_start_date": "2026-01-01",
+                "report_end_date": "2026-02-24",
+                "chart_frequency": "monthly",
+                "contribution_dimension": "asset_class",
+                "attribution_dimension": "asset_class",
+                "detail_basis": "NET",
+                "requested_chart_frequency_supported": True,
+                "requested_contribution_dimension_supported": True,
+                "requested_attribution_dimension_supported": True,
+                "segment": "asset_class",
+                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "capabilities": {
+                    "summary_kpis": {"state": "supported"},
+                    "return_path": {"state": "supported"},
+                    "benchmark_comparison": {"state": "supported"},
+                    "multi_horizon_returns": {"state": "supported"},
+                    "contribution_ranking": {"state": "supported"},
+                    "attribution_detail": {"state": "supported"},
+                    "contribution_detail": {"state": "supported"},
+                    "evidence": {"state": "partial"},
+                },
+                "evidence_view": {
+                    "state": "partial",
+                    "reason": (
+                        "Lineage artifacts are available, but execution evidence is incomplete."
+                    ),
+                    "calculations": [
+                        {
+                            "calculation_role": "workspace_summary",
+                            "calculation_id": "calc-workspace-summary",
+                            "analytics_type": "WORKSPACE_SUMMARY",
+                            "execution_status": "complete",
+                            "execution_mode": "sync",
+                            "lineage_status": "pending",
+                            "stage_statuses": [],
+                            "upstream_snapshots": [],
+                            "artifacts": [],
+                        }
+                    ],
+                },
+                "net_chart": [
+                    {
+                        "label": "2026-01",
+                        "frequency": "monthly",
+                        "period_start": "2026-01-01",
+                        "period_end": "2026-01-31",
+                        "portfolio_return_pct": 2.2,
+                        "benchmark_return_pct": 1.9,
+                        "active_return_pct": 0.3,
+                        "cumulative_portfolio_return_pct": 2.2,
+                        "cumulative_benchmark_return_pct": 1.9,
+                        "cumulative_active_return_pct": 0.3,
+                    }
+                ],
+                "gross_chart": [
+                    {
+                        "label": "2026-01",
+                        "frequency": "monthly",
+                        "period_start": "2026-01-01",
+                        "period_end": "2026-01-31",
+                        "portfolio_return_pct": 2.4,
+                        "benchmark_return_pct": 2.0,
+                        "active_return_pct": 0.4,
+                        "cumulative_portfolio_return_pct": 2.4,
+                        "cumulative_benchmark_return_pct": 2.0,
+                        "cumulative_active_return_pct": 0.4,
+                    }
+                ],
+                "contribution": {
+                    "metric_basis": "NET",
+                    "weighting_scheme": "average_weight",
+                    "portfolio_contribution_pct": 5.42,
+                    "total_portfolio_return_pct": 5.42,
+                    "coverage_mv_pct": 98.7,
+                    "portfolio_local_contribution_pct": 4.8,
+                    "portfolio_fx_contribution_pct": 0.62,
+                    "position_rows": [
+                        {
+                            "position_id": "AAPL",
+                            "contribution_pct": 1.55,
+                            "weight_avg_pct": 24.1,
+                            "total_return_pct": 8.2,
+                            "local_contribution_pct": 1.18,
+                            "fx_contribution_pct": 0.37,
+                        }
+                    ],
+                    "levels": [
+                        {
+                            "level": 1,
+                            "name": "asset_class",
+                            "total_contribution_pct": 5.0,
+                            "total_weight_avg_pct": 100.0,
+                            "total_portfolio_return_pct": 5.42,
+                            "rows": [
+                                {
+                                    "key_label": "Equity",
+                                    "contribution_pct": 3.8,
+                                    "weight_avg_pct": 61.0,
+                                    "total_return_pct": 7.4,
+                                    "local_contribution_pct": 3.4,
+                                    "fx_contribution_pct": 0.4,
+                                    "is_other": False,
+                                }
+                            ],
+                        }
+                    ],
+                },
+                "attribution": {
+                    "metric_basis": "NET",
+                    "model": "BF",
+                    "linking": "carino",
+                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_return_source": "calculated",
+                    "active_return_pct": 0.52,
+                    "sum_of_effects_pct": 0.5,
+                    "residual_pct": 0.02,
+                    "levels": [
+                        {
+                            "dimension": "asset_class",
+                            "allocation_total_pct": 0.18,
+                            "selection_total_pct": 0.24,
+                            "interaction_total_pct": 0.03,
+                            "total_effect_pct": 0.45,
+                            "rows": [
+                                {
+                                    "key_label": "Equity",
+                                    "portfolio_weight_avg_pct": 61.0,
+                                    "benchmark_weight_avg_pct": 58.0,
+                                    "portfolio_return_pct": 7.4,
+                                    "benchmark_return_pct": 6.8,
+                                    "allocation_pct": 0.18,
+                                    "selection_pct": 0.24,
+                                    "interaction_pct": 0.03,
+                                    "total_effect_pct": 0.45,
+                                }
+                            ],
+                        }
+                    ],
+                },
+                "warnings": [],
+                "partial_failures": [],
+            }
+        }
+    }

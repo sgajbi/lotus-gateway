@@ -598,9 +598,10 @@ async def get_workbench_risk_attribution(
     response_model=PerformanceWorkspaceSummaryResponse,
     summary="Get Performance Workspace Summary",
     description=(
-        "Returns the first-paint performance summary contract with shared context, "
-        "benchmark options, comparative returns, money-weighted return, and "
-        "gateway-owned execution and lineage evidence posture."
+        "Returns the first-paint performance workspace payload for overview and benchmark-aware "
+        "return panels. Use this route when the consumer needs mandate context, comparative "
+        "performance, money-weighted return, benchmark options, and current evidence posture "
+        "without loading the heavier chart, contribution, and attribution tables."
     ),
 )
 async def get_performance_workspace_summary(
@@ -677,9 +678,9 @@ async def get_performance_workspace_summary(
     response_model=PerformanceWorkspaceDetailsResponse,
     summary="Get Performance Workspace Details",
     description=(
-        "Returns the heavier analytical detail contract for charts, contribution, "
-        "attribution, and gateway-owned execution and lineage evidence while "
-        "reusing the shared performance state model."
+        "Returns the heavier analytical detail payload for chart history, contribution rows, "
+        "attribution rows, and execution evidence. Use this route after the summary route when "
+        "the caller needs drill-down analytics rather than first-paint KPI context only."
     ),
 )
 async def get_performance_workspace_details(

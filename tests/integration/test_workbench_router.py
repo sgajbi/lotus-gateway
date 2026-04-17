@@ -991,6 +991,12 @@ def test_workbench_performance_summary_router(monkeypatch):
     assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_contribution_dimension_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
+    assert body["benchmark_options"][0]["benchmark_code"] == "MODEL_60_40"
+    assert body["overview"]["market_value_base"] == 1250000.0
+    assert body["gross_performance"]["portfolio_return_pct"] == 5.88
     assert body["net_performance"]["portfolio_return_pct"] == 5.42
     assert body["net_performance"]["benchmark_input_mode"] == "stateful"
     assert body["money_weighted_return"]["input_mode"] == "stateful"
@@ -1101,8 +1107,14 @@ def test_workbench_performance_details_router(monkeypatch):
     assert "perf-reference;dur=" in response.headers["Server-Timing"]
     body = response.json()
     assert body["portfolio_id"] == "PF_1001"
+    assert body["requested_chart_frequency_supported"] is True
+    assert body["requested_contribution_dimension_supported"] is True
+    assert body["requested_attribution_dimension_supported"] is True
+    assert body["segment"] == "asset_class"
     assert body["net_chart"][0]["label"] == "2026-01"
+    assert body["gross_chart"] == []
     assert body["contribution"]["coverage_mv_pct"] == 98.7
+    assert body["attribution"]["benchmark_id"] == "MODEL_60_40"
     assert body["capabilities"]["evidence"]["state"] == "partial"
     assert body["evidence_view"]["state"] == "partial"
     assert "overview" not in body
@@ -1738,6 +1750,11 @@ def test_workbench_performance_evidence_openapi_contract():
     assert summary_schema["properties"]["benchmark_code"]["description"]
     assert summary_schema["properties"]["benchmark_options"]["description"]
     assert summary_schema["properties"]["capabilities"]["description"]
+    assert (
+        summary_schema["example"]["benchmark_options"][0]["benchmark_code"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
+    assert summary_schema["example"]["evidence_view"]["state"] == "partial"
     assert details_schema["properties"]["correlation_id"]["description"]
     assert details_schema["properties"]["correlation_id"]["examples"] == [
         "corr-performance-details-1"
@@ -1759,6 +1776,8 @@ def test_workbench_performance_evidence_openapi_contract():
     assert details_schema["properties"]["segment"]["description"]
     assert details_schema["properties"]["benchmark_code"]["description"]
     assert details_schema["properties"]["capabilities"]["description"]
+    assert details_schema["example"]["segment"] == "asset_class"
+    assert details_schema["example"]["contribution"]["coverage_mv_pct"] == 98.7
     assert summary_schema["properties"]["evidence_view"]["description"]
     assert details_schema["properties"]["evidence_view"]["description"]
     assert details_schema["properties"]["net_chart"]["description"]
