@@ -80,6 +80,11 @@ def test_workbench_openapi_contract_registered() -> None:
     assert "/api/v1/workbench/{portfolio_id}/overview" in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/portfolio-360" in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/analytics" in spec["paths"]
+    assert "/api/v1/workbench/{portfolio_id}/risk/summary" in spec["paths"]
+    assert "/api/v1/workbench/{portfolio_id}/risk/concentration" in spec["paths"]
+    assert "/api/v1/workbench/{portfolio_id}/risk/drawdown" in spec["paths"]
+    assert "/api/v1/workbench/{portfolio_id}/risk/rolling" in spec["paths"]
+    assert "/api/v1/workbench/{portfolio_id}/risk/attribution" in spec["paths"]
     assert (
         "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/"
         "{calculation_id}/{artifact_name}"
@@ -93,6 +98,15 @@ def test_workbench_openapi_contract_registered() -> None:
     overview_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/overview"]["get"]
     portfolio_360_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/portfolio-360"]["get"]
     analytics_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/analytics"]["get"]
+    risk_summary_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/risk/summary"]["get"]
+    risk_concentration_operation = spec["paths"][
+        "/api/v1/workbench/{portfolio_id}/risk/concentration"
+    ]["get"]
+    risk_drawdown_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/risk/drawdown"]["get"]
+    risk_rolling_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/risk/rolling"]["get"]
+    risk_attribution_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/risk/attribution"][
+        "get"
+    ]
     artifact_operation = spec["paths"][
         "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/"
         "{calculation_id}/{artifact_name}"
@@ -125,6 +139,21 @@ def test_workbench_openapi_contract_registered() -> None:
     analytics_parameters = {
         parameter["name"]: parameter for parameter in analytics_operation["parameters"]
     }
+    risk_summary_parameters = {
+        parameter["name"]: parameter for parameter in risk_summary_operation["parameters"]
+    }
+    risk_concentration_parameters = {
+        parameter["name"]: parameter for parameter in risk_concentration_operation["parameters"]
+    }
+    risk_drawdown_parameters = {
+        parameter["name"]: parameter for parameter in risk_drawdown_operation["parameters"]
+    }
+    risk_rolling_parameters = {
+        parameter["name"]: parameter for parameter in risk_rolling_operation["parameters"]
+    }
+    risk_attribution_parameters = {
+        parameter["name"]: parameter for parameter in risk_attribution_operation["parameters"]
+    }
     artifact_parameters = {
         parameter["name"]: parameter for parameter in artifact_operation["parameters"]
     }
@@ -155,6 +184,89 @@ def test_workbench_openapi_contract_registered() -> None:
     assert analytics_parameters["benchmark_code"]["schema"]["examples"] == ["MODEL_60_40"]
     assert analytics_parameters["session_id"]["schema"]
     assert analytics_parameters["session_id"]["description"]
+    assert risk_summary_parameters["portfolio_id"]["description"]
+    assert risk_summary_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert risk_summary_parameters["period"]["description"]
+    assert risk_summary_parameters["period"]["schema"]["default"] == "YTD"
+    assert risk_summary_parameters["period"]["schema"]["examples"] == ["YTD"]
+    assert risk_summary_parameters["detail_basis"]["description"]
+    assert risk_summary_parameters["detail_basis"]["schema"]["default"] == "NET"
+    assert risk_summary_parameters["detail_basis"]["schema"]["examples"] == ["NET"]
+    assert risk_summary_parameters["benchmark_code"]["description"]
+    assert risk_summary_parameters["benchmark_code"]["schema"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert risk_summary_parameters["as_of_date"]["description"]
+    assert risk_summary_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
+    assert risk_summary_parameters["reporting_currency"]["description"]
+    assert risk_summary_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
+    assert risk_concentration_parameters["portfolio_id"]["description"]
+    assert risk_concentration_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert risk_concentration_parameters["period"]["description"]
+    assert risk_concentration_parameters["period"]["schema"]["default"] == "YTD"
+    assert risk_concentration_parameters["period"]["schema"]["examples"] == ["YTD"]
+    assert risk_concentration_parameters["benchmark_code"]["description"]
+    assert risk_concentration_parameters["benchmark_code"]["schema"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert risk_concentration_parameters["as_of_date"]["description"]
+    assert risk_concentration_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
+    assert risk_concentration_parameters["reporting_currency"]["description"]
+    assert risk_concentration_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
+    assert risk_drawdown_parameters["portfolio_id"]["description"]
+    assert risk_drawdown_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert risk_drawdown_parameters["period"]["description"]
+    assert risk_drawdown_parameters["period"]["schema"]["default"] == "YTD"
+    assert risk_drawdown_parameters["detail_basis"]["description"]
+    assert risk_drawdown_parameters["detail_basis"]["schema"]["default"] == "NET"
+    assert risk_drawdown_parameters["benchmark_code"]["description"]
+    assert risk_drawdown_parameters["benchmark_code"]["schema"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert risk_drawdown_parameters["as_of_date"]["description"]
+    assert risk_drawdown_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
+    assert risk_drawdown_parameters["reporting_currency"]["description"]
+    assert risk_drawdown_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
+    assert risk_drawdown_parameters["include_underwater_series"]["description"]
+    assert risk_drawdown_parameters["include_underwater_series"]["schema"]["default"] is False
+    assert risk_drawdown_parameters["include_underwater_series"]["schema"]["examples"] == [True]
+    assert risk_rolling_parameters["portfolio_id"]["description"]
+    assert risk_rolling_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert risk_rolling_parameters["period"]["description"]
+    assert risk_rolling_parameters["period"]["schema"]["default"] == "YTD"
+    assert risk_rolling_parameters["detail_basis"]["description"]
+    assert risk_rolling_parameters["detail_basis"]["schema"]["default"] == "NET"
+    assert risk_rolling_parameters["benchmark_code"]["description"]
+    assert risk_rolling_parameters["benchmark_code"]["schema"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert risk_rolling_parameters["as_of_date"]["description"]
+    assert risk_rolling_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
+    assert risk_rolling_parameters["reporting_currency"]["description"]
+    assert risk_rolling_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
+    assert risk_rolling_parameters["include_time_series"]["description"]
+    assert risk_rolling_parameters["include_time_series"]["schema"]["default"] is False
+    assert risk_rolling_parameters["include_time_series"]["schema"]["examples"] == [True]
+    assert risk_attribution_parameters["portfolio_id"]["description"]
+    assert risk_attribution_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert risk_attribution_parameters["period"]["description"]
+    assert risk_attribution_parameters["period"]["schema"]["default"] == "YTD"
+    assert risk_attribution_parameters["detail_basis"]["description"]
+    assert risk_attribution_parameters["detail_basis"]["schema"]["default"] == "NET"
+    assert risk_attribution_parameters["benchmark_code"]["description"]
+    assert risk_attribution_parameters["benchmark_code"]["schema"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert risk_attribution_parameters["as_of_date"]["description"]
+    assert risk_attribution_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
+    assert risk_attribution_parameters["reporting_currency"]["description"]
+    assert risk_attribution_parameters["reporting_currency"]["schema"]["examples"] == ["USD"]
+    assert risk_attribution_parameters["attribution_type"]["description"]
+    assert risk_attribution_parameters["attribution_type"]["schema"]["default"] == "TOTAL_RISK"
+    assert risk_attribution_parameters["attribution_type"]["schema"]["examples"] == ["ACTIVE_RISK"]
+    assert risk_attribution_parameters["grouping_dimension"]["description"]
+    assert risk_attribution_parameters["grouping_dimension"]["schema"]["default"] == "SECTOR"
+    assert risk_attribution_parameters["grouping_dimension"]["schema"]["examples"] == ["SECTOR"]
     assert artifact_parameters["portfolio_id"]["description"]
     assert artifact_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert artifact_parameters["calculation_id"]["description"]

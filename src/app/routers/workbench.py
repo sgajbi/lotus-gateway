@@ -302,12 +302,36 @@ async def get_workbench_analytics(
     ),
 )
 async def get_workbench_risk_summary(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the stateful workbench risk summary.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk summary horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for the risk summary metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative risk context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for the risk summary.",
+        examples=["USD"],
+    ),
 ) -> WorkbenchRiskSummaryResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -332,11 +356,33 @@ async def get_workbench_risk_summary(
     ),
 )
 async def get_workbench_risk_concentration(
-    portfolio_id: str,
-    period: str = "YTD",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk concentration surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk concentration horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative concentration context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for concentration analytics.",
+        examples=["USD"],
+    ),
 ) -> WorkbenchRiskConcentrationResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -360,13 +406,43 @@ async def get_workbench_risk_concentration(
     ),
 )
 async def get_workbench_risk_drawdown(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    include_underwater_series: bool = False,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk drawdown surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk drawdown horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for drawdown metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative drawdown context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for drawdown analytics.",
+        examples=["USD"],
+    ),
+    include_underwater_series: bool = Query(
+        default=False,
+        description="Whether to include the heavier underwater-series detail for drill-down flows.",
+        examples=[True],
+    ),
 ) -> WorkbenchRiskDrawdownResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -394,13 +470,45 @@ async def get_workbench_risk_drawdown(
     ),
 )
 async def get_workbench_risk_rolling(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    include_time_series: bool = False,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench rolling-risk surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Rolling-risk horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for rolling-risk metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative rolling-risk context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for rolling-risk analytics.",
+        examples=["USD"],
+    ),
+    include_time_series: bool = Query(
+        default=False,
+        description=(
+            "Whether to include the heavier rolling time-series detail for drill-down flows."
+        ),
+        examples=[True],
+    ),
 ) -> WorkbenchRiskRollingResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -427,14 +535,48 @@ async def get_workbench_risk_rolling(
     ),
 )
 async def get_workbench_risk_attribution(
-    portfolio_id: str,
-    period: str = "YTD",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    as_of_date: str | None = None,
-    reporting_currency: str | None = None,
-    attribution_type: str = "TOTAL_RISK",
-    grouping_dimension: str = "SECTOR",
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk attribution surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Risk attribution horizon requested by the caller.",
+        examples=["YTD"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for risk attribution metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for relative attribution context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    as_of_date: str | None = Query(
+        default=None,
+        description="Optional business as-of date in YYYY-MM-DD format.",
+        examples=["2026-02-24"],
+    ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description="Optional reporting currency override for risk attribution analytics.",
+        examples=["USD"],
+    ),
+    attribution_type: str = Query(
+        default="TOTAL_RISK",
+        description="Requested attribution mode such as TOTAL_RISK or ACTIVE_RISK.",
+        examples=["ACTIVE_RISK"],
+    ),
+    grouping_dimension: str = Query(
+        default="SECTOR",
+        description="Requested grouping dimension for risk attribution output.",
+        examples=["SECTOR"],
+    ),
 ) -> WorkbenchRiskAttributionResponse:
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
