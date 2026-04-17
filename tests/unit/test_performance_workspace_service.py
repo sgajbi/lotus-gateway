@@ -3,6 +3,7 @@ from datetime import date
 
 import pytest
 
+from app.contracts.performance_workspace import PerformanceChartPoint
 from app.contracts.workbench import (
     WorkbenchOverviewResponse,
     WorkbenchOverviewSummary,
@@ -1720,6 +1721,33 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
     assert response.sparkline[0].as_of_date == "2026-01-31"
     assert response.sparkline[0].portfolio_return_pct == 2.0
     assert query_client.benchmark_catalog_calls == []
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_service_projects_snapshot_point_dates_from_fallback_fields():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    point_with_period_start = PerformanceChartPoint(
+        label="2026-01-31",
+        frequency="monthly",
+        period_start="2026-01-01",
+        period_end=None,
+        portfolio_return_pct=2.0,
+    )
+    point_with_label_only = PerformanceChartPoint(
+        label="2026-02-28",
+        frequency="monthly",
+        period_start=None,
+        period_end=None,
+        portfolio_return_pct=4.1,
+    )
+
+    assert service._snapshot_point_as_of_date(point_with_period_start) == "2026-01-01"
+    assert service._snapshot_point_as_of_date(point_with_label_only) == "2026-02-28"
 
 
 @pytest.mark.asyncio

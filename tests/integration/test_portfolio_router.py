@@ -1406,11 +1406,23 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
                     "portfolio_return_pct": 2.0,
                     "benchmark_return_pct": 1.8,
                     "excess_return_pct": 0.2,
-                }
+                },
+                {
+                    "as_of_date": "2026-03-27",
+                    "portfolio_return_pct": 15.1,
+                    "benchmark_return_pct": 14.72,
+                    "excess_return_pct": 0.38,
+                },
             ],
             "unavailable": None,
-            "warnings": [],
-            "partial_failures": [],
+            "warnings": ["PERFORMANCE_SNAPSHOT_SOURCE_DELAYED"],
+            "partial_failures": [
+                {
+                    "source_service": "lotus-performance",
+                    "error_code": "PERFORMANCE_CHART_PARTIAL",
+                    "detail": "chart history missing one intermediate period",
+                }
+            ],
         }
 
     monkeypatch.setattr(
@@ -1433,12 +1445,23 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
 
     assert response.status_code == 200
     body = response.json()
+    assert body["correlation_id"] == "corr-performance"
+    assert body["contract_version"] == "v1"
+    assert body["portfolio_id"] == "PF_1001"
+    assert body["as_of_date"] == "2026-03-27"
+    assert body["period"] == "EXPLICIT"
+    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-03-27"
     assert body["portfolio_return_pct"] == 15.1
     assert body["benchmark_return_pct"] == 14.72
     assert body["excess_return_pct"] == 0.38
     assert body["sparkline"][0]["as_of_date"] == "2026-01-31"
+    assert body["sparkline"][0]["benchmark_return_pct"] == 1.8
+    assert body["sparkline"][1]["excess_return_pct"] == 0.38
+    assert body["unavailable"] is None
+    assert body["warnings"] == ["PERFORMANCE_SNAPSHOT_SOURCE_DELAYED"]
+    assert body["partial_failures"][0]["error_code"] == "PERFORMANCE_CHART_PARTIAL"
     assert captured["portfolio_id"] == "PF_1001"
     assert captured["period"] == "EXPLICIT"
     assert captured["chart_frequency"] == "quarterly"

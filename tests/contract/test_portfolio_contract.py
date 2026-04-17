@@ -310,7 +310,11 @@ def test_portfolio_performance_snapshot_contract_shape() -> None:
         ],
     )
     assert payload.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert payload.portfolio_return_pct == 15.1
+    assert payload.benchmark_return_pct == 14.72
+    assert payload.excess_return_pct == 0.38
     assert payload.sparkline[0].benchmark_return_pct == 1.8
+    assert payload.sparkline[0].excess_return_pct == 0.2
     assert payload.unavailable is None
 
 
@@ -374,6 +378,9 @@ def test_portfolio_openapi_contract_registered() -> None:
         for parameter in performance_snapshot_path["parameters"]
         if parameter["name"] == "period"
     )
+    performance_snapshot_parameters = {
+        parameter["name"]: parameter for parameter in performance_snapshot_path["parameters"]
+    }
     performance_snapshot_schema = spec["components"]["schemas"][
         "PortfolioPerformanceSnapshotResponse"
     ]
@@ -791,6 +798,26 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_action_schema["properties"]["recommended"]["description"]
     assert performance_snapshot_path["description"]
     assert performance_snapshot_period_parameter["description"]
+    assert performance_snapshot_parameters["chart_frequency"]["description"]
+    assert performance_snapshot_parameters["chart_frequency"]["examples"]["monthly"]["value"] == (
+        "monthly"
+    )
+    assert performance_snapshot_parameters["detail_basis"]["description"]
+    assert performance_snapshot_parameters["detail_basis"]["examples"]["net"]["value"] == "NET"
+    assert performance_snapshot_parameters["benchmark_code"]["description"]
+    assert performance_snapshot_parameters["benchmark_code"]["examples"]["balanced"]["value"] == (
+        "BMK_GLOBAL_BALANCED_60_40"
+    )
+    assert performance_snapshot_parameters["explicit_start_date"]["description"]
+    assert (
+        performance_snapshot_parameters["explicit_start_date"]["examples"]["quarter_start"]["value"]
+        == "2026-01-01"
+    )
+    assert performance_snapshot_parameters["explicit_end_date"]["description"]
+    assert (
+        performance_snapshot_parameters["explicit_end_date"]["examples"]["quarter_end"]["value"]
+        == "2026-03-27"
+    )
     assert performance_snapshot_schema["properties"]["correlation_id"]["description"]
     assert performance_snapshot_schema["properties"]["correlation_id"]["examples"] == [
         "corr-portfolio-performance-snapshot"
@@ -803,7 +830,16 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["report_end_date"]["description"]
     assert performance_snapshot_schema["properties"]["period"]["description"]
     assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_code"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_code"]["examples"] == [
+        "BMK_GLOBAL_BALANCED_60_40"
+    ]
+    assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["examples"] == [15.1]
     assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["benchmark_return_pct"]["examples"] == [14.72]
+    assert performance_snapshot_schema["properties"]["excess_return_pct"]["description"]
+    assert performance_snapshot_schema["properties"]["excess_return_pct"]["examples"] == [0.38]
     assert performance_snapshot_schema["properties"]["warnings"]["description"]
     assert performance_snapshot_schema["properties"]["partial_failures"]["description"]
     assert performance_snapshot_schema["properties"]["sparkline"]["description"]
