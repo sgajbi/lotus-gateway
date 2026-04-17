@@ -1767,6 +1767,10 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert portfolio_parameter["schema"]["examples"] == ["PF_1001"]
     assert period_parameter["description"]
     assert benchmark_parameter["description"]
+    assert response_schema["properties"]["correlation_id"]["description"]
+    assert response_schema["properties"]["correlation_id"]["examples"] == ["corr-advisor-brief-1"]
+    assert response_schema["properties"]["contract_version"]["description"]
+    assert response_schema["properties"]["contract_version"]["default"] == "v1"
     assert response_schema["properties"]["summary"]["description"]
     assert response_schema["properties"]["talking_points"]["description"]
     assert response_schema["properties"]["ai_audit"]["description"]

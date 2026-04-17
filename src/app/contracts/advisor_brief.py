@@ -127,8 +127,15 @@ class AdvisorBriefSupportabilityItem(BaseModel):
 
 
 class AdvisorBriefResponse(BaseModel):
-    correlation_id: str
-    contract_version: str = Field(default="v1")
+    correlation_id: str = Field(
+        description="Correlation identifier propagated through the advisor-brief request.",
+        examples=["corr-advisor-brief-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway contract version for the advisor-brief response.",
+        examples=["v1"],
+    )
     portfolio_id: str = Field(
         description="Portfolio identifier whose advisor brief is being returned.",
         examples=["PF_1001"],
