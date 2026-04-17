@@ -2,9 +2,15 @@ from fastapi.testclient import TestClient
 
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
+    ProposalApprovalsEnvelopeResponse,
+    ProposalDetailEnvelopeResponse,
     ProposalEnvelopeResponse,
+    ProposalLineageEnvelopeResponse,
+    ProposalListEnvelopeResponse,
     ProposalSimulateResponse,
     ProposalSubmitRequest,
+    ProposalVersionEnvelopeResponse,
+    ProposalWorkflowEventsEnvelopeResponse,
 )
 from app.main import app
 
@@ -18,13 +24,66 @@ def test_proposals_contract_shape() -> None:
     assert payload.data["status"] == "READY"
 
 
-def test_proposal_envelope_contract_shape() -> None:
-    payload = ProposalEnvelopeResponse(
+def test_proposal_read_envelope_contract_shapes() -> None:
+    list_payload = ProposalListEnvelopeResponse(
         correlation_id="corr_2",
         contract_version="v1",
-        data={"items": [{"proposal_id": "pp_1", "current_state": "DRAFT"}]},
+        data={
+            "items": [{"proposal_id": "pp_1", "portfolio_id": "PF_1001", "current_state": "DRAFT"}]
+        },
     )
-    assert payload.data["items"][0]["proposal_id"] == "pp_1"
+    detail_payload = ProposalDetailEnvelopeResponse(
+        correlation_id="corr_3",
+        contract_version="v1",
+        data={
+            "proposal": {
+                "proposal_id": "pp_1",
+                "portfolio_id": "PF_1001",
+                "current_state": "RISK_REVIEW",
+            },
+            "current_version": {
+                "proposal_version_id": "ppv_1",
+                "proposal_id": "pp_1",
+                "version_no": 1,
+            },
+        },
+    )
+    version_payload = ProposalVersionEnvelopeResponse(
+        correlation_id="corr_4",
+        contract_version="v1",
+        data={"proposal_version_id": "ppv_1", "proposal_id": "pp_1", "version_no": 1},
+    )
+    workflow_payload = ProposalWorkflowEventsEnvelopeResponse(
+        correlation_id="corr_5",
+        contract_version="v1",
+        data={"proposal_id": "pp_1", "current_state": "DRAFT", "events": []},
+    )
+    approvals_payload = ProposalApprovalsEnvelopeResponse(
+        correlation_id="corr_6",
+        contract_version="v1",
+        data={"proposal_id": "pp_1", "current_state": "RISK_REVIEW", "approvals": []},
+    )
+    lineage_payload = ProposalLineageEnvelopeResponse(
+        correlation_id="corr_7",
+        contract_version="v1",
+        data={"proposal_id": "pp_1", "versions": [{"version_no": 1}]},
+    )
+
+    assert list_payload.data.items[0].proposal_id == "pp_1"
+    assert detail_payload.data.proposal.current_state == "RISK_REVIEW"
+    assert version_payload.data.version_no == 1
+    assert workflow_payload.data.proposal_id == "pp_1"
+    assert approvals_payload.data.current_state == "RISK_REVIEW"
+    assert lineage_payload.data.versions[0].version_no == 1
+
+
+def test_proposal_write_envelope_contract_shape() -> None:
+    payload = ProposalEnvelopeResponse(
+        correlation_id="corr_8",
+        contract_version="v1",
+        data={"proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"}},
+    )
+    assert payload.data["proposal"]["proposal_id"] == "pp_1"
 
 
 def test_proposal_submit_request_contract_shape() -> None:
@@ -104,6 +163,32 @@ def test_proposals_openapi_read_contract() -> None:
     assert approvals_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert lineage_parameters["proposal_id"]["description"]
     assert lineage_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+
+    list_response_ref = list_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    detail_response_ref = detail_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    version_response_ref = version_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    events_response_ref = events_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    approvals_response_ref = approvals_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+    lineage_response_ref = lineage_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"]
+
+    assert list_response_ref.endswith("/ProposalListEnvelopeResponse")
+    assert detail_response_ref.endswith("/ProposalDetailEnvelopeResponse")
+    assert version_response_ref.endswith("/ProposalVersionEnvelopeResponse")
+    assert events_response_ref.endswith("/ProposalWorkflowEventsEnvelopeResponse")
+    assert approvals_response_ref.endswith("/ProposalApprovalsEnvelopeResponse")
+    assert lineage_response_ref.endswith("/ProposalLineageEnvelopeResponse")
 
 
 def test_proposals_openapi_write_contract() -> None:
@@ -187,7 +272,20 @@ def test_proposals_openapi_write_contract() -> None:
     submit_request_schema = spec["components"]["schemas"]["ProposalSubmitRequest"]
     approval_request_schema = spec["components"]["schemas"]["ProposalApprovalActionRequest"]
     simulate_response_schema = spec["components"]["schemas"]["ProposalSimulateResponse"]
+    list_envelope_schema = spec["components"]["schemas"]["ProposalListEnvelopeResponse"]
+    detail_envelope_schema = spec["components"]["schemas"]["ProposalDetailEnvelopeResponse"]
+    version_envelope_schema = spec["components"]["schemas"]["ProposalVersionEnvelopeResponse"]
+    workflow_envelope_schema = spec["components"]["schemas"][
+        "ProposalWorkflowEventsEnvelopeResponse"
+    ]
+    approvals_envelope_schema = spec["components"]["schemas"]["ProposalApprovalsEnvelopeResponse"]
+    lineage_envelope_schema = spec["components"]["schemas"]["ProposalLineageEnvelopeResponse"]
     envelope_schema = spec["components"]["schemas"]["ProposalEnvelopeResponse"]
+    summary_schema = spec["components"]["schemas"]["ProposalSummaryData"]
+    version_schema = spec["components"]["schemas"]["ProposalVersionData"]
+    workflow_event_schema = spec["components"]["schemas"]["ProposalWorkflowEventData"]
+    approval_record_schema = spec["components"]["schemas"]["ProposalApprovalRecordData"]
+    lineage_item_schema = spec["components"]["schemas"]["ProposalVersionLineageItemData"]
 
     assert simulate_request_schema["properties"]["body"]["description"]
     assert simulate_request_schema["properties"]["body"]["examples"][0]["portfolio_id"] == "PF_1001"
@@ -232,11 +330,31 @@ def test_proposals_openapi_write_contract() -> None:
         "pr_1"
     )
 
-    assert envelope_schema["properties"]["correlation_id"]["description"]
-    assert envelope_schema["properties"]["correlation_id"]["examples"] == ["corr-proposals-2"]
-    assert envelope_schema["properties"]["contract_version"]["description"]
-    assert envelope_schema["properties"]["contract_version"]["default"] == "v1"
-    assert envelope_schema["properties"]["data"]["description"]
-    assert envelope_schema["properties"]["data"]["examples"][0]["items"][0]["proposal_id"] == (
-        "pp_1"
+    for schema in (
+        list_envelope_schema,
+        detail_envelope_schema,
+        version_envelope_schema,
+        workflow_envelope_schema,
+        approvals_envelope_schema,
+        lineage_envelope_schema,
+        envelope_schema,
+    ):
+        assert schema["properties"]["correlation_id"]["description"]
+        assert schema["properties"]["correlation_id"]["examples"]
+        assert schema["properties"]["contract_version"]["description"]
+        assert schema["properties"]["contract_version"]["default"] == "v1"
+        assert schema["properties"]["data"]["description"]
+
+    assert summary_schema["properties"]["proposal_id"]["description"]
+    assert summary_schema["properties"]["current_state"]["examples"] == ["DRAFT"]
+    assert version_schema["properties"]["proposal_version_id"]["description"]
+    assert (
+        version_schema["properties"]["proposal_result"]["examples"][0]["proposal_run_id"] == "pr_1"
     )
+    assert workflow_event_schema["properties"]["event_type"]["examples"] == [
+        "SUBMITTED_FOR_RISK_REVIEW"
+    ]
+    assert approval_record_schema["properties"]["approval_type"]["examples"] == ["RISK"]
+    assert lineage_item_schema["properties"]["artifact_hash"]["description"]
+
+    assert envelope_schema["properties"]["data"]["examples"][0]["proposal"]["proposal_id"] == "pp_1"

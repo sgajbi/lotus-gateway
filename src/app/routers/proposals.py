@@ -4,12 +4,18 @@ from app.clients.dpm_client import DpmClient
 from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
+    ProposalApprovalsEnvelopeResponse,
     ProposalCreateRequest,
+    ProposalDetailEnvelopeResponse,
     ProposalEnvelopeResponse,
+    ProposalLineageEnvelopeResponse,
+    ProposalListEnvelopeResponse,
     ProposalSimulateRequest,
     ProposalSimulateResponse,
     ProposalSubmitRequest,
     ProposalVersionCreateRequest,
+    ProposalVersionEnvelopeResponse,
+    ProposalWorkflowEventsEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.proposal_service import ProposalService
@@ -83,7 +89,7 @@ async def create_proposal(
 
 @router.get(
     "",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalListEnvelopeResponse,
     summary="List Proposals",
     description=(
         "Lists advisory proposals from lotus-manage using optional portfolio, workflow-state, "
@@ -128,7 +134,7 @@ async def list_proposals(
         description="Opaque pagination cursor returned by the previous proposal list response.",
         examples=["pp_00042"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalListEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     filters = {
@@ -145,7 +151,7 @@ async def list_proposals(
 
 @router.get(
     "/{proposal_id}",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalDetailEnvelopeResponse,
     summary="Get Proposal",
     description="Returns the latest proposal envelope for a specific advisory proposal id.",
 )
@@ -160,7 +166,7 @@ async def get_proposal(
         description="Whether to request proposal evidence and support metadata when available.",
         examples=[True],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalDetailEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal(
@@ -172,7 +178,7 @@ async def get_proposal(
 
 @router.get(
     "/{proposal_id}/versions/{version_no}",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalVersionEnvelopeResponse,
     summary="Get Proposal Version",
     description="Returns one persisted version of an advisory proposal.",
 )
@@ -194,7 +200,7 @@ async def get_proposal_version(
         ),
         examples=[True],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalVersionEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_version(
@@ -365,7 +371,7 @@ async def record_client_consent(
 
 @router.get(
     "/{proposal_id}/workflow-events",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalWorkflowEventsEnvelopeResponse,
     summary="Get Proposal Workflow Events",
     description="Returns the workflow event timeline for a specific advisory proposal.",
 )
@@ -375,7 +381,7 @@ async def get_workflow_events(
         description="Gateway-visible proposal identifier returned by lotus-manage.",
         examples=["pp_1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalWorkflowEventsEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workflow_events(
@@ -386,7 +392,7 @@ async def get_workflow_events(
 
 @router.get(
     "/{proposal_id}/approvals",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalApprovalsEnvelopeResponse,
     summary="Get Proposal Approvals",
     description="Returns approval records already captured for a specific advisory proposal.",
 )
@@ -396,7 +402,7 @@ async def get_approvals(
         description="Gateway-visible proposal identifier returned by lotus-manage.",
         examples=["pp_1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalApprovalsEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_approvals(
@@ -407,7 +413,7 @@ async def get_approvals(
 
 @router.get(
     "/{proposal_id}/lineage",
-    response_model=ProposalEnvelopeResponse,
+    response_model=ProposalLineageEnvelopeResponse,
     summary="Get Proposal Lineage",
     description="Returns immutable version lineage metadata and hashes for a specific proposal.",
 )
@@ -417,7 +423,7 @@ async def get_proposal_lineage(
         description="Gateway-visible proposal identifier returned by lotus-manage.",
         examples=["pp_1"],
     ),
-) -> ProposalEnvelopeResponse:
+) -> ProposalLineageEnvelopeResponse:
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_lineage(
