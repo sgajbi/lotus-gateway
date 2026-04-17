@@ -97,6 +97,7 @@ def test_foundation_openapi_contract_registered() -> None:
     assert foundation_catalog["properties"]["correlation_id"]["description"]
     assert foundation_catalog["properties"]["contract_version"]["description"]
     assert foundation_catalog["properties"]["items"]["description"]
+    assert foundation_catalog["properties"]["items"]["examples"]
     assert foundation_catalog_item["properties"]["portfolio_id"]["description"]
     assert foundation_catalog_item["properties"]["display_name"]["description"]
     assert foundation_catalog_item["properties"]["base_currency"]["description"]
@@ -108,18 +109,22 @@ def test_foundation_openapi_contract_registered() -> None:
     assert foundation_workspace["properties"]["portfolio"]["description"]
     assert foundation_workspace["properties"]["summary"]["description"]
     assert foundation_workspace["properties"]["allocations"]["description"]
+    assert foundation_workspace["properties"]["allocations"]["examples"]
     assert foundation_workspace["properties"]["top_positions"]["description"].startswith(
         "Largest holdings ranked"
     )
+    assert foundation_workspace["properties"]["top_positions"]["examples"]
     assert foundation_workspace["properties"]["performance"]["description"]
     assert foundation_workspace["properties"]["rebalance"]["description"]
     assert foundation_workspace["properties"]["readiness"]["description"]
     assert foundation_workspace["properties"]["workflow_cues"]["description"]
+    assert foundation_workspace["properties"]["workflow_cues"]["examples"]
     assert foundation_workspace["properties"]["evidence"]["description"].startswith(
         "Advisor-facing evidence posture"
     )
     assert foundation_workspace["properties"]["warnings"]["description"]
     assert foundation_workspace["properties"]["partial_failures"]["description"]
+    assert foundation_workspace["properties"]["partial_failures"]["examples"]
     assert foundation_identity["properties"]["portfolio_id"]["description"]
     assert foundation_identity["properties"]["display_name"]["description"]
     assert foundation_identity["properties"]["client_id"]["description"]

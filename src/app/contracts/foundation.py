@@ -54,6 +54,17 @@ class FoundationPortfolioCatalogResponse(BaseModel):
     items: list[FoundationPortfolioCatalogItem] = Field(
         default_factory=list,
         description="Selector-ready portfolio entries available to the Foundation shell.",
+        examples=[
+            [
+                {
+                    "portfolio_id": "PF_1001",
+                    "display_name": "Alpha Growth",
+                    "base_currency": "USD",
+                    "client_id": "CIF_1001",
+                    "booking_center_code": "SG",
+                }
+            ]
+        ],
     )
 
 
@@ -270,10 +281,31 @@ class FoundationWorkspaceResponse(BaseModel):
     allocations: list[FoundationAllocationBucket] = Field(
         default_factory=list,
         description="Allocation shape grouped by asset class.",
+        examples=[
+            [
+                {
+                    "asset_class": "Equity",
+                    "position_count": 2,
+                    "market_value_base": 900.0,
+                    "weight_pct": 90.0,
+                }
+            ]
+        ],
     )
     top_positions: list[FoundationTopPosition] = Field(
         default_factory=list,
         description="Largest holdings ranked by market value for quick portfolio inspection.",
+        examples=[
+            [
+                {
+                    "security_id": "EQ_1",
+                    "display_name": "Global Equity Fund",
+                    "asset_class": "Equity",
+                    "market_value_base": 600.0,
+                    "weight_pct": 60.0,
+                }
+            ]
+        ],
     )
     performance: FoundationPerformanceSummary | None = Field(
         default=None,
@@ -289,6 +321,15 @@ class FoundationWorkspaceResponse(BaseModel):
     workflow_cues: list[FoundationWorkflowLaunchCue] = Field(
         default_factory=list,
         description="Strategic next-step links into deeper product workspaces.",
+        examples=[
+            [
+                {
+                    "key": "performance",
+                    "label": "Open Performance",
+                    "href": "/app/performance",
+                }
+            ]
+        ],
     )
     evidence: FoundationEvidenceSummary = Field(
         description="Advisor-facing evidence posture for degraded-but-usable behavior.",
@@ -301,4 +342,13 @@ class FoundationWorkspaceResponse(BaseModel):
     partial_failures: list[FoundationPartialFailure] = Field(
         default_factory=list,
         description="Upstream partial failures preserved for diagnostics and support review.",
+        examples=[
+            [
+                {
+                    "source_service": "lotus-report",
+                    "error_code": "HTTP_503",
+                    "detail": "report unavailable",
+                }
+            ]
+        ],
     )
