@@ -42,6 +42,37 @@ def test_portfolio_workspace_contract_shape() -> None:
             "last_run_at_utc": "2026-03-27T12:00:00Z",
             "last_rebalance_run_id": "rr_100",
         },
+        control_capabilities={
+            "historical_snapshots": {
+                "state": "partial",
+                "reason": "Most portfolio modules honor as_of_date.",
+                "requested_as_of_date": "2026-03-27",
+                "effective_as_of_date": "2026-03-27",
+                "earliest_available_as_of_date": "2024-01-15",
+                "latest_available_as_of_date": "2026-03-27",
+                "module_capabilities": [
+                    {
+                        "module": "book",
+                        "state": "supported",
+                        "reason": "Book accepts and honors as_of_date directly.",
+                    }
+                ],
+            },
+            "reporting_currency_restatement": {
+                "state": "partial",
+                "reason": "Only some modules honor reporting_currency.",
+                "requested_reporting_currency": "SGD",
+                "effective_reporting_currency": "USD",
+                "supported_currencies": ["USD", "SGD"],
+                "module_capabilities": [
+                    {
+                        "module": "positions",
+                        "state": "supported",
+                        "reason": "Positions accept and honor reporting_currency directly.",
+                    }
+                ],
+            },
+        },
         reporting={"status": "READY", "row_count": 3},
     )
     assert payload.summary.assets_under_management_base == 1000.0
@@ -49,6 +80,11 @@ def test_portfolio_workspace_contract_shape() -> None:
     assert payload.performance.return_pct == 2.5
     assert payload.rebalance is not None
     assert payload.rebalance.last_rebalance_run_id == "rr_100"
+    assert payload.control_capabilities.historical_snapshots.state == "partial"
+    assert payload.control_capabilities.reporting_currency_restatement.supported_currencies == [
+        "USD",
+        "SGD",
+    ]
     assert payload.reporting.status == "READY"
 
 
@@ -351,6 +387,18 @@ def test_portfolio_openapi_contract_registered() -> None:
     rebalance_schema = spec["components"]["schemas"]["PortfolioRebalanceSummary"]
     reporting_readiness_schema = spec["components"]["schemas"]["PortfolioReportingReadiness"]
     operational_readiness_schema = spec["components"]["schemas"]["PortfolioOperationalReadiness"]
+    workspace_control_capabilities_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceControlCapabilities"
+    ]
+    workspace_historical_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceHistoricalSnapshotCapability"
+    ]
+    workspace_reporting_currency_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceReportingCurrencyCapability"
+    ]
+    workspace_module_capability_schema = spec["components"]["schemas"][
+        "PortfolioWorkspaceModuleCapability"
+    ]
     workflow_launch_cue_schema = spec["components"]["schemas"]["PortfolioWorkflowLaunchCue"]
     readiness_schema = spec["components"]["schemas"]["PortfolioReadinessResponse"]
     readiness_indicator_schema = spec["components"]["schemas"]["PortfolioReadinessIndicator"]
@@ -466,6 +514,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workspace_schema["properties"]["cashflow_outlook"]["description"]
     assert workspace_schema["properties"]["reporting"]["description"]
     assert workspace_schema["properties"]["operations"]["description"]
+    assert workspace_schema["properties"]["control_capabilities"]["description"]
     assert workspace_schema["properties"]["workflow_cues"]["description"]
     assert workspace_schema["properties"]["warnings"]["description"]
     assert workspace_schema["properties"]["partial_failures"]["description"]
@@ -578,6 +627,31 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert operational_readiness_schema["properties"]["failed_aggregation_jobs_within_window"][
         "description"
     ]
+    assert workspace_control_capabilities_schema["properties"]["historical_snapshots"][
+        "description"
+    ]
+    assert workspace_control_capabilities_schema["properties"]["reporting_currency_restatement"][
+        "description"
+    ]
+    assert workspace_historical_capability_schema["properties"]["state"]["description"]
+    assert workspace_historical_capability_schema["properties"]["reason"]["description"]
+    assert workspace_historical_capability_schema["properties"]["requested_as_of_date"][
+        "description"
+    ]
+    assert workspace_historical_capability_schema["properties"]["effective_as_of_date"][
+        "description"
+    ]
+    assert workspace_historical_capability_schema["properties"]["module_capabilities"]["examples"]
+    assert workspace_reporting_currency_capability_schema["properties"]["state"]["description"]
+    assert workspace_reporting_currency_capability_schema["properties"][
+        "effective_reporting_currency"
+    ]["description"]
+    assert workspace_reporting_currency_capability_schema["properties"]["supported_currencies"][
+        "examples"
+    ]
+    assert workspace_module_capability_schema["properties"]["module"]["description"]
+    assert workspace_module_capability_schema["properties"]["state"]["description"]
+    assert workspace_module_capability_schema["properties"]["reason"]["description"]
     assert workflow_launch_cue_schema["properties"]["key"]["description"]
     assert workflow_launch_cue_schema["properties"]["label"]["description"]
     assert workflow_launch_cue_schema["properties"]["href"]["description"]

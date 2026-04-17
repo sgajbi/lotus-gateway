@@ -141,6 +141,17 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
+    assert body["control_capabilities"]["historical_snapshots"]["state"] == "partial"
+    assert (
+        body["control_capabilities"]["historical_snapshots"]["module_capabilities"][-1]["module"]
+        == "rebalance"
+    )
+    assert (
+        body["control_capabilities"]["reporting_currency_restatement"][
+            "effective_reporting_currency"
+        ]
+        == "USD"
+    )
     assert captured["support_as_of_date"] is None
 
 

@@ -427,6 +427,48 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.performance.return_pct == 2.5
     assert response.rebalance is not None
     assert response.rebalance.status == "PENDING_REVIEW"
+    assert response.control_capabilities.historical_snapshots.state == "partial"
+    assert response.control_capabilities.historical_snapshots.earliest_available_as_of_date is None
+    assert response.control_capabilities.historical_snapshots.module_capabilities[-1].module == (
+        "rebalance"
+    )
+    assert response.control_capabilities.historical_snapshots.module_capabilities[-1].state == (
+        "unsupported"
+    )
+    assert response.control_capabilities.reporting_currency_restatement.state == "partial"
+    assert (
+        response.control_capabilities.reporting_currency_restatement.effective_reporting_currency
+        == ("USD")
+    )
+    assert response.control_capabilities.reporting_currency_restatement.supported_currencies == [
+        "USD"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_portfolio_workspace_control_capabilities_capture_requested_context():
+    service = PortfolioService(_StubLotusCoreQueryClient())
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2a",
+        as_of_date="2026-03-20",
+        reporting_currency="SGD",
+    )
+
+    assert response.control_capabilities.historical_snapshots.requested_as_of_date == "2026-03-20"
+    assert response.control_capabilities.historical_snapshots.effective_as_of_date == "2026-03-27"
+    assert (
+        response.control_capabilities.reporting_currency_restatement.requested_reporting_currency
+        == ("SGD")
+    )
+    assert (
+        response.control_capabilities.reporting_currency_restatement.effective_reporting_currency
+        == ("SGD")
+    )
+    assert response.control_capabilities.reporting_currency_restatement.supported_currencies == [
+        "USD",
+        "SGD",
+    ]
 
 
 @pytest.mark.asyncio
