@@ -1069,7 +1069,12 @@ def test_workbench_performance_details_router(monkeypatch):
 
 
 def test_workbench_performance_evidence_artifact_router(monkeypatch):
-    async def _artifact(*args, **kwargs):  # noqa: ARG001
+    captured: dict[str, str] = {}
+
+    async def _artifact(self, calculation_id, artifact_name, correlation_id):
+        captured["calculation_id"] = calculation_id
+        captured["artifact_name"] = artifact_name
+        captured["correlation_id"] = correlation_id
         return b"{}", "application/json"
 
     monkeypatch.setattr(
@@ -1086,6 +1091,9 @@ def test_workbench_performance_evidence_artifact_router(monkeypatch):
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/json")
     assert response.text == "{}"
+    assert captured["calculation_id"] == "calc-workspace-summary"
+    assert captured["artifact_name"] == "request.json"
+    assert captured["correlation_id"]
 
 
 def test_workbench_performance_horizon_comparison_router(monkeypatch):

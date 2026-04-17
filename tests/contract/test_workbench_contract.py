@@ -80,6 +80,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert "/api/v1/workbench/{portfolio_id}/overview" in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/portfolio-360" in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/analytics" in spec["paths"]
+    assert (
+        "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/"
+        "{calculation_id}/{artifact_name}"
+    ) in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/sandbox/sessions" in spec["paths"]
     assert "/api/v1/workbench/{portfolio_id}/sandbox/sessions/{session_id}/changes" in spec["paths"]
     create_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/sandbox/sessions"]["post"]
@@ -89,6 +93,10 @@ def test_workbench_openapi_contract_registered() -> None:
     overview_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/overview"]["get"]
     portfolio_360_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/portfolio-360"]["get"]
     analytics_operation = spec["paths"]["/api/v1/workbench/{portfolio_id}/analytics"]["get"]
+    artifact_operation = spec["paths"][
+        "/api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/"
+        "{calculation_id}/{artifact_name}"
+    ]["get"]
     overview_schema = spec["components"]["schemas"]["WorkbenchOverviewResponse"]
     portfolio_summary_schema = spec["components"]["schemas"]["WorkbenchPortfolioSummary"]
     overview_summary_schema = spec["components"]["schemas"]["WorkbenchOverviewSummary"]
@@ -117,6 +125,9 @@ def test_workbench_openapi_contract_registered() -> None:
     analytics_parameters = {
         parameter["name"]: parameter for parameter in analytics_operation["parameters"]
     }
+    artifact_parameters = {
+        parameter["name"]: parameter for parameter in artifact_operation["parameters"]
+    }
     create_parameters = {
         parameter["name"]: parameter for parameter in create_operation["parameters"]
     }
@@ -144,6 +155,12 @@ def test_workbench_openapi_contract_registered() -> None:
     assert analytics_parameters["benchmark_code"]["schema"]["examples"] == ["MODEL_60_40"]
     assert analytics_parameters["session_id"]["schema"]
     assert analytics_parameters["session_id"]["description"]
+    assert artifact_parameters["portfolio_id"]["description"]
+    assert artifact_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert artifact_parameters["calculation_id"]["description"]
+    assert artifact_parameters["calculation_id"]["schema"]["examples"] == ["calc-workspace-summary"]
+    assert artifact_parameters["artifact_name"]["description"]
+    assert artifact_parameters["artifact_name"]["schema"]["examples"] == ["request.json"]
 
     assert overview_schema["properties"]["correlation_id"]["description"]
     assert overview_schema["properties"]["contract_version"]["description"]

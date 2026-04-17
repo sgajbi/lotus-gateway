@@ -535,9 +535,21 @@ async def get_performance_workspace_details(
     ),
 )
 async def get_performance_evidence_artifact(
-    portfolio_id: str,
-    calculation_id: str,
-    artifact_name: str,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier used to scope the evidence artifact download.",
+        examples=["PF_1001"],
+    ),
+    calculation_id: str = Path(
+        ...,
+        description="Gateway-visible calculation identifier for the requested evidence artifact.",
+        examples=["calc-workspace-summary"],
+    ),
+    artifact_name: str = Path(
+        ...,
+        description="Artifact filename published for the selected calculation.",
+        examples=["request.json"],
+    ),
 ) -> Response:
     _ = portfolio_id
     service = _performance_workspace_service()
