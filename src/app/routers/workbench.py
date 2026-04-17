@@ -471,7 +471,8 @@ async def get_workbench_risk_drawdown(
     summary="Get Workbench Risk Rolling Metrics",
     description=(
         "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
-        "Rolling series detail is optional and requested on demand to keep first paint lean. "
+        "Rolling series detail is optional and requested on demand via "
+        "`include_time_series=true` to keep first paint lean. "
         "If lotus-risk cannot source the risk-free dependency, gateway omits rolling Sharpe "
         "and surfaces an explicit partial-failure signal."
     ),

@@ -770,6 +770,14 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
                             "window_length": 21,
                             "metric_summaries": {
                                 "ROLLING_VOLATILITY": {
+                                    "total_point_count": 66,
+                                    "computed_point_count": 46,
+                                    "coverage_ratio": 0.697,
+                                    "min_observations_required": 21,
+                                    "warmup_point_count": 20,
+                                    "non_computed_point_count": 20,
+                                    "post_warmup_gap_point_count": 0,
+                                    "latest_observation_date": "2026-04-04",
                                     "latest": 0.1374,
                                     "average": 0.1221,
                                     "minimum": 0.0913,
@@ -787,13 +795,61 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
                                     },
                                 }
                             ],
+                            "metric_series_context": {
+                                "requested": True,
+                                "included": True,
+                                "emitted_point_count": 1,
+                                "reason": "Included for drill-down request.",
+                            },
                         }
                     ],
+                    "benchmark_series_count": 66,
+                    "aligned_benchmark_series_count": 64,
+                    "risk_free_series_count": 65,
+                    "aligned_risk_free_series_count": 65,
+                    "window_lengths_requested": [21, 63, 126, 252],
+                    "window_count_requested": 4,
+                    "window_lengths_emitted": [21],
+                    "window_count_emitted": 1,
+                    "benchmark_context": {
+                        "requested": True,
+                        "available": True,
+                        "aligned": True,
+                        "reason": "APPLIED",
+                    },
+                    "risk_free_context": {
+                        "requested": True,
+                        "available": True,
+                        "aligned": True,
+                        "reason": "APPLIED",
+                    },
                     "quality_flags": ["metric:ROLLING_BETA:benchmark_variance_zero"],
                     "error": None,
                 }
             },
-            "metadata": {"contract_version": "v1", "methodology_version": "rolling_metrics.v1"},
+            "metadata": {
+                "contract_version": "v1",
+                "methodology_version": "rolling_metrics.v1",
+                "annualization_basis": 252,
+                "requested_metrics": [
+                    "ROLLING_VOLATILITY",
+                    "ROLLING_BETA",
+                    "ROLLING_SHARPE",
+                ],
+                "window_lengths_requested": [21, 63, 126, 252],
+                "window_count_requested": 4,
+                "alignment_policy": "INNER_JOIN",
+                "min_observations_policy": "STRICT",
+                "include_time_series": True,
+                "benchmark_context": {
+                    "requested": True,
+                    "requested_metrics": ["ROLLING_BETA"],
+                },
+                "risk_free_context": {
+                    "requested": True,
+                    "requested_metrics": ["ROLLING_SHARPE"],
+                },
+            },
         }
 
     monkeypatch.setattr(
@@ -815,7 +871,29 @@ def test_workbench_risk_rolling_router_maps_stateful_rolling_and_detail_flag(mon
     assert body["correlation_id"] == "corr-risk-rolling"
     assert body["state"] == "ready"
     assert body["metadata"]["methodology_version"] == "rolling_metrics.v1"
+    assert body["warnings"] == ["RISK_ROLLING_QUALITY_FLAGS"]
+    assert body["partial_failures"] == []
+    assert body["payload"]["request_context"]["include_time_series"] is True
+    assert body["payload"]["request_context"]["requested_metrics"] == [
+        "ROLLING_VOLATILITY",
+        "ROLLING_BETA",
+        "ROLLING_SHARPE",
+    ]
     assert body["payload"]["periods"][0]["window_results"][0]["window_length"] == 21
+    assert (
+        body["payload"]["periods"][0]["window_results"][0]["metric_summaries"][
+            "ROLLING_VOLATILITY"
+        ]["latest"]
+        == 0.1374
+    )
+    assert (
+        body["payload"]["periods"][0]["window_results"][0]["metric_series_context"][
+            "emitted_point_count"
+        ]
+        == 1
+    )
+    assert body["payload"]["periods"][0]["benchmark_context"]["reason"] == "APPLIED"
+    assert body["payload"]["periods"][0]["risk_free_context"]["aligned"] is True
     assert len(body["payload"]["periods"][0]["window_results"][0]["metric_series"]) == 1
     assert body["payload"]["periods"][0]["quality_flags"] == [
         "metric:ROLLING_BETA:benchmark_variance_zero"

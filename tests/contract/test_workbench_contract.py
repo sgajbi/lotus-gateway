@@ -253,6 +253,8 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_drawdown_parameters["include_underwater_series"]["schema"]["examples"] == [True]
     assert risk_rolling_parameters["portfolio_id"]["description"]
     assert risk_rolling_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
+    assert "include_time_series=true" in risk_rolling_operation["description"]
+    assert "omits rolling sharpe" in risk_rolling_operation["description"].lower()
     assert risk_rolling_parameters["period"]["description"]
     assert risk_rolling_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_rolling_parameters["detail_basis"]["description"]
@@ -544,6 +546,49 @@ def test_workbench_openapi_contract_registered() -> None:
     assert relative_context_schema["properties"]["aligned_observation_count"]["examples"] == [36]
     assert underwater_point_schema["properties"]["drawdown"]["examples"] == [-0.0521]
     assert analysis_context_schema["properties"]["include_underwater_series"]["description"]
+    rolling_schema = spec["components"]["schemas"]["WorkbenchRiskRollingResponse"]
+    rolling_payload_schema = spec["components"]["schemas"]["WorkbenchRiskRollingPayload"]
+    rolling_period_schema = spec["components"]["schemas"]["WorkbenchRiskRollingPeriodResult"]
+    rolling_window_schema = spec["components"]["schemas"]["WorkbenchRiskRollingWindowResult"]
+    rolling_summary_schema = spec["components"]["schemas"]["WorkbenchRiskRollingMetricSummary"]
+    rolling_series_schema = spec["components"]["schemas"]["WorkbenchRiskRollingMetricSeriesPoint"]
+    rolling_series_context_schema = spec["components"]["schemas"][
+        "WorkbenchRiskRollingMetricSeriesContext"
+    ]
+    rolling_dependency_schema = spec["components"]["schemas"][
+        "WorkbenchRiskRollingDependencyContext"
+    ]
+    rolling_request_schema = spec["components"]["schemas"]["WorkbenchRiskRollingRequestContext"]
+    rolling_request_dependency_schema = spec["components"]["schemas"][
+        "WorkbenchRiskRollingRequestDependencyContext"
+    ]
+    assert rolling_schema["example"]["payload"]["periods"][0]["series_count"] == 66
+    assert (
+        rolling_schema["example"]["payload"]["periods"][0]["risk_free_context"]["reason"]
+        == "Risk-free series could not be aligned for rolling Sharpe."
+    )
+    assert rolling_schema["example"]["supportability"][2]["key"] == "risk_free_series"
+    assert rolling_schema["example"]["warnings"] == [
+        "RISK_ROLLING_QUALITY_FLAGS",
+        "RISK_ROLLING_SHARPE_PARTIAL",
+    ]
+    assert (
+        rolling_schema["example"]["partial_failures"][0]["error_code"]
+        == "ROLLING_SHARPE_UNAVAILABLE"
+    )
+    assert rolling_payload_schema["properties"]["request_context"]["description"]
+    assert rolling_period_schema["properties"]["window_lengths_requested"]["description"]
+    assert rolling_period_schema["properties"]["aligned_risk_free_series_count"]["examples"] == [0]
+    assert rolling_window_schema["properties"]["metric_series_context"]["description"]
+    assert rolling_summary_schema["properties"]["coverage_ratio"]["description"]
+    assert rolling_summary_schema["properties"]["latest"]["examples"] == [0.1374]
+    assert rolling_series_schema["properties"]["metric_values"]["description"]
+    assert rolling_series_context_schema["properties"]["reason"]["description"]
+    assert rolling_dependency_schema["properties"]["aligned"]["description"]
+    assert rolling_request_schema["properties"]["include_time_series"]["description"]
+    assert rolling_request_dependency_schema["properties"]["requested_metrics"]["examples"] == [
+        ["ROLLING_SHARPE"]
+    ]
 
     assert create_parameters["portfolio_id"]["schema"]["type"] == "string"
     assert "projected baseline state" in create_operation["description"].lower()
