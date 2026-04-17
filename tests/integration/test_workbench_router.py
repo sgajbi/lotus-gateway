@@ -1068,6 +1068,254 @@ def test_workbench_performance_details_router(monkeypatch):
     assert "net_performance" not in body
 
 
+def test_workbench_performance_summary_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "detail_basis": detail_basis,
+            "benchmark_code": benchmark_code,
+            "portfolio": {
+                "portfolio_id": portfolio_id,
+                "client_id": "CIF_1001",
+                "base_currency": "USD",
+                "booking_center_code": "SG",
+            },
+            "overview": {
+                "market_value_base": 1250000.0,
+                "cash_weight_pct": 0.08,
+                "position_count": 42,
+            },
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "supported"},
+            },
+            "net_performance": {
+                "metric_basis": detail_basis,
+                "portfolio_return_pct": 5.42,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.52,
+                "requested_period_supported": True,
+                "requested_chart_frequency_supported": True,
+                "requested_attribution_dimension_supported": True,
+                "benchmark_input_mode": "stateful",
+                "lineage_state": "supported",
+                "net_chart": [],
+                "benchmark_options": [],
+            },
+            "gross_performance": {
+                "metric_basis": "GROSS",
+                "portfolio_return_pct": 5.88,
+                "benchmark_return_pct": 4.9,
+                "active_return_pct": 0.98,
+                "benchmark_input_mode": "stateful",
+            },
+            "money_weighted_return": {
+                "input_mode": "stateful",
+                "method": "XIRR",
+                "start_date": "2026-01-01",
+                "end_date": "2026-02-24",
+                "begin_market_value": 1200000.0,
+                "end_market_value": 1250000.0,
+                "beginning_cash_flow": 50000.0,
+                "ending_cash_flow": -8000.0,
+                "flow_adjusted_end_market_value": 1208000.0,
+                "net_cash_flow": 42000.0,
+                "fees": 0.0,
+                "notes": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+            "evidence_view": {"state": "supported", "reason": None, "calculations": []},
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_summary",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/summary"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-performance-summary"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-performance-summary",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
+    assert body["detail_basis"] == "GROSS"
+    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
+def test_workbench_performance_details_router_preserves_query_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return {
+            "correlation_id": correlation_id,
+            "contract_version": "v1",
+            "portfolio_id": portfolio_id,
+            "as_of_date": "2026-02-24",
+            "period": period,
+            "report_start_date": explicit_start_date,
+            "report_end_date": explicit_end_date,
+            "chart_frequency": chart_frequency,
+            "contribution_dimension": contribution_dimension,
+            "attribution_dimension": attribution_dimension,
+            "detail_basis": detail_basis,
+            "segment": attribution_dimension,
+            "benchmark_code": benchmark_code,
+            "capabilities": {
+                "summary_kpis": {"state": "supported"},
+                "return_path": {"state": "supported"},
+                "benchmark_comparison": {"state": "supported"},
+                "multi_horizon_returns": {"state": "supported"},
+                "contribution_ranking": {"state": "supported"},
+                "attribution_detail": {"state": "supported"},
+                "contribution_detail": {"state": "supported"},
+                "evidence": {"state": "partial"},
+            },
+            "evidence_view": {
+                "state": "partial",
+                "reason": "Lineage is still pending for one or more calculations.",
+                "calculations": [],
+            },
+            "net_chart": [],
+            "gross_chart": [],
+            "contribution": {
+                "metric_basis": detail_basis,
+                "weighting_scheme": "average_weight",
+                "portfolio_contribution_pct": 5.42,
+                "total_portfolio_return_pct": 5.42,
+                "coverage_mv_pct": 98.7,
+                "levels": [],
+            },
+            "attribution": {
+                "metric_basis": detail_basis,
+                "model": "BF",
+                "linking": "carino",
+                "benchmark_id": benchmark_code,
+                "active_return_pct": 0.52,
+                "sum_of_effects_pct": 0.5,
+                "residual_pct": 0.02,
+                "levels": [],
+            },
+            "warnings": [],
+            "partial_failures": [],
+        }
+
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.PerformanceWorkspaceService.get_performance_workspace_details",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/details"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-performance-details"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-performance-details",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+    assert body["period"] == "EXPLICIT"
+    assert body["report_start_date"] == "2026-01-01"
+    assert body["report_end_date"] == "2026-03-27"
+    assert body["detail_basis"] == "GROSS"
+    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+
+
 def test_workbench_performance_evidence_artifact_router(monkeypatch):
     captured: dict[str, str] = {}
 

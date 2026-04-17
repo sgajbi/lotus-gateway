@@ -604,15 +604,57 @@ async def get_workbench_risk_attribution(
     ),
 )
 async def get_performance_workspace_summary(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance summary workspace."
+        ),
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Requested performance horizon for the summary workspace.",
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested chart frequency for summary sparkline and supporting modules.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for summary contribution context.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for summary attribution context.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for summary performance metrics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for summary-relative performance context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit summary window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller requests an explicit summary window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceWorkspaceSummaryResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
@@ -641,15 +683,55 @@ async def get_performance_workspace_summary(
     ),
 )
 async def get_performance_workspace_details(
-    portfolio_id: str,
-    period: str = "YTD",
-    chart_frequency: str = "monthly",
-    contribution_dimension: str = "asset_class",
-    attribution_dimension: str = "asset_class",
-    detail_basis: str = "NET",
-    benchmark_code: str | None = None,
-    report_start_date: str | None = None,
-    report_end_date: str | None = None,
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the stateful performance detail workspace.",
+        examples=["PF_1001"],
+    ),
+    period: str = Query(
+        default="YTD",
+        description="Requested performance horizon for the analytical detail workspace.",
+        examples=["YTD"],
+    ),
+    chart_frequency: str = Query(
+        default="monthly",
+        description="Requested chart frequency for detail charts and time-series modules.",
+        examples=["monthly"],
+    ),
+    contribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for detailed contribution analytics.",
+        examples=["asset_class"],
+    ),
+    attribution_dimension: str = Query(
+        default="asset_class",
+        description="Requested grouping dimension for detailed attribution analytics.",
+        examples=["asset_class"],
+    ),
+    detail_basis: str = Query(
+        default="NET",
+        description="Requested net or gross basis for detailed performance analytics.",
+        examples=["NET"],
+    ),
+    benchmark_code: str | None = Query(
+        default=None,
+        description="Optional benchmark override used for detailed relative performance context.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit detail window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit end date when the caller requests an explicit detail window."
+        ),
+        examples=["2026-03-27"],
+    ),
 ) -> PerformanceWorkspaceDetailsResponse:
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
