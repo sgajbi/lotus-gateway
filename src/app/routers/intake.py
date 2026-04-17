@@ -33,9 +33,10 @@ def _intake_service() -> IntakeService:
     response_model=EnvelopeResponse,
     summary="Ingest Portfolio Bundle via lotus-core",
     description=(
-        "Pass-through endpoint for lotus-core ingestion /ingest/portfolio-bundle. "
-        "Accept an optional idempotency header when callers need safe retry semantics "
-        "for bundle submission."
+        "Submits a canonical portfolio bundle to lotus-core for asynchronous ingestion. Use this "
+        "route when the caller already has a fully assembled bundle payload and wants one "
+        "write-ingress handoff instead of file-based preview/commit. Accepts an optional "
+        "idempotency header when callers need safe retry semantics for bundle submission."
     ),
 )
 async def ingest_portfolio_bundle(
@@ -43,7 +44,10 @@ async def ingest_portfolio_bundle(
     idempotency_key: str | None = Header(
         default=None,
         alias="X-Idempotency-Key",
-        description="Optional caller-supplied idempotency key forwarded unchanged to lotus-core.",
+        description=(
+            "Optional caller-supplied idempotency key forwarded unchanged to lotus-core so "
+            "duplicate bundle submissions can replay the original ingestion job safely."
+        ),
         examples=["bundle-idem-1001"],
     ),
 ) -> EnvelopeResponse:

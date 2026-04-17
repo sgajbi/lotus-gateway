@@ -52,10 +52,16 @@ def test_intake_openapi_contract_registered() -> None:
     lookup_response_schema = spec["components"]["schemas"]["LookupResponse"]
 
     assert bundle_operation["description"]
+    assert "fully assembled bundle payload" in bundle_operation["description"]
+    assert "write-ingress handoff" in bundle_operation["description"]
     bundle_parameters = {
         parameter["name"]: parameter for parameter in bundle_operation["parameters"]
     }
     assert bundle_parameters["X-Idempotency-Key"]["description"]
+    assert (
+        "replay the original ingestion job safely"
+        in bundle_parameters["X-Idempotency-Key"]["description"]
+    )
     assert bundle_parameters["X-Idempotency-Key"]["schema"]["examples"] == ["bundle-idem-1001"]
     assert preview_operation["description"]
     assert "sample rows" in preview_operation["description"]

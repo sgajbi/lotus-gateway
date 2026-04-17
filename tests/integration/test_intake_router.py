@@ -28,6 +28,8 @@ def test_ingest_portfolio_bundle_success(monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["data"]["message"] == "queued"
+    assert captured["body"] == {"sourceSystem": "UI", "portfolios": []}
+    assert isinstance(captured["correlation_id"], str)
     assert captured["idempotency_key"] == "bundle-idem-1001"
 
 
@@ -50,6 +52,8 @@ def test_ingest_portfolio_bundle_allows_missing_idempotency_header(monkeypatch):
     )
 
     assert response.status_code == 200
+    assert captured["body"] == {"sourceSystem": "UI", "portfolios": []}
+    assert isinstance(captured["correlation_id"], str)
     assert captured["idempotency_key"] is None
 
 
