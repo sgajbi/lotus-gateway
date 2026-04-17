@@ -747,19 +747,61 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
         description="Gateway contract version for the performance summary response.",
         examples=["v1"],
     )
-    portfolio_id: str
-    as_of_date: str
-    period: str
-    report_start_date: str
-    report_end_date: str
-    chart_frequency: str
-    detail_basis: str
-    requested_chart_frequency_supported: bool = True
-    requested_contribution_dimension_supported: bool = True
-    requested_attribution_dimension_supported: bool = True
-    benchmark_code: str | None = None
-    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
-    capabilities: PerformanceWorkspaceCapabilities
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose performance summary is being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the performance summary response.",
+        examples=["2026-02-24"],
+    )
+    period: str = Field(
+        description="Resolved requested horizon for the performance summary response.",
+        examples=["YTD"],
+    )
+    report_start_date: str = Field(
+        description="Inclusive start date for the resolved performance summary window.",
+        examples=["2026-01-01"],
+    )
+    report_end_date: str = Field(
+        description="Inclusive end date for the resolved performance summary window.",
+        examples=["2026-02-24"],
+    )
+    chart_frequency: str = Field(
+        description="Resolved chart frequency used for the performance summary context.",
+        examples=["monthly"],
+    )
+    detail_basis: str = Field(
+        description="Performance basis used for the performance summary metrics.",
+        examples=["NET"],
+    )
+    requested_chart_frequency_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested chart frequency was supported as-is.",
+        examples=[True],
+    )
+    requested_contribution_dimension_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested contribution dimension was supported as-is.",
+        examples=[True],
+    )
+    requested_attribution_dimension_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested attribution dimension was supported as-is.",
+        examples=[True],
+    )
+    benchmark_code: str | None = Field(
+        default=None,
+        description="Resolved benchmark code used for the performance summary when available.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    )
+    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(
+        default_factory=list,
+        description="Benchmark options available for the current summary context.",
+    )
+    capabilities: PerformanceWorkspaceCapabilities = Field(
+        description="Gateway-published capability posture for the performance summary surface."
+    )
     evidence_view: PerformanceEvidenceView | None = Field(
         default=None,
         description=(
@@ -786,21 +828,69 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
         description="Gateway contract version for the performance details response.",
         examples=["v1"],
     )
-    portfolio_id: str
-    as_of_date: str
-    period: str
-    report_start_date: str
-    report_end_date: str
-    chart_frequency: str
-    contribution_dimension: str
-    attribution_dimension: str
-    detail_basis: str
-    requested_chart_frequency_supported: bool = True
-    requested_contribution_dimension_supported: bool = True
-    requested_attribution_dimension_supported: bool = True
-    segment: str
-    benchmark_code: str | None = None
-    capabilities: PerformanceWorkspaceCapabilities
+    portfolio_id: str = Field(
+        description="Portfolio identifier whose performance details are being returned.",
+        examples=["PF_1001"],
+    )
+    as_of_date: str = Field(
+        description="Resolved as-of date used for the performance details response.",
+        examples=["2026-02-24"],
+    )
+    period: str = Field(
+        description="Resolved requested horizon for the performance details response.",
+        examples=["YTD"],
+    )
+    report_start_date: str = Field(
+        description="Inclusive start date for the resolved performance details window.",
+        examples=["2026-01-01"],
+    )
+    report_end_date: str = Field(
+        description="Inclusive end date for the resolved performance details window.",
+        examples=["2026-02-24"],
+    )
+    chart_frequency: str = Field(
+        description="Resolved chart frequency used for the performance details context.",
+        examples=["monthly"],
+    )
+    contribution_dimension: str = Field(
+        description="Resolved contribution dimension used for the performance details response.",
+        examples=["asset_class"],
+    )
+    attribution_dimension: str = Field(
+        description="Resolved attribution dimension used for the performance details response.",
+        examples=["asset_class"],
+    )
+    detail_basis: str = Field(
+        description="Performance basis used for the performance details metrics.",
+        examples=["NET"],
+    )
+    requested_chart_frequency_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested chart frequency was supported as-is.",
+        examples=[True],
+    )
+    requested_contribution_dimension_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested contribution dimension was supported as-is.",
+        examples=[True],
+    )
+    requested_attribution_dimension_supported: bool = Field(
+        default=True,
+        description="Whether the caller's requested attribution dimension was supported as-is.",
+        examples=[True],
+    )
+    segment: str = Field(
+        description="Resolved segment key used to align the detailed performance payload.",
+        examples=["asset_class"],
+    )
+    benchmark_code: str | None = Field(
+        default=None,
+        description="Resolved benchmark code used for the performance details when available.",
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    )
+    capabilities: PerformanceWorkspaceCapabilities = Field(
+        description="Gateway-published capability posture for the performance details surface."
+    )
     evidence_view: PerformanceEvidenceView | None = Field(
         default=None,
         description=(
@@ -808,9 +898,29 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
             "selected performance view."
         ),
     )
-    net_chart: list[PerformanceChartPoint] = Field(default_factory=list)
-    gross_chart: list[PerformanceChartPoint] = Field(default_factory=list)
-    contribution: ContributionSummaryView | None = None
-    attribution: AttributionSummaryView | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
+    net_chart: list[PerformanceChartPoint] = Field(
+        default_factory=list,
+        description="Net return path points published for the resolved details window.",
+    )
+    gross_chart: list[PerformanceChartPoint] = Field(
+        default_factory=list,
+        description="Gross return path points published for the resolved details window.",
+    )
+    contribution: ContributionSummaryView | None = Field(
+        default=None,
+        description="Contribution detail published for the resolved performance details context.",
+    )
+    attribution: AttributionSummaryView | None = Field(
+        default=None,
+        description="Attribution detail published for the resolved performance details context.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Gateway warning codes describing degraded but still usable details output.",
+    )
+    partial_failures: list[WorkbenchPartialFailure] = Field(
+        default_factory=list,
+        description=(
+            "Upstream source failures preserved when optional details inputs are unavailable."
+        ),
+    )
