@@ -64,7 +64,7 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
     response_model=PlatformCapabilitiesResponse,
     summary="Get Aggregated Platform Capabilities",
     description=(
-        "Aggregates lotus-core, lotus-performance, lotus-manage, and "
+        "Aggregates lotus-core, lotus-performance, lotus-risk, lotus-manage, and "
         "lotus-report integration capabilities into one "
         "lotus-gateway contract for UI feature control, shell bootstrap, and "
         "workflow negotiation. Gateway fans out to upstream capability and policy "

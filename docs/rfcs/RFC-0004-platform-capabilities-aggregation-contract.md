@@ -17,7 +17,7 @@ Output envelope:
 - `data.contractVersion`
 - `data.consumerSystem`
 - `data.tenantId`
-- `data.sources` (`pas`, `pa`, `dpm`)
+- `data.sources` (`lotus_core`, `lotus_performance`, `lotus_risk`, `lotus_manage`, `lotus_report`)
 - `data.partialFailure`
 - `data.errors[]`
 

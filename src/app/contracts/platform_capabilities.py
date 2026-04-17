@@ -223,12 +223,24 @@ class PlatformCapabilitiesNormalized(BaseModel):
     module_health: dict[str, str] = Field(
         alias="moduleHealth",
         description="Gateway health classification per normalized source.",
-        examples=[{"lotus_core": "available", "lotus_performance": "unavailable"}],
+        examples=[
+            {
+                "lotus_core": "available",
+                "lotus_performance": "available",
+                "lotus_risk": "unavailable",
+            }
+        ],
     )
     policy_versions_by_source: dict[str, str] = Field(
         alias="policyVersionsBySource",
         description="Policy versions keyed by normalized gateway source.",
-        examples=[{"lotus_core": "pas-v3", "lotus_performance": "pa-v4"}],
+        examples=[
+            {
+                "lotus_core": "pas-v3",
+                "lotus_performance": "pa-v4",
+                "lotus_risk": "risk-v2",
+            }
+        ],
     )
     lotus_core_policy_diagnostics: dict[str, Any] = Field(
         alias="lotusCorePolicyDiagnostics",
@@ -279,6 +291,10 @@ class PlatformCapabilitiesData(BaseModel):
                 "lotus_performance": {
                     "sourceService": "lotus-performance",
                     "policyVersion": "pa-v4",
+                },
+                "lotus_risk": {
+                    "sourceService": "lotus-risk",
+                    "policyVersion": "risk-v2",
                 },
             }
         ],

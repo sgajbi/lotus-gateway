@@ -20,7 +20,16 @@ def test_platform_capabilities_router_success(monkeypatch):
             "supportedInputModes": ["pas_ref"],
         }
 
-    async def _pa(*args, **kwargs):
+    async def _analytics(self, *args, **kwargs):
+        if "risk" in self._base_url:
+            return 200, {
+                "sourceService": "lotus-risk",
+                "contractVersion": "v1",
+                "policyVersion": "lotus-risk-default-v1",
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+                "supportedInputModes": ["pas_ref"],
+            }
         return 200, {
             "sourceService": "performance-analytics",
             "contractVersion": "v1",
@@ -71,7 +80,7 @@ def test_platform_capabilities_router_success(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
@@ -87,6 +96,7 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert set(body["sources"].keys()) == {
         "lotus_core",
         "lotus_performance",
+        "lotus_risk",
         "lotus_manage",
         "lotus_report",
     }
@@ -102,6 +112,7 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert body["normalized"]["policyVersionsBySource"] == {
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
+        "lotus_risk": "lotus-risk-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }
@@ -123,6 +134,12 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert performance_workspace["enabled"] is True
     assert performance_workspace["freshness"]["freshnessClass"] == "analytical_summary"
     assert performance_workspace["caching"]["cacheMode"] == "short_lived_revalidation"
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "risk"
+    )
+    assert risk_workspace["enabled"] is True
+    assert risk_workspace["versioning"]["sourcePolicyVersion"] == "lotus-risk-default-v1"
+    assert risk_workspace["evidence"]["lineageSources"] == ["lotus_risk"]
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "proposal"
     )
@@ -234,7 +251,9 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
             "supportedInputModes": ["pas_ref"],
         }
 
-    async def _pa(*args, **kwargs):
+    async def _analytics(self, *args, **kwargs):
+        if "risk" in self._base_url:
+            return 504, {"detail": "risk unavailable"}
         return 500, {"detail": "upstream failed"}
 
     async def _dpm(*args, **kwargs):
@@ -249,7 +268,7 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
@@ -263,15 +282,17 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     body = response.json()["data"]
     assert body["partialFailure"] is True
     assert set(body["sources"].keys()) == {"lotus_core"}
-    assert len(body["errors"]) == 4
+    assert len(body["errors"]) == 5
     assert body["normalized"]["navigation"]["analytics_studio"] is False
     assert body["normalized"]["navigation"]["portfolio_workspace"] is True
     assert body["normalized"]["navigation"]["performance_workspace"] is False
     assert body["normalized"]["navigation"]["risk_workspace"] is False
     assert body["normalized"]["moduleHealth"]["lotus_performance"] == "unavailable"
+    assert body["normalized"]["moduleHealth"]["lotus_risk"] == "unavailable"
     assert body["normalized"]["moduleHealth"]["lotus_report"] == "unavailable"
     assert body["normalized"]["policyVersionsBySource"]["lotus_core"] == "lotus-core-default-v1"
     assert body["normalized"]["policyVersionsBySource"]["lotus_performance"] == "unknown"
+    assert body["normalized"]["policyVersionsBySource"]["lotus_risk"] == "unknown"
     assert body["normalized"]["policyVersionsBySource"]["lotus_report"] == "unknown"
     assert body["normalized"]["lotusCorePolicyDiagnostics"]["available"] is False
     shell_bootstrap = body["normalized"]["shellBootstrap"]
@@ -284,3 +305,9 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     assert performance_workspace["enabled"] is False
     assert performance_workspace["supportability"]["state"] == "partial"
     assert performance_workspace["evidence"]["state"] == "partial"
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "risk"
+    )
+    assert risk_workspace["enabled"] is False
+    assert risk_workspace["supportability"]["state"] == "partial"
+    assert risk_workspace["evidence"]["sourceErrorServices"] == ["lotus_risk"]

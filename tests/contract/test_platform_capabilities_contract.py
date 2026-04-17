@@ -15,7 +15,15 @@ def test_platform_capabilities_contract_shape(monkeypatch):
             "workflows": [],
         }
 
-    async def _pa(*args, **kwargs):
+    async def _analytics(self, *args, **kwargs):
+        if "risk" in self._base_url:
+            return 200, {
+                "contractVersion": "v1",
+                "sourceService": "lotus-risk",
+                "policyVersion": "lotus-risk-default-v1",
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+            }
         return 200, {
             "contractVersion": "v1",
             "sourceService": "performance-analytics",
@@ -57,7 +65,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
@@ -82,7 +90,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert "shellBootstrap" in payload["normalized"]
     assert payload["normalized"]["navigation"]["portfolio_workspace"] is False
     assert payload["normalized"]["navigation"]["performance_workspace"] is False
-    assert payload["normalized"]["navigation"]["risk_workspace"] is False
+    assert payload["normalized"]["navigation"]["risk_workspace"] is True
     assert payload["normalized"]["navigation"]["proposal_workspace"] is False
     assert payload["normalized"]["navigation"]["advisory_workspace"] is False
     assert payload["normalized"]["shellBootstrap"]["contractVersion"] == "shell-bootstrap.v1"
@@ -100,7 +108,13 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     )
     assert len(payload["normalized"]["shellBootstrap"]["workspaces"]) == 5
 
-    for service_name in ("lotus_core", "lotus_performance", "lotus_manage", "lotus_report"):
+    for service_name in (
+        "lotus_core",
+        "lotus_performance",
+        "lotus_risk",
+        "lotus_manage",
+        "lotus_report",
+    ):
         source = payload["sources"][service_name]
         assert source["contractVersion"] == "v1"
         assert "sourceService" in source
@@ -112,6 +126,7 @@ def test_platform_capabilities_openapi_contract_registered() -> None:
 
     operation = spec["paths"]["/api/v1/platform/capabilities"]["get"]
     assert operation["summary"] == "Get Aggregated Platform Capabilities"
+    assert "lotus-risk" in operation["description"]
     assert "concurrently" in operation["description"]
     assert "partial-failure diagnostics" in operation["description"]
 

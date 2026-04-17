@@ -199,6 +199,16 @@ async def test_platform_capabilities_all_sources_success():
                 "workflows": [{"workflow_key": "portfolio_reporting", "enabled": True}],
             },
         ),
+        risk_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus-risk",
+                "policyVersion": "risk-tenant-a-v2",
+                "supportedInputModes": ["pas_ref"],
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+            },
+        ),
         contract_version="v1",
     )
 
@@ -212,6 +222,7 @@ async def test_platform_capabilities_all_sources_success():
     assert set(response.data.sources.keys()) == {
         "lotus_core",
         "lotus_performance",
+        "lotus_risk",
         "lotus_manage",
         "lotus_report",
     }
@@ -232,6 +243,7 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-a-v3",
         "lotus_performance": "pa-tenant-a-v4",
+        "lotus_risk": "risk-tenant-a-v2",
         "lotus_manage": "dpm-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
     }
@@ -253,6 +265,12 @@ async def test_platform_capabilities_all_sources_success():
     assert performance_workspace.enabled is True
     assert performance_workspace.freshness.freshness_class == "analytical_summary"
     assert performance_workspace.evidence.state == "source_backed"
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "risk"
+    )
+    assert risk_workspace.enabled is True
+    assert risk_workspace.versioning.source_policy_version == "risk-tenant-a-v2"
+    assert risk_workspace.evidence.lineage_sources == ["lotus_risk"]
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
@@ -278,6 +296,7 @@ async def test_platform_capabilities_partial_failure_on_error():
         ),
         analytics_client=_StubClient(502, {"detail": "bad gateway"}),
         reporting_client=_StubClient(503, {"detail": "upstream failed"}),
+        risk_client=_StubClient(504, {"detail": "risk timeout"}),
         contract_version="v1",
     )
 
@@ -289,7 +308,7 @@ async def test_platform_capabilities_partial_failure_on_error():
 
     assert response.data.partial_failure is True
     assert set(response.data.sources.keys()) == {"lotus_core"}
-    assert len(response.data.errors) == 4
+    assert len(response.data.errors) == 5
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
     assert response.data.normalized.navigation["portfolio_workspace"] is True
@@ -298,11 +317,13 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.navigation["proposal_workspace"] is False
     assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_risk"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-default-v1",
         "lotus_performance": "unknown",
+        "lotus_risk": "unknown",
         "lotus_manage": "unknown",
         "lotus_report": "unknown",
     }
@@ -321,6 +342,12 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert performance_workspace.supportability.state == "partial"
     assert performance_workspace.evidence.state == "partial"
     assert performance_workspace.evidence.partial_failure is True
+    risk_workspace = next(
+        workspace for workspace in shell_bootstrap.workspaces if workspace.id == "risk"
+    )
+    assert risk_workspace.enabled is False
+    assert risk_workspace.supportability.state == "partial"
+    assert risk_workspace.evidence.source_error_services == ["lotus_risk"]
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
@@ -373,6 +400,15 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
                 "workflows": [{"workflow_key": "portfolio_reporting", "enabled": False}],
             },
         ),
+        risk_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus-risk",
+                "policyVersion": "risk-v1",
+                "features": [{"key": "risk.analytics.risk_analytics", "enabled": True}],
+                "workflows": [{"workflow_key": "risk_snapshot", "enabled": True}],
+            },
+        ),
         contract_version="v1",
     )
 
@@ -388,7 +424,7 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
     assert normalized.navigation["analytics_studio"] is False
     assert normalized.navigation["portfolio_workspace"] is True
     assert normalized.navigation["performance_workspace"] is False
-    assert normalized.navigation["risk_workspace"] is False
+    assert normalized.navigation["risk_workspace"] is True
     assert normalized.workflow_flags["proposal_lifecycle"] is False
     assert normalized.workflow_flags["performance_snapshot"] is True
     assert normalized.input_modes_by_source["lotus_core"] == []
@@ -480,6 +516,7 @@ def test_platform_capabilities_module_health_marks_unknown_sources():
     health = service._module_health(sources={"lotus_core": {}}, errors=[])
     assert health["lotus_core"] == "available"
     assert health["lotus_performance"] == "unknown"
+    assert health["lotus_risk"] == "unknown"
     assert health["lotus_manage"] == "unknown"
     assert health["lotus_report"] == "unknown"
 
@@ -539,6 +576,12 @@ async def test_platform_capabilities_uses_service_specific_upstream_capability_c
             "tenant_id": None,
         }
     ]
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-a",
+        correlation_id="corr-shaped-repeat",
+    )
+    assert response.data.sources["lotus_risk"]["sourceService"] == "lotus_risk"
 
 
 @pytest.mark.asyncio
