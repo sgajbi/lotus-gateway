@@ -305,12 +305,21 @@ async def get_portfolio_book(
         ),
         examples=[False],
     ),
+    reporting_currency: str | None = Query(
+        default=None,
+        description=(
+            "Optional reporting currency used for book-level valuation restatement across "
+            "summary, holdings, allocations, and cash balances."
+        ),
+        examples=["USD"],
+    ),
 ) -> PortfolioBookResponse:
     return await _portfolio_service().get_portfolio_book(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         include_projected=include_projected,
+        reporting_currency=reporting_currency,
     )
 
 

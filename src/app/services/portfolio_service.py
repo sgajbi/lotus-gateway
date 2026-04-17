@@ -699,23 +699,27 @@ class PortfolioService:
         correlation_id: str,
         as_of_date: str | None,
         include_projected: bool,
+        reporting_currency: str | None = None,
     ) -> PortfolioBookResponse:
         allocations, positions, cash_balances_result, portfolio_result = await asyncio.gather(
             self.get_portfolio_allocations(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self.get_portfolio_positions(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
+                reporting_currency=reporting_currency,
             ),
             self._query_cash_balances_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
             ),
             self._get_portfolio_result(
                 portfolio_id=portfolio_id,

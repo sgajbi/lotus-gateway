@@ -620,6 +620,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert book_path["description"]
     assert book_parameters["as_of_date"]["description"]
     assert book_parameters["include_projected"]["description"]
+    assert book_parameters["reporting_currency"]["description"]
     assert book_schema["properties"]["as_of_date"]["description"]
     assert book_schema["properties"]["portfolio"]["description"]
     assert book_schema["properties"]["summary"]["description"]

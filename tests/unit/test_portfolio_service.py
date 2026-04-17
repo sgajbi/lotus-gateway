@@ -897,14 +897,26 @@ async def test_portfolio_book_passes_include_projected_to_positions():
     class _ProjectedAwareClient(_StubLotusCoreQueryClient):
         def __init__(self):
             self.last_include_projected: bool | None = None
+            self.last_positions_reporting_currency: str | None = None
+            self.last_allocation_reporting_currency: str | None = None
+            self.last_cash_reporting_currency: str | None = None
 
         async def get_portfolio_positions(self, portfolio_id: str, correlation_id: str, **kwargs):
             self.last_include_projected = kwargs.get("include_projected")
+            self.last_positions_reporting_currency = kwargs.get("reporting_currency")
             return await super().get_portfolio_positions(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 **kwargs,
             )
+
+        async def query_asset_allocation(self, **kwargs):
+            self.last_allocation_reporting_currency = kwargs.get("reporting_currency")
+            return await super().query_asset_allocation(**kwargs)
+
+        async def get_portfolio_cash_balances(self, **kwargs):
+            self.last_cash_reporting_currency = kwargs.get("reporting_currency")
+            return await super().get_portfolio_cash_balances(**kwargs)
 
     client = _ProjectedAwareClient()
     service = PortfolioService(client)
@@ -914,9 +926,13 @@ async def test_portfolio_book_passes_include_projected_to_positions():
         correlation_id="corr-3-projected",
         as_of_date="2026-03-27",
         include_projected=True,
+        reporting_currency="SGD",
     )
 
     assert client.last_include_projected is True
+    assert client.last_positions_reporting_currency == "SGD"
+    assert client.last_allocation_reporting_currency == "SGD"
+    assert client.last_cash_reporting_currency == "SGD"
 
 
 @pytest.mark.asyncio

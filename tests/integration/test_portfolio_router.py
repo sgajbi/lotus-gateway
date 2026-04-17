@@ -769,6 +769,7 @@ def test_portfolio_book_router(monkeypatch):
 
     async def _positions(*args, **kwargs):
         captured["include_projected"] = kwargs.get("include_projected")
+        captured["positions_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
             "positions": [
                 {
@@ -781,9 +782,11 @@ def test_portfolio_book_router(monkeypatch):
         }
 
     async def _allocation(*args, **kwargs):
+        captured["allocation_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {"views": [{"dimension": "asset_class", "buckets": []}]}
 
     async def _cash_balances(*args, **kwargs):
+        captured["cash_reporting_currency"] = kwargs.get("reporting_currency")
         return 200, {
             "totals": {"cash_account_count": 0, "total_balance_reporting_currency": 0},
             "cash_accounts": [],
@@ -803,7 +806,11 @@ def test_portfolio_book_router(monkeypatch):
     client = TestClient(app)
     response = client.get(
         "/api/v1/portfolio/portfolios/PF_1001/book",
-        params={"as_of_date": "2026-03-27", "include_projected": "true"},
+        params={
+            "as_of_date": "2026-03-27",
+            "include_projected": "true",
+            "reporting_currency": "USD",
+        },
     )
     assert response.status_code == 200
     body = response.json()
@@ -814,6 +821,9 @@ def test_portfolio_book_router(monkeypatch):
     assert body["allocation_views"][0]["dimension"] == "asset_class"
     assert body["cash_balances"] == []
     assert captured["include_projected"] is True
+    assert captured["positions_reporting_currency"] == "USD"
+    assert captured["allocation_reporting_currency"] == "USD"
+    assert captured["cash_reporting_currency"] == "USD"
 
 
 def test_portfolio_transactions_router(monkeypatch):
