@@ -51,6 +51,8 @@ Primary areas:
    Experience-API architecture and standards documentation.
 6. `scripts/`
    quality gates, migration checks, and canonical startup helpers.
+7. `wiki/`
+   canonical authored source for GitHub wiki publication and operator-facing gateway summaries.
 
 ## Runtime And Integration Boundaries
 
@@ -102,7 +104,9 @@ Important validation expectations:
 1. OpenAPI and workbench contract quality are part of the gate,
 2. migration smoke remains required,
 3. security audit and monetary-float governance remain active,
-4. Docker parity matters because the gateway is a live integration boundary.
+4. Docker parity matters because the gateway is a live integration boundary,
+5. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+   mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository
 
@@ -124,6 +128,8 @@ Most relevant current governance:
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
 4. reporting query, cashflow projection, projected summary, and benchmark catalog upstream calls remain RFC-0082 watchlist surfaces,
 5. integration drift is most dangerous here because it directly affects the product UI.
+6. repo-local `wiki/` content should summarize route families and operator flows without duplicating
+   the full `docs/` tree.
 
 ## Context Maintenance Rule
 
@@ -134,7 +140,8 @@ Update this document when:
 3. upstream dependency boundaries change,
 4. gateway composition patterns or partial-readiness behavior change materially,
 5. RFC-0082 contract-family classification changes,
-6. current-state architectural direction changes.
+6. current endpoint-specific parameter conventions or canonical startup guidance changes,
+7. current-state architectural direction changes.
 
 ## Cross-Links
 
