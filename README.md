@@ -1,188 +1,238 @@
 # lotus-gateway
 
-FastAPI experience API for `lotus-workbench`, evolving from proposal-first aggregation and
-pass-through routes into the primary BFF layer for Lotus workspace applications.
+Experience API and composition boundary for Lotus product clients, primarily
+`lotus-workbench`.
 
-## Contribution Standards
+Repository-local engineering context:
+[REPOSITORY-ENGINEERING-CONTEXT.md](REPOSITORY-ENGINEERING-CONTEXT.md)
 
-- Contribution process: `CONTRIBUTING.md`
-- Repository-local engineering context: `REPOSITORY-ENGINEERING-CONTEXT.md`
-- Docs-with-code standard: `docs/documentation/implementation-documentation-standard.md`
-- PR checklist template: `.github/pull_request_template.md`
-- Platform-wide architecture governance source: `https://github.com/sgajbi/lotus-platform`
+Experience-API blueprint:
+[docs/documentation/experience-api-foundation-blueprint.md](docs/documentation/experience-api-foundation-blueprint.md)
 
-## Architecture Direction
+Upstream contract-family map:
+[docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
 
-- Experience API foundation blueprint:
-  `docs/documentation/experience-api-foundation-blueprint.md`
-- RFC-0082 upstream contract-family conformance map:
-  `docs/standards/RFC-0082-upstream-contract-family-map.md`
-- Current RFC history:
-  `docs/rfcs/README.md`
+## Purpose And Scope
 
-## Quickstart
+`lotus-gateway` owns product-facing API composition for Lotus.
 
-```bash
-python -m venv .venv
-. .venv/Scripts/activate
-pip install -e ".[dev]"
-make run
-```
+It is responsible for:
 
-API docs: `http://gateway.dev.lotus/docs`
+- experience-oriented payload shaping for `lotus-workbench`
+- partial-readiness-aware aggregation across upstream services
+- gateway-level contract governance
+- product-safe routing, evidence mediation, and degraded-state handling
 
-Preferred environment-scoped service identity:
+It does not own portfolio domain truth, analytics methodology, reporting methodology, advisory
+workflow truth, management workflow truth, or AI output truth. Those remain upstream.
 
-- Gateway: `http://gateway.dev.lotus`
+## Ownership And Boundaries
 
-Canonical local host runtime:
+`lotus-gateway` is the primary backend contract for `lotus-workbench`.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/Start-CanonicalGateway.ps1
-```
+It depends on:
 
-This is the preferred local operator command when Workbench is expected to call the current
-checkout through `http://gateway.dev.lotus`.
+- `lotus-core`
+  portfolio, booking, lookup, ingestion, simulation, and supportability inputs
+- `lotus-performance`
+  performance workspace analytics and evidence lineage
+- `lotus-risk`
+  stateful risk workspace analytics
+- `lotus-advise`
+  proposal and advisory workflow capability
+- `lotus-manage`
+  management workflow capability when split routing is enabled
+- `lotus-report`
+  reporting snapshot, summary, and review payloads
+- `lotus-ai`
+  evidence-grounded advisor-brief support
 
-Important:
+Boundary rules that matter:
 
-- local Gateway startup on port `8111` must include `--app-dir src`
-- otherwise Windows can resolve a different installed `app` package and serve a misleading
-  health-only process that returns `200` for `/health/ready` but `404` for current Workbench routes
+1. gateway contracts should be product-oriented, not thin mirrors of every upstream route
+2. domain authority stays upstream
+3. partial-failure and supportability signals must survive composition when the UI depends on them
+4. canonical local service identity for product and cross-app validation is `http://gateway.dev.lotus`
 
-Public-entry repos should depend on the stable service identity above. Raw port mappings remain an
-internal local-runtime detail until the full RFC-0071 rollout is complete.
+## Current Operational Posture
 
-## Current endpoints
+1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
+2. Foundation, platform capabilities, proposals, reporting, intake/lookups, portfolio, and workbench
+   route families are active.
+3. The repository is still moving from thin pass-through behavior toward cleaner experience-API
+   contracts.
+4. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
+   `app` package and yield a misleading health-only process.
 
-- `GET /api/v1/foundation/portfolios` (selector-ready Foundation portfolio catalog)
-- `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace` (Foundation workspace entry payload with readiness and partial-failure-aware upstream context)
-- `GET /api/v1/workbench/{portfolio_id}/performance/summary` (first-paint benchmark-aware performance summary with gateway-owned `evidence_view`)
-- `GET /api/v1/workbench/{portfolio_id}/performance/details` (lower-canvas analytical detail contract with gateway-owned `evidence_view`)
-- `GET /api/v1/workbench/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}` (gateway-owned proxy for lotus-performance lineage artifacts)
-- `GET /api/v1/workbench/{portfolio_id}/performance/horizon-comparison` (compact MTD/QTD/YTD comparison module)
-- `GET /api/v1/workbench/{portfolio_id}/performance/attribution-trend` (benchmark-relative attribution-over-time module)
-- `GET /api/v1/workbench/{portfolio_id}/performance/advisor-brief` (source-grounded advisor brief with evidence refs and supportability)
-- `POST /api/v1/proposals/simulate` (proxies to lotus-manage `/rebalance/proposals/simulate`)
-- `POST /api/v1/proposals` (create draft proposal via lotus-manage lifecycle create)
-- `GET /api/v1/proposals` (list proposals)
-- `GET /api/v1/proposals/{proposal_id}` (proposal detail)
-- `GET /api/v1/proposals/{proposal_id}/versions/{version_no}` (immutable proposal version detail)
-- `POST /api/v1/proposals/{proposal_id}/versions` (create proposal version `N+1`)
-- `POST /api/v1/proposals/{proposal_id}/submit` (submit draft for review via lotus-manage transition)
-- `POST /api/v1/proposals/{proposal_id}/approve-risk` (risk approval action)
-- `POST /api/v1/proposals/{proposal_id}/approve-compliance` (compliance approval action)
-- `POST /api/v1/proposals/{proposal_id}/record-client-consent` (client consent action)
-- `GET /api/v1/proposals/{proposal_id}/workflow-events` (workflow timeline)
-- `GET /api/v1/proposals/{proposal_id}/approvals` (approval records)
-- `GET /api/v1/platform/capabilities` (aggregated shell/workspace capability contract across lotus-core, lotus-performance, lotus-risk publication, lotus-manage, and lotus-report for UI gating)
-- `GET /api/v1/workbench/{portfolio_id}/overview` (aggregated lotus-core+lotus-performance+lotus-manage decision-console overview)
-- `GET /api/v1/reports/{portfolio_id}/snapshot` (report-ready aggregation rows from lotus-report)
-- `POST /api/v1/reports/{portfolio_id}/summary` (lotus-report-owned summary payload for one reporting date)
-- `POST /api/v1/reports/{portfolio_id}/review` (lotus-report-owned review payload for one reporting date)
-- `POST /api/v1/intake/portfolio-bundle` (lotus-core ingestion bundle pass-through)
-- `POST /api/v1/intake/uploads/preview` (lotus-core upload preview pass-through)
-- `POST /api/v1/intake/uploads/commit` (lotus-core upload commit pass-through)
-- `GET /api/v1/lookups/portfolios` (lotus-core-backed portfolio selector values)
-- `GET /api/v1/lookups/instruments` (lotus-core-backed instrument selector values)
-- `GET /api/v1/lookups/currencies` (lotus-core-backed currency selector values)
+## Architecture At A Glance
 
-These are the current endpoints. Because the project is pre-live, the target future direction is a
-clean replacement-first experience-API model organized around workspace journeys rather than thin
-upstream parity. Stale routes should be replaced and removed instead of being preserved by default
-under versioned duplication, as described in
-`docs/documentation/experience-api-foundation-blueprint.md`.
+Main runtime surfaces come from [src/app/main.py](src/app/main.py):
 
-## Docker
+- `foundation`
+  `/api/v1/foundation/*`
+- `platform`
+  `/api/v1/platform/*`
+- `proposals`
+  `/api/v1/proposals/*`
+- `intake` and `lookups`
+  `/api/v1/intake/*`, `/api/v1/lookups/*`
+- `portfolio`
+  `/api/v1/portfolio/*`
+- `workbench`
+  `/api/v1/workbench/*`
+- `reporting`
+  `/api/v1/reports/*`
+- platform surfaces
+  `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
-```bash
-make docker-up
-make docker-down
+Key code areas:
 
-make ci-local-docker
-make ci-local-docker-down
-```
+- `src/app/routers/`
+  public HTTP route families
+- `src/app/services/`
+  gateway composition, partial-readiness handling, and upstream orchestration
+- `src/app/contracts/`
+  workbench-facing gateway contracts
+- `src/app/clients/`
+  upstream client integrations
+- `docs/documentation/`
+  experience-API architecture and implementation guidance
+- `docs/standards/`
+  ownership, migration, durability, and RFC-0082 integration guidance
 
-Live platform-capabilities E2E (lotus-gateway + lotus-core + lotus-performance + lotus-manage):
+## Repository Layout
 
-```bash
-export ADVISE_REPO_PATH=/c/Users/sande/dev/lotus-advise
-export LOTUS_MANAGE_REPO_PATH=/c/Users/sande/dev/lotus-manage
-export LOTUS_CORE_REPO_PATH=/c/Users/sande/dev/lotus-core
-export LOTUS_PERFORMANCE_REPO_PATH=/c/Users/sande/dev/lotus-performance
-make e2e-up
-make test-e2e-live
-make e2e-down
-```
+- `src/app/main.py`
+  FastAPI entrypoint and router registration
+- `src/app/routers/`
+  gateway route families by product surface
+- `src/app/services/`
+  composition and orchestration logic
+- `src/app/contracts/`
+  workbench-facing response and request contracts
+- `tests/contract/`
+  contract proof for workbench-facing surfaces
+- `tests/integration/`
+  composed behavior checks
+- `tests/e2e/`
+  workflow and live integration checks
+- `scripts/`
+  quality gates, migration checks, and canonical startup helpers
+- `wiki/`
+  canonical authored source for GitHub wiki publication
 
-Coverage gate (local parity with CI threshold):
+## Quick Start
 
-```bash
-make test-coverage
-```
-
-## Live Performance Demo Contracts
-
-The current flagship performance workstation integration is served from `lotus-gateway`.
-
-Required upstreams:
-
-- `lotus-core` query: `http://core-query.dev.lotus`
-- `lotus-core` control plane: `http://core-control.dev.lotus`
-- `lotus-core` ingestion: `http://core-ingestion.dev.lotus`
-- `lotus-performance`: `http://performance.dev.lotus`
-- `lotus-ai`: `http://ai.dev.lotus`
-
-Example live probes:
+Install dependencies:
 
 ```bash
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/summary?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
-
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/details?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
-
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/evidence/artifacts/calc-workspace-summary/request.json"
-
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/horizon-comparison?detail_basis=NET&chart_frequency=monthly&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
-
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/attribution-trend?period=YTD&chart_frequency=monthly&detail_basis=NET&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
-
-curl "http://gateway.dev.lotus/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+make install
 ```
 
-Expected benchmark catalog for the seeded flagship mandate:
+Preferred direct local run:
 
-- `BMK_GLOBAL_BALANCED_60_40` (`Global Balanced 60/40`)
-- `BMK_GLOBAL_GROWTH_80_20` (`Global Growth 80/20`)
+```bash
+make run-canonical
+```
 
-Performance evidence posture:
+Canonical local identities:
 
-- `performance/summary` and `performance/details` now expose `capabilities.evidence` plus `evidence_view`
-- `evidence_view.calculations[]` carries calculation-scoped execution status, lineage status, stage state, upstream snapshot summaries, and gateway-owned artifact URLs
-- downstream UI clients should use the gateway artifact route above instead of calling `lotus-performance` lineage URLs directly
-- `performance/horizon-comparison` is intentionally limited to `MTD`, `QTD`, and `YTD`; gateway does not present longer TWR windows as front-office-safe until supportability gating is available
+- cross-app and product validation: `http://gateway.dev.lotus`
+- direct process debugging: `http://127.0.0.1:8111`
 
-## Demo Pack
+Quick probes:
 
-- `docs/demo/README.md`
-- `docs/demo/payloads/proposal-create.json`
-- `docs/demo/scripts/demo-approval-chain.sh`
+```bash
+curl http://127.0.0.1:8111/health
+curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+```
 
-## Platform Foundation Commands
+## Common Commands
 
-- `make migration-smoke`
-- `make migration-apply`
-- `make security-audit`
+- `make install`
+  install dependencies
+- `make lint`
+  lint, format check, and monetary-float guard
+- `make typecheck`
+  mypy on `src/`
+- `make check`
+  contract and unit gate
+- `make ci`
+  PR-grade local proof with migration smoke, integration, coverage, and security audit
+- `make ci-local-docker`
+  dockerized parity check
+- `make run-canonical`
+  canonical local gateway runtime on port `8111`
 
-Standards documentation:
+## Validation And CI Lanes
 
-- `docs/standards/migration-contract.md`
-- `docs/standards/data-model-ownership.md`
+`lotus-gateway` follows the Lotus multi-lane model:
 
+1. `Remote Feature Lane`
+2. `Pull Request Merge Gate`
+3. `Main Releasability Gate`
+4. platform-facing validation when cross-app experience contracts change
 
+Repo-native gate mapping:
 
-Split routing notes:
-- Advisory lifecycle APIs (/api/v1/proposals/*) use DECISIONING_SERVICE_BASE_URL (lotus-advise).
-- lotus-manage/workbench APIs use MANAGEMENT_SERVICE_BASE_URL (lotus-manage) when MANAGE_SPLIT_ENABLED=true.
+- `make check`
+  lint, typecheck, OpenAPI contract proof, unit tests
+- `make ci`
+  migration smoke, integration tests, coverage, and security audit
+- `make ci-local`
+  local feature-lane style validation
+- `make ci-local-docker`
+  Docker parity for the live integration boundary
 
+## API Contract Notes
 
+Important current parameter conventions:
 
+1. `GET /api/v1/platform/capabilities` uses camelCase query parameters `consumerSystem` and
+   `tenantId`
+2. reporting snapshot and reporting portfolio requests use `asOfDate`
+3. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
+   `allowPartial`
+4. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
+   `product_type`, and `instrument_page_limit`
+5. proposal write routes require `Idempotency-Key`
+
+Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
+
+## Integration Boundaries
+
+- primary downstream consumer:
+  `lotus-workbench`
+- key upstreams:
+  `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
+  `lotus-ai`
+- contract rule:
+  gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
+  upstream business authority
+
+## Operations And Runtime Posture
+
+- use `gateway.dev.lotus` for canonical product and cross-app validation
+- use `127.0.0.1:8111` for direct local debugging only
+- if startup appears healthy but product routes 404 on Windows, verify `--app-dir src`
+- treat degraded responses as composition issues first: inspect upstream supportability, readiness,
+  and parameter shape before changing the gateway response contract
+
+## Documentation Map
+
+- architecture direction:
+  [docs/documentation/experience-api-foundation-blueprint.md](docs/documentation/experience-api-foundation-blueprint.md)
+- upstream integration governance:
+  [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
+- demo material:
+  [docs/demo/README.md](docs/demo/README.md)
+- RFC inventory:
+  [docs/rfcs/README.md](docs/rfcs/README.md)
+- wiki home:
+  [wiki/Home.md](wiki/Home.md)
+
+## Wiki Source
+
+Repository-authored wiki pages live under [wiki/](wiki). If the GitHub wiki is published later,
+keep `wiki/` as the canonical source and treat any separate `*.wiki.git` clone as publication
+plumbing only.
