@@ -10,6 +10,11 @@ def _default_platform_generated_path(filename: str) -> str:
     return str(workspace_root / "lotus-platform" / "generated" / filename)
 
 
+def _default_platform_output_path(*parts: str) -> str:
+    workspace_root = Path(__file__).resolve().parents[3]
+    return str(workspace_root / "lotus-platform" / "output" / Path(*parts))
+
+
 class Settings(BaseSettings):
     app_name: str = "Advisor Experience API"
     contract_version: str = "v1"
@@ -52,6 +57,12 @@ class Settings(BaseSettings):
     domain_product_dependency_graph_path: str = Field(
         default_factory=lambda: _default_platform_generated_path(
             "domain-product-dependency-graph.json"
+        )
+    )
+    domain_product_live_trust_certification_path: str = Field(
+        default_factory=lambda: _default_platform_output_path(
+            "trust-certification",
+            "domain-product-live-trust-certification.json",
         )
     )
 

@@ -8,6 +8,7 @@
 - `GET /api/v1/domain-products/catalog`
 - `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
 - `GET /api/v1/domain-products/dependency-graph`
+- `GET /api/v1/domain-products/trust-certification`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -20,9 +21,11 @@
 
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
 - domain-product discovery uses `consumerSystem` for caller identity and serves only
-  platform-generated catalog and dependency-graph artifacts
+  platform-generated catalog, dependency-graph, and live trust certification artifacts
 - domain-product detail requires the full governed identity:
   `producer_repository`, `product_name`, and `product_version`
+- domain-product trust certification returns certified platform trust posture when the RFC-0087
+  artifact exists and an explicit unavailable posture when it has not been generated
 - reporting snapshot and reporting request payloads use `asOfDate`
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
@@ -54,6 +57,12 @@ Domain-product dependency graph:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/domain-products/dependency-graph?consumerSystem=lotus-workbench"
+```
+
+Domain-product trust certification:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
 Foundation workspace:

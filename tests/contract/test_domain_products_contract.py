@@ -14,6 +14,7 @@ def test_domain_product_discovery_openapi_contract_registered() -> None:
     )
     assert product_path in paths
     assert "/api/v1/domain-products/dependency-graph" in paths
+    assert "/api/v1/domain-products/trust-certification" in paths
 
     catalog_operation = paths["/api/v1/domain-products/catalog"]["get"]
     assert catalog_operation["summary"] == "Get Governed Domain Product Catalog"
@@ -40,6 +41,11 @@ def test_domain_product_discovery_openapi_contract_registered() -> None:
     assert graph_operation["summary"] == "Get Governed Domain Product Dependency Graph"
     assert "impact analysis" in graph_operation["description"]
 
+    trust_operation = paths["/api/v1/domain-products/trust-certification"]["get"]
+    assert trust_operation["summary"] == "Get Governed Domain Product Trust Certification"
+    assert "platform-generated RFC-0087 live trust certification" in trust_operation["description"]
+    assert "Gateway does not calculate product trust" in trust_operation["description"]
+
 
 def test_domain_product_discovery_response_schemas_are_documented() -> None:
     client = TestClient(app)
@@ -50,6 +56,10 @@ def test_domain_product_discovery_response_schemas_are_documented() -> None:
     dependency = schemas["DomainProductDependency"]
     graph_data = schemas["DomainProductGraphData"]
     graph_edge = schemas["DomainProductGraphEdge"]
+    trust_data = schemas["DomainProductTrustCertificationData"]
+    trust_summary = schemas["DomainProductLiveTrustSummary"]
+    trust_product = schemas["DomainProductLiveTrustCertification"]
+    trust_issue = schemas["DomainProductLiveTrustIssue"]
 
     assert catalog_data["properties"]["consumerSystem"]["description"]
     assert catalog_data["properties"]["sourceManifest"]["description"]
@@ -72,3 +82,16 @@ def test_domain_product_discovery_response_schemas_are_documented() -> None:
     assert graph_data["properties"]["edges"]["description"]
     assert graph_edge["properties"]["edgeType"]["description"]
     assert graph_edge["properties"]["failurePosture"]["description"]
+
+    assert trust_data["properties"]["trustAvailable"]["description"]
+    assert trust_data["properties"]["trustPosture"]["examples"] == [
+        "certified",
+        "attention_required",
+        "unavailable",
+    ]
+    assert trust_data["properties"]["unavailableReason"]["description"]
+    assert trust_data["properties"]["productCertifications"]["description"]
+    assert trust_summary["properties"]["telemetrySnapshotCount"]["description"]
+    assert trust_product["properties"]["producerRepository"]["description"]
+    assert trust_product["properties"]["lineageMaterialized"]["description"]
+    assert trust_issue["properties"]["productId"]["description"]

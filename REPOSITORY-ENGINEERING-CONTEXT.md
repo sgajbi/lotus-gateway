@@ -32,7 +32,8 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
-4. domain-product catalog and dependency-graph discovery routes are active under `/api/v1/domain-products`,
+4. domain-product catalog, dependency-graph, and live trust certification discovery routes are
+   active under `/api/v1/domain-products`,
 5. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
 6. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids,
 7. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
@@ -72,7 +73,7 @@ Boundary rules:
 4. gateway must not become the authority for portfolio source data, performance analytics, risk analytics, advisory workflow, management workflow, reporting, or AI outputs,
 5. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current gateway upstream calls,
 6. canonical service identity is part of the operational contract,
-7. domain-product discovery must preserve platform artifact provenance, approved consumers, trust metadata, and dependency posture without duplicating platform validation logic inside gateway.
+7. domain-product discovery must preserve platform artifact provenance, approved consumers, trust metadata, dependency posture, and certified trust posture without duplicating platform validation logic inside gateway.
 
 ## Repo-Native Commands
 
@@ -134,8 +135,10 @@ Most relevant current governance:
 6. repo-local `wiki/` content should summarize route families and operator flows without duplicating
    the full `docs/` tree.
 7. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
-   under the sibling `lotus-platform/generated/` directory; deployment-specific paths should use
-   `DOMAIN_PRODUCT_CATALOG_PATH` and `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`.
+   under the sibling `lotus-platform/generated/` directory, and live trust certification defaults to
+   `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
+   deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,
+   `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH`.
 
 ## Context Maintenance Rule
 
@@ -148,7 +151,8 @@ Update this document when:
 5. RFC-0082 contract-family classification changes,
 6. current endpoint-specific parameter conventions or canonical startup guidance changes,
 7. current-state architectural direction changes,
-8. domain-product discovery endpoints, platform artifact paths, or catalog/graph consumption posture changes.
+8. domain-product discovery endpoints, platform artifact paths, or catalog/graph/trust
+   consumption posture changes.
 
 ## Cross-Links
 

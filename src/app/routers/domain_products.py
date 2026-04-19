@@ -5,6 +5,7 @@ from app.contracts.domain_products import (
     DomainProductCatalogResponse,
     DomainProductDetailResponse,
     DomainProductGraphResponse,
+    DomainProductTrustCertificationResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.domain_product_catalog_service import (
@@ -20,6 +21,7 @@ def _domain_product_catalog_service() -> DomainProductCatalogService:
     return DomainProductCatalogService(
         catalog_path=settings.domain_product_catalog_path,
         dependency_graph_path=settings.domain_product_dependency_graph_path,
+        live_trust_certification_path=settings.domain_product_live_trust_certification_path,
     )
 
 
@@ -136,6 +138,42 @@ async def get_domain_product_dependency_graph(
 ) -> DomainProductGraphResponse:
     try:
         return await _domain_product_catalog_service().get_dependency_graph(
+            consumer_system=consumer_system,
+            correlation_id=_correlation_id(x_correlation_id),
+        )
+    except DomainProductCatalogUnavailable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get(
+    "/trust-certification",
+    response_model=DomainProductTrustCertificationResponse,
+    summary="Get Governed Domain Product Trust Certification",
+    description=(
+        "Publishes the platform-generated RFC-0087 live trust certification for governed "
+        "domain products. Gateway does not calculate product trust; it exposes certified "
+        "platform evidence when available and returns an explicit unavailable posture when "
+        "the platform artifact has not been generated."
+    ),
+)
+async def get_domain_product_trust_certification(
+    consumer_system: str = Query(
+        "lotus-workbench",
+        alias="consumerSystem",
+        description="Caller identity requesting live trust certification.",
+        examples=["lotus-workbench", "lotus-ai", "lotus-platform"],
+    ),
+    x_correlation_id: str | None = Header(
+        default=None,
+        alias="X-Correlation-Id",
+        description="Optional caller-supplied correlation identifier for trust diagnostics.",
+    ),
+) -> DomainProductTrustCertificationResponse:
+    try:
+        return await _domain_product_catalog_service().get_trust_certification(
             consumer_system=consumer_system,
             correlation_id=_correlation_id(x_correlation_id),
         )

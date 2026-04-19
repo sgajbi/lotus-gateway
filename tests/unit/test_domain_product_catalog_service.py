@@ -131,18 +131,62 @@ def _graph_payload() -> dict[str, Any]:
     }
 
 
+def _trust_certification_payload() -> dict[str, Any]:
+    return {
+        "contract_id": "lotus-domain-product-live-trust-certification",
+        "contract_version": "1.0.0",
+        "governed_by_rfcs": ["RFC-0087"],
+        "generated_at_utc": "2026-04-19T00:00:00Z",
+        "source_telemetry_path": "contracts/trust-telemetry",
+        "summary": {
+            "certification_state": "certified",
+            "telemetry_snapshot_count": 1,
+            "certified_snapshot_count": 1,
+            "attention_required_count": 0,
+            "issue_count": 0,
+        },
+        "product_certifications": [
+            {
+                "product_id": "lotus-core:PortfolioStateSnapshot:v1",
+                "producer_repository": "lotus-core",
+                "product_name": "PortfolioStateSnapshot",
+                "product_version": "v1",
+                "source_repository": "lotus-core",
+                "telemetry_path": (
+                    "contracts/trust-telemetry/portfolio-state-snapshot.telemetry.v1.json"
+                ),
+                "emitted_at_utc": "2026-04-19T00:00:00Z",
+                "certification_state": "certified",
+                "freshness_state": "current",
+                "completeness_status": "complete",
+                "reconciliation_status": "reconciled",
+                "data_quality_status": "quality_passed",
+                "lineage_materialized": True,
+                "blocked": False,
+                "issue_count": 0,
+            }
+        ],
+        "issues": [],
+    }
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-@pytest.mark.asyncio
-async def test_service_preserves_catalog_trust_and_dependency_context(tmp_path: Path) -> None:
+def _service_with_artifacts(tmp_path: Path) -> DomainProductCatalogService:
     catalog_path = tmp_path / "catalog.json"
     graph_path = tmp_path / "graph.json"
+    trust_path = tmp_path / "trust.json"
     _write_json(catalog_path, _catalog_payload())
     _write_json(graph_path, _graph_payload())
+    _write_json(trust_path, _trust_certification_payload())
+    return DomainProductCatalogService(str(catalog_path), str(graph_path), str(trust_path))
 
-    service = DomainProductCatalogService(str(catalog_path), str(graph_path))
+
+@pytest.mark.asyncio
+async def test_service_preserves_catalog_trust_and_dependency_context(tmp_path: Path) -> None:
+    service = _service_with_artifacts(tmp_path)
 
     response = await service.get_catalog(
         consumer_system="lotus-workbench",
@@ -167,12 +211,7 @@ async def test_service_preserves_catalog_trust_and_dependency_context(tmp_path: 
 
 @pytest.mark.asyncio
 async def test_service_get_product_requires_full_governed_identity(tmp_path: Path) -> None:
-    catalog_path = tmp_path / "catalog.json"
-    graph_path = tmp_path / "graph.json"
-    _write_json(catalog_path, _catalog_payload())
-    _write_json(graph_path, _graph_payload())
-
-    service = DomainProductCatalogService(str(catalog_path), str(graph_path))
+    service = _service_with_artifacts(tmp_path)
 
     response = await service.get_product(
         producer_repository="lotus-core",
@@ -189,12 +228,7 @@ async def test_service_get_product_requires_full_governed_identity(tmp_path: Pat
 
 @pytest.mark.asyncio
 async def test_service_get_dependency_graph_preserves_consumption_posture(tmp_path: Path) -> None:
-    catalog_path = tmp_path / "catalog.json"
-    graph_path = tmp_path / "graph.json"
-    _write_json(catalog_path, _catalog_payload())
-    _write_json(graph_path, _graph_payload())
-
-    service = DomainProductCatalogService(str(catalog_path), str(graph_path))
+    service = _service_with_artifacts(tmp_path)
 
     response = await service.get_dependency_graph(
         consumer_system="lotus-platform",
@@ -209,13 +243,57 @@ async def test_service_get_dependency_graph_preserves_consumption_posture(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_service_unknown_product_is_not_fabricated(tmp_path: Path) -> None:
+async def test_service_exposes_live_trust_certification_without_recomputing_it(
+    tmp_path: Path,
+) -> None:
+    service = _service_with_artifacts(tmp_path)
+
+    response = await service.get_trust_certification(
+        consumer_system="lotus-workbench",
+        correlation_id="corr-trust-1",
+    )
+
+    data = response.data
+    assert data.trust_available is True
+    assert data.trust_posture == "certified"
+    assert data.contract_id == "lotus-domain-product-live-trust-certification"
+    assert data.summary is not None
+    assert data.summary.telemetry_snapshot_count == 1
+    assert data.product_certifications[0].product_id == ("lotus-core:PortfolioStateSnapshot:v1")
+    assert data.product_certifications[0].lineage_materialized is True
+
+
+@pytest.mark.asyncio
+async def test_service_returns_explicit_unavailable_posture_when_live_trust_is_missing(
+    tmp_path: Path,
+) -> None:
     catalog_path = tmp_path / "catalog.json"
     graph_path = tmp_path / "graph.json"
     _write_json(catalog_path, _catalog_payload())
     _write_json(graph_path, _graph_payload())
 
-    service = DomainProductCatalogService(str(catalog_path), str(graph_path))
+    service = DomainProductCatalogService(
+        str(catalog_path),
+        str(graph_path),
+        str(tmp_path / "missing-live-trust.json"),
+    )
+
+    response = await service.get_trust_certification(
+        consumer_system="lotus-workbench",
+        correlation_id="corr-trust-missing-1",
+    )
+
+    data = response.data
+    assert data.trust_available is False
+    assert data.trust_posture == "unavailable"
+    assert "missing-live-trust.json" in str(data.unavailable_reason)
+    assert data.product_certifications == []
+    assert data.governed_by_rfcs == ["RFC-0087"]
+
+
+@pytest.mark.asyncio
+async def test_service_unknown_product_is_not_fabricated(tmp_path: Path) -> None:
+    service = _service_with_artifacts(tmp_path)
 
     with pytest.raises(DomainProductNotFound, match="lotus-risk:MissingProduct:v1"):
         await service.get_product(
@@ -232,6 +310,7 @@ async def test_service_reports_unavailable_platform_artifact(tmp_path: Path) -> 
     service = DomainProductCatalogService(
         str(tmp_path / "missing-catalog.json"),
         str(tmp_path / "missing-graph.json"),
+        str(tmp_path / "missing-trust.json"),
     )
 
     with pytest.raises(DomainProductCatalogUnavailable, match="artifact is unavailable"):
@@ -248,10 +327,38 @@ async def test_service_reports_platform_artifact_contract_drift(tmp_path: Path) 
     _write_json(catalog_path, {"contract_id": "lotus-domain-product-catalog"})
     _write_json(graph_path, _graph_payload())
 
-    service = DomainProductCatalogService(str(catalog_path), str(graph_path))
+    service = DomainProductCatalogService(
+        str(catalog_path),
+        str(graph_path),
+        str(tmp_path / "trust.json"),
+    )
 
     with pytest.raises(DomainProductCatalogUnavailable, match="contract validation"):
         await service.get_catalog(
             consumer_system="lotus-workbench",
             correlation_id="corr-contract-drift-1",
+        )
+
+
+@pytest.mark.asyncio
+async def test_service_reports_live_trust_artifact_contract_drift(tmp_path: Path) -> None:
+    catalog_path = tmp_path / "catalog.json"
+    graph_path = tmp_path / "graph.json"
+    trust_path = tmp_path / "trust.json"
+    _write_json(catalog_path, _catalog_payload())
+    _write_json(graph_path, _graph_payload())
+    _write_json(
+        trust_path,
+        {
+            **_trust_certification_payload(),
+            "summary": {"telemetry_snapshot_count": 1},
+        },
+    )
+
+    service = DomainProductCatalogService(str(catalog_path), str(graph_path), str(trust_path))
+
+    with pytest.raises(DomainProductCatalogUnavailable, match="contract validation"):
+        await service.get_trust_certification(
+            consumer_system="lotus-workbench",
+            correlation_id="corr-trust-contract-drift-1",
         )

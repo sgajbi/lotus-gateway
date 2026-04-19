@@ -47,7 +47,8 @@ It depends on:
 - `lotus-ai`
   evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
 - `lotus-platform`
-  generated domain-product catalog and dependency-graph artifacts for read-only product discovery
+  generated domain-product catalog, dependency-graph, and live trust certification artifacts for
+  read-only product discovery
 
 Boundary rules that matter:
 
@@ -61,8 +62,8 @@ Boundary rules that matter:
 1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
 2. Foundation, platform capabilities, proposals, reporting, intake/lookups, portfolio, and workbench
    route families are active.
-3. Domain-product catalog, product detail, and dependency-graph discovery routes are active as
-   read-only facades over platform-generated artifacts.
+3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
+   routes are active as read-only facades over platform-generated artifacts.
 4. The repository is still moving from thin pass-through behavior toward cleaner experience-API
    contracts.
 5. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
@@ -152,6 +153,7 @@ Quick probes:
 curl http://127.0.0.1:8111/health
 curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
 curl "http://127.0.0.1:8111/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
+curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
 ## Common Commands
@@ -202,12 +204,15 @@ Important current parameter conventions:
    preserve platform artifact provenance
 3. `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
    requires the full governed product identity and does not fabricate missing products
-4. reporting snapshot and reporting portfolio requests use `asOfDate`
-5. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
+4. `GET /api/v1/domain-products/trust-certification` publishes RFC-0087 platform live trust
+   certification when present and returns an explicit unavailable posture when the generated
+   artifact is absent
+5. reporting snapshot and reporting portfolio requests use `asOfDate`
+6. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
    `allowPartial`
-6. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
+7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
-7. proposal write routes require `Idempotency-Key`
+8. proposal write routes require `Idempotency-Key`
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 

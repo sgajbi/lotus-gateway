@@ -8,6 +8,7 @@ from app.contracts.domain_products import (
     DomainProductCatalogResponse,
     DomainProductDetailResponse,
     DomainProductGraphResponse,
+    DomainProductTrustCertificationResponse,
 )
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
@@ -22,9 +23,15 @@ class DomainProductNotFound(LookupError):
 
 
 class DomainProductCatalogService:
-    def __init__(self, catalog_path: str, dependency_graph_path: str) -> None:
+    def __init__(
+        self,
+        catalog_path: str,
+        dependency_graph_path: str,
+        live_trust_certification_path: str,
+    ) -> None:
         self._catalog_path = Path(catalog_path)
         self._dependency_graph_path = Path(dependency_graph_path)
+        self._live_trust_certification_path = Path(live_trust_certification_path)
 
     async def get_catalog(
         self,
@@ -100,6 +107,67 @@ class DomainProductCatalogService:
                 }
             },
             self._dependency_graph_path,
+        )
+
+    async def get_trust_certification(
+        self,
+        *,
+        consumer_system: str,
+        correlation_id: str,
+    ) -> DomainProductTrustCertificationResponse:
+        if not self._live_trust_certification_path.exists():
+            return self._trust_unavailable_response(
+                consumer_system=consumer_system,
+                correlation_id=correlation_id,
+                reason=(
+                    "Platform live trust certification artifact is unavailable: "
+                    f"{self._live_trust_certification_path}"
+                ),
+            )
+
+        certification = self._load_json_object(self._live_trust_certification_path)
+        summary = certification.get("summary")
+        if not isinstance(summary, dict) or not isinstance(summary.get("certification_state"), str):
+            raise DomainProductCatalogUnavailable(
+                "Platform domain-product artifact failed gateway contract validation: "
+                f"{self._live_trust_certification_path}"
+            )
+        trust_posture = summary["certification_state"]
+        return self._validate_response(
+            DomainProductTrustCertificationResponse,
+            {
+                "data": {
+                    "consumerSystem": consumer_system,
+                    "correlationId": correlation_id,
+                    "trustAvailable": True,
+                    "trustPosture": trust_posture,
+                    "unavailableReason": None,
+                    **certification,
+                }
+            },
+            self._live_trust_certification_path,
+        )
+
+    def _trust_unavailable_response(
+        self,
+        *,
+        consumer_system: str,
+        correlation_id: str,
+        reason: str,
+    ) -> DomainProductTrustCertificationResponse:
+        return DomainProductTrustCertificationResponse.model_validate(
+            {
+                "data": {
+                    "consumerSystem": consumer_system,
+                    "correlationId": correlation_id,
+                    "trustAvailable": False,
+                    "trustPosture": "unavailable",
+                    "unavailableReason": reason,
+                    "governedByRfcs": ["RFC-0087"],
+                    "productCertifications": [],
+                    "issues": [],
+                }
+            }
         )
 
     def _load_json_object(self, path: Path) -> dict[str, Any]:
