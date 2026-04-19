@@ -270,10 +270,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert ai_client.execute_calls[0]["caller_identity_class"] == "BANKER_PRODUCT"
     assert ai_client.execute_calls[0]["workflow_surface"] == "advisor-brief-workspace"
     assert ai_client.execute_calls[0]["task_request"]["task_id"] == "explain.v1"
-    assert (
-        ai_client.execute_calls[0]["task_request"]["expected_output_label"]
-        == "EXPLANATION_ONLY"
-    )
+    assert ai_client.execute_calls[0]["task_request"]["expected_output_label"] == "EXPLANATION_ONLY"
     portfolio_context = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
         "portfolio"
     ]
@@ -288,12 +285,10 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     }
     assert ai_client.execute_calls[0]["task_request"]["context"]["payload"]["benchmark"][
         "benchmark_name"
-    ] == (
-        "Private Banking Global Balanced 60/40"
-    )
-    top_position = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
-        "contribution"
-    ]["top_positions"][0]
+    ] == ("Private Banking Global Balanced 60/40")
+    top_position = ai_client.execute_calls[0]["task_request"]["context"]["payload"]["contribution"][
+        "top_positions"
+    ][0]
     assert set(top_position.keys()) == {
         "display_label",
         "contribution_pct",
@@ -303,9 +298,9 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "fx_contribution_pct",
     }
     assert top_position["display_label"] == "AAPL US"
-    top_effect = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
-        "attribution"
-    ]["top_effects"][0]
+    top_effect = ai_client.execute_calls[0]["task_request"]["context"]["payload"]["attribution"][
+        "top_effects"
+    ][0]
     assert set(top_effect.keys()) == {
         "segment_label",
         "total_effect_pct",

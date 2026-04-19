@@ -179,10 +179,13 @@ class AdvisorBriefService:
             if ai_status == 200 and execution_payload.get("status") == "COMPLETED":
                 result = _safe_dict(execution_payload.get("result"))
                 structured_output = _safe_dict(result.get("structured_output"))
-                source_summary = _extract_ai_summary(
-                    ai_payload=execution_payload,
-                    structured_output=structured_output,
-                ) or source_summary
+                source_summary = (
+                    _extract_ai_summary(
+                        ai_payload=execution_payload,
+                        structured_output=structured_output,
+                    )
+                    or source_summary
+                )
                 talking_points = (
                     _extract_ai_talking_points(
                         structured_output=structured_output,
