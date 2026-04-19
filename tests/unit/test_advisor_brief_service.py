@@ -151,9 +151,18 @@ class _StubLotusAiClient:
             }
         }
 
-    async def execute_task(self, **kwargs):
+    async def execute_workflow_pack(self, **kwargs):
         self.execute_calls.append(kwargs)
-        return self.status_code, self.payload
+        if self.status_code != 200:
+            return self.status_code, self.payload
+        return self.status_code, {
+            "service": "lotus-ai",
+            "version": "0.1.0",
+            "eligibility": {"allowed": True},
+            "execution": self.payload,
+            "workflow_pack_run": {"run_id": "packrun_advisor_brief_req-1"},
+            "summary": [],
+        }
 
     async def get_workflow_pack_run_consumer_view(self, **kwargs):
         self.consumer_view_calls.append(kwargs)
@@ -222,21 +231,36 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.workflow_pack_run.workflow_authority_owner == "lotus-gateway"
     assert response.workflow_pack_run.findings[0].finding_id == "review_pending"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
-    assert ai_client.execute_calls[0]["task_id"] == "explain.v1"
-    assert ai_client.execute_calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
-    assert ai_client.execute_calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
-    assert ai_client.execute_calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
-    assert set(ai_client.execute_calls[0]["context_payload"]["portfolio"].keys()) == {
+    assert ai_client.execute_calls[0]["pack_id"] == "advisor_brief.pack"
+    assert ai_client.execute_calls[0]["version"] == "v1"
+    assert ai_client.execute_calls[0]["environment"] == "DEVELOPMENT"
+    assert ai_client.execute_calls[0]["caller_identity_class"] == "BANKER_PRODUCT"
+    assert ai_client.execute_calls[0]["workflow_surface"] == "advisor-brief-workspace"
+    assert ai_client.execute_calls[0]["task_request"]["task_id"] == "explain.v1"
+    assert (
+        ai_client.execute_calls[0]["task_request"]["expected_output_label"]
+        == "EXPLANATION_ONLY"
+    )
+    portfolio_context = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
+        "portfolio"
+    ]
+    assert portfolio_context["portfolio_id"] == "PF_1001"
+    assert portfolio_context["display_label"] == "PF 1001"
+    assert set(portfolio_context.keys()) == {
         "portfolio_id",
         "display_label",
         "base_currency",
         "booking_center_code",
         "client_id",
     }
-    assert ai_client.execute_calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
+    assert ai_client.execute_calls[0]["task_request"]["context"]["payload"]["benchmark"][
+        "benchmark_name"
+    ] == (
         "Private Banking Global Balanced 60/40"
     )
-    top_position = ai_client.execute_calls[0]["context_payload"]["contribution"]["top_positions"][0]
+    top_position = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
+        "contribution"
+    ]["top_positions"][0]
     assert set(top_position.keys()) == {
         "display_label",
         "contribution_pct",
@@ -246,7 +270,9 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "fx_contribution_pct",
     }
     assert top_position["display_label"] == "AAPL US"
-    top_effect = ai_client.execute_calls[0]["context_payload"]["attribution"]["top_effects"][0]
+    top_effect = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
+        "attribution"
+    ]["top_effects"][0]
     assert set(top_effect.keys()) == {
         "segment_label",
         "total_effect_pct",
@@ -258,7 +284,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "portfolio_return_pct",
         "benchmark_return_pct",
     }
-    assert ai_client.execute_calls[0]["source_refs"] == [
+    assert ai_client.execute_calls[0]["task_request"]["context"]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",
         "lotus-performance:benchmark:PF_1001:BMK_GLOBAL_BALANCED_60_40:YTD",

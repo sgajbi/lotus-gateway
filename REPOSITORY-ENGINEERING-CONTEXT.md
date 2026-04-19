@@ -33,7 +33,8 @@ Current repository posture:
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
 4. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
-5. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+5. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids,
+6. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 
 ## Architecture And Module Map
 

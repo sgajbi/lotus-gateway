@@ -145,29 +145,44 @@ class AdvisorBriefService:
         ai_evidence: dict[str, Any] = {"descriptors": []}
 
         if status is not AdvisorBriefStatus.UNAVAILABLE:
-            async with server_timing_span("perf-advisor-brief-ai"):
-                ai_status, ai_payload = await self._lotus_ai_client.execute_task(
-                    task_id=_TASK_ID,
-                    caller_app="lotus-gateway",
-                    correlation_id=correlation_id,
-                    context_summary=(
+            task_request = {
+                "task_id": _TASK_ID,
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
                         f"Advisor brief context for portfolio {workspace.portfolio_id}, "
                         f"{workspace.period} period, basis {workspace.detail_basis}."
                     ),
-                    context_payload=_build_ai_fact_bundle(
+                    "payload": _build_ai_fact_bundle(
                         workspace=workspace,
                         selected_performance=selected_performance,
                     ),
-                    source_refs=source_refs,
-                    expected_output_label=_EXPECTED_OUTPUT_LABEL,
+                    "source_refs": source_refs,
+                },
+                "expected_output_label": _EXPECTED_OUTPUT_LABEL,
+            }
+            async with server_timing_span("perf-advisor-brief-ai"):
+                ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+                    pack_id="advisor_brief.pack",
+                    version="v1",
+                    environment="DEVELOPMENT",
+                    caller_identity_class="BANKER_PRODUCT",
+                    workflow_surface="advisor-brief-workspace",
+                    task_request=task_request,
+                    correlation_id=correlation_id,
                 )
-            if ai_status == 200 and ai_payload.get("status") == "COMPLETED":
-                result = _safe_dict(ai_payload.get("result"))
+            execution_payload = _safe_dict(ai_payload.get("execution")) if ai_status == 200 else {}
+            if ai_status == 200 and execution_payload.get("status") == "COMPLETED":
+                result = _safe_dict(execution_payload.get("result"))
                 structured_output = _safe_dict(result.get("structured_output"))
-                source_summary = (
-                    _extract_ai_summary(ai_payload=ai_payload, structured_output=structured_output)
-                    or source_summary
-                )
+                source_summary = _extract_ai_summary(
+                    ai_payload=execution_payload,
+                    structured_output=structured_output,
+                ) or source_summary
                 talking_points = (
                     _extract_ai_talking_points(
                         structured_output=structured_output,
@@ -204,8 +219,8 @@ class AdvisorBriefService:
                     )
                     or risks_and_exceptions
                 )
-                ai_audit = _normalize_ai_audit(_safe_dict(ai_payload.get("audit")))
-                ai_evidence = _safe_dict(ai_payload.get("evidence")) or {"descriptors": []}
+                ai_audit = _normalize_ai_audit(_safe_dict(execution_payload.get("audit")))
+                ai_evidence = _safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
             else:
                 status = AdvisorBriefStatus.PARTIAL
                 ai_audit = _normalize_ai_audit(
@@ -398,6 +413,9 @@ async def _load_advisor_brief_workflow_pack_run(
 
 
 def _resolve_advisor_brief_workflow_pack_run_id(*, ai_audit: dict[str, Any]) -> str | None:
+    workflow_pack_run_id = _safe_str(ai_audit.get("workflow_pack_run_id"))
+    if workflow_pack_run_id is not None:
+        return workflow_pack_run_id
     request_id = _safe_str(ai_audit.get("request_id"))
     if request_id is None:
         return None

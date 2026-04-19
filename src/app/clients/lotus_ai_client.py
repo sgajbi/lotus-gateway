@@ -57,6 +57,35 @@ class LotusAiClient:
             retry_timeout_exceptions=False,
         )
 
+    async def execute_workflow_pack(
+        self,
+        *,
+        pack_id: str,
+        version: str,
+        environment: str,
+        caller_identity_class: str,
+        workflow_surface: str | None,
+        task_request: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_with_retry(
+            method="POST",
+            url=f"{self._base_url}/platform/workflow-packs/execute",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body={
+                "pack_id": pack_id,
+                "version": version,
+                "environment": environment,
+                "caller_identity_class": caller_identity_class,
+                "workflow_surface": workflow_surface,
+                "task_request": task_request,
+            },
+            headers=propagation_headers(correlation_id),
+            retry_timeout_exceptions=False,
+        )
+
     async def get_workflow_pack_run_consumer_view(
         self,
         *,

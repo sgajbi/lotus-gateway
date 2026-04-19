@@ -437,6 +437,82 @@ async def test_lotus_ai_client_posts_workflow_pack_review_actions():
 
 
 @pytest.mark.asyncio
+async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "service": "lotus-ai",
+            "version": "0.1.0",
+            "eligibility": {"allowed": True},
+            "execution": {
+                "status": "COMPLETED",
+                "task_id": "explain.v1",
+                "category": "explain",
+                "output_label": "EXPLANATION_ONLY",
+                "result": {"message": "Advisor summary.", "structured_output": {}},
+                "audit": {
+                    "request_id": "req-1",
+                    "workflow_pack_run_id": "packrun_advisor_brief_req-1",
+                },
+                "evidence": {"descriptors": []},
+            },
+            "workflow_pack_run": {"run_id": "packrun_advisor_brief_req-1"},
+            "summary": [],
+        },
+    )
+
+    status, payload = await client.execute_workflow_pack(
+        pack_id="advisor_brief.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="BANKER_PRODUCT",
+        workflow_surface="advisor-brief-workspace",
+        task_request={
+            "task_id": "explain.v1",
+            "input_mode": "STRUCTURED_CONTEXT",
+            "caller": {
+                "caller_app": "lotus-gateway",
+                "correlation_id": "corr-ai-pack-1",
+            },
+            "context": {
+                "summary": "Advisor brief context",
+                "payload": {"portfolio_id": "PF_1001"},
+                "source_refs": ["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
+            },
+            "expected_output_label": "EXPLANATION_ONLY",
+        },
+        correlation_id="corr-ai-pack-1",
+    )
+
+    assert status == 200
+    assert payload["execution"]["audit"]["workflow_pack_run_id"] == "packrun_advisor_brief_req-1"
+    assert _FakeAsyncClient.calls[-1]["url"] == "http://ai/platform/workflow-packs/execute"
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-pack-1"
+    assert _FakeAsyncClient.calls[-1]["json"] == {
+        "pack_id": "advisor_brief.pack",
+        "version": "v1",
+        "environment": "DEVELOPMENT",
+        "caller_identity_class": "BANKER_PRODUCT",
+        "workflow_surface": "advisor-brief-workspace",
+        "task_request": {
+            "task_id": "explain.v1",
+            "input_mode": "STRUCTURED_CONTEXT",
+            "caller": {
+                "caller_app": "lotus-gateway",
+                "correlation_id": "corr-ai-pack-1",
+            },
+            "context": {
+                "summary": "Advisor brief context",
+                "payload": {"portfolio_id": "PF_1001"},
+                "source_refs": ["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
+            },
+            "expected_output_label": "EXPLANATION_ONLY",
+        },
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(

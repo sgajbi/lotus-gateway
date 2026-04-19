@@ -20,7 +20,7 @@
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-ai`
-  evidence-grounded advisor brief narration
+  evidence-grounded advisor brief narration through the explicit workflow-pack execution seam plus shared workflow-pack run-ledger inspection surfaces
 
 ## Canonical local identities
 

@@ -45,7 +45,7 @@ It depends on:
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-ai`
-  evidence-grounded advisor-brief support
+  evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
 
 Boundary rules that matter:
 
