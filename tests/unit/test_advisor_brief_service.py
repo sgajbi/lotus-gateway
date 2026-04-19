@@ -1,5 +1,7 @@
 import pytest
+from fastapi import HTTPException
 
+from app.contracts.advisor_brief import AdvisorBriefWorkflowPackRunReviewActionRequest
 from app.contracts.performance_workspace import (
     AttributionLevelView,
     AttributionRowView,
@@ -110,11 +112,111 @@ class _StubLotusAiClient:
                 ]
             },
         }
-        self.calls: list[dict[str, object]] = []
+        self.consumer_view_status_code = 200
+        self.consumer_view_payload = {
+            "run_id": "packrun_advisor_brief_req-1",
+            "review": {
+                "allowed_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE", "ABANDON"],
+            },
+            "lineage": {"workflow_authority_owner": "lotus-gateway"},
+        }
+        self.operator_profile_status_code = 200
+        self.operator_profile_payload = {
+            "run_id": "packrun_advisor_brief_req-1",
+            "runtime_state": "COMPLETED",
+            "review_state": "AWAITING_REVIEW",
+            "supportability_status": "ACTION_REQUIRED",
+            "review_pending": True,
+            "superseded": False,
+            "current_summary_note": (
+                "Run completed but still requires bounded human review before downstream use."
+            ),
+            "replacement_run_id": None,
+            "findings": [
+                {
+                    "finding_id": "review_pending",
+                    "severity": "ACTION_REQUIRED",
+                    "summary": "Run is awaiting review.",
+                }
+            ],
+        }
+        self.execute_calls: list[dict[str, object]] = []
+        self.consumer_view_calls: list[dict[str, object]] = []
+        self.operator_profile_calls: list[dict[str, object]] = []
+        self.review_action_calls: list[dict[str, object]] = []
+        self.review_action_status_code = 200
+        self.review_action_payload = {
+            "run": {
+                "run_id": "packrun_advisor_brief_req-1",
+                "review_state": "ACCEPTED",
+            }
+        }
 
-    async def execute_task(self, **kwargs):
-        self.calls.append(kwargs)
-        return self.status_code, self.payload
+    async def execute_workflow_pack(self, **kwargs):
+        self.execute_calls.append(kwargs)
+        if self.status_code != 200:
+            return self.status_code, self.payload
+        return self.status_code, {
+            "service": "lotus-ai",
+            "version": "0.1.0",
+            "eligibility": {"allowed": True},
+            "execution": self.payload,
+            "workflow_pack_run": {"run_id": "packrun_advisor_brief_req-1"},
+            "summary": [],
+        }
+
+    async def get_workflow_pack_run_consumer_view(self, **kwargs):
+        self.consumer_view_calls.append(kwargs)
+        return self.consumer_view_status_code, self.consumer_view_payload
+
+    async def get_workflow_pack_run_operator_profile(self, **kwargs):
+        self.operator_profile_calls.append(kwargs)
+        return self.operator_profile_status_code, self.operator_profile_payload
+
+    async def apply_workflow_pack_run_review_action(self, **kwargs):
+        self.review_action_calls.append(kwargs)
+        if self.review_action_status_code == 200:
+            request_payload = kwargs["request_payload"]
+            replacement_run_id = request_payload.get("replacement_run_id")
+            action_type = request_payload["action_type"]
+            if action_type == "ACCEPT":
+                self.operator_profile_payload = {
+                    **self.operator_profile_payload,
+                    "review_state": "ACCEPTED",
+                    "supportability_status": "READY",
+                    "review_pending": False,
+                    "superseded": False,
+                    "replacement_run_id": None,
+                    "current_summary_note": "Run accepted for bounded downstream workflow use.",
+                    "findings": [],
+                }
+            elif action_type == "REVISE":
+                self.operator_profile_payload = {
+                    **self.operator_profile_payload,
+                    "review_state": "REVISED",
+                    "supportability_status": "HISTORICAL",
+                    "review_pending": False,
+                    "superseded": True,
+                    "replacement_run_id": replacement_run_id,
+                    "current_summary_note": (
+                        "Run was revised in favor of a replacement advisor-brief run."
+                    ),
+                    "findings": [],
+                }
+            elif action_type == "SUPERSEDE":
+                self.operator_profile_payload = {
+                    **self.operator_profile_payload,
+                    "review_state": "SUPERSEDED",
+                    "supportability_status": "HISTORICAL",
+                    "review_pending": False,
+                    "superseded": True,
+                    "replacement_run_id": replacement_run_id,
+                    "current_summary_note": (
+                        "Run was superseded by a replacement advisor-brief run."
+                    ),
+                    "findings": [],
+                }
+        return self.review_action_status_code, self.review_action_payload
 
 
 @pytest.mark.asyncio
@@ -156,22 +258,37 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.ai_audit["model_id"] == "gpt-5.4"
     assert response.ai_audit["stubbed"] is False
     assert response.ai_evidence["descriptors"][0]["evidence_type"] == "source_fact_bundle"
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.run_id == "packrun_advisor_brief_req-1"
+    assert response.workflow_pack_run.review_state == "AWAITING_REVIEW"
+    assert response.workflow_pack_run.workflow_authority_owner == "lotus-gateway"
+    assert response.workflow_pack_run.findings[0].finding_id == "review_pending"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
-    assert ai_client.calls[0]["task_id"] == "explain.v1"
-    assert ai_client.calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
-    assert ai_client.calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
-    assert ai_client.calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
-    assert set(ai_client.calls[0]["context_payload"]["portfolio"].keys()) == {
+    assert ai_client.execute_calls[0]["pack_id"] == "advisor_brief.pack"
+    assert ai_client.execute_calls[0]["version"] == "v1"
+    assert ai_client.execute_calls[0]["environment"] == "DEVELOPMENT"
+    assert ai_client.execute_calls[0]["caller_identity_class"] == "BANKER_PRODUCT"
+    assert ai_client.execute_calls[0]["workflow_surface"] == "advisor-brief-workspace"
+    assert ai_client.execute_calls[0]["task_request"]["task_id"] == "explain.v1"
+    assert ai_client.execute_calls[0]["task_request"]["expected_output_label"] == "EXPLANATION_ONLY"
+    portfolio_context = ai_client.execute_calls[0]["task_request"]["context"]["payload"][
+        "portfolio"
+    ]
+    assert portfolio_context["portfolio_id"] == "PF_1001"
+    assert portfolio_context["display_label"] == "PF 1001"
+    assert set(portfolio_context.keys()) == {
         "portfolio_id",
         "display_label",
         "base_currency",
         "booking_center_code",
         "client_id",
     }
-    assert ai_client.calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
-        "Private Banking Global Balanced 60/40"
-    )
-    top_position = ai_client.calls[0]["context_payload"]["contribution"]["top_positions"][0]
+    assert ai_client.execute_calls[0]["task_request"]["context"]["payload"]["benchmark"][
+        "benchmark_name"
+    ] == ("Private Banking Global Balanced 60/40")
+    top_position = ai_client.execute_calls[0]["task_request"]["context"]["payload"]["contribution"][
+        "top_positions"
+    ][0]
     assert set(top_position.keys()) == {
         "display_label",
         "contribution_pct",
@@ -181,7 +298,9 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "fx_contribution_pct",
     }
     assert top_position["display_label"] == "AAPL US"
-    top_effect = ai_client.calls[0]["context_payload"]["attribution"]["top_effects"][0]
+    top_effect = ai_client.execute_calls[0]["task_request"]["context"]["payload"]["attribution"][
+        "top_effects"
+    ][0]
     assert set(top_effect.keys()) == {
         "segment_label",
         "total_effect_pct",
@@ -193,10 +312,16 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "portfolio_return_pct",
         "benchmark_return_pct",
     }
-    assert ai_client.calls[0]["source_refs"] == [
+    assert ai_client.execute_calls[0]["task_request"]["context"]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",
         "lotus-performance:benchmark:PF_1001:BMK_GLOBAL_BALANCED_60_40:YTD",
+    ]
+    assert ai_client.consumer_view_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
+    ]
+    assert ai_client.operator_profile_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
     ]
 
 
@@ -230,6 +355,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
     assert response.ai_audit["model_id"] is None
     assert response.ai_audit["stubbed"] is True
     assert response.ai_audit["detail"] == "lotus-ai paused"
+    assert response.workflow_pack_run is None
     assert [item.model_dump(mode="json") for item in response.supportability] == [
         {"label": "Portfolio", "value": "Ready", "tone": "success", "reason": None},
         {"label": "Return History", "value": "Ready", "tone": "success", "reason": None},
@@ -335,7 +461,9 @@ async def test_advisor_brief_service_reuses_cached_response_for_identical_reques
 
     assert first.summary == second.summary
     assert len(workspace_service.calls) == 1
-    assert len(ai_client.calls) == 1
+    assert len(ai_client.execute_calls) == 1
+    assert len(ai_client.consumer_view_calls) == 1
+    assert len(ai_client.operator_profile_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -370,7 +498,9 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
     )
 
     assert len(workspace_service.calls) == 2
-    assert len(ai_client.calls) == 2
+    assert len(ai_client.execute_calls) == 2
+    assert len(ai_client.consumer_view_calls) == 2
+    assert len(ai_client.operator_profile_calls) == 2
 
 
 @pytest.mark.asyncio
@@ -463,6 +593,193 @@ async def test_advisor_brief_service_normalizes_raw_position_ids_in_fallback_cop
     assert response.talking_points[2].detail == (
         "USD BOOK OPERATING contributed -0.06% with return 0.00%."
     )
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_omits_workflow_pack_run_when_surfaces_unavailable():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    ai_client.consumer_view_status_code = 404
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-run-missing",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.workflow_pack_run is None
+    assert ai_client.consumer_view_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-run-missing"}
+    ]
+    assert ai_client.operator_profile_calls == []
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_applies_review_action_and_returns_updated_run_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.apply_performance_advisor_brief_review_action(
+        portfolio_id="PF_1001",
+        correlation_id="corr-review-action",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        request=AdvisorBriefWorkflowPackRunReviewActionRequest(
+            action_type="ACCEPT",
+            reviewed_by="advisor_1",
+            reason="Advisor brief accepted for bounded downstream workflow use.",
+        ),
+    )
+
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.review_state == "ACCEPTED"
+    assert response.workflow_pack_run.supportability_status == "READY"
+    assert response.workflow_pack_run.review_pending is False
+    assert (
+        response.workflow_pack_run.current_summary_note
+        == "Run accepted for bounded downstream workflow use."
+    )
+    assert response.workflow_pack_run.findings == []
+    assert ai_client.review_action_calls == [
+        {
+            "run_id": "packrun_advisor_brief_req-1",
+            "correlation_id": "corr-review-action",
+            "request_payload": {
+                "action_type": "ACCEPT",
+                "caller_app": "lotus-gateway",
+                "reviewed_by": "advisor_1",
+                "reason": "Advisor brief accepted for bounded downstream workflow use.",
+                "replacement_run_id": None,
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("action_type", "expected_review_state", "expected_summary_note"),
+    [
+        (
+            "REVISE",
+            "REVISED",
+            "Run was revised in favor of a replacement advisor-brief run.",
+        ),
+        (
+            "SUPERSEDE",
+            "SUPERSEDED",
+            "Run was superseded by a replacement advisor-brief run.",
+        ),
+    ],
+)
+async def test_advisor_brief_service_preserves_replacement_lineage_for_review_transitions(
+    action_type: str,
+    expected_review_state: str,
+    expected_summary_note: str,
+):
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.apply_performance_advisor_brief_review_action(
+        portfolio_id="PF_1001",
+        correlation_id=f"corr-{action_type.lower()}",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        request=AdvisorBriefWorkflowPackRunReviewActionRequest(
+            action_type=action_type,
+            reviewed_by="advisor_1",
+            reason=f"Advisor brief {action_type.lower()}d in favor of a replacement run.",
+            replacement_run_id="packrun_advisor_brief_req-2",
+        ),
+    )
+
+    assert response.summary == (
+        "AI summary: portfolio return exceeded benchmark over the selected period."
+    )
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.review_state == expected_review_state
+    assert response.workflow_pack_run.supportability_status == "HISTORICAL"
+    assert response.workflow_pack_run.review_pending is False
+    assert response.workflow_pack_run.superseded is True
+    assert response.workflow_pack_run.replacement_run_id == "packrun_advisor_brief_req-2"
+    assert response.workflow_pack_run.current_summary_note == expected_summary_note
+    assert ai_client.review_action_calls == [
+        {
+            "run_id": "packrun_advisor_brief_req-1",
+            "correlation_id": f"corr-{action_type.lower()}",
+            "request_payload": {
+                "action_type": action_type,
+                "caller_app": "lotus-gateway",
+                "reviewed_by": "advisor_1",
+                "reason": f"Advisor brief {action_type.lower()}d in favor of a replacement run.",
+                "replacement_run_id": "packrun_advisor_brief_req-2",
+            },
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_surfaces_lineage_conflicts_without_rewriting_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    ai_client.review_action_status_code = 409
+    ai_client.review_action_payload = {
+        "detail": "Replacement workflow-pack run packrun_advisor_brief_req-2 is already linked.",
+    }
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.apply_performance_advisor_brief_review_action(
+            portfolio_id="PF_1001",
+            correlation_id="corr-review-conflict",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+            request=AdvisorBriefWorkflowPackRunReviewActionRequest(
+                action_type="SUPERSEDE",
+                reviewed_by="advisor_1",
+                reason="Replacement lineage already exists.",
+                replacement_run_id="packrun_advisor_brief_req-2",
+            ),
+        )
+
+    assert exc_info.value.status_code == 409
+    assert (
+        exc_info.value.detail
+        == "Replacement workflow-pack run packrun_advisor_brief_req-2 is already linked."
+    )
+    assert ai_client.operator_profile_payload["review_state"] == "AWAITING_REVIEW"
+    assert ai_client.operator_profile_payload["replacement_run_id"] is None
 
 
 @pytest.mark.asyncio

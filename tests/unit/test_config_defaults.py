@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -21,6 +22,16 @@ def test_settings_default_to_canonical_dev_service_identities():
     assert settings.risk_analytics_base_url == "http://risk.dev.lotus"
     assert settings.reporting_aggregation_base_url == "http://report.dev.lotus"
     assert settings.management_service_base_url == "http://manage.dev.lotus"
+    assert Path(settings.domain_product_catalog_path).parts[-3:] == (
+        "lotus-platform",
+        "generated",
+        "domain-product-catalog.json",
+    )
+    assert Path(settings.domain_product_dependency_graph_path).parts[-3:] == (
+        "lotus-platform",
+        "generated",
+        "domain-product-dependency-graph.json",
+    )
 
 
 def test_settings_accept_legacy_platform_stack_env_aliases():

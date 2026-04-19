@@ -10,7 +10,7 @@
       "review_by": "2026-08-24"
     },
     {
-      "finding": "src/app/config.py:42:risk_bff_cache_ttl_seconds: float = Field(default=15.0)",
+      "finding": "src/app/config.py:53:risk_bff_cache_ttl_seconds: float = Field(default=15.0)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-04"

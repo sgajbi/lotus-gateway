@@ -45,7 +45,10 @@ It depends on:
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-ai`
-  evidence-grounded advisor-brief support
+  evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
+- `lotus-platform`
+  generated domain-product catalog, dependency-graph, and live trust certification artifacts for
+  read-only product discovery
 
 Boundary rules that matter:
 
@@ -59,9 +62,11 @@ Boundary rules that matter:
 1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
 2. Foundation, platform capabilities, proposals, reporting, intake/lookups, portfolio, and workbench
    route families are active.
-3. The repository is still moving from thin pass-through behavior toward cleaner experience-API
+3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
+   routes are active as read-only facades over platform-generated artifacts.
+4. The repository is still moving from thin pass-through behavior toward cleaner experience-API
    contracts.
-4. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
+5. Canonical local startup relies on `--app-dir src`; omitting it on Windows can start the wrong
    `app` package and yield a misleading health-only process.
 
 ## Architecture At A Glance
@@ -72,6 +77,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/foundation/*`
 - `platform`
   `/api/v1/platform/*`
+- `domain-products`
+  `/api/v1/domain-products/*`
 - `proposals`
   `/api/v1/proposals/*`
 - `intake` and `lookups`
@@ -145,6 +152,8 @@ Quick probes:
 ```bash
 curl http://127.0.0.1:8111/health
 curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl "http://127.0.0.1:8111/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
+curl "http://127.0.0.1:8111/api/v1/domain-products/trust-certification?consumerSystem=lotus-workbench"
 ```
 
 ## Common Commands
@@ -190,12 +199,20 @@ Important current parameter conventions:
 
 1. `GET /api/v1/platform/capabilities` uses camelCase query parameters `consumerSystem` and
    `tenantId`
-2. reporting snapshot and reporting portfolio requests use `asOfDate`
-3. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
+2. `GET /api/v1/domain-products/catalog` and
+   `GET /api/v1/domain-products/dependency-graph` use `consumerSystem` for caller identity and
+   preserve platform artifact provenance
+3. `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
+   requires the full governed product identity and does not fabricate missing products
+4. `GET /api/v1/domain-products/trust-certification` publishes RFC-0087 platform live trust
+   certification when present and returns an explicit unavailable posture when the generated
+   artifact is absent
+5. reporting snapshot and reporting portfolio requests use `asOfDate`
+6. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
    `allowPartial`
-4. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
+7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
-5. proposal write routes require `Idempotency-Key`
+8. proposal write routes require `Idempotency-Key`
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -209,12 +226,17 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority
+- discovery rule:
+  gateway may expose the platform-generated domain-product catalog and dependency graph, but the
+  producer and consumer declarations remain governed outside gateway
 
 ## Operations And Runtime Posture
 
 - use `gateway.dev.lotus` for canonical product and cross-app validation
 - use `127.0.0.1:8111` for direct local debugging only
 - if startup appears healthy but product routes 404 on Windows, verify `--app-dir src`
+- if domain-product discovery returns `503`, verify `DOMAIN_PRODUCT_CATALOG_PATH`,
+  `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and the sibling `lotus-platform/generated/` artifacts
 - treat degraded responses as composition issues first: inspect upstream supportability, readiness,
   and parameter shape before changing the gateway response contract
 

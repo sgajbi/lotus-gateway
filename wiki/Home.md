@@ -14,8 +14,8 @@
 ## Current phase
 
 - primary backend contract for `lotus-workbench`
-- active route families across foundation, workbench, platform capabilities, proposals, reporting,
-  portfolio, and intake/lookups
+- active route families across foundation, workbench, platform capabilities, domain-product
+  discovery, proposals, reporting, portfolio, and intake/lookups
 - still replacing thin pass-through patterns with cleaner experience-API contracts
 
 ## Most important commands

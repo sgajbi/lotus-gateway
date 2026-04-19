@@ -1,7 +1,18 @@
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings
+
+
+def _default_platform_generated_path(filename: str) -> str:
+    workspace_root = Path(__file__).resolve().parents[3]
+    return str(workspace_root / "lotus-platform" / "generated" / filename)
+
+
+def _default_platform_output_path(*parts: str) -> str:
+    workspace_root = Path(__file__).resolve().parents[3]
+    return str(workspace_root / "lotus-platform" / "output" / Path(*parts))
 
 
 class Settings(BaseSettings):
@@ -40,6 +51,20 @@ class Settings(BaseSettings):
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
     advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
     risk_bff_cache_ttl_seconds: float = Field(default=15.0)
+    domain_product_catalog_path: str = Field(
+        default_factory=lambda: _default_platform_generated_path("domain-product-catalog.json")
+    )
+    domain_product_dependency_graph_path: str = Field(
+        default_factory=lambda: _default_platform_generated_path(
+            "domain-product-dependency-graph.json"
+        )
+    )
+    domain_product_live_trust_certification_path: str = Field(
+        default_factory=lambda: _default_platform_output_path(
+            "trust-certification",
+            "domain-product-live-trust-certification.json",
+        )
+    )
 
     @field_validator(
         "decisioning_service_base_url",
