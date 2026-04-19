@@ -397,6 +397,46 @@ async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_he
 
 
 @pytest.mark.asyncio
+async def test_lotus_ai_client_posts_workflow_pack_review_actions():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "run": {
+                "run_id": "packrun_advisor_brief_req-1",
+                "review_state": "ACCEPTED",
+            }
+        },
+    )
+
+    status, payload = await client.apply_workflow_pack_run_review_action(
+        run_id="packrun_advisor_brief_req-1",
+        correlation_id="corr-ai-review-1",
+        request_payload={
+            "action_type": "ACCEPT",
+            "caller_app": "lotus-gateway",
+            "reviewed_by": "advisor_1",
+            "reason": "Advisor brief accepted for bounded downstream workflow use.",
+            "replacement_run_id": None,
+        },
+    )
+
+    assert status == 200
+    assert payload["run"]["review_state"] == "ACCEPTED"
+    assert _FakeAsyncClient.calls[-1]["url"] == (
+        "http://ai/platform/workflow-packs/runs/packrun_advisor_brief_req-1/review-actions"
+    )
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-review-1"
+    assert _FakeAsyncClient.calls[-1]["json"] == {
+        "action_type": "ACCEPT",
+        "caller_app": "lotus-gateway",
+        "reviewed_by": "advisor_1",
+        "reason": "Advisor brief accepted for bounded downstream workflow use.",
+        "replacement_run_id": None,
+    }
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(

@@ -11,6 +11,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefTone,
     AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunFinding,
+    AdvisorBriefWorkflowPackRunReviewActionRequest,
 )
 from app.contracts.workbench import WorkbenchPortfolioSummary
 from app.main import app
@@ -2337,6 +2338,120 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
         "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "explicit_start_date": "2026-01-01",
+        "explicit_end_date": "2026-03-27",
+    }
+
+
+def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _service(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ):
+        captured["portfolio_id"] = portfolio_id
+        captured["correlation_id"] = correlation_id
+        captured["period"] = period
+        captured["chart_frequency"] = chart_frequency
+        captured["contribution_dimension"] = contribution_dimension
+        captured["attribution_dimension"] = attribution_dimension
+        captured["detail_basis"] = detail_basis
+        captured["benchmark_code"] = benchmark_code
+        captured["request"] = request.model_dump(mode="json")
+        captured["explicit_start_date"] = explicit_start_date
+        captured["explicit_end_date"] = explicit_end_date
+        return AdvisorBriefResponse(
+            correlation_id=correlation_id,
+            contract_version="v1",
+            portfolio_id=portfolio_id,
+            portfolio=WorkbenchPortfolioSummary(
+                portfolio_id=portfolio_id,
+                client_id="CIF_1001",
+                base_currency="USD",
+                booking_center_code="SG",
+            ),
+            as_of_date="2026-04-04",
+            period=period,
+            report_start_date=explicit_start_date or "2026-01-01",
+            report_end_date=explicit_end_date or "2026-04-04",
+            detail_basis=detail_basis,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            benchmark_code=benchmark_code,
+            status=AdvisorBriefStatus.READY,
+            summary="Advisor summary.",
+            talking_points=[],
+            recommended_actions=[],
+            risks_and_exceptions=[],
+            source_metrics=[],
+            supportability=[],
+            ai_audit={"request_id": "req-1"},
+            ai_evidence={},
+            workflow_pack_run=AdvisorBriefWorkflowPackRun(
+                run_id="packrun_advisor_brief_req-1",
+                runtime_state="COMPLETED",
+                review_state="ACCEPTED",
+                allowed_review_actions=[],
+                supportability_status="READY",
+                review_pending=False,
+                superseded=False,
+                workflow_authority_owner="lotus-gateway",
+                current_summary_note="Run accepted for bounded downstream workflow use.",
+                replacement_run_id=None,
+                findings=[],
+            ),
+        )
+
+    monkeypatch.setattr(
+        "app.services.advisor_brief_service.AdvisorBriefService.apply_performance_advisor_brief_review_action",
+        _service,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief/review-actions"
+        "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
+        "&attribution_dimension=country&detail_basis=GROSS"
+        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&report_start_date=2026-01-01&report_end_date=2026-03-27",
+        headers={"X-Correlation-Id": "corr-advisor-brief-review"},
+        json={
+            "action_type": "ACCEPT",
+            "reviewed_by": "advisor_1",
+            "reason": "Advisor brief accepted for bounded downstream workflow use.",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workflow_pack_run"]["review_state"] == "ACCEPTED"
+    assert captured == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-advisor-brief-review",
+        "period": "EXPLICIT",
+        "chart_frequency": "weekly",
+        "contribution_dimension": "sector",
+        "attribution_dimension": "country",
+        "detail_basis": "GROSS",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "request": {
+            "action_type": "ACCEPT",
+            "reviewed_by": "advisor_1",
+            "reason": "Advisor brief accepted for bounded downstream workflow use.",
+            "replacement_run_id": None,
+        },
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }

@@ -1,5 +1,6 @@
 import pytest
 
+from app.contracts.advisor_brief import AdvisorBriefWorkflowPackRunReviewActionRequest
 from app.contracts.performance_workspace import (
     AttributionLevelView,
     AttributionRowView,
@@ -141,6 +142,14 @@ class _StubLotusAiClient:
         self.execute_calls: list[dict[str, object]] = []
         self.consumer_view_calls: list[dict[str, object]] = []
         self.operator_profile_calls: list[dict[str, object]] = []
+        self.review_action_calls: list[dict[str, object]] = []
+        self.review_action_status_code = 200
+        self.review_action_payload = {
+            "run": {
+                "run_id": "packrun_advisor_brief_req-1",
+                "review_state": "ACCEPTED",
+            }
+        }
 
     async def execute_task(self, **kwargs):
         self.execute_calls.append(kwargs)
@@ -153,6 +162,19 @@ class _StubLotusAiClient:
     async def get_workflow_pack_run_operator_profile(self, **kwargs):
         self.operator_profile_calls.append(kwargs)
         return self.operator_profile_status_code, self.operator_profile_payload
+
+    async def apply_workflow_pack_run_review_action(self, **kwargs):
+        self.review_action_calls.append(kwargs)
+        if self.review_action_status_code == 200:
+            self.operator_profile_payload = {
+                **self.operator_profile_payload,
+                "review_state": "ACCEPTED",
+                "supportability_status": "READY",
+                "review_pending": False,
+                "current_summary_note": "Run accepted for bounded downstream workflow use.",
+                "findings": [],
+            }
+        return self.review_action_status_code, self.review_action_payload
 
 
 @pytest.mark.asyncio
@@ -545,6 +567,55 @@ async def test_advisor_brief_service_omits_workflow_pack_run_when_surfaces_unava
         {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-run-missing"}
     ]
     assert ai_client.operator_profile_calls == []
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_applies_review_action_and_returns_updated_run_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.apply_performance_advisor_brief_review_action(
+        portfolio_id="PF_1001",
+        correlation_id="corr-review-action",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        request=AdvisorBriefWorkflowPackRunReviewActionRequest(
+            action_type="ACCEPT",
+            reviewed_by="advisor_1",
+            reason="Advisor brief accepted for bounded downstream workflow use.",
+        ),
+    )
+
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.review_state == "ACCEPTED"
+    assert response.workflow_pack_run.supportability_status == "READY"
+    assert response.workflow_pack_run.review_pending is False
+    assert (
+        response.workflow_pack_run.current_summary_note
+        == "Run accepted for bounded downstream workflow use."
+    )
+    assert response.workflow_pack_run.findings == []
+    assert ai_client.review_action_calls == [
+        {
+            "run_id": "packrun_advisor_brief_req-1",
+            "correlation_id": "corr-review-action",
+            "request_payload": {
+                "action_type": "ACCEPT",
+                "caller_app": "lotus-gateway",
+                "reviewed_by": "advisor_1",
+                "reason": "Advisor brief accepted for bounded downstream workflow use.",
+                "replacement_run_id": None,
+            },
+        }
+    ]
 
 
 @pytest.mark.asyncio

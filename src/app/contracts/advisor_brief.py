@@ -141,6 +141,36 @@ class AdvisorBriefWorkflowPackRunFinding(BaseModel):
     )
 
 
+class AdvisorBriefWorkflowPackRunReviewActionType(str, Enum):
+    ACCEPT = "ACCEPT"
+    REJECT = "REJECT"
+    REVISE = "REVISE"
+    SUPERSEDE = "SUPERSEDE"
+    ABANDON = "ABANDON"
+
+
+class AdvisorBriefWorkflowPackRunReviewActionRequest(BaseModel):
+    action_type: AdvisorBriefWorkflowPackRunReviewActionType = Field(
+        description="Bounded workflow-pack review action to apply to the advisor-brief run.",
+        examples=[AdvisorBriefWorkflowPackRunReviewActionType.ACCEPT],
+    )
+    reviewed_by: str = Field(
+        min_length=1,
+        description="Stable operator identifier recording the bounded review action.",
+        examples=["advisor_1"],
+    )
+    reason: str = Field(
+        min_length=1,
+        description="Operator rationale preserved with the bounded review action.",
+        examples=["Advisor brief accepted for bounded downstream workflow use."],
+    )
+    replacement_run_id: str | None = Field(
+        default=None,
+        description="Replacement workflow-pack run identifier when the action supersedes a run.",
+        examples=["packrun_advisor_brief_req-2"],
+    )
+
+
 class AdvisorBriefWorkflowPackRun(BaseModel):
     run_id: str = Field(
         description="Stable lotus-ai workflow-pack run identifier backing this advisor brief.",

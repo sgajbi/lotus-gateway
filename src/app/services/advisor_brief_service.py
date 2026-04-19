@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from app.clients.lotus_ai_client import LotusAiClient
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
@@ -14,6 +16,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefTone,
     AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunFinding,
+    AdvisorBriefWorkflowPackRunReviewActionRequest,
 )
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
@@ -270,6 +273,71 @@ class AdvisorBriefService:
             partial_failures=workspace.partial_failures,
         )
 
+    async def apply_performance_advisor_brief_review_action(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> AdvisorBriefResponse:
+        brief = await self.get_performance_advisor_brief(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        run_id = _resolve_advisor_brief_workflow_pack_run_id(ai_audit=brief.ai_audit)
+        if run_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Advisor brief workflow-pack run posture is unavailable for bounded review "
+                    "actions."
+                ),
+            )
+
+        (
+            review_status,
+            review_payload,
+        ) = await self._lotus_ai_client.apply_workflow_pack_run_review_action(
+            run_id=run_id,
+            correlation_id=correlation_id,
+            request_payload={
+                "action_type": request.action_type.value,
+                "caller_app": "lotus-gateway",
+                "reviewed_by": request.reviewed_by,
+                "reason": request.reason,
+                "replacement_run_id": request.replacement_run_id,
+            },
+        )
+        if review_status != 200:
+            raise HTTPException(
+                status_code=review_status,
+                detail=_safe_error_detail(review_payload),
+            )
+
+        workflow_pack_run = await _load_advisor_brief_workflow_pack_run(
+            lotus_ai_client=self._lotus_ai_client,
+            ai_audit=brief.ai_audit,
+            correlation_id=correlation_id,
+        )
+        self.clear_cache()
+        return brief.model_copy(update={"workflow_pack_run": workflow_pack_run})
+
 
 async def _load_advisor_brief_workflow_pack_run(
     *,
@@ -277,11 +345,10 @@ async def _load_advisor_brief_workflow_pack_run(
     ai_audit: dict[str, Any],
     correlation_id: str,
 ) -> AdvisorBriefWorkflowPackRun | None:
-    request_id = _safe_str(ai_audit.get("request_id"))
-    if request_id is None:
+    run_id = _resolve_advisor_brief_workflow_pack_run_id(ai_audit=ai_audit)
+    if run_id is None:
         return None
 
-    run_id = f"packrun_advisor_brief_{request_id}"
     consumer_status, consumer_payload = await lotus_ai_client.get_workflow_pack_run_consumer_view(
         run_id=run_id,
         correlation_id=correlation_id,
@@ -328,6 +395,13 @@ async def _load_advisor_brief_workflow_pack_run(
         replacement_run_id=_safe_str(operator_payload.get("replacement_run_id")),
         findings=findings,
     )
+
+
+def _resolve_advisor_brief_workflow_pack_run_id(*, ai_audit: dict[str, Any]) -> str | None:
+    request_id = _safe_str(ai_audit.get("request_id"))
+    if request_id is None:
+        return None
+    return f"packrun_advisor_brief_{request_id}"
 
 
 def _parse_workflow_pack_run_finding(*, value: Any) -> AdvisorBriefWorkflowPackRunFinding | None:
