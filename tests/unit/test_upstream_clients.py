@@ -404,7 +404,7 @@ async def test_lotus_ai_client_posts_workflow_pack_review_actions():
         {
             "run": {
                 "run_id": "packrun_advisor_brief_req-1",
-                "review_state": "ACCEPTED",
+                "review_state": "SUPERSEDED",
             }
         },
     )
@@ -413,26 +413,26 @@ async def test_lotus_ai_client_posts_workflow_pack_review_actions():
         run_id="packrun_advisor_brief_req-1",
         correlation_id="corr-ai-review-1",
         request_payload={
-            "action_type": "ACCEPT",
+            "action_type": "SUPERSEDE",
             "caller_app": "lotus-gateway",
             "reviewed_by": "advisor_1",
-            "reason": "Advisor brief accepted for bounded downstream workflow use.",
-            "replacement_run_id": None,
+            "reason": "Advisor brief superseded in favor of the replacement run.",
+            "replacement_run_id": "packrun_advisor_brief_req-2",
         },
     )
 
     assert status == 200
-    assert payload["run"]["review_state"] == "ACCEPTED"
+    assert payload["run"]["review_state"] == "SUPERSEDED"
     assert _FakeAsyncClient.calls[-1]["url"] == (
         "http://ai/platform/workflow-packs/runs/packrun_advisor_brief_req-1/review-actions"
     )
     assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-review-1"
     assert _FakeAsyncClient.calls[-1]["json"] == {
-        "action_type": "ACCEPT",
+        "action_type": "SUPERSEDE",
         "caller_app": "lotus-gateway",
         "reviewed_by": "advisor_1",
-        "reason": "Advisor brief accepted for bounded downstream workflow use.",
-        "replacement_run_id": None,
+        "reason": "Advisor brief superseded in favor of the replacement run.",
+        "replacement_run_id": "packrun_advisor_brief_req-2",
     }
 
 

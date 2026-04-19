@@ -2402,14 +2402,14 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
             workflow_pack_run=AdvisorBriefWorkflowPackRun(
                 run_id="packrun_advisor_brief_req-1",
                 runtime_state="COMPLETED",
-                review_state="ACCEPTED",
+                review_state="SUPERSEDED",
                 allowed_review_actions=[],
-                supportability_status="READY",
+                supportability_status="HISTORICAL",
                 review_pending=False,
-                superseded=False,
+                superseded=True,
                 workflow_authority_owner="lotus-gateway",
-                current_summary_note="Run accepted for bounded downstream workflow use.",
-                replacement_run_id=None,
+                current_summary_note="Run was superseded by a replacement advisor-brief run.",
+                replacement_run_id="packrun_advisor_brief_req-2",
                 findings=[],
             ),
         )
@@ -2428,15 +2428,19 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-advisor-brief-review"},
         json={
-            "action_type": "ACCEPT",
+            "action_type": "SUPERSEDE",
             "reviewed_by": "advisor_1",
-            "reason": "Advisor brief accepted for bounded downstream workflow use.",
+            "reason": "Advisor brief superseded in favor of the replacement run.",
+            "replacement_run_id": "packrun_advisor_brief_req-2",
         },
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["workflow_pack_run"]["review_state"] == "ACCEPTED"
+    assert body["workflow_pack_run"]["review_state"] == "SUPERSEDED"
+    assert body["workflow_pack_run"]["supportability_status"] == "HISTORICAL"
+    assert body["workflow_pack_run"]["superseded"] is True
+    assert body["workflow_pack_run"]["replacement_run_id"] == "packrun_advisor_brief_req-2"
     assert captured == {
         "portfolio_id": "PF_1001",
         "correlation_id": "corr-advisor-brief-review",
@@ -2447,10 +2451,10 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "detail_basis": "GROSS",
         "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
         "request": {
-            "action_type": "ACCEPT",
+            "action_type": "SUPERSEDE",
             "reviewed_by": "advisor_1",
-            "reason": "Advisor brief accepted for bounded downstream workflow use.",
-            "replacement_run_id": None,
+            "reason": "Advisor brief superseded in favor of the replacement run.",
+            "replacement_run_id": "packrun_advisor_brief_req-2",
         },
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
