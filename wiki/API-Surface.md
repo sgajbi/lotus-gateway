@@ -5,6 +5,9 @@
 - `GET /api/v1/foundation/portfolios`
 - `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace`
 - `GET /api/v1/platform/capabilities`
+- `GET /api/v1/domain-products/catalog`
+- `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
+- `GET /api/v1/domain-products/dependency-graph`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -16,6 +19,10 @@
 ## Current contract notes
 
 - platform capabilities uses camelCase query parameters `consumerSystem` and `tenantId`
+- domain-product discovery uses `consumerSystem` for caller identity and serves only
+  platform-generated catalog and dependency-graph artifacts
+- domain-product detail requires the full governed identity:
+  `producer_repository`, `product_name`, and `product_version`
 - reporting snapshot and reporting request payloads use `asOfDate`
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
@@ -29,6 +36,24 @@ Platform capabilities:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+```
+
+Domain-product catalog:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
+```
+
+Domain-product detail:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/domain-products/products/lotus-core/PortfolioStateSnapshot/v1?consumerSystem=lotus-workbench"
+```
+
+Domain-product dependency graph:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/domain-products/dependency-graph?consumerSystem=lotus-workbench"
 ```
 
 Foundation workspace:

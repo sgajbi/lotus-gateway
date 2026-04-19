@@ -22,10 +22,15 @@ Canonical identities:
 ```powershell
 curl http://127.0.0.1:8111/health
 curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl "http://127.0.0.1:8111/api/v1/domain-products/catalog?consumerSystem=lotus-workbench"
 ```
 
 If health is green but product routes still 404 on Windows, verify startup used `--app-dir src`
 before debugging gateway contracts.
+
+Domain-product discovery depends on platform-generated artifacts under the sibling
+`lotus-platform/generated/` directory by default. Use `DOMAIN_PRODUCT_CATALOG_PATH` and
+`DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH` when a runtime image mounts those artifacts elsewhere.
 
 ## First docs to read
 
