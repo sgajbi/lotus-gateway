@@ -126,6 +126,75 @@ class AdvisorBriefSupportabilityItem(BaseModel):
     )
 
 
+class AdvisorBriefWorkflowPackRunFinding(BaseModel):
+    finding_id: str = Field(
+        description="Stable workflow-pack supportability finding identifier.",
+        examples=["review_pending"],
+    )
+    severity: str = Field(
+        description="Workflow-pack supportability severity emitted by lotus-ai.",
+        examples=["ACTION_REQUIRED"],
+    )
+    summary: str = Field(
+        description="Short workflow-pack supportability summary.",
+        examples=["Run is awaiting review."],
+    )
+
+
+class AdvisorBriefWorkflowPackRun(BaseModel):
+    run_id: str = Field(
+        description="Stable lotus-ai workflow-pack run identifier backing this advisor brief.",
+        examples=["packrun_advisor_brief_air_123"],
+    )
+    runtime_state: str = Field(
+        description="Current lotus-ai runtime state for the workflow-pack run.",
+        examples=["COMPLETED"],
+    )
+    review_state: str = Field(
+        description="Current lotus-ai review state for the workflow-pack run.",
+        examples=["AWAITING_REVIEW"],
+    )
+    allowed_review_actions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Bounded lotus-ai review actions currently accepted by the workflow-pack ledger."
+        ),
+        examples=[["ACCEPT", "REJECT", "REVISE"]],
+    )
+    supportability_status: str = Field(
+        description=(
+            "Current lotus-ai operator-facing supportability posture for the workflow-pack run."
+        ),
+        examples=["ACTION_REQUIRED"],
+    )
+    review_pending: bool = Field(
+        description="Whether lotus-ai still reports the workflow-pack run as pending review.",
+    )
+    superseded: bool = Field(
+        description=(
+            "Whether lotus-ai marks the workflow-pack run as historical due to replacement lineage."
+        ),
+    )
+    workflow_authority_owner: str = Field(
+        description=(
+            "Service boundary retaining consequence-bearing workflow authority for the run."
+        ),
+        examples=["lotus-gateway"],
+    )
+    current_summary_note: str = Field(
+        description="Single lotus-ai operator-facing summary note for the workflow-pack run.",
+        examples=["Run completed but still requires bounded human review before downstream use."],
+    )
+    replacement_run_id: str | None = Field(
+        default=None,
+        description="Replacement workflow-pack run identifier when the current run is historical.",
+    )
+    findings: list[AdvisorBriefWorkflowPackRunFinding] = Field(
+        default_factory=list,
+        description="Workflow-pack supportability findings preserved from lotus-ai.",
+    )
+
+
 class AdvisorBriefResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -268,6 +337,34 @@ class AdvisorBriefResponse(BaseModel):
                         }
                     ]
                 },
+                "workflow_pack_run": {
+                    "run_id": "packrun_advisor_brief_air_123",
+                    "runtime_state": "COMPLETED",
+                    "review_state": "AWAITING_REVIEW",
+                    "allowed_review_actions": [
+                        "ACCEPT",
+                        "REJECT",
+                        "REVISE",
+                        "SUPERSEDE",
+                        "ABANDON",
+                    ],
+                    "supportability_status": "ACTION_REQUIRED",
+                    "review_pending": True,
+                    "superseded": False,
+                    "workflow_authority_owner": "lotus-gateway",
+                    "current_summary_note": (
+                        "Run completed but still requires bounded human review before "
+                        "downstream use."
+                    ),
+                    "replacement_run_id": None,
+                    "findings": [
+                        {
+                            "finding_id": "review_pending",
+                            "severity": "ACTION_REQUIRED",
+                            "summary": "Run is awaiting review.",
+                        }
+                    ],
+                },
                 "warnings": ["AI_DEGRADED"],
                 "partial_failures": [
                     {
@@ -390,6 +487,13 @@ class AdvisorBriefResponse(BaseModel):
                 ]
             }
         ],
+    )
+    workflow_pack_run: AdvisorBriefWorkflowPackRun | None = Field(
+        default=None,
+        description=(
+            "Bounded lotus-ai workflow-pack run posture preserved for the advisor brief when the "
+            "shared run-ledger contract is available."
+        ),
     )
     warnings: list[str] = Field(
         default_factory=list,

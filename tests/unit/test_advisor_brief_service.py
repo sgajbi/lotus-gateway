@@ -110,11 +110,49 @@ class _StubLotusAiClient:
                 ]
             },
         }
-        self.calls: list[dict[str, object]] = []
+        self.consumer_view_status_code = 200
+        self.consumer_view_payload = {
+            "run_id": "packrun_advisor_brief_req-1",
+            "review": {
+                "allowed_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE", "ABANDON"],
+            },
+            "lineage": {"workflow_authority_owner": "lotus-gateway"},
+        }
+        self.operator_profile_status_code = 200
+        self.operator_profile_payload = {
+            "run_id": "packrun_advisor_brief_req-1",
+            "runtime_state": "COMPLETED",
+            "review_state": "AWAITING_REVIEW",
+            "supportability_status": "ACTION_REQUIRED",
+            "review_pending": True,
+            "superseded": False,
+            "current_summary_note": (
+                "Run completed but still requires bounded human review before downstream use."
+            ),
+            "replacement_run_id": None,
+            "findings": [
+                {
+                    "finding_id": "review_pending",
+                    "severity": "ACTION_REQUIRED",
+                    "summary": "Run is awaiting review.",
+                }
+            ],
+        }
+        self.execute_calls: list[dict[str, object]] = []
+        self.consumer_view_calls: list[dict[str, object]] = []
+        self.operator_profile_calls: list[dict[str, object]] = []
 
     async def execute_task(self, **kwargs):
-        self.calls.append(kwargs)
+        self.execute_calls.append(kwargs)
         return self.status_code, self.payload
+
+    async def get_workflow_pack_run_consumer_view(self, **kwargs):
+        self.consumer_view_calls.append(kwargs)
+        return self.consumer_view_status_code, self.consumer_view_payload
+
+    async def get_workflow_pack_run_operator_profile(self, **kwargs):
+        self.operator_profile_calls.append(kwargs)
+        return self.operator_profile_status_code, self.operator_profile_payload
 
 
 @pytest.mark.asyncio
@@ -156,22 +194,27 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.ai_audit["model_id"] == "gpt-5.4"
     assert response.ai_audit["stubbed"] is False
     assert response.ai_evidence["descriptors"][0]["evidence_type"] == "source_fact_bundle"
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.run_id == "packrun_advisor_brief_req-1"
+    assert response.workflow_pack_run.review_state == "AWAITING_REVIEW"
+    assert response.workflow_pack_run.workflow_authority_owner == "lotus-gateway"
+    assert response.workflow_pack_run.findings[0].finding_id == "review_pending"
     assert workspace_service.calls[0]["portfolio_id"] == "PF_1001"
-    assert ai_client.calls[0]["task_id"] == "explain.v1"
-    assert ai_client.calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
-    assert ai_client.calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
-    assert ai_client.calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
-    assert set(ai_client.calls[0]["context_payload"]["portfolio"].keys()) == {
+    assert ai_client.execute_calls[0]["task_id"] == "explain.v1"
+    assert ai_client.execute_calls[0]["expected_output_label"] == "EXPLANATION_ONLY"
+    assert ai_client.execute_calls[0]["context_payload"]["portfolio"]["portfolio_id"] == "PF_1001"
+    assert ai_client.execute_calls[0]["context_payload"]["portfolio"]["display_label"] == "PF 1001"
+    assert set(ai_client.execute_calls[0]["context_payload"]["portfolio"].keys()) == {
         "portfolio_id",
         "display_label",
         "base_currency",
         "booking_center_code",
         "client_id",
     }
-    assert ai_client.calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
+    assert ai_client.execute_calls[0]["context_payload"]["benchmark"]["benchmark_name"] == (
         "Private Banking Global Balanced 60/40"
     )
-    top_position = ai_client.calls[0]["context_payload"]["contribution"]["top_positions"][0]
+    top_position = ai_client.execute_calls[0]["context_payload"]["contribution"]["top_positions"][0]
     assert set(top_position.keys()) == {
         "display_label",
         "contribution_pct",
@@ -181,7 +224,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "fx_contribution_pct",
     }
     assert top_position["display_label"] == "AAPL US"
-    top_effect = ai_client.calls[0]["context_payload"]["attribution"]["top_effects"][0]
+    top_effect = ai_client.execute_calls[0]["context_payload"]["attribution"]["top_effects"][0]
     assert set(top_effect.keys()) == {
         "segment_label",
         "total_effect_pct",
@@ -193,10 +236,16 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         "portfolio_return_pct",
         "benchmark_return_pct",
     }
-    assert ai_client.calls[0]["source_refs"] == [
+    assert ai_client.execute_calls[0]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",
         "lotus-performance:benchmark:PF_1001:BMK_GLOBAL_BALANCED_60_40:YTD",
+    ]
+    assert ai_client.consumer_view_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
+    ]
+    assert ai_client.operator_profile_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
     ]
 
 
@@ -230,6 +279,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
     assert response.ai_audit["model_id"] is None
     assert response.ai_audit["stubbed"] is True
     assert response.ai_audit["detail"] == "lotus-ai paused"
+    assert response.workflow_pack_run is None
     assert [item.model_dump(mode="json") for item in response.supportability] == [
         {"label": "Portfolio", "value": "Ready", "tone": "success", "reason": None},
         {"label": "Return History", "value": "Ready", "tone": "success", "reason": None},
@@ -335,7 +385,9 @@ async def test_advisor_brief_service_reuses_cached_response_for_identical_reques
 
     assert first.summary == second.summary
     assert len(workspace_service.calls) == 1
-    assert len(ai_client.calls) == 1
+    assert len(ai_client.execute_calls) == 1
+    assert len(ai_client.consumer_view_calls) == 1
+    assert len(ai_client.operator_profile_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -370,7 +422,9 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
     )
 
     assert len(workspace_service.calls) == 2
-    assert len(ai_client.calls) == 2
+    assert len(ai_client.execute_calls) == 2
+    assert len(ai_client.consumer_view_calls) == 2
+    assert len(ai_client.operator_profile_calls) == 2
 
 
 @pytest.mark.asyncio
@@ -463,6 +517,34 @@ async def test_advisor_brief_service_normalizes_raw_position_ids_in_fallback_cop
     assert response.talking_points[2].detail == (
         "USD BOOK OPERATING contributed -0.06% with return 0.00%."
     )
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_omits_workflow_pack_run_when_surfaces_unavailable():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    ai_client.consumer_view_status_code = 404
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-run-missing",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.workflow_pack_run is None
+    assert ai_client.consumer_view_calls == [
+        {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-run-missing"}
+    ]
+    assert ai_client.operator_profile_calls == []
 
 
 @pytest.mark.asyncio

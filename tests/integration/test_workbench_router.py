@@ -9,6 +9,8 @@ from app.contracts.advisor_brief import (
     AdvisorBriefStatus,
     AdvisorBriefSupportabilityItem,
     AdvisorBriefTone,
+    AdvisorBriefWorkflowPackRun,
+    AdvisorBriefWorkflowPackRunFinding,
 )
 from app.contracts.workbench import WorkbenchPortfolioSummary
 from app.main import app
@@ -2085,6 +2087,7 @@ def test_workbench_performance_advisor_brief_openapi_contract():
         == "source_fact_bundle"
     )
     assert response_schema["properties"]["supportability"]["description"]
+    assert response_schema["properties"]["workflow_pack_run"]["description"]
     assert response_schema["properties"]["warnings"]["examples"] == [["AI_DEGRADED"]]
     assert (
         response_schema["properties"]["partial_failures"]["examples"][0][0]["source"]
@@ -2095,6 +2098,11 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response_schema["example"]["source_metrics"][1]["state"] == "partial"
     assert response_schema["example"]["supportability"][1]["value"] == "Unavailable"
     assert response_schema["example"]["ai_audit"]["model_id"] == "qwen3:8b"
+    assert response_schema["example"]["workflow_pack_run"]["review_state"] == "AWAITING_REVIEW"
+    assert (
+        response_schema["example"]["workflow_pack_run"]["findings"][0]["finding_id"]
+        == "review_pending"
+    )
     assert response_schema["example"]["partial_failures"][0]["reason"] == "UPSTREAM_TIMEOUT"
 
 
@@ -2184,6 +2192,27 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
                 "stubbed": False,
             },
             ai_evidence={"descriptors": []},
+            workflow_pack_run=AdvisorBriefWorkflowPackRun(
+                run_id="packrun_advisor_brief_req-1",
+                runtime_state="COMPLETED",
+                review_state="AWAITING_REVIEW",
+                allowed_review_actions=["ACCEPT", "REJECT", "REVISE"],
+                supportability_status="ACTION_REQUIRED",
+                review_pending=True,
+                superseded=False,
+                workflow_authority_owner="lotus-gateway",
+                current_summary_note=(
+                    "Run completed but still requires bounded human review before downstream use."
+                ),
+                replacement_run_id=None,
+                findings=[
+                    AdvisorBriefWorkflowPackRunFinding(
+                        finding_id="review_pending",
+                        severity="ACTION_REQUIRED",
+                        summary="Run is awaiting review.",
+                    )
+                ],
+            ),
         )
 
     monkeypatch.setattr(
@@ -2217,6 +2246,8 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert body["ai_audit"]["model_id"] == "qwen3:8b"
     assert body["ai_audit"]["stubbed"] is False
     assert body["ai_evidence"] == {"descriptors": []}
+    assert body["workflow_pack_run"]["run_id"] == "packrun_advisor_brief_req-1"
+    assert body["workflow_pack_run"]["supportability_status"] == "ACTION_REQUIRED"
     assert captured_call["portfolio_id"] == "PF_1001"
     assert captured_call["period"] == "YTD"
     assert captured_call["detail_basis"] == "NET"

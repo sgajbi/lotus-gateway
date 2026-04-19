@@ -12,6 +12,8 @@ from app.contracts.advisor_brief import (
     AdvisorBriefStatus,
     AdvisorBriefSupportabilityItem,
     AdvisorBriefTone,
+    AdvisorBriefWorkflowPackRun,
+    AdvisorBriefWorkflowPackRunFinding,
 )
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
@@ -21,6 +23,7 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
 )
 from app.middleware.server_timing import server_timing_span
+from app.precision_policy import quantize_money, quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 
@@ -230,6 +233,11 @@ class AdvisorBriefService:
                         ],
                     )
                 )
+        workflow_pack_run = await _load_advisor_brief_workflow_pack_run(
+            lotus_ai_client=self._lotus_ai_client,
+            ai_audit=ai_audit,
+            correlation_id=correlation_id,
+        )
 
         return AdvisorBriefResponse(
             correlation_id=correlation_id,
@@ -257,9 +265,83 @@ class AdvisorBriefService:
             supportability=supportability,
             ai_audit=ai_audit,
             ai_evidence=ai_evidence,
+            workflow_pack_run=workflow_pack_run,
             warnings=workspace.warnings,
             partial_failures=workspace.partial_failures,
         )
+
+
+async def _load_advisor_brief_workflow_pack_run(
+    *,
+    lotus_ai_client: LotusAiClient,
+    ai_audit: dict[str, Any],
+    correlation_id: str,
+) -> AdvisorBriefWorkflowPackRun | None:
+    request_id = _safe_str(ai_audit.get("request_id"))
+    if request_id is None:
+        return None
+
+    run_id = f"packrun_advisor_brief_{request_id}"
+    consumer_status, consumer_payload = await lotus_ai_client.get_workflow_pack_run_consumer_view(
+        run_id=run_id,
+        correlation_id=correlation_id,
+    )
+    if consumer_status != 200:
+        return None
+
+    (
+        operator_status,
+        operator_payload,
+    ) = await lotus_ai_client.get_workflow_pack_run_operator_profile(
+        run_id=run_id,
+        correlation_id=correlation_id,
+    )
+    if operator_status != 200:
+        return None
+
+    review = _safe_dict(consumer_payload.get("review"))
+    lineage = _safe_dict(consumer_payload.get("lineage"))
+    findings = [
+        finding
+        for finding in (
+            _parse_workflow_pack_run_finding(value=value)
+            for value in _safe_list(operator_payload.get("findings"))
+        )
+        if finding is not None
+    ]
+    return AdvisorBriefWorkflowPackRun(
+        run_id=_safe_str(operator_payload.get("run_id")) or run_id,
+        runtime_state=_safe_str(operator_payload.get("runtime_state")) or "UNKNOWN",
+        review_state=_safe_str(operator_payload.get("review_state")) or "UNKNOWN",
+        allowed_review_actions=[
+            action
+            for action in (_safe_str(value) for value in _safe_list(review.get("allowed_actions")))
+            if action is not None
+        ],
+        supportability_status=_safe_str(operator_payload.get("supportability_status")) or "UNKNOWN",
+        review_pending=bool(operator_payload.get("review_pending")),
+        superseded=bool(operator_payload.get("superseded")),
+        workflow_authority_owner=_safe_str(lineage.get("workflow_authority_owner"))
+        or "lotus-gateway",
+        current_summary_note=_safe_str(operator_payload.get("current_summary_note"))
+        or "Workflow-pack run posture is available without a current operator summary note.",
+        replacement_run_id=_safe_str(operator_payload.get("replacement_run_id")),
+        findings=findings,
+    )
+
+
+def _parse_workflow_pack_run_finding(*, value: Any) -> AdvisorBriefWorkflowPackRunFinding | None:
+    item = _safe_dict(value)
+    finding_id = _safe_str(item.get("finding_id"))
+    severity = _safe_str(item.get("severity"))
+    summary = _safe_str(item.get("summary"))
+    if finding_id is None or severity is None or summary is None:
+        return None
+    return AdvisorBriefWorkflowPackRunFinding(
+        finding_id=finding_id,
+        severity=severity,
+        summary=summary,
+    )
 
 
 def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
@@ -989,16 +1071,16 @@ def _route_query(
     return route
 
 
-def _format_pct(value: float | None) -> str:
+def _format_pct(value: Any) -> str:
     if value is None:
         return "N/A"
-    return f"{value:.2f}%"
+    return f"{quantize_performance(value):.2f}%"
 
 
-def _format_currency(value: float | None) -> str:
+def _format_currency(value: Any) -> str:
     if value is None:
         return "N/A"
-    return f"${value:,.0f}"
+    return f"${quantize_money(value):,.0f}"
 
 
 def _safe_dict(value: Any) -> dict[str, Any]:
