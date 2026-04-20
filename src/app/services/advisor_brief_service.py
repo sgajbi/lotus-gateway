@@ -176,6 +176,9 @@ class AdvisorBriefService:
                     correlation_id=correlation_id,
                 )
             execution_payload = _safe_dict(ai_payload.get("execution")) if ai_status == 200 else {}
+            if ai_status == 200:
+                ai_audit = _normalize_ai_audit(_safe_dict(execution_payload.get("audit")))
+                ai_evidence = _safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
             if ai_status == 200 and execution_payload.get("status") == "COMPLETED":
                 result = _safe_dict(execution_payload.get("result"))
                 structured_output = _safe_dict(result.get("structured_output"))
@@ -222,8 +225,31 @@ class AdvisorBriefService:
                     )
                     or risks_and_exceptions
                 )
-                ai_audit = _normalize_ai_audit(_safe_dict(execution_payload.get("audit")))
-                ai_evidence = _safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
+            elif ai_status == 200:
+                status = AdvisorBriefStatus.PARTIAL
+                risks_and_exceptions.append(
+                    AdvisorBriefNarrativeItem(
+                        headline="AI narrative generation is unavailable.",
+                        detail=(
+                            _safe_execution_detail(execution_payload)
+                            or (
+                                "Source-backed metrics remain available for manual review and "
+                                "client prep."
+                            )
+                        ),
+                        tone=AdvisorBriefTone.WARNING,
+                        evidence_refs=[
+                            _summary_evidence_ref(
+                                label="Advisor Brief",
+                                value="Unavailable",
+                                portfolio_id=workspace.portfolio_id,
+                                period=workspace.period,
+                                basis=workspace.detail_basis,
+                                benchmark_code=workspace.benchmark_code,
+                            )
+                        ],
+                    )
+                )
             else:
                 status = AdvisorBriefStatus.PARTIAL
                 ai_audit = _normalize_ai_audit(
@@ -1197,6 +1223,18 @@ def _safe_error_detail(payload: dict[str, Any]) -> str:
     if isinstance(detail, str) and detail.strip():
         return detail.strip()
     return "lotus-ai task execution did not return a completed advisor brief."
+
+
+def _safe_execution_detail(payload: dict[str, Any]) -> str | None:
+    result = _safe_dict(payload.get("result"))
+    message = _safe_str(result.get("message"))
+    if message is not None:
+        return message
+    audit = _safe_dict(payload.get("audit"))
+    detail = _safe_str(audit.get("detail"))
+    if detail is not None:
+        return detail
+    return None
 
 
 def _normalize_position_label(position_id: str) -> str:
