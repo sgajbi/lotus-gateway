@@ -53,10 +53,13 @@ posture without deriving review states or replacement lineage from narrative tex
     `python -m pytest tests\unit\test_advisor_brief_service.py tests\unit\test_upstream_clients.py tests\integration\test_workbench_router.py tests\contract\test_workbench_contract.py -q`
     - 95 passed.
 
-## Remaining RFC-0097 Gaps
+## Closure Assessment
 
-1. Workbench must consume and render the Gateway task-flow posture without relying on fallback data.
-2. Heartbeat attention needs an adapter for stale, blocked, degraded, and review-waiting task flows.
-3. Domain handoff execution remains a future cross-service slice.
-4. Final governance review, API certification check, docs/context/wiki publication, and branch
-   hygiene remain required before RFC closure.
+1. Workbench now consumes and renders gateway task-flow posture without relying on fallback data.
+2. `lotus-ai` runtime status now emits heartbeat-style task-flow attention for waiting, blocked,
+   stale, and action-required flows.
+3. Live end-to-end validation passed on 2026-04-21 through the governed clean-core proof profile:
+   `C:\Users\Sandeep\projects\lotus-platform\output\front-office-qa\canonical-front-office-qa-20260421-192148.md`.
+4. Domain handoff execution remains a future cross-service slice.
+5. Final governance review, API certification check, docs/context/wiki publication, and branch
+   hygiene were completed as part of RFC closure.
