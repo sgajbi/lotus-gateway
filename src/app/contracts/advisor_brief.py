@@ -225,6 +225,67 @@ class AdvisorBriefWorkflowPackRun(BaseModel):
     )
 
 
+class AdvisorBriefWorkflowPackTaskFlowLineage(BaseModel):
+    superseded_run_id: str = Field(
+        description="Workflow-pack run id superseded by this lineage edge.",
+        examples=["packrun_advisor_brief_req-1"],
+    )
+    replacement_run_id: str = Field(
+        description="Replacement workflow-pack run id preserving lineage.",
+        examples=["packrun_advisor_brief_req-2"],
+    )
+    review_action_ref: str = Field(
+        description="Review action that created the replacement lineage edge.",
+        examples=["REVISE"],
+    )
+    reason: str = Field(
+        description="Operator reason preserved with the replacement lineage edge.",
+        examples=["Advisor requested a revised brief."],
+    )
+
+
+class AdvisorBriefWorkflowPackTaskFlow(BaseModel):
+    task_flow_id: str = Field(
+        description="Stable lotus-ai task-flow identifier linked to this advisor-brief run.",
+        examples=["taskflow_advisor_brief_packrun_advisor_brief_req-1"],
+    )
+    workflow_pack_id: str = Field(
+        description="Workflow-pack id that owns this task-flow record.",
+        examples=["advisor_brief.pack"],
+    )
+    version: str = Field(description="Workflow-pack version for this task flow.", examples=["v1"])
+    flow_status: str = Field(
+        description="Current lotus-ai task-flow lifecycle state.",
+        examples=["WAITING_FOR_REVIEW"],
+    )
+    current_step_id: str | None = Field(
+        default=None,
+        description="Current task-flow step id when the task flow is active or waiting.",
+        examples=["generate_advisor_brief"],
+    )
+    run_refs: list[str] = Field(
+        default_factory=list,
+        description="Workflow-pack run ids linked to this task flow.",
+        examples=[["packrun_advisor_brief_req-1"]],
+    )
+    review_states: dict[str, str] = Field(
+        default_factory=dict,
+        description="Review-state snapshot by run or review id as emitted by lotus-ai.",
+    )
+    supportability_status: str = Field(
+        description="Current lotus-ai supportability posture for this task flow.",
+        examples=["ACTION_REQUIRED"],
+    )
+    replacement_lineage: list[AdvisorBriefWorkflowPackTaskFlowLineage] = Field(
+        default_factory=list,
+        description="Replacement lineage preserved from lotus-ai task-flow posture.",
+    )
+    updated_at: str = Field(
+        description="UTC timestamp when lotus-ai last updated the task flow.",
+        examples=["2026-04-21T03:22:00Z"],
+    )
+
+
 class AdvisorBriefResponse(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -395,6 +456,18 @@ class AdvisorBriefResponse(BaseModel):
                         }
                     ],
                 },
+                "workflow_pack_task_flow": {
+                    "task_flow_id": "taskflow_advisor_brief_packrun_advisor_brief_air_123",
+                    "workflow_pack_id": "advisor_brief.pack",
+                    "version": "v1",
+                    "flow_status": "WAITING_FOR_REVIEW",
+                    "current_step_id": "generate_advisor_brief",
+                    "run_refs": ["packrun_advisor_brief_air_123"],
+                    "review_states": {"packrun_advisor_brief_air_123": "AWAITING_REVIEW"},
+                    "supportability_status": "ACTION_REQUIRED",
+                    "replacement_lineage": [],
+                    "updated_at": "2026-04-04T07:45:21Z",
+                },
                 "warnings": ["AI_DEGRADED"],
                 "partial_failures": [
                     {
@@ -523,6 +596,13 @@ class AdvisorBriefResponse(BaseModel):
         description=(
             "Bounded lotus-ai workflow-pack run posture preserved for the advisor brief when the "
             "shared run-ledger contract is available."
+        ),
+    )
+    workflow_pack_task_flow: AdvisorBriefWorkflowPackTaskFlow | None = Field(
+        default=None,
+        description=(
+            "Bounded lotus-ai task-flow posture linked to the advisor-brief run when the "
+            "RFC-0097 task-flow contract is available."
         ),
     )
     warnings: list[str] = Field(

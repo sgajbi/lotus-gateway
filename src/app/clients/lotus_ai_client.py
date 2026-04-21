@@ -118,6 +118,33 @@ class LotusAiClient:
             retry_timeout_exceptions=False,
         )
 
+    async def list_workflow_pack_task_flows(
+        self,
+        *,
+        correlation_id: str,
+        workflow_pack_id: str | None = None,
+        caller: str | None = None,
+        workflow_surface: str | None = None,
+        limit: int = 25,
+    ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {"limit": limit}
+        if workflow_pack_id is not None:
+            params["workflow_pack_id"] = workflow_pack_id
+        if caller is not None:
+            params["caller"] = caller
+        if workflow_surface is not None:
+            params["workflow_surface"] = workflow_surface
+        return await request_with_retry(
+            method="GET",
+            url=f"{self._base_url}/platform/workflow-packs/task-flows",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=propagation_headers(correlation_id),
+            retry_timeout_exceptions=False,
+        )
+
     async def apply_workflow_pack_run_review_action(
         self,
         *,

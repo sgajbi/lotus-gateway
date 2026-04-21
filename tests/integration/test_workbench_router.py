@@ -12,6 +12,8 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunFinding,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
+    AdvisorBriefWorkflowPackTaskFlow,
+    AdvisorBriefWorkflowPackTaskFlowLineage,
 )
 from app.contracts.workbench import WorkbenchPortfolioSummary
 from app.main import app
@@ -2064,6 +2066,10 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     response_schema = schema["components"]["schemas"]["AdvisorBriefResponse"]
     narrative_schema = schema["components"]["schemas"]["AdvisorBriefNarrativeItem"]
     evidence_ref_schema = schema["components"]["schemas"]["AdvisorBriefEvidenceRef"]
+    task_flow_schema = schema["components"]["schemas"]["AdvisorBriefWorkflowPackTaskFlow"]
+    task_flow_lineage_schema = schema["components"]["schemas"][
+        "AdvisorBriefWorkflowPackTaskFlowLineage"
+    ]
 
     assert "lotus-ai" in route["description"]
     assert portfolio_parameter["description"]
@@ -2089,6 +2095,10 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     )
     assert response_schema["properties"]["supportability"]["description"]
     assert response_schema["properties"]["workflow_pack_run"]["description"]
+    assert response_schema["properties"]["workflow_pack_task_flow"]["description"]
+    assert task_flow_schema["properties"]["flow_status"]["description"]
+    assert task_flow_schema["properties"]["replacement_lineage"]["description"]
+    assert task_flow_lineage_schema["properties"]["replacement_run_id"]["description"]
     assert response_schema["properties"]["warnings"]["examples"] == [["AI_DEGRADED"]]
     assert (
         response_schema["properties"]["partial_failures"]["examples"][0][0]["source"]
@@ -2412,6 +2422,25 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
                 replacement_run_id="packrun_advisor_brief_req-2",
                 findings=[],
             ),
+            workflow_pack_task_flow=AdvisorBriefWorkflowPackTaskFlow(
+                task_flow_id="taskflow_advisor_brief_req-1",
+                workflow_pack_id="advisor_brief.pack",
+                version="v1",
+                flow_status="SUPERSEDED",
+                current_step_id=None,
+                run_refs=["packrun_advisor_brief_req-1"],
+                review_states={"packrun_advisor_brief_req-1": "SUPERSEDED"},
+                supportability_status="HISTORICAL",
+                replacement_lineage=[
+                    AdvisorBriefWorkflowPackTaskFlowLineage(
+                        superseded_run_id="packrun_advisor_brief_req-1",
+                        replacement_run_id="packrun_advisor_brief_req-2",
+                        review_action_ref="SUPERSEDE",
+                        reason="Advisor brief superseded in favor of the replacement run.",
+                    )
+                ],
+                updated_at="2026-04-21T03:00:00Z",
+            ),
         )
 
     monkeypatch.setattr(
@@ -2441,6 +2470,14 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
     assert body["workflow_pack_run"]["supportability_status"] == "HISTORICAL"
     assert body["workflow_pack_run"]["superseded"] is True
     assert body["workflow_pack_run"]["replacement_run_id"] == "packrun_advisor_brief_req-2"
+    assert body["workflow_pack_task_flow"]["flow_status"] == "SUPERSEDED"
+    assert body["workflow_pack_task_flow"]["supportability_status"] == "HISTORICAL"
+    assert body["workflow_pack_task_flow"]["replacement_lineage"][0] == {
+        "superseded_run_id": "packrun_advisor_brief_req-1",
+        "replacement_run_id": "packrun_advisor_brief_req-2",
+        "review_action_ref": "SUPERSEDE",
+        "reason": "Advisor brief superseded in favor of the replacement run.",
+    }
     assert captured == {
         "portfolio_id": "PF_1001",
         "correlation_id": "corr-advisor-brief-review",
