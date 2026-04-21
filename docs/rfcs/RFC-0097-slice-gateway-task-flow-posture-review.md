@@ -49,6 +49,9 @@ posture without deriving review states or replacement lineage from narrative tex
    - passed.
 9. Post-review `make typecheck`
    - passed.
+10. Handoff-readiness follow-up: gateway now preserves `handoff_refs` from upstream task-flow posture.
+    `python -m pytest tests\unit\test_advisor_brief_service.py tests\unit\test_upstream_clients.py tests\integration\test_workbench_router.py tests\contract\test_workbench_contract.py -q`
+    - 95 passed.
 
 ## Remaining RFC-0097 Gaps
 

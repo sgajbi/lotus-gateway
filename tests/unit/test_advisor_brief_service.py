@@ -159,6 +159,7 @@ class _StubLotusAiClient:
                     },
                     "supportability_status": "ACTION_REQUIRED",
                     "replacement_lineage": [],
+                    "handoff_refs": [],
                     "updated_at": "2026-04-21T03:00:00Z",
                 }
             ]
@@ -221,6 +222,16 @@ class _StubLotusAiClient:
                         "packrun_advisor_brief_req-1": "ACCEPTED",
                     },
                     "supportability_status": "READY",
+                    "handoff_refs": [
+                        {
+                            "handoff_id": (
+                                "taskflow_advisor_brief_req-1_handoff_packrun_advisor_brief_req-1"
+                            ),
+                            "owner_service": "lotus-gateway",
+                            "status": "READY_FOR_HANDOFF",
+                            "domain_ref": None,
+                        }
+                    ],
                 }
             elif action_type == "REVISE":
                 self.operator_profile_payload = {
@@ -840,6 +851,8 @@ async def test_advisor_brief_service_applies_review_action_and_returns_updated_r
         "packrun_advisor_brief_req-1": "ACCEPTED",
     }
     assert response.workflow_pack_task_flow.supportability_status == "READY"
+    assert response.workflow_pack_task_flow.handoff_refs[0].status == "READY_FOR_HANDOFF"
+    assert response.workflow_pack_task_flow.handoff_refs[0].owner_service == "lotus-gateway"
     assert ai_client.review_action_calls == [
         {
             "run_id": "packrun_advisor_brief_req-1",

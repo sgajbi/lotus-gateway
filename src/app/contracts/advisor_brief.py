@@ -244,6 +244,25 @@ class AdvisorBriefWorkflowPackTaskFlowLineage(BaseModel):
     )
 
 
+class AdvisorBriefWorkflowPackTaskFlowHandoff(BaseModel):
+    handoff_id: str = Field(
+        description="Stable task-flow handoff identifier emitted by lotus-ai.",
+        examples=["taskflow_advisor_brief_req-1_handoff_packrun_advisor_brief_req-1"],
+    )
+    owner_service: str = Field(
+        description="Service boundary that owns the consequence-bearing handoff.",
+        examples=["lotus-gateway"],
+    )
+    status: str = Field(
+        description="Current lotus-ai handoff readiness posture.",
+        examples=["READY_FOR_HANDOFF"],
+    )
+    domain_ref: str | None = Field(
+        default=None,
+        description="Domain-owned workflow reference when the owner service has created one.",
+    )
+
+
 class AdvisorBriefWorkflowPackTaskFlow(BaseModel):
     task_flow_id: str = Field(
         description="Stable lotus-ai task-flow identifier linked to this advisor-brief run.",
@@ -279,6 +298,10 @@ class AdvisorBriefWorkflowPackTaskFlow(BaseModel):
     replacement_lineage: list[AdvisorBriefWorkflowPackTaskFlowLineage] = Field(
         default_factory=list,
         description="Replacement lineage preserved from lotus-ai task-flow posture.",
+    )
+    handoff_refs: list[AdvisorBriefWorkflowPackTaskFlowHandoff] = Field(
+        default_factory=list,
+        description="Domain-owner handoff posture preserved from lotus-ai task-flow posture.",
     )
     updated_at: str = Field(
         description="UTC timestamp when lotus-ai last updated the task flow.",
@@ -466,6 +489,7 @@ class AdvisorBriefResponse(BaseModel):
                     "review_states": {"packrun_advisor_brief_air_123": "AWAITING_REVIEW"},
                     "supportability_status": "ACTION_REQUIRED",
                     "replacement_lineage": [],
+                    "handoff_refs": [],
                     "updated_at": "2026-04-04T07:45:21Z",
                 },
                 "warnings": ["AI_DEGRADED"],

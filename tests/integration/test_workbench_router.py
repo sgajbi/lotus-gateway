@@ -13,6 +13,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackRunFinding,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
     AdvisorBriefWorkflowPackTaskFlow,
+    AdvisorBriefWorkflowPackTaskFlowHandoff,
     AdvisorBriefWorkflowPackTaskFlowLineage,
 )
 from app.contracts.workbench import WorkbenchPortfolioSummary
@@ -2070,6 +2071,9 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     task_flow_lineage_schema = schema["components"]["schemas"][
         "AdvisorBriefWorkflowPackTaskFlowLineage"
     ]
+    task_flow_handoff_schema = schema["components"]["schemas"][
+        "AdvisorBriefWorkflowPackTaskFlowHandoff"
+    ]
 
     assert "lotus-ai" in route["description"]
     assert portfolio_parameter["description"]
@@ -2098,7 +2102,9 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response_schema["properties"]["workflow_pack_task_flow"]["description"]
     assert task_flow_schema["properties"]["flow_status"]["description"]
     assert task_flow_schema["properties"]["replacement_lineage"]["description"]
+    assert task_flow_schema["properties"]["handoff_refs"]["description"]
     assert task_flow_lineage_schema["properties"]["replacement_run_id"]["description"]
+    assert task_flow_handoff_schema["properties"]["owner_service"]["description"]
     assert response_schema["properties"]["warnings"]["examples"] == [["AI_DEGRADED"]]
     assert (
         response_schema["properties"]["partial_failures"]["examples"][0][0]["source"]
@@ -2439,6 +2445,16 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
                         reason="Advisor brief superseded in favor of the replacement run.",
                     )
                 ],
+                handoff_refs=[
+                    AdvisorBriefWorkflowPackTaskFlowHandoff(
+                        handoff_id=(
+                            "taskflow_advisor_brief_req-1_handoff_packrun_advisor_brief_req-1"
+                        ),
+                        owner_service="lotus-gateway",
+                        status="READY_FOR_HANDOFF",
+                        domain_ref=None,
+                    )
+                ],
                 updated_at="2026-04-21T03:00:00Z",
             ),
         )
@@ -2477,6 +2493,12 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "replacement_run_id": "packrun_advisor_brief_req-2",
         "review_action_ref": "SUPERSEDE",
         "reason": "Advisor brief superseded in favor of the replacement run.",
+    }
+    assert body["workflow_pack_task_flow"]["handoff_refs"][0] == {
+        "handoff_id": "taskflow_advisor_brief_req-1_handoff_packrun_advisor_brief_req-1",
+        "owner_service": "lotus-gateway",
+        "status": "READY_FOR_HANDOFF",
+        "domain_ref": None,
     }
     assert captured == {
         "portfolio_id": "PF_1001",

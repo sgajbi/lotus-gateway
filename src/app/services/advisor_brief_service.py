@@ -18,6 +18,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackRunFinding,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
     AdvisorBriefWorkflowPackTaskFlow,
+    AdvisorBriefWorkflowPackTaskFlowHandoff,
     AdvisorBriefWorkflowPackTaskFlowLineage,
 )
 from app.contracts.performance_workspace import (
@@ -535,6 +536,13 @@ def _parse_advisor_brief_workflow_pack_task_flow(
         )
         if lineage_item is not None
     ]
+    handoff_refs = [
+        handoff
+        for handoff in (
+            _parse_task_flow_handoff(value=value) for value in _safe_list(item.get("handoff_refs"))
+        )
+        if handoff is not None
+    ]
     review_states = {
         str(key): str(value)
         for key, value in _safe_dict(item.get("review_states")).items()
@@ -550,6 +558,7 @@ def _parse_advisor_brief_workflow_pack_task_flow(
         review_states=review_states,
         supportability_status=supportability_status,
         replacement_lineage=lineage,
+        handoff_refs=handoff_refs,
         updated_at=updated_at,
     )
 
@@ -572,6 +581,21 @@ def _parse_task_flow_lineage(*, value: Any) -> AdvisorBriefWorkflowPackTaskFlowL
         replacement_run_id=replacement_run_id,
         review_action_ref=review_action_ref,
         reason=reason,
+    )
+
+
+def _parse_task_flow_handoff(*, value: Any) -> AdvisorBriefWorkflowPackTaskFlowHandoff | None:
+    item = _safe_dict(value)
+    handoff_id = _safe_str(item.get("handoff_id"))
+    owner_service = _safe_str(item.get("owner_service"))
+    status = _safe_str(item.get("status"))
+    if handoff_id is None or owner_service is None or status is None:
+        return None
+    return AdvisorBriefWorkflowPackTaskFlowHandoff(
+        handoff_id=handoff_id,
+        owner_service=owner_service,
+        status=status,
+        domain_ref=_safe_str(item.get("domain_ref")),
     )
 
 
