@@ -28,8 +28,7 @@ from app.middleware.server_timing import (
 from app.services.advisor_brief_service import AdvisorBriefService
 
 _LIVE_EXECUTION_UNAVAILABLE_DETAIL = (
-    "LIVE_EXECUTION_NOT_ENABLED: Local OpenAI-compatible endpoint is not reachable from "
-    "lotus-ai."
+    "LIVE_EXECUTION_NOT_ENABLED: Local OpenAI-compatible endpoint is not reachable from lotus-ai."
 )
 
 
