@@ -510,7 +510,7 @@ def _parse_advisor_brief_workflow_pack_task_flow(
 
     task_flow_id = _safe_str(item.get("task_flow_id"))
     workflow_pack_id = _safe_str(item.get("workflow_pack_id"))
-    version = _safe_str(item.get("version"))
+    version = _safe_str(item.get("workflow_pack_version")) or _safe_str(item.get("version"))
     flow_status = _safe_str(item.get("flow_status"))
     supportability_status = _safe_str(item.get("supportability_status"))
     updated_at = _safe_str(item.get("updated_at"))

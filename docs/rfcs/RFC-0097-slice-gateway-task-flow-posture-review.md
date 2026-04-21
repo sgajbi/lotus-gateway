@@ -42,6 +42,13 @@ posture without deriving review states or replacement lineage from narrative tex
    - passed with existing CRLF normalization warnings only.
 6. `powershell -ExecutionPolicy Bypass -File C:\Users\Sandeep\projects\lotus-platform\automation\Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway`
    - reported expected branch-local drift for `Integrations.md`; publish after merge to `main`.
+7. Post-review contract correction: parser now accepts real upstream `workflow_pack_version`.
+   `python -m pytest tests\unit\test_advisor_brief_service.py tests\unit\test_upstream_clients.py tests\integration\test_workbench_router.py tests\contract\test_workbench_contract.py -q`
+   - 95 passed.
+8. Post-review `python -m ruff check src\app\services\advisor_brief_service.py tests\unit\test_advisor_brief_service.py`
+   - passed.
+9. Post-review `make typecheck`
+   - passed.
 
 ## Remaining RFC-0097 Gaps
 

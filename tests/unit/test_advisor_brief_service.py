@@ -150,7 +150,7 @@ class _StubLotusAiClient:
                 {
                     "task_flow_id": "taskflow_advisor_brief_req-1",
                     "workflow_pack_id": "advisor_brief.pack",
-                    "version": "v1",
+                    "workflow_pack_version": "v1",
                     "flow_status": "WAITING_FOR_REVIEW",
                     "current_step_id": "generate_advisor_brief",
                     "run_refs": ["packrun_advisor_brief_req-1"],
