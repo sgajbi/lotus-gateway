@@ -27,6 +27,10 @@ from app.middleware.server_timing import (
 )
 from app.services.advisor_brief_service import AdvisorBriefService
 
+_LIVE_EXECUTION_UNAVAILABLE_DETAIL = (
+    "LIVE_EXECUTION_NOT_ENABLED: Local OpenAI-compatible endpoint is not reachable from lotus-ai."
+)
+
 
 class _StubPerformanceWorkspaceService:
     def __init__(self, workspace: PerformanceWorkspaceResponse):
@@ -425,6 +429,98 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
                 }
             ],
         },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_preserves_rejected_workflow_pack_run_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient(
+        payload={
+            "status": "REJECTED",
+            "task_id": "explain.v1",
+            "result": {
+                "message": _LIVE_EXECUTION_UNAVAILABLE_DETAIL,
+                "structured_output": {},
+            },
+            "audit": {
+                "request_id": "req-rejected-1",
+                "workflow_pack_run_id": "packrun_advisor_brief_req-rejected-1",
+                "task_id": "explain.v1",
+                "provider_mode": "local_openai_compatible",
+                "provider_id": "text.local_openai_compatible",
+                "adapter_kind": "OPENAI_COMPATIBLE",
+                "model_id": "gpt-4.1-mini",
+                "stubbed": False,
+                "detail": _LIVE_EXECUTION_UNAVAILABLE_DETAIL,
+            },
+            "evidence": {"descriptors": []},
+        }
+    )
+    ai_client.consumer_view_payload = {
+        "run_id": "packrun_advisor_brief_req-rejected-1",
+        "review": {
+            "allowed_actions": ["ACCEPT", "REJECT", "REVISE", "SUPERSEDE", "ABANDON"],
+        },
+        "lineage": {"workflow_authority_owner": "lotus-gateway"},
+    }
+    ai_client.operator_profile_payload = {
+        "run_id": "packrun_advisor_brief_req-rejected-1",
+        "runtime_state": "FAILED",
+        "review_state": "AWAITING_REVIEW",
+        "supportability_status": "ACTION_REQUIRED",
+        "review_pending": True,
+        "superseded": False,
+        "current_summary_note": "Run failed and requires operator diagnosis before downstream use.",
+        "replacement_run_id": None,
+        "findings": [
+            {
+                "finding_id": "runtime_failed",
+                "severity": "ACTION_REQUIRED",
+                "summary": "Run is in failed runtime posture.",
+            }
+        ],
+    }
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-rejected-run",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.status == "partial"
+    assert response.summary == (
+        "YTD portfolio return for PF 1001 is 1.25% versus Private Banking Global Balanced 60/40 "
+        "7.93%, with active return -6.68%."
+    )
+    assert response.ai_audit["provider_mode"] == "local_openai_compatible"
+    assert response.ai_audit["workflow_pack_run_id"] == "packrun_advisor_brief_req-rejected-1"
+    assert response.workflow_pack_run is not None
+    assert response.workflow_pack_run.run_id == "packrun_advisor_brief_req-rejected-1"
+    assert response.workflow_pack_run.supportability_status == "ACTION_REQUIRED"
+    assert response.workflow_pack_run.review_state == "AWAITING_REVIEW"
+    assert response.risks_and_exceptions[-1].headline == "AI narrative generation is unavailable."
+    assert response.risks_and_exceptions[-1].detail == _LIVE_EXECUTION_UNAVAILABLE_DETAIL
+    assert ai_client.consumer_view_calls == [
+        {
+            "run_id": "packrun_advisor_brief_req-rejected-1",
+            "correlation_id": "corr-rejected-run",
+        }
+    ]
+    assert ai_client.operator_profile_calls == [
+        {
+            "run_id": "packrun_advisor_brief_req-rejected-1",
+            "correlation_id": "corr-rejected-run",
+        }
     ]
 
 
