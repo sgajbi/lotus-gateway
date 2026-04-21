@@ -144,9 +144,30 @@ class _StubLotusAiClient:
                 }
             ],
         }
+        self.task_flow_status_code = 200
+        self.task_flow_payload = {
+            "task_flows": [
+                {
+                    "task_flow_id": "taskflow_advisor_brief_req-1",
+                    "workflow_pack_id": "advisor_brief.pack",
+                    "workflow_pack_version": "v1",
+                    "flow_status": "WAITING_FOR_REVIEW",
+                    "current_step_id": "generate_advisor_brief",
+                    "run_refs": ["packrun_advisor_brief_req-1"],
+                    "review_states": {
+                        "packrun_advisor_brief_req-1": "AWAITING_REVIEW",
+                    },
+                    "supportability_status": "ACTION_REQUIRED",
+                    "replacement_lineage": [],
+                    "handoff_refs": [],
+                    "updated_at": "2026-04-21T03:00:00Z",
+                }
+            ]
+        }
         self.execute_calls: list[dict[str, object]] = []
         self.consumer_view_calls: list[dict[str, object]] = []
         self.operator_profile_calls: list[dict[str, object]] = []
+        self.task_flow_calls: list[dict[str, object]] = []
         self.review_action_calls: list[dict[str, object]] = []
         self.review_action_status_code = 200
         self.review_action_payload = {
@@ -194,6 +215,24 @@ class _StubLotusAiClient:
                     "current_summary_note": "Run accepted for bounded downstream workflow use.",
                     "findings": [],
                 }
+                self.task_flow_payload["task_flows"][0] = {
+                    **self.task_flow_payload["task_flows"][0],
+                    "flow_status": "COMPLETED",
+                    "review_states": {
+                        "packrun_advisor_brief_req-1": "ACCEPTED",
+                    },
+                    "supportability_status": "READY",
+                    "handoff_refs": [
+                        {
+                            "handoff_id": (
+                                "taskflow_advisor_brief_req-1_handoff_packrun_advisor_brief_req-1"
+                            ),
+                            "owner_service": "lotus-gateway",
+                            "status": "READY_FOR_HANDOFF",
+                            "domain_ref": None,
+                        }
+                    ],
+                }
             elif action_type == "REVISE":
                 self.operator_profile_payload = {
                     **self.operator_profile_payload,
@@ -206,6 +245,22 @@ class _StubLotusAiClient:
                         "Run was revised in favor of a replacement advisor-brief run."
                     ),
                     "findings": [],
+                }
+                self.task_flow_payload["task_flows"][0] = {
+                    **self.task_flow_payload["task_flows"][0],
+                    "flow_status": "SUPERSEDED",
+                    "review_states": {
+                        "packrun_advisor_brief_req-1": "REVISED",
+                    },
+                    "supportability_status": "HISTORICAL",
+                    "replacement_lineage": [
+                        {
+                            "superseded_run_id": "packrun_advisor_brief_req-1",
+                            "replacement_run_id": replacement_run_id,
+                            "review_action_ref": "REVISE",
+                            "reason": request_payload["reason"],
+                        }
+                    ],
                 }
             elif action_type == "SUPERSEDE":
                 self.operator_profile_payload = {
@@ -220,7 +275,27 @@ class _StubLotusAiClient:
                     ),
                     "findings": [],
                 }
+                self.task_flow_payload["task_flows"][0] = {
+                    **self.task_flow_payload["task_flows"][0],
+                    "flow_status": "SUPERSEDED",
+                    "review_states": {
+                        "packrun_advisor_brief_req-1": "SUPERSEDED",
+                    },
+                    "supportability_status": "HISTORICAL",
+                    "replacement_lineage": [
+                        {
+                            "superseded_run_id": "packrun_advisor_brief_req-1",
+                            "replacement_run_id": replacement_run_id,
+                            "review_action_ref": "SUPERSEDE",
+                            "reason": request_payload["reason"],
+                        }
+                    ],
+                }
         return self.review_action_status_code, self.review_action_payload
+
+    async def list_workflow_pack_task_flows(self, **kwargs):
+        self.task_flow_calls.append(kwargs)
+        return self.task_flow_status_code, self.task_flow_payload
 
 
 @pytest.mark.asyncio
@@ -258,6 +333,21 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.ai_audit["request_id"] == "req-1"
     assert response.ai_audit["provider_mode"] == "openai"
     assert response.ai_audit["provider_id"] == "text.openai"
+    assert response.workflow_pack_task_flow is not None
+    assert response.workflow_pack_task_flow.task_flow_id == "taskflow_advisor_brief_req-1"
+    assert response.workflow_pack_task_flow.flow_status == "WAITING_FOR_REVIEW"
+    assert response.workflow_pack_task_flow.review_states == {
+        "packrun_advisor_brief_req-1": "AWAITING_REVIEW",
+    }
+    assert ai_client.task_flow_calls == [
+        {
+            "correlation_id": "corr-1",
+            "workflow_pack_id": "advisor_brief.pack",
+            "caller": "lotus-gateway",
+            "workflow_surface": "advisor-brief-workspace",
+            "limit": 25,
+        }
+    ]
     assert response.ai_audit["adapter_kind"] == "OPENAI_LIVE"
     assert response.ai_audit["model_id"] == "gpt-5.4"
     assert response.ai_audit["stubbed"] is False
@@ -560,6 +650,7 @@ async def test_advisor_brief_service_reuses_cached_response_for_identical_reques
     assert len(ai_client.execute_calls) == 1
     assert len(ai_client.consumer_view_calls) == 1
     assert len(ai_client.operator_profile_calls) == 1
+    assert len(ai_client.task_flow_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -597,6 +688,7 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
     assert len(ai_client.execute_calls) == 2
     assert len(ai_client.consumer_view_calls) == 2
     assert len(ai_client.operator_profile_calls) == 2
+    assert len(ai_client.task_flow_calls) == 2
 
 
 @pytest.mark.asyncio
@@ -753,6 +845,14 @@ async def test_advisor_brief_service_applies_review_action_and_returns_updated_r
         == "Run accepted for bounded downstream workflow use."
     )
     assert response.workflow_pack_run.findings == []
+    assert response.workflow_pack_task_flow is not None
+    assert response.workflow_pack_task_flow.flow_status == "COMPLETED"
+    assert response.workflow_pack_task_flow.review_states == {
+        "packrun_advisor_brief_req-1": "ACCEPTED",
+    }
+    assert response.workflow_pack_task_flow.supportability_status == "READY"
+    assert response.workflow_pack_task_flow.handoff_refs[0].status == "READY_FOR_HANDOFF"
+    assert response.workflow_pack_task_flow.handoff_refs[0].owner_service == "lotus-gateway"
     assert ai_client.review_action_calls == [
         {
             "run_id": "packrun_advisor_brief_req-1",
@@ -823,6 +923,17 @@ async def test_advisor_brief_service_preserves_replacement_lineage_for_review_tr
     assert response.workflow_pack_run.superseded is True
     assert response.workflow_pack_run.replacement_run_id == "packrun_advisor_brief_req-2"
     assert response.workflow_pack_run.current_summary_note == expected_summary_note
+    assert response.workflow_pack_task_flow is not None
+    assert response.workflow_pack_task_flow.flow_status == "SUPERSEDED"
+    assert (
+        response.workflow_pack_task_flow.review_states["packrun_advisor_brief_req-1"]
+        == expected_review_state
+    )
+    assert response.workflow_pack_task_flow.supportability_status == "HISTORICAL"
+    assert response.workflow_pack_task_flow.replacement_lineage[0].replacement_run_id == (
+        "packrun_advisor_brief_req-2"
+    )
+    assert response.workflow_pack_task_flow.replacement_lineage[0].review_action_ref == action_type
     assert ai_client.review_action_calls == [
         {
             "run_id": "packrun_advisor_brief_req-1",

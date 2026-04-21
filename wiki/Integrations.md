@@ -20,7 +20,7 @@
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-ai`
-  evidence-grounded advisor brief narration through the explicit workflow-pack execution seam plus shared workflow-pack run-ledger inspection surfaces
+  evidence-grounded advisor brief narration through the explicit workflow-pack execution seam plus shared workflow-pack run-ledger and RFC-0097 task-flow inspection surfaces
 
 ## Canonical local identities
 
@@ -46,3 +46,4 @@
 1. gateway contracts are product-facing and may differ intentionally from upstream parameter shapes
 2. RFC-0082 governs how upstream dependency families are classified
 3. supportability, readiness, and partial-failure metadata should survive composition
+4. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority

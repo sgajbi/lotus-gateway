@@ -513,6 +513,44 @@ async def test_lotus_ai_client_calls_explicit_workflow_pack_execution_contract()
 
 
 @pytest.mark.asyncio
+async def test_lotus_ai_client_lists_workflow_pack_task_flows_with_bounded_filters():
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "task_flow_count": 1,
+            "task_flows": [
+                {
+                    "task_flow_id": "taskflow_advisor_brief_req-1",
+                    "workflow_pack_id": "advisor_brief.pack",
+                    "run_refs": ["packrun_advisor_brief_req-1"],
+                }
+            ],
+        },
+    )
+
+    status, payload = await client.list_workflow_pack_task_flows(
+        correlation_id="corr-ai-task-flow-1",
+        workflow_pack_id="advisor_brief.pack",
+        caller="lotus-gateway",
+        workflow_surface="advisor-brief-workspace",
+        limit=25,
+    )
+
+    assert status == 200
+    assert payload["task_flow_count"] == 1
+    assert _FakeAsyncClient.calls[-1]["method"] == "GET"
+    assert _FakeAsyncClient.calls[-1]["url"] == "http://ai/platform/workflow-packs/task-flows"
+    assert _FakeAsyncClient.calls[-1]["params"] == {
+        "limit": 25,
+        "workflow_pack_id": "advisor_brief.pack",
+        "caller": "lotus-gateway",
+        "workflow_surface": "advisor-brief-workspace",
+    }
+    assert _FakeAsyncClient.calls[-1]["headers"]["X-Correlation-Id"] == "corr-ai-task-flow-1"
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_twr_request_omits_benchmark_when_not_requested():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(

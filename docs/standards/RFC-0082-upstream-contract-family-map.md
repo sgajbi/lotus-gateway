@@ -43,7 +43,7 @@ outputs.
 | `lotus-advise` | proposal lifecycle and advisory workflow surfaces | proposal workflow composition | advisory decision workflow remains in `lotus-advise` |
 | `lotus-manage` | management workflow surfaces where split routing still applies | management workflow composition | discretionary management operations remain in `lotus-manage` |
 | `lotus-report` | report snapshot rows | report-ready experience payloads | report generation and report row semantics remain in `lotus-report` |
-| `lotus-ai` | advisor-brief and AI-supported surfaces | evidence-grounded narrative support | gateway must not invent unsupported evidence or model outputs |
+| `lotus-ai` | advisor-brief, workflow-pack run-ledger, and RFC-0097 task-flow posture surfaces | evidence-grounded narrative support plus bounded run/task-flow posture for Workbench | gateway must not invent unsupported evidence, model outputs, review states, replacement lineage, or task-flow authority |
 
 ## Conformance Rules
 
