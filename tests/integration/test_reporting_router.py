@@ -187,8 +187,43 @@ def test_reporting_review_success(monkeypatch):
             "sections": ["OVERVIEW"],
             "allocation_dimensions": ["asset_class"],
             "look_through_mode": "full",
+            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
         }
-        return 200, {"portfolio_id": portfolio_id, "overview": {"total_market_value": 1000.0}}
+        return 200, {
+            "portfolio_id": portfolio_id,
+            "readiness": {"status": "partial", "reason": "Risk Review unavailable."},
+            "client_sections": [
+                {
+                    "section_id": "risk_review",
+                    "title": "Risk Review",
+                    "status": "unavailable",
+                    "reason_code": "missing_return_history",
+                    "items": [],
+                }
+            ],
+            "advisor_sections": [
+                {
+                    "section_id": "advisor_discussion",
+                    "title": "Advisor Discussion And Follow-Up",
+                    "status": "ready",
+                    "items": [
+                        {
+                            "prompt_id": "review_readiness",
+                            "advisor_only": True,
+                            "prompt": "Confirm report readiness is partial.",
+                            "route_targets": [
+                                {
+                                    "surface": "lotus-workbench",
+                                    "route_key": "portfolio_review",
+                                    "mutation_allowed": False,
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+            "overview": {"total_market_value": 1000.0},
+        }
 
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.post_portfolio_review",
@@ -204,6 +239,7 @@ def test_reporting_review_success(monkeypatch):
             "sections": ["OVERVIEW"],
             "allocationDimensions": ["asset_class"],
             "lookThroughMode": "full",
+            "benchmarkCode": "BMK_GLOBAL_BALANCED_60_40",
         },
     )
     assert response.status_code == 200
@@ -215,6 +251,12 @@ def test_reporting_review_success(monkeypatch):
     assert body["asOfDate"] == "2026-02-24"
     assert body["data"]["portfolio_id"] == "DEMO_DPM_EUR_001"
     assert body["data"]["overview"]["total_market_value"] == 1000.0
+    assert body["data"]["readiness"]["status"] == "partial"
+    assert body["data"]["client_sections"][0]["status"] == "unavailable"
+    assert "advisor_only" not in body["data"]["client_sections"][0]
+    advisor_item = body["data"]["advisor_sections"][0]["items"][0]
+    assert advisor_item["advisor_only"] is True
+    assert advisor_item["route_targets"][0]["mutation_allowed"] is False
 
 
 def test_reporting_review_preserves_request_context(monkeypatch):
