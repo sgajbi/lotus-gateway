@@ -374,6 +374,20 @@ def test_portfolio_review_job_gateway_requires_idempotency_key():
     assert response.json()["detail"]["code"] == "missing_idempotency_key"
 
 
+def test_portfolio_review_job_gateway_requires_caller_context():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/portfolio-reviews",
+        json=_job_payload(),
+        headers={"Idempotency-Key": "idem-missing-context"},
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+
+
 def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     calls: list[tuple[str, str, dict[str, str] | None]] = []
 
@@ -432,11 +446,19 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     client = TestClient(app)
     status_response = client.get(
         "/api/v1/report-jobs/rjob_1",
-        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg"},
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
     )
     cancel_response = client.post(
         "/api/v1/report-jobs/rjob_1/cancel",
-        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg"},
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
     )
 
     assert status_response.status_code == 200
@@ -447,9 +469,11 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     assert calls[0][2]["X-Actor-Id"] == "advisor-123"
     assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[0][2]["X-Tenant-Id"] == "tenant-sg"
+    assert calls[0][2]["X-Region"] == "APAC"
     assert calls[1][0:2] == ("cancel", "rjob_1")
     assert calls[1][2]["X-Actor-Id"] == "advisor-123"
     assert calls[1][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[1][2]["X-Region"] == "APAC"
 
 
 def test_report_job_gateway_errors_are_product_safe(monkeypatch):
@@ -461,7 +485,14 @@ def test_report_job_gateway_errors_are_product_safe(monkeypatch):
     )
 
     client = TestClient(app)
-    response = client.get("/api/v1/report-jobs/rjob_500")
+    response = client.get(
+        "/api/v1/report-jobs/rjob_500",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
 
     assert response.status_code == 502
     body = response.json()
