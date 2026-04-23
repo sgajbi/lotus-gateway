@@ -190,3 +190,64 @@ class ReportingReviewResponse(BaseModel):
     )
 
     model_config = {"populate_by_name": True}
+
+
+class PortfolioReviewJobRequest(BaseModel):
+    portfolio_scope: dict[str, Any] = Field(
+        ...,
+        description="Portfolio scope for the report job. First wave supports portfolio_ids.",
+        examples=[{"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}],
+    )
+    as_of_date: str = Field(
+        ...,
+        description="Business as-of date in YYYY-MM-DD format for the report job.",
+        examples=["2026-04-22"],
+    )
+    requested_output_formats: list[str] = Field(
+        default_factory=lambda: ["json"],
+        description="Requested output formats. The first job-ledger wave accepts JSON intent only.",
+        examples=[["json"]],
+    )
+    reporting_currency: str | None = Field(
+        default=None,
+        description="Optional reporting currency included in the report request hash.",
+        examples=["USD"],
+    )
+    options: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Output-affecting report options included in idempotency hashing.",
+        examples=[
+            {
+                "sections": ["OVERVIEW", "PERFORMANCE", "RISK_ANALYTICS"],
+                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            }
+        ],
+    )
+
+
+class ReportJobHandleResponse(BaseModel):
+    report_request_id: str = Field(examples=["rrq_4f7c85b39f7d4e7b8d0bb420d34a1d2c"])
+    report_job_id: str = Field(examples=["rjob_83ca965c50334c40a17d2b8cc94873a5"])
+    status: str = Field(examples=["accepted"])
+    status_url: str = Field(examples=["/api/v1/report-jobs/rjob_83ca965c50334c40a17d2b8cc94873a5"])
+    idempotency_key: str = Field(examples=["portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22"])
+
+
+class ReportJobStatusResponse(BaseModel):
+    report_job_id: str = Field(examples=["rjob_83ca965c50334c40a17d2b8cc94873a5"])
+    report_request_id: str = Field(examples=["rrq_4f7c85b39f7d4e7b8d0bb420d34a1d2c"])
+    report_type: str = Field(examples=["portfolio_review"])
+    portfolio_scope: dict[str, Any] = Field(examples=[{"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}])
+    status: str = Field(examples=["accepted"])
+    failure_category: str | None = Field(default=None, examples=[None])
+    failure_message: str | None = Field(default=None, examples=[None])
+    current_step: str = Field(examples=["accepted"])
+    retry_eligible: bool = Field(examples=[False])
+    cancel_requested: bool = Field(examples=[False])
+    created_at: datetime = Field(examples=["2026-04-22T09:00:00Z"])
+    updated_at: datetime = Field(examples=["2026-04-22T09:00:00Z"])
+    started_at: datetime | None = Field(default=None)
+    completed_at: datetime | None = Field(default=None)
+    cancelled_at: datetime | None = Field(default=None)
+    correlation_id: str = Field(examples=["corr-portfolio-review-1"])
+    trace_id: str = Field(examples=["4bf92f3577b34da6a3ce929d0e0e4736"])
