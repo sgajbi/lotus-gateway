@@ -28,7 +28,20 @@ async def _app_lifespan(application: FastAPI):
     application.state.is_draining = True
 
 
-app = FastAPI(title="Advisor Experience API", version="0.1.0", lifespan=_app_lifespan)
+app = FastAPI(
+    title="Advisor Experience API",
+    version="0.1.0",
+    lifespan=_app_lifespan,
+    openapi_tags=[
+        {"name": "Reports", "description": "Gateway-facing reporting data and command APIs."},
+        {
+            "name": "Report Jobs",
+            "description": (
+                "Gateway-facing report job operations for status and support diagnostics."
+            ),
+        },
+    ],
+)
 setup_logging()
 validate_enterprise_runtime_config()
 app.middleware("http")(correlation_middleware)

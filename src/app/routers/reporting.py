@@ -6,19 +6,23 @@ from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.reporting import (
+    REPORT_JOB_ERROR_EXAMPLES,
+    REPORT_JOB_LIST_RESPONSE_EXAMPLE,
     PortfolioReviewJobRequest,
     ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
+    ReportJobErrorResponse,
     ReportJobHandleResponse,
+    ReportJobListResponse,
     ReportJobStatusEventsResponse,
     ReportJobStatusResponse,
 )
 from app.middleware.correlation import correlation_id_var
 
-router = APIRouter(prefix="/api/v1/reports", tags=["Reporting"])
-jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Reporting"])
+router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
+jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
 
 SUMMARY_REQUEST_EXAMPLES = {
     "wealthSummary": {
@@ -132,6 +136,14 @@ def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "missing_idempotency_key", "message": message},
         )
+    if status_code == status.HTTP_400_BAD_REQUEST and error_code in {
+        "missing_caller_context",
+        "invalid_report_job_filters",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail,
+        )
     if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_job_not_found":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,6 +162,25 @@ def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
                 "message": "Report job service is unavailable.",
             },
         )
+
+
+def _job_error_response(
+    status_code: int,
+    *,
+    example_key: str,
+    description: str,
+) -> dict[int | str, dict[str, Any]]:
+    return {
+        status_code: {
+            "model": ReportJobErrorResponse,
+            "description": description,
+            "content": {
+                "application/json": {
+                    "example": REPORT_JOB_ERROR_EXAMPLES[example_key],
+                }
+            },
+        }
+    }
 
 
 def _gateway_status_url(job_id: str) -> str:
@@ -332,8 +363,27 @@ async def get_reporting_review(
     summary="Submit portfolio review report job",
     description=(
         "Create a durable portfolio review report job through the governed gateway boundary. "
-        "The response is a job handle, not a rendered document."
+        "Use this endpoint when Workbench or another product client needs asynchronous report "
+        "generation with idempotency and supportable status tracking. The response is a job "
+        "handle, not a rendered document."
     ),
+    responses={
+        **_job_error_response(
+            400,
+            example_key="missing_idempotency_key",
+            description="Returned when idempotency or required caller context is missing.",
+        ),
+        **_job_error_response(
+            409,
+            example_key="idempotency_conflict",
+            description="Returned when the idempotency key conflicts with a different request.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
 )
 async def submit_portfolio_review_report_job(
     request: Annotated[
@@ -386,10 +436,152 @@ async def submit_portfolio_review_report_job(
 
 
 @jobs_router.get(
+    "",
+    response_model=ReportJobListResponse,
+    summary="Search report jobs for operations and support",
+    description=(
+        "Return a bounded list of report jobs through the governed gateway boundary. Use this "
+        "endpoint when operators or support tooling need to find jobs by tenant, region, status, "
+        "portfolio, as-of date, idempotency key, or correlation identifier before drilling into "
+        "status or event history."
+    ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "example": REPORT_JOB_LIST_RESPONSE_EXAMPLE,
+                    }
+                }
+            }
+        }
+    },
+    responses={
+        **_job_error_response(
+            400,
+            example_key="invalid_report_job_filters",
+            description="Returned when no supported job-search filter is supplied.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
+)
+async def list_report_jobs(
+    tenant_id_filter: Annotated[
+        str | None,
+        Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
+    ] = None,
+    region_filter: Annotated[
+        str | None,
+        Query(alias="region", description="Return only jobs for this operating region."),
+    ] = None,
+    status_filter: Annotated[
+        str | None,
+        Query(alias="status", description="Return only jobs in this current lifecycle status."),
+    ] = None,
+    report_type_filter: Annotated[
+        str | None,
+        Query(alias="reportType", description="Return only jobs for this report type."),
+    ] = None,
+    portfolio_id_filter: Annotated[
+        str | None,
+        Query(
+            alias="portfolioId",
+            description="Return only jobs whose scope includes this portfolio.",
+        ),
+    ] = None,
+    as_of_date_filter: Annotated[
+        str | None,
+        Query(alias="asOfDate", description="Return only jobs for this business as-of date."),
+    ] = None,
+    idempotency_key_filter: Annotated[
+        str | None,
+        Query(alias="idempotencyKey", description="Return only jobs for this idempotency key."),
+    ] = None,
+    correlation_id_filter: Annotated[
+        str | None,
+        Query(
+            alias="correlationId",
+            description="Return only jobs for this correlation identifier.",
+        ),
+    ] = None,
+    created_from: Annotated[
+        str | None,
+        Query(alias="createdFrom", description="Inclusive UTC lower bound for job creation time."),
+    ] = None,
+    created_to: Annotated[
+        str | None,
+        Query(alias="createdTo", description="Inclusive UTC upper bound for job creation time."),
+    ] = None,
+    limit: Annotated[
+        int,
+        Query(
+            alias="limit",
+            ge=1,
+            le=100,
+            description="Maximum number of report jobs returned by this bounded search.",
+        ),
+    ] = 25,
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> ReportJobListResponse:
+    filters = {
+        "tenantId": tenant_id_filter,
+        "region": region_filter,
+        "status": status_filter,
+        "reportType": report_type_filter,
+        "portfolioId": portfolio_id_filter,
+        "asOfDate": as_of_date_filter,
+        "idempotencyKey": idempotency_key_filter,
+        "correlationId": correlation_id_filter,
+        "createdFrom": created_from,
+        "createdTo": created_to,
+        "limit": limit,
+    }
+    filters = {key: value for key, value in filters.items() if value is not None}
+    status_code, payload = await _reporting_client().list_report_jobs(
+        filters=filters,
+        caller_headers=_caller_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+        correlation_id=correlation_id_var.get(),
+    )
+    _raise_report_job_error(status_code, payload)
+    return ReportJobListResponse.model_validate(payload)
+
+
+@jobs_router.get(
     "/{job_id}",
     response_model=ReportJobStatusResponse,
     summary="Get report job status",
-    description="Return product-safe report job status and diagnostics from lotus-report.",
+    description=(
+        "Return product-safe report job status and diagnostics from lotus-report. Use this "
+        "endpoint after submit or search when a caller needs current lifecycle state for one job."
+    ),
+    responses={
+        **_job_error_response(
+            404,
+            example_key="report_job_not_found",
+            description="Returned when the requested report job does not exist.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
 )
 async def get_report_job_status(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
@@ -424,6 +616,18 @@ async def get_report_job_status(
         "Return append-only report job lifecycle events through the governed gateway boundary. "
         "Use this endpoint for operational support when current status alone is insufficient."
     ),
+    responses={
+        **_job_error_response(
+            404,
+            example_key="report_job_not_found",
+            description="Returned when the requested report job does not exist.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
 )
 async def get_report_job_events(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
@@ -454,7 +658,28 @@ async def get_report_job_events(
     "/{job_id}/cancel",
     response_model=ReportJobStatusResponse,
     summary="Cancel report job before render or archive",
-    description="Cancel a report job while it is still before render, archive, or completion.",
+    description=(
+        "Cancel a report job while it is still before render, archive, or completion. Use this "
+        "endpoint only for bounded pre-render cancellation; rerender, reissue, archive, and legal "
+        "hold semantics are owned by later reporting RFCs."
+    ),
+    responses={
+        **_job_error_response(
+            404,
+            example_key="report_job_not_found",
+            description="Returned when the requested report job does not exist.",
+        ),
+        **_job_error_response(
+            409,
+            example_key="report_job_cannot_be_cancelled",
+            description="Returned when the job has completed or was already cancelled.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
 )
 async def cancel_report_job(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
