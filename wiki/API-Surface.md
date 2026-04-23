@@ -15,7 +15,7 @@
 - `GET /api/v1/portfolio/*`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
-- `GET` and `POST /api/v1/report-jobs/*`
+- `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
 ## Current contract notes
@@ -34,8 +34,8 @@
   `advisor_sections`
 - portfolio review report job initiation uses canonical snake_case body fields and requires
   `Idempotency-Key`
-- report job status, append-only event history, and cancellation are gateway-first under
-  `/api/v1/report-jobs/*`
+- report job search, status, append-only event history, and cancellation are gateway-first under
+  `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
@@ -121,6 +121,15 @@ Report job status:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example"
+```
+
+Report job operational search:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/report-jobs?tenantId=tenant-sg&region=APAC&portfolioId=PB_SG_GLOBAL_BAL_001&status=accepted&limit=25" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC"
 ```
 
 Report job event history:

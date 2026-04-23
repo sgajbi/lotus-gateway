@@ -3,6 +3,91 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+REPORT_JOB_LIST_FILTERS_EXAMPLE: dict[str, Any] = {
+    "tenantId": "tenant-sg",
+    "region": "APAC",
+    "status": "accepted",
+    "reportType": "portfolio_review",
+    "portfolioId": "PB_SG_GLOBAL_BAL_001",
+    "asOfDate": "2026-04-22",
+    "idempotencyKey": "portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22",
+    "correlationId": "corr-portfolio-review-1",
+    "createdFrom": "2026-04-22T00:00:00Z",
+    "createdTo": "2026-04-23T00:00:00Z",
+    "limit": 25,
+}
+
+REPORT_JOB_LIST_RESPONSE_EXAMPLE: dict[str, Any] = {
+    "count": 1,
+    "appliedFilters": REPORT_JOB_LIST_FILTERS_EXAMPLE,
+    "items": [
+        {
+            "reportJobId": "rjob_83ca965c50334c40a17d2b8cc94873a5",
+            "reportRequestId": "rrq_4f7c85b39f7d4e7b8d0bb420d34a1d2c",
+            "reportType": "portfolio_review",
+            "tenantId": "tenant-sg",
+            "region": "APAC",
+            "portfolioScope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+            "asOfDate": "2026-04-22",
+            "status": "accepted",
+            "failureCategory": None,
+            "currentStep": "accepted",
+            "retryEligible": False,
+            "cancelRequested": False,
+            "idempotencyKey": "portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22",
+            "correlationId": "corr-portfolio-review-1",
+            "createdAt": "2026-04-22T09:00:00Z",
+            "updatedAt": "2026-04-22T09:00:00Z",
+        }
+    ],
+}
+
+REPORT_JOB_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
+    "missing_idempotency_key": {
+        "detail": {
+            "code": "missing_idempotency_key",
+            "message": "Idempotency-Key is required.",
+        }
+    },
+    "missing_caller_context": {
+        "detail": {
+            "code": "missing_caller_context",
+            "message": "Required caller context headers are missing.",
+            "missing_headers": ["X-Actor-Id", "X-Tenant-Id", "X-Region"],
+        }
+    },
+    "report_job_not_found": {
+        "detail": {
+            "code": "report_job_not_found",
+            "message": "Report job was not found.",
+        }
+    },
+    "idempotency_conflict": {
+        "detail": {
+            "code": "idempotency_conflict",
+            "message": "Idempotency-Key was reused with a different report request.",
+        }
+    },
+    "report_job_cannot_be_cancelled": {
+        "detail": {
+            "code": "report_job_cannot_be_cancelled",
+            "message": "Report job can no longer be cancelled.",
+        }
+    },
+    "report_job_upstream_unavailable": {
+        "detail": {
+            "code": "report_job_upstream_unavailable",
+            "message": "Report job service is unavailable.",
+        }
+    },
+    "invalid_report_job_filters": {
+        "detail": {
+            "code": "invalid_report_job_filters",
+            "message": "At least one supported job-search filter is required.",
+        }
+    },
+}
+
 
 class ReportingPortfolioRequest(BaseModel):
     as_of_date: str = Field(
@@ -264,6 +349,32 @@ class PortfolioReviewJobRequest(BaseModel):
     )
 
 
+class ReportJobErrorDetail(BaseModel):
+    code: str = Field(
+        ...,
+        description="Machine-readable error code for deterministic client handling.",
+        examples=["report_job_not_found"],
+    )
+    message: str = Field(
+        ...,
+        description="Support-safe error message explaining the failure.",
+        examples=["Report job was not found."],
+    )
+    missing_headers: list[str] | None = Field(
+        default=None,
+        description="Header names that must be supplied when caller context is incomplete.",
+        examples=[["X-Actor-Id", "X-Tenant-Id", "X-Region"]],
+    )
+
+
+class ReportJobErrorResponse(BaseModel):
+    detail: ReportJobErrorDetail = Field(
+        ...,
+        description="Structured API error payload for product and operational consumers.",
+        examples=[REPORT_JOB_ERROR_EXAMPLES["report_job_not_found"]["detail"]],
+    )
+
+
 class ReportJobHandleResponse(BaseModel):
     report_request_id: str = Field(
         ...,
@@ -438,4 +549,215 @@ class ReportJobStatusEventsResponse(BaseModel):
     events: list[ReportStatusEvent] = Field(
         ...,
         description="Append-only lifecycle events ordered by creation time.",
+        examples=[
+            [
+                {
+                    "statusEventId": "rse_d7e9c3b87d864b098997d4fe5bd2de2a",
+                    "reportJobId": "rjob_83ca965c50334c40a17d2b8cc94873a5",
+                    "fromStatus": None,
+                    "toStatus": "accepted",
+                    "eventType": "job_accepted",
+                    "message": "Portfolio review report job accepted.",
+                    "actor": "advisor-123",
+                    "createdAt": "2026-04-22T09:00:00Z",
+                    "correlationId": "corr-portfolio-review-1",
+                    "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+                }
+            ]
+        ],
     )
+
+
+class ReportJobListFilters(BaseModel):
+    tenant_id: str | None = Field(
+        default=None,
+        alias="tenantId",
+        description="Tenant filter used to isolate jobs for one tenant scope.",
+        examples=["tenant-sg"],
+    )
+    region: str | None = Field(
+        default=None,
+        alias="region",
+        description="Region filter used to isolate jobs for one operating region.",
+        examples=["APAC"],
+    )
+    status: str | None = Field(
+        default=None,
+        alias="status",
+        description="Current job-status filter.",
+        examples=["accepted"],
+    )
+    report_type: str | None = Field(
+        default=None,
+        alias="reportType",
+        description="Report-type filter for the job search.",
+        examples=["portfolio_review"],
+    )
+    portfolio_id: str | None = Field(
+        default=None,
+        alias="portfolioId",
+        description="Portfolio identifier contained in the submitted portfolio scope.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    )
+    as_of_date: str | None = Field(
+        default=None,
+        alias="asOfDate",
+        description="Business as-of date filter for the report request.",
+        examples=["2026-04-22"],
+    )
+    idempotency_key: str | None = Field(
+        default=None,
+        alias="idempotencyKey",
+        description="Idempotency key filter for duplicate-request diagnostics.",
+        examples=["portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22"],
+    )
+    correlation_id: str | None = Field(
+        default=None,
+        alias="correlationId",
+        description="Correlation identifier filter for end-to-end operational tracing.",
+        examples=["corr-portfolio-review-1"],
+    )
+    created_from: datetime | None = Field(
+        default=None,
+        alias="createdFrom",
+        description="Inclusive lower UTC bound for job creation time.",
+        examples=["2026-04-22T00:00:00Z"],
+    )
+    created_to: datetime | None = Field(
+        default=None,
+        alias="createdTo",
+        description="Inclusive upper UTC bound for job creation time.",
+        examples=["2026-04-23T00:00:00Z"],
+    )
+    limit: int = Field(
+        default=25,
+        alias="limit",
+        description="Maximum number of jobs returned by this bounded search.",
+        examples=[25],
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class ReportJobListItem(BaseModel):
+    report_job_id: str = Field(
+        ...,
+        alias="reportJobId",
+        description="Opaque durable report job identifier.",
+        examples=["rjob_83ca965c50334c40a17d2b8cc94873a5"],
+    )
+    report_request_id: str = Field(
+        ...,
+        alias="reportRequestId",
+        description="Opaque durable report request identifier linked to the job.",
+        examples=["rrq_4f7c85b39f7d4e7b8d0bb420d34a1d2c"],
+    )
+    report_type: str = Field(
+        ...,
+        alias="reportType",
+        description="Report type handled by the job.",
+        examples=["portfolio_review"],
+    )
+    tenant_id: str = Field(
+        ...,
+        alias="tenantId",
+        description="Tenant identifier captured when the request was created.",
+        examples=["tenant-sg"],
+    )
+    region: str = Field(
+        ...,
+        alias="region",
+        description="Operating region captured when the request was created.",
+        examples=["APAC"],
+    )
+    portfolio_scope: dict[str, Any] = Field(
+        ...,
+        alias="portfolioScope",
+        description="Submitted portfolio scope for the report job.",
+        examples=[{"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]}],
+    )
+    as_of_date: str = Field(
+        ...,
+        alias="asOfDate",
+        description="Business as-of date submitted for the report job.",
+        examples=["2026-04-22"],
+    )
+    status: str = Field(
+        ...,
+        alias="status",
+        description="Current product-safe report job status.",
+        examples=["accepted"],
+    )
+    failure_category: str | None = Field(
+        default=None,
+        alias="failureCategory",
+        description="Machine-readable failure category when the job failed or was cancelled.",
+        examples=[None],
+    )
+    current_step: str = Field(
+        ...,
+        alias="currentStep",
+        description="Current lifecycle step for support diagnostics.",
+        examples=["accepted"],
+    )
+    retry_eligible: bool = Field(
+        ...,
+        alias="retryEligible",
+        description="Whether retry or replay is currently permitted.",
+        examples=[False],
+    )
+    cancel_requested: bool = Field(
+        ...,
+        alias="cancelRequested",
+        description="Whether cancellation has been requested and recorded.",
+        examples=[False],
+    )
+    idempotency_key: str = Field(
+        ...,
+        alias="idempotencyKey",
+        description="Caller-supplied idempotency key associated with the job.",
+        examples=["portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22"],
+    )
+    correlation_id: str = Field(
+        ...,
+        alias="correlationId",
+        description="Correlation identifier captured when the request was created.",
+        examples=["corr-portfolio-review-1"],
+    )
+    created_at: datetime = Field(
+        ...,
+        alias="createdAt",
+        description="UTC timestamp when the job was created.",
+        examples=["2026-04-22T09:00:00Z"],
+    )
+    updated_at: datetime = Field(
+        ...,
+        alias="updatedAt",
+        description="UTC timestamp when the job was last updated.",
+        examples=["2026-04-22T09:00:00Z"],
+    )
+
+    model_config = {"populate_by_name": True}
+
+
+class ReportJobListResponse(BaseModel):
+    count: int = Field(
+        ...,
+        alias="count",
+        description="Number of jobs returned in this bounded response.",
+        examples=[1],
+    )
+    applied_filters: ReportJobListFilters = Field(
+        ...,
+        alias="appliedFilters",
+        description="Normalized filters applied to the job search.",
+        examples=[REPORT_JOB_LIST_FILTERS_EXAMPLE],
+    )
+    items: list[ReportJobListItem] = Field(
+        ...,
+        alias="items",
+        description="Bounded list of support-safe report job summaries.",
+        examples=[REPORT_JOB_LIST_RESPONSE_EXAMPLE["items"]],
+    )
+
+    model_config = {"populate_by_name": True}

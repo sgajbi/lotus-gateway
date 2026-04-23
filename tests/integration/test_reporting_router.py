@@ -433,6 +433,45 @@ def test_portfolio_review_job_gateway_requires_caller_context():
 def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     calls: list[tuple[str, str, dict[str, str] | None]] = []
 
+    async def _mock_list_jobs(self, *, filters, caller_headers, correlation_id):
+        calls.append(("list", filters["portfolioId"], caller_headers))
+        return 200, {
+            "count": 1,
+            "appliedFilters": {
+                "tenantId": "tenant-sg",
+                "region": "APAC",
+                "status": "accepted",
+                "reportType": None,
+                "portfolioId": filters["portfolioId"],
+                "asOfDate": None,
+                "idempotencyKey": None,
+                "correlationId": correlation_id,
+                "createdFrom": None,
+                "createdTo": None,
+                "limit": 25,
+            },
+            "items": [
+                {
+                    "reportJobId": "rjob_1",
+                    "reportRequestId": "rrq_1",
+                    "reportType": "portfolio_review",
+                    "tenantId": "tenant-sg",
+                    "region": "APAC",
+                    "portfolioScope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+                    "asOfDate": "2026-04-22",
+                    "status": "accepted",
+                    "failureCategory": None,
+                    "currentStep": "accepted",
+                    "retryEligible": False,
+                    "cancelRequested": False,
+                    "idempotencyKey": "idem-gateway-1",
+                    "correlationId": correlation_id,
+                    "createdAt": "2026-04-22T09:00:00Z",
+                    "updatedAt": "2026-04-22T09:00:00Z",
+                }
+            ],
+        }
+
     async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):
         calls.append(("get", job_id, caller_headers))
         return 200, {
@@ -498,6 +537,9 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
         }
 
     monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.list_report_jobs", _mock_list_jobs
+    )
+    monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.get_report_job", _mock_get_job
     )
     monkeypatch.setattr(
@@ -510,6 +552,14 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     )
 
     client = TestClient(app)
+    list_response = client.get(
+        "/api/v1/report-jobs?portfolioId=PB_SG_GLOBAL_BAL_001",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
     status_response = client.get(
         "/api/v1/report-jobs/rjob_1",
         headers={
@@ -535,25 +585,28 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
         },
     )
 
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["reportJobId"] == "rjob_1"
     assert status_response.status_code == 200
     assert status_response.json()["status"] == "accepted"
     assert events_response.status_code == 200
     assert events_response.json()["events"][0]["event_type"] == "job_accepted"
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
-    assert calls[0][0:2] == ("get", "rjob_1")
+    assert calls[0][0:2] == ("list", "PB_SG_GLOBAL_BAL_001")
     assert calls[0][2]["X-Actor-Id"] == "advisor-123"
     assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[0][2]["X-Tenant-Id"] == "tenant-sg"
     assert calls[0][2]["X-Region"] == "APAC"
-    assert calls[1][0:2] == ("events", "rjob_1")
+    assert calls[1][0:2] == ("get", "rjob_1")
     assert calls[1][2]["X-Actor-Id"] == "advisor-123"
     assert calls[1][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[1][2]["X-Region"] == "APAC"
-    assert calls[2][0:2] == ("cancel", "rjob_1")
+    assert calls[2][0:2] == ("events", "rjob_1")
     assert calls[2][2]["X-Actor-Id"] == "advisor-123"
     assert calls[2][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[2][2]["X-Region"] == "APAC"
+    assert calls[3][0:2] == ("cancel", "rjob_1")
 
 
 def test_report_job_gateway_errors_are_product_safe(monkeypatch):

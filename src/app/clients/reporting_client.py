@@ -132,6 +132,26 @@ class ReportingClient:
             headers=headers,
         )
 
+    async def list_report_jobs(
+        self,
+        *,
+        filters: dict[str, Any],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/jobs"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=filters,
+            headers=headers,
+        )
+
     async def get_report_job_events(
         self,
         *,
