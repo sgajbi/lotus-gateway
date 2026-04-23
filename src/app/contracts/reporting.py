@@ -130,7 +130,7 @@ class ReportingPortfolioRequest(BaseModel):
             "Optional benchmark identifier forwarded to lotus-report for performance and risk "
             "review context."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
 
     model_config = {"populate_by_name": True, "extra": "allow"}
@@ -343,7 +343,7 @@ class PortfolioReviewJobRequest(BaseModel):
         examples=[
             {
                 "sections": ["OVERVIEW", "PERFORMANCE", "RISK_ANALYTICS"],
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             }
         ],
     )

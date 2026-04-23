@@ -136,7 +136,7 @@ class _StubAnalyticsClient:
                 )
             return 200, {
                 "benchmark_context": {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                 },
                 "calculation_id": "calc-twr",
@@ -231,7 +231,7 @@ class _StubLotusCoreQueryClient:
             {
                 "records": [
                     {
-                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "benchmark_name": "Global Balanced 60/40",
                         "benchmark_currency": "USD",
                         "benchmark_type": "composite",
@@ -255,7 +255,7 @@ class _StubLotusCoreQueryClient:
         return (
             200,
             {
-                "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "assignment_status": "active",
             },
         )
@@ -266,7 +266,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
         "results_by_period": {
             "MTD": {
                 "benchmark": {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                     "summary": {
                         "period_return": {"base": 1.0},
@@ -294,7 +294,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
             },
             "QTD": {
                 "benchmark": {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                     "input_mode": "stateful",
                     "summary": {
@@ -413,7 +413,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
                     "model": "BF",
                     "linking": "carino",
                     "benchmark_context": {
-                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "return_source": "calculated",
                     },
                     "result": {
@@ -451,7 +451,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
             },
             "YTD": {
                 "benchmark": {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                     "input_mode": "stateful",
                     "summary": {
@@ -652,7 +652,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
                     "model": "BF",
                     "linking": "carino",
                     "benchmark_context": {
-                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "return_source": "calculated",
                     },
                     "result": {
@@ -712,7 +712,7 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
             },
             "1Y": {
                 "benchmark": {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "return_source": "calculated",
                     "summary": {
                         "period_return": {"base": 12.6},
@@ -754,7 +754,7 @@ def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
     source = _workspace_summary_payload()["results_by_period"][source_label]
     return {
         "benchmark_context": {
-            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
             "return_source": "calculated",
         },
         "results_by_period": {
@@ -823,7 +823,7 @@ def _attribution_payload(*, dimension: str, report_start_date: str, report_end_d
     totals = totals_by_month[month]
     return {
         "benchmark_context": {
-            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
             "return_source": "calculated",
         },
         "results_by_period": {
@@ -865,7 +865,7 @@ def _attribution_payload(*, dimension: str, report_start_date: str, report_end_d
 def _attribution_detail_payload(*, dimension: str) -> dict:
     return {
         "benchmark_context": {
-            "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
             "return_source": "calculated",
         },
         "results_by_period": {
@@ -983,7 +983,7 @@ async def test_performance_workspace_service_deduplicates_benchmark_catalog_opti
             {
                 "records": [
                     {
-                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "benchmark_name": "Global Balanced 60/40",
                         "benchmark_currency": "USD",
                         "benchmark_type": "composite",
@@ -991,7 +991,7 @@ async def test_performance_workspace_service_deduplicates_benchmark_catalog_opti
                         "benchmark_provider": "Lotus",
                     },
                     {
-                        "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "benchmark_name": "Global Balanced 60/40",
                         "benchmark_currency": "USD",
                         "benchmark_type": "composite",
@@ -1009,13 +1009,13 @@ async def test_performance_workspace_service_deduplicates_benchmark_catalog_opti
                 ]
             },
         ),
-        assigned_benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        assigned_benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         warnings=warnings,
         partial_failures=partial_failures,
     )
 
     assert [option.benchmark_code for option in options] == [
-        "BMK_GLOBAL_BALANCED_60_40",
+        "BMK_PB_GLOBAL_BALANCED_60_40",
         "BMK_GLOBAL_GROWTH_80_20",
     ]
     assert options[0].is_assigned is True
@@ -1041,7 +1041,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio.portfolio_id == "DEMO_ADV_USD_001"
@@ -1078,11 +1078,11 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.contribution.levels[0].total_weight_avg_pct is None
     assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert response.attribution is not None
-    assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.attribution.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 61.0
     assert response.attribution.levels[0].rows[0].benchmark_return_pct == 6.8
     assert response.benchmark_options[0].is_assigned is True
-    assert response.benchmark_options[0].benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_options[0].benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.capabilities.return_path.state == "supported"
     assert response.capabilities.return_path.earliest_available_date == "2026-01-01"
     assert response.capabilities.return_path.latest_available_date == "2026-03-27"
@@ -1160,7 +1160,7 @@ async def test_performance_workspace_service_projects_summary_contract():
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
@@ -1205,7 +1205,7 @@ async def test_performance_workspace_service_reuses_cached_workspace_summary_res
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
     second_response = await service.get_performance_workspace_summary(
         portfolio_id="DEMO_ADV_USD_001",
@@ -1215,7 +1215,7 @@ async def test_performance_workspace_service_reuses_cached_workspace_summary_res
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert first_response.net_performance.portfolio_return_pct == 15.1
@@ -1245,7 +1245,7 @@ async def test_performance_workspace_service_clear_upstream_cache_forces_summary
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
     service.clear_upstream_cache()
     await service.get_performance_workspace_summary(
@@ -1256,7 +1256,7 @@ async def test_performance_workspace_service_clear_upstream_cache_forces_summary
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert len(analytics_client.workspace_summary_calls) == 2
@@ -1286,9 +1286,9 @@ async def test_performance_workspace_service_resolves_linked_benchmark_when_code
         benchmark_code=None,
     )
 
-    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert (
-        analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] == (
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
     assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
@@ -1310,12 +1310,12 @@ async def test_performance_workspace_service_builds_horizon_comparison_contract(
         correlation_id="corr-performance",
         period="YTD",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         chart_frequency="monthly",
     )
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
-    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.reporting_currency == "USD"
     assert response.period == "YTD"
     assert response.report_start_date == "2026-01-01"
@@ -1369,7 +1369,7 @@ async def test_workspace_service_maps_position_contributions_from_upstream_contr
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.contribution is not None
@@ -1417,7 +1417,7 @@ async def test_workspace_service_preserves_full_contribution_row_coverage():
         contribution_dimension="sector",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.contribution is not None
@@ -1455,7 +1455,7 @@ async def test_workspace_service_preserves_full_attribution_row_coverage():
         contribution_dimension="asset_class",
         attribution_dimension="country",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.attribution is not None
@@ -1484,9 +1484,9 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_horiz
         chart_frequency="monthly",
     )
 
-    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert (
-        analytics_client.workspace_summary_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] == (
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
     assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
@@ -1507,7 +1507,7 @@ async def test_performance_workspace_service_normalizes_unsupported_horizon_freq
         correlation_id="corr-performance",
         period="YTD",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         chart_frequency="weekly",
     )
 
@@ -1531,7 +1531,7 @@ async def test_performance_workspace_service_builds_explicit_horizon_comparison_
         correlation_id="corr-performance",
         period="YTD",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         chart_frequency="monthly",
         explicit_start_date="2026-01-01",
         explicit_end_date="2026-03-27",
@@ -1563,7 +1563,7 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
         chart_frequency="monthly",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
@@ -1593,7 +1593,7 @@ async def test_performance_workspace_service_normalizes_unsupported_attribution_
         chart_frequency="weekly",
         attribution_dimension="issuer",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.chart_frequency == "monthly"
@@ -1625,8 +1625,8 @@ async def test_performance_workspace_service_resolves_linked_benchmark_for_attri
         benchmark_code=None,
     )
 
-    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
-    assert analytics_client.attribution_calls[0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert analytics_client.attribution_calls[0]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert query_client.benchmark_assignment_calls[0]["portfolio_id"] == "DEMO_ADV_USD_001"
     assert query_client.benchmark_assignment_calls[0]["as_of_date"] == "2026-03-27"
     assert query_client.benchmark_assignment_calls[0]["reporting_currency"] == "USD"
@@ -1650,7 +1650,7 @@ async def test_performance_workspace_service_projects_detail_contract():
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio_id == "DEMO_ADV_USD_001"
@@ -1658,7 +1658,7 @@ async def test_performance_workspace_service_projects_detail_contract():
     assert response.contribution is not None
     assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert response.attribution is not None
-    assert response.attribution.benchmark_id == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.attribution.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.capabilities.contribution_ranking.state == "supported"
     assert response.capabilities.attribution_detail.state == "supported"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
@@ -1685,7 +1685,7 @@ async def test_performance_workspace_service_normalizes_qtd_workspace_summary_to
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.period == "QTD"
@@ -1711,7 +1711,7 @@ async def test_performance_workspace_service_projects_portfolio_performance_snap
         period="YTD",
         chart_frequency="monthly",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio_return_pct == 15.1
@@ -1770,7 +1770,7 @@ async def test_performance_workspace_service_marks_portfolio_performance_snapsho
         period="YTD",
         chart_frequency="monthly",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.portfolio_return_pct is None
@@ -1807,7 +1807,7 @@ async def test_performance_workspace_service_aligns_mismatched_dimensions_to_sha
         contribution_dimension="sector",
         attribution_dimension="country",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.segment == "sector"
@@ -1835,7 +1835,7 @@ async def test_performance_workspace_service_normalizes_unsupported_controls():
         contribution_dimension="currency",
         attribution_dimension="issuer",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.chart_frequency == "monthly"
@@ -1881,7 +1881,7 @@ async def test_workspace_details_use_independent_dimensions_and_keep_segment_con
         contribution_dimension="sector",
         attribution_dimension="currency",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.contribution_dimension == "sector"
@@ -1935,7 +1935,7 @@ async def test_workspace_details_do_not_fallback_when_detail_is_segment_only():
         contribution_dimension="sector",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.contribution is not None
@@ -1963,7 +1963,7 @@ async def test_performance_workspace_service_skips_reference_lookup_for_explicit
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         explicit_start_date="2026-01-15",
         explicit_end_date="2026-03-20",
     )
@@ -1996,7 +1996,7 @@ async def test_performance_workspace_service_handles_workspace_summary_failure()
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.net_performance.portfolio_return_pct is None
@@ -2040,7 +2040,7 @@ async def test_performance_workspace_service_marks_pending_lineage_as_partial_ev
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.capabilities.evidence.state == "partial"
@@ -2082,7 +2082,7 @@ async def test_performance_workspace_service_marks_missing_execution_and_lineage
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.capabilities.evidence.state == "unavailable"
@@ -2111,7 +2111,7 @@ async def test_performance_workspace_service_handles_benchmark_catalog_failure()
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.benchmark_options == []
@@ -2136,7 +2136,7 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     response.contribution.position_rows = []
@@ -2177,7 +2177,7 @@ async def test_performance_workspace_service_marks_summary_only_attribution_as_p
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.attribution is not None
@@ -2241,7 +2241,7 @@ async def test_performance_workspace_service_fetches_assignment_and_catalog_conc
         timeout=0.2,
     )
 
-    assert response.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert len(query_client.benchmark_assignment_calls) == 1
     assert len(query_client.benchmark_catalog_calls) == 1
 

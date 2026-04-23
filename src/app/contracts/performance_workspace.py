@@ -186,7 +186,7 @@ class AttributionSummaryView(BaseModel):
     benchmark_id: str | None = Field(
         default=None,
         description="Resolved benchmark identifier used for the attribution analysis.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     benchmark_return_source: str | None = Field(
         default=None,
@@ -536,7 +536,7 @@ class PerformanceHorizonComparisonResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used for horizon comparison rows when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(
         default_factory=list,
@@ -571,10 +571,10 @@ class PerformanceHorizonComparisonResponse(BaseModel):
                 "detail_basis": "NET",
                 "chart_frequency": "monthly",
                 "requested_chart_frequency_supported": True,
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "benchmark_options": [
                     {
-                        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "benchmark_name": "Global Balanced 60/40",
                         "benchmark_currency": "USD",
                         "benchmark_type": "composite",
@@ -753,7 +753,7 @@ class PerformanceAttributionTrendResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used for the attribution trend when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     rows: list[PerformanceAttributionTrendRow] = Field(
         default_factory=list,
@@ -787,7 +787,7 @@ class PerformanceAttributionTrendResponse(BaseModel):
                 "attribution_dimension": "asset_class",
                 "requested_chart_frequency_supported": True,
                 "requested_attribution_dimension_supported": True,
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "rows": [
                     {
                         "period_label": "2026-01",
@@ -925,7 +925,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used for the performance summary when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     benchmark_options: list[PerformanceBenchmarkOptionView] = Field(
         default_factory=list,
@@ -964,10 +964,10 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                 "requested_chart_frequency_supported": True,
                 "requested_contribution_dimension_supported": True,
                 "requested_attribution_dimension_supported": True,
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "benchmark_options": [
                     {
-                        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                         "benchmark_name": "Global Balanced 60/40",
                         "benchmark_currency": "USD",
                         "benchmark_type": "composite",
@@ -1031,7 +1031,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                     "benchmark_return_pct": 4.91,
                     "active_return_pct": 0.52,
                     "annualized_return_pct": 5.42,
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_return_source": "calculated",
                     "benchmark_input_mode": "stateful",
                     "begin_market_value": 1200000.0,
@@ -1048,7 +1048,7 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                     "benchmark_return_pct": 5.12,
                     "active_return_pct": 0.76,
                     "annualized_return_pct": 5.88,
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_return_source": "calculated",
                     "benchmark_input_mode": "stateful",
                     "begin_market_value": 1200000.0,
@@ -1150,7 +1150,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used for the performance details when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     capabilities: PerformanceWorkspaceCapabilities = Field(
         description="Gateway-published capability posture for the performance details surface."
@@ -1207,7 +1207,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                 "requested_contribution_dimension_supported": True,
                 "requested_attribution_dimension_supported": True,
                 "segment": "asset_class",
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "capabilities": {
                     "summary_kpis": {"state": "supported"},
                     "return_path": {"state": "supported"},
@@ -1308,7 +1308,7 @@ class PerformanceWorkspaceDetailsResponse(BaseModel):
                     "metric_basis": "NET",
                     "model": "BF",
                     "linking": "carino",
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_return_source": "calculated",
                     "active_return_pct": 0.52,
                     "sum_of_effects_pct": 0.5,

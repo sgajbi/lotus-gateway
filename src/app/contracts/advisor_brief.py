@@ -330,7 +330,7 @@ class AdvisorBriefResponse(BaseModel):
                 "chart_frequency": "monthly",
                 "contribution_dimension": "asset_class",
                 "attribution_dimension": "asset_class",
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "status": "partial",
                 "summary": (
                     "YTD portfolio return for PF 1001 is 1.25% versus Private Banking "
@@ -349,7 +349,7 @@ class AdvisorBriefResponse(BaseModel):
                                 "target_mode": "summary",
                                 "route": (
                                     "/performance?portfolioId=PF_1001&period=YTD"
-                                    "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                                    "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                                 ),
                             }
                         ],
@@ -361,7 +361,7 @@ class AdvisorBriefResponse(BaseModel):
                         "target_mode": "summary",
                         "route": (
                             "/performance?portfolioId=PF_1001&period=YTD"
-                            "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                            "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                         ),
                     }
                 ],
@@ -378,7 +378,7 @@ class AdvisorBriefResponse(BaseModel):
                                 "target_mode": "analysis",
                                 "route": (
                                     "/performance?portfolioId=PF_1001&period=YTD"
-                                    "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                                    "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                                 ),
                             }
                         ],
@@ -392,7 +392,7 @@ class AdvisorBriefResponse(BaseModel):
                         "target_mode": "summary",
                         "route": (
                             "/performance?portfolioId=PF_1001&period=YTD"
-                            "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                            "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                         ),
                         "state": "ready",
                     },
@@ -403,7 +403,7 @@ class AdvisorBriefResponse(BaseModel):
                         "target_mode": "summary",
                         "route": (
                             "/performance?portfolioId=PF_1001&period=YTD"
-                            "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                            "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                         ),
                         "state": "partial",
                     },
@@ -555,7 +555,7 @@ class AdvisorBriefResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used when generating the advisor brief.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     status: AdvisorBriefStatus = Field(
         description="Overall availability status of the advisor brief output.",

@@ -315,7 +315,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.status == "ready"
@@ -328,7 +328,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.source_metrics[0].label == "Portfolio Return"
     assert response.source_metrics[0].route == (
         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
-        "&benchmark=BMK_GLOBAL_BALANCED_60_40"
+        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert response.ai_audit["request_id"] == "req-1"
     assert response.ai_audit["provider_mode"] == "openai"
@@ -409,7 +409,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert ai_client.execute_calls[0]["task_request"]["context"]["source_refs"] == [
         "lotus-gateway:workbench:PF_1001:performance-summary:YTD",
         "lotus-gateway:workbench:PF_1001:performance-details:YTD",
-        "lotus-performance:benchmark:PF_1001:BMK_GLOBAL_BALANCED_60_40:YTD",
+        "lotus-performance:benchmark:PF_1001:BMK_PB_GLOBAL_BALANCED_60_40:YTD",
     ]
     assert ai_client.consumer_view_calls == [
         {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
@@ -439,7 +439,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.status == "partial"
@@ -480,7 +480,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
                     "target_mode": "analysis",
                     "route": (
                         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
-                        "&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                     ),
                 }
             ],
@@ -497,7 +497,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
                     "target_mode": "analysis",
                     "route": (
                         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
-                        "&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                     ),
                 }
             ],
@@ -514,7 +514,7 @@ async def test_advisor_brief_service_marks_partial_for_partial_sources_or_ai():
                     "target_mode": "summary",
                     "route": (
                         "/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"
-                        "&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                        "&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                     ),
                 }
             ],
@@ -584,7 +584,7 @@ async def test_advisor_brief_service_preserves_rejected_workflow_pack_run_postur
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.status == "partial"
@@ -632,7 +632,7 @@ async def test_advisor_brief_service_reuses_cached_response_for_identical_reques
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
     second = await service.get_performance_advisor_brief(
         portfolio_id="PF_1001",
@@ -642,7 +642,7 @@ async def test_advisor_brief_service_reuses_cached_response_for_identical_reques
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert first.summary == second.summary
@@ -671,7 +671,7 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
     await service.get_performance_advisor_brief(
         portfolio_id="PF_1001",
@@ -681,7 +681,7 @@ async def test_advisor_brief_service_cache_key_changes_when_request_shape_change
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="GROSS",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert len(workspace_service.calls) == 2
@@ -713,7 +713,7 @@ async def test_advisor_brief_service_treats_supported_capabilities_as_ready():
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.status == "ready"
@@ -772,7 +772,7 @@ async def test_advisor_brief_service_normalizes_raw_position_ids_in_fallback_cop
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert "PF_1001:" not in response.talking_points[1].headline
@@ -801,7 +801,7 @@ async def test_advisor_brief_service_omits_workflow_pack_run_when_surfaces_unava
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
     )
 
     assert response.workflow_pack_run is None
@@ -828,7 +828,7 @@ async def test_advisor_brief_service_applies_review_action_and_returns_updated_r
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         request=AdvisorBriefWorkflowPackRunReviewActionRequest(
             action_type="ACCEPT",
             reviewed_by="advisor_1",
@@ -904,7 +904,7 @@ async def test_advisor_brief_service_preserves_replacement_lineage_for_review_tr
         contribution_dimension="asset_class",
         attribution_dimension="asset_class",
         detail_basis="NET",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         request=AdvisorBriefWorkflowPackRunReviewActionRequest(
             action_type=action_type,
             reviewed_by="advisor_1",
@@ -971,7 +971,7 @@ async def test_advisor_brief_service_surfaces_lineage_conflicts_without_rewritin
             contribution_dimension="asset_class",
             attribution_dimension="asset_class",
             detail_basis="NET",
-            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
             request=AdvisorBriefWorkflowPackRunReviewActionRequest(
                 action_type="SUPERSEDE",
                 reviewed_by="advisor_1",
@@ -1008,7 +1008,7 @@ async def test_advisor_brief_service_records_source_and_ai_server_timing_spans()
             contribution_dimension="asset_class",
             attribution_dimension="asset_class",
             detail_basis="NET",
-            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         )
 
         server_timing = format_server_timing_header(1.0)
@@ -1041,10 +1041,10 @@ def _build_workspace(
         requested_contribution_dimension_supported=True,
         requested_attribution_dimension_supported=True,
         segment="asset_class",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         benchmark_options=[
             PerformanceBenchmarkOptionView(
-                benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+                benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
                 benchmark_name="Private Banking Global Balanced 60/40",
                 benchmark_currency="USD",
             )
@@ -1081,7 +1081,7 @@ def _build_workspace(
             portfolio_return_pct=1.25,
             benchmark_return_pct=7.93,
             active_return_pct=-6.68,
-            benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
             end_market_value=1_087_461.0,
             net_cash_flow=14_725.0,
         ),
@@ -1090,7 +1090,7 @@ def _build_workspace(
             portfolio_return_pct=1.45,
             benchmark_return_pct=7.93,
             active_return_pct=-6.48,
-            benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
             end_market_value=1_087_461.0,
             net_cash_flow=14_725.0,
         ),
@@ -1126,7 +1126,7 @@ def _build_workspace(
             metric_basis="NET",
             model="BF",
             linking="Carino",
-            benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
             active_return_pct=-6.68,
             sum_of_effects_pct=-6.67,
             residual_pct=-0.01,

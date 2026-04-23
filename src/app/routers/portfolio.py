@@ -795,11 +795,11 @@ async def get_portfolio_performance_snapshot(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
         openapi_examples={
             "balanced": {
                 "summary": "Balanced benchmark override",
-                "value": "BMK_GLOBAL_BALANCED_60_40",
+                "value": "BMK_PB_GLOBAL_BALANCED_60_40",
             }
         },
     ),

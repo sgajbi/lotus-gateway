@@ -601,7 +601,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_canonical_summary_c
         period="YTD",
         chart_frequency="quarterly",
         detail_basis="NET",
-        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
         reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
@@ -618,7 +618,7 @@ async def test_lotus_analytics_client_workspace_summary_uses_canonical_summary_c
     assert "segmentation" not in request["json"]
     assert "contribution" not in request["json"]
     assert "attribution" not in request["json"]
-    assert request["json"]["benchmark"]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert request["json"]["benchmark"]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
 
 
 @pytest.mark.asyncio
@@ -654,7 +654,7 @@ async def test_lotus_analytics_client_retries_workspace_summary_when_calculation
         period="YTD",
         chart_frequency="quarterly",
         detail_basis="NET",
-        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
         reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
@@ -699,7 +699,7 @@ async def test_lotus_analytics_client_disables_timeout_retries_for_workspace_sum
         period="QTD",
         chart_frequency="monthly",
         detail_basis="NET",
-        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
         reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
@@ -735,7 +735,7 @@ async def test_lotus_analytics_client_workspace_summary_omits_unsupported_curren
         period="YTD",
         chart_frequency="monthly",
         detail_basis="NET",
-        benchmark_id="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_id="BMK_PB_GLOBAL_BALANCED_60_40",
         reporting_currency="USD",
         segment="asset_class",
         correlation_id="corr-performance",
@@ -1606,7 +1606,7 @@ async def test_lotus_core_query_client_posts_benchmark_catalog_request():
         {
             "records": [
                 {
-                    "benchmark_id": "BMK_GLOBAL_BALANCED_60_40",
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_name": "Global Balanced 60/40",
                 }
             ]
@@ -1620,7 +1620,7 @@ async def test_lotus_core_query_client_posts_benchmark_catalog_request():
     )
 
     assert status_code == 200
-    assert payload["records"][0]["benchmark_id"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert payload["records"][0]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     request = _FakeAsyncClient.calls[0]
     assert request["url"] == "http://core-control/integration/benchmarks/catalog"
     assert request["json"]["as_of_date"] == "2026-03-27"

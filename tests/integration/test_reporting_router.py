@@ -187,7 +187,7 @@ def test_reporting_review_success(monkeypatch):
             "sections": ["OVERVIEW"],
             "allocation_dimensions": ["asset_class"],
             "look_through_mode": "full",
-            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         }
         return 200, {
             "portfolio_id": portfolio_id,
@@ -239,7 +239,7 @@ def test_reporting_review_success(monkeypatch):
             "sections": ["OVERVIEW"],
             "allocationDimensions": ["asset_class"],
             "lookThroughMode": "full",
-            "benchmarkCode": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmarkCode": "BMK_PB_GLOBAL_BALANCED_60_40",
         },
     )
     assert response.status_code == 200
@@ -342,7 +342,7 @@ def _job_payload():
         "reporting_currency": "USD",
         "options": {
             "sections": ["OVERVIEW", "PERFORMANCE"],
-            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         },
     }
 

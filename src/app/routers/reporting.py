@@ -56,7 +56,7 @@ REVIEW_REQUEST_EXAMPLES = {
             ],
             "allocationDimensions": ["asset_class"],
             "lookThroughMode": "full",
-            "benchmarkCode": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmarkCode": "BMK_PB_GLOBAL_BALANCED_60_40",
         },
     }
 }
@@ -72,7 +72,7 @@ PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES = {
             "reporting_currency": "USD",
             "options": {
                 "sections": ["OVERVIEW", "PERFORMANCE", "RISK_ANALYTICS"],
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             },
         },
     }
