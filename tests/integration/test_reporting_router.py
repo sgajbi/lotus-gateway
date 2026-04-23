@@ -290,3 +290,250 @@ def test_reporting_review_upstream_error(monkeypatch):
         json={"as_of_date": "2026-02-24"},
     )
     assert response.status_code == 502
+
+
+def _job_payload():
+    return {
+        "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+        "as_of_date": "2026-04-22",
+        "requested_output_formats": ["json"],
+        "reporting_currency": "USD",
+        "options": {
+            "sections": ["OVERVIEW", "PERFORMANCE"],
+            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        },
+    }
+
+
+def test_portfolio_review_job_gateway_route_forwards_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_submit_job(
+        self,
+        *,
+        payload,
+        idempotency_key,
+        caller_headers,
+        correlation_id,
+    ):
+        captured["payload"] = payload
+        captured["idempotency_key"] = idempotency_key
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
+        return 202, {
+            "report_request_id": "rrq_1",
+            "report_job_id": "rjob_1",
+            "status": "accepted",
+            "status_url": "/reports/jobs/rjob_1",
+            "idempotency_key": idempotency_key,
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.submit_portfolio_review_job",
+        _mock_submit_job,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/portfolio-reviews",
+        json=_job_payload(),
+        headers={
+            "Idempotency-Key": "idem-gateway-1",
+            "X-Actor-Id": "advisor-123",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "SG",
+            "X-Role": "advisor",
+            "X-Correlation-Id": "corr-gateway-job",
+        },
+    )
+
+    assert response.status_code == 202
+    body = response.json()
+    assert body["report_job_id"] == "rjob_1"
+    assert body["status_url"] == "/api/v1/report-jobs/rjob_1"
+    assert captured["payload"] == _job_payload()
+    assert captured["idempotency_key"] == "idem-gateway-1"
+    assert captured["caller_headers"] == {
+        "X-Actor-Id": "advisor-123",
+        "X-Caller-Application": "lotus-workbench",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+        "X-Booking-Center-Code": "SG",
+        "X-Role": "advisor",
+    }
+    assert captured["correlation_id"] == "corr-gateway-job"
+
+
+def test_portfolio_review_job_gateway_requires_idempotency_key():
+    client = TestClient(app)
+    response = client.post("/api/v1/reports/portfolio-reviews", json=_job_payload())
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "missing_idempotency_key"
+
+
+def test_portfolio_review_job_gateway_requires_caller_context():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/portfolio-reviews",
+        json=_job_payload(),
+        headers={"Idempotency-Key": "idem-missing-context"},
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+
+
+def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
+    calls: list[tuple[str, str, dict[str, str] | None]] = []
+
+    async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):
+        calls.append(("get", job_id, caller_headers))
+        return 200, {
+            "report_job_id": job_id,
+            "report_request_id": "rrq_1",
+            "report_type": "portfolio_review",
+            "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+            "status": "accepted",
+            "failure_category": None,
+            "failure_message": None,
+            "current_step": "accepted",
+            "retry_eligible": False,
+            "cancel_requested": False,
+            "created_at": "2026-04-22T09:00:00Z",
+            "updated_at": "2026-04-22T09:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "cancelled_at": None,
+            "correlation_id": correlation_id,
+            "trace_id": "trace-job",
+        }
+
+    async def _mock_cancel_job(self, *, job_id, caller_headers, correlation_id):
+        calls.append(("cancel", job_id, caller_headers))
+        return 200, {
+            "report_job_id": job_id,
+            "report_request_id": "rrq_1",
+            "report_type": "portfolio_review",
+            "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+            "status": "cancelled",
+            "failure_category": "cancelled",
+            "failure_message": "Report job cancelled before render or archive processing.",
+            "current_step": "cancelled",
+            "retry_eligible": False,
+            "cancel_requested": True,
+            "created_at": "2026-04-22T09:00:00Z",
+            "updated_at": "2026-04-22T09:01:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "cancelled_at": "2026-04-22T09:01:00Z",
+            "correlation_id": correlation_id,
+            "trace_id": "trace-job",
+        }
+
+    async def _mock_get_job_events(self, *, job_id, caller_headers, correlation_id):
+        calls.append(("events", job_id, caller_headers))
+        return 200, {
+            "report_job_id": job_id,
+            "events": [
+                {
+                    "status_event_id": "rse_1",
+                    "report_job_id": job_id,
+                    "from_status": None,
+                    "to_status": "accepted",
+                    "event_type": "job_accepted",
+                    "message": "Portfolio review report job accepted.",
+                    "actor": "advisor-123",
+                    "created_at": "2026-04-22T09:00:00Z",
+                    "correlation_id": correlation_id,
+                    "trace_id": "trace-job",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job", _mock_get_job
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job_events",
+        _mock_get_job_events,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.cancel_report_job",
+        _mock_cancel_job,
+    )
+
+    client = TestClient(app)
+    status_response = client.get(
+        "/api/v1/report-jobs/rjob_1",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
+    events_response = client.get(
+        "/api/v1/report-jobs/rjob_1/events",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
+    cancel_response = client.post(
+        "/api/v1/report-jobs/rjob_1/cancel",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
+
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "accepted"
+    assert events_response.status_code == 200
+    assert events_response.json()["events"][0]["event_type"] == "job_accepted"
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["status"] == "cancelled"
+    assert calls[0][0:2] == ("get", "rjob_1")
+    assert calls[0][2]["X-Actor-Id"] == "advisor-123"
+    assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[0][2]["X-Tenant-Id"] == "tenant-sg"
+    assert calls[0][2]["X-Region"] == "APAC"
+    assert calls[1][0:2] == ("events", "rjob_1")
+    assert calls[1][2]["X-Actor-Id"] == "advisor-123"
+    assert calls[1][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[1][2]["X-Region"] == "APAC"
+    assert calls[2][0:2] == ("cancel", "rjob_1")
+    assert calls[2][2]["X-Actor-Id"] == "advisor-123"
+    assert calls[2][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[2][2]["X-Region"] == "APAC"
+
+
+def test_report_job_gateway_errors_are_product_safe(monkeypatch):
+    async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):  # noqa: ARG001
+        return 500, {"detail": "sqlite traceback internal-host report.dev.lotus"}
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job", _mock_get_job
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/report-jobs/rjob_500",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["detail"]["code"] == "report_job_upstream_unavailable"
+    assert "sqlite" not in str(body).lower()
+    assert "report.dev.lotus" not in str(body)
