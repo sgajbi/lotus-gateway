@@ -206,6 +206,10 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert "first-paint" in risk_summary_operation["description"]
     assert risk_summary_parameters["period"]["description"]
+    assert "1Y, 3Y, 5Y" in risk_summary_parameters["period"]["description"]
+    assert (
+        "normalized before calling lotus-risk" in risk_summary_parameters["period"]["description"]
+    )
     assert risk_summary_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_summary_parameters["period"]["schema"]["examples"] == ["YTD"]
     assert risk_summary_parameters["detail_basis"]["description"]
@@ -223,6 +227,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_concentration_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert "issuer mapping coverage" in risk_concentration_operation["description"]
     assert risk_concentration_parameters["period"]["description"]
+    assert "1Y, 3Y, 5Y" in risk_concentration_parameters["period"]["description"]
     assert risk_concentration_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_concentration_parameters["period"]["schema"]["examples"] == ["YTD"]
     assert risk_concentration_parameters["benchmark_code"]["description"]
@@ -237,6 +242,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_drawdown_parameters["portfolio_id"]["schema"]["examples"] == ["PF_1001"]
     assert "include_underwater_series=true" in risk_drawdown_operation["description"]
     assert risk_drawdown_parameters["period"]["description"]
+    assert "1Y, 3Y, 5Y" in risk_drawdown_parameters["period"]["description"]
     assert risk_drawdown_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_drawdown_parameters["detail_basis"]["description"]
     assert risk_drawdown_parameters["detail_basis"]["schema"]["default"] == "NET"
@@ -256,6 +262,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert "include_time_series=true" in risk_rolling_operation["description"]
     assert "omits rolling sharpe" in risk_rolling_operation["description"].lower()
     assert risk_rolling_parameters["period"]["description"]
+    assert "1Y, 3Y, 5Y" in risk_rolling_parameters["period"]["description"]
     assert risk_rolling_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_rolling_parameters["detail_basis"]["description"]
     assert risk_rolling_parameters["detail_basis"]["schema"]["default"] == "NET"
@@ -278,6 +285,7 @@ def test_workbench_openapi_contract_registered() -> None:
         in (risk_attribution_operation["description"])
     )
     assert risk_attribution_parameters["period"]["description"]
+    assert "1Y, 3Y, 5Y" in risk_attribution_parameters["period"]["description"]
     assert risk_attribution_parameters["period"]["schema"]["default"] == "YTD"
     assert risk_attribution_parameters["detail_basis"]["description"]
     assert risk_attribution_parameters["detail_basis"]["schema"]["default"] == "NET"

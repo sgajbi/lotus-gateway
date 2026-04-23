@@ -1961,14 +1961,16 @@ def _resolve_as_of_date(value: str | None) -> str:
 
 def _normalize_period(value: str) -> str:
     normalized = value.upper()
-    if normalized in {"MTD", "QTD", "YTD", "SI"}:
+    if normalized in {"MTD", "QTD", "YTD", "1Y", "3Y", "5Y", "SI", "YEAR", "EXPLICIT"}:
         return normalized
-    if normalized in {"1Y", "ONE_YEAR"}:
-        return "ONE_YEAR"
-    if normalized in {"3Y", "THREE_YEAR"}:
-        return "THREE_YEAR"
-    if normalized in {"5Y", "FIVE_YEAR"}:
-        return "FIVE_YEAR"
+    if normalized == "ONE_YEAR":
+        return "1Y"
+    if normalized == "THREE_YEAR":
+        return "3Y"
+    if normalized == "FIVE_YEAR":
+        return "5Y"
+    if normalized == "ITD":
+        return "SI"
     return "YTD"
 
 
@@ -2046,7 +2048,7 @@ def _map_rolling_metric_series(
         metric_values_payload = entry.get("metric_values")
         metric_values = (
             {
-                str(key): float(value) if isinstance(value, int | float) else None
+                str(key): _safe_float(value)
                 for key, value in metric_values_payload.items()
                 if isinstance(key, str)
             }

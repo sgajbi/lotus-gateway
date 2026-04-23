@@ -48,6 +48,12 @@ _ADVISOR_BRIEF_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 _RISK_WORKSPACE_SERVICE: RiskWorkspaceService | None = None
 _RISK_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
+RISK_PERIOD_QUERY_DESCRIPTION = (
+    "Canonical risk horizon. Use platform-governed values such as MTD, QTD, YTD, 1Y, 3Y, 5Y, "
+    "SI, YEAR, or EXPLICIT. Legacy aliases ONE_YEAR, THREE_YEAR, FIVE_YEAR, and ITD may be "
+    "accepted for compatibility but are normalized before calling lotus-risk."
+)
+
 
 def _service_signature() -> tuple[object, ...]:
     return (
@@ -314,7 +320,7 @@ async def get_workbench_risk_summary(
     ),
     period: str = Query(
         default="YTD",
-        description="Risk summary horizon requested by the caller.",
+        description=RISK_PERIOD_QUERY_DESCRIPTION,
         examples=["YTD"],
     ),
     detail_basis: str = Query(
@@ -373,7 +379,7 @@ async def get_workbench_risk_concentration(
     ),
     period: str = Query(
         default="YTD",
-        description="Risk concentration horizon requested by the caller.",
+        description=RISK_PERIOD_QUERY_DESCRIPTION,
         examples=["YTD"],
     ),
     benchmark_code: str | None = Query(
@@ -425,7 +431,7 @@ async def get_workbench_risk_drawdown(
     ),
     period: str = Query(
         default="YTD",
-        description="Risk drawdown horizon requested by the caller.",
+        description=RISK_PERIOD_QUERY_DESCRIPTION,
         examples=["YTD"],
     ),
     detail_basis: str = Query(
@@ -490,7 +496,7 @@ async def get_workbench_risk_rolling(
     ),
     period: str = Query(
         default="YTD",
-        description="Rolling-risk horizon requested by the caller.",
+        description=RISK_PERIOD_QUERY_DESCRIPTION,
         examples=["YTD"],
     ),
     detail_basis: str = Query(
@@ -557,7 +563,7 @@ async def get_workbench_risk_attribution(
     ),
     period: str = Query(
         default="YTD",
-        description="Risk attribution horizon requested by the caller.",
+        description=RISK_PERIOD_QUERY_DESCRIPTION,
         examples=["YTD"],
     ),
     detail_basis: str = Query(
