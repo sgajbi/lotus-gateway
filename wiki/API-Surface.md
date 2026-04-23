@@ -15,6 +15,7 @@
 - `GET /api/v1/portfolio/*`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
+- `GET` and `POST /api/v1/report-jobs/*`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
 ## Current contract notes
@@ -27,6 +28,9 @@
 - domain-product trust certification returns certified platform trust posture when the RFC-0087
   artifact exists and an explicit unavailable posture when it has not been generated
 - reporting snapshot and reporting request payloads use `asOfDate`
+- portfolio review report job initiation uses canonical snake_case body fields and requires
+  `Idempotency-Key`
+- report job status and cancellation are gateway-first under `/api/v1/report-jobs/*`
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
@@ -83,6 +87,27 @@ Reporting summary:
 curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/summary" \
   -H "Content-Type: application/json" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"WEALTH\",\"ALLOCATION\"],\"allocationDimensions\":[\"asset_class\"]}"
+```
+
+Portfolio review report job:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/reports/portfolio-reviews" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: portfolio-review-PB_SG_GLOBAL_BAL_001-2026-04-22" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor" \
+  -d "{\"portfolio_scope\":{\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"]},\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"json\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"benchmark_code\":\"BMK_GLOBAL_BALANCED_60_40\"}}"
+```
+
+Report job status:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example"
 ```
 
 Proposal creation:
