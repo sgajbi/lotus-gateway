@@ -43,7 +43,7 @@ It depends on:
 - `lotus-manage`
   management workflow capability when split routing is enabled
 - `lotus-report`
-  reporting snapshot, summary, and review payloads
+  reporting snapshot, summary, review payloads, and durable report job lifecycle
 - `lotus-ai`
   evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
 - `lotus-platform`
@@ -89,6 +89,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/workbench/*`
 - `reporting`
   `/api/v1/reports/*`
+- `report-jobs`
+  `/api/v1/report-jobs/*`
 - platform surfaces
   `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 

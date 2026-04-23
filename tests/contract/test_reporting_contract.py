@@ -70,10 +70,18 @@ def test_reporting_openapi_contract_registered() -> None:
     assert "/api/v1/reports/{portfolio_id}/snapshot" in spec["paths"]
     assert "/api/v1/reports/{portfolio_id}/summary" in spec["paths"]
     assert "/api/v1/reports/{portfolio_id}/review" in spec["paths"]
+    assert "/api/v1/reports/portfolio-reviews" in spec["paths"]
+    assert "/api/v1/report-jobs/{job_id}" in spec["paths"]
+    assert "/api/v1/report-jobs/{job_id}/events" in spec["paths"]
+    assert "/api/v1/report-jobs/{job_id}/cancel" in spec["paths"]
 
     snapshot_path = spec["paths"]["/api/v1/reports/{portfolio_id}/snapshot"]["get"]
     summary_path = spec["paths"]["/api/v1/reports/{portfolio_id}/summary"]["post"]
     review_path = spec["paths"]["/api/v1/reports/{portfolio_id}/review"]["post"]
+    job_submit_path = spec["paths"]["/api/v1/reports/portfolio-reviews"]["post"]
+    job_status_path = spec["paths"]["/api/v1/report-jobs/{job_id}"]["get"]
+    job_events_path = spec["paths"]["/api/v1/report-jobs/{job_id}/events"]["get"]
+    job_cancel_path = spec["paths"]["/api/v1/report-jobs/{job_id}/cancel"]["post"]
     request_schema = spec["components"]["schemas"]["ReportingPortfolioRequest"]
     snapshot_schema = spec["components"]["schemas"]["ReportingSnapshotResponse"]
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
@@ -82,6 +90,23 @@ def test_reporting_openapi_contract_registered() -> None:
     assert snapshot_path["description"]
     assert summary_path["description"]
     assert review_path["description"]
+    assert job_submit_path["summary"] == "Submit portfolio review report job"
+    assert job_status_path["summary"] == "Get report job status"
+    assert job_events_path["summary"] == "Get report job event history"
+    assert job_cancel_path["summary"] == "Cancel report job before render or archive"
+    assert "RFC-" not in str(job_submit_path)
+    assert "RFC-" not in str(job_status_path)
+    assert "RFC-" not in str(job_events_path)
+    assert "RFC-" not in str(job_cancel_path)
+    for schema_name in [
+        "ReportJobHandleResponse",
+        "ReportJobStatusResponse",
+        "ReportJobStatusEventsResponse",
+        "ReportStatusEvent",
+    ]:
+        properties = spec["components"]["schemas"][schema_name]["properties"]
+        for property_contract in properties.values():
+            assert property_contract.get("description")
     snapshot_parameters = {
         parameter["name"]: parameter for parameter in snapshot_path["parameters"]
     }

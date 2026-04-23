@@ -1477,6 +1477,81 @@ async def test_reporting_client_summary_and_review_routes():
 
 
 @pytest.mark.asyncio
+async def test_reporting_client_report_job_routes_forward_governed_headers():
+    client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(202, {"report_job_id": "rjob_1"})
+    _FakeAsyncClient.queue_json(200, {"status": "accepted"})
+    _FakeAsyncClient.queue_json(200, {"events": []})
+    _FakeAsyncClient.queue_json(200, {"status": "cancelled"})
+
+    submit_status, submit_payload = await client.submit_portfolio_review_job(
+        payload={
+            "portfolio_scope": {"portfolio_ids": ["P1"]},
+            "as_of_date": "2026-04-22",
+            "requested_output_formats": ["json"],
+        },
+        idempotency_key="idem-job-1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "advisor",
+        },
+        correlation_id="corr-job-1",
+    )
+    status_code, status_payload = await client.get_report_job(
+        job_id="rjob_1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "advisor",
+        },
+        correlation_id="corr-job-1",
+    )
+    events_status, events_payload = await client.get_report_job_events(
+        job_id="rjob_1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "advisor",
+        },
+        correlation_id="corr-job-1",
+    )
+    cancel_status, cancel_payload = await client.cancel_report_job(
+        job_id="rjob_1",
+        caller_headers={"X-Actor-Id": "advisor-123"},
+        correlation_id="corr-job-1",
+    )
+
+    assert submit_status == 202
+    assert submit_payload["report_job_id"] == "rjob_1"
+    assert status_code == 200
+    assert status_payload["status"] == "accepted"
+    assert events_status == 200
+    assert events_payload["events"] == []
+    assert cancel_status == 200
+    assert cancel_payload["status"] == "cancelled"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://ras/reports/portfolio-reviews"
+    assert _FakeAsyncClient.calls[0]["json"]["portfolio_scope"] == {"portfolio_ids": ["P1"]}
+    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == "idem-job-1"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "advisor-123"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-job-1"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://ras/reports/jobs/rjob_1"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Actor-Id"] == "advisor-123"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Correlation-Id"] == "corr-job-1"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://ras/reports/jobs/rjob_1/events"
+    assert _FakeAsyncClient.calls[2]["headers"]["X-Actor-Id"] == "advisor-123"
+    assert _FakeAsyncClient.calls[2]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[2]["headers"]["X-Correlation-Id"] == "corr-job-1"
+    assert _FakeAsyncClient.calls[3]["url"] == "http://ras/reports/jobs/rjob_1/cancel"
+    assert _FakeAsyncClient.calls[3]["headers"]["X-Actor-Id"] == "advisor-123"
+
+
+@pytest.mark.asyncio
 async def test_reporting_client_snapshot_request_uses_live_aggregation_query_contract():
     client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"rows": []})
