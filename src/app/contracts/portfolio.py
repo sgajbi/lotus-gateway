@@ -2060,7 +2060,7 @@ class PortfolioPerformanceSnapshotResponse(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used for the comparison values when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     portfolio_return_pct: float | None = Field(
         default=None,

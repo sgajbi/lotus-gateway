@@ -331,7 +331,7 @@ async def get_workbench_risk_summary(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for relative risk context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     as_of_date: str | None = Query(
         default=None,
@@ -385,7 +385,7 @@ async def get_workbench_risk_concentration(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for relative concentration context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     as_of_date: str | None = Query(
         default=None,
@@ -442,7 +442,7 @@ async def get_workbench_risk_drawdown(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for relative drawdown context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     as_of_date: str | None = Query(
         default=None,
@@ -507,7 +507,7 @@ async def get_workbench_risk_rolling(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for relative rolling-risk context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     as_of_date: str | None = Query(
         default=None,
@@ -576,7 +576,7 @@ async def get_workbench_risk_attribution(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for relative attribution context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     as_of_date: str | None = Query(
         default=None,
@@ -667,7 +667,7 @@ async def get_performance_workspace_summary(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for summary-relative performance context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     report_start_date: str | None = Query(
         default=None,
@@ -744,7 +744,7 @@ async def get_performance_workspace_details(
     benchmark_code: str | None = Query(
         default=None,
         description="Optional benchmark override used for detailed relative performance context.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     report_start_date: str | None = Query(
         default=None,
@@ -855,7 +855,7 @@ async def get_performance_horizon_comparison(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     chart_frequency: str = Query(
         default="monthly",
@@ -949,7 +949,7 @@ async def get_performance_attribution_trend(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     report_start_date: str | None = Query(
         default=None,
@@ -1032,7 +1032,7 @@ async def get_performance_advisor_brief(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     report_start_date: str | None = Query(
         default=None,
@@ -1113,7 +1113,7 @@ async def post_performance_advisor_brief_review_action(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
         ),
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     ),
     report_start_date: str | None = Query(
         default=None,

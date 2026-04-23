@@ -423,7 +423,7 @@ def test_portfolio_performance_snapshot_contract_shape() -> None:
         report_start_date="2026-01-01",
         report_end_date="2026-03-27",
         period="YTD",
-        benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
         portfolio_return_pct=15.1,
         benchmark_return_pct=14.72,
         excess_return_pct=0.38,
@@ -436,7 +436,7 @@ def test_portfolio_performance_snapshot_contract_shape() -> None:
             }
         ],
     )
-    assert payload.benchmark_code == "BMK_GLOBAL_BALANCED_60_40"
+    assert payload.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert payload.portfolio_return_pct == 15.1
     assert payload.benchmark_return_pct == 14.72
     assert payload.excess_return_pct == 0.38
@@ -1065,7 +1065,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_parameters["detail_basis"]["examples"]["net"]["value"] == "NET"
     assert performance_snapshot_parameters["benchmark_code"]["description"]
     assert performance_snapshot_parameters["benchmark_code"]["examples"]["balanced"]["value"] == (
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert performance_snapshot_parameters["explicit_start_date"]["description"]
     assert (
@@ -1091,7 +1091,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert performance_snapshot_schema["properties"]["portfolio_id"]["description"]
     assert performance_snapshot_schema["properties"]["benchmark_code"]["description"]
     assert performance_snapshot_schema["properties"]["benchmark_code"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["description"]
     assert performance_snapshot_schema["properties"]["portfolio_return_pct"]["examples"] == [15.1]

@@ -48,7 +48,7 @@ def test_reporting_request_normalizes_documented_aliases() -> None:
         sections=["WEALTH", "ALLOCATION"],
         allocationDimensions=["asset_class", "currency"],
         lookThroughMode="direct_only",
-        benchmarkCode="BMK_GLOBAL_BALANCED_60_40",
+        benchmarkCode="BMK_PB_GLOBAL_BALANCED_60_40",
         includeBenchmarks=True,
     )
 
@@ -58,7 +58,7 @@ def test_reporting_request_normalizes_documented_aliases() -> None:
         "sections": ["WEALTH", "ALLOCATION"],
         "allocation_dimensions": ["asset_class", "currency"],
         "look_through_mode": "direct_only",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "includeBenchmarks": True,
     }
 
@@ -154,7 +154,7 @@ def test_reporting_openapi_contract_registered() -> None:
         review_path["requestBody"]["content"]["application/json"]["examples"]["frontOfficeReview"][
             "value"
         ]["benchmarkCode"]
-        == "BMK_GLOBAL_BALANCED_60_40"
+        == "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert request_schema["properties"]["asOfDate"]["description"]
     assert request_schema["properties"]["reportingCurrency"]["description"]

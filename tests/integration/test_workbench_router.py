@@ -1479,7 +1479,7 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         "/api/v1/workbench/PF_1001/performance/summary"
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
-        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-performance-summary"},
     )
@@ -1494,7 +1494,7 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         "contribution_dimension": "sector",
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }
@@ -1502,7 +1502,7 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-03-27"
     assert body["detail_basis"] == "GROSS"
-    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert body["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
 
 
 def test_workbench_performance_details_router_preserves_query_context(monkeypatch):
@@ -1594,7 +1594,7 @@ def test_workbench_performance_details_router_preserves_query_context(monkeypatc
         "/api/v1/workbench/PF_1001/performance/details"
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
-        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-performance-details"},
     )
@@ -1609,7 +1609,7 @@ def test_workbench_performance_details_router_preserves_query_context(monkeypatc
         "contribution_dimension": "sector",
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }
@@ -1617,7 +1617,7 @@ def test_workbench_performance_details_router_preserves_query_context(monkeypatc
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-03-27"
     assert body["detail_basis"] == "GROSS"
-    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert body["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
 
 
 def test_workbench_performance_evidence_artifact_router(monkeypatch):
@@ -1784,7 +1784,7 @@ def test_workbench_performance_horizon_comparison_router_preserves_query_context
     client = TestClient(app)
     response = client.get(
         "/api/v1/workbench/PF_1001/performance/horizon-comparison"
-        "?period=EXPLICIT&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "?period=EXPLICIT&detail_basis=GROSS&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&chart_frequency=weekly&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-horizon"},
     )
@@ -1795,7 +1795,7 @@ def test_workbench_performance_horizon_comparison_router_preserves_query_context
         "correlation_id": "corr-horizon",
         "period": "EXPLICIT",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "chart_frequency": "weekly",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
@@ -1924,7 +1924,7 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
     response = client.get(
         "/api/v1/workbench/PF_1001/performance/attribution-trend"
         "?period=EXPLICIT&chart_frequency=weekly&attribution_dimension=country"
-        "&detail_basis=GROSS&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&detail_basis=GROSS&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-attribution-trend"},
     )
@@ -1937,7 +1937,7 @@ def test_workbench_performance_attribution_trend_router_preserves_query_context(
         "chart_frequency": "weekly",
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }
@@ -1990,7 +1990,7 @@ def test_workbench_performance_horizon_comparison_openapi_contract():
     assert response_schema["example"]["rows"][0]["period"] == "MTD"
     assert (
         response_schema["example"]["benchmark_options"][0]["benchmark_code"]
-        == "BMK_GLOBAL_BALANCED_60_40"
+        == "BMK_PB_GLOBAL_BALANCED_60_40"
     )
 
 
@@ -2031,7 +2031,7 @@ def test_workbench_performance_evidence_openapi_contract():
     assert summary_schema["properties"]["capabilities"]["description"]
     assert (
         summary_schema["example"]["benchmark_options"][0]["benchmark_code"]
-        == "BMK_GLOBAL_BALANCED_60_40"
+        == "BMK_PB_GLOBAL_BALANCED_60_40"
     )
     assert summary_schema["example"]["evidence_view"]["state"] == "partial"
     assert details_schema["properties"]["correlation_id"]["description"]
@@ -2241,7 +2241,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
             chart_frequency="monthly",
             contribution_dimension="asset_class",
             attribution_dimension="asset_class",
-            benchmark_code="BMK_GLOBAL_BALANCED_60_40",
+            benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
             status=AdvisorBriefStatus.READY,
             summary="Advisor summary.",
             talking_points=[
@@ -2257,7 +2257,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
                             target_mode="summary",
                             route=(
                                 "/performance?portfolioId=PF_1001&period=YTD"
-                                "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                                "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                             ),
                         )
                     ],
@@ -2269,7 +2269,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
                     target_mode="summary",
                     route=(
                         "/performance?portfolioId=PF_1001&period=YTD"
-                        "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                        "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                     ),
                 )
             ],
@@ -2282,7 +2282,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
                     target_mode="summary",
                     route=(
                         "/performance?portfolioId=PF_1001&period=YTD"
-                        "&detailBasis=NET&benchmark=BMK_GLOBAL_BALANCED_60_40"
+                        "&detailBasis=NET&benchmark=BMK_PB_GLOBAL_BALANCED_60_40"
                     ),
                 )
             ],
@@ -2335,7 +2335,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
         "/api/v1/workbench/PF_1001/performance/advisor-brief"
         "?period=YTD&chart_frequency=monthly&detail_basis=NET"
         "&contribution_dimension=asset_class&attribution_dimension=asset_class"
-        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40&report_start_date=2026-01-01"
+        "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&report_start_date=2026-01-01"
         "&report_end_date=2026-04-04"
     )
 
@@ -2361,7 +2361,7 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert captured_call["portfolio_id"] == "PF_1001"
     assert captured_call["period"] == "YTD"
     assert captured_call["detail_basis"] == "NET"
-    assert captured_call["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert captured_call["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert captured_call["explicit_start_date"] == "2026-01-01"
     assert captured_call["explicit_end_date"] == "2026-04-04"
 
@@ -2432,7 +2432,7 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "/api/v1/workbench/PF_1001/performance/advisor-brief"
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
-        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-advisor-brief"},
     )
@@ -2446,7 +2446,7 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "contribution_dimension": "sector",
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }
@@ -2562,7 +2562,7 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "/api/v1/workbench/PF_1001/performance/advisor-brief/review-actions"
         "?period=EXPLICIT&chart_frequency=weekly&contribution_dimension=sector"
         "&attribution_dimension=country&detail_basis=GROSS"
-        "&benchmark_code=BMK_GLOBAL_BALANCED_60_40"
+        "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
         headers={"X-Correlation-Id": "corr-advisor-brief-review"},
         json={
@@ -2601,7 +2601,7 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "contribution_dimension": "sector",
         "attribution_dimension": "country",
         "detail_basis": "GROSS",
-        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
         "request": {
             "action_type": "SUPERSEDE",
             "reviewed_by": "advisor_1",

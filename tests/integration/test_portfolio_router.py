@@ -1695,7 +1695,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
             "report_start_date": "2026-01-01",
             "report_end_date": "2026-03-27",
             "period": "EXPLICIT",
-            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             "portfolio_return_pct": 15.1,
             "benchmark_return_pct": 14.72,
             "excess_return_pct": 0.38,
@@ -1736,7 +1736,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
             "period": "EXPLICIT",
             "chart_frequency": "quarterly",
             "detail_basis": "GROSS",
-            "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+            "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             "explicit_start_date": "2026-01-01",
             "explicit_end_date": "2026-03-27",
         },
@@ -1749,7 +1749,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     assert body["portfolio_id"] == "PF_1001"
     assert body["as_of_date"] == "2026-03-27"
     assert body["period"] == "EXPLICIT"
-    assert body["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert body["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert body["report_start_date"] == "2026-01-01"
     assert body["report_end_date"] == "2026-03-27"
     assert body["portfolio_return_pct"] == 15.1
@@ -1765,7 +1765,7 @@ def test_portfolio_performance_snapshot_router(monkeypatch):
     assert captured["period"] == "EXPLICIT"
     assert captured["chart_frequency"] == "quarterly"
     assert captured["detail_basis"] == "GROSS"
-    assert captured["benchmark_code"] == "BMK_GLOBAL_BALANCED_60_40"
+    assert captured["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert captured["explicit_start_date"] == "2026-01-01"
     assert captured["explicit_end_date"] == "2026-03-27"
 

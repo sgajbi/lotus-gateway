@@ -217,7 +217,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_summary_parameters["detail_basis"]["schema"]["examples"] == ["NET"]
     assert risk_summary_parameters["benchmark_code"]["description"]
     assert risk_summary_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert risk_summary_parameters["as_of_date"]["description"]
     assert risk_summary_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
@@ -232,7 +232,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_concentration_parameters["period"]["schema"]["examples"] == ["YTD"]
     assert risk_concentration_parameters["benchmark_code"]["description"]
     assert risk_concentration_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert risk_concentration_parameters["as_of_date"]["description"]
     assert risk_concentration_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
@@ -248,7 +248,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_drawdown_parameters["detail_basis"]["schema"]["default"] == "NET"
     assert risk_drawdown_parameters["benchmark_code"]["description"]
     assert risk_drawdown_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert risk_drawdown_parameters["as_of_date"]["description"]
     assert risk_drawdown_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
@@ -268,7 +268,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_rolling_parameters["detail_basis"]["schema"]["default"] == "NET"
     assert risk_rolling_parameters["benchmark_code"]["description"]
     assert risk_rolling_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert risk_rolling_parameters["as_of_date"]["description"]
     assert risk_rolling_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
@@ -291,7 +291,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert risk_attribution_parameters["detail_basis"]["schema"]["default"] == "NET"
     assert risk_attribution_parameters["benchmark_code"]["description"]
     assert risk_attribution_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert risk_attribution_parameters["as_of_date"]["description"]
     assert risk_attribution_parameters["as_of_date"]["schema"]["examples"] == ["2026-02-24"]
@@ -323,7 +323,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert performance_summary_parameters["detail_basis"]["schema"]["default"] == "NET"
     assert performance_summary_parameters["benchmark_code"]["description"]
     assert performance_summary_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert performance_summary_parameters["report_start_date"]["description"]
     assert performance_summary_parameters["report_start_date"]["schema"]["examples"] == [
@@ -351,7 +351,7 @@ def test_workbench_openapi_contract_registered() -> None:
     assert performance_details_parameters["detail_basis"]["schema"]["default"] == "NET"
     assert performance_details_parameters["benchmark_code"]["description"]
     assert performance_details_parameters["benchmark_code"]["schema"]["examples"] == [
-        "BMK_GLOBAL_BALANCED_60_40"
+        "BMK_PB_GLOBAL_BALANCED_60_40"
     ]
     assert performance_details_parameters["report_start_date"]["description"]
     assert performance_details_parameters["report_start_date"]["schema"]["examples"] == [

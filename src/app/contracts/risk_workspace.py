@@ -1580,7 +1580,7 @@ class WorkbenchRiskModuleEnvelope(BaseModel):
     benchmark_code: str | None = Field(
         default=None,
         description="Resolved benchmark code used by the risk module when available.",
-        examples=["BMK_GLOBAL_BALANCED_60_40"],
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
     )
     source_service: str = Field(
         default="lotus-risk",
@@ -1621,7 +1621,7 @@ class WorkbenchRiskSummaryResponse(WorkbenchRiskModuleEnvelope):
                 "portfolio_id": "PF_1001",
                 "period": "YTD",
                 "as_of_date": "2026-02-24",
-                "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
+                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
                 "source_service": "lotus-risk",
                 "state": "partial",
                 "payload": {
