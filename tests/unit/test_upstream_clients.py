@@ -1500,6 +1500,12 @@ async def test_reporting_client_report_job_routes_forward_governed_headers():
     )
     status_code, status_payload = await client.get_report_job(
         job_id="rjob_1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Role": "advisor",
+        },
         correlation_id="corr-job-1",
     )
     cancel_status, cancel_payload = await client.cancel_report_job(
@@ -1521,6 +1527,9 @@ async def test_reporting_client_report_job_routes_forward_governed_headers():
     assert _FakeAsyncClient.calls[0]["headers"]["X-Tenant-Id"] == "tenant-sg"
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-job-1"
     assert _FakeAsyncClient.calls[1]["url"] == "http://ras/reports/jobs/rjob_1"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Actor-Id"] == "advisor-123"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Tenant-Id"] == "tenant-sg"
+    assert _FakeAsyncClient.calls[1]["headers"]["X-Correlation-Id"] == "corr-job-1"
     assert _FakeAsyncClient.calls[2]["url"] == "http://ras/reports/jobs/rjob_1/cancel"
     assert _FakeAsyncClient.calls[2]["headers"]["X-Actor-Id"] == "advisor-123"
 

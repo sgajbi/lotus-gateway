@@ -373,9 +373,23 @@ async def submit_portfolio_review_report_job(
 )
 async def get_report_job_status(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
     status_code, payload = await _reporting_client().get_report_job(
         job_id=job_id,
+        caller_headers=_caller_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
         correlation_id=correlation_id_var.get(),
     )
     _raise_report_job_error(status_code, payload)

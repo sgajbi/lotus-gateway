@@ -377,8 +377,8 @@ def test_portfolio_review_job_gateway_requires_idempotency_key():
 def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     calls: list[tuple[str, str, dict[str, str] | None]] = []
 
-    async def _mock_get_job(self, *, job_id, correlation_id):
-        calls.append(("get", job_id, None))
+    async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):
+        calls.append(("get", job_id, caller_headers))
         return 200, {
             "report_job_id": job_id,
             "report_request_id": "rrq_1",
@@ -430,7 +430,10 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     )
 
     client = TestClient(app)
-    status_response = client.get("/api/v1/report-jobs/rjob_1")
+    status_response = client.get(
+        "/api/v1/report-jobs/rjob_1",
+        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg"},
+    )
     cancel_response = client.post(
         "/api/v1/report-jobs/rjob_1/cancel",
         headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg"},
@@ -440,14 +443,17 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     assert status_response.json()["status"] == "accepted"
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
-    assert calls[0] == ("get", "rjob_1", None)
+    assert calls[0][0:2] == ("get", "rjob_1")
+    assert calls[0][2]["X-Actor-Id"] == "advisor-123"
+    assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[0][2]["X-Tenant-Id"] == "tenant-sg"
     assert calls[1][0:2] == ("cancel", "rjob_1")
     assert calls[1][2]["X-Actor-Id"] == "advisor-123"
     assert calls[1][2]["X-Caller-Application"] == "lotus-gateway"
 
 
 def test_report_job_gateway_errors_are_product_safe(monkeypatch):
-    async def _mock_get_job(self, *, job_id, correlation_id):  # noqa: ARG001
+    async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):  # noqa: ARG001
         return 500, {"detail": "sqlite traceback internal-host report.dev.lotus"}
 
     monkeypatch.setattr(
