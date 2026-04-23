@@ -338,9 +338,9 @@ async def get_workbench_risk_summary(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
-    reporting_currency: str | None = Query(
-        default=None,
-        description="Optional reporting currency override for the risk summary.",
+    reporting_currency: str = Query(
+        default="USD",
+        description="Reporting currency used for stateful risk and risk-free-rate sourcing.",
         examples=["USD"],
     ),
 ) -> WorkbenchRiskSummaryResponse:
@@ -392,9 +392,9 @@ async def get_workbench_risk_concentration(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
-    reporting_currency: str | None = Query(
-        default=None,
-        description="Optional reporting currency override for concentration analytics.",
+    reporting_currency: str = Query(
+        default="USD",
+        description="Reporting currency used for stateful concentration analytics.",
         examples=["USD"],
     ),
 ) -> WorkbenchRiskConcentrationResponse:
@@ -449,9 +449,9 @@ async def get_workbench_risk_drawdown(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
-    reporting_currency: str | None = Query(
-        default=None,
-        description="Optional reporting currency override for drawdown analytics.",
+    reporting_currency: str = Query(
+        default="USD",
+        description="Reporting currency used for stateful drawdown analytics.",
         examples=["USD"],
     ),
     include_underwater_series: bool = Query(
@@ -514,9 +514,11 @@ async def get_workbench_risk_rolling(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
-    reporting_currency: str | None = Query(
-        default=None,
-        description="Optional reporting currency override for rolling-risk analytics.",
+    reporting_currency: str = Query(
+        default="USD",
+        description=(
+            "Reporting currency used for stateful rolling-risk and risk-free-rate sourcing."
+        ),
         examples=["USD"],
     ),
     include_time_series: bool = Query(
@@ -581,9 +583,9 @@ async def get_workbench_risk_attribution(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
-    reporting_currency: str | None = Query(
-        default=None,
-        description="Optional reporting currency override for risk attribution analytics.",
+    reporting_currency: str = Query(
+        default="USD",
+        description="Reporting currency used for stateful risk attribution analytics.",
         examples=["USD"],
     ),
     attribution_type: str = Query(

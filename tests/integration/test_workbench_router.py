@@ -547,6 +547,52 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert body["warnings"] == []
     assert body["partial_failures"] == []
     assert captured_payload["stateful_input"]["periods"] == [{"type": "YTD", "name": "YTD"}]
+    assert captured_payload["stateful_input"]["reporting_currency"] == "USD"
+
+
+def test_workbench_risk_summary_router_defaults_reporting_currency_for_risk_free_sourcing(
+    monkeypatch,
+):
+    captured_payload: dict[str, Any] = {}
+
+    async def _risk_calculate(self, payload, correlation_id):  # noqa: ARG001
+        captured_payload.update(payload)
+        return 200, {
+            "scope": {
+                "as_of_date": "2026-04-04",
+                "reporting_currency": "USD",
+                "net_or_gross": "NET",
+            },
+            "results": {
+                "YTD": {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-04-04",
+                    "metrics": {"SHARPE": {"value": 1.2}},
+                }
+            },
+            "metadata": {
+                "risk_free_context": {
+                    "requested": True,
+                    "applied": True,
+                    "reason": "ANNUAL_RATE_APPLIED",
+                }
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.post_risk_calculate",
+        _risk_calculate,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_SUMMARY_DEFAULT/risk/summary"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1&as_of_date=2026-04-04",
+        headers={"X-Correlation-Id": "corr-risk-summary-default-currency"},
+    )
+
+    assert response.status_code == 200
+    assert captured_payload["stateful_input"]["reporting_currency"] == "USD"
 
 
 def test_workbench_risk_summary_router_sends_canonical_trailing_period_to_risk(monkeypatch):
