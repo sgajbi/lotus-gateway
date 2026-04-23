@@ -12,6 +12,7 @@ from app.contracts.reporting import (
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
     ReportJobHandleResponse,
+    ReportJobStatusEventsResponse,
     ReportJobStatusResponse,
 )
 from app.middleware.correlation import correlation_id_var
@@ -412,6 +413,40 @@ async def get_report_job_status(
     )
     _raise_report_job_error(status_code, payload)
     return ReportJobStatusResponse.model_validate(payload)
+
+
+@jobs_router.get(
+    "/{job_id}/events",
+    response_model=ReportJobStatusEventsResponse,
+    summary="Get report job event history",
+    description=(
+        "Return append-only report job lifecycle events through the governed gateway boundary. "
+        "Use this endpoint for operational support when current status alone is insufficient."
+    ),
+)
+async def get_report_job_events(
+    job_id: Annotated[str, Path(description="Opaque report job identifier.")],
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> ReportJobStatusEventsResponse:
+    status_code, payload = await _reporting_client().get_report_job_events(
+        job_id=job_id,
+        caller_headers=_caller_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+        correlation_id=correlation_id_var.get(),
+    )
+    _raise_report_job_error(status_code, payload)
+    return ReportJobStatusEventsResponse.model_validate(payload)
 
 
 @jobs_router.post(

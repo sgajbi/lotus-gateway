@@ -32,8 +32,9 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
-4. report job initiation/status/cancellation routes are active for gateway-first portfolio review
-   report job workflows under `/api/v1/reports/portfolio-reviews` and `/api/v1/report-jobs/*`,
+4. report job initiation/status/event-history/cancellation routes are active for gateway-first
+   portfolio review report job workflows under `/api/v1/reports/portfolio-reviews` and
+   `/api/v1/report-jobs/*`,
 5. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
 6. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,

@@ -30,7 +30,8 @@
 - reporting snapshot and reporting request payloads use `asOfDate`
 - portfolio review report job initiation uses canonical snake_case body fields and requires
   `Idempotency-Key`
-- report job status and cancellation are gateway-first under `/api/v1/report-jobs/*`
+- report job status, append-only event history, and cancellation are gateway-first under
+  `/api/v1/report-jobs/*`
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
@@ -108,6 +109,12 @@ Report job status:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example"
+```
+
+Report job event history:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example/events"
 ```
 
 Proposal creation:

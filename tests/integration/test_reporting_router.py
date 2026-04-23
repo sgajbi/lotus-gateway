@@ -435,8 +435,32 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
             "trace_id": "trace-job",
         }
 
+    async def _mock_get_job_events(self, *, job_id, caller_headers, correlation_id):
+        calls.append(("events", job_id, caller_headers))
+        return 200, {
+            "report_job_id": job_id,
+            "events": [
+                {
+                    "status_event_id": "rse_1",
+                    "report_job_id": job_id,
+                    "from_status": None,
+                    "to_status": "accepted",
+                    "event_type": "job_accepted",
+                    "message": "Portfolio review report job accepted.",
+                    "actor": "advisor-123",
+                    "created_at": "2026-04-22T09:00:00Z",
+                    "correlation_id": correlation_id,
+                    "trace_id": "trace-job",
+                }
+            ],
+        }
+
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.get_report_job", _mock_get_job
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job_events",
+        _mock_get_job_events,
     )
     monkeypatch.setattr(
         "app.clients.reporting_client.ReportingClient.cancel_report_job",
@@ -446,6 +470,14 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     client = TestClient(app)
     status_response = client.get(
         "/api/v1/report-jobs/rjob_1",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+    )
+    events_response = client.get(
+        "/api/v1/report-jobs/rjob_1/events",
         headers={
             "X-Actor-Id": "advisor-123",
             "X-Tenant-Id": "tenant-sg",
@@ -463,6 +495,8 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
 
     assert status_response.status_code == 200
     assert status_response.json()["status"] == "accepted"
+    assert events_response.status_code == 200
+    assert events_response.json()["events"][0]["event_type"] == "job_accepted"
     assert cancel_response.status_code == 200
     assert cancel_response.json()["status"] == "cancelled"
     assert calls[0][0:2] == ("get", "rjob_1")
@@ -470,10 +504,14 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[0][2]["X-Tenant-Id"] == "tenant-sg"
     assert calls[0][2]["X-Region"] == "APAC"
-    assert calls[1][0:2] == ("cancel", "rjob_1")
+    assert calls[1][0:2] == ("events", "rjob_1")
     assert calls[1][2]["X-Actor-Id"] == "advisor-123"
     assert calls[1][2]["X-Caller-Application"] == "lotus-gateway"
     assert calls[1][2]["X-Region"] == "APAC"
+    assert calls[2][0:2] == ("cancel", "rjob_1")
+    assert calls[2][2]["X-Actor-Id"] == "advisor-123"
+    assert calls[2][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[2][2]["X-Region"] == "APAC"
 
 
 def test_report_job_gateway_errors_are_product_safe(monkeypatch):
