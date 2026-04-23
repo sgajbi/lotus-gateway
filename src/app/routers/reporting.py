@@ -52,6 +52,7 @@ REVIEW_REQUEST_EXAMPLES = {
             ],
             "allocationDimensions": ["asset_class"],
             "lookThroughMode": "full",
+            "benchmarkCode": "BMK_GLOBAL_BALANCED_60_40",
         },
     }
 }

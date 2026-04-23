@@ -27,7 +27,11 @@
   `producer_repository`, `product_name`, and `product_version`
 - domain-product trust certification returns certified platform trust posture when the RFC-0087
   artifact exists and an explicit unavailable posture when it has not been generated
-- reporting snapshot and reporting request payloads use `asOfDate`
+- reporting snapshot and reporting request payloads use `asOfDate`; portfolio review requests also
+  support `benchmarkCode` for RFC-0002 performance and risk context
+- reporting review preserves `client_sections`, `advisor_sections`, readiness, evidence, and
+  partial/unavailable section states from `lotus-report`; advisor-only material must stay under
+  `advisor_sections`
 - portfolio review report job initiation uses canonical snake_case body fields and requires
   `Idempotency-Key`
 - report job status, append-only event history, and cancellation are gateway-first under
@@ -88,6 +92,14 @@ Reporting summary:
 curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/summary" \
   -H "Content-Type: application/json" \
   -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"WEALTH\",\"ALLOCATION\"],\"allocationDimensions\":[\"asset_class\"]}"
+```
+
+Reporting portfolio review:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/reports/DEMO_DPM_EUR_001/review" \
+  -H "Content-Type: application/json" \
+  -d "{\"asOfDate\":\"2026-02-24\",\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"allocationDimensions\":[\"asset_class\"],\"lookThroughMode\":\"full\",\"benchmarkCode\":\"BMK_GLOBAL_BALANCED_60_40\"}"
 ```
 
 Portfolio review report job:

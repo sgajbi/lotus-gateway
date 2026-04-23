@@ -48,6 +48,7 @@ def test_reporting_request_normalizes_documented_aliases() -> None:
         sections=["WEALTH", "ALLOCATION"],
         allocationDimensions=["asset_class", "currency"],
         lookThroughMode="direct_only",
+        benchmarkCode="BMK_GLOBAL_BALANCED_60_40",
         includeBenchmarks=True,
     )
 
@@ -57,6 +58,7 @@ def test_reporting_request_normalizes_documented_aliases() -> None:
         "sections": ["WEALTH", "ALLOCATION"],
         "allocation_dimensions": ["asset_class", "currency"],
         "look_through_mode": "direct_only",
+        "benchmark_code": "BMK_GLOBAL_BALANCED_60_40",
         "includeBenchmarks": True,
     }
 
@@ -139,11 +141,18 @@ def test_reporting_openapi_contract_registered() -> None:
         ]["lookThroughMode"]
         == "full"
     )
+    assert (
+        review_path["requestBody"]["content"]["application/json"]["examples"]["frontOfficeReview"][
+            "value"
+        ]["benchmarkCode"]
+        == "BMK_GLOBAL_BALANCED_60_40"
+    )
     assert request_schema["properties"]["asOfDate"]["description"]
     assert request_schema["properties"]["reportingCurrency"]["description"]
     assert request_schema["properties"]["sections"]["description"]
     assert request_schema["properties"]["allocationDimensions"]["description"]
     assert request_schema["properties"]["lookThroughMode"]["description"]
+    assert request_schema["properties"]["benchmarkCode"]["description"]
     assert snapshot_schema["properties"]["correlationId"]["description"]
     assert snapshot_schema["properties"]["contractVersion"]["description"]
     assert snapshot_schema["properties"]["sourceService"]["description"]
@@ -167,7 +176,11 @@ def test_reporting_openapi_contract_registered() -> None:
     assert review_schema["properties"]["portfolioId"]["description"]
     assert review_schema["properties"]["asOfDate"]["description"]
     assert review_schema["properties"]["data"]["description"]
+    review_example = review_schema["properties"]["data"]["examples"][0]
+    assert review_example["readiness"]["status"] == "partial"
+    assert review_example["client_sections"][0]["status"] == "unavailable"
+    assert review_example["advisor_sections"][0]["items"][0]["advisor_only"] is True
     assert (
-        review_schema["properties"]["data"]["examples"][0]["risk_analytics"]["volatility_30d_pct"]
-        == 9.4
+        review_example["advisor_sections"][0]["items"][0]["route_targets"][0]["mutation_allowed"]
+        is False
     )

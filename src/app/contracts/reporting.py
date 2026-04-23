@@ -38,6 +38,15 @@ class ReportingPortfolioRequest(BaseModel):
         description="Optional look-through mode for allocation expansion in reporting payloads.",
         examples=["direct_only"],
     )
+    benchmark_code: str | None = Field(
+        default=None,
+        alias="benchmarkCode",
+        description=(
+            "Optional benchmark identifier forwarded to lotus-report for performance and risk "
+            "review context."
+        ),
+        examples=["BMK_GLOBAL_BALANCED_60_40"],
+    )
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
@@ -178,13 +187,43 @@ class ReportingReviewResponse(BaseModel):
     )
     data: dict = Field(
         default_factory=dict,
-        description="Opaque lotus-report review payload returned unchanged by gateway.",
+        description=(
+            "Opaque lotus-report review payload returned unchanged by gateway. The gateway "
+            "preserves RFC-0002 client_sections, advisor_sections, readiness, evidence, and "
+            "partial/unavailable section states for Workbench consumers."
+        ),
         examples=[
             {
                 "portfolio_id": "DEMO_DPM_EUR_001",
-                "overview": {"total_market_value": 1000.0},
-                "performance": {"portfolio_return_ytd_pct": 4.2},
-                "risk_analytics": {"volatility_30d_pct": 9.4},
+                "readiness": {"status": "partial", "reason": "Risk Review unavailable."},
+                "client_sections": [
+                    {
+                        "section_id": "risk_review",
+                        "title": "Risk Review",
+                        "status": "unavailable",
+                        "reason_code": "missing_return_history",
+                    }
+                ],
+                "advisor_sections": [
+                    {
+                        "section_id": "advisor_discussion",
+                        "title": "Advisor Discussion And Follow-Up",
+                        "status": "ready",
+                        "items": [
+                            {
+                                "prompt_id": "review_readiness",
+                                "advisor_only": True,
+                                "route_targets": [
+                                    {
+                                        "surface": "lotus-workbench",
+                                        "route_key": "portfolio_review",
+                                        "mutation_allowed": False,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
             }
         ],
     )

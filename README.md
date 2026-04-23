@@ -209,7 +209,8 @@ Important current parameter conventions:
 4. `GET /api/v1/domain-products/trust-certification` publishes RFC-0087 platform live trust
    certification when present and returns an explicit unavailable posture when the generated
    artifact is absent
-5. reporting snapshot and reporting portfolio requests use `asOfDate`
+5. reporting snapshot and reporting portfolio requests use `asOfDate`; portfolio review requests
+   also document `benchmarkCode` for RFC-0002 performance and risk context
 6. intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
    `allowPartial`
 7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
