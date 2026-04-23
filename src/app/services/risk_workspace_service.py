@@ -107,6 +107,7 @@ _RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON = (
     "Issuer is supported for total risk only. Active risk by issuer remains "
     "unavailable until benchmark issuer exposure semantics are approved."
 )
+_DEFAULT_REPORTING_CURRENCY = "USD"
 
 
 class RiskWorkspaceService:
@@ -538,6 +539,7 @@ def _build_summary_request(
     stateful_input: dict[str, Any] = {
         "portfolio_id": portfolio_id,
         "as_of_date": as_of_date,
+        "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
         "periods": [{"type": _normalize_period(period), "name": period.upper()}],
         "metrics": _SUMMARY_METRICS,
@@ -552,8 +554,6 @@ def _build_summary_request(
             },
         },
     }
-    if reporting_currency:
-        stateful_input["reporting_currency"] = reporting_currency
     return {"input_mode": "stateful", "stateful_input": stateful_input}
 
 
@@ -566,12 +566,11 @@ def _build_concentration_request(
     stateful_input: dict[str, Any] = {
         "portfolio_id": portfolio_id,
         "as_of_date": as_of_date,
+        "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "include_cash_positions": True,
         "include_zero_quantity_positions": False,
         "top_n": 10,
     }
-    if reporting_currency:
-        stateful_input["reporting_currency"] = reporting_currency
     return {
         "input_mode": "stateful",
         "stateful_input": stateful_input,
@@ -593,6 +592,7 @@ def _build_drawdown_request(
     stateful_input: dict[str, Any] = {
         "portfolio_id": portfolio_id,
         "as_of_date": as_of_date,
+        "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
         "periods": [{"type": _normalize_period(period), "name": period.upper()}],
         "benchmark_policy": {
@@ -600,8 +600,6 @@ def _build_drawdown_request(
             "missing_benchmark_policy": "IGNORE",
         },
     }
-    if reporting_currency:
-        stateful_input["reporting_currency"] = reporting_currency
     return {
         "input_mode": "stateful",
         "stateful_input": stateful_input,
@@ -635,6 +633,7 @@ def _build_rolling_request(
     stateful_input: dict[str, Any] = {
         "portfolio_id": portfolio_id,
         "as_of_date": as_of_date,
+        "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
         "periods": [{"type": _normalize_period(period), "name": period.upper()}],
         "rolling_options": {
@@ -646,8 +645,6 @@ def _build_rolling_request(
             "include_time_series": include_time_series,
         },
     }
-    if reporting_currency:
-        stateful_input["reporting_currency"] = reporting_currency
     return {"input_mode": "stateful", "stateful_input": stateful_input}
 
 
@@ -665,6 +662,7 @@ def _build_attribution_request(
     stateful_input: dict[str, Any] = {
         "portfolio_id": portfolio_id,
         "as_of_date": as_of_date,
+        "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
         "periods": [{"type": _normalize_period(period), "name": period.upper()}],
         "attribution_options": {
@@ -674,11 +672,15 @@ def _build_attribution_request(
             "annualization_basis": 252,
         },
     }
-    if reporting_currency:
-        stateful_input["reporting_currency"] = reporting_currency
     if benchmark_code and attribution_type == "ACTIVE_RISK":
         stateful_input["benchmark_id"] = benchmark_code
     return {"input_mode": "stateful", "stateful_input": stateful_input}
+
+
+def _resolve_reporting_currency(value: str | None) -> str:
+    if value and value.strip():
+        return value.strip().upper()
+    return _DEFAULT_REPORTING_CURRENCY
 
 
 def _normalize_risk_attribution_type(value: str) -> str:
@@ -1961,14 +1963,16 @@ def _resolve_as_of_date(value: str | None) -> str:
 
 def _normalize_period(value: str) -> str:
     normalized = value.upper()
-    if normalized in {"MTD", "QTD", "YTD", "SI"}:
+    if normalized in {"MTD", "QTD", "YTD", "1Y", "3Y", "5Y", "SI", "YEAR", "EXPLICIT"}:
         return normalized
-    if normalized in {"1Y", "ONE_YEAR"}:
-        return "ONE_YEAR"
-    if normalized in {"3Y", "THREE_YEAR"}:
-        return "THREE_YEAR"
-    if normalized in {"5Y", "FIVE_YEAR"}:
-        return "FIVE_YEAR"
+    if normalized == "ONE_YEAR":
+        return "1Y"
+    if normalized == "THREE_YEAR":
+        return "3Y"
+    if normalized == "FIVE_YEAR":
+        return "5Y"
+    if normalized == "ITD":
+        return "SI"
     return "YTD"
 
 
@@ -2046,7 +2050,7 @@ def _map_rolling_metric_series(
         metric_values_payload = entry.get("metric_values")
         metric_values = (
             {
-                str(key): float(value) if isinstance(value, int | float) else None
+                str(key): _safe_float(value)
                 for key, value in metric_values_payload.items()
                 if isinstance(key, str)
             }
