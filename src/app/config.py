@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     ai_service_base_url: str = Field(default="http://ai.dev.lotus")
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
+    archive_service_base_url: str = Field(default="http://archive.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
     manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
@@ -75,6 +76,7 @@ class Settings(BaseSettings):
         "ai_service_base_url",
         "risk_analytics_base_url",
         "reporting_aggregation_base_url",
+        "archive_service_base_url",
         "management_service_base_url",
         mode="before",
     )

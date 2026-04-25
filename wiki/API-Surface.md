@@ -16,6 +16,8 @@
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
+- `GET /api/v1/documents/{document_id}`
+- `GET /api/v1/documents/{document_id}/download`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
 ## Current contract notes
@@ -36,6 +38,12 @@
   `Idempotency-Key`
 - report job search, status, append-only event history, and cancellation are gateway-first under
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
+- archived generated-document metadata and download are gateway-first under `/api/v1/documents/*`;
+  `lotus-workbench` must not call `lotus-archive` directly
+- archived document routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
+  `X-Booking-Center-Code` and `X-Role` are forwarded as caller context
+- legal-hold summary is returned as metadata for support posture; gateway retrieval does not expose
+  legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
   `allowPartial`
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
@@ -136,6 +144,31 @@ Report job event history:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example/events"
+```
+
+Archived document metadata:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/documents/doc_example" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor"
+```
+
+Archived document download:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/documents/doc_example/download" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor" \
+  --output portfolio-review.pdf
 ```
 
 Proposal creation:

@@ -10,6 +10,7 @@ from app.enterprise_readiness import (
     validate_enterprise_runtime_config,
 )
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
+from app.routers.archive_documents import router as archive_documents_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
@@ -40,6 +41,12 @@ app = FastAPI(
                 "Gateway-facing report job operations for status and support diagnostics."
             ),
         },
+        {
+            "name": "Archived Documents",
+            "description": (
+                "Gateway-facing archived document metadata and controlled download APIs."
+            ),
+        },
     ],
 )
 setup_logging()
@@ -56,6 +63,7 @@ app.include_router(portfolio_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)
+app.include_router(archive_documents_router)
 
 
 @app.get("/health")

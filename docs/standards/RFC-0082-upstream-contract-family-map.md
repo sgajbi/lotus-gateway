@@ -42,7 +42,8 @@ outputs.
 | `lotus-risk` | calculate risk, concentration, drawdown, rolling metrics, historical attribution | risk workspace modules and risk panels | risk methodology, concentration, drawdown, and attribution semantics remain in `lotus-risk` |
 | `lotus-advise` | proposal lifecycle and advisory workflow surfaces | proposal workflow composition | advisory decision workflow remains in `lotus-advise` |
 | `lotus-manage` | management workflow surfaces where split routing still applies | management workflow composition | discretionary management operations remain in `lotus-manage` |
-| `lotus-report` | report snapshot rows | report-ready experience payloads | report generation and report row semantics remain in `lotus-report` |
+| `lotus-report` | report snapshot rows, summary/review payloads, report job status/search/event/cancellation APIs | report-ready experience payloads and durable report-job support posture | report generation, request semantics, and job lifecycle truth remain in `lotus-report` |
+| `lotus-archive` | archived document metadata, current-document resolution, and binary download APIs | gateway-controlled generated-document retrieval for product clients | archive metadata, retention, legal-hold, purge, lifecycle, checksum, storage, and access-audit truth remain in `lotus-archive`; gateway exposes metadata and controlled download only |
 | `lotus-ai` | advisor-brief, workflow-pack run-ledger, and RFC-0097 task-flow posture surfaces | evidence-grounded narrative support plus bounded run/task-flow posture for Workbench | gateway must not invent unsupported evidence, model outputs, review states, replacement lineage, or task-flow authority |
 
 ## Conformance Rules
@@ -84,6 +85,8 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    `evidence_view` sourced from lotus-performance execution polling and lineage inventory.
 2. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
    route rather than exposing direct lotus-performance URLs.
+3. archived generated-document metadata and binary links are exposed through gateway-owned document
+   routes rather than exposing direct lotus-archive URLs.
 
 ## Gap Register
 
@@ -96,6 +99,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 4. If Workbench performance or risk panels become latency-constrained, the first hardening step is
    contract and retrieval-shape optimization in the authoritative upstream service, not a gateway-local
    gRPC path.
+5. Gateway archive retrieval currently has no product-owned entitlement engine beyond caller-context
+   propagation and upstream archive authorization; if client-level document entitlements are required,
+   the policy source must be defined before expanding UI access.
 
 ## Validation Lane
 

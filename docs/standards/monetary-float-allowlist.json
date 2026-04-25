@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-04-23T03:30:36Z",
+  "generated_at": "2026-04-25T14:49:31Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:112:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -10,7 +10,7 @@
       "review_by": "2026-08-24"
     },
     {
-      "finding": "src/app/config.py:53:risk_bff_cache_ttl_seconds: float = Field(default=15.0)",
+      "finding": "src/app/config.py:54:risk_bff_cache_ttl_seconds: float = Field(default=15.0)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-04"

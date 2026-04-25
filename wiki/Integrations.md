@@ -19,6 +19,8 @@
   split-routing management workflows when enabled
 - `lotus-report`
   reporting snapshot, summary, and review payloads
+- `lotus-archive`
+  archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
   evidence-grounded advisor brief narration through the explicit workflow-pack execution seam plus shared workflow-pack run-ledger and RFC-0097 task-flow inspection surfaces
 
@@ -38,6 +40,8 @@
   `http://risk.dev.lotus`
 - `lotus-report`
   `http://report.dev.lotus`
+- `lotus-archive`
+  `http://archive.dev.lotus`
 - `lotus-ai`
   `http://ai.dev.lotus`
 
@@ -47,3 +51,5 @@
 2. RFC-0082 governs how upstream dependency families are classified
 3. supportability, readiness, and partial-failure metadata should survive composition
 4. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
+5. archived document retrieval is product-facing only through gateway document routes; Workbench
+   does not call `lotus-archive` directly

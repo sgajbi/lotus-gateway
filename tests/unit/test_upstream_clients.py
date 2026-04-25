@@ -3,6 +3,7 @@ import json
 import httpx
 import pytest
 
+from app.clients.archive_client import ArchiveClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
@@ -70,6 +71,17 @@ class _FakeAsyncClient:
                 status_code=status_code,
                 content=text.encode("utf-8"),
                 headers={"Content-Type": "text/plain"},
+                request=httpx.Request("GET", "http://test"),
+            )
+        )
+
+    @classmethod
+    def queue_bytes(cls, status_code: int, content: bytes, headers: dict[str, str] | None = None):
+        cls.responses.append(
+            httpx.Response(
+                status_code=status_code,
+                content=content,
+                headers=headers or {},
                 request=httpx.Request("GET", "http://test"),
             )
         )
@@ -1592,6 +1604,96 @@ async def test_reporting_client_summary_review_non_json_payloads():
     assert summary_payload["detail"] == "summary failure"
     assert review_status == 200
     assert review_payload["detail"] == ["review-item"]
+
+
+@pytest.mark.asyncio
+async def test_archive_client_metadata_and_download_routes_forward_archive_context():
+    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    caller_headers = {
+        "X-Actor-Id": "advisor-123",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+        "X-Role": "advisor",
+        "X-Booking-Center-Code": "SG",
+    }
+    _FakeAsyncClient.queue_json(200, {"document_id": "doc_1"})
+    _FakeAsyncClient.queue_json(200, {"document_id": "doc_2"})
+    _FakeAsyncClient.queue_bytes(
+        200,
+        b"%PDF-1.4",
+        {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": 'attachment; filename="doc_1.pdf"',
+            "X-Document-Checksum-Algorithm": "sha256",
+            "X-Document-Checksum": "abc123",
+        },
+    )
+
+    metadata_status, metadata_payload = await client.get_document_metadata(
+        document_id="doc_1",
+        caller_headers=caller_headers,
+        correlation_id="corr-archive-1",
+    )
+    current_status, current_payload = await client.get_document_metadata(
+        document_id="doc_1",
+        caller_headers=caller_headers,
+        correlation_id="corr-archive-1",
+        current=True,
+    )
+    download_status, content, headers, error_payload = await client.download_document(
+        document_id="doc_1",
+        caller_headers=caller_headers,
+        correlation_id="corr-archive-1",
+    )
+
+    assert metadata_status == 200
+    assert metadata_payload["document_id"] == "doc_1"
+    assert current_status == 200
+    assert current_payload["document_id"] == "doc_2"
+    assert download_status == 200
+    assert content == b"%PDF-1.4"
+    assert headers["content-type"] == "application/pdf"
+    assert error_payload == {}
+    assert _FakeAsyncClient.calls[0]["url"] == "http://archive/documents/doc_1"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://archive/documents/doc_1/current"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://archive/documents/doc_1/download"
+    for call in _FakeAsyncClient.calls:
+        assert call["headers"]["X-Caller-Service"] == "lotus-gateway"
+        assert call["headers"]["X-Actor-Type"] == "advisor"
+        assert call["headers"]["X-Actor-Id"] == "advisor-123"
+        assert call["headers"]["X-Tenant-Id"] == "tenant-sg"
+        assert call["headers"]["X-Region"] == "APAC"
+        assert call["headers"]["X-Booking-Center-Code"] == "SG"
+        assert call["headers"]["X-Correlation-Id"] == "corr-archive-1"
+
+
+@pytest.mark.asyncio
+async def test_archive_client_download_returns_error_payload_without_binary_leakage():
+    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        404,
+        {
+            "error": {
+                "code": "document_binary_missing",
+                "message": "The archived document binary could not be found.",
+            }
+        },
+    )
+
+    status_code, content, headers, error_payload = await client.download_document(
+        document_id="doc_1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-archive-2",
+    )
+
+    assert status_code == 404
+    assert b"document_binary_missing" in content
+    assert headers["content-type"] == "application/json"
+    assert error_payload["error"]["code"] == "document_binary_missing"
 
 
 @pytest.mark.asyncio

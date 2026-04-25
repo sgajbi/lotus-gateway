@@ -19,6 +19,7 @@ jobs:
       LOTUS_CORE_REPO_PATH: ../lotus-core
       LOTUS_PERFORMANCE_REPO_PATH: ../lotus-performance
       LOTUS_REPORT_REPO_PATH: ../lotus-report
+      LOTUS_ARCHIVE_REPO_PATH: ../lotus-archive
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,6 +35,7 @@ jobs:
           git clone https://github.com/sgajbi/lotus-core.git ../lotus-core
           git clone https://github.com/sgajbi/lotus-performance.git ../lotus-performance
           git clone https://github.com/sgajbi/lotus-report.git ../lotus-report
+          git clone https://github.com/sgajbi/lotus-archive.git ../lotus-archive
       - name: Start live E2E stack
         run: make e2e-up
       - name: Validate lotus-gateway aggregation against live upstreams
