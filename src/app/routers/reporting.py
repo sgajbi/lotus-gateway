@@ -20,6 +20,7 @@ from app.contracts.reporting import (
     ReportJobStatusResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.caller_context import caller_context_headers
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
@@ -86,44 +87,6 @@ def _reporting_client() -> ReportingClient:
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
     )
-
-
-def _caller_headers(
-    *,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
-) -> dict[str, str]:
-    missing = [
-        name
-        for name, value in {
-            "X-Actor-Id": actor_id,
-            "X-Tenant-Id": tenant_id,
-            "X-Region": region,
-        }.items()
-        if not value or not value.strip()
-    ]
-    if missing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "missing_caller_context",
-                "message": "Required caller context headers are missing.",
-                "missing_headers": missing,
-            },
-        )
-    values = {
-        "X-Actor-Id": actor_id.strip() if actor_id else actor_id,
-        "X-Caller-Application": caller_application or "lotus-gateway",
-        "X-Tenant-Id": tenant_id.strip() if tenant_id else tenant_id,
-        "X-Region": region.strip() if region else region,
-        "X-Booking-Center-Code": booking_center_code,
-        "X-Role": role,
-    }
-    return {key: value for key, value in values.items() if value}
 
 
 def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
@@ -420,7 +383,7 @@ async def submit_portfolio_review_report_job(
     status_code, payload = await _reporting_client().submit_portfolio_review_job(
         payload=request.model_dump(exclude_none=True, mode="json"),
         idempotency_key=idempotency_key,
-        caller_headers=_caller_headers(
+        caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -548,7 +511,7 @@ async def list_report_jobs(
     filters = {key: value for key, value in filters.items() if value is not None}
     status_code, payload = await _reporting_client().list_report_jobs(
         filters=filters,
-        caller_headers=_caller_headers(
+        caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -594,7 +557,7 @@ async def get_report_job_status(
 ) -> ReportJobStatusResponse:
     status_code, payload = await _reporting_client().get_report_job(
         job_id=job_id,
-        caller_headers=_caller_headers(
+        caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -640,7 +603,7 @@ async def get_report_job_events(
 ) -> ReportJobStatusEventsResponse:
     status_code, payload = await _reporting_client().get_report_job_events(
         job_id=job_id,
-        caller_headers=_caller_headers(
+        caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -692,7 +655,7 @@ async def cancel_report_job(
 ) -> ReportJobStatusResponse:
     status_code, payload = await _reporting_client().cancel_report_job(
         job_id=job_id,
-        caller_headers=_caller_headers(
+        caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,

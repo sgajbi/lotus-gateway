@@ -16,6 +16,7 @@ services:
     environment:
       - DECISIONING_SERVICE_BASE_URL=http://host.docker.internal:8000
       - MANAGEMENT_SERVICE_BASE_URL=http://host.docker.internal:8140
+      - ARCHIVE_SERVICE_BASE_URL=http://host.docker.internal:8150
       - MANAGE_SPLIT_ENABLED=true
       - UPSTREAM_TIMEOUT_SECONDS=30
       - CONTRACT_VERSION=v1

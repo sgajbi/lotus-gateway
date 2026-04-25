@@ -226,6 +226,27 @@ services:
       retries: 20
       start_period: 30s
 
+  lotus-archive:
+    build:
+      context: ${LOTUS_ARCHIVE_REPO_PATH}
+      dockerfile: Dockerfile
+    ports:
+      - "8150:8150"
+    environment:
+      CONTRACT_VERSION: v1
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8150/health/ready', timeout=5)"
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
   bff:
     build:
       context: .
@@ -236,6 +257,7 @@ services:
       PORTFOLIO_DATA_INGESTION_BASE_URL: ${PORTFOLIO_DATA_INGESTION_BASE_URL:-http://lotus-core-ingestion:8000}
       PERFORMANCE_ANALYTICS_BASE_URL: http://lotus-performance:8000
       REPORTING_AGGREGATION_BASE_URL: http://lotus-report:8300
+      ARCHIVE_SERVICE_BASE_URL: http://lotus-archive:8150
       UPSTREAM_TIMEOUT_SECONDS: 10
       CONTRACT_VERSION: v1
     ports:
@@ -248,6 +270,8 @@ services:
       lotus-performance:
         condition: service_healthy
       lotus-report:
+        condition: service_healthy
+      lotus-archive:
         condition: service_healthy
       lotus-core-ingestion:
         condition: service_healthy
