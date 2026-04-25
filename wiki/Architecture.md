@@ -24,6 +24,10 @@
   overview, portfolio-360, sandbox, performance, risk, and advisor brief surfaces
 - `reporting`
   report snapshot, summary, and review payloads
+- `report-jobs`
+  report generation job initiation, search, status, event history, and cancellation
+- `archived documents`
+  generated-document metadata and controlled download boundary over `lotus-archive`
 
 ## Boundary notes
 
@@ -31,3 +35,5 @@
 2. domain calculations stay upstream
 3. gateway must preserve supportability, readiness, and partial-failure state
 4. RFC-0082 classification governs how new upstream dependencies are justified
+5. generated-document retrieval is product-facing through gateway; archive storage, retention,
+   purge, legal-hold mutation, and access-event ownership stay in `lotus-archive`

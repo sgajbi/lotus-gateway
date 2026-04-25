@@ -35,11 +35,14 @@ Current repository posture:
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
-5. domain-product catalog, dependency-graph, and live trust certification discovery routes are
+5. archived generated-document metadata and controlled download routes are active under
+   `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
+   product-facing boundary over `lotus-archive`,
+6. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-6. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
-7. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
-8. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+7. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
+8. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
+9. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 
 ## Architecture And Module Map
 
@@ -66,7 +69,8 @@ Runtime model:
 
 1. FastAPI experience API,
 2. consumed primarily by `lotus-workbench`,
-3. depends on `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`, and `lotus-ai`.
+3. depends on `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`,
+   `lotus-report`, `lotus-archive`, and `lotus-ai`.
 
 Boundary rules:
 
@@ -134,10 +138,13 @@ Most relevant current governance:
 2. stale thin-pass-through routes should be retired as better experience contracts replace them,
 3. gateway fixes should not smuggle domain logic out of authoritative upstream services,
 4. reporting query, cashflow projection, projected summary, and benchmark catalog upstream calls remain RFC-0082 watchlist surfaces,
-5. integration drift is most dangerous here because it directly affects the product UI.
+5. integration drift is most dangerous here because it directly affects the product UI,
 6. repo-local `wiki/` content should summarize route families and operator flows without duplicating
    the full `docs/` tree.
-7. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
+7. archive retrieval uses `ARCHIVE_SERVICE_BASE_URL` and forwards archive-specific caller context
+   as `lotus-gateway`; direct Workbench-to-archive access is not part of the supported product
+   boundary,
+8. domain-product discovery defaults to platform-generated catalog and dependency-graph artifacts
    under the sibling `lotus-platform/generated/` directory, and live trust certification defaults to
    `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
    deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,

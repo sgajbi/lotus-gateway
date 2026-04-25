@@ -44,6 +44,8 @@ It depends on:
   management workflow capability when split routing is enabled
 - `lotus-report`
   reporting snapshot, summary, review payloads, and durable report job lifecycle/search
+- `lotus-archive`
+  archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
   evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
 - `lotus-platform`
@@ -91,6 +93,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/reports/*`
 - `report-jobs`
   `/api/v1/report-jobs`, `/api/v1/report-jobs/*`
+- `archived documents`
+  `/api/v1/documents/{document_id}`, `/api/v1/documents/{document_id}/download`
 - platform surfaces
   `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
@@ -216,6 +220,9 @@ Important current parameter conventions:
 7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
 8. proposal write routes require `Idempotency-Key`
+9. archived document metadata and download routes require caller context headers:
+   `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
+   `lotus-gateway` and does not expose archive storage locations
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -225,7 +232,7 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   `lotus-workbench`
 - key upstreams:
   `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
-  `lotus-ai`
+  `lotus-archive`, `lotus-ai`
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority
