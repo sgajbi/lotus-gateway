@@ -632,3 +632,265 @@ def test_report_job_gateway_errors_are_product_safe(monkeypatch):
     assert body["detail"]["code"] == "report_job_upstream_unavailable"
     assert "sqlite" not in str(body).lower()
     assert "report.dev.lotus" not in str(body)
+
+
+def _batch_headers() -> dict[str, str]:
+    return {
+        "X-Actor-Id": "operator-123",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+        "X-Correlation-Id": "corr-gateway-batch",
+    }
+
+
+def _batch_payload() -> dict[str, object]:
+    return {
+        "selector_mode": "explicit_portfolio_list",
+        "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+        "source_candidates": [
+            {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "tenant_id": "tenant-sg",
+                "region": "APAC",
+                "active": True,
+                "selected": True,
+                "source_system": "lotus-core",
+                "source_object": "PortfolioScope",
+            }
+        ],
+        "as_of_date": "2026-04-22",
+        "requested_output_formats": ["pdf"],
+        "reporting_currency": "USD",
+        "options": {"sections": ["OVERVIEW"]},
+        "max_batch_size": 250,
+    }
+
+
+def _batch_status_payload(status: str = "materialized") -> dict[str, object]:
+    return {
+        "batch_id": "rbch_1",
+        "selector_mode": "explicit_portfolio_list",
+        "tenant_id": "tenant-sg",
+        "region": "APAC",
+        "materialized_portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+        "as_of_date": "2026-04-22",
+        "requested_output_formats": ["pdf"],
+        "reporting_currency": "USD",
+        "status": status,
+        "item_count": 1,
+        "status_counts": {status: 1},
+        "items": [
+            {
+                "batch_item_id": "rbci_1",
+                "item_position": 1,
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "status": status,
+                "report_job_id": None,
+                "attempt_count": 0,
+                "retry_eligible": False,
+                "next_retry_at": None,
+                "last_error_category": None,
+                "last_error_summary": None,
+                "created_at": "2026-04-22T09:00:00Z",
+                "started_at": None,
+                "completed_at": None,
+                "cancelled_at": None,
+            }
+        ],
+        "created_at": "2026-04-22T09:00:00Z",
+        "updated_at": "2026-04-22T09:00:00Z",
+        "started_at": None,
+        "completed_at": None,
+        "cancelled_at": None,
+        "failed_at": None,
+        "correlation_id": "corr-gateway-batch",
+        "trace_id": "trace-batch",
+    }
+
+
+def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(monkeypatch):
+    calls: list[tuple[str, str | None, dict[str, str]]] = []
+
+    async def _mock_create_batch(
+        self,
+        *,
+        payload,
+        idempotency_key,
+        caller_headers,
+        correlation_id,
+    ):
+        calls.append(("create", idempotency_key, caller_headers))
+        assert payload == _batch_payload()
+        assert correlation_id == "corr-gateway-batch"
+        return 202, {
+            "batch_id": "rbch_1",
+            "status": "materialized",
+            "status_url": "/reports/batches/rbch_1",
+            "idempotency_key": idempotency_key,
+            "item_count": 1,
+        }
+
+    async def _mock_get_batch(self, *, batch_id, caller_headers, correlation_id):
+        calls.append(("get", batch_id, caller_headers))
+        assert correlation_id == "corr-gateway-batch"
+        return 200, _batch_status_payload()
+
+    async def _mock_control_batch(
+        self,
+        *,
+        batch_id,
+        action,
+        caller_headers,
+        correlation_id,
+        payload=None,
+    ):
+        calls.append((action, batch_id, caller_headers))
+        assert correlation_id == "corr-gateway-batch"
+        if action == "recover-expired-leases":
+            return 200, {
+                "batch_id": batch_id,
+                "status": "running",
+                "recovered_count": 1,
+                "recovery_pending_item_ids": ["rbci_1"],
+                "status_url": "/reports/batches/rbch_1",
+            }
+        if action == "run-once":
+            assert payload == {"worker_id": "worker-1", "recover_expired_leases": True}
+            return 200, {
+                "batch_id": batch_id,
+                "status": "completed",
+                "batch_status_before": "materialized",
+                "batch_status_after": "completed",
+                "recovered_count": 0,
+                "leased_count": 1,
+                "dispatched_count": 1,
+                "executed_count": 1,
+                "report_job_ids": ["rjob_1"],
+                "back_pressure_reasons": [],
+                "skipped_reason": None,
+                "execution_results": [
+                    {
+                        "batch_item_id": "rbci_1",
+                        "report_job_id": "rjob_1",
+                        "item_status": "succeeded",
+                        "report_job_status": "archived",
+                        "failure_category": None,
+                        "retry_eligible": False,
+                    }
+                ],
+                "status_url": "/reports/batches/rbch_1",
+            }
+        status_by_action = {
+            "pause": "paused",
+            "resume": "running",
+            "cancel": "cancelled",
+            "retry-failed": "running",
+        }
+        return 200, {
+            "batch_id": batch_id,
+            "status": status_by_action[action],
+            "affected_count": 1,
+            "status_url": "/reports/batches/rbch_1",
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.create_report_batch",
+        _mock_create_batch,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_batch",
+        _mock_get_batch,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.control_report_batch",
+        _mock_control_batch,
+    )
+
+    client = TestClient(app)
+    create_response = client.post(
+        "/api/v1/report-batches",
+        json=_batch_payload(),
+        headers={**_batch_headers(), "Idempotency-Key": "idem-batch-1"},
+    )
+    status_response = client.get("/api/v1/report-batches/rbch_1", headers=_batch_headers())
+    pause_response = client.post("/api/v1/report-batches/rbch_1:pause", headers=_batch_headers())
+    resume_response = client.post("/api/v1/report-batches/rbch_1:resume", headers=_batch_headers())
+    cancel_response = client.post("/api/v1/report-batches/rbch_1:cancel", headers=_batch_headers())
+    retry_response = client.post(
+        "/api/v1/report-batches/rbch_1:retry-failed",
+        headers=_batch_headers(),
+    )
+    recovery_response = client.post(
+        "/api/v1/report-batches/rbch_1:recover-expired-leases",
+        headers=_batch_headers(),
+    )
+    run_response = client.post(
+        "/api/v1/report-batches/rbch_1:run-once",
+        json={"worker_id": "worker-1", "recover_expired_leases": True},
+        headers=_batch_headers(),
+    )
+
+    assert create_response.status_code == 202
+    assert create_response.json()["status_url"] == "/api/v1/report-batches/rbch_1"
+    assert status_response.status_code == 200
+    assert status_response.json()["items"][0]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert pause_response.json()["status"] == "paused"
+    assert resume_response.json()["status"] == "running"
+    assert cancel_response.json()["status"] == "cancelled"
+    assert retry_response.json()["status"] == "running"
+    assert recovery_response.json()["status_url"] == "/api/v1/report-batches/rbch_1"
+    assert recovery_response.json()["recovered_count"] == 1
+    assert run_response.json()["status_url"] == "/api/v1/report-batches/rbch_1"
+    assert run_response.json()["report_job_ids"] == ["rjob_1"]
+    assert calls[0][0:2] == ("create", "idem-batch-1")
+    assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[0][2]["X-Actor-Id"] == "operator-123"
+    assert calls[1][0:2] == ("get", "rbch_1")
+    assert [call[0] for call in calls[2:]] == [
+        "pause",
+        "resume",
+        "cancel",
+        "retry-failed",
+        "recover-expired-leases",
+        "run-once",
+    ]
+
+
+def test_report_batch_gateway_requires_idempotency_and_caller_context():
+    client = TestClient(app)
+    missing_idempotency = client.post(
+        "/api/v1/report-batches",
+        json=_batch_payload(),
+        headers=_batch_headers(),
+    )
+    missing_context = client.post(
+        "/api/v1/report-batches",
+        json=_batch_payload(),
+        headers={"Idempotency-Key": "idem-batch-1"},
+    )
+
+    assert missing_idempotency.status_code == 400
+    assert missing_idempotency.json()["detail"]["code"] == "missing_idempotency_key"
+    assert missing_context.status_code == 400
+    detail = missing_context.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+
+
+def test_report_batch_gateway_errors_are_product_safe(monkeypatch):
+    async def _mock_get_batch(self, *, batch_id, caller_headers, correlation_id):  # noqa: ARG001
+        return 500, {"detail": "postgres traceback internal-host report.dev.lotus"}
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_batch",
+        _mock_get_batch,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/report-batches/rbch_500", headers=_batch_headers())
+
+    assert response.status_code == 502
+    body = response.json()
+    assert body["detail"]["code"] == "report_batch_upstream_unavailable"
+    assert "postgres" not in str(body).lower()
+    assert "report.dev.lotus" not in str(body)

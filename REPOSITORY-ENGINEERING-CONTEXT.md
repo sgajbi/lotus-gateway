@@ -35,14 +35,17 @@ Current repository posture:
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
-5. archived generated-document metadata and controlled download routes are active under
+5. RFC-0104 report batch materialization/status/control/retry/recovery/bounded operator-run routes
+   are active under `/api/v1/report-batches` and `/api/v1/report-batches/*`; lifecycle and
+   execution truth remain in `lotus-report`,
+6. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,
-6. domain-product catalog, dependency-graph, and live trust certification discovery routes are
+7. domain-product catalog, dependency-graph, and live trust certification discovery routes are
    active under `/api/v1/domain-products`,
-7. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
-8. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
-9. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+8. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
+9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
+10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 
 ## Architecture And Module Map
 
@@ -149,6 +152,9 @@ Most relevant current governance:
    `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json`;
    deployment-specific paths should use `DOMAIN_PRODUCT_CATALOG_PATH`,
    `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH`.
+9. report batch gateway routes are an RFC-0104 API/operator boundary only; Workbench batch UI,
+   RFC-0105 replay/dashboard operations, and RFC-0106 entitlement certification remain separate
+   implementation scopes until explicitly delivered and proven.
 
 ## Context Maintenance Rule
 
