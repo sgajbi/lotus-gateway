@@ -1564,6 +1564,65 @@ async def test_reporting_client_report_job_routes_forward_governed_headers():
 
 
 @pytest.mark.asyncio
+async def test_reporting_client_report_batch_routes_forward_governed_headers():
+    client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
+    caller_headers = {
+        "X-Actor-Id": "operator-123",
+        "X-Caller-Application": "lotus-gateway",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+    }
+    _FakeAsyncClient.queue_json(202, {"batch_id": "rbch_1"})
+    _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "materialized"})
+    _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "paused"})
+    _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "completed"})
+
+    create_status, create_payload = await client.create_report_batch(
+        payload={"selector_mode": "explicit_portfolio_list"},
+        idempotency_key="idem-batch-1",
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+    )
+    status_code, status_payload = await client.get_report_batch(
+        batch_id="rbch_1",
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+    )
+    pause_status, pause_payload = await client.control_report_batch(
+        batch_id="rbch_1",
+        action="pause",
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+    )
+    run_status, run_payload = await client.control_report_batch(
+        batch_id="rbch_1",
+        action="run-once",
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+        payload={"worker_id": "worker-1"},
+    )
+
+    assert create_status == 202
+    assert create_payload["batch_id"] == "rbch_1"
+    assert status_code == 200
+    assert status_payload["status"] == "materialized"
+    assert pause_status == 200
+    assert pause_payload["status"] == "paused"
+    assert run_status == 200
+    assert run_payload["status"] == "completed"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://ras/reports/batches"
+    assert _FakeAsyncClient.calls[0]["json"] == {"selector_mode": "explicit_portfolio_list"}
+    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == "idem-batch-1"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "operator-123"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Caller-Application"] == "lotus-gateway"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-batch-1"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://ras/reports/batches/rbch_1"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://ras/reports/batches/rbch_1:pause"
+    assert _FakeAsyncClient.calls[3]["url"] == "http://ras/reports/batches/rbch_1:run-once"
+    assert _FakeAsyncClient.calls[3]["json"] == {"worker_id": "worker-1"}
+
+
+@pytest.mark.asyncio
 async def test_reporting_client_snapshot_request_uses_live_aggregation_query_contract():
     client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"rows": []})

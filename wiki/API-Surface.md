@@ -16,6 +16,8 @@
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
+- `POST /api/v1/report-batches`, `GET /api/v1/report-batches/{batch_id}`, and
+  `POST /api/v1/report-batches/{batch_id}:*`
 - `GET /api/v1/documents/{document_id}`
 - `GET /api/v1/documents/{document_id}/download`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
@@ -38,6 +40,12 @@
   `Idempotency-Key`
 - report job search, status, append-only event history, and cancellation are gateway-first under
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
+- report batch materialization, status, pause, resume, cancel, retry-failed,
+  recover-expired-leases, and bounded run-once operator actions are gateway-first under
+  `/api/v1/report-batches`; `lotus-report` remains the batch lifecycle and execution authority
+- report batch materialization requires `Idempotency-Key`; all report batch routes require
+  `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`, with optional `X-Caller-Application`,
+  `X-Booking-Center-Code`, and `X-Role` forwarded as caller context
 - archived generated-document metadata and download are gateway-first under `/api/v1/documents/*`;
   `lotus-workbench` must not call `lotus-archive` directly
 - archived document routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
@@ -144,6 +152,39 @@ Report job event history:
 
 ```bash
 curl "http://127.0.0.1:8111/api/v1/report-jobs/rjob_example/events"
+```
+
+Report batch materialization:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/report-batches" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: batch-PB_SG_GLOBAL_BAL_001-2026-04-22" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -d "{\"selector_mode\":\"explicit_portfolio_list\",\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"],\"source_candidates\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"tenant_id\":\"tenant-sg\",\"region\":\"APAC\",\"active\":true,\"selected\":true,\"source_system\":\"lotus-core\",\"source_object\":\"PortfolioScope\"}],\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"pdf\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\"]},\"max_batch_size\":250}"
+```
+
+Report batch status:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/report-batches/rbch_example" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC"
+```
+
+Report batch bounded operator run:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/report-batches/rbch_example:run-once" \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -d "{\"worker_id\":\"lotus-report-batch-worker-1\",\"recover_expired_leases\":true,\"dispatch_policy\":{\"max_active_batches\":1,\"max_active_items\":5,\"max_active_upstream_jobs\":3,\"max_active_render_jobs\":2,\"max_active_archive_jobs\":2,\"lease_seconds\":300},\"runtime_load\":{\"active_batches\":0,\"active_items\":0,\"active_upstream_jobs\":0,\"active_render_jobs\":0,\"active_archive_jobs\":0}}"
 ```
 
 Archived document metadata:

@@ -43,7 +43,8 @@ It depends on:
 - `lotus-manage`
   management workflow capability when split routing is enabled
 - `lotus-report`
-  reporting snapshot, summary, review payloads, and durable report job lifecycle/search
+  reporting snapshot, summary, review payloads, durable report job lifecycle/search, and
+  RFC-0104 batch materialization/status/control/operator-run APIs
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
@@ -93,6 +94,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/reports/*`
 - `report-jobs`
   `/api/v1/report-jobs`, `/api/v1/report-jobs/*`
+- `report-batches`
+  `/api/v1/report-batches`, `/api/v1/report-batches/*`
 - `archived documents`
   `/api/v1/documents/{document_id}`, `/api/v1/documents/{document_id}/download`
 - platform surfaces
@@ -220,7 +223,10 @@ Important current parameter conventions:
 7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
 8. proposal write routes require `Idempotency-Key`
-9. archived document metadata and download routes require caller context headers:
+9. report batch materialization uses canonical snake_case body fields and requires
+   `Idempotency-Key`; report batch status/control/operator-run routes require caller context
+   headers and forward the operation to `lotus-report` as the lifecycle authority
+10. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
 

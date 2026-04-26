@@ -17,6 +17,7 @@ from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
 from app.routers.portfolio import router as portfolio_router
 from app.routers.proposals import router as proposals_router
+from app.routers.reporting import batches_router as reporting_batches_router
 from app.routers.reporting import jobs_router as reporting_jobs_router
 from app.routers.reporting import router as reporting_router
 from app.routers.workbench import router as workbench_router
@@ -42,6 +43,13 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Report Batches",
+            "description": (
+                "Gateway-facing report batch materialization, status, control, and bounded "
+                "operator-run APIs."
+            ),
+        },
+        {
             "name": "Archived Documents",
             "description": (
                 "Gateway-facing archived document metadata and controlled download APIs."
@@ -63,6 +71,7 @@ app.include_router(portfolio_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)
+app.include_router(reporting_batches_router)
 app.include_router(archive_documents_router)
 
 

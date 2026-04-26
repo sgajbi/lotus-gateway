@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
 
 from app.contracts.reporting import (
+    BatchHandleResponse,
+    BatchStatusResponse,
+    BatchWorkerRunResponse,
     ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,
@@ -40,6 +43,65 @@ def test_reporting_contract_shapes() -> None:
     assert summary.data["wealth"]["total_market_value"] == 123.0
     assert review.data["overview"]["total_market_value"] == 1000.0
 
+    batch = BatchHandleResponse(
+        batch_id="rbch_1",
+        status="materialized",
+        status_url="/api/v1/report-batches/rbch_1",
+        idempotency_key="idem-batch-1",
+        item_count=1,
+    )
+    batch_status = BatchStatusResponse(
+        batch_id="rbch_1",
+        selector_mode="explicit_portfolio_list",
+        tenant_id="tenant-sg",
+        region="APAC",
+        materialized_portfolio_ids=["PB_SG_GLOBAL_BAL_001"],
+        as_of_date="2026-04-22",
+        requested_output_formats=["pdf"],
+        reporting_currency="USD",
+        status="materialized",
+        item_count=1,
+        status_counts={"materialized": 1},
+        items=[
+            {
+                "batch_item_id": "rbci_1",
+                "item_position": 1,
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "status": "materialized",
+                "report_job_id": None,
+                "created_at": "2026-04-22T09:00:00Z",
+            }
+        ],
+        created_at="2026-04-22T09:00:00Z",
+        updated_at="2026-04-22T09:00:00Z",
+        correlation_id="corr-batch-1",
+        trace_id="trace-batch-1",
+    )
+    batch_run = BatchWorkerRunResponse(
+        batch_id="rbch_1",
+        status="completed",
+        batch_status_before="materialized",
+        batch_status_after="completed",
+        recovered_count=0,
+        leased_count=1,
+        dispatched_count=1,
+        executed_count=1,
+        report_job_ids=["rjob_1"],
+        execution_results=[
+            {
+                "batch_item_id": "rbci_1",
+                "report_job_id": "rjob_1",
+                "item_status": "succeeded",
+                "report_job_status": "archived",
+            }
+        ],
+        status_url="/api/v1/report-batches/rbch_1",
+    )
+
+    assert batch.status_url == "/api/v1/report-batches/rbch_1"
+    assert batch_status.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert batch_run.report_job_ids == ["rjob_1"]
+
 
 def test_reporting_request_normalizes_documented_aliases() -> None:
     request = ReportingPortfolioRequest(
@@ -75,6 +137,14 @@ def test_reporting_openapi_contract_registered() -> None:
     assert "/api/v1/report-jobs/{job_id}" in spec["paths"]
     assert "/api/v1/report-jobs/{job_id}/events" in spec["paths"]
     assert "/api/v1/report-jobs/{job_id}/cancel" in spec["paths"]
+    assert "/api/v1/report-batches" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:pause" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:resume" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:cancel" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:retry-failed" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:recover-expired-leases" in spec["paths"]
+    assert "/api/v1/report-batches/{batch_id}:run-once" in spec["paths"]
 
     snapshot_path = spec["paths"]["/api/v1/reports/{portfolio_id}/snapshot"]["get"]
     summary_path = spec["paths"]["/api/v1/reports/{portfolio_id}/summary"]["post"]
@@ -84,6 +154,9 @@ def test_reporting_openapi_contract_registered() -> None:
     job_status_path = spec["paths"]["/api/v1/report-jobs/{job_id}"]["get"]
     job_events_path = spec["paths"]["/api/v1/report-jobs/{job_id}/events"]["get"]
     job_cancel_path = spec["paths"]["/api/v1/report-jobs/{job_id}/cancel"]["post"]
+    batch_create_path = spec["paths"]["/api/v1/report-batches"]["post"]
+    batch_status_path = spec["paths"]["/api/v1/report-batches/{batch_id}"]["get"]
+    batch_run_path = spec["paths"]["/api/v1/report-batches/{batch_id}:run-once"]["post"]
     request_schema = spec["components"]["schemas"]["ReportingPortfolioRequest"]
     snapshot_schema = spec["components"]["schemas"]["ReportingSnapshotResponse"]
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
@@ -97,6 +170,9 @@ def test_reporting_openapi_contract_registered() -> None:
     assert job_status_path["summary"] == "Get report job status"
     assert job_events_path["summary"] == "Get report job event history"
     assert job_cancel_path["summary"] == "Cancel report job before render or archive"
+    assert batch_create_path["summary"] == "Create report batch"
+    assert batch_status_path["summary"] == "Get report batch status"
+    assert batch_run_path["summary"] == "Run one bounded report batch worker pass"
     assert "RFC-" not in str(job_submit_path)
     assert "RFC-" not in str(job_list_path)
     assert "RFC-" not in str(job_status_path)
@@ -112,6 +188,16 @@ def test_reporting_openapi_contract_registered() -> None:
         "ReportJobStatusResponse",
         "ReportJobStatusEventsResponse",
         "ReportStatusEvent",
+        "BatchCreateRequest",
+        "PortfolioBatchCandidate",
+        "BatchHandleResponse",
+        "BatchStatusResponse",
+        "BatchItemStatusResponse",
+        "BatchControlResponse",
+        "BatchRecoveryResponse",
+        "BatchWorkerRunRequest",
+        "BatchWorkerRunResponse",
+        "BatchWorkerItemExecutionResponse",
     ]:
         properties = spec["components"]["schemas"][schema_name]["properties"]
         for property_contract in properties.values():

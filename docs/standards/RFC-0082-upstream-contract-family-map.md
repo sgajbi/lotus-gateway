@@ -42,7 +42,7 @@ outputs.
 | `lotus-risk` | calculate risk, concentration, drawdown, rolling metrics, historical attribution | risk workspace modules and risk panels | risk methodology, concentration, drawdown, and attribution semantics remain in `lotus-risk` |
 | `lotus-advise` | proposal lifecycle and advisory workflow surfaces | proposal workflow composition | advisory decision workflow remains in `lotus-advise` |
 | `lotus-manage` | management workflow surfaces where split routing still applies | management workflow composition | discretionary management operations remain in `lotus-manage` |
-| `lotus-report` | report snapshot rows, summary/review payloads, report job status/search/event/cancellation APIs | report-ready experience payloads and durable report-job support posture | report generation, request semantics, and job lifecycle truth remain in `lotus-report` |
+| `lotus-report` | report snapshot rows, summary/review payloads, report job status/search/event/cancellation APIs, report batch materialization/status/control/operator-run APIs | report-ready experience payloads, durable report-job support posture, and RFC-0104 batch operator boundary | report generation, request semantics, job lifecycle truth, batch lifecycle truth, and batch execution truth remain in `lotus-report` |
 | `lotus-archive` | archived document metadata, current-document resolution, and binary download APIs | gateway-controlled generated-document retrieval for product clients | archive metadata, retention, legal-hold, purge, lifecycle, checksum, storage, and access-audit truth remain in `lotus-archive`; gateway exposes metadata and controlled download only |
 | `lotus-ai` | advisor-brief, workflow-pack run-ledger, and RFC-0097 task-flow posture surfaces | evidence-grounded narrative support plus bounded run/task-flow posture for Workbench | gateway must not invent unsupported evidence, model outputs, review states, replacement lineage, or task-flow authority |
 
@@ -87,6 +87,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    route rather than exposing direct lotus-performance URLs.
 3. archived generated-document metadata and binary links are exposed through gateway-owned document
    routes rather than exposing direct lotus-archive URLs.
+4. RFC-0104 report batch materialization, status, control, recovery, retry, and bounded run-once
+   operator actions are exposed through gateway-owned `/api/v1/report-batches` routes while
+   preserving `lotus-report` as the lifecycle and execution authority.
 
 ## Gap Register
 
@@ -102,6 +105,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 5. Gateway archive retrieval currently has no product-owned entitlement engine beyond caller-context
    propagation and upstream archive authorization; if client-level document entitlements are required,
    the policy source must be defined before expanding UI access.
+6. Gateway report batch routes are an operator/API boundary only. Workbench batch UI, RFC-0105
+   replay/dashboard operations, and RFC-0106 entitlement certification must not be inferred from
+   these routes until those slices are implemented and proven.
 
 ## Validation Lane
 

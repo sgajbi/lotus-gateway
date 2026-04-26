@@ -189,3 +189,66 @@ class ReportingClient:
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
+
+    async def create_report_batch(
+        self,
+        *,
+        payload: dict[str, Any],
+        idempotency_key: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/batches"
+        headers = propagation_headers(correlation_id)
+        headers["Idempotency-Key"] = idempotency_key
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )
+
+    async def get_report_batch(
+        self,
+        *,
+        batch_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/batches/{batch_id}"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def control_report_batch(
+        self,
+        *,
+        batch_id: str,
+        action: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        payload: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/batches/{batch_id}:{action}"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )
