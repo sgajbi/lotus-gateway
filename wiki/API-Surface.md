@@ -18,6 +18,7 @@
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
 - `POST /api/v1/report-batches`, `GET /api/v1/report-batches/{batch_id}`, and
   `POST /api/v1/report-batches/{batch_id}:*`
+- `GET /api/v1/report-batch-schedules` and `POST /api/v1/report-batch-schedules:run-due`
 - `GET /api/v1/documents/{document_id}`
 - `GET /api/v1/documents/{document_id}/download`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
@@ -43,6 +44,9 @@
 - report batch materialization, status, pause, resume, cancel, retry-failed,
   recover-expired-leases, and bounded run-once operator actions are gateway-first under
   `/api/v1/report-batches`; `lotus-report` remains the batch lifecycle and execution authority
+- report batch schedule list and run-due actions are gateway-first under
+  `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
+  does not expose schedule CRUD or scheduler registry management
 - report batch materialization requires `Idempotency-Key`; all report batch routes require
   `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`, with optional `X-Caller-Application`,
   `X-Booking-Center-Code`, and `X-Role` forwarded as caller context

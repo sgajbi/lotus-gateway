@@ -10,6 +10,9 @@ from app.contracts.reporting import (
     BATCH_CREATE_REQUEST_EXAMPLE,
     BATCH_HANDLE_RESPONSE_EXAMPLE,
     BATCH_RECOVERY_RESPONSE_EXAMPLE,
+    BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE,
+    BATCH_SCHEDULER_RUN_REQUEST_EXAMPLE,
+    BATCH_SCHEDULER_RUN_RESPONSE_EXAMPLE,
     BATCH_STATUS_RESPONSE_EXAMPLE,
     BATCH_WORKER_RUN_REQUEST_EXAMPLE,
     BATCH_WORKER_RUN_RESPONSE_EXAMPLE,
@@ -20,6 +23,9 @@ from app.contracts.reporting import (
     BatchCreateRequest,
     BatchHandleResponse,
     BatchRecoveryResponse,
+    BatchScheduleListResponse,
+    BatchSchedulerRunRequest,
+    BatchSchedulerRunResponse,
     BatchStatusResponse,
     BatchWorkerRunRequest,
     BatchWorkerRunResponse,
@@ -40,6 +46,10 @@ from app.services.caller_context import caller_context_headers
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
 batches_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
+schedules_router = APIRouter(
+    prefix="/api/v1/report-batch-schedules",
+    tags=["Report Batch Schedules"],
+)
 
 SUMMARY_REQUEST_EXAMPLES = {
     "wealthSummary": {
@@ -1172,3 +1182,113 @@ async def run_report_batch_once(
     )
     _raise_report_batch_error(status_code, payload)
     return BatchWorkerRunResponse.model_validate(_rewrite_batch_status_url(payload))
+
+
+@schedules_router.get(
+    "",
+    response_model=BatchScheduleListResponse,
+    summary="List governed report batch schedules",
+    description=(
+        "List the report batch schedules currently configured in lotus-report. Schedules remain "
+        "owned by governed report service configuration; this gateway endpoint does not create, "
+        "edit, or delete schedules."
+    ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {"application/json": {"example": BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE}}
+            }
+        }
+    },
+    responses={
+        **_batch_error_response(
+            502,
+            example_key="report_batch_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        )
+    },
+)
+async def list_report_batch_schedules(
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> BatchScheduleListResponse:
+    status_code, payload = await _reporting_client().list_report_batch_schedules(
+        caller_headers=_context_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+        correlation_id=correlation_id_var.get(),
+    )
+    _raise_report_batch_error(status_code, payload)
+    return BatchScheduleListResponse.model_validate(payload)
+
+
+@schedules_router.post(
+    ":run-due",
+    response_model=BatchSchedulerRunResponse,
+    summary="Run one bounded report batch scheduler pass",
+    description=(
+        "Run one bounded scheduler materialization pass through lotus-report. The pass resolves "
+        "enabled schedules and creates or reuses durable idempotent batches. It does not execute "
+        "batch items; batch workers remain responsible for dispatch, render, archive, and "
+        "reconciliation."
+    ),
+    openapi_extra={
+        "requestBody": {
+            "content": {"application/json": {"example": BATCH_SCHEDULER_RUN_REQUEST_EXAMPLE}}
+        },
+        "responses": {
+            "200": {
+                "content": {"application/json": {"example": BATCH_SCHEDULER_RUN_RESPONSE_EXAMPLE}}
+            }
+        },
+    },
+    responses={
+        **_batch_error_response(
+            409,
+            example_key="batch_scheduler_run_failed",
+            description=(
+                "Returned when lotus-report cannot safely materialize configured schedules."
+            ),
+        ),
+        **_batch_error_response(
+            502,
+            example_key="report_batch_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
+)
+async def run_due_report_batch_schedules(
+    request: Annotated[
+        BatchSchedulerRunRequest,
+        Body(description="Bounded report batch scheduler-run request."),
+    ],
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> BatchSchedulerRunResponse:
+    status_code, payload = await _reporting_client().run_due_report_batch_schedules(
+        payload=request.model_dump(exclude_none=True, mode="json"),
+        caller_headers=_context_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+        correlation_id=correlation_id_var.get(),
+    )
+    _raise_report_batch_error(status_code, payload)
+    return BatchSchedulerRunResponse.model_validate(payload)

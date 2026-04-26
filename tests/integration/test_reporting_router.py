@@ -856,6 +856,91 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     ]
 
 
+def test_report_batch_schedule_gateway_routes_forward_context(monkeypatch):
+    calls: list[tuple[str, dict[str, str], str | None]] = []
+
+    async def _mock_list_schedules(self, *, caller_headers, correlation_id):
+        calls.append(("list", caller_headers, correlation_id))
+        return 200, {
+            "scheduler_id": "scheduler-gateway-unit",
+            "interval_seconds": 60.0,
+            "tenant_id": "tenant-sg",
+            "region": "APAC",
+            "booking_center_code": "SG",
+            "schedule_count": 1,
+            "enabled_schedule_count": 1,
+            "schedules": [
+                {
+                    "schedule_id": "monthly-sg-global-bal",
+                    "enabled": True,
+                    "selector_mode": "explicit_portfolio_list",
+                    "frequency": "monthly",
+                    "as_of_date": "2026-04-22",
+                    "portfolio_count": 1,
+                    "manifest_entry_count": 0,
+                    "requested_output_formats": ["pdf"],
+                    "reporting_currency": "USD",
+                    "max_batch_size": 250,
+                    "template_id": "portfolio-review",
+                    "template_version": "v1",
+                    "render_package_version": "portfolio-review.v1",
+                    "manifest_source": None,
+                    "manifest_version": None,
+                    "manifest_hash": None,
+                    "option_keys": ["sections"],
+                }
+            ],
+        }
+
+    async def _mock_run_due_schedules(self, *, payload, caller_headers, correlation_id):
+        calls.append(("run-due", caller_headers, correlation_id))
+        assert payload == {"pass_sequence": 4}
+        return 200, {
+            "scheduler_id": "scheduler-gateway-unit",
+            "attempted_count": 1,
+            "materialized_count": 1,
+            "skipped_schedule_ids": [],
+            "materialized": [
+                {
+                    "schedule_id": "monthly-sg-global-bal",
+                    "batch_id": "rbch_sched_1",
+                    "idempotency_key": "scheduled-batch-1",
+                    "item_count": 1,
+                    "status": "materialized",
+                }
+            ],
+            "correlation_id": "corr-batch-scheduler-4-unit",
+            "trace_id": "trace-scheduler-unit",
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.list_report_batch_schedules",
+        _mock_list_schedules,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.run_due_report_batch_schedules",
+        _mock_run_due_schedules,
+    )
+
+    client = TestClient(app)
+    list_response = client.get("/api/v1/report-batch-schedules", headers=_batch_headers())
+    run_response = client.post(
+        "/api/v1/report-batch-schedules:run-due",
+        json={"pass_sequence": 4},
+        headers=_batch_headers(),
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json()["schedule_count"] == 1
+    assert list_response.json()["schedules"][0]["schedule_id"] == "monthly-sg-global-bal"
+    assert run_response.status_code == 200
+    assert run_response.json()["materialized"][0]["batch_id"] == "rbch_sched_1"
+    assert [call[0] for call in calls] == ["list", "run-due"]
+    assert calls[0][1]["X-Caller-Application"] == "lotus-gateway"
+    assert calls[1][1]["X-Actor-Id"] == "operator-123"
+    assert calls[0][2] == "corr-gateway-batch"
+
+
 def test_report_batch_gateway_requires_idempotency_and_caller_context():
     client = TestClient(app)
     missing_idempotency = client.post(

@@ -28,6 +28,8 @@
   report generation job initiation, search, status, event history, and cancellation
 - `report-batches`
   batch materialization, status, control, and bounded operator-run boundary over `lotus-report`
+- `report-batch-schedules`
+  config-backed scheduler inspection and bounded run-due boundary over `lotus-report`
 - `archived documents`
   generated-document metadata and controlled download boundary over `lotus-archive`
 
@@ -39,5 +41,5 @@
 4. RFC-0082 classification governs how new upstream dependencies are justified
 5. generated-document retrieval is product-facing through gateway; archive storage, retention,
    purge, legal-hold mutation, and access-event ownership stay in `lotus-archive`
-6. report batch lifecycle and execution truth stay in `lotus-report`; gateway exposes the
-   governed operator boundary and rewrites only gateway-relative status URLs
+6. report batch lifecycle, scheduler configuration, and execution truth stay in `lotus-report`;
+   gateway exposes the governed operator boundary and rewrites only gateway-relative status URLs

@@ -20,6 +20,7 @@ from app.routers.proposals import router as proposals_router
 from app.routers.reporting import batches_router as reporting_batches_router
 from app.routers.reporting import jobs_router as reporting_jobs_router
 from app.routers.reporting import router as reporting_router
+from app.routers.reporting import schedules_router as reporting_schedules_router
 from app.routers.workbench import router as workbench_router
 
 
@@ -50,6 +51,10 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Report Batch Schedules",
+            "description": "Gateway-facing report batch scheduler inspection and run APIs.",
+        },
+        {
             "name": "Archived Documents",
             "description": (
                 "Gateway-facing archived document metadata and controlled download APIs."
@@ -72,6 +77,7 @@ app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)
 app.include_router(reporting_batches_router)
+app.include_router(reporting_schedules_router)
 app.include_router(archive_documents_router)
 
 
