@@ -252,3 +252,41 @@ class ReportingClient:
             json_body=payload,
             headers=headers,
         )
+
+    async def list_report_batch_schedules(
+        self,
+        *,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/batch-schedules"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def run_due_report_batch_schedules(
+        self,
+        *,
+        payload: dict[str, Any],
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/batch-schedules:run-due"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+        )

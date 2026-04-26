@@ -145,6 +145,8 @@ def test_reporting_openapi_contract_registered() -> None:
     assert "/api/v1/report-batches/{batch_id}:retry-failed" in spec["paths"]
     assert "/api/v1/report-batches/{batch_id}:recover-expired-leases" in spec["paths"]
     assert "/api/v1/report-batches/{batch_id}:run-once" in spec["paths"]
+    assert "/api/v1/report-batch-schedules" in spec["paths"]
+    assert "/api/v1/report-batch-schedules:run-due" in spec["paths"]
 
     snapshot_path = spec["paths"]["/api/v1/reports/{portfolio_id}/snapshot"]["get"]
     summary_path = spec["paths"]["/api/v1/reports/{portfolio_id}/summary"]["post"]
@@ -157,6 +159,8 @@ def test_reporting_openapi_contract_registered() -> None:
     batch_create_path = spec["paths"]["/api/v1/report-batches"]["post"]
     batch_status_path = spec["paths"]["/api/v1/report-batches/{batch_id}"]["get"]
     batch_run_path = spec["paths"]["/api/v1/report-batches/{batch_id}:run-once"]["post"]
+    schedule_list_path = spec["paths"]["/api/v1/report-batch-schedules"]["get"]
+    schedule_run_path = spec["paths"]["/api/v1/report-batch-schedules:run-due"]["post"]
     request_schema = spec["components"]["schemas"]["ReportingPortfolioRequest"]
     snapshot_schema = spec["components"]["schemas"]["ReportingSnapshotResponse"]
     summary_schema = spec["components"]["schemas"]["ReportingSummaryResponse"]
@@ -173,6 +177,8 @@ def test_reporting_openapi_contract_registered() -> None:
     assert batch_create_path["summary"] == "Create report batch"
     assert batch_status_path["summary"] == "Get report batch status"
     assert batch_run_path["summary"] == "Run one bounded report batch worker pass"
+    assert schedule_list_path["summary"] == "List governed report batch schedules"
+    assert schedule_run_path["summary"] == "Run one bounded report batch scheduler pass"
     assert "RFC-" not in str(job_submit_path)
     assert "RFC-" not in str(job_list_path)
     assert "RFC-" not in str(job_status_path)
@@ -198,6 +204,11 @@ def test_reporting_openapi_contract_registered() -> None:
         "BatchWorkerRunRequest",
         "BatchWorkerRunResponse",
         "BatchWorkerItemExecutionResponse",
+        "BatchScheduleListResponse",
+        "BatchScheduleSummaryResponse",
+        "BatchSchedulerRunRequest",
+        "BatchSchedulerRunResponse",
+        "BatchSchedulerMaterializationResponse",
     ]:
         properties = spec["components"]["schemas"][schema_name]["properties"]
         for property_contract in properties.values():

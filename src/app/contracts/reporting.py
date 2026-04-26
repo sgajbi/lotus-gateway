@@ -910,6 +910,57 @@ BATCH_WORKER_RUN_RESPONSE_EXAMPLE: dict[str, Any] = {
     "status_url": "/api/v1/report-batches/rbch_2f6d1a8f2ef24f019e7d7f37507f352c",
 }
 
+BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE: dict[str, Any] = {
+    "scheduler_id": "lotus-report-batch-scheduler-1",
+    "interval_seconds": 60.0,
+    "tenant_id": "tenant-sg",
+    "region": "APAC",
+    "booking_center_code": "SG",
+    "schedule_count": 1,
+    "enabled_schedule_count": 1,
+    "schedules": [
+        {
+            "schedule_id": "monthly-sg-global-bal",
+            "enabled": True,
+            "selector_mode": "explicit_portfolio_list",
+            "frequency": "monthly",
+            "as_of_date": "2026-04-22",
+            "portfolio_count": 1,
+            "manifest_entry_count": 0,
+            "requested_output_formats": ["pdf"],
+            "reporting_currency": "USD",
+            "max_batch_size": 250,
+            "template_id": "portfolio-review",
+            "template_version": "v1",
+            "render_package_version": "portfolio-review.v1",
+            "manifest_source": None,
+            "manifest_version": None,
+            "manifest_hash": None,
+            "option_keys": ["sections"],
+        }
+    ],
+}
+
+BATCH_SCHEDULER_RUN_REQUEST_EXAMPLE: dict[str, Any] = {"pass_sequence": 1}
+
+BATCH_SCHEDULER_RUN_RESPONSE_EXAMPLE: dict[str, Any] = {
+    "scheduler_id": "lotus-report-batch-scheduler-1",
+    "attempted_count": 1,
+    "materialized_count": 1,
+    "skipped_schedule_ids": [],
+    "materialized": [
+        {
+            "schedule_id": "monthly-sg-global-bal",
+            "batch_id": "rbch_2f6d1a8f2ef24f019e7d7f37507f352c",
+            "idempotency_key": "scheduled-batch-2f6d1a8f2ef24f019e7d7f37507f352c",
+            "item_count": 1,
+            "status": "materialized",
+        }
+    ],
+    "correlation_id": "corr-batch-scheduler-1-abc123def456",
+    "trace_id": "trace1234567890abcdef1234567890ab",
+}
+
 REPORT_BATCH_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
     "missing_idempotency_key": REPORT_JOB_ERROR_EXAMPLES["missing_idempotency_key"],
     "missing_caller_context": REPORT_JOB_ERROR_EXAMPLES["missing_caller_context"],
@@ -935,6 +986,12 @@ REPORT_BATCH_ERROR_EXAMPLES: dict[str, dict[str, Any]] = {
         "detail": {
             "code": "batch_worker_run_failed",
             "message": "Report batch run could not be completed.",
+        }
+    },
+    "batch_scheduler_run_failed": {
+        "detail": {
+            "code": "batch_scheduler_run_failed",
+            "message": "Report batch scheduler pass could not be completed.",
         }
     },
     "report_batch_upstream_unavailable": {
@@ -1182,3 +1239,80 @@ class BatchWorkerRunResponse(BaseModel):
         description="Per-item execution outcomes.",
     )
     status_url: str = Field(..., description="Gateway-relative URL for batch status retrieval.")
+
+
+class BatchScheduleSummaryResponse(BaseModel):
+    schedule_id: str = Field(..., description="Governed schedule identifier.")
+    enabled: bool = Field(..., description="Whether the configured schedule is enabled.")
+    selector_mode: str = Field(..., description="Configured selector mode.")
+    frequency: str = Field(..., description="Configured production cycle frequency.")
+    as_of_date: date = Field(..., description="Business as-of date used by this schedule.")
+    portfolio_count: int = Field(..., ge=0, description="Configured explicit portfolio count.")
+    manifest_entry_count: int = Field(
+        ..., ge=0, description="Configured inline manifest entry count."
+    )
+    requested_output_formats: list[str] = Field(
+        ..., description="Requested output formats for materialized batch items."
+    )
+    reporting_currency: str | None = Field(default=None, description="Reporting currency.")
+    max_batch_size: int = Field(..., ge=1, description="Maximum materialized item count.")
+    template_id: str = Field(..., description="Report template identifier.")
+    template_version: str = Field(..., description="Report template version.")
+    render_package_version: str = Field(..., description="Render package contract version.")
+    manifest_source: str | None = Field(default=None, description="Inline manifest source.")
+    manifest_version: str | None = Field(default=None, description="Inline manifest version.")
+    manifest_hash: str | None = Field(default=None, description="Stable inline manifest hash.")
+    option_keys: list[str] = Field(
+        default_factory=list,
+        description="Sorted configured option keys without exposing option values.",
+    )
+
+
+class BatchScheduleListResponse(BaseModel):
+    scheduler_id: str = Field(..., description="Stable scheduler identity.")
+    interval_seconds: float = Field(..., ge=0, description="Configured scheduler interval.")
+    tenant_id: str = Field(..., description="Tenant context used by configured schedules.")
+    region: str = Field(..., description="Region context used by configured schedules.")
+    booking_center_code: str | None = Field(
+        default=None, description="Optional booking-center context."
+    )
+    schedule_count: int = Field(..., ge=0, description="Total configured schedule count.")
+    enabled_schedule_count: int = Field(..., ge=0, description="Enabled configured schedule count.")
+    schedules: list[BatchScheduleSummaryResponse] = Field(
+        ..., description="Configured report batch schedules."
+    )
+
+
+class BatchSchedulerRunRequest(BaseModel):
+    pass_sequence: int = Field(
+        1,
+        ge=1,
+        description="Deterministic scheduler pass sequence for correlation and idempotency proof.",
+        examples=[1],
+    )
+
+
+class BatchSchedulerMaterializationResponse(BaseModel):
+    schedule_id: str = Field(..., description="Schedule that produced or reused this batch.")
+    batch_id: str = Field(..., description="Durable report batch identifier.")
+    idempotency_key: str = Field(..., description="Deterministic scheduled idempotency key.")
+    item_count: int = Field(..., ge=0, description="Materialized batch item count.")
+    status: str = Field(..., description="Batch status after materialization or reuse.")
+
+
+class BatchSchedulerRunResponse(BaseModel):
+    scheduler_id: str = Field(..., description="Stable scheduler identity.")
+    attempted_count: int = Field(..., ge=0, description="Enabled schedule count attempted.")
+    materialized_count: int = Field(
+        ..., ge=0, description="Batches materialized or idempotently reused."
+    )
+    skipped_schedule_ids: list[str] = Field(
+        default_factory=list,
+        description="Enabled schedule ids skipped because no eligible candidates were resolved.",
+    )
+    materialized: list[BatchSchedulerMaterializationResponse] = Field(
+        default_factory=list,
+        description="Durable batch materialization results.",
+    )
+    correlation_id: str = Field(..., description="Scheduler correlation id used for this pass.")
+    trace_id: str = Field(..., description="Scheduler trace id used for this pass.")

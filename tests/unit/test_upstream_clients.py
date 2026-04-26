@@ -1576,6 +1576,8 @@ async def test_reporting_client_report_batch_routes_forward_governed_headers():
     _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "materialized"})
     _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "paused"})
     _FakeAsyncClient.queue_json(200, {"batch_id": "rbch_1", "status": "completed"})
+    _FakeAsyncClient.queue_json(200, {"scheduler_id": "scheduler-1", "schedule_count": 1})
+    _FakeAsyncClient.queue_json(200, {"scheduler_id": "scheduler-1", "materialized_count": 1})
 
     create_status, create_payload = await client.create_report_batch(
         payload={"selector_mode": "explicit_portfolio_list"},
@@ -1601,6 +1603,15 @@ async def test_reporting_client_report_batch_routes_forward_governed_headers():
         correlation_id="corr-batch-1",
         payload={"worker_id": "worker-1"},
     )
+    schedules_status, schedules_payload = await client.list_report_batch_schedules(
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+    )
+    run_due_status, run_due_payload = await client.run_due_report_batch_schedules(
+        payload={"pass_sequence": 2},
+        caller_headers=caller_headers,
+        correlation_id="corr-batch-1",
+    )
 
     assert create_status == 202
     assert create_payload["batch_id"] == "rbch_1"
@@ -1610,6 +1621,10 @@ async def test_reporting_client_report_batch_routes_forward_governed_headers():
     assert pause_payload["status"] == "paused"
     assert run_status == 200
     assert run_payload["status"] == "completed"
+    assert schedules_status == 200
+    assert schedules_payload["schedule_count"] == 1
+    assert run_due_status == 200
+    assert run_due_payload["materialized_count"] == 1
     assert _FakeAsyncClient.calls[0]["url"] == "http://ras/reports/batches"
     assert _FakeAsyncClient.calls[0]["json"] == {"selector_mode": "explicit_portfolio_list"}
     assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == "idem-batch-1"
@@ -1620,6 +1635,10 @@ async def test_reporting_client_report_batch_routes_forward_governed_headers():
     assert _FakeAsyncClient.calls[2]["url"] == "http://ras/reports/batches/rbch_1:pause"
     assert _FakeAsyncClient.calls[3]["url"] == "http://ras/reports/batches/rbch_1:run-once"
     assert _FakeAsyncClient.calls[3]["json"] == {"worker_id": "worker-1"}
+    assert _FakeAsyncClient.calls[4]["url"] == "http://ras/reports/batch-schedules"
+    assert _FakeAsyncClient.calls[4]["headers"]["X-Actor-Id"] == "operator-123"
+    assert _FakeAsyncClient.calls[5]["url"] == "http://ras/reports/batch-schedules:run-due"
+    assert _FakeAsyncClient.calls[5]["json"] == {"pass_sequence": 2}
 
 
 @pytest.mark.asyncio

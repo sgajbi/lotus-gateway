@@ -96,6 +96,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/report-jobs`, `/api/v1/report-jobs/*`
 - `report-batches`
   `/api/v1/report-batches`, `/api/v1/report-batches/*`
+- `report-batch-schedules`
+  `/api/v1/report-batch-schedules`, `/api/v1/report-batch-schedules:run-due`
 - `archived documents`
   `/api/v1/documents/{document_id}`, `/api/v1/documents/{document_id}/download`
 - platform surfaces

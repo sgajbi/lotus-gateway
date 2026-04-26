@@ -90,6 +90,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 4. RFC-0104 report batch materialization, status, control, recovery, retry, and bounded run-once
    operator actions are exposed through gateway-owned `/api/v1/report-batches` routes while
    preserving `lotus-report` as the lifecycle and execution authority.
+5. RFC-0104 config-backed scheduler list and run-due actions are exposed through gateway-owned
+   `/api/v1/report-batch-schedules` routes while preserving `lotus-report` as the scheduler
+   configuration and materialization authority.
 
 ## Gap Register
 

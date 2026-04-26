@@ -36,8 +36,9 @@ Current repository posture:
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
 5. RFC-0104 report batch materialization/status/control/retry/recovery/bounded operator-run routes
-   are active under `/api/v1/report-batches` and `/api/v1/report-batches/*`; lifecycle and
-   execution truth remain in `lotus-report`,
+   are active under `/api/v1/report-batches` and `/api/v1/report-batches/*`; config-backed
+   scheduler list/run-due routes are active under `/api/v1/report-batch-schedules`; lifecycle,
+   scheduler configuration, and execution truth remain in `lotus-report`,
 6. archived generated-document metadata and controlled download routes are active under
    `/api/v1/documents/{document_id}` and `/api/v1/documents/{document_id}/download` as the
    product-facing boundary over `lotus-archive`,
