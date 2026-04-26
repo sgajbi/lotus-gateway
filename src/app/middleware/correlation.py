@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 from contextvars import ContextVar
 from datetime import UTC, datetime
@@ -17,6 +18,8 @@ from app.middleware.server_timing import (
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 trace_id_var: ContextVar[str] = ContextVar("trace_id", default="")
+
+_W3C_TRACE_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 
 
 class JsonFormatter(logging.Formatter):
@@ -62,10 +65,20 @@ def resolve_trace_id(request: Request) -> str:
     traceparent = request.headers.get("traceparent")
     if traceparent:
         parts = traceparent.split("-")
-        if len(parts) >= 4 and len(parts[1]) == 32:
+        if len(parts) >= 4 and _is_w3c_trace_id(parts[1]):
             return parts[1]
     incoming = request.headers.get("X-Trace-Id")
     return incoming if incoming else uuid4().hex
+
+
+def _is_w3c_trace_id(trace_id: str) -> bool:
+    return bool(_W3C_TRACE_ID_PATTERN.fullmatch(trace_id))
+
+
+def _traceparent_header(trace_id: str) -> str | None:
+    if not _is_w3c_trace_id(trace_id):
+        return None
+    return f"00-{trace_id}-0000000000000001-01"
 
 
 def propagation_headers(correlation_id: str | None = None) -> dict[str, str]:
@@ -73,12 +86,15 @@ def propagation_headers(correlation_id: str | None = None) -> dict[str, str]:
         correlation_id or correlation_id_var.get() or f"corr_{uuid4().hex[:12]}"
     )
     resolved_trace_id = trace_id_var.get() or uuid4().hex
-    return {
+    headers = {
         "X-Correlation-Id": resolved_correlation_id,
         "X-Request-Id": request_id_var.get() or f"req_{uuid4().hex[:12]}",
         "X-Trace-Id": resolved_trace_id,
-        "traceparent": f"00-{resolved_trace_id}-0000000000000001-01",
     }
+    traceparent = _traceparent_header(resolved_trace_id)
+    if traceparent:
+        headers["traceparent"] = traceparent
+    return headers
 
 
 async def correlation_middleware(request: Request, call_next):
@@ -114,7 +130,9 @@ async def correlation_middleware(request: Request, call_next):
     response.headers["X-Correlation-Id"] = correlation_id
     response.headers["X-Request-Id"] = request_id
     response.headers["X-Trace-Id"] = trace_id
-    response.headers["traceparent"] = f"00-{trace_id}-0000000000000001-01"
+    traceparent = _traceparent_header(trace_id)
+    if traceparent:
+        response.headers["traceparent"] = traceparent
     response.headers["Server-Timing"] = format_server_timing_header(duration_ms)
     restore_server_timing_metrics(server_timing_token)
     return response

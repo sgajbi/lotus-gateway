@@ -65,6 +65,7 @@ def test_trace_id_falls_back_to_x_trace_id_when_traceparent_invalid():
     )
     assert response.status_code == 200
     assert response.headers.get("X-Trace-Id") == "trace-from-header"
+    assert "traceparent" not in response.headers
 
 
 def test_trace_id_generated_when_missing():
@@ -104,3 +105,12 @@ def test_resolve_trace_id_prefers_valid_traceparent():
 
     resolved = resolve_trace_id(_FakeRequest())
     assert resolved == "0123456789abcdef0123456789abcdef"
+
+
+def test_valid_x_trace_id_emits_traceparent():
+    trace_id = "0123456789abcdef0123456789abcdef"
+    client = TestClient(app)
+    response = client.get("/health", headers={"X-Trace-Id": trace_id})
+
+    assert response.status_code == 200
+    assert response.headers.get("traceparent") == f"00-{trace_id}-0000000000000001-01"
