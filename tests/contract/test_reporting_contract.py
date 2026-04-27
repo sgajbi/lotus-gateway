@@ -131,25 +131,23 @@ def test_reporting_contract_shapes() -> None:
             correlationId="corr-portfolio-review-1",
             traceId="4bf92f3577b34da6a3ce929d0e0e4736",
         ),
-            upstreamCalls=[
-                {
-                    "upstreamCallId": "ruc_7c5d4f1e4cb6455fa11c06821c57b88f",
-                    "snapshotId": "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf",
-                    "serviceName": "lotus-core",
-                    "endpoint": "/reporting/portfolio-summary/query",
-                    "method": "POST",
-                    "contractVersion": "v1",
-                    "requestHash": (
-                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531"
-                        "f80903c123c25f6d8c09780"
-                    ),
-                    "responseHash": (
-                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915"
-                        "963c4b3d74a3a07844f52"
-                    ),
-                    "responseRef": None,
-                    "statusCode": 200,
-                    "latencyMs": 184,
+        upstreamCalls=[
+            {
+                "upstreamCallId": "ruc_7c5d4f1e4cb6455fa11c06821c57b88f",
+                "snapshotId": "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf",
+                "serviceName": "lotus-core",
+                "endpoint": "/reporting/portfolio-summary/query",
+                "method": "POST",
+                "contractVersion": "v1",
+                "requestHash": (
+                    "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
+                ),
+                "responseHash": (
+                    "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
+                ),
+                "responseRef": None,
+                "statusCode": 200,
+                "latencyMs": 184,
                 "supportabilityStatus": "complete",
                 "completenessStatus": "complete",
                 "failureCategory": "none",
@@ -162,10 +160,7 @@ def test_reporting_contract_shapes() -> None:
         ],
     )
     assert job_lineage.snapshot.snapshot_id == "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf"
-    assert (
-        job_lineage.upstream_calls[0].upstream_call_id
-        == "ruc_7c5d4f1e4cb6455fa11c06821c57b88f"
-    )
+    assert job_lineage.upstream_calls[0].upstream_call_id == "ruc_7c5d4f1e4cb6455fa11c06821c57b88f"
 
 
 def test_reporting_request_normalizes_documented_aliases() -> None:

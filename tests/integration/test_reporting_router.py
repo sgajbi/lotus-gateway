@@ -634,8 +634,7 @@ def test_report_job_lineage_gateway_routes_forward_context(monkeypatch):
                     "report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"
                 },
                 "snapshot_hash": (
-                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a"
-                    "84e426238637f4a5b7dd"
+                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
                 ),
                 "snapshot_storage_ref": None,
                 "supportability_status": "complete",
@@ -663,12 +662,10 @@ def test_report_job_lineage_gateway_routes_forward_context(monkeypatch):
                     "method": "POST",
                     "contract_version": "v1",
                     "request_hash": (
-                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80"
-                        "903c123c25f6d8c09780"
+                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
                     ),
                     "response_hash": (
-                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915"
-                        "963c4b3d74a3a07844f52"
+                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
                     ),
                     "response_ref": None,
                     "status_code": 200,
@@ -736,12 +733,9 @@ def test_report_snapshot_endpoints_forward_context(monkeypatch):
             "report_data_contract_version": "v1",
             "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
             "as_of_date": "2026-04-22",
-            "snapshot_payload": {
-                "report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"
-            },
+            "snapshot_payload": {"report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"},
             "snapshot_hash": (
-                "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a"
-                "84e426238637f4a5b7dd"
+                "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
             ),
             "snapshot_storage_ref": None,
             "supportability_status": "complete",
@@ -778,8 +772,7 @@ def test_report_snapshot_endpoints_forward_context(monkeypatch):
                     "report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"
                 },
                 "snapshot_hash": (
-                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a"
-                    "84e426238637f4a5b7dd"
+                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
                 ),
                 "snapshot_storage_ref": None,
                 "supportability_status": "complete",
@@ -807,12 +800,10 @@ def test_report_snapshot_endpoints_forward_context(monkeypatch):
                     "method": "POST",
                     "contract_version": "v1",
                     "request_hash": (
-                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80"
-                        "903c123c25f6d8c09780"
+                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
                     ),
                     "response_hash": (
-                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915"
-                        "963c4b3d74a3a07844f52"
+                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
                     ),
                     "response_ref": None,
                     "status_code": 200,
@@ -901,14 +892,10 @@ def test_report_snapshot_gateway_errors_are_product_safe(monkeypatch):
     async def _mock_get_snapshot(self, *, snapshot_id, caller_headers, correlation_id):  # noqa: ARG001
         return 500, {"detail": "snapshot postgres internal-host report.dev.lotus"}
 
-    async def _mock_get_snapshot_lineage(
-        self, *, snapshot_id, caller_headers, correlation_id
-    ):  # noqa: ARG001
+    async def _mock_get_snapshot_lineage(self, *, snapshot_id, caller_headers, correlation_id):  # noqa: ARG001
         return 500, {"detail": "snapshot lineage postgres internal-host report.dev.lotus"}
 
-    async def _mock_get_job_lineage(
-        self, *, job_id, caller_headers, correlation_id
-    ):  # noqa: ARG001
+    async def _mock_get_job_lineage(self, *, job_id, caller_headers, correlation_id):  # noqa: ARG001
         return 404, {"detail": {"code": "report_snapshot_not_found", "message": "missing snapshot"}}
 
     monkeypatch.setattr(
@@ -939,16 +926,10 @@ def test_report_snapshot_gateway_errors_are_product_safe(monkeypatch):
     )
 
     assert snapshot_response.status_code == 502
-    assert (
-        snapshot_response.json()["detail"]["code"]
-        == "report_job_upstream_unavailable"
-    )
+    assert snapshot_response.json()["detail"]["code"] == "report_job_upstream_unavailable"
     assert "internal-host" not in str(snapshot_response.json())
     assert snapshot_lineage_response.status_code == 502
-    assert (
-        snapshot_lineage_response.json()["detail"]["code"]
-        == "report_job_upstream_unavailable"
-    )
+    assert snapshot_lineage_response.json()["detail"]["code"] == "report_job_upstream_unavailable"
     assert "internal-host" not in str(snapshot_lineage_response.json())
     assert job_lineage_response.status_code == 404
     assert job_lineage_response.json()["detail"]["code"] == "report_snapshot_not_found"

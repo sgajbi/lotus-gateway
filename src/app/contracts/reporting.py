@@ -54,9 +54,7 @@ REPORT_JOB_SNAPSHOT_RESPONSE_EXAMPLE: dict[str, Any] = {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
         "as_of_date": "2026-04-22",
     },
-    "snapshotHash": (
-        "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
-    ),
+    "snapshotHash": ("sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"),
     "snapshotStorageRef": None,
     "supportabilityStatus": "complete",
     "completenessStatus": "complete",
@@ -82,12 +80,8 @@ REPORT_JOB_UPSTREAM_CALL_RESPONSE_EXAMPLE: dict[str, Any] = {
     "endpoint": "/reporting/portfolio-summary/query",
     "method": "POST",
     "contractVersion": "v1",
-    "requestHash": (
-        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
-    ),
-    "responseHash": (
-        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
-    ),
+    "requestHash": ("sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"),
+    "responseHash": ("sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"),
     "responseRef": None,
     "statusCode": 200,
     "latencyMs": 184,
@@ -907,9 +901,7 @@ class ReportInputSnapshotRecord(BaseModel):
         ...,
         alias="snapshotHash",
         description="Canonical SHA-256 hash of the inline snapshot payload.",
-        examples=[
-            "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
-        ],
+        examples=["sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"],
     )
     snapshot_storage_ref: str | None = Field(
         ...,

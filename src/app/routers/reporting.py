@@ -140,10 +140,7 @@ def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "report_job_not_found", "message": message},
         )
-    if (
-        status_code == status.HTTP_404_NOT_FOUND
-        and error_code == "report_snapshot_not_found"
-    ):
+    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_snapshot_not_found":
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"code": "report_snapshot_not_found", "message": message},
