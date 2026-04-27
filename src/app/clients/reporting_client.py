@@ -171,6 +171,63 @@ class ReportingClient:
             headers=headers,
         )
 
+    async def get_report_job_lineage(
+        self,
+        *,
+        job_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/jobs/{job_id}/lineage"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_report_snapshot(
+        self,
+        *,
+        snapshot_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/snapshots/{snapshot_id}"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
+    async def get_report_snapshot_lineage(
+        self,
+        *,
+        snapshot_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/snapshots/{snapshot_id}/lineage"
+        headers = propagation_headers(correlation_id)
+        headers.update(caller_headers)
+        return await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+
     async def cancel_report_job(
         self,
         *,
