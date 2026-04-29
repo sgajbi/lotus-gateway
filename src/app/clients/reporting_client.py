@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.observed_fanout import request_observed_fanout
 from app.middleware.correlation import propagation_headers
+
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 class ReportingClient:
@@ -26,12 +29,10 @@ class ReportingClient:
         url = f"{self._base_url}/aggregations/portfolios/{portfolio_id}"
         params = {"asOfDate": as_of_date, "live": "true"}
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.aggregations.portfolio-snapshot",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             params=params,
             headers=headers,
         )
@@ -45,12 +46,10 @@ class ReportingClient:
         url = f"{self._base_url}/integration/capabilities"
         params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.integration.capabilities",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             params=params,
             headers=headers,
         )
@@ -63,12 +62,10 @@ class ReportingClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/portfolios/{portfolio_id}/summary"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.portfolio.summary",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
         )
@@ -81,12 +78,10 @@ class ReportingClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/portfolios/{portfolio_id}/review"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.portfolio.review",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
         )
@@ -103,12 +98,10 @@ class ReportingClient:
         headers = propagation_headers(correlation_id)
         headers["Idempotency-Key"] = idempotency_key
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.portfolio-review-jobs.submit",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
         )
@@ -123,12 +116,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/jobs/{job_id}"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.jobs.get",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -142,12 +133,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/jobs"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.jobs.list",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             params=filters,
             headers=headers,
         )
@@ -162,12 +151,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/jobs/{job_id}/events"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.jobs.events",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -181,12 +168,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/jobs/{job_id}/lineage"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.jobs.lineage",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -200,12 +185,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/snapshots/{snapshot_id}"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.snapshots.get",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -219,12 +202,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/snapshots/{snapshot_id}/lineage"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.snapshots.lineage",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -238,12 +219,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/jobs/{job_id}/cancel"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.jobs.cancel",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -259,12 +238,10 @@ class ReportingClient:
         headers = propagation_headers(correlation_id)
         headers["Idempotency-Key"] = idempotency_key
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.batches.create",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
         )
@@ -279,12 +256,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/batches/{batch_id}"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.batches.get",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -300,12 +275,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/batches/{batch_id}:{action}"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation=f"report.batches.{action}",
             method="POST",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=payload,
             headers=headers,
         )
@@ -319,12 +292,10 @@ class ReportingClient:
         url = f"{self._base_url}/reports/batch-schedules"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.batch-schedules.list",
             method="GET",
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
         )
 
@@ -338,12 +309,34 @@ class ReportingClient:
         url = f"{self._base_url}/reports/batch-schedules:run-due"
         headers = propagation_headers(correlation_id)
         headers.update(caller_headers)
-        return await request_with_retry(
+        return await self._request(
+            operation="report.batch-schedules.run-due",
             method="POST",
+            url=url,
+            json_body=payload,
+            headers=headers,
+        )
+
+    async def _request(
+        self,
+        *,
+        operation: str,
+        method: str,
+        url: str,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-report",
+            operation=operation,
+            method=method,
             url=url,
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
+            params=params,
             headers=headers,
+            json_body=json_body,
         )

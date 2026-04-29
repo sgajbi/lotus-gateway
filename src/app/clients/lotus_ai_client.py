@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.observed_fanout import request_observed_fanout
 from app.middleware.correlation import propagation_headers
+
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 class LotusAiClient:
@@ -46,15 +49,13 @@ class LotusAiClient:
         if expected_output_label:
             request_payload["expected_output_label"] = expected_output_label
 
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.tasks.execute",
             method="POST",
-            url=f"{self._base_url}/ai/tasks/execute",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=request_payload,
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path="/ai/tasks/execute",
         )
 
     async def execute_workflow_pack(
@@ -68,12 +69,9 @@ class LotusAiClient:
         task_request: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.workflow-packs.execute",
             method="POST",
-            url=f"{self._base_url}/platform/workflow-packs/execute",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body={
                 "pack_id": pack_id,
                 "version": version,
@@ -84,6 +82,7 @@ class LotusAiClient:
             },
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path="/platform/workflow-packs/execute",
         )
 
     async def get_workflow_pack_run_consumer_view(
@@ -92,14 +91,12 @@ class LotusAiClient:
         run_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.workflow-packs.runs.consumer-view",
             method="GET",
-            url=f"{self._base_url}/platform/workflow-packs/runs/{run_id}/consumer-view",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path=f"/platform/workflow-packs/runs/{run_id}/consumer-view",
         )
 
     async def get_workflow_pack_run_operator_profile(
@@ -108,14 +105,12 @@ class LotusAiClient:
         run_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.workflow-packs.runs.operator-profile",
             method="GET",
-            url=f"{self._base_url}/platform/workflow-packs/runs/{run_id}/operator-profile",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path=f"/platform/workflow-packs/runs/{run_id}/operator-profile",
         )
 
     async def list_workflow_pack_task_flows(
@@ -134,15 +129,13 @@ class LotusAiClient:
             params["caller"] = caller
         if workflow_surface is not None:
             params["workflow_surface"] = workflow_surface
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.workflow-packs.task-flows.list",
             method="GET",
-            url=f"{self._base_url}/platform/workflow-packs/task-flows",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             params=params,
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path="/platform/workflow-packs/task-flows",
         )
 
     async def apply_workflow_pack_run_review_action(
@@ -152,13 +145,37 @@ class LotusAiClient:
         correlation_id: str,
         request_payload: dict[str, Any],
     ) -> tuple[int, dict[str, Any]]:
-        return await request_with_retry(
+        return await self._request(
+            operation="ai.workflow-packs.runs.review-actions",
             method="POST",
-            url=f"{self._base_url}/platform/workflow-packs/runs/{run_id}/review-actions",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
             json_body=request_payload,
             headers=propagation_headers(correlation_id),
             retry_timeout_exceptions=False,
+            path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
+        )
+
+    async def _request(
+        self,
+        *,
+        operation: str,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+        retry_timeout_exceptions: bool = True,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-ai",
+            operation=operation,
+            method=method,
+            url=f"{self._base_url}{path}",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+            json_body=json_body,
+            retry_timeout_exceptions=retry_timeout_exceptions,
         )

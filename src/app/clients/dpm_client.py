@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.observed_fanout import request_observed_fanout
 from app.middleware.correlation import propagation_headers
+
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 class DpmClient:
@@ -27,6 +30,7 @@ class DpmClient:
             "/api/v1/rebalance/proposals/simulate",
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="manage.rebalance.proposals.simulate",
         )
 
     async def create_proposal(
@@ -39,6 +43,7 @@ class DpmClient:
             "/api/v1/rebalance/proposals",
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="manage.rebalance.proposals.create",
         )
 
     async def list_proposals(
@@ -51,6 +56,7 @@ class DpmClient:
             "/api/v1/rebalance/proposals",
             params=cleaned_params,
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.list",
         )
 
     async def list_runs(
@@ -63,6 +69,7 @@ class DpmClient:
             "/api/v1/rebalance/runs",
             params=cleaned_params,
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.runs.list",
         )
 
     async def get_proposal(
@@ -75,6 +82,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}",
             params={"include_evidence": str(include_evidence).lower()},
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.get",
         )
 
     async def get_proposal_version(
@@ -88,6 +96,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/versions/{version_no}",
             params={"include_evidence": str(include_evidence).lower()},
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.versions.get",
         )
 
     async def create_proposal_version(
@@ -101,6 +110,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/versions",
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="manage.rebalance.proposals.versions.create",
         )
 
     async def transition_proposal(
@@ -114,6 +124,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/transitions",
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="manage.rebalance.proposals.transition",
         )
 
     async def record_approval(
@@ -127,6 +138,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/approvals",
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="manage.rebalance.proposals.approvals.record",
         )
 
     async def get_workflow_events(
@@ -138,6 +150,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/workflow-events",
             params={},
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.workflow-events",
         )
 
     async def get_approvals(
@@ -149,6 +162,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/approvals",
             params={},
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.approvals.list",
         )
 
     async def get_proposal_lineage(
@@ -160,6 +174,7 @@ class DpmClient:
             f"/api/v1/rebalance/proposals/{proposal_id}/lineage",
             params={},
             headers=self._headers(correlation_id),
+            operation="manage.rebalance.proposals.lineage",
         )
 
     async def get_capabilities(
@@ -172,6 +187,7 @@ class DpmClient:
             "/api/v1/platform/capabilities",
             params={"consumerSystem": consumer_system, "tenantId": tenant_id},
             headers=self._headers(correlation_id),
+            operation="manage.platform.capabilities",
         )
 
     def _headers(
@@ -189,9 +205,13 @@ class DpmClient:
         path: str,
         body: dict[str, Any],
         headers: dict[str, str],
+        operation: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
-        return await request_with_retry(
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-manage",
+            operation=operation,
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -206,9 +226,13 @@ class DpmClient:
         path: str,
         params: dict[str, Any],
         headers: dict[str, str],
+        operation: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
-        return await request_with_retry(
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-manage",
+            operation=operation,
             method="GET",
             url=url,
             timeout_seconds=self._timeout,

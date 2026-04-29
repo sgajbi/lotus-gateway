@@ -96,6 +96,17 @@ def _patch_async_client(monkeypatch):
     monkeypatch.setattr("httpx.AsyncClient", _FakeAsyncClient)
 
 
+def _fanout_records(records, *, service: str):
+    return [
+        record
+        for record in records
+        if record.name == "analytics_ui.gateway"
+        and record.message
+        in {"gateway.analytics.fanout.completed", "gateway.analytics.fanout.degraded"}
+        and record.extra_fields["service"] == service
+    ]
+
+
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_calls_and_payload_handling():
     client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
@@ -408,6 +419,41 @@ async def test_lotus_ai_client_calls_task_execution_contract_with_correlation_he
         },
         "expected_output_label": "EXPLANATION_ONLY",
     }
+
+
+@pytest.mark.asyncio
+async def test_lotus_ai_client_emits_safe_fanout_metrics_without_prompt_content(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAiClient(base_url="http://ai", timeout_seconds=3.0)
+    _FakeAsyncClient.queue_json(
+        503,
+        {
+            "detail": "upstream communication failure",
+            "raw_prompt": "sensitive prompt text",
+            "model_output": "sensitive generated output",
+        },
+    )
+
+    status, payload = await client.execute_task(
+        task_id="explain.v1",
+        caller_app="lotus-gateway",
+        correlation_id="corr-ai-observed",
+        context_summary="Advisor brief context",
+        context_payload={"portfolio_id": "PF_1001"},
+        source_refs=["lotus-gateway:workbench:PF_1001:performance-summary:YTD"],
+    )
+
+    assert status == 503
+    assert payload["detail"] == "upstream communication failure"
+    [record] = _fanout_records(caplog.records, service="lotus-ai")
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["operation"] == "ai.tasks.execute"
+    assert fields["status_class"] == "5xx"
+    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert "raw_prompt" not in fields
+    assert "model_output" not in fields
+    assert "portfolio_id" not in fields
 
 
 @pytest.mark.asyncio
@@ -1673,6 +1719,33 @@ async def test_dpm_client_non_json_and_non_dict_payload_handling():
 
 
 @pytest.mark.asyncio
+async def test_dpm_client_emits_safe_fanout_metrics_for_manage_routes(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(503, {"detail": "upstream unavailable", "portfolio_id": "P1"})
+
+    status_code, payload = await client.list_runs(
+        params={"portfolio_id": "P1"},
+        correlation_id="corr-dpm-observed",
+    )
+
+    assert status_code == 503
+    assert payload["detail"] == "upstream unavailable"
+    [record] = _fanout_records(caplog.records, service="lotus-manage")
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["route"] == "workbench-analytics"
+    assert fields["service"] == "lotus-manage"
+    assert fields["operation"] == "manage.rebalance.runs.list"
+    assert fields["state"] == "degraded"
+    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert fields["status_class"] == "5xx"
+    assert "portfolio_id" not in fields
+    assert "request_body" not in fields
+    assert "response_body" not in fields
+
+
+@pytest.mark.asyncio
 async def test_reporting_client_handles_non_dict_payload():
     client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, [{"metric": "market_value_base"}])
@@ -1931,6 +2004,38 @@ async def test_reporting_client_summary_review_non_json_payloads():
 
 
 @pytest.mark.asyncio
+async def test_reporting_client_emits_safe_fanout_metrics_without_runtime_ids(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "state": "partial",
+            "partial_failures": [{"source_service": "lotus-report"}],
+            "request_body": {"portfolio_id": "P1"},
+        },
+    )
+
+    status_code, payload = await client.get_report_job(
+        job_id="rjob_sensitive_1",
+        caller_headers={"X-Actor-Id": "advisor-123"},
+        correlation_id="corr-report-observed",
+    )
+
+    assert status_code == 200
+    assert payload["state"] == "partial"
+    [record] = _fanout_records(caplog.records, service="lotus-report")
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["operation"] == "report.jobs.get"
+    assert fields["state"] == "partial"
+    assert fields["status_class"] == "2xx"
+    assert fields["partial_failure_count"] == 1
+    assert "rjob_sensitive_1" not in fields.values()
+    assert "portfolio_id" not in fields
+
+
+@pytest.mark.asyncio
 async def test_archive_client_metadata_and_download_routes_forward_archive_context():
     client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
     caller_headers = {
@@ -2018,6 +2123,37 @@ async def test_archive_client_download_returns_error_payload_without_binary_leak
     assert b"document_binary_missing" in content
     assert headers["content-type"] == "application/json"
     assert error_payload["error"]["code"] == "document_binary_missing"
+
+
+@pytest.mark.asyncio
+async def test_archive_client_emits_safe_binary_fanout_metrics(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = ArchiveClient(base_url="http://archive", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        404,
+        {"error": {"code": "document_binary_missing", "document_id": "doc_sensitive_1"}},
+    )
+
+    status_code, _, _, error_payload = await client.download_document(
+        document_id="doc_sensitive_1",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-archive-observed",
+    )
+
+    assert status_code == 404
+    assert error_payload["error"]["code"] == "document_binary_missing"
+    [record] = _fanout_records(caplog.records, service="lotus-archive")
+    fields = record.extra_fields
+    assert fields["operation"] == "archive.documents.download"
+    assert fields["status_class"] == "4xx"
+    assert fields["state"] == "error"
+    assert fields["error_category"] == "upstream_error"
+    assert "doc_sensitive_1" not in fields.values()
+    assert "document_id" not in fields
 
 
 @pytest.mark.asyncio

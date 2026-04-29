@@ -63,10 +63,12 @@
   and `instrument_page_limit`
 - proposal writes require `Idempotency-Key`
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
-  operations: `lotus_gateway_analytics_fanout_duration_seconds` and
+  operations plus the central `lotus-manage`, `lotus-report`, `lotus-archive`, and `lotus-ai`
+  client seams: `lotus_gateway_analytics_fanout_duration_seconds` and
   `lotus_gateway_analytics_degraded_total`. Labels are bounded to operation/service/status class
-  and degraded reason; portfolio, client, trace, correlation, request, and response content are not
-  metric labels.
+  and degraded reason; portfolio, client, document, trace, correlation, request, response, raw
+  prompt, and model output content are not metric labels. Remaining direct core-query paths stay
+  planned for later RFC-0108 Slice 13 rollout.
 - analytics UI protected diagnostics lookup is gateway-first under
   `/api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
   `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`; it returns only safe panel,

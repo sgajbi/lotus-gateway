@@ -1,7 +1,13 @@
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_binary_with_retry, request_with_retry
+from app.clients.observed_fanout import (
+    request_observed_binary_fanout,
+    request_observed_fanout,
+)
 from app.middleware.correlation import propagation_headers
+
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 class ArchiveClient:
@@ -28,7 +34,12 @@ class ArchiveClient:
         suffix = "/current" if current else ""
         url = f"{self._base_url}/documents/{document_id}{suffix}"
         headers = self._archive_headers(caller_headers, correlation_id)
-        return await request_with_retry(
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-archive",
+            operation=(
+                "archive.documents.current-metadata" if current else "archive.documents.metadata"
+            ),
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -46,7 +57,10 @@ class ArchiveClient:
     ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]:
         url = f"{self._base_url}/documents/{document_id}/download"
         headers = self._archive_headers(caller_headers, correlation_id)
-        return await request_binary_with_retry(
+        return await request_observed_binary_fanout(
+            logger=logger,
+            service="lotus-archive",
+            operation="archive.documents.download",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
