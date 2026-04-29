@@ -140,12 +140,12 @@ def _build_service() -> tuple[
     _StubDpmClient,
 ]:
     pas = _StubLotusCoreQueryClient()
-    pa = _StubLotusAnalyticsClient()
+    performance = _StubLotusAnalyticsClient()
     dpm = _StubDpmClient()
     return (
-        WorkbenchService(lotus_core_query_client=pas, analytics_client=pa, dpm_client=dpm),
+        WorkbenchService(lotus_core_query_client=pas, analytics_client=performance, dpm_client=dpm),
         pas,
-        pa,
+        performance,
         dpm,
     )
 
@@ -422,8 +422,8 @@ async def test_apply_sandbox_changes_without_policy_evaluation():
 
 @pytest.mark.asyncio
 async def test_get_workbench_analytics_raises_on_pa_error():
-    service, _, pa, _ = _build_service()
-    pa.analytics_status = 503
+    service, _, performance, _ = _build_service()
+    performance.analytics_status = 503
     with pytest.raises(HTTPException) as exc:
         await service.get_workbench_analytics(
             portfolio_id="P1",
@@ -438,8 +438,8 @@ async def test_get_workbench_analytics_raises_on_pa_error():
 
 @pytest.mark.asyncio
 async def test_get_workbench_analytics_raises_on_invalid_payload_shape():
-    service, _, pa, _ = _build_service()
-    pa.analytics_payload = {
+    service, _, performance, _ = _build_service()
+    performance.analytics_payload = {
         "allocationBuckets": [{"bucketKey": "EQ", "currentQuantity": "bad-number"}],
         "topChanges": [],
         "riskProxy": {},
@@ -459,8 +459,8 @@ async def test_get_workbench_analytics_raises_on_invalid_payload_shape():
 
 @pytest.mark.asyncio
 async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
-    service, _, pa, _ = _build_service()
-    pa.analytics_payload = {
+    service, _, performance, _ = _build_service()
+    performance.analytics_payload = {
         "allocationBuckets": [],
         "topChanges": [],
         "riskProxy": {"hhiCurrent": 9999.0, "hhiProposed": 9999.0, "hhiDelta": 0.0},
@@ -615,8 +615,8 @@ def test_parse_dpm_snapshot_without_created_at_keeps_last_run_null():
 
 @pytest.mark.asyncio
 async def test_workbench_analytics_reports_controlled_risk_gap_until_risk_bff_exists():
-    service, _, pa, _ = _build_service()
-    pa.analytics_payload = {
+    service, _, performance, _ = _build_service()
+    performance.analytics_payload = {
         "allocationBuckets": [],
         "topChanges": [],
         "riskProxy": {"hhiCurrent": 100.0, "hhiProposed": 100.0, "hhiDelta": 0.0},

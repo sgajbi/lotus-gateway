@@ -72,7 +72,7 @@ def test_workbench_router_success(monkeypatch):
             },
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {
             "results_by_period": {
                 "YTD": {"portfolio": {"summary": {"period_return": {"base": 2.5}}}}
@@ -96,7 +96,7 @@ def test_workbench_router_success(monkeypatch):
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm)
 
@@ -157,7 +157,7 @@ def test_workbench_router_partial_failure(monkeypatch):
             },
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 503, {"detail": "paused"}
 
     async def _dpm(*args, **kwargs):
@@ -169,7 +169,7 @@ def test_workbench_router_partial_failure(monkeypatch):
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm)
 
@@ -211,7 +211,7 @@ def test_workbench_portfolio_360_router(monkeypatch):
             },
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {
             "results_by_period": {
                 "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.5}}}}
@@ -227,7 +227,7 @@ def test_workbench_portfolio_360_router(monkeypatch):
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
@@ -342,14 +342,14 @@ def test_workbench_analytics_router(monkeypatch):
             "net_delta_quantity": 2.0,
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {
             "results_by_period": {
                 "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.5}}}}
             }
         }
 
-    async def _pa_workbench(*args, **kwargs):
+    async def _performance_workbench(*args, **kwargs):
         return 200, {
             "portfolioId": "PF_1001",
             "period": "YTD",
@@ -390,11 +390,11 @@ def test_workbench_analytics_router(monkeypatch):
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_workbench_analytics",
-        _pa_workbench,
+        _performance_workbench,
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
@@ -2657,7 +2657,7 @@ def test_workbench_sandbox_changes_router(monkeypatch):
             "net_delta_quantity": 2.0,
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {
             "results_by_period": {
                 "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.5}}}}
@@ -2699,7 +2699,7 @@ def test_workbench_sandbox_changes_router(monkeypatch):
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference", _analytics_reference
     )
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate)

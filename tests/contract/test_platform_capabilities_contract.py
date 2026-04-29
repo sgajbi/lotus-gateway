@@ -26,7 +26,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
             }
         return 200, {
             "contractVersion": "v1",
-            "sourceService": "performance-analytics",
+            "sourceService": "lotus-performance",
             "policyVersion": "lotus-performance-default-v1",
             "features": [],
             "workflows": [],

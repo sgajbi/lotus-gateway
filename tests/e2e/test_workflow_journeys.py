@@ -16,12 +16,12 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
             "supportedInputModes": ["pas_ref"],
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {
-            "sourceService": "performance-analytics",
+            "sourceService": "lotus-performance",
             "contractVersion": "v1",
             "policyVersion": "lotus-performance-default-v1",
-            "features": [{"key": "pa.analytics.twr", "enabled": True}],
+            "features": [{"key": "performance.analytics.twr", "enabled": True}],
             "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
             "supportedInputModes": ["pas_ref", "inline_bundle"],
         }
@@ -61,7 +61,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
@@ -79,6 +79,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     assert set(body["sources"].keys()) == {
         "lotus_core",
         "lotus_performance",
+        "lotus_risk",
         "lotus_manage",
         "lotus_report",
     }
@@ -124,7 +125,7 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
             "net_delta_quantity": 2.0,
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.5}}}
 
     async def _dpm_runs(*args, **kwargs):
@@ -140,7 +141,7 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate)
@@ -267,7 +268,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
             "supportedInputModes": ["pas_ref"],
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 503, {"detail": "lotus-performance unavailable"}
 
     async def _dpm(*args, **kwargs):
@@ -304,7 +305,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_capabilities", _pas)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
@@ -378,7 +379,7 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
             "net_delta_quantity": 1.0,
         }
 
-    async def _pa(*args, **kwargs):
+    async def _performance(*args, **kwargs):
         return 200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.2}}}
 
     async def _dpm_runs(*args, **kwargs):
@@ -394,7 +395,7 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_positions", _pas_positions)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_projected_summary", _pas_summary)
     monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _pa
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate_failure)

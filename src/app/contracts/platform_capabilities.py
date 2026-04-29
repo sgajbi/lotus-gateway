@@ -98,13 +98,13 @@ class PlatformBootstrapVersioning(BaseModel):
         default=None,
         alias="sourcePolicyVersion",
         description="Single-source policy version when the descriptor depends on one source.",
-        examples=["pa-tenant-a-v4"],
+        examples=["lotus-performance-tenant-a-v4"],
     )
     source_policy_versions: dict[str, str] = Field(
         default_factory=dict,
         alias="sourcePolicyVersions",
         description="Source-policy versions keyed by gateway source name.",
-        examples=[{"lotus_core": "pas-v3", "lotus_performance": "pa-v4"}],
+        examples=[{"lotus_core": "pas-v3", "lotus_performance": "lotus-performance-v4"}],
     )
 
     model_config = {"populate_by_name": True}
@@ -240,7 +240,7 @@ class PlatformCapabilitiesNormalized(BaseModel):
         examples=[
             {
                 "lotus_core": "pas-v3",
-                "lotus_performance": "pa-v4",
+                "lotus_performance": "lotus-performance-v4",
                 "lotus_risk": "risk-v2",
             }
         ],
@@ -293,7 +293,7 @@ class PlatformCapabilitiesData(BaseModel):
                 "lotus_core": {"sourceService": "lotus-core", "policyVersion": "pas-v3"},
                 "lotus_performance": {
                     "sourceService": "lotus-performance",
-                    "policyVersion": "pa-v4",
+                    "policyVersion": "lotus-performance-v4",
                 },
                 "lotus_risk": {
                     "sourceService": "lotus-risk",

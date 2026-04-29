@@ -180,9 +180,9 @@ async def test_platform_capabilities_all_sources_success():
             200,
             {
                 "sourceService": "lotus_performance",
-                "policyVersion": "pa-tenant-a-v4",
+                "policyVersion": "lotus-performance-tenant-a-v4",
                 "supportedInputModes": ["pas_ref", "inline_bundle"],
-                "features": [{"key": "pa.analytics.twr", "enabled": True}],
+                "features": [{"key": "performance.analytics.twr", "enabled": True}],
                 "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
             },
         ),
@@ -242,7 +242,7 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.module_health["lotus_core"] == "available"
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-a-v3",
-        "lotus_performance": "pa-tenant-a-v4",
+        "lotus_performance": "lotus-performance-tenant-a-v4",
         "lotus_risk": "risk-tenant-a-v2",
         "lotus_manage": "dpm-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
@@ -267,7 +267,7 @@ async def test_platform_capabilities_all_sources_success():
     assert shell_bootstrap.versioning.capability_contract_version == "v1"
     assert shell_bootstrap.versioning.source_policy_versions == {
         "lotus_core": "pas-tenant-a-v3",
-        "lotus_performance": "pa-tenant-a-v4",
+        "lotus_performance": "lotus-performance-tenant-a-v4",
         "lotus_risk": "risk-tenant-a-v2",
         "lotus_manage": "dpm-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
@@ -401,8 +401,8 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
             200,
             {
                 "sourceService": "lotus_performance",
-                "policyVersion": "pa-v1",
-                "features": [{"key": "pa.analytics.twr", "enabled": False}],
+                "policyVersion": "lotus-performance-v1",
+                "features": [{"key": "performance.analytics.twr", "enabled": False}],
                 "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
             },
         ),
@@ -499,7 +499,9 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         contract_version="v1",
     )
     sources = {
-        "lotus_performance": {"features": ["bad", {"key": "pa.analytics.twr", "enabled": True}]},
+        "lotus_performance": {
+            "features": ["bad", {"key": "performance.analytics.twr", "enabled": True}]
+        },
         "lotus_manage": {
             "workflows": ["bad", {"workflow_key": "proposal_lifecycle", "enabled": True}]
         },
@@ -508,7 +510,7 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         service._feature_enabled(
             sources=sources,
             source_name="lotus_performance",
-            feature_keys=("pa.analytics.twr",),
+            feature_keys=("performance.analytics.twr",),
         )
         is True
     )
@@ -542,7 +544,7 @@ async def test_platform_capabilities_uses_service_specific_upstream_capability_c
         200,
         {
             "sourceService": "lotus_performance",
-            "policyVersion": "pa-v1",
+            "policyVersion": "lotus-performance-v1",
             "features": [],
             "workflows": [],
         },
@@ -673,7 +675,7 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
             200,
             {
                 "sourceService": "lotus_performance",
-                "features": [{"key": "pa.analytics.twr", "enabled": True}],
+                "features": [{"key": "performance.analytics.twr", "enabled": True}],
                 "workflows": [],
             },
             delay_seconds=0.25,
