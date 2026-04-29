@@ -2,10 +2,18 @@ import pytest
 
 from app.observability.analytics_ui import (
     ANALYTICS_UI_ALLOWED_LABELS,
+    ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
+    ANALYTICS_UI_ATTENTION_EVENT_TYPES,
+    ANALYTICS_UI_AUDIT_EVENT_ATTRIBUTES,
+    ANALYTICS_UI_AUDIT_EVENT_TYPES,
     ANALYTICS_UI_FORBIDDEN_FIELDS,
+    ANALYTICS_UI_SEVERITY_LEVELS,
     ANALYTICS_UI_STATE_VOCABULARY,
+    ANALYTICS_UI_TRACE_ATTRIBUTES,
+    GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     is_analytics_ui_state,
+    validate_analytics_ui_attributes,
     validate_analytics_ui_labels,
 )
 
@@ -21,6 +29,33 @@ def test_state_vocabulary_matches_governed_analytics_ui_states() -> None:
     assert "permission_blocked" in ANALYTICS_UI_STATE_VOCABULARY
     assert is_analytics_ui_state("degraded")
     assert not is_analytics_ui_state("blocked")
+
+
+def test_gateway_log_events_and_severity_vocabularies_are_explicit() -> None:
+    assert GATEWAY_ANALYTICS_UI_LOG_EVENTS == (
+        "gateway.analytics.fanout.completed",
+        "gateway.analytics.fanout.degraded",
+    )
+    assert ANALYTICS_UI_SEVERITY_LEVELS == {
+        "info",
+        "warning",
+        "action_required",
+        "critical",
+    }
+    assert "source_partial" in ANALYTICS_UI_ATTENTION_EVENT_TYPES
+    assert "analytics_read_denied" in ANALYTICS_UI_AUDIT_EVENT_TYPES
+
+
+def test_trace_attention_and_audit_attributes_are_bounded_and_product_safe() -> None:
+    for attributes in (
+        ANALYTICS_UI_TRACE_ATTRIBUTES,
+        ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
+        ANALYTICS_UI_AUDIT_EVENT_ATTRIBUTES,
+    ):
+        assert validate_analytics_ui_attributes(attributes) == attributes
+        assert "portfolio_id" not in attributes
+        assert "client_name" not in attributes
+        assert "screen_content" not in attributes
 
 
 def test_validate_analytics_ui_labels_accepts_bounded_non_sensitive_fields() -> None:
@@ -47,12 +82,16 @@ def test_validate_analytics_ui_labels_rejects_forbidden_sensitive_fields() -> No
     for field in ANALYTICS_UI_FORBIDDEN_FIELDS:
         with pytest.raises(ValueError, match="forbidden field"):
             validate_analytics_ui_labels({field: "sensitive"})
+        with pytest.raises(ValueError, match="forbidden field"):
+            validate_analytics_ui_attributes((field,))
 
 
 def test_validate_analytics_ui_labels_rejects_ad_hoc_label_drift() -> None:
     assert "portfolio_id" not in ANALYTICS_UI_ALLOWED_LABELS
     with pytest.raises(ValueError, match="unsupported field"):
         validate_analytics_ui_labels({"custom_dimension": "drift"})
+    with pytest.raises(ValueError, match="unsupported field"):
+        validate_analytics_ui_attributes(("custom_dimension",))
 
 
 def test_validate_analytics_ui_labels_drops_empty_optional_values() -> None:
