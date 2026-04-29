@@ -2222,6 +2222,80 @@ async def test_lotus_core_query_client_support_routes_use_control_plane_contract
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_emits_safe_fanout_metrics_without_runtime_ids(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    _FakeAsyncClient.queue_json(
+        503,
+        {
+            "state": "degraded",
+            "partial_failures": [{"error_code": "CORE_SIMULATION_UNAVAILABLE"}],
+            "session_id": "sim_sensitive_1",
+            "portfolio_id": "P1",
+            "request_body": {"portfolio_id": "P1"},
+        },
+    )
+
+    status_code, payload = await client.get_projected_positions(
+        session_id="sim_sensitive_1",
+        correlation_id="corr-core-observed",
+    )
+
+    assert status_code == 503
+    assert payload["partial_failures"][0]["error_code"] == "CORE_SIMULATION_UNAVAILABLE"
+    [record] = _fanout_records(caplog.records, service="lotus-core")
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["operation"] == "core.simulation-sessions.projected-positions.get"
+    assert fields["status_class"] == "5xx"
+    assert fields["reason"] == "CORE_SIMULATION_UNAVAILABLE"
+    assert fields["partial_failure_count"] == 1
+    assert "sim_sensitive_1" not in fields.values()
+    assert "session_id" not in fields
+    assert "portfolio_id" not in fields
+    assert "request_body" not in fields
+
+
+@pytest.mark.asyncio
+async def test_lotus_core_ingestion_client_emits_safe_fanout_metrics_without_payload_ids(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusCoreIngestionClient(base_url="http://core-ingestion", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        400,
+        {
+            "state": "error",
+            "portfolio_id": "P1",
+            "upload_id": "upload_sensitive_1",
+            "request_body": {"portfolio_id": "P1"},
+        },
+    )
+
+    status_code, payload = await client.ingest_portfolio_bundle(
+        body={"portfolio_id": "P1"},
+        correlation_id="corr-core-ingestion-observed",
+        idempotency_key="idem-sensitive-1",
+    )
+
+    assert status_code == 400
+    assert payload["state"] == "error"
+    [record] = _fanout_records(caplog.records, service="lotus-core")
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["operation"] == "core.ingest.portfolio-bundle.create"
+    assert fields["status_class"] == "4xx"
+    assert fields["reason"] == "UPSTREAM_ERROR"
+    assert "P1" not in fields.values()
+    assert "upload_sensitive_1" not in fields.values()
+    assert "portfolio_id" not in fields
+    assert "upload_id" not in fields
+    assert "request_body" not in fields
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_capabilities_supports_nondefault_consumer_and_tenant():
     client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "lotus-performance"})

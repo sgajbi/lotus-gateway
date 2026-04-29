@@ -49,7 +49,8 @@ Current repository posture:
 10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 11. RFC-0108 analytics UI observability is active for selected Workbench performance and risk
     analytics paths, and has expanded fan-out coverage for central `lotus-manage`,
-    `lotus-report`, `lotus-archive`, and `lotus-ai` client seams. Gateway owns product-safe
+    `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
+    `lotus-core` ingestion client seams. Gateway owns product-safe
     structured fan-out logs, bounded fan-out metrics, degraded-source counters, selected analytics
     read audit logs, and a protected operator diagnostics lookup under
     `/api/v1/analytics-ui/diagnostics/{support_reference}`. Successful upstream reads emit bounded
@@ -58,9 +59,9 @@ Current repository posture:
     `protected_diagnostics_lookup` audit records. Gateway analytics metrics are limited to
     `operation`, `service`, `status_class`, and degraded `reason` labels; audit fields must stay
     limited to route, panel, operation, state, reason, status class, region, and environment;
-    portfolio, client, holding, trace, correlation, document, request/response body, screen
-    content, raw prompt, model output, and raw entitlement-failure fields remain forbidden. Full
-    all-UI fan-out rollout remains open until the remaining direct core-query paths are migrated.
+    portfolio, client, holding, transaction, session, upload, trace, correlation, document,
+    request/response body, screen content, raw prompt, model output, and raw entitlement-failure
+    fields remain forbidden.
 
 ## Architecture And Module Map
 
