@@ -32,7 +32,7 @@ def _assert_payload(payload: dict) -> None:
 
     passthrough = {
         "lotus_core": "lotus-core",
-        "lotus_performance": "performance-analytics",
+        "lotus_performance": "lotus-performance",
         "lotus_risk": "lotus-risk",
         "lotus_manage": "lotus-advise",
         "lotus_report": "lotus-report",

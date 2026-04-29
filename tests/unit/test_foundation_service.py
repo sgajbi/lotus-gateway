@@ -282,7 +282,7 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
                 },
             },
         ),
-        analytics_client=_StubAnalyticsClient(503, {"detail": "pa unavailable"}),
+        analytics_client=_StubAnalyticsClient(503, {"detail": "lotus-performance unavailable"}),
         dpm_client=_StubDpmClient(500, {"detail": "dpm unavailable"}),
         reporting_client=_StubReportingClient(503, {"detail": "reporting unavailable"}),
     )

@@ -31,10 +31,10 @@ def test_platform_capabilities_router_success(monkeypatch):
                 "supportedInputModes": ["pas_ref"],
             }
         return 200, {
-            "sourceService": "performance-analytics",
+            "sourceService": "lotus-performance",
             "contractVersion": "v1",
             "policyVersion": "lotus-performance-default-v1",
-            "features": [{"key": "pa.analytics.twr", "enabled": True}],
+            "features": [{"key": "performance.analytics.twr", "enabled": True}],
             "workflows": [{"workflow_key": "performance_snapshot", "enabled": True}],
             "supportedInputModes": ["pas_ref", "inline_bundle"],
         }

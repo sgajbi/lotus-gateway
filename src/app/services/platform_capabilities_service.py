@@ -268,13 +268,13 @@ class PlatformCapabilitiesService:
                 )
                 for key in (
                     "lotus_performance.analytics.twr",
-                    "pa.analytics.twr",
+                    "performance.analytics.twr",
                     "lotus_performance.analytics.mwr",
-                    "pa.analytics.mwr",
+                    "performance.analytics.mwr",
                     "lotus_performance.analytics.contribution",
-                    "pa.analytics.contribution",
+                    "performance.analytics.contribution",
                     "lotus_performance.analytics.attribution",
-                    "pa.analytics.attribution",
+                    "performance.analytics.attribution",
                 )
             ),
             "lotus_manage_lifecycle": self._feature_enabled(

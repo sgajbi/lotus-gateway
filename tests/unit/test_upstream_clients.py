@@ -98,8 +98,8 @@ def _patch_async_client(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_calls_and_payload_handling():
-    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
-    _FakeAsyncClient.queue_json(200, {"sourceService": "pa"})
+    client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceService": "lotus-performance"})
     _FakeAsyncClient.queue_json(
         200,
         {
@@ -134,7 +134,7 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
     )
 
     assert status_one == 200
-    assert payload_one["sourceService"] == "pa"
+    assert payload_one["sourceService"] == "lotus-performance"
     assert status_two == 200
     assert (
         payload_two["results_by_period"]["YTD"]["portfolio"]["summary"]["period_return"]["base"]
@@ -142,13 +142,13 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
     )
     assert status_three == 200
     assert payload_three["allocationBuckets"][0]["bucketKey"] == "EQUITY"
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pa/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performance/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "consumer_system": "lotus-gateway",
         "tenant_id": "default",
     }
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pa/performance/twr"
-    assert _FakeAsyncClient.calls[2]["url"] == "http://pa/analytics/workbench"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://lotus-performance/performance/twr"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://lotus-performance/analytics/workbench"
     assert _FakeAsyncClient.calls[1]["json"]["portfolio_id"] == "P1"
     assert _FakeAsyncClient.calls[1]["json"]["report_end_date"] == "2026-02-24"
     assert _FakeAsyncClient.calls[1]["json"]["stateful_input"] == {}
@@ -1094,8 +1094,8 @@ async def test_lotus_core_query_client_fetches_benchmark_assignment():
 
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
-    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
-    _FakeAsyncClient.queue_text(503, "pa unavailable")
+    client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_text(503, "lotus-performance unavailable")
     _FakeAsyncClient.queue_json(200, ["analytics"])
 
     status_one, payload_one = await client.get_capabilities(
@@ -1109,7 +1109,7 @@ async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
     )
 
     assert status_one == 503
-    assert payload_one["detail"] == "pa unavailable"
+    assert payload_one["detail"] == "lotus-performance unavailable"
     assert status_two == 200
     assert payload_two["detail"] == ["analytics"]
     assert _FakeAsyncClient.calls[0]["params"] == {
@@ -1120,7 +1120,7 @@ async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_endpoints_and_non_json_response_handling():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"portfolio_id": "P1"})
     _FakeAsyncClient.queue_json(200, {"positions": [{"security_id": "EQ_1"}]})
     _FakeAsyncClient.queue_json(200, {"transactions": [{"transaction_id": "TX_1"}]})
@@ -1171,15 +1171,20 @@ async def test_lotus_core_query_client_endpoints_and_non_json_response_handling(
     )
     assert status_summary == 503
     assert payload_summary["detail"] == "service unavailable"
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1"
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/portfolios/P1/positions"
-    assert _FakeAsyncClient.calls[2]["url"] == "http://pas/portfolios/P1/transactions"
-    assert _FakeAsyncClient.calls[3]["url"] == "http://pas/portfolios/P1/cashflow-projection"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performances/portfolios/P1"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://lotus-performances/portfolios/P1/positions"
+    assert (
+        _FakeAsyncClient.calls[2]["url"] == "http://lotus-performances/portfolios/P1/transactions"
+    )
+    assert (
+        _FakeAsyncClient.calls[3]["url"]
+        == "http://lotus-performances/portfolios/P1/cashflow-projection"
+    )
 
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_transaction_route_supports_advanced_filters_and_sorting():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"transactions": [{"transaction_id": "TX_1"}]})
 
     status_code, payload = await client.get_portfolio_transactions(
@@ -1206,7 +1211,9 @@ async def test_lotus_core_query_client_transaction_route_supports_advanced_filte
 
     assert status_code == 200
     assert payload["transactions"][0]["transaction_id"] == "TX_1"
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1/transactions"
+    assert (
+        _FakeAsyncClient.calls[0]["url"] == "http://lotus-performances/portfolios/P1/transactions"
+    )
     assert _FakeAsyncClient.calls[0]["params"] == {
         "limit": 25,
         "skip": 5,
@@ -1230,7 +1237,7 @@ async def test_lotus_core_query_client_transaction_route_supports_advanced_filte
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_cash_balances_uses_strategic_holdings_route():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"cash_accounts": []})
 
     status_code, payload = await client.get_portfolio_cash_balances(
@@ -1242,7 +1249,9 @@ async def test_lotus_core_query_client_cash_balances_uses_strategic_holdings_rou
 
     assert status_code == 200
     assert payload["cash_accounts"] == []
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/portfolios/P1/cash-balances"
+    assert (
+        _FakeAsyncClient.calls[0]["url"] == "http://lotus-performances/portfolios/P1/cash-balances"
+    )
     assert _FakeAsyncClient.calls[0]["params"] == {
         "as_of_date": "2026-03-27",
         "reporting_currency": "SGD",
@@ -1251,7 +1260,7 @@ async def test_lotus_core_query_client_cash_balances_uses_strategic_holdings_rou
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_core_endpoints():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"sourceService": "pas"})
     _FakeAsyncClient.queue_json(200, {"allowedSections": ["OVERVIEW"]})
     _FakeAsyncClient.queue_json(200, {"portfolios": []})
@@ -1290,17 +1299,19 @@ async def test_lotus_core_query_client_core_endpoints():
         )
     )[0] == 200
     assert (await client.list_instruments(limit=10, correlation_id="corr-3"))[0] == 200
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performances/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "consumer_system": "lotus-gateway",
         "tenant_id": "default",
     }
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/integration/policy/effective"
+    assert (
+        _FakeAsyncClient.calls[1]["url"] == "http://lotus-performances/integration/policy/effective"
+    )
     assert _FakeAsyncClient.calls[1]["params"] == {
         "consumer_system": "lotus-gateway",
         "tenant_id": "default",
     }
-    assert _FakeAsyncClient.calls[3]["url"] == "http://pas/lookups/portfolios"
+    assert _FakeAsyncClient.calls[3]["url"] == "http://lotus-performances/lookups/portfolios"
     assert _FakeAsyncClient.calls[3]["params"] == {}
     assert _FakeAsyncClient.calls[4]["json"] == {
         "as_of_date": "2026-02-24",
@@ -1309,13 +1320,13 @@ async def test_lotus_core_query_client_core_endpoints():
     }
     assert (
         _FakeAsyncClient.calls[5]["url"]
-        == "http://pas/integration/portfolios/P1/analytics/reference"
+        == "http://lotus-performances/integration/portfolios/P1/analytics/reference"
     )
 
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_lookup_routes_preserve_filter_query_params():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"items": [{"id": "PF_1", "label": "PF_1"}]})
     _FakeAsyncClient.queue_json(200, {"items": [{"id": "SEC_1", "label": "SEC_1"}]})
     _FakeAsyncClient.queue_json(200, {"items": [{"id": "USD", "label": "USD"}]})
@@ -1347,20 +1358,20 @@ async def test_lotus_core_query_client_lookup_routes_preserve_filter_query_param
         )
     )[0] == 200
 
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pas/lookups/portfolios"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performances/lookups/portfolios"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "client_id": "CIF_1001",
         "booking_center_code": "SG",
         "q": "Alpha",
         "limit": 25,
     }
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pas/lookups/instruments"
+    assert _FakeAsyncClient.calls[1]["url"] == "http://lotus-performances/lookups/instruments"
     assert _FakeAsyncClient.calls[1]["params"] == {
         "limit": 50,
         "product_type": "EQUITY",
         "q": "Apple",
     }
-    assert _FakeAsyncClient.calls[2]["url"] == "http://pas/lookups/currencies"
+    assert _FakeAsyncClient.calls[2]["url"] == "http://lotus-performances/lookups/currencies"
     assert _FakeAsyncClient.calls[2]["params"] == {
         "instrument_page_limit": 500,
         "source": "ALL",
@@ -1408,7 +1419,7 @@ async def test_lotus_core_query_client_capability_routes_use_canonical_snake_cas
 
 @pytest.mark.asyncio
 async def test_lotus_core_query_client_non_dict_payload_branch():
-    client = LotusCoreQueryClient(base_url="http://pas", timeout_seconds=2.0)
+    client = LotusCoreQueryClient(base_url="http://lotus-performances", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, ["not-dict"])
     status_code, payload = await client.list_portfolios(correlation_id="corr-3")
     assert status_code == 200
@@ -1417,7 +1428,9 @@ async def test_lotus_core_query_client_non_dict_payload_branch():
 
 @pytest.mark.asyncio
 async def test_pas_ingestion_client_upload_paths():
-    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    client = LotusCoreIngestionClient(
+        base_url="http://lotus-performances-ingest", timeout_seconds=2.0
+    )
     _FakeAsyncClient.queue_json(202, {"status": "accepted"})
     _FakeAsyncClient.queue_json(200, {"columns": ["portfolio_id"]})
     _FakeAsyncClient.queue_json(201, {"importedRows": 10})
@@ -1444,8 +1457,13 @@ async def test_pas_ingestion_client_upload_paths():
     assert status_ingest == 202
     assert status_preview == 200
     assert status_commit == 201
-    assert _FakeAsyncClient.calls[1]["url"] == "http://pas-ingest/ingest/uploads/preview"
-    assert _FakeAsyncClient.calls[2]["url"] == "http://pas-ingest/ingest/uploads/commit"
+    assert (
+        _FakeAsyncClient.calls[1]["url"]
+        == "http://lotus-performances-ingest/ingest/uploads/preview"
+    )
+    assert (
+        _FakeAsyncClient.calls[2]["url"] == "http://lotus-performances-ingest/ingest/uploads/commit"
+    )
     assert _FakeAsyncClient.calls[1]["data"] == {
         "entity_type": "transactions",
         "sample_size": "5",
@@ -1459,7 +1477,9 @@ async def test_pas_ingestion_client_upload_paths():
 
 @pytest.mark.asyncio
 async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
-    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    client = LotusCoreIngestionClient(
+        base_url="http://lotus-performances-ingest", timeout_seconds=2.0
+    )
     _FakeAsyncClient.queue_json(200, [{"preview": "row"}])
     _FakeAsyncClient.queue_text(503, "ingestion unavailable")
 
@@ -1493,7 +1513,9 @@ async def test_pas_ingestion_client_non_dict_and_text_payload_handling():
 
 @pytest.mark.asyncio
 async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
-    client = LotusCoreIngestionClient(base_url="http://pas-ingest", timeout_seconds=2.0)
+    client = LotusCoreIngestionClient(
+        base_url="http://lotus-performances-ingest", timeout_seconds=2.0
+    )
     _FakeAsyncClient.queue_json(202, {"status": "accepted"})
 
     status_ingest, _ = await client.ingest_portfolio_bundle(
@@ -2065,8 +2087,8 @@ async def test_lotus_core_query_client_support_routes_use_control_plane_contract
 
 @pytest.mark.asyncio
 async def test_lotus_analytics_client_capabilities_supports_nondefault_consumer_and_tenant():
-    client = LotusAnalyticsClient(base_url="http://pa", timeout_seconds=2.0)
-    _FakeAsyncClient.queue_json(200, {"sourceService": "pa"})
+    client = LotusAnalyticsClient(base_url="http://lotus-performance", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"sourceService": "lotus-performance"})
 
     status_code, payload = await client.get_capabilities(
         consumer_system="lotus-workbench",
@@ -2075,8 +2097,8 @@ async def test_lotus_analytics_client_capabilities_supports_nondefault_consumer_
     )
 
     assert status_code == 200
-    assert payload["sourceService"] == "pa"
-    assert _FakeAsyncClient.calls[0]["url"] == "http://pa/integration/capabilities"
+    assert payload["sourceService"] == "lotus-performance"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performance/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "consumer_system": "lotus-workbench",
         "tenant_id": "tenant-a",
