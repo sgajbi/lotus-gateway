@@ -45,6 +45,8 @@ ANALYTICS_UI_FORBIDDEN_FIELDS = frozenset(
         "screen_content",
         "request_body",
         "response_body",
+        "raw_prompt",
+        "model_output",
         "raw_entitlement_failure",
     }
 )

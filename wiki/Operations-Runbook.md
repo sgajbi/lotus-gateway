@@ -25,15 +25,18 @@
 - The module defines allowed labels, forbidden fields, state vocabulary, and gateway analytics
   metric-family names.
 - Do not add gateway analytics metric labels outside that contract.
-- `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `trace_id`,
-  `correlation_id`, request bodies, response bodies, and raw entitlement failures must not become
-  metric labels or structured telemetry dimensions.
+- `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `document_id`,
+  `trace_id`, `correlation_id`, request bodies, response bodies, raw prompts, model output, and
+  raw entitlement failures must not become metric labels or structured telemetry dimensions.
 - Gateway emits product-safe structured fan-out logs for selected Workbench performance and risk
   analytics operations.
+- Gateway also emits product-safe fan-out logs and metrics through the central `lotus-manage`,
+  `lotus-report`, `lotus-archive`, and `lotus-ai` client seams. Remaining direct core-query paths
+  stay planned for later RFC-0108 Slice 13 rollout.
 - Gateway emits `lotus_gateway_analytics_fanout_duration_seconds` with bounded `operation`,
-  `service`, and `status_class` labels for selected Workbench analytics fan-out operations.
+  `service`, and `status_class` labels for implemented Gateway fan-out operations.
 - Gateway emits `lotus_gateway_analytics_degraded_total` with bounded `operation`, `service`, and
-  `reason` labels when selected Workbench analytics fan-out is partial, degraded, or failed.
+  `reason` labels when implemented Gateway fan-out is partial, degraded, or failed.
 - Gateway emits product-safe selected analytics read audit logs for upstream read outcomes:
   `gateway.analytics.audit.analytics_read_allowed` for successful upstream reads and
   `gateway.analytics.audit.analytics_read_denied` for `401` or `403` upstream denials.
