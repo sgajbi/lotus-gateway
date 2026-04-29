@@ -61,6 +61,11 @@
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
   and `instrument_page_limit`
 - proposal writes require `Idempotency-Key`
+- `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
+  operations: `lotus_gateway_analytics_fanout_duration_seconds` and
+  `lotus_gateway_analytics_degraded_total`. Labels are bounded to operation/service/status class
+  and degraded reason; portfolio, client, trace, correlation, request, and response content are not
+  metric labels.
 
 ## Request examples
 
