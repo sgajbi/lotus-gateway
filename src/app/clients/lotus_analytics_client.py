@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -6,6 +7,12 @@ import httpx
 
 from app.clients.http_resilience import request_with_retry
 from app.middleware.correlation import propagation_headers
+from app.observability.analytics_ui import (
+    emit_gateway_analytics_fanout_log,
+    gateway_analytics_fanout_timer,
+)
+
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 class LotusAnalyticsClient:
@@ -26,6 +33,8 @@ class LotusAnalyticsClient:
         *,
         result_path: str,
         correlation_id: str,
+        service: str,
+        operation: str,
         max_attempts: int = 10,
         poll_interval_seconds: float = 0.35,
     ) -> tuple[int, dict[str, Any]]:
@@ -38,6 +47,7 @@ class LotusAnalyticsClient:
         last_status = 202
         last_payload: dict[str, Any] = {"detail": "async analytics result still pending"}
         for _ in range(max_attempts):
+            started_at = gateway_analytics_fanout_timer()
             status_code, payload = await request_with_retry(
                 method="GET",
                 url=url,
@@ -45,6 +55,14 @@ class LotusAnalyticsClient:
                 max_retries=self._max_retries,
                 backoff_seconds=self._retry_backoff_seconds,
                 headers=headers,
+            )
+            emit_gateway_analytics_fanout_log(
+                logger=logger,
+                started_at=started_at,
+                service=service,
+                operation=f"{operation}.poll",
+                status_code=status_code,
+                payload=payload,
             )
             last_status = status_code
             last_payload = payload
@@ -59,9 +77,13 @@ class LotusAnalyticsClient:
         path: str,
         payload: dict[str, Any],
         correlation_id: str,
+        service: str = "lotus-performance",
+        operation: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         headers = propagation_headers(correlation_id)
+        resolved_operation = operation or path.strip("/").replace("/", ".")
+        started_at = gateway_analytics_fanout_timer()
         status_code, response_payload = await request_with_retry(
             method="POST",
             url=url,
@@ -72,11 +94,20 @@ class LotusAnalyticsClient:
             headers=headers,
             retry_timeout_exceptions=False,
         )
+        emit_gateway_analytics_fanout_log(
+            logger=logger,
+            started_at=started_at,
+            service=service,
+            operation=resolved_operation,
+            status_code=status_code,
+            payload=response_payload,
+        )
         if self._should_retry_duplicate_calculation(
             status_code=status_code, payload=response_payload, request=payload
         ):
             replay_payload = dict(payload)
             replay_payload["calculation_id"] = str(uuid4())
+            replay_started_at = gateway_analytics_fanout_timer()
             status_code, response_payload = await request_with_retry(
                 method="POST",
                 url=url,
@@ -87,12 +118,22 @@ class LotusAnalyticsClient:
                 headers=headers,
                 retry_timeout_exceptions=False,
             )
+            emit_gateway_analytics_fanout_log(
+                logger=logger,
+                started_at=replay_started_at,
+                service=service,
+                operation=f"{resolved_operation}.duplicate-retry",
+                status_code=status_code,
+                payload=response_payload,
+            )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
             if isinstance(result_path, str) and result_path:
                 return await self._poll_async_result(
                     result_path=result_path,
                     correlation_id=correlation_id,
+                    service=service,
+                    operation=resolved_operation,
                 )
         return status_code, response_payload
 
@@ -220,6 +261,8 @@ class LotusAnalyticsClient:
                 return await self._poll_async_result(
                     result_path=result_path,
                     correlation_id=correlation_id,
+                    service="lotus-performance",
+                    operation="performance.twr",
                 )
         return status_code, response_payload
 
@@ -451,6 +494,8 @@ class LotusAnalyticsClient:
             path="/analytics/risk/calculate",
             payload=payload,
             correlation_id=correlation_id,
+            service="lotus-risk",
+            operation="analytics.risk.calculate",
         )
 
     async def post_risk_concentration(
@@ -462,6 +507,8 @@ class LotusAnalyticsClient:
             path="/analytics/risk/concentration",
             payload=payload,
             correlation_id=correlation_id,
+            service="lotus-risk",
+            operation="analytics.risk.concentration",
         )
 
     async def post_risk_drawdown(
@@ -473,6 +520,8 @@ class LotusAnalyticsClient:
             path="/analytics/risk/drawdown",
             payload=payload,
             correlation_id=correlation_id,
+            service="lotus-risk",
+            operation="analytics.risk.drawdown",
         )
 
     async def post_risk_rolling_metrics(
@@ -484,6 +533,8 @@ class LotusAnalyticsClient:
             path="/analytics/risk/rolling-metrics",
             payload=payload,
             correlation_id=correlation_id,
+            service="lotus-risk",
+            operation="analytics.risk.rolling-metrics",
         )
 
     async def post_risk_historical_attribution(
@@ -495,4 +546,6 @@ class LotusAnalyticsClient:
             path="/analytics/risk/historical-attribution",
             payload=payload,
             correlation_id=correlation_id,
+            service="lotus-risk",
+            operation="analytics.risk.historical-attribution",
         )

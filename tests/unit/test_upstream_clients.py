@@ -1,4 +1,5 @@
 import json
+import logging
 
 import httpx
 import pytest
@@ -675,6 +676,94 @@ async def test_lotus_analytics_client_workspace_summary_forwards_trace_context()
     assert headers["traceparent"] == f"00-{trace_id}-0000000000000001-01"
     assert "portfolio_id" not in headers
     assert "client_id" not in headers
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_emits_safe_structured_fanout_log(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "state": "partial",
+            "warnings": ["PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE"],
+            "partial_failures": [
+                {
+                    "source_service": "lotus-performance",
+                    "error_code": "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE",
+                    "detail": "upstream unavailable",
+                }
+            ],
+            "supportability": [{"key": "portfolio_returns", "state": "partial"}],
+            "results_by_period": {},
+        },
+    )
+
+    status_code, _ = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id=None,
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-workbench-route-1",
+    )
+
+    assert status_code == 200
+    [record] = [
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.fanout.degraded"
+    ]
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.fanout.degraded"
+    assert fields["route"] == "workbench-analytics"
+    assert fields["service"] == "lotus-performance"
+    assert fields["operation"] == "performance.workspace-summary"
+    assert fields["state"] == "partial"
+    assert fields["supportability_state"] == "partial"
+    assert fields["reason"] == "PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE"
+    assert fields["status_class"] == "2xx"
+    assert fields["warning_count"] == 1
+    assert fields["partial_failure_count"] == 1
+    assert isinstance(fields["duration_ms"], float)
+    assert "portfolio_id" not in fields
+    assert "client_id" not in fields
+    assert "request_body" not in fields
+    assert "response_body" not in fields
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_emits_safe_unavailable_fanout_log(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(503, {"detail": "upstream communication failure"})
+
+    status_code, payload = await client.post_risk_calculate(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-risk",
+    )
+
+    assert status_code == 503
+    assert payload["detail"] == "upstream communication failure"
+    [record] = [
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.fanout.degraded"
+    ]
+    fields = record.extra_fields
+    assert fields["service"] == "lotus-risk"
+    assert fields["operation"] == "analytics.risk.calculate"
+    assert fields["state"] == "degraded"
+    assert fields["reason"] == "UPSTREAM_UNAVAILABLE"
+    assert fields["status_class"] == "5xx"
+    assert fields["error_category"] == "upstream_unavailable"
+    assert "portfolio_id" not in fields
 
 
 @pytest.mark.asyncio
