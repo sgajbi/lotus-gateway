@@ -738,6 +738,97 @@ async def test_lotus_analytics_client_emits_safe_structured_fanout_log(caplog):
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_emits_safe_read_allowed_audit_log(caplog, monkeypatch):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    monkeypatch.setenv("LOTUS_REGION", "AP-SOUTHEAST-1")
+    monkeypatch.setenv("LOTUS_ENVIRONMENT", "Local")
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "results_by_period": {},
+            "request_body": {"portfolio_id": "P1"},
+            "response_body": {"client_name": "Sensitive Client"},
+        },
+    )
+
+    status_code, _ = await client.get_workspace_summary(
+        portfolio_id="P1",
+        report_end_date="2026-03-27",
+        report_start_date=None,
+        period="YTD",
+        chart_frequency="monthly",
+        detail_basis="NET",
+        benchmark_id=None,
+        reporting_currency="USD",
+        segment="asset_class",
+        correlation_id="corr-audit-allowed",
+    )
+
+    assert status_code == 200
+    [record] = [
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.audit.analytics_read_allowed"
+    ]
+    fields = record.extra_fields
+    assert fields == {
+        "event": "gateway.analytics.audit.analytics_read_allowed",
+        "route": "workbench-analytics",
+        "panel": "performance-summary",
+        "operation": "performance.workspace-summary",
+        "state": "ready",
+        "reason": "upstream_read_succeeded",
+        "status_class": "2xx",
+        "region": "ap-southeast-1",
+        "environment": "local",
+    }
+    assert "portfolio_id" not in fields
+    assert "client_name" not in fields
+    assert "request_body" not in fields
+    assert "response_body" not in fields
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_emits_safe_read_denied_audit_log(caplog):
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        403,
+        {
+            "detail": "denied for portfolio P1",
+            "raw_entitlement_failure": "client_name=Sensitive Client",
+        },
+    )
+
+    status_code, _ = await client.post_risk_calculate(
+        payload={"input_mode": "stateful", "stateful_input": {"portfolio_id": "P1"}},
+        correlation_id="corr-audit-denied",
+    )
+
+    assert status_code == 403
+    [record] = [
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.audit.analytics_read_denied"
+    ]
+    fields = record.extra_fields
+    assert fields["event"] == "gateway.analytics.audit.analytics_read_denied"
+    assert fields["route"] == "workbench-analytics"
+    assert fields["panel"] == "risk-summary"
+    assert fields["operation"] == "analytics.risk.calculate"
+    assert fields["state"] == "permission_blocked"
+    assert fields["reason"] == "upstream_authorization_denied"
+    assert fields["status_class"] == "4xx"
+    assert fields["region"] == "unknown"
+    assert fields["environment"] == "local"
+    assert "portfolio_id" not in fields
+    assert "raw_entitlement_failure" not in fields
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_emits_safe_unavailable_fanout_log(caplog):
     caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)

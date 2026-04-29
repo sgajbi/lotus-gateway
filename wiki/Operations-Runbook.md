@@ -28,8 +28,14 @@
 - `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `trace_id`,
   `correlation_id`, request bodies, response bodies, and raw entitlement failures must not become
   metric labels or structured telemetry dimensions.
-- Gateway fan-out metrics, degraded-source counters, dashboard claims, attention events, and audit
-  events remain planned until later RFC-0108 slices promote them with evidence.
+- Gateway emits product-safe structured fan-out logs for selected Workbench performance and risk
+  analytics operations.
+- Gateway emits product-safe selected analytics read audit logs for upstream read outcomes:
+  `gateway.analytics.audit.analytics_read_allowed` for successful upstream reads and
+  `gateway.analytics.audit.analytics_read_denied` for `401` or `403` upstream denials.
+- Gateway analytics fan-out metrics, degraded-source counters, dashboard claims, Workbench
+  attention events outside the Workbench surface, and protected diagnostics lookup audit remain
+  planned until later RFC-0108 slices promote them with evidence.
 
 ## Practical probes
 
