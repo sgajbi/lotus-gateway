@@ -10,6 +10,7 @@ from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.clients.reporting_client import ReportingClient
+from app.middleware.correlation import trace_id_var
 
 
 class _FakeAsyncClient:
@@ -631,6 +632,49 @@ async def test_lotus_analytics_client_workspace_summary_uses_canonical_summary_c
     assert "contribution" not in request["json"]
     assert "attribution" not in request["json"]
     assert request["json"]["benchmark"]["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
+
+
+@pytest.mark.asyncio
+async def test_lotus_analytics_client_workspace_summary_forwards_trace_context():
+    trace_id = "0123456789abcdef0123456789abcdef"
+    trace_token = trace_id_var.set(trace_id)
+    try:
+        client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+        _FakeAsyncClient.queue_json(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {
+                        "portfolio_twr": {
+                            "net": {"summary": {"period_return": {"base": 2.1}}},
+                            "gross": {"summary": {"period_return": {"base": 2.2}}},
+                        }
+                    }
+                }
+            },
+        )
+
+        await client.get_workspace_summary(
+            portfolio_id="P1",
+            report_end_date="2026-03-27",
+            report_start_date=None,
+            period="YTD",
+            chart_frequency="monthly",
+            detail_basis="NET",
+            benchmark_id=None,
+            reporting_currency="USD",
+            segment="asset_class",
+            correlation_id="corr-workbench-route-1",
+        )
+    finally:
+        trace_id_var.reset(trace_token)
+
+    headers = _FakeAsyncClient.calls[0]["headers"]
+    assert headers["X-Correlation-Id"] == "corr-workbench-route-1"
+    assert headers["X-Trace-Id"] == trace_id
+    assert headers["traceparent"] == f"00-{trace_id}-0000000000000001-01"
+    assert "portfolio_id" not in headers
+    assert "client_id" not in headers
 
 
 @pytest.mark.asyncio
