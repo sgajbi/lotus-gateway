@@ -17,6 +17,7 @@ from app.observability.analytics_ui import (
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
+    emit_gateway_protected_diagnostics_audit_log,
     is_analytics_ui_state,
     record_gateway_analytics_fanout_metrics,
     validate_analytics_ui_attributes,
@@ -51,6 +52,7 @@ def test_gateway_log_events_and_severity_vocabularies_are_explicit() -> None:
     assert GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS == (
         "gateway.analytics.audit.analytics_read_allowed",
         "gateway.analytics.audit.analytics_read_denied",
+        "gateway.analytics.audit.protected_diagnostics_lookup",
     )
     assert ANALYTICS_UI_SEVERITY_LEVELS == {
         "info",
@@ -188,6 +190,40 @@ def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_
     assert fields["state"] == "permission_blocked"
     assert "portfolio_id" not in fields
     assert "raw_entitlement_failure" not in fields
+
+
+def test_protected_diagnostics_audit_log_uses_bounded_fields(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    logger = logging.getLogger("analytics_ui.gateway")
+
+    emit_gateway_protected_diagnostics_audit_log(
+        logger=logger,
+        status_code=200,
+        reason="lookup_succeeded",
+    )
+
+    record = next(
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.audit.protected_diagnostics_lookup"
+    )
+    fields = record.extra_fields
+    assert fields == {
+        "event": "gateway.analytics.audit.protected_diagnostics_lookup",
+        "route": "workbench-analytics",
+        "panel": "protected-diagnostics",
+        "operation": "analytics-ui.protected-diagnostics.lookup",
+        "state": "ready",
+        "reason": "lookup_succeeded",
+        "status_class": "2xx",
+        "region": "unknown",
+        "environment": "local",
+    }
+    assert "support_reference" not in fields
+    assert "trace_id" not in fields
 
 
 def test_record_gateway_analytics_fanout_metrics_records_safe_labels() -> None:

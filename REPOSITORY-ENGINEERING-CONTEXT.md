@@ -49,13 +49,15 @@ Current repository posture:
 10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 11. RFC-0108 analytics UI observability is active for selected Workbench performance and risk
     analytics paths: Gateway owns product-safe structured fan-out logs, bounded fan-out metrics,
-    degraded-source counters, and selected analytics read audit logs. Successful upstream reads
-    emit bounded `analytics_read_allowed` audit records, and upstream `401`/`403` responses emit
-    bounded `analytics_read_denied` audit records. Gateway analytics metrics are limited to
-    `operation`, `service`, `status_class`, and degraded `reason` labels; audit fields must stay
-    limited to route, panel, operation, state, reason, status class, region, and environment;
-    portfolio, client, holding, trace, correlation, request/response body, screen content, and raw
-    entitlement-failure fields remain forbidden.
+    degraded-source counters, selected analytics read audit logs, and a protected operator
+    diagnostics lookup under `/api/v1/analytics-ui/diagnostics/{support_reference}`. Successful
+    upstream reads emit bounded `analytics_read_allowed` audit records, upstream `401`/`403`
+    responses emit bounded `analytics_read_denied` audit records, and protected diagnostics
+    lookups emit bounded `protected_diagnostics_lookup` audit records. Gateway analytics metrics
+    are limited to `operation`, `service`, `status_class`, and degraded `reason` labels; audit
+    fields must stay limited to route, panel, operation, state, reason, status class, region, and
+    environment; portfolio, client, holding, trace, correlation, request/response body, screen
+    content, and raw entitlement-failure fields remain forbidden.
 
 ## Architecture And Module Map
 

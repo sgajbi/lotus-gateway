@@ -21,6 +21,7 @@
 - `GET /api/v1/report-batch-schedules` and `POST /api/v1/report-batch-schedules:run-due`
 - `GET /api/v1/documents/{document_id}`
 - `GET /api/v1/documents/{document_id}/download`
+- `GET /api/v1/analytics-ui/diagnostics/{support_reference}`
 - `/health`, `/health/live`, `/health/ready`, `/metrics`, `/docs`
 
 ## Current contract notes
@@ -66,6 +67,11 @@
   `lotus_gateway_analytics_degraded_total`. Labels are bounded to operation/service/status class
   and degraded reason; portfolio, client, trace, correlation, request, and response content are not
   metric labels.
+- analytics UI protected diagnostics lookup is gateway-first under
+  `/api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
+  `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`; it returns only safe panel,
+  operation, service, state, reason, forbidden-field, and operator-guidance posture and emits
+  `gateway.analytics.audit.protected_diagnostics_lookup`.
 
 ## Request examples
 
@@ -219,6 +225,16 @@ curl "http://127.0.0.1:8111/api/v1/documents/doc_example/download" \
   -H "X-Booking-Center-Code: SG" \
   -H "X-Role: advisor" \
   --output portfolio-review.pdf
+```
+
+Analytics diagnostics protected lookup:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: support-operator"
 ```
 
 Proposal creation:

@@ -108,6 +108,7 @@ GATEWAY_ANALYTICS_UI_LOG_EVENTS = (
 GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS = (
     "gateway.analytics.audit.analytics_read_allowed",
     "gateway.analytics.audit.analytics_read_denied",
+    "gateway.analytics.audit.protected_diagnostics_lookup",
 )
 
 GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS = (
@@ -300,6 +301,29 @@ def emit_gateway_analytics_read_audit_log(
     if not fields:
         return
     logger.info(str(fields["event"]), extra={"extra_fields": fields})
+
+
+def emit_gateway_protected_diagnostics_audit_log(
+    *,
+    logger: logging.Logger,
+    status_code: int,
+    reason: str,
+) -> None:
+    fields = {
+        "event": "gateway.analytics.audit.protected_diagnostics_lookup",
+        "route": "workbench-analytics",
+        "panel": "protected-diagnostics",
+        "operation": "analytics-ui.protected-diagnostics.lookup",
+        "state": "ready" if 0 < status_code < 400 else "permission_blocked",
+        "reason": reason,
+        "status_class": _status_class(status_code),
+        "region": _safe_dimension(os.getenv("LOTUS_REGION"), default="unknown"),
+        "environment": _safe_dimension(os.getenv("LOTUS_ENVIRONMENT"), default="local"),
+    }
+    logger.info(
+        "gateway.analytics.audit.protected_diagnostics_lookup",
+        extra={"extra_fields": validate_gateway_analytics_ui_audit_log_fields(fields)},
+    )
 
 
 def _gateway_analytics_fanout_fields(
