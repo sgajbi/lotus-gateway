@@ -25,14 +25,15 @@
 - The module defines allowed labels, forbidden fields, state vocabulary, and gateway analytics
   metric-family names.
 - Do not add gateway analytics metric labels outside that contract.
-- `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `document_id`,
-  `trace_id`, `correlation_id`, request bodies, response bodies, raw prompts, model output, and
-  raw entitlement failures must not become metric labels or structured telemetry dimensions.
+- `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `session_id`,
+  `simulation_session_id`, `upload_id`, `document_id`, `trace_id`, `correlation_id`, request
+  bodies, response bodies, raw prompts, model output, and raw entitlement failures must not become
+  metric labels or structured telemetry dimensions.
 - Gateway emits product-safe structured fan-out logs for selected Workbench performance and risk
   analytics operations.
 - Gateway also emits product-safe fan-out logs and metrics through the central `lotus-manage`,
-  `lotus-report`, `lotus-archive`, and `lotus-ai` client seams. Remaining direct core-query paths
-  stay planned for later RFC-0108 Slice 13 rollout.
+  `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
+  `lotus-core` ingestion client seams.
 - Gateway emits `lotus_gateway_analytics_fanout_duration_seconds` with bounded `operation`,
   `service`, and `status_class` labels for implemented Gateway fan-out operations.
 - Gateway emits `lotus_gateway_analytics_degraded_total` with bounded `operation`, `service`, and

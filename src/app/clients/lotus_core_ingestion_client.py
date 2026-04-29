@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.observed_fanout import request_observed_fanout
 from app.middleware.correlation import propagation_headers
+
+LOGGER = logging.getLogger("analytics_ui.gateway")
 
 
 class LotusCoreIngestionClient:
@@ -27,7 +30,10 @@ class LotusCoreIngestionClient:
         headers = propagation_headers(correlation_id)
         if idempotency_key:
             headers["X-Idempotency-Key"] = idempotency_key
-        return await request_with_retry(
+        return await request_observed_fanout(
+            logger=LOGGER,
+            service="lotus-core",
+            operation="core.ingest.portfolio-bundle.create",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -84,7 +90,15 @@ class LotusCoreIngestionClient:
         headers = propagation_headers(correlation_id)
         form_data = {"entity_type": entity_type, **extra_data}
         files = {"file": (filename, content)}
-        return await request_with_retry(
+        operation = (
+            "core.ingest.uploads.preview"
+            if path.endswith("/preview")
+            else "core.ingest.uploads.commit"
+        )
+        return await request_observed_fanout(
+            logger=LOGGER,
+            service="lotus-core",
+            operation=operation,
             method="POST",
             url=url,
             timeout_seconds=self._timeout,

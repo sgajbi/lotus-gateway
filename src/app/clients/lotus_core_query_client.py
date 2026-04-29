@@ -1,7 +1,10 @@
+import logging
 from typing import Any
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.observed_fanout import request_observed_fanout
 from app.middleware.correlation import propagation_headers
+
+LOGGER = logging.getLogger("analytics_ui.gateway")
 
 
 class LotusCoreQueryClient:
@@ -28,7 +31,8 @@ class LotusCoreQueryClient:
         url = f"{self._control_plane_base_url}/integration/capabilities"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.capabilities",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -47,7 +51,8 @@ class LotusCoreQueryClient:
         url = f"{self._control_plane_base_url}/integration/policy/effective"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.policy.effective",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -63,7 +68,8 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.list",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -79,7 +85,8 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -103,7 +110,8 @@ class LotusCoreQueryClient:
             params["as_of_date"] = as_of_date
         if reporting_currency is not None:
             params["reporting_currency"] = reporting_currency
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.positions.list",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -172,7 +180,8 @@ class LotusCoreQueryClient:
             params["end_date"] = end_date
         if reporting_currency is not None:
             params["reporting_currency"] = reporting_currency
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.transactions.list",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -199,7 +208,8 @@ class LotusCoreQueryClient:
         }
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.cashflow-projection.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -224,7 +234,8 @@ class LotusCoreQueryClient:
             params["as_of_date"] = as_of_date
         if reporting_currency is not None:
             params["reporting_currency"] = reporting_currency
-        return await request_with_retry(
+        return await self._request(
+            operation="core.portfolios.cash-balances.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -258,7 +269,8 @@ class LotusCoreQueryClient:
             payload["as_of_date"] = as_of_date
         if reporting_currency is not None:
             payload["reporting_currency"] = reporting_currency
-        return await request_with_retry(
+        return await self._request(
+            operation="core.reporting.assets-under-management.query",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -296,7 +308,8 @@ class LotusCoreQueryClient:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
-        return await request_with_retry(
+        return await self._request(
+            operation="core.reporting.asset-allocation.query",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -321,7 +334,8 @@ class LotusCoreQueryClient:
             "sections": sections,
             "consumer_system": consumer_system,
         }
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.portfolios.core-snapshot.get",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -347,7 +361,8 @@ class LotusCoreQueryClient:
             "as_of_date": as_of_date,
             "consumer_system": consumer_system,
         }
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.portfolios.analytics-reference.get",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -374,7 +389,8 @@ class LotusCoreQueryClient:
             "as_of_date": as_of_date,
             "reporting_currency": reporting_currency,
         }
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.portfolios.benchmark-assignment.get",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -391,7 +407,8 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/overview"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.support.portfolios.overview.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -412,7 +429,8 @@ class LotusCoreQueryClient:
         params: dict[str, Any] = {}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
-        return await request_with_retry(
+        return await self._request(
+            operation="core.support.portfolios.readiness.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -442,7 +460,8 @@ class LotusCoreQueryClient:
             payload["benchmark_status"] = benchmark_status
         if benchmark_type is not None:
             payload["benchmark_type"] = benchmark_type
-        return await request_with_retry(
+        return await self._request(
+            operation="core.integration.benchmarks.catalog.get",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -460,7 +479,8 @@ class LotusCoreQueryClient:
         url = f"{self._query_base_url}/instruments"
         headers = propagation_headers(correlation_id)
         params = {"skip": 0, "limit": limit}
-        return await request_with_retry(
+        return await self._request(
+            operation="core.instruments.list",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -541,7 +561,8 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}{path}"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation=f"core{path.replace('/', '.')}.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -565,7 +586,8 @@ class LotusCoreQueryClient:
             "created_by": created_by,
             "ttl_hours": ttl_hours,
         }
-        return await request_with_retry(
+        return await self._request(
+            operation="core.simulation-sessions.create",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -584,7 +606,8 @@ class LotusCoreQueryClient:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/changes"
         headers = propagation_headers(correlation_id)
         payload = {"changes": changes}
-        return await request_with_retry(
+        return await self._request(
+            operation="core.simulation-sessions.changes.add",
             method="POST",
             url=url,
             timeout_seconds=self._timeout,
@@ -601,7 +624,8 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.simulation-sessions.projected-positions.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
@@ -617,11 +641,39 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
         headers = propagation_headers(correlation_id)
-        return await request_with_retry(
+        return await self._request(
+            operation="core.simulation-sessions.projected-summary.get",
             method="GET",
             url=url,
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             headers=headers,
+        )
+
+    async def _request(
+        self,
+        *,
+        operation: str,
+        method: str,
+        url: str,
+        timeout_seconds: float | None = None,
+        max_retries: int | None = None,
+        backoff_seconds: float | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_observed_fanout(
+            logger=LOGGER,
+            service="lotus-core",
+            operation=operation,
+            method=method,
+            url=url,
+            timeout_seconds=timeout_seconds or self._timeout,
+            max_retries=self._max_retries if max_retries is None else max_retries,
+            backoff_seconds=backoff_seconds or self._retry_backoff_seconds,
+            params=params,
+            headers=headers,
+            json_body=json_body,
         )
