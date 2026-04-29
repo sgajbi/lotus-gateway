@@ -10,12 +10,15 @@ from app.observability.analytics_ui import (
     ANALYTICS_UI_SEVERITY_LEVELS,
     ANALYTICS_UI_STATE_VOCABULARY,
     ANALYTICS_UI_TRACE_ATTRIBUTES,
+    GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+    GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS,
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
     is_analytics_ui_state,
+    record_gateway_analytics_fanout_metrics,
     validate_analytics_ui_attributes,
     validate_analytics_ui_labels,
     validate_gateway_analytics_ui_audit_log_fields,
@@ -28,6 +31,10 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
         "lotus_gateway_analytics_fanout_duration_seconds",
         "lotus_gateway_analytics_degraded_total",
     )
+    duration_labels = GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS._labelnames
+    degraded_labels = GATEWAY_ANALYTICS_DEGRADED_TOTAL._labelnames
+    assert duration_labels == ("operation", "service", "status_class")
+    assert degraded_labels == ("operation", "service", "reason")
 
 
 def test_state_vocabulary_matches_governed_analytics_ui_states() -> None:
@@ -181,3 +188,91 @@ def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_
     assert fields["state"] == "permission_blocked"
     assert "portfolio_id" not in fields
     assert "raw_entitlement_failure" not in fields
+
+
+def test_record_gateway_analytics_fanout_metrics_records_safe_labels() -> None:
+    before_duration_count = _sample_value(
+        GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS,
+        "lotus_gateway_analytics_fanout_duration_seconds_count",
+        {
+            "operation": "analytics.risk.calculate",
+            "service": "lotus-risk",
+            "status_class": "5xx",
+        },
+    )
+    before_degraded_count = _sample_value(
+        GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+        "lotus_gateway_analytics_degraded_total",
+        {
+            "operation": "analytics.risk.calculate",
+            "service": "lotus-risk",
+            "reason": "upstream_unavailable",
+        },
+    )
+
+    record_gateway_analytics_fanout_metrics(
+        {
+            "event": "gateway.analytics.fanout.degraded",
+            "route": "workbench-analytics",
+            "service": "lotus-risk",
+            "operation": "analytics.risk.calculate",
+            "state": "degraded",
+            "reason": "UPSTREAM_UNAVAILABLE",
+            "status_class": "5xx",
+            "duration_ms": 125.0,
+            "warning_count": 0,
+            "partial_failure_count": 0,
+        }
+    )
+
+    assert (
+        _sample_value(
+            GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS,
+            "lotus_gateway_analytics_fanout_duration_seconds_count",
+            {
+                "operation": "analytics.risk.calculate",
+                "service": "lotus-risk",
+                "status_class": "5xx",
+            },
+        )
+        == before_duration_count + 1
+    )
+    assert (
+        _sample_value(
+            GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+            "lotus_gateway_analytics_degraded_total",
+            {
+                "operation": "analytics.risk.calculate",
+                "service": "lotus-risk",
+                "reason": "upstream_unavailable",
+            },
+        )
+        == before_degraded_count + 1
+    )
+
+
+def test_record_gateway_analytics_fanout_metrics_rejects_sensitive_labels() -> None:
+    with pytest.raises(ValueError, match="forbidden field"):
+        record_gateway_analytics_fanout_metrics(
+            {
+                "event": "gateway.analytics.fanout.degraded",
+                "route": "workbench-analytics",
+                "service": "lotus-risk",
+                "operation": "analytics.risk.calculate",
+                "state": "degraded",
+                "reason": "UPSTREAM_UNAVAILABLE",
+                "status_class": "5xx",
+                "duration_ms": 125.0,
+                "warning_count": 0,
+                "partial_failure_count": 0,
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            }
+        )
+
+
+def _sample_value(collector: object, sample_name: str, labels: dict[str, str]) -> float:
+    for metric in collector.collect():
+        for sample in metric.samples:
+            if sample.name == sample_name and dict(sample.labels) == labels:
+                return float(sample.value)
+    return 0.0

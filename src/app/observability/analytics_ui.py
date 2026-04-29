@@ -6,6 +6,8 @@ import time
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from prometheus_client import Counter, Histogram
+
 ANALYTICS_UI_ALLOWED_LABELS = frozenset(
     {
         "route",
@@ -84,6 +86,18 @@ ANALYTICS_UI_AUDIT_EVENT_TYPES = frozenset(
 GATEWAY_ANALYTICS_UI_METRIC_FAMILIES = (
     "lotus_gateway_analytics_fanout_duration_seconds",
     "lotus_gateway_analytics_degraded_total",
+)
+
+GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS = Histogram(
+    "lotus_gateway_analytics_fanout_duration_seconds",
+    "Duration of Gateway analytics upstream fan-out calls.",
+    ("operation", "service", "status_class"),
+)
+
+GATEWAY_ANALYTICS_DEGRADED_TOTAL = Counter(
+    "lotus_gateway_analytics_degraded_total",
+    "Count of degraded Gateway analytics upstream fan-out calls.",
+    ("operation", "service", "reason"),
 )
 
 GATEWAY_ANALYTICS_UI_LOG_EVENTS = (
@@ -244,8 +258,33 @@ def emit_gateway_analytics_fanout_log(
         status_code=status_code,
         payload=payload,
     )
+    record_gateway_analytics_fanout_metrics(fields)
     event = str(fields["event"])
     logger.info(event, extra={"extra_fields": fields})
+
+
+def record_gateway_analytics_fanout_metrics(fields: Mapping[str, object]) -> None:
+    validated_fields = validate_gateway_analytics_ui_log_fields(fields)
+    operation = str(validated_fields["operation"])
+    service = str(validated_fields["service"])
+    status_class = str(validated_fields["status_class"])
+    duration_ms = validated_fields["duration_ms"]
+    if not isinstance(duration_ms, int | float):
+        raise ValueError("Analytics UI fan-out duration_ms must be numeric")
+    GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS.labels(
+        operation=operation,
+        service=service,
+        status_class=status_class,
+    ).observe(float(duration_ms) / 1000)
+
+    if validated_fields.get("event") == "gateway.analytics.fanout.degraded":
+        GATEWAY_ANALYTICS_DEGRADED_TOTAL.labels(
+            operation=operation,
+            service=service,
+            reason=_safe_dimension(
+                str(validated_fields.get("reason") or "unknown"), default="unknown"
+            ),
+        ).inc()
 
 
 def emit_gateway_analytics_read_audit_log(
