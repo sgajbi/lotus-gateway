@@ -18,6 +18,19 @@
 - `/metrics`
   observability surface for runtime monitoring
 
+## Analytics UI observability posture
+
+- RFC-0108 analytics UI observability vocabulary is code-owned in
+  `src/app/observability/analytics_ui.py`.
+- The module defines allowed labels, forbidden fields, state vocabulary, and planned gateway
+  metric-family names before analytics fan-out metrics are emitted.
+- Do not add gateway analytics metric labels outside that contract.
+- `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `trace_id`,
+  `correlation_id`, request bodies, response bodies, and raw entitlement failures must not become
+  metric labels or structured telemetry dimensions.
+- Gateway fan-out metrics, degraded-source counters, dashboard claims, attention events, and audit
+  events remain planned until later RFC-0108 slices promote them with evidence.
+
 ## Practical probes
 
 ```powershell
