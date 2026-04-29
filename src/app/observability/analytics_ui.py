@@ -80,7 +80,5 @@ def validate_analytics_ui_labels(labels: Mapping[str, object]) -> dict[str, str]
         )
 
     return {
-        key: str(value)
-        for key, value in labels.items()
-        if value is not None and str(value) != ""
+        key: str(value) for key, value in labels.items() if value is not None and str(value) != ""
     }
