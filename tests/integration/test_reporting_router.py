@@ -609,6 +609,260 @@ def test_report_job_status_and_cancel_are_gateway_first(monkeypatch):
     assert calls[3][0:2] == ("cancel", "rjob_1")
 
 
+def test_report_job_lineage_gateway_routes_forward_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_get_job_lineage(
+        self,
+        *,
+        job_id,
+        caller_headers,
+        correlation_id,
+    ):
+        captured["job_id"] = job_id
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "snapshot": {
+                "snapshot_id": "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf",
+                "report_job_id": job_id,
+                "report_type": "portfolio_review",
+                "report_data_contract_version": "v1",
+                "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+                "as_of_date": "2026-04-22",
+                "snapshot_payload": {
+                    "report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"
+                },
+                "snapshot_hash": (
+                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
+                ),
+                "snapshot_storage_ref": None,
+                "supportability_status": "complete",
+                "completeness_status": "complete",
+                "lineage_summary": {
+                    "sourceServices": ["lotus-core"],
+                    "callCount": 1,
+                    "supportability_status": "complete",
+                    "partialCallCount": 0,
+                    "unavailableCallCount": 0,
+                    "notSupportedCallCount": 0,
+                    "redactedCallCount": 0,
+                },
+                "captured_at": "2026-04-22T09:00:03Z",
+                "created_at": "2026-04-22T09:00:03Z",
+                "correlation_id": correlation_id,
+                "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            },
+            "upstream_calls": [
+                {
+                    "upstream_call_id": "ruc_1",
+                    "snapshot_id": "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf",
+                    "service_name": "lotus-core",
+                    "endpoint": "/reporting/portfolio-summary/query",
+                    "method": "POST",
+                    "contract_version": "v1",
+                    "request_hash": (
+                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
+                    ),
+                    "response_hash": (
+                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
+                    ),
+                    "response_ref": None,
+                    "status_code": 200,
+                    "latency_ms": 184,
+                    "supportability_status": "complete",
+                    "completeness_status": "complete",
+                    "failure_category": "none",
+                    "failure_message": None,
+                    "captured_at": "2026-04-22T09:00:03Z",
+                    "created_at": "2026-04-22T09:00:03Z",
+                    "correlation_id": correlation_id,
+                    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job_lineage",
+        _mock_get_job_lineage,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/report-jobs/rjob_1/lineage",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "SG",
+            "X-Role": "advisor",
+            "X-Correlation-Id": "corr-lineage-1",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["snapshot"]["snapshotId"] == "rsnap_8c0c8f6fc2d947b89cb451d9f4f5d9bf"
+    assert body["snapshot"]["reportJobId"] == "rjob_1"
+    assert len(body["upstreamCalls"]) == 1
+    assert body["upstreamCalls"][0]["upstreamCallId"] == "ruc_1"
+    assert captured["job_id"] == "rjob_1"
+    assert captured["caller_headers"] == {
+        "X-Actor-Id": "advisor-123",
+        "X-Caller-Application": "lotus-workbench",
+        "X-Tenant-Id": "tenant-sg",
+        "X-Region": "APAC",
+        "X-Booking-Center-Code": "SG",
+        "X-Role": "advisor",
+    }
+    assert captured["correlation_id"] == "corr-lineage-1"
+
+
+def test_report_snapshot_endpoints_forward_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_get_snapshot(self, *, snapshot_id, caller_headers, correlation_id):
+        captured["snapshot_id"] = snapshot_id
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
+        payload = {
+            "snapshot_id": snapshot_id,
+            "report_job_id": "rjob_1",
+            "report_type": "portfolio_review",
+            "report_data_contract_version": "v1",
+            "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+            "as_of_date": "2026-04-22",
+            "snapshot_payload": {"report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"},
+            "snapshot_hash": (
+                "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
+            ),
+            "snapshot_storage_ref": None,
+            "supportability_status": "complete",
+            "completeness_status": "complete",
+            "lineage_summary": {
+                "sourceServices": ["lotus-core"],
+                "callCount": 1,
+                "supportability_status": "complete",
+                "partialCallCount": 0,
+                "unavailableCallCount": 0,
+                "notSupportedCallCount": 0,
+                "redactedCallCount": 0,
+            },
+            "captured_at": "2026-04-22T09:00:03Z",
+            "created_at": "2026-04-22T09:00:03Z",
+            "correlation_id": correlation_id,
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        }
+        return 200, payload
+
+    async def _mock_get_snapshot_lineage(self, *, snapshot_id, caller_headers, correlation_id):
+        captured["lineage_snapshot_id"] = snapshot_id
+        captured["lineage_caller_headers"] = caller_headers
+        captured["lineage_correlation_id"] = correlation_id
+        return 200, {
+            "snapshot": {
+                "snapshot_id": snapshot_id,
+                "report_job_id": "rjob_1",
+                "report_type": "portfolio_review",
+                "report_data_contract_version": "v1",
+                "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
+                "as_of_date": "2026-04-22",
+                "snapshot_payload": {
+                    "report_id": "portfolio-review:PB_SG_GLOBAL_BAL_001:2026-04-22"
+                },
+                "snapshot_hash": (
+                    "sha256:7a5486f4a7ef1962f27fe67c6ef392fd0da0dfc7c98a84e426238637f4a5b7dd"
+                ),
+                "snapshot_storage_ref": None,
+                "supportability_status": "complete",
+                "completeness_status": "complete",
+                "lineage_summary": {
+                    "sourceServices": ["lotus-core"],
+                    "callCount": 1,
+                    "supportability_status": "complete",
+                    "partialCallCount": 0,
+                    "unavailableCallCount": 0,
+                    "notSupportedCallCount": 0,
+                    "redactedCallCount": 0,
+                },
+                "captured_at": "2026-04-22T09:00:03Z",
+                "created_at": "2026-04-22T09:00:03Z",
+                "correlation_id": correlation_id,
+                "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            },
+            "upstream_calls": [
+                {
+                    "upstream_call_id": "ruc_1",
+                    "snapshot_id": snapshot_id,
+                    "service_name": "lotus-core",
+                    "endpoint": "/reporting/portfolio-summary/query",
+                    "method": "POST",
+                    "contract_version": "v1",
+                    "request_hash": (
+                        "sha256:0f5de8ef5cf305bf2e38ed33139e1df8f06fdf531f80903c123c25f6d8c09780"
+                    ),
+                    "response_hash": (
+                        "sha256:9de9c193650baf615ff8dca094d10ff18bdaabf0915963c4b3d74a3a07844f52"
+                    ),
+                    "response_ref": None,
+                    "status_code": 200,
+                    "latency_ms": 184,
+                    "supportability_status": "complete",
+                    "completeness_status": "complete",
+                    "failure_category": "none",
+                    "failure_message": None,
+                    "captured_at": "2026-04-22T09:00:03Z",
+                    "created_at": "2026-04-22T09:00:03Z",
+                    "correlation_id": correlation_id,
+                    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_snapshot",
+        _mock_get_snapshot,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_snapshot_lineage",
+        _mock_get_snapshot_lineage,
+    )
+
+    client = TestClient(app)
+    snapshot_response = client.get(
+        "/api/v1/reports/snapshots/rsnap_1",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Correlation-Id": "corr-snapshot-route",
+        },
+    )
+    lineage_response = client.get(
+        "/api/v1/reports/snapshots/rsnap_1/lineage",
+        headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Correlation-Id": "corr-snapshot-route",
+        },
+    )
+
+    assert snapshot_response.status_code == 200
+    assert snapshot_response.json()["snapshotId"] == "rsnap_1"
+    assert snapshot_response.json()["supportabilityStatus"] == "complete"
+    assert snapshot_response.json()["lineageSummary"]["callCount"] == 1
+    assert lineage_response.status_code == 200
+    assert lineage_response.json()["upstreamCalls"][0]["upstreamCallId"] == "ruc_1"
+    assert captured["snapshot_id"] == "rsnap_1"
+    assert captured["correlation_id"] == "corr-snapshot-route"
+    assert captured["caller_headers"]["X-Actor-Id"] == "advisor-123"
+    assert captured["lineage_snapshot_id"] == "rsnap_1"
+    assert captured["lineage_correlation_id"] == "corr-snapshot-route"
+    assert captured["lineage_caller_headers"]["X-Caller-Application"] == "lotus-gateway"
+
+
 def test_report_job_gateway_errors_are_product_safe(monkeypatch):
     async def _mock_get_job(self, *, job_id, caller_headers, correlation_id):  # noqa: ARG001
         return 500, {"detail": "sqlite traceback internal-host report.dev.lotus"}
@@ -632,6 +886,54 @@ def test_report_job_gateway_errors_are_product_safe(monkeypatch):
     assert body["detail"]["code"] == "report_job_upstream_unavailable"
     assert "sqlite" not in str(body).lower()
     assert "report.dev.lotus" not in str(body)
+
+
+def test_report_snapshot_gateway_errors_are_product_safe(monkeypatch):
+    async def _mock_get_snapshot(self, *, snapshot_id, caller_headers, correlation_id):  # noqa: ARG001
+        return 500, {"detail": "snapshot postgres internal-host report.dev.lotus"}
+
+    async def _mock_get_snapshot_lineage(self, *, snapshot_id, caller_headers, correlation_id):  # noqa: ARG001
+        return 500, {"detail": "snapshot lineage postgres internal-host report.dev.lotus"}
+
+    async def _mock_get_job_lineage(self, *, job_id, caller_headers, correlation_id):  # noqa: ARG001
+        return 404, {"detail": {"code": "report_snapshot_not_found", "message": "missing snapshot"}}
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_snapshot",
+        _mock_get_snapshot,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_snapshot_lineage",
+        _mock_get_snapshot_lineage,
+    )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_report_job_lineage",
+        _mock_get_job_lineage,
+    )
+
+    client = TestClient(app)
+    snapshot_response = client.get(
+        "/api/v1/reports/snapshots/rsnap_500",
+        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"},
+    )
+    snapshot_lineage_response = client.get(
+        "/api/v1/reports/snapshots/rsnap_500/lineage",
+        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"},
+    )
+    job_lineage_response = client.get(
+        "/api/v1/report-jobs/rjob_500/lineage",
+        headers={"X-Actor-Id": "advisor-123", "X-Tenant-Id": "tenant-sg", "X-Region": "APAC"},
+    )
+
+    assert snapshot_response.status_code == 502
+    assert snapshot_response.json()["detail"]["code"] == "report_job_upstream_unavailable"
+    assert "internal-host" not in str(snapshot_response.json())
+    assert snapshot_lineage_response.status_code == 502
+    assert snapshot_lineage_response.json()["detail"]["code"] == "report_job_upstream_unavailable"
+    assert "internal-host" not in str(snapshot_lineage_response.json())
+    assert job_lineage_response.status_code == 404
+    assert job_lineage_response.json()["detail"]["code"] == "report_snapshot_not_found"
+    assert job_lineage_response.json()["detail"]["message"] == "missing snapshot"
 
 
 def _batch_headers() -> dict[str, str]:
