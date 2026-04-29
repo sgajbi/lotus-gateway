@@ -9,6 +9,7 @@ from app.clients.http_resilience import request_with_retry
 from app.middleware.correlation import propagation_headers
 from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
+    emit_gateway_analytics_read_audit_log,
     gateway_analytics_fanout_timer,
 )
 
@@ -67,6 +68,11 @@ class LotusAnalyticsClient:
             last_status = status_code
             last_payload = payload
             if status_code != 202:
+                emit_gateway_analytics_read_audit_log(
+                    logger=logger,
+                    operation=f"{operation}.poll",
+                    status_code=status_code,
+                )
                 return status_code, payload
             await asyncio.sleep(poll_interval_seconds)
         return last_status, last_payload
@@ -135,6 +141,11 @@ class LotusAnalyticsClient:
                     service=service,
                     operation=resolved_operation,
                 )
+        emit_gateway_analytics_read_audit_log(
+            logger=logger,
+            operation=resolved_operation,
+            status_code=status_code,
+        )
         return status_code, response_payload
 
     @staticmethod

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections.abc import Iterable, Mapping
 from typing import Any
@@ -90,6 +91,11 @@ GATEWAY_ANALYTICS_UI_LOG_EVENTS = (
     "gateway.analytics.fanout.degraded",
 )
 
+GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS = (
+    "gateway.analytics.audit.analytics_read_allowed",
+    "gateway.analytics.audit.analytics_read_denied",
+)
+
 GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS = (
     "event",
     "route",
@@ -104,6 +110,18 @@ GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS = (
     "duration_ms",
     "warning_count",
     "partial_failure_count",
+)
+
+GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS = (
+    "event",
+    "route",
+    "panel",
+    "operation",
+    "state",
+    "reason",
+    "status_class",
+    "region",
+    "environment",
 )
 
 ANALYTICS_UI_TRACE_ATTRIBUTES = (
@@ -171,17 +189,40 @@ def validate_analytics_ui_attributes(attribute_names: Iterable[str]) -> tuple[st
 
 
 def validate_gateway_analytics_ui_log_fields(fields: Mapping[str, object]) -> dict[str, object]:
+    return _validate_gateway_analytics_ui_fields(
+        fields=fields,
+        supported_fields=set(GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS),
+        error_prefix="Analytics UI log fields",
+    )
+
+
+def validate_gateway_analytics_ui_audit_log_fields(
+    fields: Mapping[str, object],
+) -> dict[str, object]:
+    return _validate_gateway_analytics_ui_fields(
+        fields=fields,
+        supported_fields=set(GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS),
+        error_prefix="Analytics UI audit log fields",
+    )
+
+
+def _validate_gateway_analytics_ui_fields(
+    *,
+    fields: Mapping[str, object],
+    supported_fields: set[str],
+    error_prefix: str,
+) -> dict[str, object]:
     field_names = set(fields)
     forbidden = sorted(field_names & ANALYTICS_UI_FORBIDDEN_FIELDS)
     if forbidden:
         raise ValueError(
-            f"Analytics UI log fields include forbidden field(s): {', '.join(forbidden)}"
+            f"{error_prefix} include forbidden field(s): {', '.join(forbidden)}"
         )
 
-    unsupported = sorted(field_names - set(GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS))
+    unsupported = sorted(field_names - supported_fields)
     if unsupported:
         raise ValueError(
-            f"Analytics UI log fields include unsupported field(s): {', '.join(unsupported)}"
+            f"{error_prefix} include unsupported field(s): {', '.join(unsupported)}"
         )
 
     return {key: value for key, value in fields.items() if value is not None and value != ""}
@@ -209,6 +250,21 @@ def emit_gateway_analytics_fanout_log(
     )
     event = str(fields["event"])
     logger.info(event, extra={"extra_fields": fields})
+
+
+def emit_gateway_analytics_read_audit_log(
+    *,
+    logger: logging.Logger,
+    operation: str,
+    status_code: int,
+) -> None:
+    fields = _gateway_analytics_read_audit_fields(
+        operation=operation,
+        status_code=status_code,
+    )
+    if not fields:
+        return
+    logger.info(str(fields["event"]), extra={"extra_fields": fields})
 
 
 def _gateway_analytics_fanout_fields(
@@ -241,6 +297,36 @@ def _gateway_analytics_fanout_fields(
         "partial_failure_count": _list_count(payload.get("partial_failures")),
     }
     return validate_gateway_analytics_ui_log_fields(fields)
+
+
+def _gateway_analytics_read_audit_fields(
+    *,
+    operation: str,
+    status_code: int,
+) -> dict[str, object] | None:
+    if status_code in {401, 403}:
+        event = "gateway.analytics.audit.analytics_read_denied"
+        state = "permission_blocked"
+        reason = "upstream_authorization_denied"
+    elif 0 < status_code < 400:
+        event = "gateway.analytics.audit.analytics_read_allowed"
+        state = "ready"
+        reason = "upstream_read_succeeded"
+    else:
+        return None
+
+    fields = {
+        "event": event,
+        "route": "workbench-analytics",
+        "panel": _panel_for_operation(operation),
+        "operation": operation,
+        "state": state,
+        "reason": reason,
+        "status_class": _status_class(status_code),
+        "region": _safe_dimension(os.getenv("LOTUS_REGION"), default="unknown"),
+        "environment": _safe_dimension(os.getenv("LOTUS_ENVIRONMENT"), default="local"),
+    }
+    return validate_gateway_analytics_ui_audit_log_fields(fields)
 
 
 def _resolve_gateway_analytics_state(*, status_code: int, payload: Mapping[str, Any]) -> str:
@@ -335,3 +421,24 @@ def _error_category(status_code: int) -> str | None:
 
 def _list_count(value: object) -> int:
     return len(value) if isinstance(value, list) else 0
+
+
+def _panel_for_operation(operation: str) -> str:
+    if operation.startswith("analytics.risk."):
+        return "risk-summary"
+    if "workspace-summary" in operation:
+        return "performance-summary"
+    if operation.startswith("performance."):
+        return "performance-details"
+    return "unknown"
+
+
+def _safe_dimension(value: str | None, *, default: str) -> str:
+    if not value:
+        return default
+    cleaned = "".join(
+        character
+        for character in value.strip().lower()
+        if character.isalnum() or character in {"-", "_", "."}
+    )
+    return cleaned[:64] or default

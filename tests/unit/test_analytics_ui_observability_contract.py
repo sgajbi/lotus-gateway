@@ -10,12 +10,15 @@ from app.observability.analytics_ui import (
     ANALYTICS_UI_SEVERITY_LEVELS,
     ANALYTICS_UI_STATE_VOCABULARY,
     ANALYTICS_UI_TRACE_ATTRIBUTES,
+    GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
+    GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS,
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
     is_analytics_ui_state,
     validate_analytics_ui_attributes,
     validate_analytics_ui_labels,
+    validate_gateway_analytics_ui_audit_log_fields,
     validate_gateway_analytics_ui_log_fields,
 )
 
@@ -37,6 +40,10 @@ def test_gateway_log_events_and_severity_vocabularies_are_explicit() -> None:
     assert GATEWAY_ANALYTICS_UI_LOG_EVENTS == (
         "gateway.analytics.fanout.completed",
         "gateway.analytics.fanout.degraded",
+    )
+    assert GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS == (
+        "gateway.analytics.audit.analytics_read_allowed",
+        "gateway.analytics.audit.analytics_read_denied",
     )
     assert ANALYTICS_UI_SEVERITY_LEVELS == {
         "info",
@@ -60,6 +67,17 @@ def test_gateway_log_events_and_severity_vocabularies_are_explicit() -> None:
         "duration_ms",
         "warning_count",
         "partial_failure_count",
+    )
+    assert GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS == (
+        "event",
+        "route",
+        "panel",
+        "operation",
+        "state",
+        "reason",
+        "status_class",
+        "region",
+        "environment",
     )
 
 
@@ -103,6 +121,8 @@ def test_validate_analytics_ui_labels_rejects_forbidden_sensitive_fields() -> No
             validate_analytics_ui_attributes((field,))
         with pytest.raises(ValueError, match="forbidden field"):
             validate_gateway_analytics_ui_log_fields({field: "sensitive"})
+        with pytest.raises(ValueError, match="forbidden field"):
+            validate_gateway_analytics_ui_audit_log_fields({field: "sensitive"})
 
 
 def test_validate_analytics_ui_labels_rejects_ad_hoc_label_drift() -> None:
@@ -140,3 +160,24 @@ def test_validate_gateway_analytics_ui_log_fields_accepts_structured_runtime_fie
     assert fields["duration_ms"] == 12.4
     assert fields["warning_count"] == 1
     assert "error_category" not in fields
+
+
+def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_fields() -> None:
+    fields = validate_gateway_analytics_ui_audit_log_fields(
+        {
+            "event": "gateway.analytics.audit.analytics_read_denied",
+            "route": "workbench-analytics",
+            "panel": "risk-summary",
+            "operation": "analytics.risk.calculate",
+            "state": "permission_blocked",
+            "reason": "upstream_authorization_denied",
+            "status_class": "4xx",
+            "region": "ap-southeast-1",
+            "environment": "local",
+        }
+    )
+
+    assert fields["event"] == "gateway.analytics.audit.analytics_read_denied"
+    assert fields["state"] == "permission_blocked"
+    assert "portfolio_id" not in fields
+    assert "raw_entitlement_failure" not in fields
