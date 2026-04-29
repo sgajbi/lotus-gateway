@@ -37,8 +37,17 @@
 - Gateway emits product-safe selected analytics read audit logs for upstream read outcomes:
   `gateway.analytics.audit.analytics_read_allowed` for successful upstream reads and
   `gateway.analytics.audit.analytics_read_denied` for `401` or `403` upstream denials.
-- Dashboard claims, Workbench attention events outside the Workbench surface, and protected
-  diagnostics lookup audit remain planned until later RFC-0108 slices promote them with evidence.
+- Gateway exposes a protected operator lookup at
+  `GET /api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
+  `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`.
+- Protected analytics diagnostics lookups emit
+  `gateway.analytics.audit.protected_diagnostics_lookup` with only bounded audit fields:
+  route, panel, operation, state, reason, status class, region, and environment.
+- The diagnostics response resolves opaque safe support references into panel, operation, service,
+  supportability state, and operator guidance. It must not expose portfolio, client, holding,
+  trace, correlation, request, response, or raw entitlement-failure identifiers.
+- Dashboard claims and Workbench attention events outside the Workbench surface remain planned
+  until later RFC-0108 slices promote them with evidence.
 
 ## Practical probes
 
@@ -46,6 +55,11 @@
 curl http://127.0.0.1:8111/health/ready
 curl "http://127.0.0.1:8111/api/v1/foundation/portfolios/PF_1001/workspace"
 curl "http://127.0.0.1:8111/api/v1/platform/capabilities?consumerSystem=lotus-workbench&tenantId=default"
+curl "http://127.0.0.1:8111/api/v1/analytics-ui/diagnostics/gdiag-risk-summary-permission-blocked" \
+  -H "X-Actor-Id: support-operator-1" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Role: support-operator"
 ```
 
 ## Key references
