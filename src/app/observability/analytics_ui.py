@@ -215,15 +215,11 @@ def _validate_gateway_analytics_ui_fields(
     field_names = set(fields)
     forbidden = sorted(field_names & ANALYTICS_UI_FORBIDDEN_FIELDS)
     if forbidden:
-        raise ValueError(
-            f"{error_prefix} include forbidden field(s): {', '.join(forbidden)}"
-        )
+        raise ValueError(f"{error_prefix} include forbidden field(s): {', '.join(forbidden)}")
 
     unsupported = sorted(field_names - supported_fields)
     if unsupported:
-        raise ValueError(
-            f"{error_prefix} include unsupported field(s): {', '.join(unsupported)}"
-        )
+        raise ValueError(f"{error_prefix} include unsupported field(s): {', '.join(unsupported)}")
 
     return {key: value for key, value in fields.items() if value is not None and value != ""}
 
