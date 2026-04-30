@@ -1607,6 +1607,11 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/runs",
         ),
         (
+            "get_supportability_summary",
+            {"correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/supportability/summary",
+        ),
+        (
             "get_proposal",
             {"proposal_id": "PR-1", "include_evidence": True, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/proposals/PR-1",

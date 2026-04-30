@@ -72,6 +72,17 @@ class DpmClient:
             operation="manage.rebalance.runs.list",
         )
 
+    async def get_supportability_summary(
+        self,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/api/v1/rebalance/supportability/summary",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.supportability.summary",
+        )
+
     async def get_proposal(
         self,
         proposal_id: str,

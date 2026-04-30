@@ -42,6 +42,7 @@ from app.contracts.portfolio import (
     PortfolioReadinessReason,
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
+    PortfolioRebalanceSupportabilitySummary,
     PortfolioSummary,
     PortfolioSupportabilitySummary,
     PortfolioTopPosition,
@@ -419,6 +420,19 @@ class PortfolioService:
             ),
         )
 
+    async def _get_workspace_rebalance_supportability_result(
+        self,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]] | None:
+        if self._dpm_client is None:
+            return None
+        return await self._get_cached_upstream_result(
+            ("workspace_rebalance_supportability",),
+            lambda: self._dpm_client.get_supportability_summary(
+                correlation_id=correlation_id,
+            ),
+        )
+
     async def get_portfolio_catalog(self, correlation_id: str) -> PortfolioCatalogResponse:
         status_code, payload = await self._lotus_core_query_client.list_portfolios(
             correlation_id=correlation_id
@@ -481,7 +495,11 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
-        performance_result, rebalance_result = await asyncio.gather(
+        (
+            performance_result,
+            rebalance_result,
+            rebalance_supportability_result,
+        ) = await asyncio.gather(
             self._get_workspace_performance_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -489,6 +507,9 @@ class PortfolioService:
             ),
             self._get_workspace_rebalance_result(
                 portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            ),
+            self._get_workspace_rebalance_supportability_result(
                 correlation_id=correlation_id,
             ),
         )
@@ -517,6 +538,7 @@ class PortfolioService:
         )
         rebalance = self._parse_workspace_rebalance(
             rebalance_result,
+            rebalance_supportability_result,
             warnings,
             partial_failures,
         )
@@ -1373,11 +1395,17 @@ class PortfolioService:
     def _parse_workspace_rebalance(
         self,
         result: tuple[int, dict[str, Any]] | None,
+        supportability_result: tuple[int, dict[str, Any]] | None,
         warnings: list[str],
         partial_failures: list[PortfolioPartialFailure],
     ) -> PortfolioRebalanceSummary | None:
+        supportability = self._parse_workspace_rebalance_supportability(
+            supportability_result,
+            warnings,
+            partial_failures,
+        )
         if result is None:
-            return None
+            return self._rebalance_summary_from_supportability("NO_RUNS", supportability)
         payload = self._optional_payload(
             result,
             "lotus-manage",
@@ -1386,17 +1414,75 @@ class PortfolioService:
             partial_failures,
         )
         if payload is None:
-            return None
+            return self._rebalance_summary_from_supportability("UNKNOWN", supportability)
         items = payload.get("items", [])
         if not isinstance(items, list) or not items:
-            return None
+            return self._rebalance_summary_from_supportability("NO_RUNS", supportability)
         latest = items[0]
         if not isinstance(latest, dict):
-            return None
+            return self._rebalance_summary_from_supportability("UNKNOWN", supportability)
         return PortfolioRebalanceSummary(
             status=str(latest.get("status", "UNKNOWN")),
             last_run_at_utc=self._optional_str(latest.get("created_at")),
             last_rebalance_run_id=self._optional_str(latest.get("rebalance_run_id")),
+            supportability=supportability,
+        )
+
+    def _rebalance_summary_from_supportability(
+        self,
+        status_value: str,
+        supportability: PortfolioRebalanceSupportabilitySummary | None,
+    ) -> PortfolioRebalanceSummary | None:
+        if supportability is None:
+            return None
+        return PortfolioRebalanceSummary(
+            status=status_value,
+            last_run_at_utc=None,
+            last_rebalance_run_id=None,
+            supportability=supportability,
+        )
+
+    def _parse_workspace_rebalance_supportability(
+        self,
+        result: tuple[int, dict[str, Any]] | None,
+        warnings: list[str],
+        partial_failures: list[PortfolioPartialFailure],
+    ) -> PortfolioRebalanceSupportabilitySummary | None:
+        if result is None:
+            return None
+        payload = self._optional_payload(
+            result,
+            "lotus-manage",
+            "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE",
+            warnings,
+            partial_failures,
+        )
+        if payload is None:
+            return None
+        supportability_payload = payload.get("supportability", payload)
+        if not isinstance(supportability_payload, dict):
+            warnings.append("PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+            partial_failures.append(
+                PortfolioPartialFailure(
+                    source_service="lotus-manage",
+                    error_code="PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE",
+                    detail="lotus-manage supportability summary did not include an object payload",
+                )
+            )
+            return None
+        return PortfolioRebalanceSupportabilitySummary(
+            feature_key=(
+                self._optional_str(supportability_payload.get("feature_key"))
+                or "manage.observability.action_register_supportability"
+            ),
+            state=str(supportability_payload.get("state") or "unknown"),
+            reason=self._optional_str(supportability_payload.get("reason")),
+            freshness_bucket=self._optional_str(supportability_payload.get("freshness_bucket")),
+            run_count=self._optional_int(supportability_payload.get("run_count")),
+            operation_count=self._optional_int(supportability_payload.get("operation_count")),
+            workflow_decision_count=self._optional_int(
+                supportability_payload.get("workflow_decision_count")
+            ),
         )
 
     def _parse_operations(

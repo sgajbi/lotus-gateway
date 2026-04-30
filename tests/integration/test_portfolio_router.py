@@ -44,6 +44,19 @@ def stub_portfolio_workspace_enrichments(monkeypatch):
             ]
         }
 
+    async def _rebalance_supportability(*args, **kwargs):
+        return 200, {
+            "supportability": {
+                "feature_key": "manage.observability.action_register_supportability",
+                "state": "healthy",
+                "reason": "action_register_current",
+                "freshness_bucket": "fresh",
+                "run_count": 4,
+                "operation_count": 12,
+                "workflow_decision_count": 3,
+            }
+        }
+
     monkeypatch.setattr(
         f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference",
         _analytics_reference,
@@ -53,6 +66,10 @@ def stub_portfolio_workspace_enrichments(monkeypatch):
         _twr,
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _rebalance_runs)
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_supportability_summary",
+        _rebalance_supportability,
+    )
 
 
 def test_portfolio_catalog_router(monkeypatch):
@@ -215,6 +232,15 @@ def test_portfolio_workspace_router(monkeypatch):
     assert body["performance"]["period"] == "YTD"
     assert body["performance"]["return_pct"] == 2.5
     assert body["rebalance"]["status"] == "PENDING_REVIEW"
+    assert body["rebalance"]["supportability"] == {
+        "feature_key": "manage.observability.action_register_supportability",
+        "state": "healthy",
+        "reason": "action_register_current",
+        "freshness_bucket": "fresh",
+        "run_count": 4,
+        "operation_count": 12,
+        "workflow_decision_count": 3,
+    }
     assert body["control_capabilities"]["historical_snapshots"]["state"] == "partial"
     assert (
         body["control_capabilities"]["historical_snapshots"]["module_capabilities"][-2]["module"]
