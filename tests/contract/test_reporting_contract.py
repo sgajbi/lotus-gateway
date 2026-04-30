@@ -113,8 +113,7 @@ def test_reporting_contract_shapes() -> None:
     assert batch.status_url == "/api/v1/report-batches/rbch_1"
     assert batch.supportability is not None
     assert (
-        batch.supportability.feature_key
-        == "report.observability.evidence_surface_supportability"
+        batch.supportability.feature_key == "report.observability.evidence_surface_supportability"
     )
     assert batch_status.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert batch_run.report_job_ids == ["rjob_1"]
