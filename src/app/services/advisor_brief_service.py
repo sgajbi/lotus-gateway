@@ -457,9 +457,7 @@ def _parse_ai_surface_supportability(
         ],
         status_summary=[
             summary
-            for summary in (
-                _safe_str(item) for item in _safe_list(source.get("status_summary"))
-            )
+            for summary in (_safe_str(item) for item in _safe_list(source.get("status_summary")))
             if summary
         ],
     )
@@ -497,9 +495,7 @@ def _parse_ai_surface_supportability_item(
         no_sensitive_content_telemetry=bool(item.get("no_sensitive_content_telemetry")),
         status_summary=[
             summary
-            for summary in (
-                _safe_str(item) for item in _safe_list(item.get("status_summary"))
-            )
+            for summary in (_safe_str(item) for item in _safe_list(item.get("status_summary")))
             if summary
         ],
     )
