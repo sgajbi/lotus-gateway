@@ -1490,8 +1490,6 @@ def _safe_int(value: Any) -> int:
         return 0
     if isinstance(value, int):
         return max(value, 0)
-    if isinstance(value, float):
-        return max(int(value), 0)
     return 0
 
 
