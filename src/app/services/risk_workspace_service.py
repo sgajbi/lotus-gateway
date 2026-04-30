@@ -51,6 +51,10 @@ from app.contracts.risk_workspace import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.source_supportability import (
+    extract_calculation_supportability,
+    source_supportability_reason,
+)
 
 _SUMMARY_METRICS = [
     "VOLATILITY",
@@ -743,6 +747,10 @@ def _map_summary_response(
                 )
             )
     supportability.extend(_metric_dependency_supportability(metric_states, benchmark_code))
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
     state: RiskModuleState = (
         "partial" if any(item.state != "ready" for item in supportability) else "ready"
     )
@@ -897,13 +905,17 @@ def _map_concentration_response(
             source_service="lotus-risk",
         ),
     ]
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
     return WorkbenchRiskConcentrationResponse(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
-        state="ready" if issuer_state == "ready" else "partial",
+        state="ready" if all(item.state == "ready" for item in supportability) else "partial",
         payload=WorkbenchRiskConcentrationPayload(
             portfolio_concentration=WorkbenchPortfolioConcentration.model_validate(
                 required_blocks["portfolio_concentration"]
@@ -1072,6 +1084,10 @@ def _map_drawdown_response(
             ),
         ]
     )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
 
     state: RiskModuleState = (
         "partial" if any(item.state != "ready" for item in supportability) else "ready"
@@ -1176,6 +1192,10 @@ def _map_rolling_response(
             source_service="lotus-risk",
         ),
     ]
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
 
     if isinstance(results, dict):
         for key, value in results.items():
@@ -1326,6 +1346,10 @@ def _map_attribution_response(
         attribution_type=attribution_type,
         grouping_dimension=grouping_dimension,
     )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
 
     if isinstance(results, dict):
         for key, value in results.items():
@@ -1442,6 +1466,29 @@ def _map_attribution_response(
         warnings=sorted(set(warnings)),
         partial_failures=partial_failures,
         metadata=metadata,
+    )
+
+
+def _append_source_calculation_supportability(
+    *,
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    upstream_payload: dict[str, Any],
+) -> None:
+    source_supportability = extract_calculation_supportability(upstream_payload)
+    if source_supportability is None:
+        return
+
+    supportability.append(
+        WorkbenchRiskSupportabilityItem(
+            key="source_calculation",
+            label="Source calculation",
+            state=cast(Any, source_supportability.risk_contract_state),
+            reason=source_supportability_reason(
+                source_supportability,
+                default_ready_reason="Source calculation supportability was confirmed upstream.",
+            ),
+            source_service=source_supportability.source_service or "lotus-risk",
+        )
     )
 
 

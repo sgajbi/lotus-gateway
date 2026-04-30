@@ -61,7 +61,10 @@ Current repository posture:
     limited to route, panel, operation, state, reason, status class, region, and environment;
     portfolio, client, holding, transaction, session, upload, trace, correlation, document,
     request/response body, screen content, raw prompt, model output, and raw entitlement-failure
-    fields remain forbidden.
+    fields remain forbidden. Gateway preserves upstream `metadata.calculation_supportability`
+    from `lotus-performance` and `lotus-risk` as product-safe source calculation posture for
+    evidence views, risk module supportability, fan-out state, and bounded degraded metrics without
+    recomputing domain calculation truth.
 
 ## Architecture And Module Map
 

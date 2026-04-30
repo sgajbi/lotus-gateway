@@ -17,6 +17,7 @@ from app.observability.analytics_ui import (
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
+    emit_gateway_analytics_fanout_log,
     emit_gateway_protected_diagnostics_audit_log,
     is_analytics_ui_state,
     record_gateway_analytics_fanout_metrics,
@@ -281,6 +282,64 @@ def test_record_gateway_analytics_fanout_metrics_records_safe_labels() -> None:
                 "operation": "analytics.risk.calculate",
                 "service": "lotus-risk",
                 "reason": "upstream_unavailable",
+            },
+        )
+        == before_degraded_count + 1
+    )
+
+
+def test_gateway_fanout_logs_use_source_calculation_supportability(caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
+    logger = logging.getLogger("analytics_ui.gateway")
+    before_degraded_count = _sample_value(
+        GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+        "lotus_gateway_analytics_degraded_total",
+        {
+            "operation": "performance.workspace-summary",
+            "service": "lotus-performance",
+            "reason": "source-data-window-stale",
+        },
+    )
+
+    emit_gateway_analytics_fanout_log(
+        logger=logger,
+        started_at=0.0,
+        service="lotus-performance",
+        operation="performance.workspace-summary",
+        status_code=200,
+        payload={
+            "metadata": {
+                "calculation_supportability": {
+                    "state": "stale",
+                    "reason": "Source data window stale",
+                    "freshness_bucket": "stale",
+                    "source_service": "lotus-performance",
+                }
+            }
+        },
+    )
+
+    record = next(
+        record
+        for record in caplog.records
+        if record.name == "analytics_ui.gateway"
+        and record.message == "gateway.analytics.fanout.degraded"
+    )
+    assert record.extra_fields["state"] == "partial"
+    assert record.extra_fields["supportability_state"] == "partial"
+    assert record.extra_fields["reason"] == "Source data window stale"
+    assert "portfolio_id" not in record.extra_fields
+
+    assert (
+        _sample_value(
+            GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+            "lotus_gateway_analytics_degraded_total",
+            {
+                "operation": "performance.workspace-summary",
+                "service": "lotus-performance",
+                "reason": "source-data-window-stale",
             },
         )
         == before_degraded_count + 1

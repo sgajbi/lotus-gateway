@@ -69,6 +69,8 @@
   `lotus_gateway_analytics_degraded_total`. Labels are bounded to operation/service/status class
   and degraded reason; portfolio, client, document, transaction, session, upload, trace,
   correlation, request, response, raw prompt, and model output content are not metric labels.
+  Performance and risk upstream `metadata.calculation_supportability` is folded into Gateway
+  fan-out state and degraded reason labels using the same bounded label contract.
 - analytics UI protected diagnostics lookup is gateway-first under
   `/api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
   `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`; it returns only safe panel,

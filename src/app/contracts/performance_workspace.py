@@ -289,6 +289,32 @@ class PerformanceEvidenceUpstreamSnapshotView(BaseModel):
     )
 
 
+class PerformanceSourceSupportabilityView(BaseModel):
+    key: str = Field(
+        description="Gateway-owned key for the source supportability posture.",
+        examples=["source_calculation"],
+    )
+    state: str = Field(
+        description="Product-safe calculation supportability state reported by lotus-performance.",
+        examples=["supported"],
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Source-owned supportability reason or freshness qualification.",
+        examples=["Source calculation supportability was confirmed upstream."],
+    )
+    freshness_bucket: str | None = Field(
+        default=None,
+        description="Product-safe freshness bucket reported by the source calculation service.",
+        examples=["fresh"],
+    )
+    source_service: str | None = Field(
+        default=None,
+        description="Domain service that owns the supportability posture.",
+        examples=["lotus-performance"],
+    )
+
+
 class PerformanceCalculationEvidenceView(BaseModel):
     calculation_role: str = Field(
         description="Gateway-owned role label for the calculation evidence item.",
@@ -418,6 +444,13 @@ class PerformanceEvidenceView(BaseModel):
     calculations: list[PerformanceCalculationEvidenceView] = Field(
         default_factory=list,
         description="Calculation-scoped execution and lineage evidence items exposed by gateway.",
+    )
+    source_supportability: list[PerformanceSourceSupportabilityView] = Field(
+        default_factory=list,
+        description=(
+            "Product-safe source calculation supportability entries carried through from "
+            "lotus-performance response metadata."
+        ),
     )
 
 

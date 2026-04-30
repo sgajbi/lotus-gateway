@@ -54,7 +54,9 @@ outputs.
 3. Gateway services must not perform authoritative portfolio valuation, performance attribution, risk
    concentration, advisory suitability, or reporting methodology calculations.
 4. `source_service`, supportability, readiness, and partial-failure metadata must survive composition
-   when the product surface depends on it.
+   when the product surface depends on it. Gateway preserves upstream
+   `metadata.calculation_supportability` from performance and risk calculations as product-safe
+   source calculation posture, but it does not recompute or override source-owned supportability.
 5. Any new upstream dependency must be classified into an RFC-0082 family before becoming a stable
    Workbench-facing contract.
 6. Transport optimization discussions start with query shape, payload shape, caching, export semantics,
@@ -85,9 +87,9 @@ This RFC-0082 documentation slice reflects current runtime behavior:
    `evidence_view` sourced from lotus-performance execution polling and lineage inventory.
 2. the performance `evidence_view` includes RFC-0108/RFC-0079-facing product context for as-of date,
    period, basis, benchmark, calculation scope, source services, freshness posture, methodology
-   references, calculation versions, coverage, fallbacks, and limitations. Gateway derives only
-   UI-safe evidence context from upstream payloads; it does not become the calculation or methodology
-   authority.
+   references, calculation versions, source calculation supportability, coverage, fallbacks, and
+   limitations. Gateway derives only UI-safe evidence context from upstream payloads; it does not
+   become the calculation or methodology authority.
 3. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
    route rather than exposing direct lotus-performance URLs.
 4. archived generated-document metadata and binary links are exposed through gateway-owned document
