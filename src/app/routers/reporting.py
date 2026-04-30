@@ -194,6 +194,69 @@ def _rewrite_batch_status_url(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _fallback_evidence_surface_supportability(reason: str) -> dict[str, Any]:
+    return {
+        "feature_key": "report.observability.evidence_surface_supportability",
+        "state": "partial",
+        "reason": reason,
+        "freshness_bucket": "unknown",
+        "evidence_feature_count": 0,
+        "ready_evidence_feature_count": 0,
+        "degraded_evidence_feature_count": 0,
+        "workflow_count": 0,
+        "ready_workflow_count": 0,
+    }
+
+
+def _normalize_evidence_surface_supportability(payload: dict[str, Any]) -> dict[str, Any]:
+    raw_supportability = payload.get("supportability")
+    if not isinstance(raw_supportability, dict):
+        return _fallback_evidence_surface_supportability("evidence_surface_supportability_missing")
+
+    return {
+        **_fallback_evidence_surface_supportability("evidence_surface_supportability_unknown"),
+        **raw_supportability,
+        "feature_key": "report.observability.evidence_surface_supportability",
+    }
+
+
+async def _get_evidence_surface_supportability(
+    *,
+    correlation_id: str,
+    consumer_system: str,
+    tenant_id: str | None,
+) -> dict[str, Any]:
+    status_code, payload = await _reporting_client().get_capabilities(
+        consumer_system=consumer_system,
+        tenant_id=tenant_id or "default",
+        correlation_id=correlation_id,
+    )
+    if status_code >= status.HTTP_400_BAD_REQUEST:
+        return _fallback_evidence_surface_supportability(
+            "evidence_surface_supportability_unavailable"
+        )
+    return _normalize_evidence_surface_supportability(payload)
+
+
+async def _attach_evidence_surface_supportability(
+    payload: dict[str, Any],
+    *,
+    correlation_id: str,
+    tenant_id: str | None,
+) -> dict[str, Any]:
+    try:
+        supportability = await _get_evidence_surface_supportability(
+            correlation_id=correlation_id,
+            consumer_system="lotus-gateway",
+            tenant_id=tenant_id,
+        )
+    except Exception:
+        supportability = _fallback_evidence_surface_supportability(
+            "evidence_surface_supportability_exception"
+        )
+    return {**payload, "supportability": supportability}
+
+
 def _raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
     detail = payload.get("detail") if isinstance(payload, dict) else None
     error_code = detail.get("code") if isinstance(detail, dict) else None
@@ -997,6 +1060,7 @@ async def create_report_batch(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchHandleResponse:
+    correlation_id = correlation_id_var.get()
     if not idempotency_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1013,10 +1077,15 @@ async def create_report_batch(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id_var.get(),
+        correlation_id=correlation_id,
     )
     _raise_report_batch_error(status_code, payload)
-    return BatchHandleResponse.model_validate(_rewrite_batch_status_url(payload))
+    response_payload = await _attach_evidence_surface_supportability(
+        _rewrite_batch_status_url(payload),
+        correlation_id=correlation_id,
+        tenant_id=tenant_id,
+    )
+    return BatchHandleResponse.model_validate(response_payload)
 
 
 @batches_router.get(
@@ -1055,6 +1124,7 @@ async def get_report_batch_status(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchStatusResponse:
+    correlation_id = correlation_id_var.get()
     status_code, payload = await _reporting_client().get_report_batch(
         batch_id=batch_id,
         caller_headers=_context_headers(
@@ -1065,10 +1135,15 @@ async def get_report_batch_status(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id_var.get(),
+        correlation_id=correlation_id,
     )
     _raise_report_batch_error(status_code, payload)
-    return BatchStatusResponse.model_validate(payload)
+    response_payload = await _attach_evidence_surface_supportability(
+        payload,
+        correlation_id=correlation_id,
+        tenant_id=tenant_id,
+    )
+    return BatchStatusResponse.model_validate(response_payload)
 
 
 async def _control_batch(
@@ -1310,6 +1385,7 @@ async def run_report_batch_once(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchWorkerRunResponse:
+    correlation_id = correlation_id_var.get()
     status_code, payload = await _reporting_client().control_report_batch(
         batch_id=batch_id,
         action="run-once",
@@ -1321,11 +1397,16 @@ async def run_report_batch_once(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id_var.get(),
+        correlation_id=correlation_id,
         payload=request.model_dump(exclude_none=True, mode="json"),
     )
     _raise_report_batch_error(status_code, payload)
-    return BatchWorkerRunResponse.model_validate(_rewrite_batch_status_url(payload))
+    response_payload = await _attach_evidence_surface_supportability(
+        _rewrite_batch_status_url(payload),
+        correlation_id=correlation_id,
+        tenant_id=tenant_id,
+    )
+    return BatchWorkerRunResponse.model_validate(response_payload)
 
 
 @schedules_router.get(

@@ -1143,6 +1143,17 @@ BATCH_HANDLE_RESPONSE_EXAMPLE: dict[str, Any] = {
     "status_url": "/api/v1/report-batches/rbch_2f6d1a8f2ef24f019e7d7f37507f352c",
     "idempotency_key": "batch-portfolio-review-2026-04-22",
     "item_count": 1,
+    "supportability": {
+        "feature_key": "report.observability.evidence_surface_supportability",
+        "state": "ready",
+        "reason": "evidence_surface_ready",
+        "freshness_bucket": "current",
+        "evidence_feature_count": 14,
+        "ready_evidence_feature_count": 14,
+        "degraded_evidence_feature_count": 0,
+        "workflow_count": 4,
+        "ready_workflow_count": 4,
+    },
 }
 
 BATCH_STATUS_RESPONSE_EXAMPLE: dict[str, Any] = {
@@ -1241,6 +1252,7 @@ BATCH_WORKER_RUN_RESPONSE_EXAMPLE: dict[str, Any] = {
         }
     ],
     "status_url": "/api/v1/report-batches/rbch_2f6d1a8f2ef24f019e7d7f37507f352c",
+    "supportability": BATCH_HANDLE_RESPONSE_EXAMPLE["supportability"],
 }
 
 BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE: dict[str, Any] = {
@@ -1408,6 +1420,53 @@ class BatchCreateRequest(BaseModel):
     )
 
 
+class ReportingEvidenceSurfaceSupportability(BaseModel):
+    feature_key: str = Field(
+        "report.observability.evidence_surface_supportability",
+        description="RFC-0108 feature key for lotus-report evidence-surface supportability.",
+    )
+    state: str = Field(
+        ...,
+        description="Bounded supportability state published by lotus-report.",
+        examples=["ready"],
+    )
+    reason: str = Field(
+        ...,
+        description="Bounded reason code explaining the evidence-surface posture.",
+        examples=["evidence_surface_ready"],
+    )
+    freshness_bucket: str = Field(
+        ...,
+        description="Bounded freshness bucket for evidence-surface supportability.",
+        examples=["current"],
+    )
+    evidence_feature_count: int = Field(
+        0,
+        ge=0,
+        description="Number of evidence-surface feature keys reviewed by lotus-report.",
+    )
+    ready_evidence_feature_count: int = Field(
+        0,
+        ge=0,
+        description="Number of evidence-surface feature keys currently ready.",
+    )
+    degraded_evidence_feature_count: int = Field(
+        0,
+        ge=0,
+        description="Number of evidence-surface feature keys currently degraded.",
+    )
+    workflow_count: int = Field(
+        0,
+        ge=0,
+        description="Number of report workflows included in the supportability posture.",
+    )
+    ready_workflow_count: int = Field(
+        0,
+        ge=0,
+        description="Number of report workflows currently ready.",
+    )
+
+
 class BatchHandleResponse(BaseModel):
     batch_id: str = Field(..., description="Opaque durable batch identifier.")
     status: BatchStatus = Field(..., description="Current product-safe batch status.")
@@ -1420,6 +1479,13 @@ class BatchHandleResponse(BaseModel):
         description="Caller-supplied idempotency key associated with this batch request.",
     )
     item_count: int = Field(..., ge=0, description="Number of materialized portfolio items.")
+    supportability: ReportingEvidenceSurfaceSupportability | None = Field(
+        default=None,
+        description=(
+            "lotus-report evidence-surface supportability posture captured from "
+            "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
 
 
 class BatchItemStatusResponse(BaseModel):
@@ -1482,6 +1548,13 @@ class BatchStatusResponse(BaseModel):
     failed_at: datetime | None = Field(default=None, description="UTC batch failure timestamp.")
     correlation_id: str = Field(..., description="Correlation identifier captured at creation.")
     trace_id: str = Field(..., description="Distributed trace identifier captured at creation.")
+    supportability: ReportingEvidenceSurfaceSupportability | None = Field(
+        default=None,
+        description=(
+            "lotus-report evidence-surface supportability posture captured from "
+            "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
 
 
 class BatchControlResponse(BaseModel):
@@ -1572,6 +1645,13 @@ class BatchWorkerRunResponse(BaseModel):
         description="Per-item execution outcomes.",
     )
     status_url: str = Field(..., description="Gateway-relative URL for batch status retrieval.")
+    supportability: ReportingEvidenceSurfaceSupportability | None = Field(
+        default=None,
+        description=(
+            "lotus-report evidence-surface supportability posture captured from "
+            "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
 
 
 class BatchScheduleSummaryResponse(BaseModel):

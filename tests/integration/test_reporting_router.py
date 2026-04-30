@@ -1037,6 +1037,23 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         assert correlation_id == "corr-gateway-batch"
         return 200, _batch_status_payload()
 
+    async def _mock_get_capabilities(self, *, consumer_system, tenant_id, correlation_id):
+        calls.append(("capabilities", tenant_id, {"consumer_system": consumer_system}))
+        assert correlation_id == "corr-gateway-batch"
+        return 200, {
+            "sourceService": "lotus-report",
+            "supportability": {
+                "state": "ready",
+                "reason": "evidence_surface_ready",
+                "freshness_bucket": "current",
+                "evidence_feature_count": 14,
+                "ready_evidence_feature_count": 14,
+                "degraded_evidence_feature_count": 0,
+                "workflow_count": 4,
+                "ready_workflow_count": 4,
+            },
+        }
+
     async def _mock_control_batch(
         self,
         *,
@@ -1107,6 +1124,10 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         "app.clients.reporting_client.ReportingClient.control_report_batch",
         _mock_control_batch,
     )
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.get_capabilities",
+        _mock_get_capabilities,
+    )
 
     client = TestClient(app)
     create_response = client.post(
@@ -1134,8 +1155,20 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
 
     assert create_response.status_code == 202
     assert create_response.json()["status_url"] == "/api/v1/report-batches/rbch_1"
+    assert create_response.json()["supportability"] == {
+        "feature_key": "report.observability.evidence_surface_supportability",
+        "state": "ready",
+        "reason": "evidence_surface_ready",
+        "freshness_bucket": "current",
+        "evidence_feature_count": 14,
+        "ready_evidence_feature_count": 14,
+        "degraded_evidence_feature_count": 0,
+        "workflow_count": 4,
+        "ready_workflow_count": 4,
+    }
     assert status_response.status_code == 200
     assert status_response.json()["items"][0]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert status_response.json()["supportability"]["state"] == "ready"
     assert pause_response.json()["status"] == "paused"
     assert resume_response.json()["status"] == "running"
     assert cancel_response.json()["status"] == "cancelled"
@@ -1144,17 +1177,26 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     assert recovery_response.json()["recovered_count"] == 1
     assert run_response.json()["status_url"] == "/api/v1/report-batches/rbch_1"
     assert run_response.json()["report_job_ids"] == ["rjob_1"]
-    assert calls[0][0:2] == ("create", "idem-batch-1")
-    assert calls[0][2]["X-Caller-Application"] == "lotus-gateway"
-    assert calls[0][2]["X-Actor-Id"] == "operator-123"
-    assert calls[1][0:2] == ("get", "rbch_1")
-    assert [call[0] for call in calls[2:]] == [
+    assert run_response.json()["supportability"]["feature_key"] == (
+        "report.observability.evidence_surface_supportability"
+    )
+    batch_calls = [call for call in calls if call[0] != "capabilities"]
+    assert batch_calls[0][0:2] == ("create", "idem-batch-1")
+    assert batch_calls[0][2]["X-Caller-Application"] == "lotus-gateway"
+    assert batch_calls[0][2]["X-Actor-Id"] == "operator-123"
+    assert batch_calls[1][0:2] == ("get", "rbch_1")
+    assert [call[0] for call in batch_calls[2:]] == [
         "pause",
         "resume",
         "cancel",
         "retry-failed",
         "recover-expired-leases",
         "run-once",
+    ]
+    assert [call for call in calls if call[0] == "capabilities"] == [
+        ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
+        ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
+        ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
     ]
 
 

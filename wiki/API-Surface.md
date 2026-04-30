@@ -45,6 +45,10 @@
 - report batch materialization, status, pause, resume, cancel, retry-failed,
   recover-expired-leases, and bounded run-once operator actions are gateway-first under
   `/api/v1/report-batches`; `lotus-report` remains the batch lifecycle and execution authority
+- report batch materialization, status, and bounded run-once responses preserve
+  `supportability.feature_key=report.observability.evidence_surface_supportability` from
+  `lotus-report` integration capabilities so Workbench can record report evidence-surface
+  freshness and supportability without direct service coupling
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management

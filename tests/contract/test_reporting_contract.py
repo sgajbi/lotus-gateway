@@ -51,6 +51,16 @@ def test_reporting_contract_shapes() -> None:
         status_url="/api/v1/report-batches/rbch_1",
         idempotency_key="idem-batch-1",
         item_count=1,
+        supportability={
+            "state": "ready",
+            "reason": "evidence_surface_ready",
+            "freshness_bucket": "current",
+            "evidence_feature_count": 14,
+            "ready_evidence_feature_count": 14,
+            "degraded_evidence_feature_count": 0,
+            "workflow_count": 4,
+            "ready_workflow_count": 4,
+        },
     )
     batch_status = BatchStatusResponse(
         batch_id="rbch_1",
@@ -101,6 +111,10 @@ def test_reporting_contract_shapes() -> None:
     )
 
     assert batch.status_url == "/api/v1/report-batches/rbch_1"
+    assert batch.supportability is not None
+    assert (
+        batch.supportability.feature_key == "report.observability.evidence_surface_supportability"
+    )
     assert batch_status.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert batch_run.report_job_ids == ["rjob_1"]
 
@@ -269,6 +283,7 @@ def test_reporting_openapi_contract_registered() -> None:
         "BatchCreateRequest",
         "PortfolioBatchCandidate",
         "BatchHandleResponse",
+        "ReportingEvidenceSurfaceSupportability",
         "BatchStatusResponse",
         "BatchItemStatusResponse",
         "BatchControlResponse",
