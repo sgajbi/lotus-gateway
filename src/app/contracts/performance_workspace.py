@@ -345,6 +345,71 @@ class PerformanceEvidenceView(BaseModel):
         description="Gateway evidence posture for the selected performance workspace view.",
         examples=["partial"],
     )
+    as_of_date: str | None = Field(
+        default=None,
+        description="Business date for the performance evidence context.",
+        examples=["2026-04-10"],
+    )
+    period: str | None = Field(
+        default=None,
+        description="Canonical performance period represented by this evidence context.",
+        examples=["YTD"],
+    )
+    basis: str | None = Field(
+        default=None,
+        description="Performance basis represented by this evidence context.",
+        examples=["NET"],
+    )
+    benchmark_code: str | None = Field(
+        default=None,
+        description="Benchmark code used for benchmark-relative evidence, when assigned.",
+        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+    )
+    calculation_scope: str = Field(
+        default="performance_workspace",
+        description="Product-surface calculation scope covered by this evidence context.",
+        examples=["performance_workspace"],
+    )
+    source_services: list[str] = Field(
+        default_factory=list,
+        description="Domain services that contributed to the evidence context.",
+        examples=[["lotus-performance"]],
+    )
+    input_freshness: dict[str, str] = Field(
+        default_factory=dict,
+        description="Product-safe freshness posture for key upstream inputs.",
+        examples=[{"performance": "fresh"}],
+    )
+    methodology_references: list[str] = Field(
+        default_factory=list,
+        description="Governed methodology references that explain the calculation basis.",
+        examples=[["lotus-performance/docs/methodologies"]],
+    )
+    calculation_versions: dict[str, str] = Field(
+        default_factory=dict,
+        description="Product-safe contract and analytics version identifiers for evidence review.",
+        examples=[{"gateway_contract": "v1"}],
+    )
+    coverage: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Supported and unsupported evidence dimensions for this workspace.",
+        examples=[{"supported_dimensions": ["asset_class"], "unsupported_dimensions": []}],
+    )
+    fallbacks: list[str] = Field(
+        default_factory=list,
+        description="Fallbacks applied while assembling the evidence context.",
+        examples=[[]],
+    )
+    limitations: list[str] = Field(
+        default_factory=list,
+        description="Explicit limitations that keep the evidence posture truthful.",
+        examples=[["Lineage artifacts are still materializing for one or more calculations."]],
+    )
+    generated_at: str | None = Field(
+        default=None,
+        description="Timestamp for generated evidence when the upstream source provides one.",
+        examples=["2026-04-10T12:00:08Z"],
+    )
     reason: str | None = Field(
         default=None,
         description="Why evidence is partial or unavailable for the current selection.",
