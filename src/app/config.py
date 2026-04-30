@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     ai_service_base_url: str = Field(default="http://ai.dev.lotus")
     risk_analytics_base_url: str = Field(default="http://risk.dev.lotus")
     reporting_aggregation_base_url: str = Field(default="http://report.dev.lotus")
+    render_service_base_url: str = Field(default="http://render.dev.lotus")
     archive_service_base_url: str = Field(default="http://archive.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
     manage_split_enabled: bool = Field(default=True)
@@ -51,7 +52,7 @@ class Settings(BaseSettings):
     upstream_retry_backoff_seconds: float = Field(default=0.2)
     portfolio_upstream_cache_ttl_seconds: float = Field(default=5.0)
     advisor_brief_cache_ttl_seconds: float = Field(default=30.0)
-    risk_bff_cache_ttl_seconds: float = Field(default=15.0)
+    risk_bff_cache_ttl_seconds: int = Field(default=15)
     domain_product_catalog_path: str = Field(
         default_factory=lambda: _default_platform_generated_path("domain-product-catalog.json")
     )
@@ -76,6 +77,7 @@ class Settings(BaseSettings):
         "ai_service_base_url",
         "risk_analytics_base_url",
         "reporting_aggregation_base_url",
+        "render_service_base_url",
         "archive_service_base_url",
         "management_service_base_url",
         mode="before",
