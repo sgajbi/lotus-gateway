@@ -1054,6 +1054,24 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
             },
         }
 
+    async def _mock_get_render_metadata(self, *, correlation_id):
+        calls.append(("render-metadata", correlation_id, {}))
+        assert correlation_id == "corr-gateway-batch"
+        return 200, {
+            "service": "lotus-render",
+            "supportability": {
+                "featureKey": "render.observability.render_supportability",
+                "state": "ready",
+                "reason": "render_supportability_ready",
+                "freshnessBucket": "current",
+                "deterministicOutputSupported": True,
+                "renderStoreReady": True,
+                "templateRegistryReady": True,
+                "defaultOutputFormat": "pdf",
+                "supportedOutputFormats": ["pdf"],
+            },
+        }
+
     async def _mock_control_batch(
         self,
         *,
@@ -1128,6 +1146,10 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         "app.clients.reporting_client.ReportingClient.get_capabilities",
         _mock_get_capabilities,
     )
+    monkeypatch.setattr(
+        "app.clients.render_client.RenderClient.get_metadata",
+        _mock_get_render_metadata,
+    )
 
     client = TestClient(app)
     create_response = client.post(
@@ -1166,9 +1188,21 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         "workflow_count": 4,
         "ready_workflow_count": 4,
     }
+    assert create_response.json()["render_supportability"] == {
+        "feature_key": "render.observability.render_supportability",
+        "state": "ready",
+        "reason": "render_supportability_ready",
+        "freshness_bucket": "current",
+        "deterministic_output_supported": True,
+        "render_store_ready": True,
+        "template_registry_ready": True,
+        "default_output_format": "pdf",
+        "supported_output_formats": ["pdf"],
+    }
     assert status_response.status_code == 200
     assert status_response.json()["items"][0]["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
     assert status_response.json()["supportability"]["state"] == "ready"
+    assert status_response.json()["render_supportability"]["state"] == "ready"
     assert pause_response.json()["status"] == "paused"
     assert resume_response.json()["status"] == "running"
     assert cancel_response.json()["status"] == "cancelled"
@@ -1180,7 +1214,10 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
     assert run_response.json()["supportability"]["feature_key"] == (
         "report.observability.evidence_surface_supportability"
     )
-    batch_calls = [call for call in calls if call[0] != "capabilities"]
+    assert run_response.json()["render_supportability"]["feature_key"] == (
+        "render.observability.render_supportability"
+    )
+    batch_calls = [call for call in calls if call[0] not in {"capabilities", "render-metadata"}]
     assert batch_calls[0][0:2] == ("create", "idem-batch-1")
     assert batch_calls[0][2]["X-Caller-Application"] == "lotus-gateway"
     assert batch_calls[0][2]["X-Actor-Id"] == "operator-123"
@@ -1197,6 +1234,11 @@ def test_report_batch_gateway_routes_forward_context_and_rewrite_status_urls(mon
         ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
         ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
         ("capabilities", "tenant-sg", {"consumer_system": "lotus-gateway"}),
+    ]
+    assert [call[0] for call in calls if call[0] == "render-metadata"] == [
+        "render-metadata",
+        "render-metadata",
+        "render-metadata",
     ]
 
 

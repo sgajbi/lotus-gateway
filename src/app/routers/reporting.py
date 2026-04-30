@@ -3,6 +3,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 
+from app.clients.render_client import RenderClient
 from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.reporting import (
@@ -117,6 +118,15 @@ def _reporting_client() -> ReportingClient:
     )
 
 
+def _render_client() -> RenderClient:
+    return RenderClient(
+        base_url=settings.render_service_base_url,
+        timeout_seconds=settings.upstream_timeout_seconds,
+        max_retries=settings.upstream_max_retries,
+        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+    )
+
+
 def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
     detail = payload.get("detail") if isinstance(payload, dict) else None
     error_code = detail.get("code") if isinstance(detail, dict) else None
@@ -208,6 +218,64 @@ def _fallback_evidence_surface_supportability(reason: str) -> dict[str, Any]:
     }
 
 
+def _fallback_render_supportability(reason: str) -> dict[str, Any]:
+    return {
+        "feature_key": "render.observability.render_supportability",
+        "state": "partial",
+        "reason": reason,
+        "freshness_bucket": "unknown",
+        "deterministic_output_supported": False,
+        "render_store_ready": False,
+        "template_registry_ready": False,
+        "default_output_format": None,
+        "supported_output_formats": [],
+    }
+
+
+def _normalize_render_supportability(payload: dict[str, Any]) -> dict[str, Any]:
+    raw_supportability = payload.get("supportability")
+    if not isinstance(raw_supportability, dict):
+        return _fallback_render_supportability("render_supportability_missing")
+
+    supported_output_formats: list[str] = []
+    raw_supported_output_formats = raw_supportability.get("supportedOutputFormats")
+    if not isinstance(raw_supported_output_formats, list):
+        raw_supported_output_formats = raw_supportability.get("supported_output_formats")
+    if isinstance(raw_supported_output_formats, list):
+        supported_output_formats = [str(item) for item in raw_supported_output_formats]
+
+    return {
+        **_fallback_render_supportability("render_supportability_unknown"),
+        "feature_key": str(
+            raw_supportability.get("featureKey")
+            or raw_supportability.get("feature_key")
+            or "render.observability.render_supportability"
+        ),
+        "state": str(raw_supportability.get("state") or "partial"),
+        "reason": str(raw_supportability.get("reason") or "render_supportability_unknown"),
+        "freshness_bucket": str(
+            raw_supportability.get("freshnessBucket")
+            or raw_supportability.get("freshness_bucket")
+            or "unknown"
+        ),
+        "deterministic_output_supported": bool(
+            raw_supportability.get("deterministicOutputSupported")
+            or raw_supportability.get("deterministic_output_supported")
+        ),
+        "render_store_ready": bool(
+            raw_supportability.get("renderStoreReady")
+            or raw_supportability.get("render_store_ready")
+        ),
+        "template_registry_ready": bool(
+            raw_supportability.get("templateRegistryReady")
+            or raw_supportability.get("template_registry_ready")
+        ),
+        "default_output_format": raw_supportability.get("defaultOutputFormat")
+        or raw_supportability.get("default_output_format"),
+        "supported_output_formats": supported_output_formats,
+    }
+
+
 def _normalize_evidence_surface_supportability(payload: dict[str, Any]) -> dict[str, Any]:
     raw_supportability = payload.get("supportability")
     if not isinstance(raw_supportability, dict):
@@ -255,6 +323,31 @@ async def _attach_evidence_surface_supportability(
             "evidence_surface_supportability_exception"
         )
     return {**payload, "supportability": supportability}
+
+
+async def _get_render_supportability(*, correlation_id: str) -> dict[str, Any]:
+    status_code, payload = await _render_client().get_metadata(correlation_id=correlation_id)
+    if status_code >= status.HTTP_400_BAD_REQUEST:
+        return _fallback_render_supportability("render_supportability_unavailable")
+    return _normalize_render_supportability(payload)
+
+
+async def _attach_reporting_operator_supportability(
+    payload: dict[str, Any],
+    *,
+    correlation_id: str,
+    tenant_id: str | None,
+) -> dict[str, Any]:
+    with_evidence = await _attach_evidence_surface_supportability(
+        payload,
+        correlation_id=correlation_id,
+        tenant_id=tenant_id,
+    )
+    try:
+        render_supportability = await _get_render_supportability(correlation_id=correlation_id)
+    except Exception:
+        render_supportability = _fallback_render_supportability("render_supportability_exception")
+    return {**with_evidence, "render_supportability": render_supportability}
 
 
 def _raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
@@ -1080,7 +1173,7 @@ async def create_report_batch(
         correlation_id=correlation_id,
     )
     _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_evidence_surface_supportability(
+    response_payload = await _attach_reporting_operator_supportability(
         _rewrite_batch_status_url(payload),
         correlation_id=correlation_id,
         tenant_id=tenant_id,
@@ -1138,7 +1231,7 @@ async def get_report_batch_status(
         correlation_id=correlation_id,
     )
     _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_evidence_surface_supportability(
+    response_payload = await _attach_reporting_operator_supportability(
         payload,
         correlation_id=correlation_id,
         tenant_id=tenant_id,
@@ -1401,7 +1494,7 @@ async def run_report_batch_once(
         payload=request.model_dump(exclude_none=True, mode="json"),
     )
     _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_evidence_surface_supportability(
+    response_payload = await _attach_reporting_operator_supportability(
         _rewrite_batch_status_url(payload),
         correlation_id=correlation_id,
         tenant_id=tenant_id,

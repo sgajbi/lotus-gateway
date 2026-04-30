@@ -61,6 +61,17 @@ def test_reporting_contract_shapes() -> None:
             "workflow_count": 4,
             "ready_workflow_count": 4,
         },
+        render_supportability={
+            "feature_key": "render.observability.render_supportability",
+            "state": "ready",
+            "reason": "render_supportability_ready",
+            "freshness_bucket": "current",
+            "deterministic_output_supported": True,
+            "render_store_ready": True,
+            "template_registry_ready": True,
+            "default_output_format": "pdf",
+            "supported_output_formats": ["pdf"],
+        },
     )
     batch_status = BatchStatusResponse(
         batch_id="rbch_1",
@@ -115,6 +126,8 @@ def test_reporting_contract_shapes() -> None:
     assert (
         batch.supportability.feature_key == "report.observability.evidence_surface_supportability"
     )
+    assert batch.render_supportability is not None
+    assert batch.render_supportability.feature_key == "render.observability.render_supportability"
     assert batch_status.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
     assert batch_run.report_job_ids == ["rjob_1"]
 

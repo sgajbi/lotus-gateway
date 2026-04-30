@@ -1467,6 +1467,50 @@ class ReportingEvidenceSurfaceSupportability(BaseModel):
     )
 
 
+class RenderSupportabilitySummary(BaseModel):
+    feature_key: str = Field(
+        "render.observability.render_supportability",
+        description="RFC-0108 feature key for lotus-render supportability posture.",
+    )
+    state: str = Field(
+        ...,
+        description="Bounded render supportability state published by lotus-render.",
+        examples=["ready"],
+    )
+    reason: str = Field(
+        ...,
+        description="Bounded reason code explaining render supportability posture.",
+        examples=["render_supportability_ready"],
+    )
+    freshness_bucket: str = Field(
+        ...,
+        description="Bounded freshness bucket for render supportability.",
+        examples=["current"],
+    )
+    deterministic_output_supported: bool = Field(
+        False,
+        description="Whether deterministic render proof is supported by the source service.",
+    )
+    render_store_ready: bool = Field(
+        False,
+        description="Whether the source render store is ready.",
+    )
+    template_registry_ready: bool = Field(
+        False,
+        description="Whether the source template registry is ready.",
+    )
+    default_output_format: str | None = Field(
+        default=None,
+        description="Default output format reported by lotus-render.",
+        examples=["pdf"],
+    )
+    supported_output_formats: list[str] = Field(
+        default_factory=list,
+        description="Output formats reported as supported by lotus-render.",
+        examples=[["pdf"]],
+    )
+
+
 class BatchHandleResponse(BaseModel):
     batch_id: str = Field(..., description="Opaque durable batch identifier.")
     status: BatchStatus = Field(..., description="Current product-safe batch status.")
@@ -1484,6 +1528,13 @@ class BatchHandleResponse(BaseModel):
         description=(
             "lotus-report evidence-surface supportability posture captured from "
             "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
+    render_supportability: RenderSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "lotus-render supportability posture captured from GET /metadata for "
+            "Workbench reporting operator reads."
         ),
     )
 
@@ -1553,6 +1604,13 @@ class BatchStatusResponse(BaseModel):
         description=(
             "lotus-report evidence-surface supportability posture captured from "
             "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
+    render_supportability: RenderSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "lotus-render supportability posture captured from GET /metadata for "
+            "Workbench reporting operator reads."
         ),
     )
 
@@ -1650,6 +1708,13 @@ class BatchWorkerRunResponse(BaseModel):
         description=(
             "lotus-report evidence-surface supportability posture captured from "
             "GET /integration/capabilities for Workbench reporting operator reads."
+        ),
+    )
+    render_supportability: RenderSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "lotus-render supportability posture captured from GET /metadata for "
+            "Workbench reporting operator reads."
         ),
     )
 
