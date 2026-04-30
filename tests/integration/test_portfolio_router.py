@@ -147,6 +147,16 @@ def test_portfolio_workspace_router(monkeypatch):
                     "detail": "Reporting remains blocked until pricing is published.",
                 }
             ],
+            "supportability": {
+                "feature_key": "core.observability.portfolio_supportability",
+                "state": "degraded",
+                "reason": "portfolio_supportability_pending",
+                "freshness_bucket": "current",
+                "ready_domains": 3,
+                "pending_domains": 1,
+                "blocked_domains": 0,
+                "no_activity_domains": 0,
+            },
         }
 
     async def _cashflow(*args, **kwargs):
@@ -314,6 +324,16 @@ def test_portfolio_readiness_router(monkeypatch):
                     "detail": "Reporting remains blocked until pricing is published.",
                 }
             ],
+            "supportability": {
+                "feature_key": "core.observability.portfolio_supportability",
+                "state": "degraded",
+                "reason": "portfolio_supportability_pending",
+                "freshness_bucket": "current",
+                "ready_domains": 3,
+                "pending_domains": 1,
+                "blocked_domains": 0,
+                "no_activity_domains": 0,
+            },
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
@@ -335,6 +355,16 @@ def test_portfolio_readiness_router(monkeypatch):
     assert body["pricing"]["status"] == "Pending"
     assert body["pricing"]["reasons"][0]["code"] == "pricing_not_published"
     assert body["blocking_reasons"][0]["code"] == "awaiting_pricing"
+    assert body["supportability"] == {
+        "feature_key": "core.observability.portfolio_supportability",
+        "state": "degraded",
+        "reason": "portfolio_supportability_pending",
+        "freshness_bucket": "fresh",
+        "ready_domains": 3,
+        "pending_domains": 1,
+        "blocked_domains": 0,
+        "no_activity_domains": 0,
+    }
 
 
 def test_portfolio_readiness_router_preserves_upstream_bad_request(monkeypatch):
