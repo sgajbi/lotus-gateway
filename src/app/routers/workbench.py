@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Path, Query, Response
 
+from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
@@ -154,6 +155,12 @@ def _build_advisor_brief_service(
         lotus_ai_client=LotusAiClient(
             base_url=settings.ai_service_base_url,
             timeout_seconds=settings.ai_service_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        advise_client=AdviseClient(
+            base_url=settings.decisioning_service_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),

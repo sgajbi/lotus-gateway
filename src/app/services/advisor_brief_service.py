@@ -4,9 +4,11 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
+from app.clients.advise_client import AdviseClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
+    AdvisorBriefAdvisorySupportability,
     AdvisorBriefAiSurfaceSupportability,
     AdvisorBriefAiSurfaceSupportabilityItem,
     AdvisorBriefEvidenceRef,
@@ -45,10 +47,12 @@ class AdvisorBriefService:
         *,
         performance_workspace_service: PerformanceWorkspaceService,
         lotus_ai_client: LotusAiClient,
+        advise_client: AdviseClient | None = None,
         cache_ttl_seconds: float = 30.0,
     ):
         self._performance_workspace_service = performance_workspace_service
         self._lotus_ai_client = lotus_ai_client
+        self._advise_client = advise_client
         self._response_cache = AsyncTtlCache[AdvisorBriefResponse](ttl_seconds=cache_ttl_seconds)
 
     def clear_cache(self) -> None:
@@ -299,6 +303,10 @@ class AdvisorBriefService:
             lotus_ai_client=self._lotus_ai_client,
             correlation_id=correlation_id,
         )
+        advisory_supportability = await _load_advisory_supportability(
+            advise_client=self._advise_client,
+            correlation_id=correlation_id,
+        )
 
         return AdvisorBriefResponse(
             correlation_id=correlation_id,
@@ -325,6 +333,7 @@ class AdvisorBriefService:
             ),
             supportability=supportability,
             ai_surface_supportability=ai_surface_supportability,
+            advisory_supportability=advisory_supportability,
             ai_audit=ai_audit,
             ai_evidence=ai_evidence,
             workflow_pack_run=workflow_pack_run,
@@ -404,14 +413,46 @@ class AdvisorBriefService:
             lotus_ai_client=self._lotus_ai_client,
             correlation_id=correlation_id,
         )
+        advisory_supportability = await _load_advisory_supportability(
+            advise_client=self._advise_client,
+            correlation_id=correlation_id,
+        )
         self.clear_cache()
         return brief.model_copy(
             update={
                 "workflow_pack_run": workflow_pack_run,
                 "workflow_pack_task_flow": workflow_pack_task_flow,
                 "ai_surface_supportability": ai_surface_supportability,
+                "advisory_supportability": advisory_supportability,
             }
         )
+
+
+async def _load_advisory_supportability(
+    *,
+    advise_client: AdviseClient | None,
+    correlation_id: str,
+) -> AdvisorBriefAdvisorySupportability | None:
+    if advise_client is None:
+        return None
+    status_code, payload = await advise_client.get_platform_capabilities(
+        correlation_id=correlation_id
+    )
+    if status_code != 200:
+        return None
+    supportability = _safe_dict(payload.get("supportability"))
+    if not supportability:
+        return None
+    return AdvisorBriefAdvisorySupportability(
+        state=_safe_str(supportability.get("state")) or "unknown",
+        reason=_safe_str(supportability.get("reason")),
+        freshness_bucket=_safe_str(supportability.get("freshness_bucket")) or "unknown",
+        dependency_count=_safe_int(supportability.get("dependency_count")),
+        ready_dependency_count=_safe_int(supportability.get("ready_dependency_count")),
+        degraded_dependency_count=_safe_int(supportability.get("degraded_dependency_count")),
+        enabled_feature_count=_safe_int(supportability.get("enabled_feature_count")),
+        ready_feature_count=_safe_int(supportability.get("ready_feature_count")),
+    )
 
 
 async def _load_ai_surface_supportability(
