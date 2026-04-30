@@ -1112,6 +1112,27 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.evidence_view.calculations[0].calculation_role == "workspace_summary"
     assert response.evidence_view.calculations[0].execution_status == "complete"
     assert response.evidence_view.calculations[0].lineage_status == "complete"
+    assert response.evidence_view.as_of_date == "2026-03-27"
+    assert response.evidence_view.period == "YTD"
+    assert response.evidence_view.basis == "NET"
+    assert response.evidence_view.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert response.evidence_view.calculation_scope == "performance_workspace"
+    assert response.evidence_view.source_services == ["lotus-performance"]
+    assert response.evidence_view.input_freshness == {
+        "performance": "fresh",
+        "benchmark": "fresh",
+    }
+    assert response.evidence_view.methodology_references == ["lotus-performance/docs/methodologies"]
+    assert response.evidence_view.calculation_versions == {
+        "analytics_types": "ATTRIBUTION,CONTRIBUTION,WORKSPACE_SUMMARY",
+        "gateway_contract": "v1",
+    }
+    assert response.evidence_view.coverage == {
+        "supported_dimensions": ["asset_class", "country", "currency", "sector"],
+        "unsupported_dimensions": ["issuer"],
+    }
+    assert response.evidence_view.fallbacks == []
+    assert response.evidence_view.limitations == []
     assert (
         response.evidence_view.calculations[0]
         .artifacts[0]

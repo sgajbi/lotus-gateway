@@ -659,6 +659,11 @@ class PerformanceWorkspaceService:
         )
         evidence_view = await self._build_evidence_view(
             portfolio_id=portfolio_id,
+            as_of_date=overview.as_of_date,
+            period=effective_period,
+            basis=detail_basis,
+            benchmark_code=resolved_benchmark_code or benchmark_code,
+            contract_version=overview.contract_version,
             correlation_id=correlation_id,
             calculations=[
                 (
@@ -903,6 +908,11 @@ class PerformanceWorkspaceService:
         self,
         *,
         portfolio_id: str,
+        as_of_date: str,
+        period: str,
+        basis: str,
+        benchmark_code: str | None,
+        contract_version: str,
         correlation_id: str,
         calculations: Sequence[tuple[str, str | None]],
         warnings: list[str],
@@ -914,9 +924,15 @@ class PerformanceWorkspaceService:
             if calculation_id is not None
         ]
         if not requested_items:
-            return PerformanceEvidenceView(
+            return self._build_performance_evidence_view(
                 state="unavailable",
                 reason="No durable calculation evidence is available for the current selection.",
+                as_of_date=as_of_date,
+                period=period,
+                basis=basis,
+                benchmark_code=benchmark_code,
+                contract_version=contract_version,
+                limitations=["No durable calculation evidence is available."],
                 calculations=[],
             )
 
@@ -944,21 +960,36 @@ class PerformanceWorkspaceService:
         )
         if backed_count == 0:
             warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
-            return PerformanceEvidenceView(
+            return self._build_performance_evidence_view(
                 state="unavailable",
                 reason=(
                     "Gateway could not resolve execution or lineage evidence "
                     "from lotus-performance."
                 ),
+                as_of_date=as_of_date,
+                period=period,
+                basis=basis,
+                benchmark_code=benchmark_code,
+                contract_version=contract_version,
+                limitations=[
+                    "Gateway could not resolve execution or lineage evidence "
+                    "from lotus-performance."
+                ],
                 calculations=evidence_items,
             )
         if complete_count == len(evidence_items):
-            return PerformanceEvidenceView(
+            return self._build_performance_evidence_view(
                 state="supported",
                 reason=(
                     "Execution status, upstream lineage, and artifact inventory "
                     "are exposed for the current performance view."
                 ),
+                as_of_date=as_of_date,
+                period=period,
+                basis=basis,
+                benchmark_code=benchmark_code,
+                contract_version=contract_version,
+                limitations=[],
                 calculations=evidence_items,
             )
 
@@ -973,13 +1004,90 @@ class PerformanceWorkspaceService:
                 ),
             )
         )
-        return PerformanceEvidenceView(
+        return self._build_performance_evidence_view(
             state="partial",
             reason=(
                 "One or more performance calculations still have pending, failed, "
                 "or unavailable lineage evidence."
             ),
+            as_of_date=as_of_date,
+            period=period,
+            basis=basis,
+            benchmark_code=benchmark_code,
+            contract_version=contract_version,
+            limitations=[
+                "One or more performance calculations still have pending, failed, "
+                "or unavailable lineage evidence."
+            ],
             calculations=evidence_items,
+        )
+
+    def _build_performance_evidence_view(
+        self,
+        *,
+        state: str,
+        reason: str,
+        as_of_date: str,
+        period: str,
+        basis: str,
+        benchmark_code: str | None,
+        contract_version: str,
+        limitations: list[str],
+        calculations: Sequence[PerformanceCalculationEvidenceView],
+    ) -> PerformanceEvidenceView:
+        source_services = ["lotus-performance"] if calculations else []
+        upstream_dates = {
+            snapshot.as_of_date
+            for item in calculations
+            for snapshot in item.upstream_snapshots
+            if snapshot.as_of_date
+        }
+        performance_freshness = (
+            "fresh" if as_of_date in upstream_dates or not upstream_dates else "stale"
+        )
+        input_freshness = {"performance": performance_freshness}
+        if benchmark_code:
+            input_freshness["benchmark"] = input_freshness["performance"]
+
+        unsupported_dimensions = [
+            dimension
+            for dimension in ("issuer",)
+            if dimension not in SUPPORTED_CONTRIBUTION_DIMENSIONS
+            and dimension not in SUPPORTED_ATTRIBUTION_DIMENSIONS
+        ]
+        calculation_versions = {"gateway_contract": contract_version}
+        analytics_types = {
+            item.analytics_type for item in calculations if item.analytics_type is not None
+        }
+        if analytics_types:
+            calculation_versions["analytics_types"] = ",".join(sorted(analytics_types))
+
+        fallbacks = [
+            item.reason for item in calculations if item.reason is not None and item.reason.strip()
+        ]
+
+        return PerformanceEvidenceView(
+            state=state,
+            as_of_date=as_of_date,
+            period=period,
+            basis=basis,
+            benchmark_code=benchmark_code,
+            calculation_scope="performance_workspace",
+            source_services=source_services,
+            input_freshness=input_freshness,
+            methodology_references=["lotus-performance/docs/methodologies"],
+            calculation_versions=calculation_versions,
+            coverage={
+                "supported_dimensions": sorted(
+                    set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
+                ),
+                "unsupported_dimensions": unsupported_dimensions,
+            },
+            fallbacks=fallbacks,
+            limitations=limitations,
+            generated_at=None,
+            reason=reason,
+            calculations=list(calculations),
         )
 
     async def _fetch_calculation_evidence(

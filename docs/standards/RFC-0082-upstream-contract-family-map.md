@@ -83,14 +83,19 @@ This RFC-0082 documentation slice reflects current runtime behavior:
 
 1. `workbench/performance/summary` and `workbench/performance/details` expose a gateway-owned
    `evidence_view` sourced from lotus-performance execution polling and lineage inventory.
-2. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
+2. the performance `evidence_view` includes RFC-0108/RFC-0079-facing product context for as-of date,
+   period, basis, benchmark, calculation scope, source services, freshness posture, methodology
+   references, calculation versions, coverage, fallbacks, and limitations. Gateway derives only
+   UI-safe evidence context from upstream payloads; it does not become the calculation or methodology
+   authority.
+3. lineage artifact links presented to downstream clients are rewritten to a gateway-owned download
    route rather than exposing direct lotus-performance URLs.
-3. archived generated-document metadata and binary links are exposed through gateway-owned document
+4. archived generated-document metadata and binary links are exposed through gateway-owned document
    routes rather than exposing direct lotus-archive URLs.
-4. RFC-0104 report batch materialization, status, control, recovery, retry, and bounded run-once
+5. RFC-0104 report batch materialization, status, control, recovery, retry, and bounded run-once
    operator actions are exposed through gateway-owned `/api/v1/report-batches` routes while
    preserving `lotus-report` as the lifecycle and execution authority.
-5. RFC-0104 config-backed scheduler list and run-due actions are exposed through gateway-owned
+6. RFC-0104 config-backed scheduler list and run-due actions are exposed through gateway-owned
    `/api/v1/report-batch-schedules` routes while preserving `lotus-report` as the scheduler
    configuration and materialization authority.
 
