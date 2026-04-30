@@ -1133,6 +1133,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     }
     assert response.evidence_view.fallbacks == []
     assert response.evidence_view.limitations == []
+    assert response.evidence_view.source_supportability == []
     assert (
         response.evidence_view.calculations[0]
         .artifacts[0]
@@ -1204,6 +1205,53 @@ async def test_performance_workspace_service_projects_summary_contract():
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert not hasattr(response, "net_chart")
     assert not hasattr(response, "contribution")
+
+
+@pytest.mark.asyncio
+async def test_performance_workspace_summary_preserves_source_calculation_supportability():
+    class _StaleSupportabilityAnalyticsClient(_StubAnalyticsClient):
+        async def get_workspace_summary(self, **kwargs):
+            status_code, payload = await super().get_workspace_summary(**kwargs)
+            payload["metadata"] = {
+                "calculation_supportability": {
+                    "state": "stale",
+                    "reason": "Source data window stale",
+                    "freshness_bucket": "stale",
+                    "source_service": "lotus-performance",
+                }
+            }
+            return status_code, payload
+
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StaleSupportabilityAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "partial"
+    assert response.evidence_view.reason == "Source data window stale"
+    assert response.evidence_view.limitations == ["Source data window stale"]
+    assert response.capabilities.evidence.state == "partial"
+    assert response.capabilities.evidence.reason == "Source data window stale"
+    assert response.evidence_view.source_supportability[0].model_dump() == {
+        "key": "source_calculation",
+        "state": "partial",
+        "reason": "Source data window stale",
+        "freshness_bucket": "stale",
+        "source_service": "lotus-performance",
+    }
 
 
 @pytest.mark.asyncio

@@ -32,6 +32,7 @@ from app.contracts.performance_workspace import (
     PerformanceHorizonComparisonResponse,
     PerformanceHorizonComparisonRow,
     PerformanceModuleCapability,
+    PerformanceSourceSupportabilityView,
     PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
@@ -47,6 +48,10 @@ from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialF
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.source_supportability import (
+    extract_calculation_supportability,
+    source_supportability_reason,
+)
 from app.services.workbench_service import WorkbenchService
 
 STANDARD_PERIOD_ANALYSES = (
@@ -679,6 +684,11 @@ class PerformanceWorkspaceService:
                     self._extract_calculation_id_from_result(attribution_detail_result),
                 ),
             ],
+            source_results=[
+                workspace_summary_result,
+                contribution_detail_result,
+                attribution_detail_result,
+            ],
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -915,9 +925,11 @@ class PerformanceWorkspaceService:
         contract_version: str,
         correlation_id: str,
         calculations: Sequence[tuple[str, str | None]],
+        source_results: Sequence[GatheredResult | None],
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> PerformanceEvidenceView | None:
+        source_supportability = self._build_source_supportability(source_results)
         requested_items = [
             (role, calculation_id)
             for role, calculation_id in calculations
@@ -934,6 +946,7 @@ class PerformanceWorkspaceService:
                 contract_version=contract_version,
                 limitations=["No durable calculation evidence is available."],
                 calculations=[],
+                source_supportability=source_supportability,
             )
 
         evidence_items = await asyncio.gather(
@@ -976,21 +989,32 @@ class PerformanceWorkspaceService:
                     "from lotus-performance."
                 ],
                 calculations=evidence_items,
+                source_supportability=source_supportability,
             )
         if complete_count == len(evidence_items):
-            return self._build_performance_evidence_view(
-                state="supported",
-                reason=(
+            evidence_state = self._resolve_evidence_state(
+                evidence_state="supported",
+                source_supportability=source_supportability,
+            )
+            evidence_reason = self._resolve_evidence_reason(
+                evidence_state=evidence_state,
+                supported_reason=(
                     "Execution status, upstream lineage, and artifact inventory "
                     "are exposed for the current performance view."
                 ),
+                source_supportability=source_supportability,
+            )
+            return self._build_performance_evidence_view(
+                state=evidence_state,
+                reason=evidence_reason,
                 as_of_date=as_of_date,
                 period=period,
                 basis=basis,
                 benchmark_code=benchmark_code,
                 contract_version=contract_version,
-                limitations=[],
+                limitations=[] if evidence_state == "supported" else [evidence_reason],
                 calculations=evidence_items,
+                source_supportability=source_supportability,
             )
 
         warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
@@ -1020,6 +1044,7 @@ class PerformanceWorkspaceService:
                 "or unavailable lineage evidence."
             ],
             calculations=evidence_items,
+            source_supportability=source_supportability,
         )
 
     def _build_performance_evidence_view(
@@ -1034,8 +1059,16 @@ class PerformanceWorkspaceService:
         contract_version: str,
         limitations: list[str],
         calculations: Sequence[PerformanceCalculationEvidenceView],
+        source_supportability: Sequence[PerformanceSourceSupportabilityView],
     ) -> PerformanceEvidenceView:
-        source_services = ["lotus-performance"] if calculations else []
+        source_services = sorted(
+            {service for service in ["lotus-performance"] if calculations}
+            | {
+                item.source_service
+                for item in source_supportability
+                if item.source_service is not None
+            }
+        )
         upstream_dates = {
             snapshot.as_of_date
             for item in calculations
@@ -1088,7 +1121,74 @@ class PerformanceWorkspaceService:
             generated_at=None,
             reason=reason,
             calculations=list(calculations),
+            source_supportability=list(source_supportability),
         )
+
+    def _build_source_supportability(
+        self,
+        source_results: Sequence[GatheredResult | None],
+    ) -> list[PerformanceSourceSupportabilityView]:
+        items: list[PerformanceSourceSupportabilityView] = []
+        seen: set[tuple[str, str, str | None]] = set()
+        for result in source_results:
+            if result is None or isinstance(result, BaseException):
+                continue
+            status_code, payload = result
+            if status_code >= 400 or not isinstance(payload, Mapping):
+                continue
+            source_supportability = extract_calculation_supportability(payload)
+            if source_supportability is None:
+                continue
+            key = (
+                source_supportability.state,
+                source_supportability.reason or "",
+                source_supportability.freshness_bucket,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(
+                PerformanceSourceSupportabilityView(
+                    key="source_calculation",
+                    state=source_supportability.performance_evidence_state,
+                    reason=source_supportability_reason(
+                        source_supportability,
+                        default_ready_reason=(
+                            "Source calculation supportability was confirmed upstream."
+                        ),
+                    ),
+                    freshness_bucket=source_supportability.freshness_bucket,
+                    source_service=source_supportability.source_service or "lotus-performance",
+                )
+            )
+        return items
+
+    def _resolve_evidence_state(
+        self,
+        *,
+        evidence_state: str,
+        source_supportability: Sequence[PerformanceSourceSupportabilityView],
+    ) -> str:
+        states = {item.state for item in source_supportability}
+        if states & {"unavailable"}:
+            return "unavailable"
+        if states - {"supported"}:
+            return "partial"
+        return evidence_state
+
+    def _resolve_evidence_reason(
+        self,
+        *,
+        evidence_state: str,
+        supported_reason: str,
+        source_supportability: Sequence[PerformanceSourceSupportabilityView],
+    ) -> str:
+        if evidence_state == "supported":
+            return supported_reason
+        for item in source_supportability:
+            if item.state != "supported" and item.reason:
+                return item.reason
+        return "Source calculation supportability is partial or unavailable upstream."
 
     async def _fetch_calculation_evidence(
         self,

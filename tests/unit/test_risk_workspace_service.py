@@ -36,6 +36,14 @@ class _StubRiskClient:
                     },
                 }
             },
+            "metadata": {
+                "calculation_supportability": {
+                    "state": "ready",
+                    "reason": "Source calculation supportability was confirmed upstream.",
+                    "freshness_bucket": "fresh",
+                    "source_service": "lotus-risk",
+                }
+            },
         }
         self.concentration_payload: dict = {
             "source_service": "lotus-risk",
@@ -101,6 +109,12 @@ class _StubRiskClient:
                 "enrichment_policy": "merge_caller_then_core",
                 "include_cash_positions": True,
                 "include_zero_quantity_positions": False,
+                "calculation_supportability": {
+                    "state": "ready",
+                    "reason": "Source calculation supportability was confirmed upstream.",
+                    "freshness_bucket": "fresh",
+                    "source_service": "lotus-risk",
+                },
             },
         }
         self.drawdown_payload: dict = {
@@ -324,7 +338,11 @@ async def test_risk_summary_uses_stateful_request_and_maps_supportability() -> N
         "portfolio_returns": "ready",
         "benchmark_returns": "ready",
         "risk_free_series": "ready",
+        "source_calculation": "ready",
     }
+    source_support = {item.key: item for item in response.supportability}["source_calculation"]
+    assert source_support.source_service == "lotus-risk"
+    assert source_support.reason == "Source calculation supportability was confirmed upstream."
     risk_free_support = {item.key: item for item in response.supportability}["risk_free_series"]
     assert "zero risk-free" not in (risk_free_support.reason or "").lower()
     assert "risk-free series" in (risk_free_support.reason or "").lower()
@@ -356,6 +374,34 @@ async def test_risk_summary_reports_partial_when_benchmark_metrics_have_errors()
     ][0]
     assert tracking_error.state == "partial"
     assert tracking_error.reason == "benchmark returns unavailable"
+
+
+@pytest.mark.asyncio
+async def test_risk_summary_preserves_source_calculation_supportability() -> None:
+    client = _StubRiskClient()
+    client.calculate_payload["metadata"]["calculation_supportability"] = {
+        "state": "stale",
+        "reason": "Risk source data window stale",
+        "freshness_bucket": "stale",
+        "source_service": "lotus-risk",
+    }
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    response = await service.get_summary(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-04",
+        reporting_currency="USD",
+    )
+
+    assert response.state == "partial"
+    source_support = {item.key: item for item in response.supportability}["source_calculation"]
+    assert source_support.state == "partial"
+    assert source_support.reason == "Risk source data window stale"
+    assert source_support.source_service == "lotus-risk"
 
 
 @pytest.mark.asyncio
@@ -391,6 +437,7 @@ async def test_risk_concentration_uses_stateful_request_and_maps_issuer_supporta
         "issuer_enrichment": "partial",
         "issuer_grouping": "ready",
         "valuation_basis": "ready",
+        "source_calculation": "ready",
     }
 
 

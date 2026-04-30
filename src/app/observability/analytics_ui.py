@@ -8,6 +8,8 @@ from typing import Any
 
 from prometheus_client import Counter, Histogram
 
+from app.services.source_supportability import extract_calculation_supportability
+
 ANALYTICS_UI_ALLOWED_LABELS = frozenset(
     {
         "route",
@@ -414,6 +416,14 @@ def _resolve_gateway_analytics_state(*, status_code: int, payload: Mapping[str, 
 
 
 def _resolve_supportability_state(payload: Mapping[str, Any]) -> str | None:
+    calculation_supportability = extract_calculation_supportability(payload)
+    if calculation_supportability is not None:
+        if calculation_supportability.state in {"ready", "supported"}:
+            return "ready"
+        if calculation_supportability.state in {"partial", "stale"}:
+            return "partial"
+        return "degraded"
+
     supportability = payload.get("supportability")
     if isinstance(supportability, list):
         states = {
@@ -435,6 +445,13 @@ def _resolve_supportability_state(payload: Mapping[str, Any]) -> str | None:
 def _resolve_gateway_analytics_reason(
     *, status_code: int, payload: Mapping[str, Any]
 ) -> str | None:
+    calculation_supportability = extract_calculation_supportability(payload)
+    if calculation_supportability is not None and calculation_supportability.state not in {
+        "ready",
+        "supported",
+    }:
+        return calculation_supportability.reason or calculation_supportability.state.upper()
+
     warnings = payload.get("warnings")
     if isinstance(warnings, list) and warnings:
         return str(warnings[0])
@@ -500,9 +517,15 @@ def _panel_for_operation(operation: str) -> str:
 def _safe_dimension(value: str | None, *, default: str) -> str:
     if not value:
         return default
-    cleaned = "".join(
-        character
-        for character in value.strip().lower()
-        if character.isalnum() or character in {"-", "_", "."}
-    )
+    previous_was_separator = False
+    characters: list[str] = []
+    for character in value.strip().lower():
+        if character.isalnum() or character in {"_", "."}:
+            characters.append(character)
+            previous_was_separator = False
+            continue
+        if character in {"-", " ", "/"} and not previous_was_separator:
+            characters.append("-")
+            previous_was_separator = True
+    cleaned = "".join(characters).strip("-")
     return cleaned[:64] or default
