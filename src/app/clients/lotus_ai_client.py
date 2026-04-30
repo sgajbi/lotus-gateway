@@ -154,6 +154,19 @@ class LotusAiClient:
             path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
         )
 
+    async def get_observability_runtime_status(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation="ai.observability.runtime-status",
+            method="GET",
+            headers=propagation_headers(correlation_id),
+            retry_timeout_exceptions=False,
+            path="/platform/observability/runtime-status",
+        )
+
     async def _request(
         self,
         *,

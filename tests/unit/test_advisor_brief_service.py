@@ -164,10 +164,45 @@ class _StubLotusAiClient:
                 }
             ]
         }
+        self.observability_runtime_status_code = 200
+        self.observability_runtime_payload = {
+            "ai_surface_supportability": {
+                "posture": "degraded",
+                "freshness": "current",
+                "supported_surface_count": 3,
+                "executable_workflow_pack_count": 3,
+                "action_required_surface_count": 3,
+                "unavailable_surface_count": 0,
+                "no_sensitive_content_telemetry": False,
+                "metric_name": "lotus_ai_surface_supportability_state",
+                "surfaces": [
+                    {
+                        "surface_id": "advisor_brief",
+                        "owning_service": "lotus-advise",
+                        "workflow_authority_owner": "lotus-advise",
+                        "workflow_pack_ref": "advisor_brief.pack@v1",
+                        "supportability_status": "ACTION_REQUIRED",
+                        "model_posture": "degraded",
+                        "latest_ready_run_id": None,
+                        "latest_action_required_run_id": "packrun_advisor_brief_req-1",
+                        "no_sensitive_content_telemetry": False,
+                        "status_summary": [
+                            "advisor_brief is grounded in workflow-pack runtime source "
+                            "`advisor_brief.pack@v1`."
+                        ],
+                    }
+                ],
+                "status_summary": [
+                    "AI surface supportability is sourced from workflow-pack runtime, "
+                    "provider operations, and safety runtime."
+                ],
+            }
+        }
         self.execute_calls: list[dict[str, object]] = []
         self.consumer_view_calls: list[dict[str, object]] = []
         self.operator_profile_calls: list[dict[str, object]] = []
         self.task_flow_calls: list[dict[str, object]] = []
+        self.observability_runtime_calls: list[dict[str, object]] = []
         self.review_action_calls: list[dict[str, object]] = []
         self.review_action_status_code = 200
         self.review_action_payload = {
@@ -297,6 +332,10 @@ class _StubLotusAiClient:
         self.task_flow_calls.append(kwargs)
         return self.task_flow_status_code, self.task_flow_payload
 
+    async def get_observability_runtime_status(self, **kwargs):
+        self.observability_runtime_calls.append(kwargs)
+        return self.observability_runtime_status_code, self.observability_runtime_payload
+
 
 @pytest.mark.asyncio
 async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_actions():
@@ -339,6 +378,15 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert response.workflow_pack_task_flow.review_states == {
         "packrun_advisor_brief_req-1": "AWAITING_REVIEW",
     }
+    assert response.ai_surface_supportability is not None
+    assert response.ai_surface_supportability.feature_key == (
+        "ai.observability.ai_surface_supportability"
+    )
+    assert response.ai_surface_supportability.state == "action_required"
+    assert response.ai_surface_supportability.freshness_bucket == "fresh"
+    assert response.ai_surface_supportability.metric_name == "lotus_ai_surface_supportability_state"
+    assert response.ai_surface_supportability.surfaces[0].surface_id == "advisor_brief"
+    assert response.ai_surface_supportability.surfaces[0].owning_service == "lotus-advise"
     assert ai_client.task_flow_calls == [
         {
             "correlation_id": "corr-1",
@@ -417,6 +465,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
     assert ai_client.operator_profile_calls == [
         {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
     ]
+    assert ai_client.observability_runtime_calls == [{"correlation_id": "corr-1"}]
 
 
 @pytest.mark.asyncio
