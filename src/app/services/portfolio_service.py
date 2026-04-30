@@ -43,6 +43,7 @@ from app.contracts.portfolio import (
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
     PortfolioSummary,
+    PortfolioSupportabilitySummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
     PortfolioTransactionView,
@@ -608,6 +609,9 @@ class PortfolioService:
             reporting=self._parse_readiness_bucket((source_payload or {}).get("reporting")),
             blocking_reasons=self._parse_readiness_reasons(
                 (source_payload or {}).get("blocking_reasons")
+            ),
+            supportability=self._parse_portfolio_supportability(
+                (source_payload or {}).get("supportability")
             ),
             indicators=indicators,
         )
@@ -2566,6 +2570,39 @@ class PortfolioService:
             )
         return reasons
 
+    def _parse_portfolio_supportability(
+        self, payload: Any
+    ) -> PortfolioSupportabilitySummary | None:
+        if not isinstance(payload, dict):
+            return None
+        state = self._optional_str(payload.get("state"))
+        reason = self._optional_str(payload.get("reason"))
+        if state is None or reason is None:
+            return None
+        return PortfolioSupportabilitySummary(
+            feature_key=(
+                self._optional_str(payload.get("feature_key"))
+                or "core.observability.portfolio_supportability"
+            ),
+            state=state,
+            reason=reason,
+            freshness_bucket=self._map_portfolio_supportability_freshness(
+                payload.get("freshness_bucket")
+            ),
+            ready_domains=self._optional_int(payload.get("ready_domains")) or 0,
+            pending_domains=self._optional_int(payload.get("pending_domains")) or 0,
+            blocked_domains=self._optional_int(payload.get("blocked_domains")) or 0,
+            no_activity_domains=self._optional_int(payload.get("no_activity_domains")) or 0,
+        )
+
+    def _map_portfolio_supportability_freshness(self, value: Any) -> str:
+        normalized = str(value or "").strip().lower()
+        if normalized in {"fresh", "current"}:
+            return "fresh"
+        if normalized == "stale":
+            return "stale"
+        return "unknown"
+
     def _build_source_readiness_indicators(
         self, payload: dict[str, Any] | None, detailed_view: bool
     ) -> list[PortfolioReadinessIndicator]:
@@ -2846,6 +2883,14 @@ class PortfolioService:
             return None
         text = str(value).strip()
         return text or None
+
+    def _optional_int(self, value: Any) -> int | None:
+        if value is None or isinstance(value, bool):
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
     def _resolve_portfolio_display_name(
         self, payload: dict[str, Any], *, fallback_portfolio_id: str

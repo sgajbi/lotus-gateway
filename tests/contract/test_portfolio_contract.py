@@ -352,6 +352,16 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
                 "detail": "Reporting remains blocked until pricing is published.",
             }
         ],
+        supportability={
+            "feature_key": "core.observability.portfolio_supportability",
+            "state": "degraded",
+            "reason": "portfolio_supportability_pending",
+            "freshness_bucket": "fresh",
+            "ready_domains": 3,
+            "pending_domains": 1,
+            "blocked_domains": 0,
+            "no_activity_domains": 0,
+        },
         indicators=[
             {
                 "key": "holdings",
@@ -408,6 +418,8 @@ def test_portfolio_readiness_and_workflow_contract_shapes() -> None:
     assert readiness.pricing is not None
     assert readiness.pricing.reasons[0].code == "pricing_not_published"
     assert readiness.blocking_reasons[0].code == "awaiting_pricing"
+    assert readiness.supportability is not None
+    assert readiness.supportability.freshness_bucket == "fresh"
     assert insights.contract_version == "v1"
     assert insights.insights[0].key == "equity-concentration-high"
     assert insights.exception_summaries[0].key == "pricing"
@@ -784,6 +796,7 @@ def test_portfolio_openapi_contract_registered() -> None:
     assert workflow_launch_cue_schema["properties"]["label"]["description"]
     assert workflow_launch_cue_schema["properties"]["href"]["description"]
     assert readiness_schema["properties"]["blocking_reasons"]["description"]
+    assert readiness_schema["properties"]["supportability"]["description"]
     assert readiness_schema["properties"]["indicators"]["description"]
     assert readiness_schema["properties"]["correlation_id"]["description"]
     assert readiness_schema["properties"]["correlation_id"]["examples"] == [

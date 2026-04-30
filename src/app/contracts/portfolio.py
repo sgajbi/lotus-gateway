@@ -910,6 +910,45 @@ class PortfolioReadinessBucket(BaseModel):
     )
 
 
+class PortfolioSupportabilitySummary(BaseModel):
+    feature_key: str = Field(
+        default="core.observability.portfolio_supportability",
+        description="RFC-0108 feature key for the source-owned portfolio supportability signal.",
+        examples=["core.observability.portfolio_supportability"],
+    )
+    state: str = Field(
+        description="Gateway-normalized supportability state for portfolio readiness composition.",
+        examples=["ready", "degraded"],
+    )
+    reason: str = Field(
+        description="Bounded source-authored reason code for the supportability state.",
+        examples=["portfolio_supportability_ready"],
+    )
+    freshness_bucket: str = Field(
+        description=(
+            "Gateway-normalized freshness bucket for analytics UI observability. "
+            "`current` from lotus-core is exposed as `fresh` for Workbench metric vocabulary."
+        ),
+        examples=["fresh", "stale", "unknown"],
+    )
+    ready_domains: int = Field(
+        description="Count of source readiness domains currently ready.",
+        examples=[4],
+    )
+    pending_domains: int = Field(
+        description="Count of source readiness domains currently pending.",
+        examples=[0],
+    )
+    blocked_domains: int = Field(
+        description="Count of source readiness domains currently blocked.",
+        examples=[0],
+    )
+    no_activity_domains: int = Field(
+        description="Count of source readiness domains with no activity.",
+        examples=[0],
+    )
+
+
 class PortfolioExceptionSummary(BaseModel):
     key: str = Field(
         description="Stable exception key used by the workspace to group attention items.",
@@ -1018,6 +1057,13 @@ class PortfolioReadinessResponse(BaseModel):
                 }
             ]
         ],
+    )
+    supportability: PortfolioSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "Source-owned RFC-0108 portfolio supportability posture preserved from lotus-core "
+            "for Workbench freshness, degraded-state, and operational evidence."
+        ),
     )
     indicators: list[PortfolioReadinessIndicator] = Field(
         default_factory=list,

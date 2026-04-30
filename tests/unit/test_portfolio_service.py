@@ -72,6 +72,16 @@ class _StubLotusCoreQueryClient:
                     "detail": "Reporting remains blocked until pricing is published.",
                 }
             ],
+            "supportability": {
+                "feature_key": "core.observability.portfolio_supportability",
+                "state": "degraded",
+                "reason": "portfolio_supportability_pending",
+                "freshness_bucket": "current",
+                "ready_domains": 3,
+                "pending_domains": 1,
+                "blocked_domains": 0,
+                "no_activity_domains": 0,
+            },
         }
 
     async def get_portfolio_analytics_reference(
@@ -589,6 +599,12 @@ async def test_portfolio_readiness_returns_compact_indicators():
     assert response.pricing is not None
     assert response.pricing.reasons[0].code == "pricing_not_published"
     assert response.blocking_reasons[0].code == "awaiting_pricing"
+    assert response.supportability is not None
+    assert response.supportability.feature_key == "core.observability.portfolio_supportability"
+    assert response.supportability.state == "degraded"
+    assert response.supportability.reason == "portfolio_supportability_pending"
+    assert response.supportability.freshness_bucket == "fresh"
+    assert response.supportability.pending_domains == 1
 
 
 @pytest.mark.asyncio
