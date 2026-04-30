@@ -413,6 +413,20 @@ class _StubDpmClient:
             ]
         }
 
+    async def get_supportability_summary(self, correlation_id: str):
+        _ = correlation_id
+        return 200, {
+            "supportability": {
+                "feature_key": "manage.observability.action_register_supportability",
+                "state": "healthy",
+                "reason": "action_register_current",
+                "freshness_bucket": "fresh",
+                "run_count": 4,
+                "operation_count": 12,
+                "workflow_decision_count": 3,
+            }
+        }
+
 
 @pytest.mark.asyncio
 async def test_portfolio_catalog_is_sorted_and_mapped():
@@ -513,6 +527,17 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert response.performance.return_pct == 2.5
     assert response.rebalance is not None
     assert response.rebalance.status == "PENDING_REVIEW"
+    assert response.rebalance.supportability is not None
+    assert (
+        response.rebalance.supportability.feature_key
+        == "manage.observability.action_register_supportability"
+    )
+    assert response.rebalance.supportability.state == "healthy"
+    assert response.rebalance.supportability.reason == "action_register_current"
+    assert response.rebalance.supportability.freshness_bucket == "fresh"
+    assert response.rebalance.supportability.run_count == 4
+    assert response.rebalance.supportability.operation_count == 12
+    assert response.rebalance.supportability.workflow_decision_count == 3
     assert response.control_capabilities.historical_snapshots.state == "partial"
     assert (
         response.control_capabilities.historical_snapshots.earliest_available_as_of_date
@@ -547,6 +572,62 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
     assert (
         response.control_capabilities.reporting_currency_restatement.module_capabilities[-2].state
         == "unsupported"
+    )
+
+
+@pytest.mark.asyncio
+async def test_portfolio_workspace_preserves_rebalance_supportability_without_latest_run():
+    class _NoRunDpmClient(_StubDpmClient):
+        async def list_runs(self, params: dict[str, object], correlation_id: str):
+            _ = params, correlation_id
+            return 200, {"items": []}
+
+    service = PortfolioService(
+        _StubLotusCoreQueryClient(),
+        analytics_client=_StubAnalyticsClient(),
+        dpm_client=_NoRunDpmClient(),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2-no-run",
+    )
+
+    assert response.rebalance is not None
+    assert response.rebalance.status == "NO_RUNS"
+    assert response.rebalance.last_rebalance_run_id is None
+    assert response.rebalance.supportability is not None
+    assert response.rebalance.supportability.state == "healthy"
+    assert response.rebalance.supportability.freshness_bucket == "fresh"
+
+
+@pytest.mark.asyncio
+async def test_portfolio_workspace_records_rebalance_supportability_partial_failure():
+    class _UnavailableSupportabilityDpmClient(_StubDpmClient):
+        async def get_supportability_summary(self, correlation_id: str):
+            _ = correlation_id
+            return 503, {"detail": "manage supportability temporarily unavailable"}
+
+    service = PortfolioService(
+        _StubLotusCoreQueryClient(),
+        analytics_client=_StubAnalyticsClient(),
+        dpm_client=_UnavailableSupportabilityDpmClient(),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-2-supportability-failure",
+    )
+
+    assert response.rebalance is not None
+    assert response.rebalance.status == "PENDING_REVIEW"
+    assert response.rebalance.supportability is None
+    assert "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE" in response.warnings
+    assert any(
+        failure.source_service == "lotus-manage"
+        and failure.error_code == "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE"
+        and failure.detail == "manage supportability temporarily unavailable"
+        for failure in response.partial_failures
     )
 
 

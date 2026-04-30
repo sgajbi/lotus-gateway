@@ -763,6 +763,46 @@ class PortfolioPerformanceSummary(BaseModel):
     )
 
 
+class PortfolioRebalanceSupportabilitySummary(BaseModel):
+    feature_key: str = Field(
+        default="manage.observability.action_register_supportability",
+        description=(
+            "Capability key for the manage action-register supportability posture carried "
+            "through the portfolio workspace contract."
+        ),
+        examples=["manage.observability.action_register_supportability"],
+    )
+    state: str = Field(
+        description="Manage action-register supportability state.",
+        examples=["healthy"],
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Machine-readable reason for degraded or unavailable supportability.",
+        examples=["action_register_current"],
+    )
+    freshness_bucket: str | None = Field(
+        default=None,
+        description="Freshness bucket reported by lotus-manage for action-register evidence.",
+        examples=["fresh"],
+    )
+    run_count: int | None = Field(
+        default=None,
+        description="Count of rebalance runs considered by the supportability summary.",
+        examples=[4],
+    )
+    operation_count: int | None = Field(
+        default=None,
+        description="Count of action-register operations considered by the summary.",
+        examples=[12],
+    )
+    workflow_decision_count: int | None = Field(
+        default=None,
+        description="Count of workflow decisions considered by the supportability summary.",
+        examples=[3],
+    )
+
+
 class PortfolioRebalanceSummary(BaseModel):
     status: str = Field(
         description="Latest rebalance workflow status returned by lotus-manage or decisioning.",
@@ -777,6 +817,13 @@ class PortfolioRebalanceSummary(BaseModel):
         default=None,
         description="Identifier of the latest rebalance run when an upstream run exists.",
         examples=["rr_100"],
+    )
+    supportability: PortfolioRebalanceSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "Source-backed lotus-manage action-register supportability posture used by "
+            "operators to understand whether rebalance action evidence is current."
+        ),
     )
 
 
