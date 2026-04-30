@@ -1063,9 +1063,7 @@ class PerformanceWorkspaceService:
             calculation_versions["analytics_types"] = ",".join(sorted(analytics_types))
 
         fallbacks = [
-            item.reason
-            for item in calculations
-            if item.reason is not None and item.reason.strip()
+            item.reason for item in calculations if item.reason is not None and item.reason.strip()
         ]
 
         return PerformanceEvidenceView(
@@ -1081,8 +1079,7 @@ class PerformanceWorkspaceService:
             calculation_versions=calculation_versions,
             coverage={
                 "supported_dimensions": sorted(
-                    set(SUPPORTED_CONTRIBUTION_DIMENSIONS)
-                    | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
+                    set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
                 ),
                 "unsupported_dimensions": unsupported_dimensions,
             },

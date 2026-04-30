@@ -1122,9 +1122,7 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
         "performance": "fresh",
         "benchmark": "fresh",
     }
-    assert response.evidence_view.methodology_references == [
-        "lotus-performance/docs/methodologies"
-    ]
+    assert response.evidence_view.methodology_references == ["lotus-performance/docs/methodologies"]
     assert response.evidence_view.calculation_versions == {
         "analytics_types": "ATTRIBUTION,CONTRIBUTION,WORKSPACE_SUMMARY",
         "gateway_contract": "v1",
