@@ -227,6 +227,52 @@ class AdvisorBriefAiSurfaceSupportability(BaseModel):
     )
 
 
+class AdvisorBriefAdvisorySupportability(BaseModel):
+    feature_key: str = Field(
+        default="advise.observability.advisory_supportability",
+        description="RFC-0108 feature key for lotus-advise advisory supportability.",
+        examples=["advise.observability.advisory_supportability"],
+    )
+    state: str = Field(
+        description="Source-owned lotus-advise supportability state.",
+        examples=["ready"],
+    )
+    reason: str | None = Field(
+        default=None,
+        description="Bounded source-owned reason for the advisory supportability state.",
+        examples=["advisory_ready"],
+    )
+    freshness_bucket: str = Field(
+        description="Source-owned advisory supportability freshness bucket.",
+        examples=["current"],
+    )
+    dependency_count: int = Field(
+        ge=0,
+        description="Number of advisory dependency seams evaluated by lotus-advise.",
+    )
+    ready_dependency_count: int = Field(
+        ge=0,
+        description="Number of advisory dependency seams ready in lotus-advise.",
+    )
+    degraded_dependency_count: int = Field(
+        ge=0,
+        description="Number of advisory dependency seams degraded in lotus-advise.",
+    )
+    enabled_feature_count: int = Field(
+        ge=0,
+        description="Number of enabled advisory features included in source posture.",
+    )
+    ready_feature_count: int = Field(
+        ge=0,
+        description="Number of enabled advisory features ready in source posture.",
+    )
+    metric_name: str = Field(
+        default="lotus_advise_advisory_supportability_total",
+        description="Prometheus metric emitted by lotus-advise for this supportability posture.",
+        examples=["lotus_advise_advisory_supportability_total"],
+    )
+
+
 class AdvisorBriefWorkflowPackRunFinding(BaseModel):
     finding_id: str = Field(
         description="Stable workflow-pack supportability finding identifier.",
@@ -691,6 +737,13 @@ class AdvisorBriefResponse(BaseModel):
         description=(
             "Source-backed lotus-ai AI surface supportability posture preserved from "
             "GET /platform/observability/runtime-status for Workbench advisor-brief reads."
+        ),
+    )
+    advisory_supportability: AdvisorBriefAdvisorySupportability | None = Field(
+        default=None,
+        description=(
+            "Source-backed lotus-advise advisory supportability posture preserved from "
+            "GET /platform/capabilities for Workbench advisor-brief reads."
         ),
     )
     ai_audit: dict[str, Any] = Field(

@@ -337,6 +337,36 @@ class _StubLotusAiClient:
         return self.observability_runtime_status_code, self.observability_runtime_payload
 
 
+class _StubAdviseClient:
+    def __init__(self, *, status_code: int = 200, payload: dict | None = None):
+        self.status_code = status_code
+        self.payload = payload or {
+            "features": [
+                {
+                    "key": "advise.observability.advisory_supportability",
+                    "enabled": True,
+                    "operational_ready": True,
+                    "owner_service": "ADVISORY",
+                }
+            ],
+            "supportability": {
+                "state": "ready",
+                "reason": "advisory_ready",
+                "freshness_bucket": "current",
+                "dependency_count": 5,
+                "ready_dependency_count": 5,
+                "degraded_dependency_count": 0,
+                "enabled_feature_count": 9,
+                "ready_feature_count": 9,
+            },
+        }
+        self.calls: list[dict[str, object]] = []
+
+    async def get_platform_capabilities(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.status_code, self.payload
+
+
 @pytest.mark.asyncio
 async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_actions():
     workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
@@ -466,6 +496,66 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
     ]
     assert ai_client.observability_runtime_calls == [{"correlation_id": "corr-1"}]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_preserves_advisory_supportability_source_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    advise_client = _StubAdviseClient()
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=_StubLotusAiClient(),
+        advise_client=advise_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-advise-supportability",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.advisory_supportability is not None
+    assert response.advisory_supportability.model_dump(mode="json") == {
+        "feature_key": "advise.observability.advisory_supportability",
+        "state": "ready",
+        "reason": "advisory_ready",
+        "freshness_bucket": "current",
+        "dependency_count": 5,
+        "ready_dependency_count": 5,
+        "degraded_dependency_count": 0,
+        "enabled_feature_count": 9,
+        "ready_feature_count": 9,
+        "metric_name": "lotus_advise_advisory_supportability_total",
+    }
+    assert advise_client.calls == [{"correlation_id": "corr-advise-supportability"}]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_omits_advisory_supportability_when_source_unavailable():
+    service = AdvisorBriefService(
+        performance_workspace_service=_StubPerformanceWorkspaceService(_build_workspace()),
+        lotus_ai_client=_StubLotusAiClient(),
+        advise_client=_StubAdviseClient(status_code=503, payload={"detail": "paused"}),
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-advise-down",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.status == "ready"
+    assert response.advisory_supportability is None
 
 
 @pytest.mark.asyncio
