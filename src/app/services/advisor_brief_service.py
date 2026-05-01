@@ -39,6 +39,7 @@ from app.services.performance_workspace_service import PerformanceWorkspaceServi
 
 _TASK_ID = "explain.v1"
 _EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"
+_ADVISOR_BRIEF_TASK_FLOW_LOOKUP_LIMIT = 100
 
 
 class AdvisorBriefService:
@@ -645,7 +646,7 @@ async def _load_advisor_brief_workflow_pack_task_flow(
         workflow_pack_id="advisor_brief.pack",
         caller="lotus-gateway",
         workflow_surface="advisor-brief-workspace",
-        limit=25,
+        limit=_ADVISOR_BRIEF_TASK_FLOW_LOOKUP_LIMIT,
     )
     if task_flow_status != 200:
         return None
