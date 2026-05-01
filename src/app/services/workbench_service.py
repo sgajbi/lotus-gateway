@@ -6,6 +6,7 @@ from typing import Any, cast
 
 from fastapi import HTTPException, status
 
+from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -40,10 +41,12 @@ class WorkbenchService:
         lotus_core_query_client: LotusCoreQueryClient,
         analytics_client: LotusAnalyticsClient,
         dpm_client: DpmClient,
+        advise_client: AdviseClient | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
         self._analytics_client = analytics_client
         self._dpm_client = dpm_client
+        self._advise_client = cast(AdviseClient, advise_client or dpm_client)
 
     async def get_workbench_overview(
         self,
@@ -688,38 +691,38 @@ class WorkbenchService:
             "proposed_trades": [],
         }
         idempotency_key = f"sandbox-{session_id}-{session_version}"
-        dpm_status, dpm_payload = await self._dpm_client.simulate_proposal(
+        advise_status, advise_payload = await self._advise_client.simulate_proposal(
             body=simulate_payload,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
-        if dpm_status >= status.HTTP_400_BAD_REQUEST:
-            warnings.append("MANAGE_POLICY_SIMULATION_UNAVAILABLE")
+        if advise_status >= status.HTTP_400_BAD_REQUEST:
+            warnings.append("ADVISE_PROPOSAL_SIMULATION_UNAVAILABLE")
             partial_failures.append(
                 WorkbenchPartialFailure(
-                    source_service="lotus-manage",
-                    error_code=f"HTTP_{dpm_status}",
-                    detail=str(dpm_payload.get("detail", dpm_payload)),
+                    source_service="lotus-advise",
+                    error_code=f"HTTP_{advise_status}",
+                    detail=str(advise_payload.get("detail", advise_payload)),
                 )
             )
             return WorkbenchPolicyFeedback(
                 status="UNAVAILABLE",
-                detail="Policy simulation unavailable",
-                raw=dpm_payload if isinstance(dpm_payload, dict) else None,
+                detail="Proposal simulation unavailable",
+                raw=advise_payload if isinstance(advise_payload, dict) else None,
             )
 
-        gate_decision = dpm_payload.get("gate_decision")
+        gate_decision = advise_payload.get("gate_decision")
         if isinstance(gate_decision, dict):
             gate_status = str(gate_decision.get("status", "UNKNOWN"))
             return WorkbenchPolicyFeedback(
                 status=gate_status,
                 detail=str(gate_decision.get("reason_code", "")) or None,
-                raw=dpm_payload,
+                raw=advise_payload,
             )
         return WorkbenchPolicyFeedback(
-            status=str(dpm_payload.get("status", "AVAILABLE")),
+            status=str(advise_payload.get("status", "AVAILABLE")),
             detail=None,
-            raw=dpm_payload,
+            raw=advise_payload,
         )
 
     def _parse_lotus_core_snapshot(

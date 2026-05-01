@@ -126,7 +126,7 @@ class ProposalSimulationData(BaseModel):
 
 class ProposalCreateRequest(BaseModel):
     body: dict[str, Any] = Field(
-        description="Opaque proposal-create request payload forwarded unchanged to lotus-manage.",
+        description="Opaque proposal-create request payload forwarded unchanged to lotus-advise.",
         examples=[
             {
                 "portfolio_id": "PF_1001",
@@ -140,7 +140,7 @@ class ProposalCreateRequest(BaseModel):
 class ProposalVersionCreateRequest(BaseModel):
     body: dict[str, Any] = Field(
         description=(
-            "Opaque proposal-version request payload forwarded unchanged to lotus-manage."
+            "Opaque proposal-version request payload forwarded unchanged to lotus-advise."
         ),
         examples=[
             {
@@ -555,13 +555,13 @@ class ProposalListEnvelopeResponse(ProposalEnvelopeBase):
 
 class ProposalDetailEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalDetailData = Field(
-        description="Current proposal detail payload returned by lotus-manage."
+        description="Current proposal detail payload returned by lotus-advise."
     )
 
 
 class ProposalVersionEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalVersionData = Field(
-        description="Immutable proposal-version payload returned by lotus-manage."
+        description="Immutable proposal-version payload returned by lotus-advise."
     )
 
 
@@ -656,7 +656,7 @@ class ProposalEnvelopeResponse(ProposalEnvelopeBase):
     data: dict[str, Any] = Field(
         default_factory=dict,
         description=(
-            "Opaque lotus-manage proposal payload returned unchanged by gateway for write actions."
+            "Opaque lotus-advise proposal payload returned unchanged by gateway for write actions."
         ),
         examples=[{"proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"}}],
     )

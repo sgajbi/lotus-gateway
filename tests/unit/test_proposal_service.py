@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from app.services.proposal_service import ProposalService
 
 
-class _FakeDpmClient:
+class _FakeAdviseClient:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict]] = []
 
@@ -280,7 +280,7 @@ class _FakeDpmClient:
         }
 
 
-class _FakeDpmErrorClient(_FakeDpmClient):
+class _FakeAdviseErrorClient(_FakeAdviseClient):
     async def record_approval(
         self, proposal_id: str, body: dict, idempotency_key: str, correlation_id: str
     ):
@@ -290,8 +290,8 @@ class _FakeDpmErrorClient(_FakeDpmClient):
 
 @pytest.mark.asyncio
 async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     result = await service.simulate_proposal(
         body={"portfolio_snapshot": {"portfolio_id": "PF_1001"}},
@@ -309,8 +309,8 @@ async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_submit_proposal_maps_risk_transition() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     result = await service.submit_proposal(
         proposal_id="pp_1",
@@ -333,8 +333,8 @@ async def test_submit_proposal_maps_risk_transition() -> None:
 
 @pytest.mark.asyncio
 async def test_approve_compliance_maps_approval_payload() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     result = await service.approve_compliance(
         proposal_id="pp_1",
@@ -357,8 +357,8 @@ async def test_approve_compliance_maps_approval_payload() -> None:
 
 @pytest.mark.asyncio
 async def test_list_proposals_wraps_typed_envelope() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     result = await service.list_proposals(
         filters={"portfolio_id": "PF_1001", "limit": 10},
@@ -372,8 +372,8 @@ async def test_list_proposals_wraps_typed_envelope() -> None:
 
 @pytest.mark.asyncio
 async def test_create_proposal_and_version_wrap_typed_envelopes() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     async def _fake_create_proposal(body: dict, idempotency_key: str, correlation_id: str):
         _ = body, idempotency_key, correlation_id
@@ -463,8 +463,8 @@ async def test_create_proposal_and_version_wrap_typed_envelopes() -> None:
 
 @pytest.mark.asyncio
 async def test_get_proposal_and_version_wrap_typed_envelopes() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     detail = await service.get_proposal(
         proposal_id="pp_1",
@@ -487,8 +487,8 @@ async def test_get_proposal_and_version_wrap_typed_envelopes() -> None:
 
 @pytest.mark.asyncio
 async def test_get_workflow_events_and_approvals_wrap_typed_envelopes() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     events = await service.get_workflow_events(proposal_id="pp_1", correlation_id="corr_3")
     approvals = await service.get_approvals(proposal_id="pp_1", correlation_id="corr_3")
@@ -501,8 +501,8 @@ async def test_get_workflow_events_and_approvals_wrap_typed_envelopes() -> None:
 
 @pytest.mark.asyncio
 async def test_get_proposal_lineage_wraps_envelope() -> None:
-    client = _FakeDpmClient()
-    service = ProposalService(dpm_client=client)
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
 
     lineage = await service.get_proposal_lineage(proposal_id="pp_1", correlation_id="corr_3")
 
@@ -513,7 +513,7 @@ async def test_get_proposal_lineage_wraps_envelope() -> None:
 
 @pytest.mark.asyncio
 async def test_approval_upstream_error_passthrough() -> None:
-    service = ProposalService(dpm_client=_FakeDpmErrorClient())
+    service = ProposalService(advise_client=_FakeAdviseErrorClient())
 
     try:
         await service.approve_risk(

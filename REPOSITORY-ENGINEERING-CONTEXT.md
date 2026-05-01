@@ -32,6 +32,9 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
+   with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
+   `/advisory/proposals/*` and `lotus-manage` limited to versioned run lookup,
+   supportability summary, and capability posture endpoints,
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
@@ -49,7 +52,7 @@ Current repository posture:
 10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
 11. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
-    fan-out coverage for central `lotus-manage`,
+    fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
     `lotus-core` ingestion client seams. Gateway owns product-safe
     structured fan-out logs, bounded fan-out metrics, degraded-source counters, selected analytics

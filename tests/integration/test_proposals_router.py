@@ -38,7 +38,7 @@ def test_proposal_simulate_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.simulate_proposal",
+        "app.clients.advise_client.AdviseClient.simulate_proposal",
         _fake_simulate_proposal,
     )
 
@@ -76,7 +76,7 @@ def test_proposal_simulate_forwards_upstream_error(monkeypatch):
         return 409, {"detail": "conflict"}
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.simulate_proposal",
+        "app.clients.advise_client.AdviseClient.simulate_proposal",
         _fake_simulate_proposal,
     )
 
@@ -128,7 +128,7 @@ def test_proposal_create_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.create_proposal",
+        "app.clients.advise_client.AdviseClient.create_proposal",
         _fake_create_proposal,
     )
 
@@ -178,7 +178,7 @@ def test_proposal_list_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.list_proposals",
+        "app.clients.advise_client.AdviseClient.list_proposals",
         _fake_list_proposals,
     )
 
@@ -202,7 +202,7 @@ def test_proposal_list_preserves_query_context(monkeypatch):
         return 200, {"items": [], "next_cursor": "pp_00042"}
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.list_proposals",
+        "app.clients.advise_client.AdviseClient.list_proposals",
         _fake_list_proposals,
     )
 
@@ -258,7 +258,7 @@ def test_get_proposal_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal",
+        "app.clients.advise_client.AdviseClient.get_proposal",
         _fake_get_proposal,
     )
 
@@ -300,7 +300,7 @@ def test_get_proposal_preserves_query_context(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal",
+        "app.clients.advise_client.AdviseClient.get_proposal",
         _fake_get_proposal,
     )
 
@@ -341,7 +341,7 @@ def test_get_proposal_version_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal_version",
+        "app.clients.advise_client.AdviseClient.get_proposal_version",
         _fake_get_proposal_version,
     )
 
@@ -376,7 +376,7 @@ def test_get_proposal_version_preserves_query_context(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal_version",
+        "app.clients.advise_client.AdviseClient.get_proposal_version",
         _fake_get_proposal_version,
     )
 
@@ -432,7 +432,7 @@ def test_create_proposal_version_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.create_proposal_version",
+        "app.clients.advise_client.AdviseClient.create_proposal_version",
         _fake_create_proposal_version,
     )
 
@@ -486,7 +486,7 @@ def test_submit_proposal_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.transition_proposal",
+        "app.clients.advise_client.AdviseClient.transition_proposal",
         _fake_transition_proposal,
     )
 
@@ -520,7 +520,7 @@ def test_submit_proposal_forwards_upstream_error(monkeypatch):
         return 409, {"detail": "STATE_CONFLICT"}
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.transition_proposal",
+        "app.clients.advise_client.AdviseClient.transition_proposal",
         _fake_transition_proposal,
     )
 
@@ -568,7 +568,7 @@ def test_approve_risk_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.record_approval",
+        "app.clients.advise_client.AdviseClient.record_approval",
         _fake_record_approval,
     )
 
@@ -617,7 +617,7 @@ def test_approve_compliance_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.record_approval",
+        "app.clients.advise_client.AdviseClient.record_approval",
         _fake_record_approval,
     )
 
@@ -663,7 +663,7 @@ def test_record_client_consent_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.record_approval",
+        "app.clients.advise_client.AdviseClient.record_approval",
         _fake_record_approval,
     )
 
@@ -743,11 +743,11 @@ def test_workflow_events_and_approvals_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_workflow_events",
+        "app.clients.advise_client.AdviseClient.get_workflow_events",
         _fake_get_workflow_events,
     )
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_approvals",
+        "app.clients.advise_client.AdviseClient.get_approvals",
         _fake_get_approvals,
     )
 
@@ -787,7 +787,7 @@ def test_proposal_lineage_success(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal_lineage",
+        "app.clients.advise_client.AdviseClient.get_proposal_lineage",
         _fake_get_proposal_lineage,
     )
 
@@ -820,7 +820,7 @@ def test_proposal_lineage_preserves_query_context(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_proposal_lineage",
+        "app.clients.advise_client.AdviseClient.get_proposal_lineage",
         _fake_get_proposal_lineage,
     )
 
@@ -857,11 +857,11 @@ def test_workflow_events_and_approvals_preserve_query_context(monkeypatch):
         return 200, {"proposal_id": proposal_id, "current_state": "DRAFT", "approvals": []}
 
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_workflow_events",
+        "app.clients.advise_client.AdviseClient.get_workflow_events",
         _fake_get_workflow_events,
     )
     monkeypatch.setattr(
-        "app.clients.dpm_client.DpmClient.get_approvals",
+        "app.clients.advise_client.AdviseClient.get_approvals",
         _fake_get_approvals,
     )
 

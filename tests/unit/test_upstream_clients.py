@@ -4,6 +4,7 @@ import logging
 import httpx
 import pytest
 
+from app.clients.advise_client import AdviseClient
 from app.clients.archive_client import ArchiveClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -1579,29 +1580,6 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
     ("method_name", "kwargs", "expected_url"),
     [
         (
-            "simulate_proposal",
-            {
-                "body": {"portfolio_id": "P1"},
-                "idempotency_key": "idem-1",
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals/simulate",
-        ),
-        (
-            "create_proposal",
-            {
-                "body": {"portfolio_id": "P1"},
-                "idempotency_key": "idem-2",
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals",
-        ),
-        (
-            "list_proposals",
-            {"params": {"portfolio_id": "P1", "status": None}, "correlation_id": "corr-5"},
-            "http://dpm/api/v1/rebalance/proposals",
-        ),
-        (
             "list_runs",
             {"params": {"portfolio_id": "P1", "status": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/runs",
@@ -1610,66 +1588,6 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "get_supportability_summary",
             {"correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/supportability/summary",
-        ),
-        (
-            "get_proposal",
-            {"proposal_id": "PR-1", "include_evidence": True, "correlation_id": "corr-5"},
-            "http://dpm/api/v1/rebalance/proposals/PR-1",
-        ),
-        (
-            "get_proposal_version",
-            {
-                "proposal_id": "PR-1",
-                "version_no": 2,
-                "include_evidence": False,
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals/PR-1/versions/2",
-        ),
-        (
-            "create_proposal_version",
-            {
-                "proposal_id": "PR-1",
-                "body": {"changes": []},
-                "idempotency_key": "idem-3",
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals/PR-1/versions",
-        ),
-        (
-            "transition_proposal",
-            {
-                "proposal_id": "PR-1",
-                "body": {"event": "submit"},
-                "idempotency_key": "idem-transition-1",
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals/PR-1/transitions",
-        ),
-        (
-            "record_approval",
-            {
-                "proposal_id": "PR-1",
-                "body": {"decision": "approve"},
-                "idempotency_key": "idem-approval-1",
-                "correlation_id": "corr-5",
-            },
-            "http://dpm/api/v1/rebalance/proposals/PR-1/approvals",
-        ),
-        (
-            "get_workflow_events",
-            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
-            "http://dpm/api/v1/rebalance/proposals/PR-1/workflow-events",
-        ),
-        (
-            "get_approvals",
-            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
-            "http://dpm/api/v1/rebalance/proposals/PR-1/approvals",
-        ),
-        (
-            "get_proposal_lineage",
-            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
-            "http://dpm/api/v1/rebalance/proposals/PR-1/lineage",
         ),
         (
             "get_capabilities",
@@ -1682,7 +1600,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
     ],
 )
-async def test_dpm_client_all_routes(method_name, kwargs, expected_url):
+async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
     client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"ok": True})
 
@@ -1691,15 +1609,118 @@ async def test_dpm_client_all_routes(method_name, kwargs, expected_url):
     assert status_code == 200
     assert payload["ok"] is True
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
-    methods_with_idempotency = {
-        "simulate_proposal",
-        "create_proposal",
-        "create_proposal_version",
-        "transition_proposal",
-        "record_approval",
-    }
-    if method_name in methods_with_idempotency:
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "kwargs", "expected_url"),
+    [
+        (
+            "simulate_proposal",
+            {
+                "body": {"portfolio_id": "P1"},
+                "idempotency_key": "idem-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/simulate",
+        ),
+        (
+            "create_proposal",
+            {
+                "body": {"portfolio_id": "P1"},
+                "idempotency_key": "idem-2",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals",
+        ),
+        (
+            "list_proposals",
+            {"params": {"portfolio_id": "P1", "status": None}, "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals",
+        ),
+        (
+            "get_proposal",
+            {"proposal_id": "PR-1", "include_evidence": True, "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1",
+        ),
+        (
+            "get_proposal_version",
+            {
+                "proposal_id": "PR-1",
+                "version_no": 2,
+                "include_evidence": False,
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions/2",
+        ),
+        (
+            "create_proposal_version",
+            {
+                "proposal_id": "PR-1",
+                "body": {"changes": []},
+                "idempotency_key": "idem-3",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions",
+        ),
+        (
+            "transition_proposal",
+            {
+                "proposal_id": "PR-1",
+                "body": {"event": "submit"},
+                "idempotency_key": "idem-transition-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/transitions",
+        ),
+        (
+            "record_approval",
+            {
+                "proposal_id": "PR-1",
+                "body": {"decision": "approve"},
+                "idempotency_key": "idem-approval-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/approvals",
+        ),
+        (
+            "get_workflow_events",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/workflow-events",
+        ),
+        (
+            "get_approvals",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/approvals",
+        ),
+        (
+            "get_proposal_lineage",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/lineage",
+        ),
+    ],
+)
+async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    status_code, payload = await method(**kwargs)
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["url"] == expected_url
+    if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_has_no_stale_proposal_routes():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+
+    assert not hasattr(client, "simulate_proposal")
+    assert not hasattr(client, "create_proposal")
+    assert not hasattr(client, "list_proposals")
+    assert not hasattr(client, "get_proposal")
 
 
 @pytest.mark.asyncio

@@ -140,17 +140,26 @@ class _DelayedStubClient(_StubClient):
 @pytest.mark.asyncio
 async def test_platform_capabilities_all_sources_success():
     service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(
+        advise_client=_StubClient(
+            200,
+            {
+                "sourceService": "lotus_advise",
+                "policyVersion": "advise-tenant-a-v2",
+                "supportedInputModes": ["pas_ref", "inline_bundle"],
+                "features": [
+                    {"key": "advise.proposals.lifecycle", "enabled": True},
+                ],
+                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+            },
+        ),
+        manage_client=_StubClient(
             200,
             {
                 "sourceService": "lotus_manage",
-                "policyVersion": "dpm-tenant-a-v2",
-                "supportedInputModes": ["pas_ref", "inline_bundle"],
-                "features": [
-                    {"key": "dpm.proposals.lifecycle", "enabled": True},
-                    {"key": "dpm.support.run_apis", "enabled": True},
-                ],
-                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+                "policyVersion": "manage-tenant-a-v2",
+                "supportedInputModes": ["pas_ref"],
+                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
+                "workflows": [],
             },
         ),
         lotus_core_query_client=_StubClient(
@@ -223,6 +232,7 @@ async def test_platform_capabilities_all_sources_success():
         "lotus_core",
         "lotus_performance",
         "lotus_risk",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
     }
@@ -244,7 +254,8 @@ async def test_platform_capabilities_all_sources_success():
         "lotus_core": "pas-tenant-a-v3",
         "lotus_performance": "lotus-performance-tenant-a-v4",
         "lotus_risk": "risk-tenant-a-v2",
-        "lotus_manage": "dpm-tenant-a-v2",
+        "lotus_advise": "advise-tenant-a-v2",
+        "lotus_manage": "manage-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
     }
     assert response.data.normalized.lotus_core_policy_diagnostics["available"] is True
@@ -260,6 +271,7 @@ async def test_platform_capabilities_all_sources_success():
     assert shell_bootstrap.evidence.lineage_sources == [
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
         "lotus_risk",
@@ -269,7 +281,8 @@ async def test_platform_capabilities_all_sources_success():
         "lotus_core": "pas-tenant-a-v3",
         "lotus_performance": "lotus-performance-tenant-a-v4",
         "lotus_risk": "risk-tenant-a-v2",
-        "lotus_manage": "dpm-tenant-a-v2",
+        "lotus_advise": "advise-tenant-a-v2",
+        "lotus_manage": "manage-tenant-a-v2",
         "lotus_report": "ras-tenant-a-v1",
     }
     assert shell_bootstrap.caching.cache_mode == "request_scoped_composition"
@@ -323,7 +336,7 @@ async def test_platform_capabilities_partial_failure_on_error():
 
     assert response.data.partial_failure is True
     assert set(response.data.sources.keys()) == {"lotus_core"}
-    assert len(response.data.errors) == 5
+    assert len(response.data.errors) == 6
     assert response.data.normalized.navigation["analytics_studio"] is False
     assert response.data.normalized.navigation["advisory_pipeline"] is False
     assert response.data.normalized.navigation["portfolio_workspace"] is True
@@ -333,12 +346,14 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.navigation["advisory_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
     assert response.data.normalized.module_health["lotus_risk"] == "unavailable"
+    assert response.data.normalized.module_health["lotus_advise"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-default-v1",
         "lotus_performance": "unknown",
         "lotus_risk": "unknown",
+        "lotus_advise": "unknown",
         "lotus_manage": "unknown",
         "lotus_report": "unknown",
     }
@@ -502,7 +517,7 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         "lotus_performance": {
             "features": ["bad", {"key": "performance.analytics.twr", "enabled": True}]
         },
-        "lotus_manage": {
+        "lotus_advise": {
             "workflows": ["bad", {"workflow_key": "proposal_lifecycle", "enabled": True}]
         },
     }
@@ -516,7 +531,7 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
     )
     assert (
         service._workflow_enabled(
-            sources=sources, source_name="lotus_manage", workflow_key="proposal_lifecycle"
+            sources=sources, source_name="lotus_advise", workflow_key="proposal_lifecycle"
         )
         is True
     )
@@ -534,6 +549,7 @@ def test_platform_capabilities_module_health_marks_unknown_sources():
     assert health["lotus_core"] == "available"
     assert health["lotus_performance"] == "unknown"
     assert health["lotus_risk"] == "unknown"
+    assert health["lotus_advise"] == "unknown"
     assert health["lotus_manage"] == "unknown"
     assert health["lotus_report"] == "unknown"
 
@@ -710,11 +726,17 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
 
 
 @pytest.mark.asyncio
-async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_source():
-    legacy_decisioning_client = _RecordingStubClient(
-        503,
+async def test_platform_capabilities_keeps_advise_and_manage_capabilities_separate():
+    advise_client = _RecordingStubClient(
+        200,
         {
-            "detail": "legacy decisioning should not be used for split manage capabilities",
+            "sourceService": "lotus_advise",
+            "policyVersion": "advise-v2",
+            "features": [{"key": "advise.proposals.lifecycle", "enabled": True}],
+            "workflows": [
+                {"workflow_key": "proposal_approval_flow", "enabled": True},
+                {"workflow_key": "proposal_lifecycle", "enabled": True},
+            ],
         },
     )
     manage_client = _RecordingStubClient(
@@ -725,16 +747,12 @@ async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_s
             "supportedInputModes": ["inline_bundle", "pas_ref"],
             "features": [
                 {"key": "dpm.support.run_apis", "enabled": True},
-                {"key": "dpm.proposals.lifecycle", "enabled": True},
             ],
-            "workflows": [
-                {"workflow_key": "proposal_approval_flow", "enabled": True},
-                {"workflow_key": "proposal_lifecycle", "enabled": True},
-            ],
+            "workflows": [],
         },
     )
     service = PlatformCapabilitiesService(
-        dpm_client=legacy_decisioning_client,
+        advise_client=advise_client,
         lotus_core_query_client=_StubClient(
             200,
             {"sourceService": "lotus_core", "features": [], "workflows": []},
@@ -758,9 +776,16 @@ async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_s
     )
 
     lotus_manage = response.data.sources["lotus_manage"]
+    lotus_advise = response.data.sources["lotus_advise"]
     assert response.data.partial_failure is False
     assert response.data.errors == []
-    assert legacy_decisioning_client.calls == []
+    assert advise_client.calls == [
+        {
+            "correlation_id": "corr-manage-merge",
+            "consumer_system": "lotus-gateway",
+            "tenant_id": "default",
+        }
+    ]
     assert manage_client.calls == [
         {
             "correlation_id": "corr-manage-merge",
@@ -768,16 +793,11 @@ async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_s
             "tenant_id": "default",
         }
     ]
+    assert lotus_advise["policyVersion"] == "advise-v2"
     assert lotus_manage["policyVersion"] == "manage-split-v2"
     assert lotus_manage["supportedInputModes"] == ["inline_bundle", "pas_ref"]
-    assert lotus_manage["features"] == [
-        {"key": "dpm.support.run_apis", "enabled": True},
-        {"key": "dpm.proposals.lifecycle", "enabled": True},
-    ]
-    assert lotus_manage["workflows"] == [
-        {"workflow_key": "proposal_approval_flow", "enabled": True},
-        {"workflow_key": "proposal_lifecycle", "enabled": True},
-    ]
+    assert lotus_manage["features"] == [{"key": "dpm.support.run_apis", "enabled": True}]
+    assert lotus_manage["workflows"] == []
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["proposal_approval_flow"] is True
 
@@ -785,12 +805,22 @@ async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_s
 @pytest.mark.asyncio
 async def test_platform_capabilities_normalizes_live_snake_case_capability_metadata():
     service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(
+        advise_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-advise",
+                "policy_version": "advise.policy.v1",
+                "supported_input_modes": ["portfolio_id", "inline_bundle"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        manage_client=_StubClient(
             200,
             {
                 "source_service": "lotus-manage",
-                "policy_version": "dpm.policy.v1",
-                "supported_input_modes": ["portfolio_id", "inline_bundle"],
+                "policy_version": "manage.policy.v1",
+                "supported_input_modes": ["portfolio_id"],
                 "features": [],
                 "workflows": [],
             },
@@ -848,7 +878,8 @@ async def test_platform_capabilities_normalizes_live_snake_case_capability_metad
     assert normalized.input_modes_by_source == {
         "lotus_core": ["lotus_core_ref"],
         "lotus_performance": ["stateful", "stateless"],
-        "lotus_manage": ["portfolio_id", "inline_bundle"],
+        "lotus_advise": ["portfolio_id", "inline_bundle"],
+        "lotus_manage": ["portfolio_id"],
         "lotus_report": ["portfolio_id"],
         "lotus_risk": ["stateless", "stateful", "simulation"],
     }
@@ -863,7 +894,8 @@ async def test_platform_capabilities_normalizes_live_snake_case_capability_metad
     assert normalized.policy_versions_by_source == {
         "lotus_core": "tenant-default-v1",
         "lotus_performance": "tenant-default-v1",
-        "lotus_manage": "dpm.policy.v1",
+        "lotus_advise": "advise.policy.v1",
+        "lotus_manage": "manage.policy.v1",
         "lotus_report": "ras-default-v1",
         "lotus_risk": "risk.v1",
     }

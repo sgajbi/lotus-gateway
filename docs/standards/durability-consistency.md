@@ -8,7 +8,7 @@
 
 - Strong consistency:
   - proposal create/version/submit/approval/consent orchestration
-  - write-through lotus-manage workflow invocations
+  - write-through lotus-advise proposal workflow invocations
 - Eventual consistency:
   - read-side dashboards and analytics composition from lotus-core/lotus-performance/lotus-report
 
@@ -23,7 +23,8 @@
 
 ## Atomicity Boundaries
 
-- Business write transitions are delegated to authoritative domain services (lotus-manage/lotus-core).
+- Business write transitions are delegated to authoritative domain services
+  (`lotus-advise` for proposal workflow and `lotus-core` for portfolio simulation state).
 - lotus-gateway orchestration must fail fast on downstream write failure and never mask partial commits.
 - Evidence:
   - `src/app/clients/http_resilience.py`

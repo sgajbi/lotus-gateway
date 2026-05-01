@@ -9,7 +9,8 @@ Run deterministic lotus-gateway demos for:
 
 ## Prerequisites
 
-- lotus-manage running at `http://manage.dev.lotus`
+- lotus-advise running at `http://advise.dev.lotus`
+- lotus-manage running at `http://manage.dev.lotus` for run/supportability enrichment
 - lotus-gateway running at `http://gateway.dev.lotus`
 - lotus-core query running at `http://core-query.dev.lotus`
 - lotus-core ingestion running at `http://core-ingestion.dev.lotus`

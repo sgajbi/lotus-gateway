@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.dpm_client import DpmClient
+from app.clients.advise_client import AdviseClient
 from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalsData,
@@ -27,8 +27,8 @@ from app.contracts.proposals import (
 
 
 class ProposalService:
-    def __init__(self, dpm_client: DpmClient):
-        self._dpm_client = dpm_client
+    def __init__(self, advise_client: AdviseClient):
+        self._advise_client = advise_client
 
     async def simulate_proposal(
         self,
@@ -36,7 +36,7 @@ class ProposalService:
         idempotency_key: str,
         correlation_id: str,
     ) -> ProposalSimulateResponse:
-        upstream_status, upstream_payload = await self._dpm_client.simulate_proposal(
+        upstream_status, upstream_payload = await self._advise_client.simulate_proposal(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -60,7 +60,7 @@ class ProposalService:
         idempotency_key: str,
         correlation_id: str,
     ) -> ProposalCreateEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.create_proposal(
+        upstream_status, upstream_payload = await self._advise_client.create_proposal(
             body=body,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
@@ -77,7 +77,7 @@ class ProposalService:
         filters: dict[str, Any],
         correlation_id: str,
     ) -> ProposalListEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.list_proposals(
+        upstream_status, upstream_payload = await self._advise_client.list_proposals(
             params=filters,
             correlation_id=correlation_id,
         )
@@ -94,7 +94,7 @@ class ProposalService:
         include_evidence: bool,
         correlation_id: str,
     ) -> ProposalDetailEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.get_proposal(
+        upstream_status, upstream_payload = await self._advise_client.get_proposal(
             proposal_id=proposal_id,
             include_evidence=include_evidence,
             correlation_id=correlation_id,
@@ -113,7 +113,7 @@ class ProposalService:
         include_evidence: bool,
         correlation_id: str,
     ) -> ProposalVersionEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.get_proposal_version(
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_version(
             proposal_id=proposal_id,
             version_no=version_no,
             include_evidence=include_evidence,
@@ -133,7 +133,7 @@ class ProposalService:
         idempotency_key: str,
         correlation_id: str,
     ) -> ProposalCreateEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.create_proposal_version(
+        upstream_status, upstream_payload = await self._advise_client.create_proposal_version(
             proposal_id=proposal_id,
             body=body,
             idempotency_key=idempotency_key,
@@ -171,7 +171,7 @@ class ProposalService:
         if related_version_no is not None:
             transition_body["related_version_no"] = related_version_no
 
-        upstream_status, upstream_payload = await self._dpm_client.transition_proposal(
+        upstream_status, upstream_payload = await self._advise_client.transition_proposal(
             proposal_id=proposal_id,
             body=transition_body,
             idempotency_key=idempotency_key,
@@ -252,7 +252,7 @@ class ProposalService:
         proposal_id: str,
         correlation_id: str,
     ) -> ProposalWorkflowEventsEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.get_workflow_events(
+        upstream_status, upstream_payload = await self._advise_client.get_workflow_events(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
@@ -268,7 +268,7 @@ class ProposalService:
         proposal_id: str,
         correlation_id: str,
     ) -> ProposalApprovalsEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.get_approvals(
+        upstream_status, upstream_payload = await self._advise_client.get_approvals(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
@@ -284,7 +284,7 @@ class ProposalService:
         proposal_id: str,
         correlation_id: str,
     ) -> ProposalLineageEnvelopeResponse:
-        upstream_status, upstream_payload = await self._dpm_client.get_proposal_lineage(
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_lineage(
             proposal_id=proposal_id,
             correlation_id=correlation_id,
         )
@@ -316,7 +316,7 @@ class ProposalService:
         if related_version_no is not None:
             payload["related_version_no"] = related_version_no
 
-        upstream_status, upstream_payload = await self._dpm_client.record_approval(
+        upstream_status, upstream_payload = await self._advise_client.record_approval(
             proposal_id=proposal_id,
             body=payload,
             idempotency_key=idempotency_key,

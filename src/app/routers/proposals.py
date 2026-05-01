@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, Path, Query
 
-from app.clients.dpm_client import DpmClient
+from app.clients.advise_client import AdviseClient
 from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
@@ -25,10 +25,9 @@ router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
 def _proposal_service() -> ProposalService:
-    base_url = settings.decisioning_service_base_url
     return ProposalService(
-        dpm_client=DpmClient(
-            base_url=base_url,
+        advise_client=AdviseClient(
+            base_url=settings.decisioning_service_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
@@ -41,7 +40,7 @@ def _proposal_service() -> ProposalService:
     response_model=ProposalSimulateResponse,
     summary="Simulate Proposal",
     description=(
-        "Runs proposal simulation through lotus-manage using a caller-supplied idempotency key "
+        "Runs proposal simulation through lotus-advise using a caller-supplied idempotency key "
         "to protect against duplicate submission."
     ),
 )
@@ -67,7 +66,7 @@ async def simulate_proposal(
     response_model=ProposalCreateEnvelopeResponse,
     summary="Create Proposal",
     description=(
-        "Creates a new advisory proposal draft in lotus-manage using a caller-supplied "
+        "Creates a new advisory proposal draft in lotus-advise using a caller-supplied "
         "idempotency key."
     ),
 )
@@ -93,7 +92,7 @@ async def create_proposal(
     response_model=ProposalListEnvelopeResponse,
     summary="List Proposals",
     description=(
-        "Lists advisory proposals from lotus-manage using optional portfolio, workflow-state, "
+        "Lists advisory proposals from lotus-advise using optional portfolio, workflow-state, "
         "creator, and creation-window filters."
     ),
 )
@@ -159,7 +158,7 @@ async def list_proposals(
 async def get_proposal(
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     include_evidence: bool = Query(
@@ -186,7 +185,7 @@ async def get_proposal(
 async def get_proposal_version(
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     version_no: int = Path(
@@ -222,7 +221,7 @@ async def create_proposal_version(
     request: ProposalVersionCreateRequest,
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     idempotency_key: str = Header(
@@ -251,7 +250,7 @@ async def submit_proposal(
     request: ProposalSubmitRequest,
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     idempotency_key: str = Header(
@@ -284,7 +283,7 @@ async def approve_risk(
     request: ProposalApprovalActionRequest,
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     idempotency_key: str = Header(
@@ -316,7 +315,7 @@ async def approve_compliance(
     request: ProposalApprovalActionRequest,
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     idempotency_key: str = Header(
@@ -348,7 +347,7 @@ async def record_client_consent(
     request: ProposalApprovalActionRequest,
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
     idempotency_key: str = Header(
@@ -379,7 +378,7 @@ async def record_client_consent(
 async def get_workflow_events(
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
 ) -> ProposalWorkflowEventsEnvelopeResponse:
@@ -400,7 +399,7 @@ async def get_workflow_events(
 async def get_approvals(
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
 ) -> ProposalApprovalsEnvelopeResponse:
@@ -421,7 +420,7 @@ async def get_approvals(
 async def get_proposal_lineage(
     proposal_id: str = Path(
         ...,
-        description="Gateway-visible proposal identifier returned by lotus-manage.",
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
         examples=["pp_1"],
     ),
 ) -> ProposalLineageEnvelopeResponse:

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query
 
+from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -42,11 +43,7 @@ _PORTFOLIO_SERVICE = PortfolioService(
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
     ),
     dpm_client=DpmClient(
-        base_url=(
-            settings.management_service_base_url
-            if settings.manage_split_enabled
-            else settings.decisioning_service_base_url
-        ),
+        base_url=settings.management_service_base_url,
         timeout_seconds=settings.upstream_timeout_seconds,
         max_retries=settings.upstream_max_retries,
         retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
@@ -64,7 +61,6 @@ def _service_signature() -> tuple[object, ...]:
         settings.performance_analytics_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
-        settings.manage_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
         settings.upstream_max_retries,
@@ -90,11 +86,13 @@ def _build_performance_workspace_service() -> PerformanceWorkspaceService:
                 retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
             ),
             dpm_client=DpmClient(
-                base_url=(
-                    settings.management_service_base_url
-                    if settings.manage_split_enabled
-                    else settings.decisioning_service_base_url
-                ),
+                base_url=settings.management_service_base_url,
+                timeout_seconds=settings.upstream_timeout_seconds,
+                max_retries=settings.upstream_max_retries,
+                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+            ),
+            advise_client=AdviseClient(
+                base_url=settings.decisioning_service_base_url,
                 timeout_seconds=settings.upstream_timeout_seconds,
                 max_retries=settings.upstream_max_retries,
                 retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
