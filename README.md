@@ -236,6 +236,10 @@ Important current parameter conventions:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,
    `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit posture for
    front-office analytics reads and bounded advisor workflow actions
+12. Workbench advisor-brief reads emit product-safe RFC-0108 analytics read audit events with
+   `panel=advisor-brief` and `operation=advisor_brief.summary`; upstream `401` and `403` outcomes
+   are recorded as permission-blocked denials without portfolio, client, prompt, response-body,
+   trace, or raw entitlement fields
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 

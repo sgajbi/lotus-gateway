@@ -57,7 +57,9 @@ Current repository posture:
     `/api/v1/analytics-ui/diagnostics/{support_reference}`. Successful upstream reads emit bounded
     `analytics_read_allowed` audit records, upstream `401`/`403` responses emit bounded
     `analytics_read_denied` audit records, and protected diagnostics lookups emit bounded
-    `protected_diagnostics_lookup` audit records. Gateway analytics metrics are limited to
+    `protected_diagnostics_lookup` audit records. Advisor-brief read audit records use
+    `operation=advisor_brief.summary` and `panel=advisor-brief` without portfolio, client, prompt,
+    response-body, trace, or raw entitlement fields. Gateway analytics metrics are limited to
     `operation`, `service`, `status_class`, and degraded `reason` labels; audit fields must stay
     limited to route, panel, operation, state, reason, status class, region, and environment;
     portfolio, client, holding, transaction, session, upload, trace, correlation, document,

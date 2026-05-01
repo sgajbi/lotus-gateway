@@ -1,5 +1,6 @@
 from typing import Any
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.contracts.advisor_brief import (
@@ -31,6 +32,19 @@ CALLER_CONTEXT_HEADERS = {
     "X-Booking-Center-Code": "SG",
     "X-Role": "advisor",
 }
+
+
+def _advisor_brief_read_audit_records(records: list[Any]) -> list[Any]:
+    return [
+        record
+        for record in records
+        if getattr(record, "message", "")
+        in {
+            "gateway.analytics.audit.analytics_read_allowed",
+            "gateway.analytics.audit.analytics_read_denied",
+        }
+        and getattr(record, "extra_fields", {}).get("operation") == "advisor_brief.summary"
+    ]
 
 
 async def _analytics_reference(*args, **kwargs):
@@ -2270,7 +2284,8 @@ def test_workbench_performance_advisor_brief_openapi_contract():
     assert response_schema["example"]["partial_failures"][0]["reason"] == "UPSTREAM_TIMEOUT"
 
 
-def test_workbench_performance_advisor_brief_router(monkeypatch):
+def test_workbench_performance_advisor_brief_router(monkeypatch, caplog):
+    caplog.set_level("INFO", logger="analytics_ui.gateway")
     captured_call = {}
 
     async def _brief(*args, **kwargs):
@@ -2419,6 +2434,11 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert captured_call["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert captured_call["explicit_start_date"] == "2026-01-01"
     assert captured_call["explicit_end_date"] == "2026-04-04"
+    [audit_record] = _advisor_brief_read_audit_records(caplog.records)
+    assert audit_record.extra_fields["event"] == ("gateway.analytics.audit.analytics_read_allowed")
+    assert audit_record.extra_fields["panel"] == "advisor-brief"
+    assert audit_record.extra_fields["state"] == "ready"
+    assert "portfolio_id" not in audit_record.extra_fields
 
 
 def test_workbench_performance_advisor_brief_router_requires_caller_context():
@@ -2429,6 +2449,32 @@ def test_workbench_performance_advisor_brief_router_requires_caller_context():
     detail = response.json()["detail"]
     assert detail["code"] == "missing_caller_context"
     assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
+
+
+def test_workbench_performance_advisor_brief_router_audits_upstream_denial(monkeypatch, caplog):
+    caplog.set_level("INFO", logger="analytics_ui.gateway")
+
+    async def _brief(*args, **kwargs):  # noqa: ARG001
+        raise HTTPException(status_code=403, detail="restricted portfolio")
+
+    monkeypatch.setattr(
+        "app.services.advisor_brief_service.AdvisorBriefService.get_performance_advisor_brief",
+        _brief,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief?period=YTD",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
+
+    assert response.status_code == 403
+    [audit_record] = _advisor_brief_read_audit_records(caplog.records)
+    assert audit_record.extra_fields["event"] == ("gateway.analytics.audit.analytics_read_denied")
+    assert audit_record.extra_fields["panel"] == "advisor-brief"
+    assert audit_record.extra_fields["state"] == "permission_blocked"
+    assert audit_record.extra_fields["reason"] == "upstream_authorization_denied"
+    assert "portfolio_id" not in audit_record.extra_fields
 
 
 def test_workbench_performance_advisor_brief_router_preserves_query_context(monkeypatch):
