@@ -505,6 +505,8 @@ def _list_count(value: object) -> int:
 
 
 def _panel_for_operation(operation: str) -> str:
+    if operation.startswith("advisor_brief."):
+        return "advisor-brief"
     if operation.startswith("analytics.risk."):
         return "risk-summary"
     if "workspace-summary" in operation:

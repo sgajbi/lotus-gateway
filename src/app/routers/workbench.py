@@ -1,6 +1,7 @@
+import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path, Query, Response
+from fastapi import APIRouter, Header, HTTPException, Path, Query, Response
 
 from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
@@ -34,6 +35,7 @@ from app.contracts.workbench import (
     WorkbenchSandboxStateResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
 from app.services.advisor_brief_service import AdvisorBriefService
 from app.services.caller_context import caller_context_headers
 from app.services.performance_workspace_service import PerformanceWorkspaceService
@@ -41,6 +43,7 @@ from app.services.risk_workspace_service import RiskWorkspaceService
 from app.services.workbench_service import WorkbenchService
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
+logger = logging.getLogger("analytics_ui.gateway")
 
 
 _WORKBENCH_SERVICE: WorkbenchService | None = None
@@ -57,6 +60,7 @@ RISK_PERIOD_QUERY_DESCRIPTION = (
     "SI, YEAR, or EXPLICIT. Legacy aliases ONE_YEAR, THREE_YEAR, FIVE_YEAR, and ITD may be "
     "accepted for compatibility but are normalized before calling lotus-risk."
 )
+ADVISOR_BRIEF_READ_OPERATION = "advisor_brief.summary"
 
 
 def _required_caller_context(
@@ -75,6 +79,14 @@ def _required_caller_context(
         region=region,
         booking_center_code=booking_center_code,
         role=role,
+    )
+
+
+def _emit_advisor_brief_read_audit(*, status_code: int) -> None:
+    emit_gateway_analytics_read_audit_log(
+        logger=logger,
+        operation=ADVISOR_BRIEF_READ_OPERATION,
+        status_code=status_code,
     )
 
 
@@ -1118,18 +1130,24 @@ async def get_performance_advisor_brief(
     )
     service = _advisor_brief_service()
     correlation_id = correlation_id_var.get()
-    return await service.get_performance_advisor_brief(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        contribution_dimension=contribution_dimension,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
-    )
+    try:
+        response = await service.get_performance_advisor_brief(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=report_start_date,
+            explicit_end_date=report_end_date,
+        )
+    except HTTPException as exc:
+        _emit_advisor_brief_read_audit(status_code=exc.status_code)
+        raise
+    _emit_advisor_brief_read_audit(status_code=200)
+    return response
 
 
 @router.post(

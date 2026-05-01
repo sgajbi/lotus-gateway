@@ -63,6 +63,9 @@
   routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Caller-Application`, `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit
   posture for RFC-0108 front-office analytics reads and workflow actions
+- Workbench advisor-brief reads emit bounded analytics read audit records with
+  `operation=advisor_brief.summary` and `panel=advisor-brief`; upstream authorization denials are
+  recorded as permission-blocked without restricted identifiers or raw entitlement text
 - legal-hold summary is returned as metadata for support posture; gateway retrieval does not expose
   legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
