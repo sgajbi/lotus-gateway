@@ -23,6 +23,14 @@ from app.main import app
 from app.middleware.server_timing import append_server_timing_metric
 
 LOTUS_CORE_QUERY_CLIENT = "app.clients.lotus_core_query_client.LotusCoreQueryClient"
+CALLER_CONTEXT_HEADERS = {
+    "X-Actor-Id": "advisor_1",
+    "X-Caller-Application": "lotus-workbench",
+    "X-Tenant-Id": "tenant-sg",
+    "X-Region": "APAC",
+    "X-Booking-Center-Code": "SG",
+    "X-Role": "advisor",
+}
 
 
 async def _analytics_reference(*args, **kwargs):
@@ -1233,7 +1241,10 @@ def test_workbench_performance_summary_router(monkeypatch):
     )
 
     client = TestClient(app)
-    response = client.get("/api/v1/workbench/PF_1001/performance/summary?period=YTD")
+    response = client.get(
+        "/api/v1/workbench/PF_1001/performance/summary?period=YTD",
+        headers=CALLER_CONTEXT_HEADERS,
+    )
 
     assert response.status_code == 200
     assert response.headers["Server-Timing"].startswith("app;dur=")
@@ -1258,6 +1269,16 @@ def test_workbench_performance_summary_router(monkeypatch):
     assert body["evidence_view"]["calculations"][0]["calculation_role"] == "workspace_summary"
     assert "net_chart" not in body
     assert "contribution" not in body
+
+
+def test_workbench_performance_summary_router_requires_caller_context():
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/performance/summary?period=YTD")
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
 
 
 def test_workbench_performance_details_router(monkeypatch):
@@ -1481,7 +1502,10 @@ def test_workbench_performance_summary_router_preserves_query_context(monkeypatc
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
-        headers={"X-Correlation-Id": "corr-performance-summary"},
+        headers={
+            **CALLER_CONTEXT_HEADERS,
+            "X-Correlation-Id": "corr-performance-summary",
+        },
     )
 
     assert response.status_code == 200
