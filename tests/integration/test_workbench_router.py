@@ -534,7 +534,7 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
         "/api/v1/workbench/PF_RISK_SUMMARY/risk/summary"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD",
-        headers={"X-Correlation-Id": "corr-risk-summary"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-risk-summary"},
     )
 
     assert response.status_code == 200
@@ -556,6 +556,20 @@ def test_workbench_risk_summary_router_uses_stateful_gateway_contract(monkeypatc
     assert body["partial_failures"] == []
     assert captured_payload["stateful_input"]["periods"] == [{"type": "YTD", "name": "YTD"}]
     assert captured_payload["stateful_input"]["reporting_currency"] == "USD"
+
+
+def test_workbench_risk_summary_router_requires_caller_context():
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/workbench/PF_RISK_SUMMARY/risk/summary"
+        "?period=YTD&detail_basis=NET&benchmark_code=BMK_1"
+        "&as_of_date=2026-04-04&reporting_currency=USD",
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
 
 
 def test_workbench_risk_summary_router_defaults_reporting_currency_for_risk_free_sourcing(
@@ -596,7 +610,10 @@ def test_workbench_risk_summary_router_defaults_reporting_currency_for_risk_free
     response = client.get(
         "/api/v1/workbench/PF_RISK_SUMMARY_DEFAULT/risk/summary"
         "?period=YTD&detail_basis=NET&benchmark_code=BMK_1&as_of_date=2026-04-04",
-        headers={"X-Correlation-Id": "corr-risk-summary-default-currency"},
+        headers={
+            **CALLER_CONTEXT_HEADERS,
+            "X-Correlation-Id": "corr-risk-summary-default-currency",
+        },
     )
 
     assert response.status_code == 200
@@ -633,7 +650,7 @@ def test_workbench_risk_summary_router_sends_canonical_trailing_period_to_risk(m
         "/api/v1/workbench/PF_RISK_SUMMARY/risk/summary"
         "?period=3Y&detail_basis=NET&benchmark_code=BMK_1"
         "&as_of_date=2026-04-04&reporting_currency=USD",
-        headers={"X-Correlation-Id": "corr-risk-summary-3y"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-risk-summary-3y"},
     )
 
     assert response.status_code == 200
