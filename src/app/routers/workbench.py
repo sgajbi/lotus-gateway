@@ -372,7 +372,21 @@ async def get_workbench_risk_summary(
         description="Reporting currency used for stateful risk and risk-free-rate sourcing.",
         examples=["USD"],
     ),
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> WorkbenchRiskSummaryResponse:
+    _required_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
     service = _risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_summary(

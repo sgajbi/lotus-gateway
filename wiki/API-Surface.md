@@ -131,6 +131,18 @@ curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/summar
   -H "X-Role: advisor"
 ```
 
+Risk summary:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?period=YTD&detail_basis=NET&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&reporting_currency=USD" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor"
+```
+
 Reporting summary:
 
 ```bash

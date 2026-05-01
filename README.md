@@ -231,7 +231,7 @@ Important current parameter conventions:
 10. archived document metadata and download routes require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; the gateway calls `lotus-archive` as
    `lotus-gateway` and does not expose archive storage locations
-11. Workbench performance summary reads require caller context headers:
+11. Workbench performance and risk summary reads require caller context headers:
    `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional `X-Caller-Application`,
    `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit posture for
    front-office analytics reads
