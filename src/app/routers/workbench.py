@@ -713,14 +713,10 @@ async def get_performance_workspace_summary(
         examples=["2026-03-27"],
     ),
     actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[
-        str | None, Header(alias="X-Caller-Application")
-    ] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
     tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
     region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[
-        str | None, Header(alias="X-Booking-Center-Code")
-    ] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> PerformanceWorkspaceSummaryResponse:
     _required_caller_context(
