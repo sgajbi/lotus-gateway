@@ -82,6 +82,7 @@ def test_platform_capabilities_router_success(monkeypatch):
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -97,6 +98,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_core",
         "lotus_performance",
         "lotus_risk",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
     }
@@ -113,6 +115,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
         "lotus_risk": "lotus-risk-default-v1",
+        "lotus_advise": "lotus-manage-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }
@@ -123,6 +126,7 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert shell_bootstrap["evidence"]["lineageSources"] == [
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
         "lotus_risk",
@@ -131,6 +135,7 @@ def test_platform_capabilities_router_success(monkeypatch):
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
         "lotus_risk": "lotus-risk-default-v1",
+        "lotus_advise": "lotus-manage-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }
@@ -285,6 +290,7 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -297,7 +303,7 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     body = response.json()["data"]
     assert body["partialFailure"] is True
     assert set(body["sources"].keys()) == {"lotus_core"}
-    assert len(body["errors"]) == 5
+    assert len(body["errors"]) == 6
     assert body["normalized"]["navigation"]["analytics_studio"] is False
     assert body["normalized"]["navigation"]["portfolio_workspace"] is True
     assert body["normalized"]["navigation"]["performance_workspace"] is False
@@ -316,6 +322,7 @@ def test_platform_capabilities_router_partial_failure(monkeypatch):
     assert shell_bootstrap["evidence"]["lineageSources"] == [
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
         "lotus_risk",

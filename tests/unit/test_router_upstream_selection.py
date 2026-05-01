@@ -10,43 +10,41 @@ def test_proposals_router_targets_advisory_base_url(monkeypatch):
     monkeypatch.setattr(
         "app.routers.proposals.settings.management_service_base_url", "http://manage:8000"
     )
-    monkeypatch.setattr("app.routers.proposals.settings.manage_split_enabled", True)
-
     service = _proposal_service()
-    assert service._dpm_client._base_url == "http://advise:8000"
+    assert service._advise_client._base_url == "http://advise:8000"
 
 
-def test_workbench_router_targets_manage_when_split_enabled(monkeypatch):
+def test_workbench_router_targets_manage_for_runs_and_advise_for_proposals(monkeypatch):
     monkeypatch.setattr(
         "app.routers.workbench.settings.decisioning_service_base_url", "http://advise:8000"
     )
     monkeypatch.setattr(
         "app.routers.workbench.settings.management_service_base_url", "http://manage:8000"
     )
-    monkeypatch.setattr("app.routers.workbench.settings.manage_split_enabled", True)
-
     service = _workbench_service()
     assert service._dpm_client._base_url == "http://manage:8000"
+    assert service._advise_client._base_url == "http://advise:8000"
 
 
-def test_workbench_router_targets_advisory_when_split_disabled(monkeypatch):
+def test_workbench_router_cache_signature_changes_on_manage_or_advise_url(monkeypatch):
     monkeypatch.setattr(
         "app.routers.workbench.settings.decisioning_service_base_url", "http://advise:8000"
     )
     monkeypatch.setattr(
         "app.routers.workbench.settings.management_service_base_url", "http://manage:8000"
     )
-    monkeypatch.setattr("app.routers.workbench.settings.manage_split_enabled", False)
-
     service = _workbench_service()
-    assert service._dpm_client._base_url == "http://advise:8000"
+    assert service._dpm_client._base_url == "http://manage:8000"
+    assert service._advise_client._base_url == "http://advise:8000"
 
 
-def test_platform_capabilities_manage_client_obeys_split_flag(monkeypatch):
-    monkeypatch.setattr("app.routers.platform.settings.manage_split_enabled", True)
+def test_platform_capabilities_keeps_manage_and_advise_clients_separate(monkeypatch):
+    monkeypatch.setattr(
+        "app.routers.platform.settings.decisioning_service_base_url", "http://advise:8000"
+    )
+    monkeypatch.setattr(
+        "app.routers.platform.settings.management_service_base_url", "http://manage:8000"
+    )
     service = _platform_capabilities_service()
-    assert service._manage_client is not None
-
-    monkeypatch.setattr("app.routers.platform.settings.manage_split_enabled", False)
-    service = _platform_capabilities_service()
-    assert service._manage_client is None
+    assert service._advise_client._base_url == "http://advise:8000"
+    assert service._manage_client._base_url == "http://manage:8000"

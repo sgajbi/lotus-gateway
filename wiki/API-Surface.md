@@ -73,9 +73,13 @@
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
   and `instrument_page_limit`
 - proposal writes require `Idempotency-Key`
+- proposal simulation, create, list, detail, version, workflow-event, approval, and lineage routes
+  call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
+- gateway calls `lotus-manage` only for discretionary management run lookup, supportability
+  summary, and capability posture through versioned `/api/v1/*` paths
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
-  operations plus the central `lotus-manage`, `lotus-report`, `lotus-archive`, `lotus-ai`, direct
-  `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:
+  operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
+  `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:
   `lotus_gateway_analytics_fanout_duration_seconds` and
   `lotus_gateway_analytics_degraded_total`. Labels are bounded to operation/service/status class
   and degraded reason; portfolio, client, document, transaction, session, upload, trace,

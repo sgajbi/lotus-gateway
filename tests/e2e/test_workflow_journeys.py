@@ -63,6 +63,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -80,6 +81,7 @@ def test_e2e_platform_capability_aggregation_and_health(monkeypatch) -> None:
         "lotus_core",
         "lotus_performance",
         "lotus_risk",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
     }
@@ -144,7 +146,7 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.simulate_proposal", _dpm_simulate)
 
     client = TestClient(app)
     created = client.post(
@@ -167,7 +169,31 @@ def test_e2e_workbench_sandbox_flow(monkeypatch) -> None:
 def test_e2e_proposal_transition_flow(monkeypatch) -> None:
     async def _create(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         _ = self, body, idempotency_key, correlation_id
-        return 200, {"proposal": {"proposal_id": "pp_1", "current_state": "DRAFT"}}
+        return 200, {
+            "proposal": {
+                "proposal_id": "pp_1",
+                "portfolio_id": "PF_1001",
+                "current_state": "DRAFT",
+                "current_version_no": 1,
+            },
+            "version": {
+                "proposal_version_id": "ppv_1",
+                "proposal_id": "pp_1",
+                "version_no": 1,
+                "status_at_creation": "READY",
+                "proposal_result": {"proposal_run_id": "pr_1", "status": "READY"},
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_1",
+                "proposal_id": "pp_1",
+                "event_type": "CREATED",
+                "from_state": None,
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:00:00+00:00",
+                "reason": {},
+            },
+        }
 
     async def _transition(  # noqa: ANN001
         self, proposal_id, body, idempotency_key, correlation_id
@@ -178,11 +204,21 @@ def test_e2e_proposal_transition_flow(monkeypatch) -> None:
         return 200, {
             "proposal_id": "pp_1",
             "current_state": "RISK_REVIEW",
-            "event_type": body["event_type"],
+            "latest_workflow_event": {
+                "event_id": "pwe_2",
+                "proposal_id": "pp_1",
+                "event_type": body["event_type"],
+                "from_state": "DRAFT",
+                "to_state": "RISK_REVIEW",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:01:00+00:00",
+                "reason": {},
+            },
+            "approval": None,
         }
 
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.create_proposal", _create)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.transition_proposal", _transition)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.create_proposal", _create)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.transition_proposal", _transition)
 
     client = TestClient(app)
     created = client.post(
@@ -307,6 +343,7 @@ def test_e2e_platform_capabilities_partial_failure_when_one_upstream_fails(
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _performance
     )
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_effective_policy", _pas_policy)
@@ -398,7 +435,9 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_stateful_twr", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate_failure)
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.simulate_proposal", _dpm_simulate_failure
+    )
 
     client = TestClient(app)
     created = client.post(
@@ -417,4 +456,4 @@ def test_e2e_sandbox_policy_feedback_unavailable_when_dpm_simulation_fails(monke
     assert updated.status_code == 200
     payload = updated.json()
     assert payload["policy_feedback"]["status"] == "UNAVAILABLE"
-    assert "MANAGE_POLICY_SIMULATION_UNAVAILABLE" in payload["warnings"]
+    assert "ADVISE_PROPOSAL_SIMULATION_UNAVAILABLE" in payload["warnings"]

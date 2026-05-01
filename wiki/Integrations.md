@@ -14,9 +14,12 @@
 - `lotus-risk`
   stateful risk workspace analytics
 - `lotus-advise`
-  proposal and advisory workflow
+  proposal simulation, proposal persistence, workflow events, approvals, and lineage through
+  `/advisory/proposals/*`
 - `lotus-manage`
-  split-routing management workflows when enabled
+  discretionary management run lookup, supportability summary, and capabilities only:
+  `GET /api/v1/rebalance/runs`, `GET /api/v1/rebalance/supportability/summary`, and
+  `GET /api/v1/platform/capabilities`
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -60,3 +63,5 @@
 6. advisor-brief responses preserve `lotus-ai` workflow-pack run posture and task-flow lineage but do not make gateway the review-state or task-flow authority
 7. archived document retrieval is product-facing only through gateway document routes; Workbench
    does not call `lotus-archive` directly
+8. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise` or
+   `lotus-manage` directly for proposal or management workflow data

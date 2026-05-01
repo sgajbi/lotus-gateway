@@ -8,7 +8,9 @@
 
 - lotus-core is the source for core portfolio data.
 - lotus-performance is the source for advanced analytics.
-- lotus-manage is the source for advisory/discretionary workflow computations.
+- lotus-advise is the source for advisor-led proposal workflow computations.
+- lotus-manage is the source for discretionary management run lookup, supportability, and
+  capability posture consumed by gateway.
 - lotus-report is the source for reporting and aggregation outputs.
 
 ## Vocabulary

@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, cast
 
+from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -26,6 +27,7 @@ class PlatformCapabilitiesService:
     _PRIMARY_CAPABILITY_SOURCES = (
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
     )
@@ -41,21 +43,30 @@ class PlatformCapabilitiesService:
 
     def __init__(
         self,
-        dpm_client: DpmClient,
         lotus_core_query_client: LotusCoreQueryClient,
         analytics_client: LotusAnalyticsClient,
         reporting_client: ReportingClient,
         contract_version: str,
         source_timeout_seconds: float = 1.0,
         risk_client: LotusAnalyticsClient | None = None,
+        advise_client: AdviseClient | None = None,
         manage_client: DpmClient | None = None,
+        dpm_client: Any | None = None,
     ):
-        self._dpm_client = dpm_client
+        if advise_client is None:
+            if dpm_client is None:
+                raise ValueError("PlatformCapabilitiesService requires an advise_client")
+            advise_client = dpm_client
+        if manage_client is None:
+            if dpm_client is None:
+                raise ValueError("PlatformCapabilitiesService requires a manage_client")
+            manage_client = dpm_client
+        self._advise_client = advise_client
+        self._manage_client = manage_client
         self._lotus_core_query_client = lotus_core_query_client
         self._analytics_client = analytics_client
         self._reporting_client = reporting_client
         self._risk_client = risk_client
-        self._manage_client = manage_client
         self._contract_version = contract_version
         self._source_timeout_seconds = source_timeout_seconds
 
@@ -66,7 +77,6 @@ class PlatformCapabilitiesService:
         correlation_id: str,
     ) -> PlatformCapabilitiesResponse:
         evaluated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        manage_capabilities_client = self._manage_client or self._dpm_client
         tasks: list[Any] = [
             self._with_timeout(
                 self._lotus_core_query_client.get_capabilities(
@@ -83,7 +93,14 @@ class PlatformCapabilitiesService:
                 )
             ),
             self._with_timeout(
-                manage_capabilities_client.get_capabilities(
+                self._advise_client.get_capabilities(
+                    consumer_system=consumer_system,
+                    tenant_id=tenant_id,
+                    correlation_id=correlation_id,
+                )
+            ),
+            self._with_timeout(
+                self._manage_client.get_capabilities(
                     consumer_system=consumer_system,
                     tenant_id=tenant_id,
                     correlation_id=correlation_id,
@@ -119,7 +136,7 @@ class PlatformCapabilitiesService:
 
         sources: dict[str, dict[str, Any]] = {}
         errors: list[CapabilitySourceError] = []
-        for service_name, result in zip(self._PRIMARY_CAPABILITY_SOURCES, results[:4], strict=True):
+        for service_name, result in zip(self._PRIMARY_CAPABILITY_SOURCES, results[:5], strict=True):
             if isinstance(result, BaseException):
                 errors.append(
                     CapabilitySourceError(
@@ -144,7 +161,7 @@ class PlatformCapabilitiesService:
             sources[service_name] = payload
 
         lotus_core_policy_payload: dict[str, Any] | None = None
-        lotus_core_policy_result = results[4]
+        lotus_core_policy_result = results[5]
         if isinstance(lotus_core_policy_result, BaseException):
             errors.append(
                 CapabilitySourceError(
@@ -169,7 +186,7 @@ class PlatformCapabilitiesService:
                 lotus_core_policy_payload = policy_payload
 
         optional_result_map: dict[str, Any] = {}
-        for index, source in enumerate(optional_sources, start=5):
+        for index, source in enumerate(optional_sources, start=6):
             optional_result_map[source] = results[index]
 
         self._merge_optional_source(
@@ -268,11 +285,12 @@ class PlatformCapabilitiesService:
                     "performance.analytics.attribution",
                 )
             ),
-            "lotus_manage_lifecycle": self._feature_enabled(
+            "lotus_advise_lifecycle": self._feature_enabled(
                 sources=sources,
-                source_name="lotus_manage",
+                source_name="lotus_advise",
                 feature_keys=(
-                    "lotus_manage.proposals.lifecycle",
+                    "lotus_advise.proposals.lifecycle",
+                    "advise.proposals.lifecycle",
                     "dpm.proposals.lifecycle",
                 ),
             ),
@@ -316,12 +334,12 @@ class PlatformCapabilitiesService:
                 feature_enabled["lotus_core_intake"] or feature_enabled["lotus_core_snapshot"]
             ),
             "analytics_studio": feature_enabled["lotus_performance_analytics"],
-            "advisory_pipeline": feature_enabled["lotus_manage_lifecycle"],
-            "scenario_builder": feature_enabled["lotus_manage_lifecycle"],
+            "advisory_pipeline": feature_enabled["lotus_advise_lifecycle"],
+            "scenario_builder": feature_enabled["lotus_advise_lifecycle"],
             "decision_console": (
                 feature_enabled["lotus_core_snapshot"]
                 and (
-                    feature_enabled["lotus_manage_lifecycle"]
+                    feature_enabled["lotus_advise_lifecycle"]
                     or feature_enabled["lotus_manage_support"]
                 )
             ),
@@ -337,12 +355,12 @@ class PlatformCapabilitiesService:
         workflow_flags = {
             "proposal_lifecycle": self._workflow_enabled(
                 sources=sources,
-                source_name="lotus_manage",
+                source_name="lotus_advise",
                 workflow_key="proposal_lifecycle",
             ),
             "proposal_approval_flow": self._workflow_enabled(
                 sources=sources,
-                source_name="lotus_manage",
+                source_name="lotus_advise",
                 workflow_key="proposal_approval_flow",
             ),
             "portfolio_bulk_onboarding": self._workflow_enabled(
@@ -478,7 +496,7 @@ class PlatformCapabilitiesService:
                     label="Proposal",
                     href="/proposals",
                     enabled=navigation["proposal_workspace"],
-                    dependency_source="lotus_manage",
+                    dependency_source="lotus_advise",
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -493,7 +511,7 @@ class PlatformCapabilitiesService:
                     label="Advisory",
                     href="/recommendations",
                     enabled=navigation["advisory_workspace"],
-                    dependency_source="lotus_manage",
+                    dependency_source="lotus_advise",
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,

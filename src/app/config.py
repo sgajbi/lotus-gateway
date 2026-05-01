@@ -44,7 +44,6 @@ class Settings(BaseSettings):
     render_service_base_url: str = Field(default="http://render.dev.lotus")
     archive_service_base_url: str = Field(default="http://archive.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
-    manage_split_enabled: bool = Field(default=True)
     upstream_timeout_seconds: float = Field(default=3.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
     ai_service_timeout_seconds: float = Field(default=45.0)

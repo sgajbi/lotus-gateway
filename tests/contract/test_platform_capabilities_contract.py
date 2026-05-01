@@ -67,6 +67,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_capabilities", _analytics
     )
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.get_capabilities", _dpm)
     monkeypatch.setattr("app.clients.reporting_client.ReportingClient.get_capabilities", _ras)
 
@@ -102,6 +103,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
     assert payload["normalized"]["shellBootstrap"]["evidence"]["lineageSources"] == [
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
         "lotus_risk",
@@ -113,6 +115,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         "lotus_core": "lotus-core-default-v1",
         "lotus_performance": "lotus-performance-default-v1",
         "lotus_risk": "lotus-risk-default-v1",
+        "lotus_advise": "lotus-manage-default-v1",
         "lotus_manage": "lotus-manage-default-v1",
         "lotus_report": "lotus-report-default-v1",
     }
@@ -130,6 +133,7 @@ def test_platform_capabilities_contract_shape(monkeypatch):
         "lotus_core",
         "lotus_performance",
         "lotus_risk",
+        "lotus_advise",
         "lotus_manage",
         "lotus_report",
     ):

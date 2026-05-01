@@ -2833,7 +2833,7 @@ def test_workbench_sandbox_changes_router(monkeypatch):
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
-    monkeypatch.setattr("app.clients.dpm_client.DpmClient.simulate_proposal", _dpm_simulate)
+    monkeypatch.setattr("app.clients.advise_client.AdviseClient.simulate_proposal", _dpm_simulate)
 
     client = TestClient(app)
     created = client.post(

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Header, Query
 
+from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -14,8 +15,14 @@ router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
 
 def _platform_capabilities_service() -> PlatformCapabilitiesService:
     return PlatformCapabilitiesService(
-        dpm_client=DpmClient(
+        advise_client=AdviseClient(
             base_url=settings.decisioning_service_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        manage_client=DpmClient(
+            base_url=settings.management_service_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
@@ -45,16 +52,6 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        manage_client=(
-            DpmClient(
-                base_url=settings.management_service_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            )
-            if settings.manage_split_enabled
-            else None
-        ),
         contract_version=settings.contract_version,
     )
 
@@ -64,8 +61,8 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
     response_model=PlatformCapabilitiesResponse,
     summary="Get Aggregated Platform Capabilities",
     description=(
-        "Aggregates lotus-core, lotus-performance, lotus-risk, lotus-manage, and "
-        "lotus-report integration capabilities into one "
+        "Aggregates lotus-core, lotus-performance, lotus-risk, lotus-advise, "
+        "lotus-manage, and lotus-report integration capabilities into one "
         "lotus-gateway contract for UI feature control, shell bootstrap, and "
         "workflow negotiation. Gateway fans out to upstream capability and policy "
         "sources concurrently, applies a bounded per-source timeout, and returns "

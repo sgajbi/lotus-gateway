@@ -99,7 +99,6 @@ def _service_signature() -> tuple[object, ...]:
         settings.ai_service_base_url,
         settings.management_service_base_url,
         settings.decisioning_service_base_url,
-        settings.manage_split_enabled,
         settings.upstream_timeout_seconds,
         settings.performance_analytics_timeout_seconds,
         settings.ai_service_timeout_seconds,
@@ -127,11 +126,13 @@ def _build_workbench_service() -> WorkbenchService:
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
         dpm_client=DpmClient(
-            base_url=(
-                settings.management_service_base_url
-                if settings.manage_split_enabled
-                else settings.decisioning_service_base_url
-            ),
+            base_url=settings.management_service_base_url,
+            timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        advise_client=AdviseClient(
+            base_url=settings.decisioning_service_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,

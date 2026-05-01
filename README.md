@@ -39,9 +39,9 @@ It depends on:
 - `lotus-risk`
   stateful risk workspace analytics
 - `lotus-advise`
-  proposal and advisory workflow capability
+  proposal simulation, persisted proposal lifecycle, workflow, approval, and lineage capability
 - `lotus-manage`
-  management workflow capability when split routing is enabled
+  discretionary management run lookup, supportability summary, and platform capability posture
 - `lotus-report`
   reporting snapshot, summary, review payloads, durable report job lifecycle/search, and
   RFC-0104 batch materialization/status/control/operator-run APIs
@@ -250,6 +250,10 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 - key upstreams:
   `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
   `lotus-archive`, `lotus-ai`
+- downstream ownership rule:
+  proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
+  `GET /api/v1/rebalance/runs`, `GET /api/v1/rebalance/supportability/summary`, and
+  `GET /api/v1/platform/capabilities`
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority
