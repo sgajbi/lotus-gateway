@@ -59,6 +59,10 @@
   `lotus-workbench` must not call `lotus-archive` directly
 - archived document routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
   `X-Booking-Center-Code` and `X-Role` are forwarded as caller context
+- Workbench performance summary, risk summary, advisor-brief read, and advisor-brief review-action
+  routes require `X-Actor-Id`, `X-Tenant-Id`, and `X-Region`; optional
+  `X-Caller-Application`, `X-Booking-Center-Code`, and `X-Role` preserve entitlement and audit
+  posture for RFC-0108 front-office analytics reads and workflow actions
 - legal-hold summary is returned as metadata for support posture; gateway retrieval does not expose
   legal-hold mutation, purge, retention mutation, or access-event routes
 - intake upload routes accept camelCase multipart aliases such as `entityType`, `sampleSize`, and
@@ -141,6 +145,32 @@ curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/risk/summary?perio
   -H "X-Region: APAC" \
   -H "X-Booking-Center-Code: SG" \
   -H "X-Role: advisor"
+```
+
+Advisor brief:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief?period=YTD&chart_frequency=monthly&detail_basis=NET&contribution_dimension=asset_class&attribution_dimension=asset_class&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor"
+```
+
+Advisor brief review action:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/workbench/DEMO_ADV_USD_001/performance/advisor-brief/review-actions?period=YTD" \
+  -H "Content-Type: application/json" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -H "X-Booking-Center-Code: SG" \
+  -H "X-Role: advisor" \
+  -d "{\"action_type\":\"ACCEPT\",\"reviewed_by\":\"advisor-123\",\"reason\":\"Approved for client discussion.\"}"
 ```
 
 Reporting summary:

@@ -41,6 +41,10 @@
 - Gateway emits product-safe selected analytics read audit logs for upstream read outcomes:
   `gateway.analytics.audit.analytics_read_allowed` for successful upstream reads and
   `gateway.analytics.audit.analytics_read_denied` for `401` or `403` upstream denials.
+- Gateway requires caller context on the RFC-0108 certified Workbench read paths now enforced in
+  this repository: performance summary, risk summary, and advisor brief. The advisor-brief
+  review-action route also requires the same caller context because it records a bounded workflow
+  review action through the Gateway boundary.
 - Gateway exposes a protected operator lookup at
   `GET /api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
   `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`.

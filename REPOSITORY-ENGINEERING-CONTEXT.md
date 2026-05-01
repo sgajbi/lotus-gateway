@@ -47,8 +47,9 @@ Current repository posture:
 8. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
 9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
 10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
-11. RFC-0108 analytics UI observability is active for selected Workbench performance and risk
-    analytics paths, and has expanded fan-out coverage for central `lotus-manage`,
+11. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+    risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
+    fan-out coverage for central `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
     `lotus-core` ingestion client seams. Gateway owns product-safe
     structured fan-out logs, bounded fan-out metrics, degraded-source counters, selected analytics

@@ -2390,7 +2390,8 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
         "?period=YTD&chart_frequency=monthly&detail_basis=NET"
         "&contribution_dimension=asset_class&attribution_dimension=asset_class"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40&report_start_date=2026-01-01"
-        "&report_end_date=2026-04-04"
+        "&report_end_date=2026-04-04",
+        headers=CALLER_CONTEXT_HEADERS,
     )
 
     assert response.status_code == 200
@@ -2418,6 +2419,16 @@ def test_workbench_performance_advisor_brief_router(monkeypatch):
     assert captured_call["benchmark_code"] == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert captured_call["explicit_start_date"] == "2026-01-01"
     assert captured_call["explicit_end_date"] == "2026-04-04"
+
+
+def test_workbench_performance_advisor_brief_router_requires_caller_context():
+    client = TestClient(app)
+    response = client.get("/api/v1/workbench/PF_1001/performance/advisor-brief?period=YTD")
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
 
 
 def test_workbench_performance_advisor_brief_router_preserves_query_context(monkeypatch):
@@ -2488,7 +2499,7 @@ def test_workbench_performance_advisor_brief_router_preserves_query_context(monk
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
-        headers={"X-Correlation-Id": "corr-advisor-brief"},
+        headers={**CALLER_CONTEXT_HEADERS, "X-Correlation-Id": "corr-advisor-brief"},
     )
 
     assert response.status_code == 200
@@ -2618,7 +2629,10 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "&attribution_dimension=country&detail_basis=GROSS"
         "&benchmark_code=BMK_PB_GLOBAL_BALANCED_60_40"
         "&report_start_date=2026-01-01&report_end_date=2026-03-27",
-        headers={"X-Correlation-Id": "corr-advisor-brief-review"},
+        headers={
+            **CALLER_CONTEXT_HEADERS,
+            "X-Correlation-Id": "corr-advisor-brief-review",
+        },
         json={
             "action_type": "SUPERSEDE",
             "reviewed_by": "advisor_1",
@@ -2665,6 +2679,23 @@ def test_workbench_performance_advisor_brief_review_action_router(monkeypatch):
         "explicit_start_date": "2026-01-01",
         "explicit_end_date": "2026-03-27",
     }
+
+
+def test_workbench_performance_advisor_brief_review_action_requires_caller_context():
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/workbench/PF_1001/performance/advisor-brief/review-actions?period=YTD",
+        json={
+            "action_type": "ACCEPT",
+            "reviewed_by": "advisor_1",
+            "reason": "Approved for client discussion.",
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail["code"] == "missing_caller_context"
+    assert detail["missing_headers"] == ["X-Actor-Id", "X-Tenant-Id", "X-Region"]
 
 
 def test_workbench_sandbox_changes_router(monkeypatch):
