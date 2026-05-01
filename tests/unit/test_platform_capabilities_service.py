@@ -710,18 +710,31 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
 
 
 @pytest.mark.asyncio
-async def test_platform_capabilities_manage_split_merges_distinct_features_workflows_and_modes():
+async def test_platform_capabilities_manage_split_uses_manage_as_authoritative_source():
+    legacy_decisioning_client = _RecordingStubClient(
+        503,
+        {
+            "detail": "legacy decisioning should not be used for split manage capabilities",
+        },
+    )
+    manage_client = _RecordingStubClient(
+        200,
+        {
+            "sourceService": "lotus_manage_split",
+            "policyVersion": "manage-split-v2",
+            "supportedInputModes": ["inline_bundle", "pas_ref"],
+            "features": [
+                {"key": "dpm.support.run_apis", "enabled": True},
+                {"key": "dpm.proposals.lifecycle", "enabled": True},
+            ],
+            "workflows": [
+                {"workflow_key": "proposal_approval_flow", "enabled": True},
+                {"workflow_key": "proposal_lifecycle", "enabled": True},
+            ],
+        },
+    )
     service = PlatformCapabilitiesService(
-        dpm_client=_StubClient(
-            200,
-            {
-                "sourceService": "lotus_manage",
-                "policyVersion": "dpm-v1",
-                "supportedInputModes": ["pas_ref"],
-                "features": [{"key": "dpm.proposals.lifecycle", "enabled": True}],
-                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
-            },
-        ),
+        dpm_client=legacy_decisioning_client,
         lotus_core_query_client=_StubClient(
             200,
             {"sourceService": "lotus_core", "features": [], "workflows": []},
@@ -734,16 +747,7 @@ async def test_platform_capabilities_manage_split_merges_distinct_features_workf
             200,
             {"sourceService": "lotus_report", "features": [], "workflows": []},
         ),
-        manage_client=_StubClient(
-            200,
-            {
-                "sourceService": "lotus_manage_split",
-                "policyVersion": "manage-split-v2",
-                "supportedInputModes": ["inline_bundle", "pas_ref"],
-                "features": [{"key": "dpm.support.run_apis", "enabled": True}],
-                "workflows": [{"workflow_key": "proposal_approval_flow", "enabled": True}],
-            },
-        ),
+        manage_client=manage_client,
         contract_version="v1",
     )
 
@@ -754,15 +758,112 @@ async def test_platform_capabilities_manage_split_merges_distinct_features_workf
     )
 
     lotus_manage = response.data.sources["lotus_manage"]
-    assert lotus_manage["policyVersion"] == "dpm-v1"
-    assert lotus_manage["supportedInputModes"] == ["pas_ref", "inline_bundle"]
+    assert response.data.partial_failure is False
+    assert response.data.errors == []
+    assert legacy_decisioning_client.calls == []
+    assert manage_client.calls == [
+        {
+            "correlation_id": "corr-manage-merge",
+            "consumer_system": "lotus-gateway",
+            "tenant_id": "default",
+        }
+    ]
+    assert lotus_manage["policyVersion"] == "manage-split-v2"
+    assert lotus_manage["supportedInputModes"] == ["inline_bundle", "pas_ref"]
     assert lotus_manage["features"] == [
-        {"key": "dpm.proposals.lifecycle", "enabled": True},
         {"key": "dpm.support.run_apis", "enabled": True},
+        {"key": "dpm.proposals.lifecycle", "enabled": True},
     ]
     assert lotus_manage["workflows"] == [
-        {"workflow_key": "proposal_lifecycle", "enabled": True},
         {"workflow_key": "proposal_approval_flow", "enabled": True},
+        {"workflow_key": "proposal_lifecycle", "enabled": True},
     ]
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["proposal_approval_flow"] is True
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_normalizes_live_snake_case_capability_metadata():
+    service = PlatformCapabilitiesService(
+        dpm_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-manage",
+                "policy_version": "dpm.policy.v1",
+                "supported_input_modes": ["portfolio_id", "inline_bundle"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        lotus_core_query_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-core",
+                "policy_version": "tenant-default-v1",
+                "supported_input_modes": ["lotus_core_ref"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        analytics_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-performance",
+                "policy_version": "tenant-default-v1",
+                "supported_input_modes": ["stateful", "stateless"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        reporting_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-report",
+                "policy_version": "ras-default-v1",
+                "supported_input_modes": ["portfolio_id"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        risk_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-risk",
+                "policy_version": "risk.v1",
+                "supported_input_modes": ["stateless", "stateful", "simulation"],
+                "features": [],
+                "workflows": [],
+            },
+        ),
+        contract_version="v1",
+    )
+
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-gateway",
+        tenant_id="default",
+        correlation_id="corr-live-shape",
+    )
+
+    normalized = response.data.normalized
+    assert normalized.input_modes_by_source == {
+        "lotus_core": ["lotus_core_ref"],
+        "lotus_performance": ["stateful", "stateless"],
+        "lotus_manage": ["portfolio_id", "inline_bundle"],
+        "lotus_report": ["portfolio_id"],
+        "lotus_risk": ["stateless", "stateful", "simulation"],
+    }
+    assert normalized.input_modes_union == [
+        "lotus_core_ref",
+        "stateful",
+        "stateless",
+        "portfolio_id",
+        "inline_bundle",
+        "simulation",
+    ]
+    assert normalized.policy_versions_by_source == {
+        "lotus_core": "tenant-default-v1",
+        "lotus_performance": "tenant-default-v1",
+        "lotus_manage": "dpm.policy.v1",
+        "lotus_report": "ras-default-v1",
+        "lotus_risk": "risk.v1",
+    }

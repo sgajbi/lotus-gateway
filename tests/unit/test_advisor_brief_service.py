@@ -423,7 +423,7 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
             "workflow_pack_id": "advisor_brief.pack",
             "caller": "lotus-gateway",
             "workflow_surface": "advisor-brief-workspace",
-            "limit": 25,
+            "limit": 100,
         }
     ]
     assert response.ai_audit["adapter_kind"] == "OPENAI_LIVE"
@@ -496,6 +496,70 @@ async def test_advisor_brief_service_returns_ai_summary_and_source_grounded_acti
         {"run_id": "packrun_advisor_brief_req-1", "correlation_id": "corr-1"}
     ]
     assert ai_client.observability_runtime_calls == [{"correlation_id": "corr-1"}]
+
+
+@pytest.mark.asyncio
+async def test_advisor_brief_service_hydrates_task_flow_from_bounded_long_running_demo_window():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient()
+    historical_task_flows = []
+    for index in range(25):
+        historical_run_id = f"packrun_advisor_brief_air_historical_{index}"
+        historical_task_flows.append(
+            {
+                "task_flow_id": f"taskflow_advisor_brief_air_historical_{index}",
+                "workflow_pack_id": "advisor_brief.pack",
+                "workflow_pack_version": "v1",
+                "flow_status": "COMPLETED",
+                "current_step_id": None,
+                "run_refs": [historical_run_id],
+                "review_states": {historical_run_id: "ACCEPTED"},
+                "supportability_status": "READY",
+                "replacement_lineage": [],
+                "handoff_refs": [],
+                "updated_at": "2026-05-01T02:12:05.015702Z",
+            }
+        )
+    ai_client.task_flow_payload = {
+        "task_flows": [
+            *historical_task_flows,
+            {
+                "task_flow_id": "taskflow_advisor_brief_req-1",
+                "workflow_pack_id": "advisor_brief.pack",
+                "workflow_pack_version": "v1",
+                "flow_status": "WAITING_FOR_REVIEW",
+                "current_step_id": "execute_workflow_pack",
+                "run_refs": ["packrun_advisor_brief_req-1"],
+                "review_states": {
+                    "packrun_advisor_brief_req-1": "AWAITING_REVIEW",
+                },
+                "supportability_status": "ACTION_REQUIRED",
+                "replacement_lineage": [],
+                "handoff_refs": [],
+                "updated_at": "2026-05-01T10:38:15.709505+08:00",
+            },
+        ]
+    }
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.get_performance_advisor_brief(
+        portfolio_id="PF_1001",
+        correlation_id="corr-long-running-demo-window",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert ai_client.task_flow_calls[0]["limit"] == 100
+    assert response.workflow_pack_task_flow is not None
+    assert response.workflow_pack_task_flow.task_flow_id == "taskflow_advisor_brief_req-1"
+    assert response.workflow_pack_task_flow.run_refs == ["packrun_advisor_brief_req-1"]
 
 
 @pytest.mark.asyncio
