@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Path, Query, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Header, Path, Query, Response
 
 from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
@@ -33,6 +35,7 @@ from app.contracts.workbench import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.advisor_brief_service import AdvisorBriefService
+from app.services.caller_context import caller_context_headers
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.risk_workspace_service import RiskWorkspaceService
 from app.services.workbench_service import WorkbenchService
@@ -54,6 +57,25 @@ RISK_PERIOD_QUERY_DESCRIPTION = (
     "SI, YEAR, or EXPLICIT. Legacy aliases ONE_YEAR, THREE_YEAR, FIVE_YEAR, and ITD may be "
     "accepted for compatibility but are normalized before calling lotus-risk."
 )
+
+
+def _required_caller_context(
+    *,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> dict[str, str]:
+    return caller_context_headers(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
 
 
 def _service_signature() -> tuple[object, ...]:
@@ -690,7 +712,25 @@ async def get_performance_workspace_summary(
         ),
         examples=["2026-03-27"],
     ),
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[
+        str | None, Header(alias="X-Caller-Application")
+    ] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[
+        str | None, Header(alias="X-Booking-Center-Code")
+    ] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> PerformanceWorkspaceSummaryResponse:
+    _required_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
     service = _performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_workspace_summary(
