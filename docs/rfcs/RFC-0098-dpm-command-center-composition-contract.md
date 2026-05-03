@@ -234,6 +234,63 @@ for missing fields rather than inventing local synthetic truth.
 
 ## 8. Strategic API Contract
 
+### 8.0 Construction Alternatives Module Addendum
+
+RFC-0098 must also realize `lotus-manage` RFC-0039 construction alternatives after the manage
+contract is hardened and live-proven. This is intentionally included in the command-center
+composition RFC so Gateway does not create a second, disconnected DPM construction API family.
+
+Business outcome:
+
+1. portfolio managers compare disciplined construction choices before action,
+2. CIO and investment-control users see trade-off evidence before approval,
+3. tax specialists and operations can inspect turnover, tax, source-readiness, and supportability,
+4. sales/pre-sales can demonstrate that Lotus does not emit one black-box trade list.
+
+Gateway responsibility:
+
+1. expose a Workbench-facing construction-alternatives module within the DPM command-center
+   experience contract,
+2. consume `lotus-manage` `POST /api/v1/construction/alternative-sets/generate`,
+   `GET /api/v1/construction/alternative-sets/{alternative_set_id}`, and
+   `POST /api/v1/construction/alternative-sets/{alternative_set_id}/selections`,
+3. preserve manage method identifiers, method statuses, objective traces, constraint traces,
+   comparison metrics, source supportability, selected alternative, actor, reason code, comment,
+   and correlation id,
+4. add entitlement, tenant, channel, and Workbench action posture without recomputing alternatives,
+5. keep risk and performance figures domain-authoritative; if `lotus-risk` or
+   `lotus-performance` enrichment is unavailable, Gateway surfaces degraded or not-supported state
+   rather than fabricating values.
+
+The initial construction module must support the manage first-wave methods:
+
+| Method | Gateway product treatment |
+| --- | --- |
+| `DO_NOTHING_BASELINE` | Always visible as the governed comparator for accepting current drift. |
+| `HEURISTIC_EXPLAINABLE` | Primary explainable rebalance comparator. |
+| `MIN_TURNOVER` | Low-turnover comparator; may be `PENDING_REVIEW` when turnover budget suppresses intents. |
+| `TAX_AWARE` | Tax-aware posture; must preserve degraded reason codes when authoritative tax/cost/risk/performance enrichment is partial. |
+
+Gateway must not flatten manage statuses into generic success/failure.
+
+| Manage status | Gateway handling |
+| --- | --- |
+| `READY` | Enable Workbench selection if entitlement and downstream preconditions pass. |
+| `PENDING_REVIEW` | Display as review-required; downstream automation remains gated unless explicitly approved by later workflow contract. |
+| `DEGRADED` | Display with supportability and reason codes. |
+| `BLOCKED` | Disable action and show remediation owner. |
+| `INFEASIBLE` | Keep as a rejected alternative with constraint evidence, not as a transport failure. |
+
+Gateway proof must use the manage evidence package from RFC-0039:
+
+1. `output/rfc0039-proof/20260503-172059/04-comparison-matrix.json`,
+2. `output/rfc0039-proof/20260503-173624-canonical-postgres/summary.json`,
+3. validator probe `construction_alternatives_first_wave`.
+
+Gateway implementation must not begin until it validates the current manage OpenAPI for the
+construction endpoint family and confirms whether additional downstream action fields are required
+for Workbench. Missing fields should be raised against `lotus-manage`; Gateway must not infer them.
+
 ### 8.1 Endpoint Family
 
 Gateway must expose one strategic route family:
