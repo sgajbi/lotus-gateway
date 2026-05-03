@@ -14,5 +14,7 @@
 ## Next priorities
 
 1. keep replacing thin pass-through surfaces with clearer product contracts
-2. preserve RFC-0082 boundary discipline as integrations evolve
-3. keep request-convention and runtime guidance explicit for operators and future agents
+2. implement RFC-0098 as the strategic DPM command-center composition contract for Workbench,
+   preserving domain ownership across core, manage, risk, performance, report, archive, and AI
+3. preserve RFC-0082 boundary discipline as integrations evolve
+4. keep request-convention and runtime guidance explicit for operators and future agents
