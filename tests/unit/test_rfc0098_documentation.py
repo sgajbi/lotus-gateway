@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_rfc0098_proof_pack_ownership_matches_manage_rfc0040() -> None:
+def test_rfc0098_ownership_matches_manage_rfc0040_and_rfc0041() -> None:
     rfc = (
         ROOT / "docs" / "rfcs" / "RFC-0098-dpm-command-center-composition-contract.md"
     ).read_text(encoding="utf-8")
@@ -11,13 +11,19 @@ def test_rfc0098_proof_pack_ownership_matches_manage_rfc0040() -> None:
     api_surface = (ROOT / "wiki" / "API-Surface.md").read_text(encoding="utf-8")
     integrations = (ROOT / "wiki" / "Integrations.md").read_text(encoding="utf-8")
 
-    assert "RFC-0040 PROOF-PACK OWNERSHIP ALIGNED" in rfc
-    assert "RFC-0040 PROOF-PACK OWNERSHIP ALIGNED" in index
+    assert "RFC-0041 WAVE ORCHESTRATION ALIGNED" in rfc
+    assert "RFC-0041 WAVE ORCHESTRATION ALIGNED" in index
     assert "`lotus-manage` RFC-0040" in rfc
+    assert "`lotus-manage` RFC-0041" in rfc
     assert "Gateway must not" in rfc
     assert "treat `lotus-report` as the proof-pack authority" in rfc
+    assert "calculate affected portfolios, source readiness, aggregate metrics" in rfc
+    assert "`GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`" in rfc
     assert "proof_pack_evidence" in rfc
+    assert "wave_summary" in rfc
     assert "DpmPreTradeProofPack:v1" in rfc
     assert "proof-pack authority APIs" in integrations
+    assert "RFC-0041 rebalance-wave orchestration" in integrations
     assert "not proof-pack authority" in api_surface
+    assert "must not calculate affected portfolios" in api_surface
     assert "Gateway does not generate proof packs. That belongs to `lotus-report`." not in rfc

@@ -15,6 +15,9 @@
 
 1. keep replacing thin pass-through surfaces with clearer product contracts
 2. implement RFC-0098 as the strategic DPM command-center composition contract for Workbench,
-   preserving domain ownership across core, manage, risk, performance, report, archive, and AI
+   preserving domain ownership across core, manage, risk, performance, report, archive, and AI.
+   The RFC now includes RFC-0041 rebalance-wave realization so Gateway can plan wave preview,
+   source-check, simulation, selection, approval, staging, handoff, and supportability composition
+   without becoming the wave authority
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents

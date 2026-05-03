@@ -2,13 +2,13 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PROPOSED - RFC-0040 PROOF-PACK OWNERSHIP ALIGNED |
+| **Status** | PROPOSED - RFC-0041 WAVE ORCHESTRATION ALIGNED |
 | **Created** | 2026-05-03 |
-| **Last Tightened** | 2026-05-03 |
+| **Last Tightened** | 2026-05-04 |
 | **Owner** | `lotus-gateway` |
 | **Primary Consumer** | `lotus-workbench` DPM mandate command center |
 | **Business Sponsor Persona** | DPM head, portfolio manager, CIO desk, investment control, operations, sales/pre-sales |
-| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
+| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-manage` RFC-0041, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
 | **Doc Location** | `docs/rfcs/RFC-0098-dpm-command-center-composition-contract.md` |
 | **Implementation Branch** | TBD when implementation begins |
 
@@ -334,6 +334,125 @@ Gateway must not:
 4. treat `lotus-report` as the proof-pack authority,
 5. expose Workbench action eligibility for proof-pack generation unless manage source readiness and
    entitlement posture support it.
+
+### 8.0B RFC-0041 Rebalance Wave Orchestration Addendum
+
+`lotus-manage` RFC-0041 makes manage the authority for durable rebalance-wave state, source
+checks, construction simulation delegation, selected alternatives, proof-pack linkage, approval,
+staging, internal operations handoff, and product-safe supportability diagnostics. Gateway must
+realize that workflow for Workbench without reconstructing wave truth or becoming the wave
+authority.
+
+Business outcome:
+
+1. portfolio managers and investment-control users can review a mixed-readiness rebalance wave from
+   one command-center flow,
+2. operations can see which wave items are ready, degraded, blocked, staged, or handoff-ready and
+   who owns remediation,
+3. CIO desks can understand model-change impact and action readiness without assuming external
+   execution has occurred,
+4. sales/pre-sales can demonstrate source-backed discretionary rebalance governance from candidate
+   selection through proof-pack evidence and internal handoff.
+
+Gateway responsibility:
+
+1. consume manage wave APIs through typed upstream clients:
+   `POST /api/v1/rebalance/waves/preview`, `POST /api/v1/rebalance/waves`,
+   `POST /api/v1/rebalance/waves/{wave_id}/source-check`,
+   `POST /api/v1/rebalance/waves/{wave_id}/simulate`,
+   `POST /api/v1/rebalance/waves/{wave_id}/items/{wave_item_id}/select`,
+   `POST /api/v1/rebalance/waves/{wave_id}/approve`,
+   `POST /api/v1/rebalance/waves/{wave_id}/stage`,
+   `POST /api/v1/rebalance/waves/{wave_id}/handoff`, and
+   `GET /api/v1/rebalance/waves/{wave_id}/supportability`,
+2. expose Workbench-facing wave composition without manage-local aliases:
+   `GET /api/v1/dpm/command-center/waves`,
+   `GET /api/v1/dpm/command-center/waves/{wave_id}`,
+   `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`,
+   `POST /api/v1/dpm/command-center/waves/preview`,
+   `POST /api/v1/dpm/command-center/waves`,
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`,
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`,
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`,
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`,
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`, and
+   `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`,
+3. preserve manage `wave_id`, `wave_version`, optimistic `version`, `state`, item states,
+   reason codes, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
+   retention policy, event refs, and supportability refs,
+4. compose module posture using the common command-center states `ready`, `degraded`, `blocked`,
+   `not_supported`, `unavailable`, and `error`,
+5. compose risk, performance, report, archive, and AI posture only from owning services and only
+   as adjacent modules; Gateway must not infer missing domain readiness from manage wave state,
+6. expose action eligibility as a Gateway view over manage-supported actions, entitlement posture,
+   upstream availability, and supportability state, with disabled reasons when actions are blocked.
+
+Gateway must not:
+
+1. calculate affected portfolios, source readiness, aggregate metrics, item readiness,
+   construction alternatives, proof-pack state, or handoff state,
+2. create implicit PM-book or CIO model-change cohort discovery until `lotus-core` or another
+   owning app exposes a certified cohort product,
+3. mark handoff as external execution; manage handoff refs explicitly use
+   `external_execution_claimed=false`,
+4. expose a Workbench route that bypasses manage supportability diagnostics for operator
+   troubleshooting,
+5. promote wave command-center support as a supported feature until Gateway implementation,
+   OpenAPI certification, no-alias governance, contract tests, live canonical proof, and Workbench
+   browser proof all pass.
+
+Target Gateway composition:
+
+```mermaid
+flowchart LR
+    WB[Workbench DPM Wave Command Center] --> GW[lotus-gateway wave composition]
+    GW --> Manage[lotus-manage RFC-0041 wave authority]
+    GW --> Risk[lotus-risk risk posture]
+    GW --> Perf[lotus-performance performance posture]
+    GW --> Report[lotus-report report posture]
+    GW --> Archive[lotus-archive evidence archive]
+    GW --> AI[lotus-ai narrative posture]
+    Manage --> Proof[lotus-manage RFC-0040 proof-pack authority]
+    Manage --> Construct[lotus-manage RFC-0039 construction delegation]
+```
+
+Required wave response modules:
+
+| Module | Gateway source | Required posture |
+| --- | --- | --- |
+| `wave_summary` | `lotus-manage` RFC-0041 | wave id, state, item counts, as-of date, trigger, version, retention policy |
+| `wave_items` | `lotus-manage` RFC-0041 | item state, reason codes, selected alternative refs, proof-pack refs, product-safe diagnostics only |
+| `action_eligibility` | manage command state + Gateway entitlement | source-check, simulate, select, approve, stage, handoff eligibility with disabled reasons |
+| `supportability` | manage supportability endpoint + Gateway fan-out state | ready/degraded/blocked/not_found/error, support refs, source owner, remediation route |
+| `construction` | manage RFC-0039 via RFC-0041 wave links | alternatives and selected refs only; no Gateway optimization |
+| `proof_pack_evidence` | manage RFC-0040 via wave links | proof-pack id, section posture, hashes, Markdown/report/AI input posture |
+| `reporting` | `lotus-report` | materialization state when proof-pack report input exists |
+| `evidence_archive` | `lotus-archive` | generated-document metadata and controlled access when available |
+| `narrative_support` | `lotus-ai` | optional task-flow or narrative state, never synthesized locally |
+
+Action eligibility matrix:
+
+| Manage wave/item posture | Gateway action posture | Workbench implication |
+| --- | --- | --- |
+| `CREATED` with candidate/source-blocked items | source-check enabled; simulate/select/approve/stage/handoff disabled | show source-readiness attention first |
+| `SOURCE_CHECKED` with ready and blocked items | simulate enabled for ready items only | show mixed-readiness matrix |
+| `SIMULATED` or `PARTIALLY_SIMULATED` | selection enabled only for items with generated alternatives | show comparison and exclusion reasons |
+| `SELECTED` or `PROOF_PACK_READY` | approve enabled when manage exposes eligible items | show proof-pack/evidence posture before approval |
+| `APPROVED` or `APPROVED_WITH_EXCEPTIONS` | stage enabled for approved items | show exceptions as non-staged |
+| `STAGED` | handoff enabled for staged items | show internal operations handoff; no execution claim |
+| `HANDOFF_READY` | further external execution actions disabled unless a future owning execution app is certified | show internal handoff evidence only |
+
+Canonical proof expectations:
+
+1. use `PB_SG_GLOBAL_BAL_001` as the governed portfolio in a mixed wave with at least one ready
+   item and one blocked/degraded item,
+2. capture request/response evidence for preview, create, source-check, simulate, select,
+   proof-pack linkage, approve, stage, handoff, supportability, and Gateway composed readback,
+3. prove product-safe diagnostics contain support refs and remediation routes but no portfolio,
+   client, raw request/response, secret, or trace payloads in labels or logs,
+4. prove no Gateway route reconstructs manage aggregates by contract test and code review,
+5. publish implementation-backed wiki and supported-feature updates only after both Gateway and
+   Workbench realization are live-proven.
 
 ### 8.1 Endpoint Family
 
