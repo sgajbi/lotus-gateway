@@ -2,13 +2,13 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PROPOSED - IMPLEMENTATION READY |
+| **Status** | PROPOSED - RFC-0040 PROOF-PACK OWNERSHIP ALIGNED |
 | **Created** | 2026-05-03 |
 | **Last Tightened** | 2026-05-03 |
 | **Owner** | `lotus-gateway` |
 | **Primary Consumer** | `lotus-workbench` DPM mandate command center |
 | **Business Sponsor Persona** | DPM head, portfolio manager, CIO desk, investment control, operations, sales/pre-sales |
-| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
+| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
 | **Doc Location** | `docs/rfcs/RFC-0098-dpm-command-center-composition-contract.md` |
 | **Implementation Branch** | TBD when implementation begins |
 
@@ -25,9 +25,11 @@ that brings together:
 2. mandate health, drift, constraints, action posture, and rebalance readiness from `lotus-manage`,
 3. risk posture from `lotus-risk`,
 4. performance posture from `lotus-performance`,
-5. proof-pack and reporting posture from `lotus-report`,
-6. archived evidence metadata and controlled document access from `lotus-archive`,
-7. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
+5. proof-pack authority, readiness, Markdown, report-input, and AI-evidence handoff posture from
+   `lotus-manage` RFC-0040,
+6. report materialization posture from `lotus-report`,
+7. archived evidence metadata and controlled document access from `lotus-archive`,
+8. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
 
 This RFC makes `lotus-gateway` the certified composition boundary for that business view.
 `lotus-manage` must not become a mega-orchestrator for risk and performance, and
@@ -105,11 +107,13 @@ command center requires the full front-office context:
    attribution.
 4. `lotus-performance` owns returns, contribution, attribution, benchmark-relative posture, and
    performance methodology supportability.
-5. `lotus-report` owns proof-pack and reporting batch lifecycle.
-6. `lotus-archive` owns generated-document metadata, controlled download, retention, legal-hold,
+5. `lotus-manage` owns proof-pack generation, immutable proof-pack JSON, section states, hashes,
+   Markdown, report-input payloads, and AI-evidence payloads under RFC-0040.
+6. `lotus-report` owns report materialization and reporting batch lifecycle.
+7. `lotus-archive` owns generated-document metadata, controlled download, retention, legal-hold,
    and access audit.
-7. `lotus-ai` owns optional governed narrative generation and task-flow posture.
-8. `lotus-workbench` owns the product experience and must render Gateway truth.
+8. `lotus-ai` owns optional governed narrative generation and task-flow posture.
+9. `lotus-workbench` owns the product experience and must render Gateway truth.
 
 If Workbench stitches every service directly, the product becomes brittle and uncertifiable. If
 `lotus-manage` calls risk/performance/report/archive/AI directly for the command-center screen,
@@ -139,7 +143,7 @@ Gateway is the correct experience API and composition boundary.
 2. Gateway does not calculate risk. That belongs to `lotus-risk`.
 3. Gateway does not calculate performance. That belongs to `lotus-performance`.
 4. Gateway does not own source portfolio data. That belongs to `lotus-core`.
-5. Gateway does not generate proof packs. That belongs to `lotus-report`.
+5. Gateway does not generate, hash, or reconstruct proof packs. That belongs to `lotus-manage`.
 6. Gateway does not own archived documents. That belongs to `lotus-archive`.
 7. Gateway does not generate investment narratives. That belongs to `lotus-ai`.
 8. Gateway does not implement the UI. That belongs to `lotus-workbench`.
@@ -157,7 +161,8 @@ flowchart LR
     Manage[lotus-manage<br/>mandate health and DPM operating state] --> Gateway
     Risk[lotus-risk<br/>risk analytics data products] --> Gateway
     Performance[lotus-performance<br/>performance analytics data products] --> Gateway
-    Report[lotus-report<br/>proof packs and report batches] --> Gateway
+    ManageProof[lotus-manage<br/>proof packs and handoff inputs] --> Gateway
+    Report[lotus-report<br/>report materialization and batches] --> Gateway
     Archive[lotus-archive<br/>document metadata and downloads] --> Gateway
     AI[lotus-ai<br/>governed narrative and task-flow posture] --> Gateway
     Gateway --> Workbench[lotus-workbench<br/>DPM command center]
@@ -187,7 +192,8 @@ meaning.
 | Manage health/action state | Mandate Operating State |
 | Risk calculations | Risk Posture |
 | Performance calculations | Performance Posture |
-| Report batches/proof packs | Proof and Reporting |
+| Manage proof packs and handoff inputs | Proof-Pack Evidence |
+| Report materialization and batches | Reporting |
 | Archive records | Evidence Archive |
 | AI workflow/task flow | Narrative Support |
 
@@ -200,10 +206,10 @@ Gateway must retain source ownership in evidence and operations sections.
 | App | Responsibility in command center | Required contribution | Gateway handling | Must not do |
 | --- | --- | --- | --- | --- |
 | `lotus-core` | Source-of-record portfolio data products | portfolio snapshot, mandate binding, model target, eligibility, tax lots, market data coverage, DPM source readiness, lineage | source readiness, mandate identity, source evidence | DPM health scoring or UI composition |
-| `lotus-manage` | DPM mandate operating layer | digital twin, health score, health dimensions, exceptions, action eligibility, rebalance readiness, simulation handoff refs | DPM operating state and action affordances | risk/performance calculation ownership |
+| `lotus-manage` | DPM mandate operating layer and proof-pack authority | digital twin, health score, health dimensions, exceptions, action eligibility, rebalance readiness, simulation handoff refs, proof-pack JSON, section states, hashes, Markdown, report-input payload, AI-evidence payload | DPM operating state, action affordances, proof-pack evidence module | risk/performance calculation ownership, report rendering, AI memo generation |
 | `lotus-risk` | Certified risk analytics | concentration, drawdown, liquidity/stress where available, active risk, risk attribution, calculation supportability | risk posture and degraded risk state | DPM workflow ownership |
 | `lotus-performance` | Certified performance analytics | return path, contribution, attribution, benchmark-relative performance, horizon trend, calculation supportability | performance posture and degraded performance state | DPM workflow ownership |
-| `lotus-report` | Proof pack and report lifecycle | latest proof pack, report batch status, materialization status, recovery state | proof/reporting module | command-center composition |
+| `lotus-report` | Report materialization lifecycle | report batch status, materialization status, recovery state, generated report refs | reporting module | proof-pack authority or command-center composition |
 | `lotus-archive` | Generated-document archive | document metadata, controlled download links, retention/access posture | evidence archive refs only | analytics or workflow decisioning |
 | `lotus-ai` | Governed narrative support | optional PM narrative, task-flow posture, handoff refs | optional narrative support module | source-of-truth analytics or action authority |
 | `lotus-gateway` | Experience API | stable DPM command-center contract, supportability normalization, audit, metrics, diagnostics | owns product contract | domain calculation ownership |
@@ -226,7 +232,8 @@ for missing fields rather than inventing local synthetic truth.
 | Rebalance readiness | simulation eligibility, blocked reasons, active run refs | `lotus-manage` | yes | simulate action disabled |
 | Risk posture | concentration, drawdown, liquidity/stress if available, risk attribution | `lotus-risk` | no for first route availability, yes for gold business proof | risk module degraded/not-supported |
 | Performance posture | return path, contribution, attribution, benchmark-relative signals | `lotus-performance` | no for first route availability, yes for gold business proof | performance module degraded/not-supported |
-| Proof/reporting | proof pack readiness, report batch status, latest report refs | `lotus-report` | no for first route availability, yes before demo claim | proof module degraded/not-supported |
+| Proof-pack evidence | proof-pack readiness, section states, hashes, Markdown, report-input readiness, AI-evidence readiness | `lotus-manage` RFC-0040 | no for first route availability, yes before demo claim | proof module degraded/not-supported |
+| Reporting | report batch status, materialization state, latest report refs | `lotus-report` | no for first route availability, yes before report-demo claim | reporting module degraded/not-supported |
 | Archive evidence | generated document metadata, controlled download refs | `lotus-archive` | no for first route availability, yes when proof refs exist | archive refs omitted with reason |
 | Narrative support | bounded PM summary, AI task-flow posture | `lotus-ai` | no | narrative module omitted unless requested and available |
 
@@ -291,6 +298,43 @@ Gateway implementation must not begin until it validates the current manage Open
 construction endpoint family and confirms whether additional downstream action fields are required
 for Workbench. Missing fields should be raised against `lotus-manage`; Gateway must not infer them.
 
+### 8.0A RFC-0040 Proof-Pack Realization Addendum
+
+RFC-0098 must also realize `lotus-manage` RFC-0040 proof-pack contracts after manage contracts are
+stable. Gateway is the Workbench-facing composition boundary, not the proof-pack authority.
+
+Business outcome:
+
+1. portfolio managers can see proof-pack readiness and review evidence without leaving the DPM
+   command center,
+2. compliance, operations, and audit can inspect proof-pack hashes, section states, lineage, and
+   generated handoff refs,
+3. sales/pre-sales can demonstrate proof-backed discretionary management without implying Gateway
+   or Workbench recomputes proof-pack evidence.
+
+Gateway responsibility:
+
+1. consume `lotus-manage` `POST /api/v1/rebalance/proof-packs`,
+   `GET /api/v1/rebalance/proof-packs/{proof_pack_id}`,
+   `GET /api/v1/rebalance/proof-packs/{proof_pack_id}/summary.md`,
+   `GET /api/v1/rebalance/proof-packs/{proof_pack_id}/report-input`, and
+   `GET /api/v1/rebalance/proof-packs/{proof_pack_id}/ai-evidence-input`,
+2. preserve manage `proof_pack_id`, `content_hash`, `source_hashes`, section states, reason codes,
+   lineage refs, report-input refs, and AI-evidence refs,
+3. expose Workbench-ready proof-pack summary, readiness, Markdown, and evidence-drawer contracts,
+4. compose report materialization posture from `lotus-report` separately from proof-pack authority,
+5. compose optional AI memo/task posture from `lotus-ai` separately from manage AI-evidence input,
+6. return degraded or unavailable module state when manage proof-pack APIs are unavailable.
+
+Gateway must not:
+
+1. rebuild proof-pack sections from raw source services,
+2. recalculate proof-pack hashes,
+3. generate report-input or AI-evidence payloads locally,
+4. treat `lotus-report` as the proof-pack authority,
+5. expose Workbench action eligibility for proof-pack generation unless manage source readiness and
+   entitlement posture support it.
+
 ### 8.1 Endpoint Family
 
 Gateway must expose one strategic route family:
@@ -316,7 +360,7 @@ routes, remove them before promoting the feature because the surface is pre-live
 | `model_portfolio_id` | string | no | book route | Optional model portfolio filter. | `MODEL_PB_SG_GLOBAL_BAL_DPM` |
 | `mandate_state` | enum | no | book route | Filter by `ready`, `attention_required`, `blocked`, `stale`, `degraded`, `not_supported`. | `attention_required` |
 | `severity` | enum | no | book route | Filter by `critical`, `high`, `medium`, `low`. | `high` |
-| `include` | CSV enum | no | all read routes | Optional modules: `core`, `manage`, `risk`, `performance`, `reporting`, `archive`, `ai`, `evidence`. | `core,manage,risk,performance` |
+| `include` | CSV enum | no | all read routes | Optional modules: `core`, `manage`, `risk`, `performance`, `proof_pack`, `reporting`, `archive`, `ai`, `evidence`. | `core,manage,risk,performance,proof_pack` |
 
 ### 8.3 Command-Center Module Taxonomy
 
@@ -326,9 +370,10 @@ All responses must use these module identifiers consistently:
 2. `mandate_operating_state`
 3. `risk_posture`
 4. `performance_posture`
-5. `proof_and_reporting`
-6. `evidence_archive`
-7. `narrative_support`
+5. `proof_pack_evidence`
+6. `reporting`
+7. `evidence_archive`
+8. `narrative_support`
 
 Module state values:
 
@@ -389,7 +434,8 @@ Module state values:
         "mandate_operating_state": "attention_required",
         "risk_posture": "ready",
         "performance_posture": "attention_required",
-        "proof_and_reporting": "ready"
+        "proof_pack_evidence": "ready",
+        "reporting": "ready"
       },
       "recommended_actions": [
         {
@@ -411,6 +457,7 @@ Module state values:
     "domain_products": [
       "DpmSourceReadiness:v1",
       "DpmMandateHealth:v1",
+      "DpmPreTradeProofPack:v1",
       "RiskConcentration:v1",
       "PerformanceAttribution:v1"
     ]
@@ -428,7 +475,8 @@ Module state values:
 | `mandate_operating_state` | digital twin state, drift dimensions, constraints, restrictions, cash posture, rebalance readiness, workflow gates, active run refs |
 | `risk_posture` | concentration state, drawdown state, liquidity/stress state where available, active risk, risk attribution, calculation supportability |
 | `performance_posture` | return path state, contribution, attribution, benchmark-relative state, horizon trend, calculation supportability |
-| `proof_and_reporting` | proof-pack readiness, report batch state, latest generated report refs, blocked/degraded report reasons |
+| `proof_pack_evidence` | proof-pack readiness, proof-pack id, section states, content hash, source hashes, Markdown ref, report-input ref, AI-evidence ref, blocked/degraded proof reasons |
+| `reporting` | report batch state, materialization state, latest generated report refs, blocked/degraded report reasons |
 | `evidence_archive` | archive refs, document metadata refs, controlled download refs, retention/access posture |
 | `narrative_support` | optional AI summary, task-flow posture, handoff refs, bounded supportability |
 | `recommended_actions` | review, simulate, generate proof pack, investigate source, investigate risk, investigate performance, defer, escalate |

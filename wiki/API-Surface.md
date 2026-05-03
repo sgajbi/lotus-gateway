@@ -49,6 +49,9 @@
   `supportability.feature_key=report.observability.evidence_surface_supportability` from
   `lotus-report` integration capabilities so Workbench can record report evidence-surface
   freshness and supportability without direct service coupling
+- RFC-0098 proof-pack composition must consume `lotus-manage` RFC-0040 proof-pack APIs for
+  proof-pack JSON, section states, hashes, Markdown, report-input payloads, and AI-evidence
+  payloads; `lotus-report` remains report materialization authority, not proof-pack authority
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management
