@@ -16,6 +16,9 @@
   context and agent guidance system
 - RFC-0082
   upstream contract-family classification and boundary hardening
+- RFC-0098
+  proposed DPM command-center composition contract over core, manage, risk, performance, report,
+  archive, and AI domain products
 
 ## Local references
 
