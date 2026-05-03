@@ -52,6 +52,12 @@
 - RFC-0098 proof-pack composition must consume `lotus-manage` RFC-0040 proof-pack APIs for
   proof-pack JSON, section states, hashes, Markdown, report-input payloads, and AI-evidence
   payloads; `lotus-report` remains report materialization authority, not proof-pack authority
+- RFC-0098 wave composition must consume `lotus-manage` RFC-0041 wave APIs for preview, create,
+  source-check, simulation, selection, approval, staging, handoff, and supportability. Target
+  Gateway routes belong under `/api/v1/dpm/command-center/waves*`, preserve manage `wave_id`,
+  item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, and
+  supportability refs, and must not calculate affected portfolios, readiness, alternatives,
+  proof-pack state, or external execution posture.
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management

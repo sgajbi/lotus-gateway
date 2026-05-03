@@ -18,7 +18,9 @@
   upstream contract-family classification and boundary hardening
 - RFC-0098
   proposed DPM command-center composition contract over core, manage, risk, performance, report,
-  archive, and AI domain products
+  archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for
+  Gateway wave composition, supportability, action eligibility, and proof requirements without
+  making Gateway the wave authority
 
 ## Local references
 

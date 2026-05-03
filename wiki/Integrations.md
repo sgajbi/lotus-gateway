@@ -19,8 +19,9 @@
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, and RFC-0040
   proof-pack authority APIs. RFC-0098 proposes the next strategic Gateway DPM command-center
-  family that composes manage mandate health and proof-pack evidence with core, risk, performance,
-  report materialization, archive, and optional AI posture
+  family that composes manage mandate health, RFC-0041 rebalance-wave orchestration, and
+  proof-pack evidence with core, risk, performance, report materialization, archive, and optional
+  AI posture
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -67,6 +68,6 @@
 8. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise` or
    `lotus-manage` directly for proposal or management workflow data
 9. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
-   the DPM operating-state and proof-pack authority, `lotus-report` remains report materialization
-   authority, `lotus-risk` and `lotus-performance` remain analytics authorities, and Workbench
-   remains a renderer of Gateway truth.
+   the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
+   materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
+   and Workbench remains a renderer of Gateway truth.
