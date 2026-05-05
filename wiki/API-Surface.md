@@ -13,6 +13,9 @@
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
 - `GET /api/v1/portfolio/*`
+- `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
+- `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
+- `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
@@ -60,11 +63,14 @@
   proof-pack state, or external execution posture.
 - RFC-0098 outcome-review composition must consume `lotus-manage` RFC-0042 outcome-review APIs
   for preview, durable create, search, detail, source refresh, supportability, report input, AI
-  evidence input, run lookup, and wave lookup. Target Gateway routes belong under
-  `/api/v1/dpm/command-center/outcome-reviews*`, preserve manage `outcome_review_id`, state,
-  dimension outcomes, expected values, realized values, variance, tolerances, source refs, source
-  hashes, freshness, report-input posture, AI-evidence posture, and remediation routes, and must
-  not recompute outcome truth, generate reports, generate AI narrative, or infer PM quality.
+  evidence input, run lookup, and wave lookup. Gateway now exposes the first implementation-backed
+  outcome-review BFF route family under `/api/v1/dpm/command-center/outcome-reviews*`,
+  `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
+  `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. These routes preserve manage
+  `outcome_review_id`, state, dimension outcomes, expected values, realized values, variance,
+  tolerances, source refs, source hashes, freshness, report-input posture, AI-evidence posture,
+  remediation routes, and supportability. They do not recompute outcome truth, generate reports,
+  generate AI narrative, infer PM quality, or let Workbench bypass Gateway.
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management
@@ -91,8 +97,9 @@
 - proposal writes require `Idempotency-Key`
 - proposal simulation, create, list, detail, version, workflow-event, approval, and lineage routes
   call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
-- gateway calls `lotus-manage` only for discretionary management run lookup, supportability
-  summary, and capability posture through versioned `/api/v1/*` paths
+- gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
+  management run lookup, supportability summary, capability posture, and RFC-0042
+  outcome-review authority APIs
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
   operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
   `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:
@@ -225,6 +232,22 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/portfolio-reviews" \
   -H "X-Booking-Center-Code: SG" \
   -H "X-Role: advisor" \
   -d "{\"portfolio_scope\":{\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"]},\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"json\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"benchmark_code\":\"BMK_PB_GLOBAL_BALANCED_60_40\"}}"
+```
+
+DPM outcome-review create:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc42-outcome-review-1" \
+  -d "{\"body\":{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"rebalance_run_id\":\"rr_20260415_001\",\"proof_pack_id\":\"ppack_20260415_001\",\"requested_by\":\"dpm_sg_1\"}}"
+```
+
+DPM outcome-review supportability:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/supportability" \
+  -H "X-Correlation-Id: corr-rfc42-supportability-1"
 ```
 
 Report job status:

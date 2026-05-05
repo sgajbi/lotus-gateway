@@ -11,8 +11,8 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     api_surface = (ROOT / "wiki" / "API-Surface.md").read_text(encoding="utf-8")
     integrations = (ROOT / "wiki" / "Integrations.md").read_text(encoding="utf-8")
 
-    assert "RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED" in rfc
-    assert "RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED" in index
+    assert "RFC-0042 OUTCOME-REVIEW BFF ROUTES IMPLEMENTED" in rfc
+    assert "RFC-0042 OUTCOME-REVIEW BFF ROUTES IMPLEMENTED" in index
     assert "`lotus-manage` RFC-0040" in rfc
     assert "`lotus-manage` RFC-0041" in rfc
     assert "`lotus-manage` RFC-0042" in rfc
@@ -25,6 +25,8 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "DpmPreTradeProofPack:v1" in rfc
     assert "RFC-0042 Post-Trade Outcome Review Addendum" in rfc
     assert "`GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`" in rfc
+    assert "`GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`" in rfc
+    assert "`GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`" in rfc
     assert "outcome_review_summary" in rfc
     assert "dimension_outcomes" in rfc
     assert "not recompute outcome truth" in api_surface

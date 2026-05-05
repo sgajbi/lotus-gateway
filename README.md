@@ -41,7 +41,8 @@ It depends on:
 - `lotus-advise`
   proposal simulation, persisted proposal lifecycle, workflow, approval, and lineage capability
 - `lotus-manage`
-  discretionary management run lookup, supportability summary, and platform capability posture
+  discretionary management run lookup, supportability summary, platform capability posture, and
+  RFC-0042 post-trade outcome-review authority through the DPM command-center BFF routes
 - `lotus-report`
   reporting snapshot, summary, review payloads, durable report job lifecycle/search, and
   RFC-0104 batch materialization/status/control/operator-run APIs
@@ -88,6 +89,10 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/intake/*`, `/api/v1/lookups/*`
 - `portfolio`
   `/api/v1/portfolio/*`
+- `dpm-command-center`
+  `/api/v1/dpm/command-center/outcome-reviews*`,
+  `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
+  `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `workbench`
   `/api/v1/workbench/*`
 - `reporting`
@@ -240,6 +245,10 @@ Important current parameter conventions:
    `panel=advisor-brief` and `operation=advisor_brief.summary`; upstream `401` and `403` outcomes
    are recorded as permission-blocked denials without portfolio, client, prompt, response-body,
    trace, or raw entitlement fields
+13. DPM command-center outcome-review routes under
+   `/api/v1/dpm/command-center/outcome-reviews*` consume `lotus-manage` RFC-0042 APIs and preserve
+   manage-owned `outcome_review_id`, state, supportability, lineage, hashes, report-input payloads,
+   and AI-evidence payloads without recomputing expected-versus-realized outcome truth
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -252,8 +261,9 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   `lotus-archive`, `lotus-ai`
 - downstream ownership rule:
   proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
-  `GET /api/v1/rebalance/runs`, `GET /api/v1/rebalance/supportability/summary`, and
-  `GET /api/v1/platform/capabilities`
+  certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
+  platform capabilities, and RFC-0042 outcome-review preview/create/search/detail/source-refresh,
+  supportability, report-input, AI-evidence, run lookup, and wave lookup
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority

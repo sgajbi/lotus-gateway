@@ -13,6 +13,7 @@ from app.middleware.correlation import correlation_id_var, correlation_middlewar
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
 from app.routers.archive_documents import router as archive_documents_router
 from app.routers.domain_products import router as domain_products_router
+from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
@@ -67,6 +68,13 @@ app = FastAPI(
                 "Protected operator analytics UI diagnostics lookup with bounded audit posture."
             ),
         },
+        {
+            "name": "DPM Command Center",
+            "description": (
+                "Gateway BFF composition APIs for DPM rebalance-wave and post-trade "
+                "outcome-review workflows backed by lotus-manage authority."
+            ),
+        },
     ],
 )
 setup_logging()
@@ -80,6 +88,7 @@ app.include_router(domain_products_router)
 app.include_router(intake_router)
 app.include_router(foundation_router)
 app.include_router(portfolio_router)
+app.include_router(dpm_command_center_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)
