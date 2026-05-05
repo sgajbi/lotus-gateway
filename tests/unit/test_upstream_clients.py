@@ -2035,9 +2035,7 @@ async def test_reporting_client_outcome_review_report_job_route_forwards_governe
     assert _FakeAsyncClient.calls[0]["json"] == {
         "outcome_report_input": {"outcome_review_id": "dor_001"}
     }
-    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == (
-        "outcome-review-dor_001-pdf"
-    )
+    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == ("outcome-review-dor_001-pdf")
     assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "advisor-123"
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-outcome-report"
 
