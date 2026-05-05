@@ -6,6 +6,14 @@ from app.middleware.correlation import propagation_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
+_MANAGE_CAPABILITIES_CONSUMERS = {
+    "lotus-gateway",
+    "lotus-performance",
+    "lotus-manage",
+    "UI",
+    "UNKNOWN",
+}
+
 
 class DpmClient:
     def __init__(
@@ -174,11 +182,16 @@ class DpmClient:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        manage_consumer_system = (
+            consumer_system
+            if consumer_system in _MANAGE_CAPABILITIES_CONSUMERS
+            else "lotus-gateway"
+        )
         return await self._get(
-            "/api/v1/platform/capabilities",
-            params={"consumerSystem": consumer_system, "tenantId": tenant_id},
+            "/api/v1/integration/capabilities",
+            params={"consumer_system": manage_consumer_system, "tenant_id": tenant_id},
             headers=self._headers(correlation_id),
-            operation="manage.platform.capabilities",
+            operation="manage.integration.capabilities",
         )
 
     def _headers(

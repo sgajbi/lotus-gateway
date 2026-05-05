@@ -723,6 +723,7 @@ async def test_platform_capabilities_timeout_budget_preserves_partial_response()
     assert response.data.normalized.navigation["performance_workspace"] is False
     assert response.data.normalized.module_health["lotus_performance"] == "unavailable"
     assert {error.service for error in response.data.errors} == {"lotus_performance"}
+    assert response.data.errors[0].detail == "upstream_exception:TimeoutError"
 
 
 @pytest.mark.asyncio
