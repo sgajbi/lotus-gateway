@@ -104,3 +104,98 @@ def test_dpm_command_center_outcome_review_error_is_not_marked_supported(monkeyp
     assert response.status_code == 404
     assert response.json()["detail"]["error_code"] == "MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR"
     assert response.json()["detail"]["detail"] == "outcome review not found"
+
+
+def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_outcome_review_ai_evidence_input(
+        self,
+        outcome_review_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["manage"] = {
+            "outcome_review_id": outcome_review_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, _outcome_ai_evidence(outcome_review_id)
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        _ = self
+        captured["ai"] = kwargs
+        return 200, {
+            "execution": {
+                "status": "COMPLETED",
+                "audit": {"workflow_pack_run_id": "packrun_or_1"},
+                "result": {
+                    "structured_output": {
+                        "outcome_review_narrative_status": "REVIEW_REQUIRED",
+                        "evidence_content_hash": "sha256:or_1-ai-evidence",
+                    }
+                },
+            },
+            "workflow_pack_run": {
+                "run_id": "packrun_or_1",
+                "workflow_authority_owner": "lotus-manage",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_outcome_review_ai_evidence_input",
+        _fake_get_outcome_review_ai_evidence_input,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/outcome-reviews/or_1/ai-narrative",
+        json={"requested_outputs": ["pm_summary", "evidence_gaps"], "audience": ["pm"]},
+        headers={"X-Correlation-Id": "corr-ai-router-1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert captured["manage"] == {
+        "outcome_review_id": "or_1",
+        "correlation_id": "corr-ai-router-1",
+    }
+    ai_call = captured["ai"]
+    assert ai_call["pack_id"] == "outcome_review_narrative.pack"
+    assert ai_call["correlation_id"] == "corr-ai-router-1"
+    assert ai_call["task_request"]["caller"]["caller_app"] == "lotus-gateway"
+    assert payload["source_service"] == "lotus-ai"
+    assert payload["evidence_source_service"] == "lotus-manage"
+    assert payload["ai_evidence_input"]["content_hash"] == "sha256:or_1-ai-evidence"
+    assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
+def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
+    return {
+        "contract_version": "1.0",
+        "outcome_review_id": outcome_review_id,
+        "outcome_review_content_hash": "sha256:outcome-review",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "proof_pack_id": "pp_1",
+        "permitted_use": "Draft support-only PM, CIO, compliance, and operations narratives.",
+        "forbidden_actions": [
+            "place_orders",
+            "approve_rebalance",
+            "override_controls",
+            "invent_missing_evidence",
+            "score_portfolio_manager",
+            "contact_client",
+        ],
+        "forbidden_fields_removed": [],
+        "overall_outcome": "Implemented rebalance stayed inside expected bands.",
+        "dimensions": [{"dimension": "cash", "state": "MATCHED"}],
+        "source_refs": [],
+        "evidence_ref": {
+            "source_id": f"{outcome_review_id}:dpm_outcome_ai_evidence_input",
+            "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
+        },
+        "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
+    }

@@ -30,6 +30,28 @@ class DpmOutcomeReviewRefreshRequest(BaseModel):
     )
 
 
+class DpmOutcomeReviewNarrativeRequest(BaseModel):
+    requested_outputs: list[str] = Field(
+        default_factory=lambda: [
+            "pm_summary",
+            "cio_summary",
+            "control_summary",
+            "evidence_gaps",
+        ],
+        description=(
+            "Support-only narrative sections requested from lotus-ai. Gateway forwards these "
+            "requests to the governed outcome-review narrative workflow pack and does not allow "
+            "trade approval, client messaging, PM scoring, or execution instructions."
+        ),
+        examples=[["pm_summary", "cio_summary", "control_summary", "evidence_gaps"]],
+    )
+    audience: list[str] = Field(
+        default_factory=lambda: ["portfolio_manager", "cio_office", "investment_control"],
+        description="Intended internal audience labels for the generated support-only narrative.",
+        examples=[["portfolio_manager", "cio_office", "investment_control"]],
+    )
+
+
 class DpmOutcomeReviewSupportability(BaseModel):
     source_service: str = Field(
         default="lotus-manage",
@@ -112,6 +134,60 @@ class DpmOutcomeReviewGatewayResponse(BaseModel):
                 ],
             }
         ],
+    )
+
+
+class DpmOutcomeReviewNarrativeGatewayResponse(BaseModel):
+    correlation_id: str = Field(
+        description="Correlation identifier propagated across Gateway, lotus-manage, and lotus-ai.",
+        examples=["corr-rfc42-outcome-review-narrative-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway BFF contract version for outcome-review AI narrative handoff.",
+        examples=["v1"],
+    )
+    source_service: str = Field(
+        default="lotus-ai",
+        description="Service that executed the governed narrative workflow pack.",
+        examples=["lotus-ai"],
+    )
+    evidence_source_service: str = Field(
+        default="lotus-manage",
+        description="Service that supplied the bounded DPM outcome-review AI evidence input.",
+        examples=["lotus-manage"],
+    )
+    manage_upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage for the AI evidence input read.",
+        examples=[200],
+    )
+    ai_upstream_status: int = Field(
+        description="HTTP status returned by lotus-ai for workflow-pack execution.",
+        examples=[200],
+    )
+    supportability: DpmOutcomeReviewSupportability = Field(
+        description="Manage-derived supportability summary for the source AI evidence handoff.",
+    )
+    ai_evidence_input: dict[str, object] = Field(
+        description=(
+            "Manage-owned DpmOutcomeAiEvidenceInput used as the sole source for narrative "
+            "generation. Gateway preserves it without adding facts or removing guardrails."
+        ),
+    )
+    narrative_request: dict[str, object] = Field(
+        description="Bounded narrative request forwarded to lotus-ai with support-only outputs.",
+        examples=[
+            {
+                "requested_outputs": ["pm_summary", "cio_summary", "control_summary"],
+                "audience": ["portfolio_manager", "cio_office"],
+            }
+        ],
+    )
+    data: dict[str, object] = Field(
+        description=(
+            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
+            "workflow-pack run posture, review state, and guardrail-supported structured output."
+        ),
     )
 
 

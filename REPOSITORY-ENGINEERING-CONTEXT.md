@@ -35,8 +35,8 @@ Current repository posture:
    with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
    `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, and RFC-0042 outcome-review
-   preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence route
-   families,
+   preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
+   AI-narrative handoff route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
@@ -51,8 +51,12 @@ Current repository posture:
    active under `/api/v1/domain-products`,
 8. upstream service consumption is classified under RFC-0082 in `docs/standards/RFC-0082-upstream-contract-family-map.md`,
 9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
-10. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
-11. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+10. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
+    `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as
+    `lotus-gateway`; manage remains outcome evidence and workflow authority, and Gateway does not
+    generate narrative locally,
+11. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+12. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
     fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
