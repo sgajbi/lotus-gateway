@@ -58,6 +58,13 @@
   item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, and
   supportability refs, and must not calculate affected portfolios, readiness, alternatives,
   proof-pack state, or external execution posture.
+- RFC-0098 outcome-review composition must consume `lotus-manage` RFC-0042 outcome-review APIs
+  for preview, durable create, search, detail, source refresh, supportability, report input, AI
+  evidence input, run lookup, and wave lookup. Target Gateway routes belong under
+  `/api/v1/dpm/command-center/outcome-reviews*`, preserve manage `outcome_review_id`, state,
+  dimension outcomes, expected values, realized values, variance, tolerances, source refs, source
+  hashes, freshness, report-input posture, AI-evidence posture, and remediation routes, and must
+  not recompute outcome truth, generate reports, generate AI narrative, or infer PM quality.
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management

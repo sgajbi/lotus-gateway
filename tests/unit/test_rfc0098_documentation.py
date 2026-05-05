@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_rfc0098_ownership_matches_manage_rfc0040_and_rfc0041() -> None:
+def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     rfc = (
         ROOT / "docs" / "rfcs" / "RFC-0098-dpm-command-center-composition-contract.md"
     ).read_text(encoding="utf-8")
@@ -11,10 +11,11 @@ def test_rfc0098_ownership_matches_manage_rfc0040_and_rfc0041() -> None:
     api_surface = (ROOT / "wiki" / "API-Surface.md").read_text(encoding="utf-8")
     integrations = (ROOT / "wiki" / "Integrations.md").read_text(encoding="utf-8")
 
-    assert "RFC-0041 WAVE ORCHESTRATION ALIGNED" in rfc
-    assert "RFC-0041 WAVE ORCHESTRATION ALIGNED" in index
+    assert "RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED" in rfc
+    assert "RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED" in index
     assert "`lotus-manage` RFC-0040" in rfc
     assert "`lotus-manage` RFC-0041" in rfc
+    assert "`lotus-manage` RFC-0042" in rfc
     assert "Gateway must not" in rfc
     assert "treat `lotus-report` as the proof-pack authority" in rfc
     assert "calculate affected portfolios, source readiness, aggregate metrics" in rfc
@@ -22,6 +23,12 @@ def test_rfc0098_ownership_matches_manage_rfc0040_and_rfc0041() -> None:
     assert "proof_pack_evidence" in rfc
     assert "wave_summary" in rfc
     assert "DpmPreTradeProofPack:v1" in rfc
+    assert "RFC-0042 Post-Trade Outcome Review Addendum" in rfc
+    assert "`GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`" in rfc
+    assert "outcome_review_summary" in rfc
+    assert "dimension_outcomes" in rfc
+    assert "not recompute outcome truth" in api_surface
+    assert "outcome reviews remain `lotus-manage` truth" in integrations
     assert "proof-pack authority APIs" in integrations
     assert "RFC-0041 rebalance-wave orchestration" in integrations
     assert "not proof-pack authority" in api_surface
