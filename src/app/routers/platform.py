@@ -53,6 +53,7 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
         contract_version=settings.contract_version,
+        source_timeout_seconds=settings.platform_capabilities_source_timeout_seconds,
     )
 
 

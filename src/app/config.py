@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     archive_service_base_url: str = Field(default="http://archive.dev.lotus")
     management_service_base_url: str = Field(default="http://manage.dev.lotus")
     upstream_timeout_seconds: float = Field(default=3.0)
+    platform_capabilities_source_timeout_seconds: float = Field(default=5.0)
     performance_analytics_timeout_seconds: float = Field(default=15.0)
     ai_service_timeout_seconds: float = Field(default=45.0)
     upstream_max_retries: int = Field(default=2)

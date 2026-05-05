@@ -142,7 +142,7 @@ class PlatformCapabilitiesService:
                     CapabilitySourceError(
                         service=service_name,
                         status_code=500,
-                        detail=f"upstream_exception: {result}",
+                        detail=self._exception_detail(result),
                     )
                 )
                 continue
@@ -167,7 +167,7 @@ class PlatformCapabilitiesService:
                 CapabilitySourceError(
                     service="lotus_core_policy",
                     status_code=500,
-                    detail=f"upstream_exception: {lotus_core_policy_result}",
+                    detail=self._exception_detail(lotus_core_policy_result),
                 )
             )
         else:
@@ -726,7 +726,7 @@ class PlatformCapabilitiesService:
                 CapabilitySourceError(
                     service=gateway_source_name,
                     status_code=500,
-                    detail=f"upstream_exception: {result}",
+                    detail=self._exception_detail(result),
                 )
             )
             return
@@ -741,3 +741,10 @@ class PlatformCapabilitiesService:
             )
             return
         sources[gateway_source_name] = payload
+
+    def _exception_detail(self, exc: BaseException) -> str:
+        message = str(exc)
+        exception_type = type(exc).__name__
+        if message:
+            return f"upstream_exception:{exception_type}: {message}"
+        return f"upstream_exception:{exception_type}"

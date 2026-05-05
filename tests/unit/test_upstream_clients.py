@@ -1596,7 +1596,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "tenant_id": "default",
                 "correlation_id": "corr-5",
             },
-            "http://dpm/api/v1/platform/capabilities",
+            "http://dpm/api/v1/integration/capabilities",
         ),
         (
             "list_outcome_reviews",
@@ -1644,6 +1644,31 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
     assert status_code == 200
     assert payload["ok"] is True
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
+    if method_name == "get_capabilities":
+        assert _FakeAsyncClient.calls[0]["params"] == {
+            "consumer_system": "lotus-gateway",
+            "tenant_id": "default",
+        }
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_capabilities_uses_gateway_consumer_for_manage_contract():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, payload = await client.get_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-sg",
+        correlation_id="corr-workbench",
+    )
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["url"] == "http://dpm/api/v1/integration/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "tenant-sg",
+    }
 
 
 @pytest.mark.asyncio
