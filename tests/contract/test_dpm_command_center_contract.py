@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
 
-from app.contracts.dpm_command_center import DpmOutcomeReviewGatewayResponse
+from app.contracts.dpm_command_center import (
+    DpmOutcomeReviewGatewayResponse,
+    DpmOutcomeReviewNarrativeGatewayResponse,
+)
 from app.main import app
 
 
@@ -26,6 +29,29 @@ def test_dpm_outcome_review_gateway_response_contract_shape() -> None:
     assert response.data["outcome_review_id"] == "or_1"
 
 
+def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
+    response = DpmOutcomeReviewNarrativeGatewayResponse(
+        correlation_id="corr-1",
+        manage_upstream_status=200,
+        ai_upstream_status=200,
+        supportability={"state": "SUPPORTED"},
+        ai_evidence_input={
+            "outcome_review_id": "or_1",
+            "content_hash": "sha256:ai-evidence",
+        },
+        narrative_request={"requested_outputs": ["pm_summary"], "audience": ["pm"]},
+        data={
+            "execution": {"status": "COMPLETED"},
+            "workflow_pack_run": {"workflow_authority_owner": "lotus-manage"},
+        },
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0042"
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
 def test_dpm_command_center_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -38,6 +64,7 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/supportability", "get"),
         ("/api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/report-input", "get"),
         ("/api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-evidence-input", "get"),
+        ("/api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative", "post"),
         ("/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews", "get"),
     ]
@@ -57,6 +84,7 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     spec = client.get("/openapi.json").json()
     schemas = spec["components"]["schemas"]
     response_schema = schemas["DpmOutcomeReviewGatewayResponse"]
+    narrative_response_schema = schemas["DpmOutcomeReviewNarrativeGatewayResponse"]
     supportability_schema = schemas["DpmOutcomeReviewSupportability"]
 
     for property_schema in response_schema["properties"].values():
@@ -65,5 +93,9 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     for property_schema in supportability_schema["properties"].values():
         assert property_schema.get("description")
 
+    for property_schema in narrative_response_schema["properties"].values():
+        assert property_schema.get("description")
+
     assert response_schema["properties"]["data"]["description"]
+    assert narrative_response_schema["properties"]["data"]["description"]
     assert supportability_schema["properties"]["state"]["examples"]

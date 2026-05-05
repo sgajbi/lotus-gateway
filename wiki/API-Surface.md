@@ -16,6 +16,7 @@
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
+- `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `POST /api/v1/reports/outcome-reviews`
@@ -73,8 +74,12 @@
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. These routes preserve manage
   `outcome_review_id`, state, dimension outcomes, expected values, realized values, variance,
   tolerances, source refs, source hashes, freshness, report-input posture, AI-evidence posture,
-  remediation routes, and supportability. They do not recompute outcome truth, generate reports,
-  generate AI narrative, infer PM quality, or let Workbench bypass Gateway.
+  remediation routes, and supportability. Gateway also exposes a governed AI narrative handoff
+  action that reads manage-owned `DpmOutcomeAiEvidenceInput` and calls `lotus-ai`
+  `outcome_review_narrative.pack@v1` as `lotus-gateway`; Gateway must not recompute outcome
+  truth, generate reports, generate AI narrative locally, infer PM quality, approve trades, contact
+  clients, or let Workbench bypass Gateway.
+  In short: Gateway must not recompute outcome truth.
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway
   does not expose schedule CRUD or scheduler registry management
@@ -265,6 +270,15 @@ DPM outcome-review supportability:
 ```bash
 curl "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/supportability" \
   -H "X-Correlation-Id: corr-rfc42-supportability-1"
+```
+
+DPM outcome-review AI narrative handoff:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or_20260415_001/ai-narrative" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc42-outcome-review-ai-narrative" \
+  -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
 ```
 
 Report job status:

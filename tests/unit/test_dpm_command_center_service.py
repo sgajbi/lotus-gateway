@@ -1,6 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
+from app.contracts.dpm_command_center import DpmOutcomeReviewNarrativeRequest
 from app.services.dpm_command_center_service import DpmCommandCenterService
 
 
@@ -21,6 +22,26 @@ class _FakeDpmClient:
                 "correlation_id": correlation_id,
             }
         )
+        return self.result
+
+    async def get_outcome_review_ai_evidence_input(self, outcome_review_id, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "ai_evidence",
+                "outcome_review_id": outcome_review_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+
+class _FakeLotusAiClient:
+    def __init__(self, result: tuple[int, dict]):
+        self.result = result
+        self.calls: list[dict[str, object]] = []
+
+    async def execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        self.calls.append(kwargs)
         return self.result
 
 
@@ -130,4 +151,140 @@ async def test_dpm_command_center_forwards_manage_errors_as_product_safe_detail(
         "upstream_status": 409,
         "error_code": "MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
         "detail": "execution evidence incomplete",
+    }
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_only() -> None:
+    ai_evidence = _outcome_ai_evidence()
+    dpm_client = _FakeDpmClient((200, ai_evidence))
+    ai_client = _FakeLotusAiClient(
+        (
+            200,
+            {
+                "execution": {
+                    "status": "COMPLETED",
+                    "audit": {"workflow_pack_run_id": "packrun_outcome_1"},
+                    "result": {
+                        "structured_output": {
+                            "outcome_review_narrative_status": "REVIEW_REQUIRED",
+                            "evidence_content_hash": "sha256:outcome-ai-evidence-001",
+                        }
+                    },
+                },
+                "workflow_pack_run": {
+                    "run_id": "packrun_outcome_1",
+                    "workflow_authority_owner": "lotus-manage",
+                },
+            },
+        )
+    )
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=dpm_client,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.request_outcome_review_ai_narrative(
+        outcome_review_id="or_1",
+        request=DpmOutcomeReviewNarrativeRequest(
+            requested_outputs=["pm_summary", "evidence_gaps"],
+            audience=["pm"],
+        ),
+        correlation_id="corr-ai-narrative-1",
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.manage_upstream_status == 200
+    assert response.ai_upstream_status == 200
+    assert response.ai_evidence_input == ai_evidence
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert dpm_client.calls == [
+        {
+            "method": "ai_evidence",
+            "outcome_review_id": "or_1",
+            "correlation_id": "corr-ai-narrative-1",
+        }
+    ]
+    [ai_call] = ai_client.calls
+    assert ai_call["pack_id"] == "outcome_review_narrative.pack"
+    assert ai_call["workflow_surface"] == "dpm-outcome-review-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-ai-narrative-1"
+    task_request = ai_call["task_request"]
+    assert task_request["caller"]["caller_app"] == "lotus-gateway"
+    assert task_request["context"]["payload"]["ai_evidence_input"] == ai_evidence
+    assert task_request["context"]["payload"]["narrative_request"] == {
+        "requested_outputs": ["pm_summary", "evidence_gaps"],
+        "audience": ["pm"],
+    }
+    assert "lotus-manage:outcome-review:or_1" in task_request["context"]["source_refs"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() -> None:
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient((200, _outcome_ai_evidence())),
+        lotus_ai_client=_FakeLotusAiClient(
+            (
+                422,
+                {
+                    "detail": (
+                        "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED: "
+                        "Forbidden narrative outputs requested: pm_score."
+                    )
+                },
+            )
+        ),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_outcome_review_ai_narrative(
+            outcome_review_id="or_1",
+            request=DpmOutcomeReviewNarrativeRequest(
+                requested_outputs=["pm_score"],
+                audience=["pm"],
+            ),
+            correlation_id="corr-ai-narrative-blocked",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail["source_service"] == "lotus-ai"
+    assert exc_info.value.detail["error_code"] == "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR"
+    assert "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED" in exc_info.value.detail["detail"]
+
+
+def _outcome_ai_evidence() -> dict[str, object]:
+    return {
+        "contract_version": "1.0",
+        "outcome_review_id": "or_1",
+        "outcome_review_content_hash": "sha256:outcome-review-001",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "proof_pack_id": "pp_1",
+        "permitted_use": "Draft support-only PM, CIO, compliance, and operations narratives.",
+        "forbidden_actions": [
+            "place_orders",
+            "approve_rebalance",
+            "override_controls",
+            "invent_missing_evidence",
+            "score_portfolio_manager",
+            "contact_client",
+        ],
+        "forbidden_fields_removed": [],
+        "overall_outcome": "Implemented rebalance stayed inside expected bands.",
+        "dimensions": [{"dimension": "cash", "state": "MATCHED"}],
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "DPM_OUTCOME_AI_EVIDENCE_INPUT",
+                "source_id": "or_1:dpm_outcome_ai_evidence_input",
+                "content_hash": "sha256:outcome-ai-evidence-001",
+            }
+        ],
+        "evidence_ref": {
+            "source_system": "lotus-manage",
+            "source_type": "DPM_OUTCOME_AI_EVIDENCE_INPUT",
+            "source_id": "or_1:dpm_outcome_ai_evidence_input",
+            "content_hash": "sha256:outcome-ai-evidence-001",
+        },
+        "content_hash": "sha256:outcome-ai-evidence-001",
     }

@@ -3,17 +3,21 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_command_center import (
     DpmOutcomeReviewErrorDetail,
     DpmOutcomeReviewGatewayResponse,
+    DpmOutcomeReviewNarrativeGatewayResponse,
+    DpmOutcomeReviewNarrativeRequest,
     DpmOutcomeReviewSupportability,
 )
 
 
 class DpmCommandCenterService:
-    def __init__(self, dpm_client: DpmClient):
+    def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
         self._dpm_client = dpm_client
+        self._lotus_ai_client = lotus_ai_client
 
     async def preview_outcome_review(
         self,
@@ -111,6 +115,100 @@ class DpmCommandCenterService:
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
+    async def request_outcome_review_ai_narrative(
+        self,
+        outcome_review_id: str,
+        request: DpmOutcomeReviewNarrativeRequest,
+        correlation_id: str,
+    ) -> DpmOutcomeReviewNarrativeGatewayResponse:
+        if self._lotus_ai_client is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
+            )
+
+        manage_status, manage_payload = await self._dpm_client.get_outcome_review_ai_evidence_input(
+            outcome_review_id=outcome_review_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=manage_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=manage_status,
+                    error_code="MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(manage_payload),
+                ).model_dump(),
+            )
+
+        supportability = _supportability_from(manage_payload)
+        narrative_request: dict[str, object] = {
+            "requested_outputs": request.requested_outputs,
+            "audience": request.audience,
+        }
+        task_payload = {
+            "ai_evidence_input": manage_payload,
+            "narrative_request": narrative_request,
+            "supportability": {
+                "source_state": supportability.state,
+                "reason_codes": supportability.reason_codes,
+                "blocked_actions": supportability.blocked_actions,
+                "requires_human_review": True,
+                "unsupported_claims": [
+                    "client_contact",
+                    "trade_approval",
+                    "portfolio_manager_scoring",
+                ],
+            },
+        }
+        source_refs = _outcome_ai_source_refs(manage_payload, outcome_review_id)
+        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+            pack_id="outcome_review_narrative.pack",
+            version="v1",
+            environment="DEVELOPMENT",
+            caller_identity_class="INTERNAL_SERVICE",
+            workflow_surface="dpm-outcome-review-ai-evidence",
+            task_request={
+                "task_id": "explain.v1",
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
+                        "Generate review-gated outcome-review narrative from bounded "
+                        f"AI evidence for {outcome_review_id}."
+                    ),
+                    "payload": task_payload,
+                    "source_refs": source_refs,
+                },
+                "expected_output_label": "EXPLANATION_ONLY",
+            },
+            correlation_id=correlation_id,
+        )
+        if ai_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=ai_status,
+                detail={
+                    "source_service": "lotus-ai",
+                    "upstream_status": ai_status,
+                    "error_code": "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR",
+                    "detail": _safe_upstream_detail(ai_payload),
+                },
+            )
+
+        return DpmOutcomeReviewNarrativeGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            manage_upstream_status=manage_status,
+            ai_upstream_status=ai_status,
+            supportability=supportability,
+            ai_evidence_input=manage_payload,
+            narrative_request=narrative_request,
+            data=ai_payload,
+        )
+
     async def get_run_outcome_review(
         self,
         rebalance_run_id: str,
@@ -194,6 +292,18 @@ def _list_of_strings(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
+
+def _outcome_ai_source_refs(payload: dict[str, Any], outcome_review_id: str) -> list[str]:
+    source_refs: list[str] = [f"lotus-manage:outcome-review:{outcome_review_id}"]
+    evidence_ref = payload.get("evidence_ref")
+    if isinstance(evidence_ref, dict):
+        source_id = evidence_ref.get("source_id")
+        if source_id is not None:
+            source_refs.append(f"lotus-manage:outcome-ai-evidence:{source_id}")
+    if len(source_refs) == 1:
+        source_refs.append(f"lotus-manage:outcome-ai-evidence:{outcome_review_id}")
+    return source_refs
 
 
 def _safe_upstream_detail(payload: dict[str, Any]) -> str:
