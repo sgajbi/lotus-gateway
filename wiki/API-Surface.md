@@ -18,6 +18,7 @@
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
+- `POST /api/v1/reports/outcome-reviews`
 - `GET /api/v1/report-jobs` and `GET`/`POST /api/v1/report-jobs/*`
 - `POST /api/v1/report-batches`, `GET /api/v1/report-batches/{batch_id}`, and
   `POST /api/v1/report-batches/{batch_id}:*`
@@ -43,6 +44,9 @@
   `advisor_sections`
 - portfolio review report job initiation uses canonical snake_case body fields and requires
   `Idempotency-Key`
+- outcome-review report job initiation uses manage-owned `DpmOutcomeReportInput` through
+  `/api/v1/reports/outcome-reviews`; Gateway forwards the payload to `lotus-report` and does not
+  recompute outcome truth, render artifacts, or archive documents
 - report job search, status, append-only event history, and cancellation are gateway-first under
   `/api/v1/report-jobs` and `/api/v1/report-jobs/*`
 - report batch materialization, status, pause, resume, cancel, retry-failed,
@@ -232,6 +236,19 @@ curl -X POST "http://127.0.0.1:8111/api/v1/reports/portfolio-reviews" \
   -H "X-Booking-Center-Code: SG" \
   -H "X-Role: advisor" \
   -d "{\"portfolio_scope\":{\"portfolio_ids\":[\"PB_SG_GLOBAL_BAL_001\"]},\"as_of_date\":\"2026-04-22\",\"requested_output_formats\":[\"json\"],\"reporting_currency\":\"USD\",\"options\":{\"sections\":[\"OVERVIEW\",\"PERFORMANCE\",\"RISK_ANALYTICS\"],\"benchmark_code\":\"BMK_PB_GLOBAL_BALANCED_60_40\"}}"
+```
+
+Outcome-review report job:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/reports/outcome-reviews" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: outcome-review-dor_001-pdf" \
+  -H "X-Actor-Id: advisor-123" \
+  -H "X-Caller-Application: lotus-workbench" \
+  -H "X-Tenant-Id: tenant-sg" \
+  -H "X-Region: APAC" \
+  -d "{\"outcome_report_input\":{\"outcome_review_id\":\"dor_001\",\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\",\"review_window\":{\"end_date\":\"2026-04-23\"},\"content_hash\":\"sha256:report-input\"},\"requested_output_formats\":[\"pdf\"]}"
 ```
 
 DPM outcome-review create:

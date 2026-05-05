@@ -413,6 +413,50 @@ class PortfolioReviewJobRequest(BaseModel):
     )
 
 
+class OutcomeReviewReportJobRequest(BaseModel):
+    outcome_report_input: dict[str, Any] = Field(
+        ...,
+        description=(
+            "Manage-owned DpmOutcomeReportInput payload forwarded to lotus-report for governed "
+            "post-trade outcome-review report artifact generation."
+        ),
+        examples=[
+            {
+                "contract_version": "1.0",
+                "outcome_review_id": "dor_001",
+                "outcome_review_content_hash": "sha256:outcome-review",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "proof_pack_id": "dpp_001",
+                "review_window": {"start_date": "2026-04-22", "end_date": "2026-04-23"},
+                "report_title": "Post-Trade Outcome Review - PB_SG_GLOBAL_BAL_001",
+                "state": "READY",
+                "overall_outcome": "Execution outcome aligned with pre-trade proof.",
+                "dimensions": [],
+                "source_lineage": [],
+                "source_hashes": {"realized": "sha256:realized"},
+                "section_hashes": {"proof_pack": "sha256:proof-pack"},
+                "redaction_policy": "NO_RAW_PAYLOADS",
+                "content_hash": "sha256:report-input",
+            }
+        ],
+    )
+    requested_output_formats: list[str] = Field(
+        default_factory=lambda: ["pdf"],
+        description="Requested output formats for the outcome-review report job.",
+        examples=[["pdf"]],
+    )
+    reporting_currency: str | None = Field(
+        default=None,
+        description="Optional reporting currency forwarded to lotus-report.",
+        examples=["USD"],
+    )
+    options: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Output-affecting options such as retention policy or template controls.",
+        examples=[{"retention_policy_id": "generated-report-standard"}],
+    )
+
+
 class ReportJobErrorDetail(BaseModel):
     code: str = Field(
         ...,

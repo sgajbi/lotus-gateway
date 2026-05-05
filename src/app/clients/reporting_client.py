@@ -106,6 +106,26 @@ class ReportingClient:
             headers=headers,
         )
 
+    async def submit_outcome_review_report_job(
+        self,
+        *,
+        payload: dict[str, Any],
+        idempotency_key: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}/reports/outcome-reviews"
+        headers = propagation_headers(correlation_id)
+        headers["Idempotency-Key"] = idempotency_key
+        headers.update(caller_headers)
+        return await self._request(
+            operation="report.outcome-review-jobs.submit",
+            method="POST",
+            url=url,
+            json_body=payload,
+            headers=headers,
+        )
+
     async def get_report_job(
         self,
         *,

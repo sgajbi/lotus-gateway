@@ -44,8 +44,8 @@ It depends on:
   discretionary management run lookup, supportability summary, platform capability posture, and
   RFC-0042 post-trade outcome-review authority through the DPM command-center BFF routes
 - `lotus-report`
-  reporting snapshot, summary, review payloads, durable report job lifecycle/search, and
-  RFC-0104 batch materialization/status/control/operator-run APIs
+  reporting snapshot, summary, review payloads, portfolio-review and outcome-review durable report
+  job initiation/lifecycle/search, and RFC-0104 batch materialization/status/control/operator-run APIs
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
