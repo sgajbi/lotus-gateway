@@ -17,11 +17,13 @@
   proposal simulation, proposal persistence, workflow events, approvals, and lineage through
   `/advisory/proposals/*`
 - `lotus-manage`
-  discretionary management run lookup, supportability summary, capabilities, and RFC-0040
-  proof-pack authority APIs. RFC-0098 proposes the next strategic Gateway DPM command-center
-  family that composes manage mandate health, RFC-0041 rebalance-wave orchestration, and
-  proof-pack evidence with core, risk, performance, report materialization, archive, and optional
-  AI posture
+  discretionary management run lookup, supportability summary, capabilities, RFC-0040
+  proof-pack authority APIs, RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
+  post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
+  command-center contract; the RFC-0042 outcome-review BFF route family is now
+  implementation-backed, while broader mandate health, RFC-0041 wave composition, proof-pack
+  modules, report materialization, archive, and optional AI posture remain governed follow-on
+  slices until implemented and proven
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -74,4 +76,7 @@
 10. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
     compose expected-versus-realized review summaries, dimension outcomes, source lineage,
     supportability, report-input posture, and AI-evidence posture without recomputing outcome
-    values or calling source-owner apps behind manage's review authority.
+    values or calling source-owner apps behind manage's review authority. The implemented Gateway
+    route family is `/api/v1/dpm/command-center/outcome-reviews*`,
+    `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
+    `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.

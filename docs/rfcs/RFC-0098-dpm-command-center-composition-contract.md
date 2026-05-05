@@ -2,7 +2,7 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PROPOSED - RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED |
+| **Status** | PARTIAL IMPLEMENTATION - RFC-0042 OUTCOME-REVIEW BFF ROUTES IMPLEMENTED; BROADER COMMAND CENTER PENDING |
 | **Created** | 2026-05-03 |
 | **Last Tightened** | 2026-05-05 |
 | **Owner** | `lotus-gateway` |
@@ -10,7 +10,7 @@
 | **Business Sponsor Persona** | DPM head, portfolio manager, CIO desk, investment control, operations, sales/pre-sales |
 | **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-manage` RFC-0041, `lotus-manage` RFC-0042, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
 | **Doc Location** | `docs/rfcs/RFC-0098-dpm-command-center-composition-contract.md` |
-| **Implementation Branch** | `feat/rfc0042-outcome-realization` for RFC-0042 realization alignment |
+| **Implementation Branch** | `feat/rfc42-outcome-review-gateway` for RFC-0042 outcome-review BFF realization |
 
 ---
 
@@ -1126,6 +1126,51 @@ To be completed during the final closure slice:
 | Documentation/wiki result | TBD |
 | Remaining governed follow-up | TBD |
 | Gold-standard conclusion | TBD |
+
+---
+
+## 19. Implementation Progress Ledger
+
+This RFC is not fully implemented. The first ledger-driven slice delivered the RFC-0042
+outcome-review route family so Workbench can later consume Gateway/BFF instead of calling
+`lotus-manage` directly.
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented in Gateway feature branch; local CI passed; pending PR/merge/live proof closure | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
+| RFC-0042 manage authority preservation | Implemented for BFF envelope; Gateway forwards payloads and preserves manage supportability | Service tests prove payload preservation and upstream error forwarding; contract tests prove OpenAPI route family registration and What/When/How guidance |
+| Broader RFC-0098 command-center book, mandate detail, evidence, action handoff, wave composition, proof-pack composition, report/archive/AI modules | Not implemented in this slice | Remains governed by this RFC and the work-to-be-done ledger; no supported-feature claim is made |
+
+Implementation boundaries:
+
+1. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
+   `POST /api/v1/dpm/command-center/outcome-reviews`,
+   `GET /api/v1/dpm/command-center/outcome-reviews`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`,
+   `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/refresh-sources`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/supportability`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/report-input`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-evidence-input`,
+   `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
+   `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
+2. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
+   lineage, source freshness, supportability, or review state.
+3. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative,
+   score PM quality, or claim Workbench UI support in this slice.
+4. Workbench product realization remains a separate owning-repository implementation item.
+
+Validation performed on 2026-05-05:
+
+1. Focused changed-surface tests passed: DPM client route tests, DPM command-center service tests,
+   router integration tests, and OpenAPI contract tests.
+2. `make check` passed: lint, format, monetary-float guard, mypy, OpenAPI gate, and 402
+   unit/contract tests.
+3. `make test-integration` passed: 151 integration tests.
+4. `make ci` passed: migration smoke, integration tests, full unit/contract/integration coverage
+   with 88.44 percent total coverage, and `pip-audit` with no known vulnerabilities.
+5. `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway` reported drift for
+   `API-Surface.md`, `Integrations.md`, and `Roadmap.md` because this branch intentionally updates
+   repo-authored wiki source; wiki publication remains a post-merge closure action.
 
 ---
 

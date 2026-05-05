@@ -33,8 +33,10 @@ Current repository posture:
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
    with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
-   `/advisory/proposals/*` and `lotus-manage` limited to versioned run lookup,
-   supportability summary, and capability posture endpoints,
+   `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
+   run lookup, supportability summary, capability posture, and RFC-0042 outcome-review
+   preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence route
+   families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
@@ -180,6 +182,13 @@ Most relevant current governance:
 9. report batch gateway routes are an RFC-0104 API/operator boundary only; Workbench batch UI,
    RFC-0105 replay/dashboard operations, and RFC-0106 entitlement certification remain separate
    implementation scopes until explicitly delivered and proven.
+10. RFC-0042 outcome-review Gateway routes are active under
+    `/api/v1/dpm/command-center/outcome-reviews*`,
+    `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
+    `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. Gateway composes a BFF envelope
+    and supportability summary over manage truth, but it must not recompute outcome dimensions,
+    generate reports, generate AI narrative, infer PM quality, or let Workbench call manage
+    directly.
 
 ## Context Maintenance Rule
 

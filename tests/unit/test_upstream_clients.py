@@ -1598,6 +1598,41 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             },
             "http://dpm/api/v1/platform/capabilities",
         ),
+        (
+            "list_outcome_reviews",
+            {"params": {"portfolio_id": "P1", "state": None}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews",
+        ),
+        (
+            "get_outcome_review",
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews/or_1",
+        ),
+        (
+            "get_outcome_review_supportability",
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews/or_1/supportability",
+        ),
+        (
+            "get_outcome_review_report_input",
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews/or_1/report-input",
+        ),
+        (
+            "get_outcome_review_ai_evidence_input",
+            {"outcome_review_id": "or_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews/or_1/ai-evidence-input",
+        ),
+        (
+            "get_run_outcome_review",
+            {"rebalance_run_id": "rr_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/runs/rr_1/outcome-review",
+        ),
+        (
+            "list_wave_outcome_reviews",
+            {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
+        ),
     ],
 )
 async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
@@ -1609,6 +1644,44 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
     assert status_code == 200
     assert payload["ok"] is True
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "kwargs", "expected_url"),
+    [
+        (
+            "preview_outcome_review",
+            {"body": {"portfolio_id": "P1"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews/preview",
+        ),
+        (
+            "create_outcome_review",
+            {"body": {"rebalance_run_id": "rr_1"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/outcome-reviews",
+        ),
+        (
+            "refresh_outcome_review_sources",
+            {
+                "outcome_review_id": "or_1",
+                "body": {"refresh_reason": "late fill"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/outcome-reviews/or_1/refresh-sources",
+        ),
+    ],
+)
+async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, expected_url):
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    status_code, payload = await method(**kwargs)
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["method"] == "POST"
+    assert _FakeAsyncClient.calls[0]["url"] == expected_url
+    assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
 
 
 @pytest.mark.asyncio
