@@ -347,6 +347,31 @@ def _job_payload():
     }
 
 
+def _outcome_report_job_payload():
+    return {
+        "outcome_report_input": {
+            "contract_version": "1.0",
+            "outcome_review_id": "dor_001",
+            "outcome_review_content_hash": "sha256:outcome-review",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "proof_pack_id": "dpp_001",
+            "review_window": {"start_date": "2026-04-22", "end_date": "2026-04-23"},
+            "report_title": "Post-Trade Outcome Review - PB_SG_GLOBAL_BAL_001",
+            "state": "READY",
+            "overall_outcome": "Execution outcome aligned with pre-trade proof.",
+            "dimensions": [],
+            "source_lineage": [],
+            "source_hashes": {"realized": "sha256:realized"},
+            "section_hashes": {"proof_pack": "sha256:proof-pack"},
+            "redaction_policy": "NO_RAW_PAYLOADS",
+            "content_hash": "sha256:report-input",
+        },
+        "requested_output_formats": ["pdf"],
+        "reporting_currency": "USD",
+        "options": {"retention_policy_id": "generated-report-standard"},
+    }
+
+
 def test_portfolio_review_job_gateway_route_forwards_context(monkeypatch):
     captured: dict[str, object] = {}
 
@@ -406,6 +431,60 @@ def test_portfolio_review_job_gateway_route_forwards_context(monkeypatch):
         "X-Role": "advisor",
     }
     assert captured["correlation_id"] == "corr-gateway-job"
+
+
+def test_outcome_review_report_job_gateway_route_forwards_context(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _mock_submit_job(
+        self,
+        *,
+        payload,
+        idempotency_key,
+        caller_headers,
+        correlation_id,
+    ):
+        captured["payload"] = payload
+        captured["idempotency_key"] = idempotency_key
+        captured["caller_headers"] = caller_headers
+        captured["correlation_id"] = correlation_id
+        return 202, {
+            "report_request_id": "rrq_outcome_1",
+            "report_job_id": "rjob_outcome_1",
+            "status": "accepted",
+            "status_url": "/reports/jobs/rjob_outcome_1",
+            "idempotency_key": idempotency_key,
+        }
+
+    monkeypatch.setattr(
+        "app.clients.reporting_client.ReportingClient.submit_outcome_review_report_job",
+        _mock_submit_job,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/reports/outcome-reviews",
+        json=_outcome_report_job_payload(),
+        headers={
+            "Idempotency-Key": "outcome-review-dor_001-pdf",
+            "X-Actor-Id": "advisor-123",
+            "X-Caller-Application": "lotus-workbench",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+            "X-Booking-Center-Code": "SG",
+            "X-Role": "advisor",
+            "X-Correlation-Id": "corr-outcome-report",
+        },
+    )
+
+    assert response.status_code == 202
+    body = response.json()
+    assert body["report_job_id"] == "rjob_outcome_1"
+    assert body["status_url"] == "/api/v1/report-jobs/rjob_outcome_1"
+    assert captured["payload"] == _outcome_report_job_payload()
+    assert captured["idempotency_key"] == "outcome-review-dor_001-pdf"
+    assert captured["caller_headers"]["X-Caller-Application"] == "lotus-workbench"
+    assert captured["correlation_id"] == "corr-outcome-report"
 
 
 def test_portfolio_review_job_gateway_requires_idempotency_key():

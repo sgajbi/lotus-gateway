@@ -30,6 +30,7 @@ from app.contracts.reporting import (
     BatchStatusResponse,
     BatchWorkerRunRequest,
     BatchWorkerRunResponse,
+    OutcomeReviewReportJobRequest,
     PortfolioReviewJobRequest,
     ReportingPortfolioRequest,
     ReportingReviewResponse,
@@ -104,6 +105,37 @@ PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES = {
                 "sections": ["OVERVIEW", "PERFORMANCE", "RISK_ANALYTICS"],
                 "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
             },
+        },
+    }
+}
+
+OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES = {
+    "outcomeReviewReportJob": {
+        "summary": "Outcome-review report job request",
+        "description": (
+            "Create a durable report job from manage-owned DpmOutcomeReportInput evidence."
+        ),
+        "value": {
+            "outcome_report_input": {
+                "contract_version": "1.0",
+                "outcome_review_id": "dor_001",
+                "outcome_review_content_hash": "sha256:outcome-review",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "proof_pack_id": "dpp_001",
+                "review_window": {"start_date": "2026-04-22", "end_date": "2026-04-23"},
+                "report_title": "Post-Trade Outcome Review - PB_SG_GLOBAL_BAL_001",
+                "state": "READY",
+                "overall_outcome": "Execution outcome aligned with pre-trade proof.",
+                "dimensions": [],
+                "source_lineage": [],
+                "source_hashes": {"realized": "sha256:realized"},
+                "section_hashes": {"proof_pack": "sha256:proof-pack"},
+                "redaction_policy": "NO_RAW_PAYLOADS",
+                "content_hash": "sha256:report-input",
+            },
+            "requested_output_formats": ["pdf"],
+            "reporting_currency": "USD",
+            "options": {"retention_policy_id": "generated-report-standard"},
         },
     }
 }
@@ -656,6 +688,85 @@ async def submit_portfolio_review_report_job(
         )
 
     status_code, payload = await _reporting_client().submit_portfolio_review_job(
+        payload=request.model_dump(exclude_none=True, mode="json"),
+        idempotency_key=idempotency_key,
+        caller_headers=caller_context_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+        correlation_id=correlation_id,
+    )
+    _raise_report_job_error(status_code, payload)
+    response = ReportJobHandleResponse.model_validate(payload)
+    return response.model_copy(update={"status_url": _gateway_status_url(response.report_job_id)})
+
+
+@router.post(
+    "/outcome-reviews",
+    response_model=ReportJobHandleResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Submit outcome-review report job",
+    description=(
+        "Create a durable post-trade outcome-review report job through the governed gateway "
+        "boundary. Use this endpoint when Workbench or another product client needs a rendered "
+        "outcome-review artifact from manage-owned report input without calling lotus-report "
+        "directly or recomputing outcome facts."
+    ),
+    responses={
+        **_job_error_response(
+            400,
+            example_key="missing_idempotency_key",
+            description="Returned when idempotency or required caller context is missing.",
+        ),
+        **_job_error_response(
+            409,
+            example_key="idempotency_conflict",
+            description="Returned when the idempotency key conflicts with a different request.",
+        ),
+        **_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
+)
+async def submit_outcome_review_report_job(
+    request: Annotated[
+        OutcomeReviewReportJobRequest,
+        Body(
+            description="Outcome-review report job request.",
+            openapi_examples=OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES,
+        ),
+    ],
+    idempotency_key: Annotated[
+        str | None,
+        Header(
+            alias="Idempotency-Key",
+            description="Required caller idempotency key for job creation.",
+        ),
+    ] = None,
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> ReportJobHandleResponse:
+    correlation_id = correlation_id_var.get()
+    if not idempotency_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "missing_idempotency_key",
+                "message": "Idempotency-Key is required.",
+            },
+        )
+
+    status_code, payload = await _reporting_client().submit_outcome_review_report_job(
         payload=request.model_dump(exclude_none=True, mode="json"),
         idempotency_key=idempotency_key,
         caller_headers=caller_context_headers(

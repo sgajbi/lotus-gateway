@@ -2007,6 +2007,40 @@ async def test_reporting_client_report_job_routes_forward_governed_headers():
 
 
 @pytest.mark.asyncio
+async def test_reporting_client_outcome_review_report_job_route_forwards_governed_headers():
+    client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        202,
+        {
+            "report_request_id": "rrq_outcome_1",
+            "report_job_id": "rjob_outcome_1",
+            "status": "accepted",
+        },
+    )
+
+    status_code, payload = await client.submit_outcome_review_report_job(
+        payload={"outcome_report_input": {"outcome_review_id": "dor_001"}},
+        idempotency_key="outcome-review-dor_001-pdf",
+        caller_headers={
+            "X-Actor-Id": "advisor-123",
+            "X-Tenant-Id": "tenant-sg",
+            "X-Region": "APAC",
+        },
+        correlation_id="corr-outcome-report",
+    )
+
+    assert status_code == 202
+    assert payload["report_job_id"] == "rjob_outcome_1"
+    assert _FakeAsyncClient.calls[0]["url"] == "http://ras/reports/outcome-reviews"
+    assert _FakeAsyncClient.calls[0]["json"] == {
+        "outcome_report_input": {"outcome_review_id": "dor_001"}
+    }
+    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == ("outcome-review-dor_001-pdf")
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Actor-Id"] == "advisor-123"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-outcome-report"
+
+
+@pytest.mark.asyncio
 async def test_reporting_client_report_batch_routes_forward_governed_headers():
     client = ReportingClient(base_url="http://ras", timeout_seconds=2.0)
     caller_headers = {
