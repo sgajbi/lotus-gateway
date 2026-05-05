@@ -183,7 +183,9 @@ class DpmClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         manage_consumer_system = (
-            consumer_system if consumer_system in _MANAGE_CAPABILITIES_CONSUMERS else "lotus-gateway"
+            consumer_system
+            if consumer_system in _MANAGE_CAPABILITIES_CONSUMERS
+            else "lotus-gateway"
         )
         return await self._get(
             "/api/v1/integration/capabilities",
