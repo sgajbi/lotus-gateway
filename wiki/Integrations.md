@@ -71,3 +71,7 @@
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.
+10. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
+    compose expected-versus-realized review summaries, dimension outcomes, source lineage,
+    supportability, report-input posture, and AI-evidence posture without recomputing outcome
+    values or calling source-owner apps behind manage's review authority.

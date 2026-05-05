@@ -20,7 +20,8 @@
   proposed DPM command-center composition contract over core, manage, risk, performance, report,
   archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for
   Gateway wave composition, supportability, action eligibility, and proof requirements without
-  making Gateway the wave authority
+  making Gateway the wave authority, plus the RFC-0042 outcome-review addendum for expected-versus-
+  realized review composition without making Gateway the outcome authority
 
 ## Local references
 

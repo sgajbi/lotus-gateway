@@ -2,15 +2,15 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PROPOSED - RFC-0041 WAVE ORCHESTRATION ALIGNED |
+| **Status** | PROPOSED - RFC-0041/0042 WAVE AND OUTCOME REALIZATION ALIGNED |
 | **Created** | 2026-05-03 |
-| **Last Tightened** | 2026-05-04 |
+| **Last Tightened** | 2026-05-05 |
 | **Owner** | `lotus-gateway` |
 | **Primary Consumer** | `lotus-workbench` DPM mandate command center |
 | **Business Sponsor Persona** | DPM head, portfolio manager, CIO desk, investment control, operations, sales/pre-sales |
-| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-manage` RFC-0041, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
+| **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-manage` RFC-0041, `lotus-manage` RFC-0042, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
 | **Doc Location** | `docs/rfcs/RFC-0098-dpm-command-center-composition-contract.md` |
-| **Implementation Branch** | TBD when implementation begins |
+| **Implementation Branch** | `feat/rfc0042-outcome-realization` for RFC-0042 realization alignment |
 
 ---
 
@@ -27,9 +27,11 @@ that brings together:
 4. performance posture from `lotus-performance`,
 5. proof-pack authority, readiness, Markdown, report-input, and AI-evidence handoff posture from
    `lotus-manage` RFC-0040,
-6. report materialization posture from `lotus-report`,
-7. archived evidence metadata and controlled document access from `lotus-archive`,
-8. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
+6. post-trade outcome-review state, expected-versus-realized dimensions, source lineage,
+   supportability, report input, and AI evidence input from `lotus-manage` RFC-0042,
+7. report materialization posture from `lotus-report`,
+8. archived evidence metadata and controlled document access from `lotus-archive`,
+9. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
 
 This RFC makes `lotus-gateway` the certified composition boundary for that business view.
 `lotus-manage` must not become a mega-orchestrator for risk and performance, and
@@ -453,6 +455,110 @@ Canonical proof expectations:
 4. prove no Gateway route reconstructs manage aggregates by contract test and code review,
 5. publish implementation-backed wiki and supported-feature updates only after both Gateway and
    Workbench realization are live-proven.
+
+### 8.0C RFC-0042 Post-Trade Outcome Review Addendum
+
+`lotus-manage` RFC-0042 makes manage the authority for post-trade outcome reviews. Gateway must
+compose those reviews for Workbench without recalculating expected values, realized values,
+variance, tolerances, supportability, source lineage, report-input, or AI-evidence posture.
+
+Business outcome:
+
+1. PMs can see whether a selected alternative, proof pack, wave item, and internal handoff achieved
+   the expected post-trade outcome,
+2. CIO and investment-control users can compare expected-versus-realized evidence across reviewed
+   portfolios without manual spreadsheet reconciliation,
+3. operations can distinguish source-owner gaps from manage defects using product-safe
+   supportability diagnostics,
+4. sales/pre-sales can demonstrate closed-loop DPM governance without claiming unsupported
+   execution, report, archive, Workbench, or AI output behavior.
+
+Gateway responsibility:
+
+1. consume manage outcome-review APIs through typed upstream clients:
+   `POST /api/v1/rebalance/outcome-reviews/preview`,
+   `POST /api/v1/rebalance/outcome-reviews`,
+   `GET /api/v1/rebalance/outcome-reviews`,
+   `GET /api/v1/rebalance/outcome-reviews/{outcome_review_id}`,
+   `POST /api/v1/rebalance/outcome-reviews/{outcome_review_id}/refresh-sources`,
+   `GET /api/v1/rebalance/outcome-reviews/{outcome_review_id}/supportability`,
+   `GET /api/v1/rebalance/outcome-reviews/{outcome_review_id}/report-input`,
+   `GET /api/v1/rebalance/outcome-reviews/{outcome_review_id}/ai-evidence-input`,
+   `GET /api/v1/rebalance/runs/{rebalance_run_id}/outcome-review`, and
+   `GET /api/v1/rebalance/waves/{wave_id}/outcome-reviews`,
+2. expose Workbench-facing outcome composition under strategic command-center routes:
+   `GET /api/v1/dpm/command-center/outcome-reviews`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/supportability`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/report-input`,
+   `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-evidence-input`,
+   `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
+   `POST /api/v1/dpm/command-center/outcome-reviews`, and
+   `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/refresh-sources`,
+3. preserve manage `outcome_review_id`, state, reason codes, dimension results, expected values,
+   realized values, variance, tolerance, source refs, source hashes, freshness, retention, report
+   input posture, AI evidence input posture, and supportability diagnostics,
+4. compose outcome review modules using common command-center states while preserving manage
+   domain states `READY`, `PENDING_REVIEW`, `BREACHED`, `DEGRADED`, `BLOCKED`, and
+   `NOT_SUPPORTED` inside detail evidence,
+5. expose action eligibility only for manage-supported create, preview, refresh, report-input
+   read, and AI-evidence read actions, with disabled reasons when source evidence or downstream
+   support is unavailable.
+
+Gateway must not:
+
+1. recompute expected-versus-realized values, variances, tolerances, dimension states, source
+   freshness, supportability, hashes, or review state,
+2. call `lotus-risk`, `lotus-performance`, `lotus-core`, execution, report, archive, or AI services
+   directly to improve a manage outcome review behind manage's back,
+3. generate reports, archive artifacts, AI prompts, PM memos, recommendations, client
+   communications, approvals, or execution instructions from outcome evidence,
+4. expose unsupported PM scoring, rank PMs, infer investment skill, or convert outcome facts into
+   personnel judgment,
+5. promote outcome-review product support until Gateway implementation, OpenAPI certification,
+   contract tests, no-sensitive telemetry proof, manage live evidence, Workbench browser proof, and
+   wiki publication all pass.
+
+Target Gateway outcome composition:
+
+```mermaid
+flowchart LR
+    WB[Workbench DPM Outcome Review] --> GW[lotus-gateway outcome composition]
+    GW --> Manage[lotus-manage RFC-0042 outcome review authority]
+    Manage --> Proof[lotus-manage RFC-0040 proof-pack evidence]
+    Manage --> Wave[lotus-manage RFC-0041 wave and handoff evidence]
+    Manage --> Construct[lotus-manage RFC-0039 selected alternative]
+    Manage --> Core[lotus-core/source owner refs]
+    Manage --> Risk[lotus-risk source refs]
+    Manage --> Perf[lotus-performance source refs]
+    GW --> Report[lotus-report consumes report input]
+    GW --> AI[lotus-ai consumes AI evidence input]
+```
+
+Required outcome response modules:
+
+| Module | Gateway source | Required posture |
+| --- | --- | --- |
+| `outcome_review_summary` | `lotus-manage` RFC-0042 | review id, state, reason codes, review window, portfolio, mandate, run, proof-pack, wave, and retention posture |
+| `dimension_outcomes` | `lotus-manage` RFC-0042 | dimension, expected, realized, variance, tolerance, state, source freshness, and reason codes |
+| `source_lineage` | `lotus-manage` RFC-0042 | source refs, source owners, hashes, source timestamps, and freshness posture |
+| `supportability` | manage supportability endpoint + Gateway fan-out state | dimension counts, source-owner families, freshness counts, remediation routes, and product-safe diagnostics |
+| `report_input` | manage report-input endpoint | bounded report-ready facts only; no rendered artifact claim |
+| `ai_evidence_input` | manage AI-evidence endpoint | bounded evidence and forbidden-action posture only; no narrative claim |
+| `action_eligibility` | manage state + Gateway entitlement | preview, create, refresh, report-input read, and AI-evidence read eligibility with disabled reasons |
+
+Canonical proof expectations:
+
+1. use a live manage outcome review tied to `PB_SG_GLOBAL_BAL_001` where source evidence is
+   implementation-backed,
+2. capture Gateway request/response evidence for preview, create, search, detail, supportability,
+   report input, AI evidence input, refresh, run lookup, and wave lookup,
+3. prove Gateway preserves manage state, hashes, supportability, dimension states, and source refs
+   without recomputing values,
+4. prove unsupported dimensions, degraded source posture, and blocked source posture remain visible
+   to Workbench,
+5. publish supported-feature wording only after Gateway and Workbench implementations are live
+   proven and wiki publication is complete.
 
 ### 8.1 Endpoint Family
 
