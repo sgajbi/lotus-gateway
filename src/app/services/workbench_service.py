@@ -473,15 +473,25 @@ class WorkbenchService:
             else:
                 performance_task = self._empty_async_result()
 
-            dpm_task = (
-                self._dpm_client.list_runs(
+            dpm_runs_task: Awaitable[tuple[int, dict[str, Any]]]
+            dpm_supportability_task: Awaitable[tuple[int, dict[str, Any]]]
+            if include_rebalance_snapshot:
+                dpm_runs_task = self._dpm_client.list_runs(
                     params={"portfolio_id": portfolio_id, "limit": 5},
                     correlation_id=correlation_id,
                 )
-                if include_rebalance_snapshot
-                else self._empty_async_result()
+                dpm_supportability_task = self._dpm_client.get_supportability_summary(
+                    correlation_id=correlation_id,
+                )
+            else:
+                dpm_runs_task = self._empty_async_result()
+                dpm_supportability_task = self._empty_async_result()
+            gathered = await asyncio.gather(
+                performance_task,
+                dpm_runs_task,
+                dpm_supportability_task,
+                return_exceptions=True,
             )
-            gathered = await asyncio.gather(performance_task, dpm_task, return_exceptions=True)
             if include_performance_snapshot:
                 performance_snapshot = self._parse_performance_snapshot(
                     result=cast(object, gathered[0]),
@@ -491,6 +501,7 @@ class WorkbenchService:
             if include_rebalance_snapshot:
                 rebalance_snapshot = self._parse_dpm_snapshot(
                     result=cast(object, gathered[1]),
+                    supportability_result=cast(object, gathered[2]),
                     partial_failures=partial_failures,
                     warnings=warnings,
                 )
@@ -917,6 +928,7 @@ class WorkbenchService:
         result: object,
         partial_failures: list[WorkbenchPartialFailure],
         warnings: list[str],
+        supportability_result: object | None = None,
     ) -> WorkbenchRebalanceSnapshot | None:
         if isinstance(result, Exception):
             partial_failures.append(
@@ -979,7 +991,12 @@ class WorkbenchService:
             last_run_at_utc = created_at.astimezone(UTC).isoformat()
 
         recent_runs = self._parse_recent_dpm_runs(items)
-        supportability = self._parse_rebalance_supportability(dpm_payload)
+        supportability = self._parse_rebalance_supportability(
+            dpm_payload,
+            supportability_result=supportability_result,
+            partial_failures=partial_failures,
+            warnings=warnings,
+        )
 
         return WorkbenchRebalanceSnapshot(
             status=str(latest.get("status", "UNKNOWN")),
@@ -1015,8 +1032,17 @@ class WorkbenchService:
     def _parse_rebalance_supportability(
         self,
         dpm_payload: dict[str, Any],
+        *,
+        supportability_result: object | None = None,
+        partial_failures: list[WorkbenchPartialFailure] | None = None,
+        warnings: list[str] | None = None,
     ) -> PortfolioRebalanceSupportabilitySummary | None:
-        supportability_payload = dpm_payload.get("supportability")
+        supportability_payload = self._extract_rebalance_supportability_payload(
+            dpm_payload=dpm_payload,
+            supportability_result=supportability_result,
+            partial_failures=partial_failures,
+            warnings=warnings,
+        )
         if not isinstance(supportability_payload, dict):
             return None
         return PortfolioRebalanceSupportabilitySummary(
@@ -1033,6 +1059,83 @@ class WorkbenchService:
                 supportability_payload.get("workflow_decision_count")
             ),
         )
+
+    def _extract_rebalance_supportability_payload(
+        self,
+        *,
+        dpm_payload: dict[str, Any],
+        supportability_result: object | None,
+        partial_failures: list[WorkbenchPartialFailure] | None,
+        warnings: list[str] | None,
+    ) -> dict[str, Any] | None:
+        supportability_payload = dpm_payload.get("supportability")
+        if isinstance(supportability_payload, dict):
+            return supportability_payload
+        if supportability_result is None:
+            return None
+        if isinstance(supportability_result, BaseException):
+            if partial_failures is not None:
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="lotus-manage",
+                        error_code="SUPPORTABILITY_SUMMARY_UNAVAILABLE",
+                        detail=str(supportability_result),
+                    )
+                )
+            if warnings is not None:
+                warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+            return None
+        if not isinstance(supportability_result, tuple) or len(supportability_result) != 2:
+            if partial_failures is not None:
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="lotus-manage",
+                        error_code="INVALID_SUPPORTABILITY_SUMMARY_RESULT",
+                        detail=f"unexpected supportability result: {type(supportability_result)}",
+                    )
+                )
+            if warnings is not None:
+                warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+            return None
+        supportability_status, supportability_summary = supportability_result
+        if not isinstance(supportability_status, int) or not isinstance(
+            supportability_summary,
+            dict,
+        ):
+            if partial_failures is not None:
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="lotus-manage",
+                        error_code="INVALID_SUPPORTABILITY_SUMMARY_PAYLOAD",
+                        detail=(
+                            "supportability summary result must include integer status "
+                            "and object payload"
+                        ),
+                    )
+                )
+            if warnings is not None:
+                warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+            return None
+        if supportability_status >= status.HTTP_400_BAD_REQUEST:
+            if partial_failures is not None:
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="lotus-manage",
+                        error_code=f"SUPPORTABILITY_HTTP_{supportability_status}",
+                        detail=str(supportability_summary.get("detail", supportability_summary)),
+                    )
+                )
+            if warnings is not None:
+                warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+            return None
+        supportability_payload = supportability_summary.get("supportability")
+        if isinstance(supportability_payload, dict):
+            merged_payload = dict(supportability_payload)
+            for summary_key in ("run_count", "operation_count", "workflow_decision_count"):
+                if summary_key not in merged_payload and summary_key in supportability_summary:
+                    merged_payload[summary_key] = supportability_summary[summary_key]
+            return merged_payload
+        return None
 
     def _extract_dpm_run_error_code(self, item: dict[str, Any]) -> str | None:
         for key in ("error_code", "failure_code", "reason_code"):

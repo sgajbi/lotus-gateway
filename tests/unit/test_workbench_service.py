@@ -159,14 +159,27 @@ class _StubLotusAnalyticsClient:
 
 
 class _StubDpmClient:
-    def __init__(self, status_code: int, payload: dict):
+    def __init__(
+        self,
+        status_code: int,
+        payload: dict,
+        supportability_status_code: int = 200,
+        supportability_payload: dict | None = None,
+    ):
         self.status_code = status_code
         self.payload = payload
+        self.supportability_status_code = supportability_status_code
+        self.supportability_payload = supportability_payload or {}
         self.list_runs_calls = 0
+        self.supportability_summary_calls = 0
 
     async def list_runs(self, params: dict, correlation_id: str):
         self.list_runs_calls += 1
         return self.status_code, self.payload
+
+    async def get_supportability_summary(self, correlation_id: str):
+        self.supportability_summary_calls += 1
+        return self.supportability_status_code, self.supportability_payload
 
     async def simulate_proposal(
         self,
@@ -260,6 +273,12 @@ async def test_workbench_overview_success():
                         "error_code": "SOURCE_READINESS_BLOCKED",
                     },
                 ],
+            },
+            supportability_payload={
+                "store_backend": "POSTGRES",
+                "run_count": 2,
+                "operation_count": 4,
+                "workflow_decision_count": 1,
                 "supportability": {
                     "feature_key": "manage.observability.action_register_supportability",
                     "state": "healthy",
@@ -304,6 +323,7 @@ async def test_workbench_overview_success():
     assert response.rebalance_snapshot.supportability.run_count == 2
     assert response.rebalance_snapshot.supportability.operation_count == 4
     assert response.rebalance_snapshot.supportability.workflow_decision_count == 1
+    assert service._dpm_client.supportability_summary_calls == 1
     assert len(response.rebalance_snapshot.recent_runs) == 2
     assert response.rebalance_snapshot.recent_runs[0].rebalance_run_id == "rr_1"
     assert response.rebalance_snapshot.recent_runs[0].workflow_state == "PM_REVIEW_REQUIRED"

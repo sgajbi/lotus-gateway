@@ -71,8 +71,8 @@ Supported routes:
 Authority and integrations:
 
 1. `lotus-manage` remains the rebalance run and action-register supportability authority.
-2. Gateway reads manage `/api/v1/rebalance/runs` and preserves manage-provided supportability when
-   present.
+2. Gateway reads manage `/api/v1/rebalance/runs` for bounded recent run posture and
+   `/api/v1/rebalance/supportability/summary` for manage-owned action-register supportability.
 3. Gateway exposes up to five bounded recent run summaries with run id, status, timestamp,
    workflow posture, and error code.
 4. Gateway does not compute supportability, workflow status, source readiness, execution outcomes,

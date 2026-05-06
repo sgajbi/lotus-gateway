@@ -123,11 +123,16 @@ class _StubDpmClient:
     def __init__(self):
         self.list_runs_status = 200
         self.list_runs_payload: dict = {"items": []}
+        self.supportability_status = 200
+        self.supportability_payload: dict = {}
         self.simulate_status = 200
         self.simulate_payload: dict = {"status": "AVAILABLE"}
 
     async def list_runs(self, params: dict, correlation_id: str):
         return self.list_runs_status, self.list_runs_payload
+
+    async def get_supportability_summary(self, correlation_id: str):
+        return self.supportability_status, self.supportability_payload
 
     async def simulate_proposal(self, body: dict, idempotency_key: str, correlation_id: str):
         return self.simulate_status, self.simulate_payload
@@ -306,6 +311,48 @@ def test_parse_dpm_snapshot_with_datetime_created_at_converts_to_utc():
     assert parsed.last_rebalance_run_id == "rr-1"
     assert parsed.last_run_at_utc is not None
     assert parsed.last_run_at_utc.endswith("+00:00")
+
+
+def test_parse_dpm_snapshot_uses_live_shape_supportability_summary():
+    service, _, _, _ = _build_service()
+    parsed = service._parse_dpm_snapshot(
+        (
+            200,
+            {
+                "items": [
+                    {
+                        "status": "PENDING_REVIEW",
+                        "created_at": "2026-05-06T15:37:05.939203+08:00",
+                        "rebalance_run_id": "rr_c09f73d0",
+                    }
+                ]
+            },
+        ),
+        [],
+        [],
+        supportability_result=(
+            200,
+            {
+                "store_backend": "POSTGRES",
+                "run_count": 82,
+                "operation_count": 0,
+                "workflow_decision_count": 0,
+                "supportability": {
+                    "state": "ready",
+                    "reason": "supportability_summary_ready",
+                    "freshness_bucket": "current",
+                    "run_count": 82,
+                    "operation_count": 0,
+                    "workflow_decision_count": 0,
+                },
+            },
+        ),
+    )
+    assert parsed is not None
+    assert parsed.supportability is not None
+    assert parsed.supportability.state == "ready"
+    assert parsed.supportability.freshness_bucket == "current"
+    assert parsed.supportability.run_count == 82
 
 
 @pytest.mark.parametrize(

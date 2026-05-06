@@ -70,7 +70,8 @@
   let Workbench bypass Gateway.
 - RFC36-WTBD-003 portfolio-level DPM operations posture is exposed on Workbench overview and
   portfolio-360 `rebalance_snapshot`. Gateway reads manage rebalance runs through
-  `/api/v1/rebalance/runs`, preserves manage action-register supportability when returned, and
+  `/api/v1/rebalance/runs`, reads manage supportability summary through
+  `/api/v1/rebalance/supportability/summary`, preserves manage action-register supportability, and
   includes a bounded recent-run list with run id, status, timestamp, workflow posture, and error
   code for Workbench operations dashboards. Gateway must not calculate supportability, workflow
   posture, or error semantics locally.
