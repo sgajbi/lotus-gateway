@@ -1629,6 +1629,11 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/runs/rr_1/outcome-review",
         ),
         (
+            "get_construction_alternative_set",
+            {"alternative_set_id": "cas_1", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/construction/alternative-sets/cas_1",
+        ),
+        (
             "list_wave_outcome_reviews",
             {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
@@ -1694,6 +1699,15 @@ async def test_dpm_client_capabilities_uses_gateway_consumer_for_manage_contract
             },
             "http://dpm/api/v1/rebalance/outcome-reviews/or_1/refresh-sources",
         ),
+        (
+            "select_construction_alternative",
+            {
+                "alternative_set_id": "cas_1",
+                "body": {"alternative_id": "alt_1", "actor_id": "pm_sg_1"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/construction/alternative-sets/cas_1/selections",
+        ),
     ],
 )
 async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, expected_url):
@@ -1707,6 +1721,29 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["method"] == "POST"
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_construction_generate_route_forwards_idempotency_key():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"alternative_set_id": "cas_1"})
+
+    status_code, payload = await client.generate_construction_alternative_set(
+        body={"input_mode": "stateless"},
+        idempotency_key="idem-construction-1",
+        correlation_id="corr-construction-1",
+    )
+
+    assert status_code == 200
+    assert payload["alternative_set_id"] == "cas_1"
+    assert _FakeAsyncClient.calls[0]["method"] == "POST"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://dpm/api/v1/construction/alternative-sets/generate"
+    )
+    assert _FakeAsyncClient.calls[0]["json"] == {"input_mode": "stateless"}
+    assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == "idem-construction-1"
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-construction-1"
 
 
 @pytest.mark.asyncio

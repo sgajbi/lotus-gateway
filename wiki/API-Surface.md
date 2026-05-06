@@ -17,6 +17,7 @@
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
+- `GET` and `POST /api/v1/dpm/command-center/construction/alternative-sets*`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `POST /api/v1/reports/outcome-reviews`
@@ -60,6 +61,13 @@
 - RFC-0098 proof-pack composition must consume `lotus-manage` RFC-0040 proof-pack APIs for
   proof-pack JSON, section states, hashes, Markdown, report-input payloads, and AI-evidence
   payloads; `lotus-report` remains report materialization authority, not proof-pack authority
+- RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
+  APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
+  generate, get, and select routes for Workbench, preserving manage alternative-set ids, method
+  identifiers, method statuses, objective traces, constraint traces, comparison metrics,
+  diagnostics, supportability, selected-alternative state, and lineage. Gateway must not optimize,
+  recompute construction metrics, infer source readiness, select alternatives, execute orders, or
+  let Workbench bypass Gateway.
 - RFC-0098 wave composition must consume `lotus-manage` RFC-0041 wave APIs for preview, create,
   source-check, simulation, selection, approval, staging, handoff, and supportability. Target
   Gateway routes belong under `/api/v1/dpm/command-center/waves*`, preserve manage `wave_id`,
@@ -107,8 +115,8 @@
 - proposal simulation, create, list, detail, version, workflow-event, approval, and lineage routes
   call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
-  management run lookup, supportability summary, capability posture, and RFC-0042
-  outcome-review authority APIs
+  management run lookup, supportability summary, capability posture, RFC-0039 construction
+  alternative-set authority APIs, and RFC-0042 outcome-review authority APIs
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
   operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
   `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:

@@ -42,7 +42,8 @@ It depends on:
   proposal simulation, persisted proposal lifecycle, workflow, approval, and lineage capability
 - `lotus-manage`
   discretionary management run lookup, supportability summary, platform capability posture, and
-  RFC-0042 post-trade outcome-review authority through the DPM command-center BFF routes
+  RFC-0039 construction alternative-set authority and RFC-0042 post-trade outcome-review authority
+  through the DPM command-center BFF routes
 - `lotus-report`
   reporting snapshot, summary, review payloads, portfolio-review and outcome-review durable report
   job initiation/lifecycle/search, and RFC-0104 batch materialization/status/control/operator-run APIs
@@ -90,6 +91,9 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
 - `portfolio`
   `/api/v1/portfolio/*`
 - `dpm-command-center`
+  `/api/v1/dpm/command-center/construction/alternative-sets/generate`,
+  `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`,
+  `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
@@ -249,6 +253,12 @@ Important current parameter conventions:
    `/api/v1/dpm/command-center/outcome-reviews*` consume `lotus-manage` RFC-0042 APIs and preserve
    manage-owned `outcome_review_id`, state, supportability, lineage, hashes, report-input payloads,
    and AI-evidence payloads without recomputing expected-versus-realized outcome truth
+14. DPM command-center construction routes under
+   `/api/v1/dpm/command-center/construction/alternative-sets*` consume `lotus-manage` RFC-0039
+   construction authority APIs and preserve manage-owned alternative-set ids, method ids, method
+   statuses, objective traces, constraint traces, comparison metrics, diagnostics, supportability,
+   selected-alternative state, and lineage without optimizing, recomputing, or selecting
+   alternatives locally
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -262,8 +272,9 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 - downstream ownership rule:
   proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
   certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
-  platform capabilities, and RFC-0042 outcome-review preview/create/search/detail/source-refresh,
-  supportability, report-input, AI-evidence, run lookup, and wave lookup
+  platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs, and
+  RFC-0042 outcome-review preview/create/search/detail/source-refresh, supportability,
+  report-input, AI-evidence, run lookup, and wave lookup
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority

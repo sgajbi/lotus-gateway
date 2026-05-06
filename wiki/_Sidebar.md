@@ -4,6 +4,7 @@
 - [Overview](Overview)
 - [Architecture](Architecture)
 - [API Surface](API-Surface)
+- [Supported Features](Supported-Features)
 - [Getting Started](Getting-Started)
 
 ### Delivery
