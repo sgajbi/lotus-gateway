@@ -41,7 +41,7 @@ outputs.
 | `lotus-performance` | performance summary, TWR, MWR, contribution, attribution, workspace summary, benchmark exposure context, execution polling, lineage artifact inventory | performance workspace, first-paint modules, and gateway-owned evidence posture | performance calculations, execution state, and lineage provenance remain in `lotus-performance`; gateway may reshape them for UI-safe evidence review but must not invent or replace source truth |
 | `lotus-risk` | calculate risk, concentration, drawdown, rolling metrics, historical attribution | risk workspace modules and risk panels | risk methodology, concentration, drawdown, and attribution semantics remain in `lotus-risk` |
 | `lotus-advise` | proposal lifecycle and advisory workflow surfaces | proposal workflow composition | advisory decision workflow remains in `lotus-advise` |
-| `lotus-manage` | management workflow surfaces where split routing still applies | management workflow composition | discretionary management operations remain in `lotus-manage` |
+| `lotus-manage` | versioned `/api/v1` rebalance run lookup, supportability summary, capability posture, construction alternatives, outcome reviews, report input, and AI evidence input | management workflow composition | discretionary management operations remain in `lotus-manage`; gateway must not reintroduce retired unversioned aliases or monolithic `dpm-execution-context` assumptions |
 | `lotus-report` | report snapshot rows, summary/review payloads, report job status/search/event/cancellation APIs, report batch materialization/status/control/operator-run APIs | report-ready experience payloads, durable report-job support posture, and RFC-0104 batch operator boundary | report generation, request semantics, job lifecycle truth, batch lifecycle truth, and batch execution truth remain in `lotus-report` |
 | `lotus-archive` | archived document metadata, current-document resolution, and binary download APIs | gateway-controlled generated-document retrieval for product clients | archive metadata, retention, legal-hold, purge, lifecycle, checksum, storage, and access-audit truth remain in `lotus-archive`; gateway exposes metadata and controlled download only |
 | `lotus-ai` | advisor-brief, workflow-pack run-ledger, and RFC-0097 task-flow posture surfaces | evidence-grounded narrative support plus bounded run/task-flow posture for Workbench | gateway must not invent unsupported evidence, model outputs, review states, replacement lineage, or task-flow authority |
@@ -67,6 +67,9 @@ outputs.
 Existing tests that cover this posture include:
 
 1. `tests/unit/test_upstream_clients.py`
+   Includes `test_dpm_client_uses_only_canonical_manage_api_v1_contracts`, which exercises every
+   manage-facing DPM client method and rejects retired unversioned route families and monolithic
+   execution-context assumptions.
 2. `tests/unit/test_workbench_service.py`
 3. `tests/unit/test_workbench_service_additional.py`
 4. `tests/unit/test_performance_workspace_service.py`

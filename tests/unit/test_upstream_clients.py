@@ -1677,6 +1677,120 @@ async def test_dpm_client_capabilities_uses_gateway_consumer_for_manage_contract
 
 
 @pytest.mark.asyncio
+async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    calls = [
+        (
+            client.list_runs,
+            {"params": {"portfolio_id": "P1"}, "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_supportability_summary,
+            {"correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_capabilities,
+            {
+                "consumer_system": "lotus-workbench",
+                "tenant_id": "default",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.preview_outcome_review,
+            {"body": {"portfolio_id": "P1"}, "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.create_outcome_review,
+            {"body": {"rebalance_run_id": "rr_1"}, "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.list_outcome_reviews,
+            {"params": {"portfolio_id": "P1"}, "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_outcome_review,
+            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.refresh_outcome_review_sources,
+            {
+                "outcome_review_id": "or_1",
+                "body": {"refresh_reason": "late fill"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_outcome_review_supportability,
+            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_outcome_review_report_input,
+            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_outcome_review_ai_evidence_input,
+            {"outcome_review_id": "or_1", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_run_outcome_review,
+            {"rebalance_run_id": "rr_1", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.list_wave_outcome_reviews,
+            {
+                "wave_id": "wave_1",
+                "params": {"state": "READY"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.generate_construction_alternative_set,
+            {
+                "body": {"portfolio_id": "P1"},
+                "idempotency_key": "idem-rfc36-canonical",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_construction_alternative_set,
+            {
+                "alternative_set_id": "cas_1",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.select_construction_alternative,
+            {
+                "alternative_set_id": "cas_1",
+                "body": {"alternative_id": "alt_1", "actor_id": "pm_1"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+    ]
+    for _method, _kwargs in calls:
+        _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    for method, kwargs in calls:
+        await method(**kwargs)
+
+    forbidden_fragments = (
+        "/dpm-execution-context",
+        "/integration/capabilities",
+        "/rebalance/runs",
+        "/rebalance/supportability",
+        "/construction/alternative-sets",
+        "/dpm/",
+    )
+    manage_urls = [call["url"] for call in _FakeAsyncClient.calls]
+    assert manage_urls
+    assert all(url.startswith("http://dpm/api/v1/") for url in manage_urls)
+    for url in manage_urls:
+        path = url.removeprefix("http://dpm")
+        assert not any(path.startswith(fragment) for fragment in forbidden_fragments)
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("method_name", "kwargs", "expected_url"),
     [
