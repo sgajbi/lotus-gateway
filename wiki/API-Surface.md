@@ -22,6 +22,7 @@
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `GET` and `POST /api/v1/dpm/command-center/construction/alternative-sets*`
+- `GET` and `POST /api/v1/dpm/command-center/proof-packs*`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `POST /api/v1/reports/outcome-reviews`
@@ -62,9 +63,13 @@
   `supportability.feature_key=report.observability.evidence_surface_supportability` from
   `lotus-report` integration capabilities so Workbench can record report evidence-surface
   freshness and supportability without direct service coupling
-- RFC-0098 proof-pack composition must consume `lotus-manage` RFC-0040 proof-pack APIs for
-  proof-pack JSON, section states, hashes, Markdown, report-input payloads, and AI-evidence
-  payloads; `lotus-report` remains report materialization authority, not proof-pack authority
+- RFC-0098 proof-pack composition consumes `lotus-manage` RFC-0040 proof-pack APIs through
+  `/api/v1/dpm/command-center/proof-packs*`. Gateway exposes generate, get, Markdown,
+  report-input, and AI-evidence-input routes for Workbench, preserving manage `proof_pack_id`,
+  section states, reason codes, content hashes, source hashes, source refs, report refs, and AI
+  refs. Gateway must not build proof-pack sections, recalculate hashes, infer source readiness,
+  render reports, generate AI narrative, or treat `lotus-report` as proof-pack authority.
+  `lotus-report` remains report materialization authority, not proof-pack authority.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
   generate, get, and select routes for Workbench, preserving manage alternative-set ids, method

@@ -1634,6 +1634,21 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/construction/alternative-sets/cas_1",
         ),
         (
+            "get_proof_pack",
+            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001",
+        ),
+        (
+            "get_proof_pack_report_input",
+            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/report-input",
+        ),
+        (
+            "get_proof_pack_ai_evidence_input",
+            {"proof_pack_id": "dpp_rr_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/ai-evidence-input",
+        ),
+        (
             "list_wave_outcome_reviews",
             {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
@@ -1767,6 +1782,42 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "correlation_id": "corr-rfc36-canonical",
             },
         ),
+        (
+            client.generate_proof_pack,
+            {
+                "body": {"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_1"},
+                "idempotency_key": "idem-rfc40-canonical",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_proof_pack,
+            {
+                "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_proof_pack_markdown,
+            {
+                "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_proof_pack_report_input,
+            {
+                "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_proof_pack_ai_evidence_input,
+            {
+                "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
     ]
     for _method, _kwargs in calls:
         _FakeAsyncClient.queue_json(200, {"ok": True})
@@ -1822,6 +1873,15 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             },
             "http://dpm/api/v1/construction/alternative-sets/cas_1/selections",
         ),
+        (
+            "generate_proof_pack",
+            {
+                "body": {"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_1"},
+                "idempotency_key": "idem-proof-pack-1",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/proof-packs",
+        ),
     ],
 )
 async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, expected_url):
@@ -1835,6 +1895,8 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["method"] == "POST"
     assert _FakeAsyncClient.calls[0]["url"] == expected_url
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
+    if "idempotency_key" in kwargs:
+        assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
 
 
 @pytest.mark.asyncio
@@ -1858,6 +1920,29 @@ async def test_dpm_client_construction_generate_route_forwards_idempotency_key()
     assert _FakeAsyncClient.calls[0]["json"] == {"input_mode": "stateless"}
     assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == "idem-construction-1"
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-construction-1"
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_proof_pack_markdown_preserves_text_payload():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_text(200, "# DPM proof pack\n")
+
+    status_code, markdown, error_payload = await client.get_proof_pack_markdown(
+        proof_pack_id="dpp_rr_001",
+        correlation_id="corr-proof-pack-md-client-1",
+    )
+
+    assert status_code == 200
+    assert markdown == "# DPM proof pack\n"
+    assert error_payload == {}
+    assert _FakeAsyncClient.calls[0]["method"] == "GET"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/summary.md"
+    )
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == (
+        "corr-proof-pack-md-client-1"
+    )
 
 
 @pytest.mark.asyncio

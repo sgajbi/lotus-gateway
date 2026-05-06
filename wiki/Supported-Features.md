@@ -50,6 +50,60 @@ Operational behavior:
 2. manage upstream errors are returned using product-safe Gateway error detail,
 3. OpenAPI documents What/When/How guidance and request/response examples for each route.
 
+## DPM Proof-Pack Evidence Composition
+
+Status: implementation-backed in Gateway for RFC40-WTBD-001.
+
+Business outcome:
+
+1. portfolio managers can generate and inspect a source-backed pre-trade proof pack from the DPM
+   command-center workflow,
+2. compliance, audit, and operations users can inspect proof-pack identity, section posture,
+   reason codes, content hashes, source hashes, Markdown, report-input evidence, and AI-evidence
+   input through one Workbench-facing Gateway contract,
+3. sales/pre-sales and client-demo teams can demonstrate proof-backed discretionary management
+   governance without implying Gateway or Workbench computes proof-pack evidence.
+
+Supported routes:
+
+1. `POST /api/v1/dpm/command-center/proof-packs`
+2. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}`
+3. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`
+4. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`
+5. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the RFC-0040 proof-pack authority.
+2. Gateway forwards generation payloads, idempotency keys, proof-pack ids, and correlation context
+   to manage.
+3. Gateway preserves manage-owned `proof_pack_id`, section states, reason codes, `content_hash`,
+   `source_hashes`, source refs, report refs, AI refs, deterministic Markdown, report-input
+   payloads, and AI-evidence payloads.
+4. Gateway does not generate proof-pack sections, recalculate hashes, infer source readiness,
+   render reports, archive documents, generate AI narrative, or treat `lotus-report` as
+   proof-pack authority.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench evidence drawer] --> Gateway[lotus-gateway DPM proof-pack routes]
+    Gateway --> Manage[lotus-manage RFC-0040 proof-pack authority]
+    Manage --> Core[lotus-core source refs and hashes]
+    Manage --> Gateway
+    Gateway --> ReportInput[report-input payload for lotus-report handoff]
+    Gateway --> AiInput[AI-evidence input for lotus-ai handoff]
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway returns a product envelope for JSON, report-input, and AI-evidence-input payloads while
+   preserving the authoritative manage payload under `data`,
+2. deterministic Markdown is preserved as manage-rendered text in a Gateway envelope so Workbench
+   can render it without owning proof-pack generation,
+3. degraded or unavailable manage states are surfaced using product-safe Gateway error detail and
+   must remain visible to Workbench supportability UI.
+
 ## DPM Mandate Command Center
 
 Status: implementation-backed in Gateway for RFC38-WTBD-001.

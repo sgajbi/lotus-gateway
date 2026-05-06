@@ -26,6 +26,9 @@
    expected-versus-realized outcomes. RFC-0039 construction alternative-set composition is also
    implementation-backed under `/api/v1/dpm/command-center/construction/alternative-sets*`,
    preserving manage-owned alternatives, diagnostics, supportability, and selection decisions
-   without Gateway optimization or recomputation.
+   without Gateway optimization or recomputation. RFC-0040 proof-pack composition is
+   implementation-backed under `/api/v1/dpm/command-center/proof-packs*`, preserving manage-owned
+   proof-pack ids, section states, reason codes, hashes, Markdown, report-input payloads, and
+   AI-evidence payloads without Gateway proof-pack reconstruction.
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents

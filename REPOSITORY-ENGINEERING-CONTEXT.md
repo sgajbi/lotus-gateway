@@ -35,7 +35,8 @@ Current repository posture:
    with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
    `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
-   summary/monitoring/exception/mandate drill-down route families, and RFC-0042 outcome-review
+   summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
+   generate/read/Markdown/report-input/AI-evidence route families, and RFC-0042 outcome-review
    preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
    AI-narrative handoff route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
@@ -207,7 +208,13 @@ Most relevant current governance:
     method status, diagnostics, comparison metrics, selected-alternative state, and supportability,
     and must not optimize portfolios, recompute construction metrics, infer source readiness, or
     choose alternatives locally.
-13. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+13. RFC-0040 proof-pack Gateway routes are active under
+    `/api/v1/dpm/command-center/proof-packs*`. Gateway forwards generation, lookup, Markdown,
+    report-input, and AI-evidence-input requests to `lotus-manage`, preserves manage-owned
+    `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
+    report refs, and AI refs, and must not build proof-pack sections, recalculate hashes, infer
+    source readiness, render reports, or generate AI narrative locally.
+14. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,

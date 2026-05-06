@@ -23,10 +23,10 @@
   proof-pack authority APIs, RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
   post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
   command-center contract; the RFC-0038 mandate command-center BFF route family, RFC-0039
-  construction alternative-set BFF route family, and RFC-0042 outcome-review BFF route family are
-  now implementation-backed, while RFC-0041 wave composition, proof-pack modules, report
-  materialization, archive, and optional AI posture remain governed follow-on slices until
-  implemented and proven
+  construction alternative-set BFF route family, RFC-0040 proof-pack BFF route family, and
+  RFC-0042 outcome-review BFF route family are now implementation-backed, while RFC-0041 wave
+  composition, report materialization, archive, and optional AI posture remain governed follow-on
+  slices until implemented and proven
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -98,7 +98,17 @@
     then preserves alternatives, method status, diagnostics, comparison metrics, supportability,
     and selection decisions without performing optimization, recomputation, readiness inference, or
     order execution.
-13. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
+13. RFC-0040 proof packs remain `lotus-manage` truth. Gateway proof-pack realization exposes
+    `/api/v1/dpm/command-center/proof-packs`,
+    `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}`,
+    `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
+    `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`, and
+    `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input` for Workbench.
+    Gateway forwards request bodies, idempotency keys, and correlation context to manage, then
+    preserves proof-pack identity, section states, reason codes, content hashes, source hashes,
+    source refs, report refs, and AI refs without generating proof sections, recalculating hashes,
+    rendering reports, or generating AI narrative.
+14. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from

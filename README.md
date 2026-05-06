@@ -42,8 +42,8 @@ It depends on:
   proposal simulation, persisted proposal lifecycle, workflow, approval, and lineage capability
 - `lotus-manage`
   discretionary management run lookup, supportability summary, platform capability posture, and
-  RFC-0039 construction alternative-set authority and RFC-0042 post-trade outcome-review authority
-  through the DPM command-center BFF routes
+  RFC-0039 construction alternative-set authority, RFC-0040 proof-pack authority, and RFC-0042
+  post-trade outcome-review authority through the DPM command-center BFF routes
 - `lotus-report`
   reporting snapshot, summary, review payloads, portfolio-review and outcome-review durable report
   job initiation/lifecycle/search, and RFC-0104 batch materialization/status/control/operator-run APIs
@@ -94,6 +94,11 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/construction/alternative-sets/generate`,
   `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`,
   `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`,
+  `/api/v1/dpm/command-center/proof-packs`,
+  `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}`,
+  `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
+  `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`,
+  `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`

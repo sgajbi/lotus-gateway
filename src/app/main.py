@@ -15,6 +15,7 @@ from app.routers.archive_documents import router as archive_documents_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_construction import router as dpm_construction_router
+from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
@@ -72,8 +73,9 @@ app = FastAPI(
         {
             "name": "DPM Command Center",
             "description": (
-                "Gateway BFF composition APIs for DPM rebalance-wave and post-trade "
-                "outcome-review workflows backed by lotus-manage authority."
+                "Gateway BFF composition APIs for DPM command-center, construction, proof-pack, "
+                "rebalance-wave, and post-trade outcome-review workflows backed by "
+                "lotus-manage authority."
             ),
         },
     ],
@@ -91,6 +93,7 @@ app.include_router(foundation_router)
 app.include_router(portfolio_router)
 app.include_router(dpm_command_center_router)
 app.include_router(dpm_construction_router)
+app.include_router(dpm_proof_packs_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)
