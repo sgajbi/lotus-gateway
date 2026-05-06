@@ -1862,6 +1862,119 @@ async def test_dpm_client_construction_generate_route_forwards_idempotency_key()
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("method_name", "kwargs", "expected_url", "expected_method"),
+    [
+        (
+            "get_command_center",
+            {
+                "params": {
+                    "tenant_id": "default",
+                    "portfolio_manager_id": "PM_SG_DPM_001",
+                    "book_id": None,
+                },
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/dpm/command-center",
+            "GET",
+        ),
+        (
+            "run_monitoring_once",
+            {
+                "body": {"mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"]},
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/dpm/monitoring/run-once",
+            "POST",
+        ),
+        (
+            "list_monitoring_runs",
+            {
+                "params": {"status_filter": "SUCCEEDED", "cursor": None},
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/dpm/monitoring/runs",
+            "GET",
+        ),
+        (
+            "get_monitoring_run",
+            {"monitoring_run_id": "dmr_1", "correlation_id": "corr-rfc38"},
+            "http://dpm/api/v1/dpm/monitoring/runs/dmr_1",
+            "GET",
+        ),
+        (
+            "list_monitoring_exceptions",
+            {
+                "params": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "state": "ACTIVE"},
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/dpm/exceptions",
+            "GET",
+        ),
+        (
+            "resolve_monitoring_exception",
+            {
+                "exception_id": "me_1",
+                "body": {"resolution_reason": "SOURCE_REPAIRED"},
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/dpm/exceptions/me_1/resolve",
+            "POST",
+        ),
+        (
+            "get_mandate_by_portfolio",
+            {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            "http://dpm/api/v1/mandates/by-portfolio/PB_SG_GLOBAL_BAL_001",
+            "GET",
+        ),
+        (
+            "get_mandate",
+            {"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001",
+            "GET",
+        ),
+        (
+            "get_mandate_health",
+            {"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001", "correlation_id": "corr-rfc38"},
+            "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/health",
+            "GET",
+        ),
+        (
+            "get_mandate_diff",
+            {
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "params": {"from_version": "2", "to_version": "3"},
+                "correlation_id": "corr-rfc38",
+            },
+            "http://dpm/api/v1/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/diff",
+            "GET",
+        ),
+    ],
+)
+async def test_dpm_client_rfc38_command_center_routes(
+    method_name,
+    kwargs,
+    expected_url,
+    expected_method,
+):
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    status_code, payload = await method(**kwargs)
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["method"] == expected_method
+    assert _FakeAsyncClient.calls[0]["url"] == expected_url
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-rfc38"
+    if expected_method == "GET" and "params" in kwargs:
+        assert None not in _FakeAsyncClient.calls[0]["params"].values()
+    if expected_method == "POST":
+        assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("method_name", "kwargs", "expected_url"),
     [
         (

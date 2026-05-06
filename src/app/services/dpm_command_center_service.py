@@ -6,6 +6,8 @@ from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_command_center import (
+    DpmCommandCenterGatewayResponse,
+    DpmCommandCenterSupportability,
     DpmOutcomeReviewErrorDetail,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
@@ -18,6 +20,160 @@ class DpmCommandCenterService:
     def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
         self._dpm_client = dpm_client
         self._lotus_ai_client = lotus_ai_client
+
+    async def get_command_center(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_command_center(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def run_monitoring_once(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.run_monitoring_once(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_monitoring_runs(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.list_monitoring_runs(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_monitoring_run(
+        self,
+        monitoring_run_id: str,
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_monitoring_run(
+            monitoring_run_id=monitoring_run_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_monitoring_exceptions(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.list_monitoring_exceptions(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def resolve_monitoring_exception(
+        self,
+        exception_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.resolve_monitoring_exception(
+            exception_id=exception_id,
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_mandate_by_portfolio(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_mandate_by_portfolio(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_mandate(
+        self,
+        mandate_id: str,
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_mandate(
+            mandate_id=mandate_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_mandate_health(
+        self,
+        mandate_id: str,
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_mandate_health(
+            mandate_id=mandate_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_mandate_diff(
+        self,
+        mandate_id: str,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_mandate_diff(
+            mandate_id=mandate_id,
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
 
     async def preview_outcome_review(
         self,
@@ -257,6 +413,30 @@ class DpmCommandCenterService:
             data=upstream_payload,
         )
 
+    def _compose_command_center_response(
+        self,
+        upstream_status: int,
+        upstream_payload: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCommandCenterGatewayResponse:
+        if upstream_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=upstream_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=upstream_status,
+                    error_code="MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(upstream_payload),
+                ).model_dump(),
+            )
+
+        return DpmCommandCenterGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            upstream_status=upstream_status,
+            supportability=_command_center_supportability_from(upstream_payload),
+            data=upstream_payload,
+        )
+
 
 def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportability:
     raw = payload.get("supportability")
@@ -284,6 +464,48 @@ def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportabil
         state=str(state),
         reason_codes=reason_codes,
         blocked_actions=blocked_actions,
+        remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
+    )
+
+
+def _command_center_supportability_from(payload: dict[str, Any]) -> DpmCommandCenterSupportability:
+    raw = payload.get("supportability")
+    supportability = raw if isinstance(raw, dict) else {}
+    data_completeness_state = supportability.get("data_completeness_state") or supportability.get(
+        "dataCompletenessState"
+    )
+    state = (
+        supportability.get("state")
+        or supportability.get("supportability_state")
+        or supportability.get("supportabilityState")
+        or data_completeness_state
+        or payload.get("command_center_state")
+        or payload.get("state")
+        or "UNKNOWN"
+    )
+    source_run_id = (
+        supportability.get("source_run_id")
+        or supportability.get("sourceRunId")
+        or payload.get("monitoring_run_id")
+    )
+    remediation_owner = supportability.get("remediation_owner") or supportability.get(
+        "remediationOwner"
+    )
+    partial_reasons = _list_of_strings(
+        supportability.get("partial_readiness_reasons")
+        or supportability.get("partialReadinessReasons")
+        or supportability.get("reason_codes")
+        or supportability.get("reasonCodes")
+        or []
+    )
+
+    return DpmCommandCenterSupportability(
+        state=str(state),
+        data_completeness_state=(
+            str(data_completeness_state) if data_completeness_state is not None else None
+        ),
+        partial_readiness_reasons=partial_reasons,
+        source_run_id=str(source_run_id) if source_run_id is not None else None,
         remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
     )
 

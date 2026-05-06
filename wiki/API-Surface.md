@@ -13,6 +13,10 @@
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
 - `GET /api/v1/portfolio/*`
+- `GET /api/v1/dpm/command-center`
+- `GET` and `POST /api/v1/dpm/command-center/monitoring/*`
+- `GET` and `POST /api/v1/dpm/command-center/exceptions*`
+- `GET /api/v1/dpm/command-center/mandates*`
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
@@ -68,6 +72,16 @@
   diagnostics, supportability, selected-alternative state, and lineage. Gateway must not optimize,
   recompute construction metrics, infer source readiness, select alternatives, execute orders, or
   let Workbench bypass Gateway.
+- RFC-0098 mandate command-center composition consumes `lotus-manage` RFC-0038 mandate health,
+  monitoring run, exception queue, and mandate read APIs. Gateway now exposes
+  `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
+  `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for
+  Workbench command-center consumers. These routes preserve manage-published health distribution,
+  health dimensions, source readiness, supportability, latest monitoring run identity, active
+  exceptions, reason codes, recommended actions, mandate source lineage, and version diffs.
+  Gateway must not discover PM-book membership, calculate health scores, reconstruct source
+  readiness, merge exceptions across monitoring runs, resolve exceptions locally, or let Workbench
+  call `lotus-manage` directly.
 - RFC36-WTBD-003 portfolio-level DPM operations posture is exposed on Workbench overview and
   portfolio-360 `rebalance_snapshot`. Gateway reads manage rebalance runs through
   `/api/v1/rebalance/runs`, reads manage supportability summary through
@@ -122,8 +136,9 @@
 - proposal simulation, create, list, detail, version, workflow-event, approval, and lineage routes
   call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
-  management run lookup, supportability summary, capability posture, RFC-0039 construction
-  alternative-set authority APIs, and RFC-0042 outcome-review authority APIs
+  management run lookup, supportability summary, capability posture, RFC-0038 mandate
+  command-center authority APIs, RFC-0039 construction alternative-set authority APIs, and
+  RFC-0042 outcome-review authority APIs
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
   operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
   `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:

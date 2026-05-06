@@ -34,7 +34,8 @@ Current repository posture:
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
    with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
    `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
-   run lookup, supportability summary, capability posture, and RFC-0042 outcome-review
+   run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
+   summary/monitoring/exception/mandate drill-down route families, and RFC-0042 outcome-review
    preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
    AI-narrative handoff route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
@@ -193,13 +194,20 @@ Most relevant current governance:
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
     generate reports, generate AI narrative, infer PM quality, or let Workbench call manage
     directly.
-11. RFC-0039 construction-alternative Gateway routes are active under
+11. RFC-0038 mandate command-center Gateway routes are active under
+    `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
+    `/api/v1/dpm/command-center/exceptions*`, and
+    `/api/v1/dpm/command-center/mandates*`. Gateway composes a BFF envelope and supportability
+    summary over manage truth, but it must not discover PM books, calculate health scores,
+    reconstruct health dimensions, infer source readiness, merge exceptions across monitoring
+    runs, or close exceptions locally.
+12. RFC-0039 construction-alternative Gateway routes are active under
     `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway forwards generation,
     retrieval, and selection requests to `lotus-manage`, preserves manage-owned alternatives,
     method status, diagnostics, comparison metrics, selected-alternative state, and supportability,
     and must not optimize portfolios, recompute construction metrics, infer source readiness, or
     choose alternatives locally.
-12. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+13. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,

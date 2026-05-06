@@ -17,14 +17,16 @@
   proposal simulation, proposal persistence, workflow events, approvals, and lineage through
   `/advisory/proposals/*`
 - `lotus-manage`
-  discretionary management run lookup, supportability summary, capabilities, RFC-0039
+  discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
+  command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
   construction alternative-set authority APIs, RFC-0040
   proof-pack authority APIs, RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
   post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
-  command-center contract; the RFC-0039 construction alternative-set BFF route family and
-  RFC-0042 outcome-review BFF route family are now implementation-backed, while broader mandate
-  health, RFC-0041 wave composition, proof-pack modules, report materialization, archive, and
-  optional AI posture remain governed follow-on slices until implemented and proven
+  command-center contract; the RFC-0038 mandate command-center BFF route family, RFC-0039
+  construction alternative-set BFF route family, and RFC-0042 outcome-review BFF route family are
+  now implementation-backed, while RFC-0041 wave composition, proof-pack modules, report
+  materialization, archive, and optional AI posture remain governed follow-on slices until
+  implemented and proven
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -74,14 +76,21 @@
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.
-10. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
+10. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
+    `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
+    `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for
+    Workbench. Gateway forwards filters and request bodies to manage, then preserves health
+    distribution, monitoring-run state, active exceptions, reason codes, recommended actions,
+    mandate source lineage, version diffs, and supportability without calculating health,
+    discovering PM books, inferring source readiness, or resolving exceptions locally.
+11. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
     compose expected-versus-realized review summaries, dimension outcomes, source lineage,
     supportability, report-input posture, and AI-evidence posture without recomputing outcome
     values or calling source-owner apps behind manage's review authority. The implemented Gateway
     route family is `/api/v1/dpm/command-center/outcome-reviews*`,
     `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
     `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
-11. RFC-0039 construction alternatives remain `lotus-manage` truth. Gateway construction
+12. RFC-0039 construction alternatives remain `lotus-manage` truth. Gateway construction
     realization exposes `/api/v1/dpm/command-center/construction/alternative-sets/generate`,
     `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`, and
     `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`
@@ -89,7 +98,7 @@
     then preserves alternatives, method status, diagnostics, comparison metrics, supportability,
     and selection decisions without performing optimization, recomputation, readiness inference, or
     order execution.
-12. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
+13. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from
