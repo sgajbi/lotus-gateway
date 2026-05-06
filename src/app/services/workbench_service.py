@@ -11,6 +11,7 @@ from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
+from app.contracts.portfolio import PortfolioRebalanceSupportabilitySummary
 from app.contracts.workbench import (
     WorkbenchAnalyticsBucket,
     WorkbenchAnalyticsResponse,
@@ -24,6 +25,7 @@ from app.contracts.workbench import (
     WorkbenchPositionView,
     WorkbenchProjectedPositionView,
     WorkbenchProjectedSummary,
+    WorkbenchRebalanceRunSummary,
     WorkbenchRebalanceSnapshot,
     WorkbenchSandboxStateResponse,
     WorkbenchTopChange,
@@ -473,7 +475,7 @@ class WorkbenchService:
 
             dpm_task = (
                 self._dpm_client.list_runs(
-                    params={"portfolio_id": portfolio_id, "limit": 1},
+                    params={"portfolio_id": portfolio_id, "limit": 5},
                     correlation_id=correlation_id,
                 )
                 if include_rebalance_snapshot
@@ -976,15 +978,92 @@ class WorkbenchService:
         elif isinstance(created_at, datetime):
             last_run_at_utc = created_at.astimezone(UTC).isoformat()
 
+        recent_runs = self._parse_recent_dpm_runs(items)
+        supportability = self._parse_rebalance_supportability(dpm_payload)
+
         return WorkbenchRebalanceSnapshot(
             status=str(latest.get("status", "UNKNOWN")),
-            last_rebalance_run_id=(
-                str(latest["rebalance_run_id"])
-                if latest.get("rebalance_run_id") is not None
-                else None
-            ),
+            last_rebalance_run_id=self._optional_str(latest.get("rebalance_run_id")),
             last_run_at_utc=last_run_at_utc,
+            supportability=supportability,
+            recent_runs=recent_runs,
         )
+
+    def _parse_recent_dpm_runs(
+        self,
+        items: list[Any],
+    ) -> list[WorkbenchRebalanceRunSummary]:
+        recent_runs: list[WorkbenchRebalanceRunSummary] = []
+        for item in items[:5]:
+            if not isinstance(item, dict):
+                continue
+            recent_runs.append(
+                WorkbenchRebalanceRunSummary(
+                    rebalance_run_id=self._optional_str(item.get("rebalance_run_id")),
+                    status=str(item.get("status", "UNKNOWN")),
+                    created_at_utc=self._optional_datetime_str(item.get("created_at")),
+                    error_code=self._extract_dpm_run_error_code(item),
+                    workflow_state=self._optional_str(
+                        item.get("workflow_state")
+                        or item.get("workflow_decision_state")
+                        or item.get("review_state")
+                    ),
+                )
+            )
+        return recent_runs
+
+    def _parse_rebalance_supportability(
+        self,
+        dpm_payload: dict[str, Any],
+    ) -> PortfolioRebalanceSupportabilitySummary | None:
+        supportability_payload = dpm_payload.get("supportability")
+        if not isinstance(supportability_payload, dict):
+            return None
+        return PortfolioRebalanceSupportabilitySummary(
+            feature_key=(
+                self._optional_str(supportability_payload.get("feature_key"))
+                or "manage.observability.action_register_supportability"
+            ),
+            state=str(supportability_payload.get("state") or "unknown"),
+            reason=self._optional_str(supportability_payload.get("reason")),
+            freshness_bucket=self._optional_str(supportability_payload.get("freshness_bucket")),
+            run_count=self._optional_int(supportability_payload.get("run_count")),
+            operation_count=self._optional_int(supportability_payload.get("operation_count")),
+            workflow_decision_count=self._optional_int(
+                supportability_payload.get("workflow_decision_count")
+            ),
+        )
+
+    def _extract_dpm_run_error_code(self, item: dict[str, Any]) -> str | None:
+        for key in ("error_code", "failure_code", "reason_code"):
+            value = self._optional_str(item.get(key))
+            if value:
+                return value
+        error_payload = item.get("error")
+        if isinstance(error_payload, dict):
+            return self._optional_str(error_payload.get("code"))
+        return None
+
+    def _optional_datetime_str(self, value: Any) -> str | None:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, datetime):
+            return value.astimezone(UTC).isoformat()
+        return None
+
+    def _optional_str(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None
+
+    def _optional_int(self, value: Any) -> int | None:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
 
 
 @dataclass(slots=True)
