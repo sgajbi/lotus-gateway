@@ -377,6 +377,14 @@ def test_workbench_openapi_contract_registered() -> None:
     assert overview_schema["properties"]["overview"]["description"]
     assert overview_schema["properties"]["performance_snapshot"]["description"]
     assert overview_schema["properties"]["rebalance_snapshot"]["description"]
+    assert (
+        overview_schema["example"]["rebalance_snapshot"]["supportability"]["feature_key"]
+        == "manage.observability.action_register_supportability"
+    )
+    assert (
+        overview_schema["example"]["rebalance_snapshot"]["recent_runs"][0]["workflow_state"]
+        == "PM_REVIEW_REQUIRED"
+    )
     assert overview_schema["properties"]["warnings"]["description"]
     assert overview_schema["properties"]["partial_failures"]["description"]
     assert portfolio_summary_schema["properties"]["portfolio_id"]["description"]
@@ -392,6 +400,14 @@ def test_workbench_openapi_contract_registered() -> None:
     assert rebalance_snapshot_schema["properties"]["status"]["description"]
     assert rebalance_snapshot_schema["properties"]["last_rebalance_run_id"]["description"]
     assert rebalance_snapshot_schema["properties"]["last_run_at_utc"]["description"]
+    assert rebalance_snapshot_schema["properties"]["supportability"]["description"]
+    assert rebalance_snapshot_schema["properties"]["recent_runs"]["description"]
+    rebalance_run_schema = spec["components"]["schemas"]["WorkbenchRebalanceRunSummary"]
+    assert rebalance_run_schema["properties"]["rebalance_run_id"]["description"]
+    assert rebalance_run_schema["properties"]["status"]["description"]
+    assert rebalance_run_schema["properties"]["created_at_utc"]["description"]
+    assert rebalance_run_schema["properties"]["error_code"]["description"]
+    assert rebalance_run_schema["properties"]["workflow_state"]["description"]
     assert partial_failure_schema["properties"]["source_service"]["description"]
     assert partial_failure_schema["properties"]["error_code"]["description"]
     assert partial_failure_schema["properties"]["detail"]["description"]

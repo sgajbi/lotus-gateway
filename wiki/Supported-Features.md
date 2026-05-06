@@ -50,6 +50,48 @@ Operational behavior:
 2. manage upstream errors are returned using product-safe Gateway error detail,
 3. OpenAPI documents What/When/How guidance and request/response examples for each route.
 
+## Portfolio-Level DPM Operations Posture
+
+Status: implementation-backed in Gateway for RFC36-WTBD-003.
+
+Business outcome:
+
+1. portfolio managers and operations users can see recent stateful DPM execution posture from the
+   Workbench overview without direct `lotus-manage` access,
+2. Workbench can render supportability, last-run identity, recent run status, workflow posture, and
+   bounded run issue codes from a governed Gateway envelope,
+3. missing supportability or absent recent runs stay explicit instead of becoming fabricated zero
+   activity.
+
+Supported routes:
+
+1. `GET /api/v1/workbench/{portfolio_id}/overview`
+2. `GET /api/v1/workbench/{portfolio_id}/portfolio-360`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the rebalance run and action-register supportability authority.
+2. Gateway reads manage `/api/v1/rebalance/runs` and preserves manage-provided supportability when
+   present.
+3. Gateway exposes up to five bounded recent run summaries with run id, status, timestamp,
+   workflow posture, and error code.
+4. Gateway does not compute supportability, workflow status, source readiness, execution outcomes,
+   or error semantics locally.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench operations dashboard] --> Gateway[Workbench overview and portfolio-360]
+    Gateway --> Manage[lotus-manage rebalance runs and supportability]
+    Manage --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway returns partial failures and warnings if manage is unavailable,
+2. recent run detail is bounded to keep the Workbench contract product-safe,
+3. Workbench remains Gateway-first and must not call `lotus-manage` directly.
+
 ## DPM Command Center Outcome Reviews
 
 Status: implementation-backed in Gateway for RFC42-WTBD-001 and RFC42-WTBD-005.

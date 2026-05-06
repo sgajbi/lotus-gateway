@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.contracts.portfolio import PortfolioRebalanceSupportabilitySummary
+
 
 class WorkbenchPortfolioSummary(BaseModel):
     portfolio_id: str = Field(
@@ -68,6 +70,47 @@ class WorkbenchRebalanceSnapshot(BaseModel):
         default=None,
         description="UTC timestamp when the latest rebalance run was created.",
         examples=["2026-02-23T01:00:00Z"],
+    )
+    supportability: PortfolioRebalanceSupportabilitySummary | None = Field(
+        default=None,
+        description=(
+            "Manage-owned action-register supportability posture for the portfolio-level DPM "
+            "operation dashboard."
+        ),
+    )
+    recent_runs: list["WorkbenchRebalanceRunSummary"] = Field(
+        default_factory=list,
+        description=(
+            "Bounded recent manage rebalance runs used by operations and PM users to assess "
+            "portfolio-level execution posture without calling lotus-manage directly."
+        ),
+    )
+
+
+class WorkbenchRebalanceRunSummary(BaseModel):
+    rebalance_run_id: str | None = Field(
+        default=None,
+        description="Manage rebalance run identifier for the recent execution row.",
+        examples=["rr_100"],
+    )
+    status: str = Field(
+        description="Manage-owned status for the recent rebalance run.",
+        examples=["PENDING_REVIEW"],
+    )
+    created_at_utc: str | None = Field(
+        default=None,
+        description="UTC timestamp when manage created the rebalance run.",
+        examples=["2026-02-23T01:00:00Z"],
+    )
+    error_code: str | None = Field(
+        default=None,
+        description="Bounded manage-provided error code when the run ended in an error state.",
+        examples=["SOURCE_READINESS_BLOCKED"],
+    )
+    workflow_state: str | None = Field(
+        default=None,
+        description="Optional bounded workflow posture for the run when manage provides it.",
+        examples=["PM_REVIEW_REQUIRED"],
     )
 
 
@@ -149,6 +192,24 @@ class WorkbenchOverviewResponse(BaseModel):
                     "status": "PENDING_REVIEW",
                     "last_rebalance_run_id": "rr_100",
                     "last_run_at_utc": "2026-02-23T01:00:00Z",
+                    "supportability": {
+                        "feature_key": "manage.observability.action_register_supportability",
+                        "state": "healthy",
+                        "reason": "action_register_current",
+                        "freshness_bucket": "fresh",
+                        "run_count": 4,
+                        "operation_count": 12,
+                        "workflow_decision_count": 3,
+                    },
+                    "recent_runs": [
+                        {
+                            "rebalance_run_id": "rr_100",
+                            "status": "PENDING_REVIEW",
+                            "created_at_utc": "2026-02-23T01:00:00Z",
+                            "error_code": None,
+                            "workflow_state": "PM_REVIEW_REQUIRED",
+                        }
+                    ],
                 },
                 "warnings": [],
                 "partial_failures": [],
@@ -312,6 +373,24 @@ class WorkbenchPortfolio360Response(BaseModel):
                     "status": "PENDING_REVIEW",
                     "last_rebalance_run_id": "rr_100",
                     "last_run_at_utc": "2026-02-23T01:00:00Z",
+                    "supportability": {
+                        "feature_key": "manage.observability.action_register_supportability",
+                        "state": "healthy",
+                        "reason": "action_register_current",
+                        "freshness_bucket": "fresh",
+                        "run_count": 4,
+                        "operation_count": 12,
+                        "workflow_decision_count": 3,
+                    },
+                    "recent_runs": [
+                        {
+                            "rebalance_run_id": "rr_100",
+                            "status": "PENDING_REVIEW",
+                            "created_at_utc": "2026-02-23T01:00:00Z",
+                            "error_code": None,
+                            "workflow_state": "PM_REVIEW_REQUIRED",
+                        }
+                    ],
                 },
                 "current_positions": [
                     {

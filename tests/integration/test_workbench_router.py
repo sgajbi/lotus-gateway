@@ -102,14 +102,31 @@ def test_workbench_router_success(monkeypatch):
         }
 
     async def _dpm(*args, **kwargs):
+        assert kwargs["params"]["limit"] == 5
         return 200, {
             "items": [
                 {
                     "rebalance_run_id": "rr_100",
                     "status": "PENDING_REVIEW",
                     "created_at": "2026-02-23T01:00:00Z",
-                }
-            ]
+                    "workflow_state": "PM_REVIEW_REQUIRED",
+                },
+                {
+                    "rebalance_run_id": "rr_099",
+                    "status": "FAILED",
+                    "created_at": "2026-02-22T01:00:00Z",
+                    "error": {"code": "SOURCE_READINESS_BLOCKED"},
+                },
+            ],
+            "supportability": {
+                "feature_key": "manage.observability.action_register_supportability",
+                "state": "healthy",
+                "reason": "action_register_current",
+                "freshness_bucket": "fresh",
+                "run_count": 2,
+                "operation_count": 5,
+                "workflow_decision_count": 1,
+            },
         }
 
     monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
@@ -137,6 +154,31 @@ def test_workbench_router_success(monkeypatch):
     assert body["rebalance_snapshot"]["status"] == "PENDING_REVIEW"
     assert body["rebalance_snapshot"]["last_rebalance_run_id"] == "rr_100"
     assert body["rebalance_snapshot"]["last_run_at_utc"] == "2026-02-23T01:00:00Z"
+    assert body["rebalance_snapshot"]["supportability"] == {
+        "feature_key": "manage.observability.action_register_supportability",
+        "state": "healthy",
+        "reason": "action_register_current",
+        "freshness_bucket": "fresh",
+        "run_count": 2,
+        "operation_count": 5,
+        "workflow_decision_count": 1,
+    }
+    assert body["rebalance_snapshot"]["recent_runs"] == [
+        {
+            "rebalance_run_id": "rr_100",
+            "status": "PENDING_REVIEW",
+            "created_at_utc": "2026-02-23T01:00:00Z",
+            "error_code": None,
+            "workflow_state": "PM_REVIEW_REQUIRED",
+        },
+        {
+            "rebalance_run_id": "rr_099",
+            "status": "FAILED",
+            "created_at_utc": "2026-02-22T01:00:00Z",
+            "error_code": "SOURCE_READINESS_BLOCKED",
+            "workflow_state": None,
+        },
+    ]
     assert body["warnings"] == []
     assert body["partial_failures"] == []
 

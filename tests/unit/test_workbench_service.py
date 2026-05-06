@@ -251,8 +251,24 @@ async def test_workbench_overview_success():
                         "rebalance_run_id": "rr_1",
                         "status": "READY",
                         "created_at": "2026-02-23T00:00:00Z",
-                    }
-                ]
+                        "workflow_state": "PM_REVIEW_REQUIRED",
+                    },
+                    {
+                        "rebalance_run_id": "rr_0",
+                        "status": "FAILED",
+                        "created_at": "2026-02-22T00:00:00Z",
+                        "error_code": "SOURCE_READINESS_BLOCKED",
+                    },
+                ],
+                "supportability": {
+                    "feature_key": "manage.observability.action_register_supportability",
+                    "state": "healthy",
+                    "reason": "action_register_current",
+                    "freshness_bucket": "fresh",
+                    "run_count": 2,
+                    "operation_count": 4,
+                    "workflow_decision_count": 1,
+                },
             },
         ),
     )
@@ -282,6 +298,17 @@ async def test_workbench_overview_success():
     assert response.rebalance_snapshot.status == "READY"
     assert response.rebalance_snapshot.last_rebalance_run_id == "rr_1"
     assert response.rebalance_snapshot.last_run_at_utc == "2026-02-23T00:00:00Z"
+    assert response.rebalance_snapshot.supportability is not None
+    assert response.rebalance_snapshot.supportability.state == "healthy"
+    assert response.rebalance_snapshot.supportability.freshness_bucket == "fresh"
+    assert response.rebalance_snapshot.supportability.run_count == 2
+    assert response.rebalance_snapshot.supportability.operation_count == 4
+    assert response.rebalance_snapshot.supportability.workflow_decision_count == 1
+    assert len(response.rebalance_snapshot.recent_runs) == 2
+    assert response.rebalance_snapshot.recent_runs[0].rebalance_run_id == "rr_1"
+    assert response.rebalance_snapshot.recent_runs[0].workflow_state == "PM_REVIEW_REQUIRED"
+    assert response.rebalance_snapshot.recent_runs[1].status == "FAILED"
+    assert response.rebalance_snapshot.recent_runs[1].error_code == "SOURCE_READINESS_BLOCKED"
     assert response.partial_failures == []
 
 
