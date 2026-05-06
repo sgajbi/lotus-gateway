@@ -193,6 +193,12 @@ Most relevant current governance:
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
     generate reports, generate AI narrative, infer PM quality, or let Workbench call manage
     directly.
+11. RFC-0039 construction-alternative Gateway routes are active under
+    `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway forwards generation,
+    retrieval, and selection requests to `lotus-manage`, preserves manage-owned alternatives,
+    method status, diagnostics, comparison metrics, selected-alternative state, and supportability,
+    and must not optimize portfolios, recompute construction metrics, infer source readiness, or
+    choose alternatives locally.
 
 ## Context Maintenance Rule
 

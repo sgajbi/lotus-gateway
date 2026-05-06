@@ -1131,20 +1131,29 @@ To be completed during the final closure slice:
 
 ## 19. Implementation Progress Ledger
 
-This RFC is not fully implemented. The first ledger-driven slice delivered the RFC-0042
-outcome-review route family so Workbench can later consume Gateway/BFF instead of calling
-`lotus-manage` directly.
+This RFC is not fully implemented. Ledger-driven slices have delivered the RFC-0039 construction
+alternative-set route family and the RFC-0042 outcome-review route family so Workbench can consume
+Gateway/BFF instead of calling `lotus-manage` directly.
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented in Gateway feature branch; local CI passed; pending PR/merge/live proof closure | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
-| RFC42-WTBD-005 Gateway AI narrative handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
+| RFC39-WTBD-001 Gateway construction-alternatives composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_construction.py`, `src/app/services/dpm_construction_service.py`, `src/app/contracts/dpm_construction.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_construction_service.py`, `tests/integration/test_dpm_construction_router.py`, `tests/contract/test_dpm_construction_contract.py` |
+| RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
+| RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
 | RFC-0042 manage authority preservation | Implemented for BFF envelope; Gateway forwards payloads and preserves manage supportability | Service tests prove payload preservation and upstream error forwarding; contract tests prove OpenAPI route family registration and What/When/How guidance |
 | Broader RFC-0098 command-center book, mandate detail, evidence, action handoff, wave composition, proof-pack composition, report/archive/AI modules | Not implemented in this slice | Remains governed by this RFC and the work-to-be-done ledger; no supported-feature claim is made |
 
 Implementation boundaries:
 
-1. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
+1. Gateway now exposes `POST /api/v1/dpm/command-center/construction/alternative-sets/generate`,
+   `GET /api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`, and
+   `POST /api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`.
+2. Construction routes preserve manage-owned alternative-set ids, method identifiers, method
+   statuses, objective traces, constraint traces, comparison metrics, diagnostics, supportability,
+   selected-alternative state, and lineage.
+3. Gateway does not optimize portfolios, recompute construction metrics, infer source readiness,
+   select alternatives, execute orders, or fabricate degraded-source values.
+4. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
    `POST /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`,
@@ -1155,12 +1164,12 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`,
    `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
    `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
-2. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
+5. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
    lineage, source freshness, supportability, or review state.
-3. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative
+6. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative
    locally, score PM quality, approve trades, contact clients, or claim Workbench UI support in
    this slice. The AI narrative endpoint is a governed handoff to `lotus-ai` over manage evidence.
-4. Workbench product realization remains a separate owning-repository implementation item.
+7. Workbench product realization remains a separate owning-repository implementation item.
 
 Validation performed on 2026-05-05:
 

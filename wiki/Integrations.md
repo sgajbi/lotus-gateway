@@ -17,13 +17,14 @@
   proposal simulation, proposal persistence, workflow events, approvals, and lineage through
   `/advisory/proposals/*`
 - `lotus-manage`
-  discretionary management run lookup, supportability summary, capabilities, RFC-0040
+  discretionary management run lookup, supportability summary, capabilities, RFC-0039
+  construction alternative-set authority APIs, RFC-0040
   proof-pack authority APIs, RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
   post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
-  command-center contract; the RFC-0042 outcome-review BFF route family is now
-  implementation-backed, while broader mandate health, RFC-0041 wave composition, proof-pack
-  modules, report materialization, archive, and optional AI posture remain governed follow-on
-  slices until implemented and proven
+  command-center contract; the RFC-0039 construction alternative-set BFF route family and
+  RFC-0042 outcome-review BFF route family are now implementation-backed, while broader mandate
+  health, RFC-0041 wave composition, proof-pack modules, report materialization, archive, and
+  optional AI posture remain governed follow-on slices until implemented and proven
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -80,3 +81,11 @@
     route family is `/api/v1/dpm/command-center/outcome-reviews*`,
     `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
     `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
+11. RFC-0039 construction alternatives remain `lotus-manage` truth. Gateway construction
+    realization exposes `/api/v1/dpm/command-center/construction/alternative-sets/generate`,
+    `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`, and
+    `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`
+    for Workbench. Gateway forwards request bodies and idempotency/correlation context to manage,
+    then preserves alternatives, method status, diagnostics, comparison metrics, supportability,
+    and selection decisions without performing optimization, recomputation, readiness inference, or
+    order execution.

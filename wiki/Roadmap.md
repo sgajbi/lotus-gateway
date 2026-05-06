@@ -23,6 +23,9 @@
    realization; the first implementation-backed outcome-review BFF route family is active under
    `/api/v1/dpm/command-center/outcome-reviews*`, run lookup, and wave lookup routes, preserving
    manage source-lineage, supportability, report-input, and AI-evidence truth without recomputing
-   expected-versus-realized outcomes.
+   expected-versus-realized outcomes. RFC-0039 construction alternative-set composition is also
+   implementation-backed under `/api/v1/dpm/command-center/construction/alternative-sets*`,
+   preserving manage-owned alternatives, diagnostics, supportability, and selection decisions
+   without Gateway optimization or recomputation.
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents

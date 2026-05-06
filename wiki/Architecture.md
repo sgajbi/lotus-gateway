@@ -32,6 +32,9 @@
   config-backed scheduler inspection and bounded run-due boundary over `lotus-report`
 - `archived documents`
   generated-document metadata and controlled download boundary over `lotus-archive`
+- `dpm-command-center construction`
+  Workbench-facing construction alternative generation, retrieval, and selection over
+  `lotus-manage` RFC-0039 authority
 
 ## Boundary notes
 
@@ -43,3 +46,5 @@
    purge, legal-hold mutation, and access-event ownership stay in `lotus-archive`
 6. report batch lifecycle, scheduler configuration, and execution truth stay in `lotus-report`;
    gateway exposes the governed operator boundary and rewrites only gateway-relative status URLs
+7. construction alternatives stay in `lotus-manage`; gateway exposes the Workbench contract and
+   preserves manage-owned alternatives, statuses, diagnostics, supportability, and selections
