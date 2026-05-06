@@ -68,6 +68,12 @@
   diagnostics, supportability, selected-alternative state, and lineage. Gateway must not optimize,
   recompute construction metrics, infer source readiness, select alternatives, execute orders, or
   let Workbench bypass Gateway.
+- RFC36-WTBD-003 portfolio-level DPM operations posture is exposed on Workbench overview and
+  portfolio-360 `rebalance_snapshot`. Gateway reads manage rebalance runs through
+  `/api/v1/rebalance/runs`, preserves manage action-register supportability when returned, and
+  includes a bounded recent-run list with run id, status, timestamp, workflow posture, and error
+  code for Workbench operations dashboards. Gateway must not calculate supportability, workflow
+  posture, or error semantics locally.
 - RFC-0098 wave composition must consume `lotus-manage` RFC-0041 wave APIs for preview, create,
   source-check, simulation, selection, approval, staging, handoff, and supportability. Target
   Gateway routes belong under `/api/v1/dpm/command-center/waves*`, preserve manage `wave_id`,

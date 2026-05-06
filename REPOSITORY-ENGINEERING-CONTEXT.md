@@ -199,6 +199,11 @@ Most relevant current governance:
     method status, diagnostics, comparison metrics, selected-alternative state, and supportability,
     and must not optimize portfolios, recompute construction metrics, infer source readiness, or
     choose alternatives locally.
+12. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+    portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
+    manage action-register supportability, and up to five recent manage runs with bounded status,
+    timestamp, workflow posture, and error code. Gateway remains the product-facing composition
+    boundary and does not calculate supportability, workflow state, or error semantics locally.
 
 ## Context Maintenance Rule
 
