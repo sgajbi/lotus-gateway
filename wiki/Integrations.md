@@ -91,5 +91,7 @@
     order execution.
 12. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
-    supportability and bounded recent-run posture, and keeps Workbench from calling
-    `lotus-manage` directly or inventing workflow/error semantics.
+    supportability summary and bounded recent-run posture, and keeps Workbench from calling
+    `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from
+    manage `/api/v1/rebalance/supportability/summary`; run posture comes from
+    `/api/v1/rebalance/runs`.
