@@ -50,6 +50,59 @@ Operational behavior:
 2. manage upstream errors are returned using product-safe Gateway error detail,
 3. OpenAPI documents What/When/How guidance and request/response examples for each route.
 
+## DPM Mandate Command Center
+
+Status: implementation-backed in Gateway for RFC38-WTBD-001.
+
+Business outcome:
+
+1. portfolio managers, supervision users, and operations teams can query mandate health,
+   monitoring-run, active-exception, and mandate drill-down posture through Gateway,
+2. Workbench can build the command-center cockpit without calling `lotus-manage` directly,
+3. Gateway preserves manage source readiness, supportability, reason codes, recommended actions,
+   and mandate lineage without becoming the mandate-health authority.
+
+Supported routes:
+
+1. `GET /api/v1/dpm/command-center`
+2. `POST /api/v1/dpm/command-center/monitoring/run-once`
+3. `GET /api/v1/dpm/command-center/monitoring/runs`
+4. `GET /api/v1/dpm/command-center/monitoring/runs/{monitoring_run_id}`
+5. `GET /api/v1/dpm/command-center/exceptions`
+6. `POST /api/v1/dpm/command-center/exceptions/{exception_id}/resolve`
+7. `GET /api/v1/dpm/command-center/mandates/by-portfolio/{portfolio_id}`
+8. `GET /api/v1/dpm/command-center/mandates/{mandate_id}`
+9. `GET /api/v1/dpm/command-center/mandates/{mandate_id}/health`
+10. `GET /api/v1/dpm/command-center/mandates/{mandate_id}/diff`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the RFC-0038 mandate digital twin, health, monitoring, exception, and
+   command-center authority.
+2. Gateway forwards filters, monitoring requests, and exception-resolution reasons to manage.
+3. Gateway preserves health distribution, health dimensions, monitoring-run state, active
+   exceptions, reason codes, recommended actions, source lineage, version diffs, and
+   supportability.
+4. Gateway does not discover PM-book membership, calculate health scores, reconstruct health
+   dimensions, infer source readiness, merge exceptions across monitoring runs, or resolve
+   exceptions locally.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench DPM cockpit] --> Gateway[lotus-gateway DPM command-center routes]
+    Gateway --> Manage[lotus-manage RFC-0038 mandate health and monitoring authority]
+    Manage --> Core[lotus-core source products]
+    Manage --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. empty and partial command-center states remain valid product states,
+2. manage upstream errors are returned using product-safe Gateway error detail,
+3. Workbench cockpit implementation and canonical UI proof remain separate owning-repository
+   work under RFC38-WTBD-002.
+
 ## Portfolio-Level DPM Operations Posture
 
 Status: implementation-backed in Gateway for RFC36-WTBD-003.

@@ -14,6 +14,28 @@ class _FakeDpmClient:
         self.calls.append({"method": "create", "body": body, "correlation_id": correlation_id})
         return self.result
 
+    async def get_command_center(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "command_center", "params": params, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def run_monitoring_once(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "run_monitoring_once", "body": body, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def get_mandate_health(self, mandate_id, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "mandate_health",
+                "mandate_id": mandate_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_outcome_review_supportability(self, outcome_review_id, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -43,6 +65,147 @@ class _FakeLotusAiClient:
     async def execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         self.calls.append(kwargs)
         return self.result
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_summary_preserves_manage_health_and_supportability() -> None:
+    manage_payload = {
+        "health_distribution": {"READY": 3, "PENDING_REVIEW": 1, "BLOCKED": 1},
+        "evaluated_mandates": 5,
+        "active_exception_count": 2,
+        "latest_monitoring_run": {"monitoring_run_id": "dmr_1", "status": "SUCCEEDED"},
+        "supportability": {
+            "data_completeness_state": "PARTIAL",
+            "partial_readiness_reasons": ["PM_BOOK_DISCOVERY_NOT_AVAILABLE"],
+            "source_run_id": "dmr_1",
+            "remediation_owner": "Portfolio Operations",
+        },
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_command_center(
+        filters={
+            "tenant_id": "default",
+            "portfolio_manager_id": "PM_SG_DPM_001",
+            "health_state": "PENDING_REVIEW",
+            "limit": 25,
+        },
+        correlation_id="corr-command-center-1",
+    )
+
+    assert response.correlation_id == "corr-command-center-1"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.supportability.state == "PARTIAL"
+    assert response.supportability.data_completeness_state == "PARTIAL"
+    assert response.supportability.partial_readiness_reasons == ["PM_BOOK_DISCOVERY_NOT_AVAILABLE"]
+    assert response.supportability.source_run_id == "dmr_1"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "command_center",
+            "params": {
+                "tenant_id": "default",
+                "portfolio_manager_id": "PM_SG_DPM_001",
+                "health_state": "PENDING_REVIEW",
+                "limit": 25,
+            },
+            "correlation_id": "corr-command-center-1",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_monitoring_run_forwards_body_without_book_discovery() -> None:
+    manage_payload = {
+        "monitoring_run_id": "dmr_1",
+        "status": "SUCCEEDED",
+        "mandate_results": [{"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001"}],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.run_monitoring_once(
+        body={
+            "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+            "as_of_date": "2026-05-03",
+            "tenant_id": "default",
+        },
+        correlation_id="corr-command-center-run",
+    )
+
+    assert response.supportability.state == "UNKNOWN"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "run_monitoring_once",
+            "body": {
+                "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+                "as_of_date": "2026-05-03",
+                "tenant_id": "default",
+            },
+            "correlation_id": "corr-command-center-run",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_mandate_health_preserves_manage_dimensions() -> None:
+    manage_payload = {
+        "health_snapshot_id": "mh_1",
+        "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+        "health_score": 97,
+        "health_state": "PENDING_REVIEW",
+        "dimension_scores": [
+            {
+                "dimension": "SOURCE_READINESS",
+                "score": 90,
+                "state": "PENDING_REVIEW",
+                "reason_codes": ["TAX_LOT_SOURCE_PARTIAL"],
+            }
+        ],
+        "source_readiness_state": "READY",
+        "recommended_action": "SIMULATE_REBALANCE",
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_mandate_health(
+        mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-mandate-health",
+    )
+
+    assert response.supportability.state == "UNKNOWN"
+    assert response.data["health_score"] == 97
+    assert response.data["dimension_scores"] == manage_payload["dimension_scores"]
+    assert client.calls == [
+        {
+            "method": "mandate_health",
+            "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+            "correlation_id": "corr-mandate-health",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_manage_errors_are_product_safe() -> None:
+    client = _FakeDpmClient((422, {"detail": "invalid health_state"}))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_command_center(
+            filters={"health_state": "NOT_REAL"},
+            correlation_id="corr-command-center-error",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 422,
+        "error_code": "MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
+        "detail": "invalid health_state",
+    }
 
 
 @pytest.mark.asyncio

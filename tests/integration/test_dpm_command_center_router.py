@@ -3,6 +3,175 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def test_dpm_command_center_summary_passes_filters_and_preserves_manage_truth(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_command_center(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["params"] = params
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "health_distribution": {"READY": 3, "PENDING_REVIEW": 1},
+            "evaluated_mandates": 4,
+            "active_exception_count": 1,
+            "supportability": {
+                "data_completeness_state": "PARTIAL",
+                "partial_readiness_reasons": ["PM_BOOK_DISCOVERY_NOT_AVAILABLE"],
+                "source_run_id": "dmr_1",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_command_center",
+        _fake_get_command_center,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/dpm/command-center"
+        "?tenant_id=default&portfolio_manager_id=PM_SG_DPM_001"
+        "&book_id=BOOK_SG_BALANCED_DPM&health_state=PENDING_REVIEW&limit=25",
+        headers={"X-Correlation-Id": "corr-command-router-1"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "params": {
+            "portfolio_manager_id": "PM_SG_DPM_001",
+            "tenant_id": "default",
+            "as_of_date": None,
+            "book_id": "BOOK_SG_BALANCED_DPM",
+            "health_state": "PENDING_REVIEW",
+            "limit": 25,
+        },
+        "correlation_id": "corr-command-router-1",
+    }
+    payload = response.json()
+    assert payload["supportability"]["state"] == "PARTIAL"
+    assert payload["supportability"]["source_run_id"] == "dmr_1"
+    assert payload["data"]["health_distribution"] == {"READY": 3, "PENDING_REVIEW": 1}
+
+
+def test_dpm_command_center_monitoring_run_action_forwards_body(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_run_monitoring_once(self, body, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["body"] = body
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "monitoring_run_id": "dmr_1",
+            "status": "SUCCEEDED",
+            "mandate_results": [{"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001"}],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.run_monitoring_once",
+        _fake_run_monitoring_once,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/monitoring/run-once",
+        json={
+            "body": {
+                "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+                "as_of_date": "2026-05-03",
+                "tenant_id": "default",
+                "portfolio_manager_id": "PM_SG_DPM_001",
+            }
+        },
+        headers={"X-Correlation-Id": "corr-command-router-run"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "body": {
+            "mandate_ids": ["MANDATE_PB_SG_GLOBAL_BAL_001"],
+            "as_of_date": "2026-05-03",
+            "tenant_id": "default",
+            "portfolio_manager_id": "PM_SG_DPM_001",
+        },
+        "correlation_id": "corr-command-router-run",
+    }
+    assert response.json()["data"]["monitoring_run_id"] == "dmr_1"
+
+
+def test_dpm_command_center_exception_resolution_forwards_reason(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_resolve_monitoring_exception(
+        self,
+        exception_id,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["exception_id"] = exception_id
+        captured["body"] = body
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "exception_id": exception_id,
+            "state": "RESOLVED",
+            "resolution_reason": body["resolution_reason"],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.resolve_monitoring_exception",
+        _fake_resolve_monitoring_exception,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/exceptions/me_source_1/resolve",
+        json={"resolution_reason": "SOURCE_DATA_REPAIRED_AND_RECALCULATED"},
+        headers={"X-Correlation-Id": "corr-command-router-resolve"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "exception_id": "me_source_1",
+        "body": {"resolution_reason": "SOURCE_DATA_REPAIRED_AND_RECALCULATED"},
+        "correlation_id": "corr-command-router-resolve",
+    }
+    assert response.json()["data"]["state"] == "RESOLVED"
+
+
+def test_dpm_command_center_mandate_health_drilldown_preserves_dimensions(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_mandate_health(self, mandate_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["mandate_id"] = mandate_id
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "health_snapshot_id": "mh_1",
+            "mandate_id": mandate_id,
+            "health_score": 97,
+            "dimension_scores": [{"dimension": "SOURCE_READINESS", "state": "READY"}],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_mandate_health",
+        _fake_get_mandate_health,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/dpm/command-center/mandates/MANDATE_PB_SG_GLOBAL_BAL_001/health",
+        headers={"X-Correlation-Id": "corr-command-router-health"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+        "correlation_id": "corr-command-router-health",
+    }
+    assert response.json()["data"]["dimension_scores"] == [
+        {"dimension": "SOURCE_READINESS", "state": "READY"}
+    ]
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
