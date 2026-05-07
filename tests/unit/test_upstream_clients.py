@@ -1653,6 +1653,34 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
         ),
+        (
+            "list_waves",
+            {
+                "params": {"state": "HANDOFF_READY", "trigger_type": None},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves",
+        ),
+        (
+            "get_wave",
+            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/dwv_001",
+        ),
+        (
+            "get_wave_items",
+            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/dwv_001/items",
+        ),
+        (
+            "get_wave_proof_pack_posture",
+            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/dwv_001/proof-pack",
+        ),
+        (
+            "get_wave_supportability",
+            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/dwv_001/supportability",
+        ),
     ],
 )
 async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
@@ -1758,6 +1786,98 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "params": {"state": "READY"},
                 "correlation_id": "corr-rfc36-canonical",
             },
+        ),
+        (
+            client.preview_wave,
+            {
+                "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.create_wave,
+            {
+                "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
+                "idempotency_key": "idem-wave-canonical",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.list_waves,
+            {"params": {"state": "HANDOFF_READY"}, "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_wave,
+            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_wave_items,
+            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.source_check_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.simulate_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "item_inputs": []},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.select_wave_item,
+            {
+                "wave_id": "dwv_001",
+                "wave_item_id": "dwi_001",
+                "body": {"alternative_id": "alt_1", "actor_id": "pm_sg_1"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.approve_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "reason_code": "APPROVED"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.stage_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "ops_sg_1", "reason_code": "STAGED"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.handoff_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "ops_sg_1", "reason_code": "HANDOFF_READY"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.cancel_wave,
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "reason_code": "CANCELLED"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_wave_proof_pack_posture,
+            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_wave_supportability,
+            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
         ),
         (
             client.generate_construction_alternative_set,
@@ -1881,6 +2001,84 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/proof-packs",
+        ),
+        (
+            "preview_wave",
+            {"body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/preview",
+        ),
+        (
+            "create_wave",
+            {
+                "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
+                "idempotency_key": "idem-wave-1",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves",
+        ),
+        (
+            "source_check_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/source-check",
+        ),
+        (
+            "simulate_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "item_inputs": []},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/simulate",
+        ),
+        (
+            "select_wave_item",
+            {
+                "wave_id": "dwv_001",
+                "wave_item_id": "dwi_001",
+                "body": {"alternative_id": "alt_1", "actor_id": "pm_sg_1"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/items/dwi_001/select",
+        ),
+        (
+            "approve_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "reason_code": "APPROVED"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/approve",
+        ),
+        (
+            "stage_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "ops_sg_1", "reason_code": "STAGED"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/stage",
+        ),
+        (
+            "handoff_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "ops_sg_1", "reason_code": "HANDOFF_READY"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/handoff",
+        ),
+        (
+            "cancel_wave",
+            {
+                "wave_id": "dwv_001",
+                "body": {"actor_id": "pm_sg_1", "reason_code": "CANCELLED"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/dwv_001/cancel",
         ),
     ],
 )

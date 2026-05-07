@@ -17,10 +17,12 @@
 2. continue implementing RFC-0098 as the strategic DPM command-center composition contract for
    Workbench,
    preserving domain ownership across core, manage, risk, performance, report, archive, and AI.
-   The RFC now includes RFC-0041 rebalance-wave realization so Gateway can plan wave preview,
-   source-check, simulation, selection, approval, staging, handoff, and supportability composition
-   without becoming the wave authority. It also includes RFC-0042 post-trade outcome-review
-   realization; the first implementation-backed outcome-review BFF route family is active under
+   The RFC now includes implementation-backed RFC-0041 rebalance-wave realization under
+   `/api/v1/dpm/command-center/waves*` for wave preview, create, search, detail, item list,
+   source-check, simulation, selection, approval, staging, handoff, cancellation, proof-pack
+   posture, and supportability composition without becoming the wave authority. It also includes
+   RFC-0042 post-trade outcome-review realization; the first implementation-backed outcome-review
+   BFF route family is active under
    `/api/v1/dpm/command-center/outcome-reviews*`, run lookup, and wave lookup routes, preserving
    manage source-lineage, supportability, report-input, and AI-evidence truth without recomputing
    expected-versus-realized outcomes. RFC-0039 construction alternative-set composition is also
