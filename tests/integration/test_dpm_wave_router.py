@@ -3,6 +3,42 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
+    async def _fake_preview_wave(self, body, correlation_id):  # noqa: ANN001
+        _ = self
+        return 200, {
+            "wave": {"wave_id": "dwv_preview_001", "state": "PREVIEWED"},
+            "durable": False,
+            "supportability": {
+                "supportability_state": "ready",
+                "reason": "wave_supportability_ready",
+                "issue_counts": {"critical": 0, "warning": 0, "info": 1},
+            },
+        }
+
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.preview_wave", _fake_preview_wave)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/waves/preview",
+        json={
+            "body": {
+                "trigger_type": "EXPLICIT_PORTFOLIO_LIST",
+                "trigger_id": "manual-wave-20260503-001",
+                "portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+            },
+        },
+        headers={"X-Correlation-Id": "corr-wave-router-preview"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["supportability"]["state"] == "ready"
+    assert payload["supportability"]["reason_codes"] == ["wave_supportability_ready"]
+    assert payload["supportability"]["issue_count"] == 0
+    assert payload["data"]["supportability"]["supportability_state"] == "ready"
+
+
 def test_dpm_wave_create_forwards_body_and_idempotency_key(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
