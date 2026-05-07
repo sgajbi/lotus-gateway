@@ -214,7 +214,16 @@ Most relevant current governance:
     `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
     report refs, and AI refs, and must not build proof-pack sections, recalculate hashes, infer
     source readiness, render reports, or generate AI narrative locally.
-14. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+14. RFC-0041 rebalance-wave Gateway routes are active under
+    `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
+    item list, source-check, simulation, item selection, approval, staging, internal handoff,
+    cancellation, proof-pack posture, and supportability requests to `lotus-manage`; preserves
+    manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate metrics,
+    selected alternative refs, proof-pack refs, handoff refs, supportability issues, and
+    `external_execution_claimed=false`; and must not calculate affected portfolios, classify
+    source readiness, generate alternatives, select alternatives, approve items, stage items,
+    create handoff evidence, rebuild proof packs, or claim external execution locally.
+15. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,

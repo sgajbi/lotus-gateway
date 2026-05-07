@@ -16,6 +16,7 @@ from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
+from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
@@ -94,6 +95,7 @@ app.include_router(portfolio_router)
 app.include_router(dpm_command_center_router)
 app.include_router(dpm_construction_router)
 app.include_router(dpm_proof_packs_router)
+app.include_router(dpm_waves_router)
 app.include_router(workbench_router)
 app.include_router(reporting_router)
 app.include_router(reporting_jobs_router)

@@ -104,6 +104,67 @@ Operational behavior:
 3. degraded or unavailable manage states are surfaced using product-safe Gateway error detail and
    must remain visible to Workbench supportability UI.
 
+## DPM Rebalance-Wave Composition
+
+Status: implementation-backed in Gateway for RFC41-WTBD-005.
+
+Business outcome:
+
+1. portfolio managers and CIO-office users can operate explicit portfolio-list rebalance waves
+   through a stable Gateway contract instead of calling `lotus-manage` directly,
+2. operations users can inspect item-level source readiness, simulation, selection, proof-pack,
+   approval, staging, internal handoff, cancellation, and supportability posture from one product
+   route family,
+3. sales/pre-sales and client-demo teams can describe wave orchestration as implementation-backed
+   backend composition while keeping Workbench wave cockpit UI as the next owning-repository slice.
+
+Supported routes:
+
+1. `POST /api/v1/dpm/command-center/waves/preview`
+2. `POST /api/v1/dpm/command-center/waves`
+3. `GET /api/v1/dpm/command-center/waves`
+4. `GET /api/v1/dpm/command-center/waves/{wave_id}`
+5. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
+6. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
+7. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
+8. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
+9. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
+10. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
+11. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
+12. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
+13. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
+14. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
+2. Gateway forwards preview, create, source-check, simulate, select, approve, stage, handoff,
+   cancel, proof-pack posture, and supportability requests to manage.
+3. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
+   aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
+   issues, remediation routes, and `external_execution_claimed=false`.
+4. Gateway does not calculate affected portfolios, classify source readiness, generate
+   alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
+   proof packs, cancel external orders, or claim external execution.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench future wave cockpit] --> Gateway[lotus-gateway DPM wave routes]
+    Gateway --> Manage[lotus-manage RFC-0041 wave authority]
+    Manage --> Construction[lotus-manage RFC-0039 construction alternatives]
+    Manage --> Proof[lotus-manage RFC-0040 proof packs]
+    Manage --> Ops[Internal operations handoff evidence]
+    Manage --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway wraps every manage response in a product envelope with manage-derived supportability,
+2. unsupported transitions and missing waves return product-safe manage error details,
+3. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
+   are not claimed by this Gateway slice.
+
 ## DPM Mandate Command Center
 
 Status: implementation-backed in Gateway for RFC38-WTBD-001.

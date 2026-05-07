@@ -19,6 +19,7 @@
 - `GET /api/v1/dpm/command-center/mandates*`
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
+- `GET` and `POST /api/v1/dpm/command-center/waves*`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `GET` and `POST /api/v1/dpm/command-center/construction/alternative-sets*`
@@ -94,12 +95,12 @@
   includes a bounded recent-run list with run id, status, timestamp, workflow posture, and error
   code for Workbench operations dashboards. Gateway must not calculate supportability, workflow
   posture, or error semantics locally.
-- RFC-0098 wave composition must consume `lotus-manage` RFC-0041 wave APIs for preview, create,
-  source-check, simulation, selection, approval, staging, handoff, and supportability. Target
-  Gateway routes belong under `/api/v1/dpm/command-center/waves*`, preserve manage `wave_id`,
-  item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, and
-  supportability refs, and must not calculate affected portfolios, readiness, alternatives,
-  proof-pack state, or external execution posture.
+- RFC-0098 wave composition consumes `lotus-manage` RFC-0041 wave APIs for preview, create,
+  search, detail, items, source-check, simulation, selection, approval, staging, handoff, cancel,
+  proof-pack posture, and supportability through `/api/v1/dpm/command-center/waves*`. Gateway now
+  exposes the implementation-backed wave BFF route family, preserves manage `wave_id`, item
+  states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
+  supportability issues, reason codes, and the no-external-execution boundary. Gateway must not calculate affected portfolios, readiness, alternatives, proof-pack state, or external execution posture.
 - RFC-0098 outcome-review composition must consume `lotus-manage` RFC-0042 outcome-review APIs
   for preview, durable create, search, detail, source refresh, supportability, report input, AI
   evidence input, run lookup, and wave lookup. Gateway now exposes the first implementation-backed
@@ -142,8 +143,8 @@
   call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
-  command-center authority APIs, RFC-0039 construction alternative-set authority APIs, and
-  RFC-0042 outcome-review authority APIs
+  command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0041
+  rebalance-wave authority APIs, and RFC-0042 outcome-review authority APIs
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
   operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
   `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:
@@ -314,6 +315,31 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-ai-narrative" \
   -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
+```
+
+DPM rebalance-wave create:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc41-wave-create" \
+  -d "{\"idempotency_key\":\"wave-idem-001\",\"body\":{\"trigger_type\":\"EXPLICIT_PORTFOLIO_LIST\",\"trigger_id\":\"manual-wave-20260503-001\",\"rationale\":\"CIO model update for the Singapore balanced DPM book.\",\"as_of_date\":\"2026-05-03\",\"actor_id\":\"pm_sg_1\",\"portfolios\":[{\"portfolio_id\":\"PB_SG_GLOBAL_BAL_001\"}]}}"
+```
+
+DPM rebalance-wave supportability:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/supportability" \
+  -H "X-Correlation-Id: corr-rfc41-wave-supportability"
+```
+
+DPM rebalance-wave selection with proof-pack generation:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/items/dwi_001/select" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc41-wave-select" \
+  -d "{\"body\":{\"alternative_id\":\"alt_001\",\"actor_id\":\"pm_sg_1\",\"reason_code\":\"PM_SELECTED\",\"generate_proof_pack\":true}}"
 ```
 
 Report job status:

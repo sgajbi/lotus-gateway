@@ -99,6 +99,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
+  `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
@@ -264,6 +265,11 @@ Important current parameter conventions:
    statuses, objective traces, constraint traces, comparison metrics, diagnostics, supportability,
    selected-alternative state, and lineage without optimizing, recomputing, or selecting
    alternatives locally
+15. DPM command-center wave routes under `/api/v1/dpm/command-center/waves*` consume
+   `lotus-manage` RFC-0041 rebalance-wave APIs and preserve manage-owned `wave_id`, lifecycle
+   state, item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
+   supportability, and reason codes without calculating affected portfolios, source readiness,
+   alternatives, proof-pack state, or execution posture locally
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -277,9 +283,11 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 - downstream ownership rule:
   proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
   certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
-  platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs, and
-  RFC-0042 outcome-review preview/create/search/detail/source-refresh, supportability,
-  report-input, AI-evidence, run lookup, and wave lookup
+  platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs,
+  RFC-0041 rebalance-wave preview/create/search/detail/items/source-check/simulate/select/approve/
+  stage/handoff/cancel/proof-pack/supportability APIs, and RFC-0042 outcome-review
+  preview/create/search/detail/source-refresh, supportability, report-input, AI-evidence, run
+  lookup, and wave lookup
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority
