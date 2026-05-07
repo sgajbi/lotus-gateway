@@ -36,7 +36,7 @@ Current repository posture:
    `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
-   generate/read/Markdown/report-input/AI-evidence route families, and RFC-0042 outcome-review
+   generate/read/Markdown/report-input/AI-evidence/AI PM memo route families, and RFC-0042 outcome-review
    preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
    AI-narrative handoff route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
@@ -57,8 +57,13 @@ Current repository posture:
     `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as
     `lotus-gateway`; manage remains outcome evidence and workflow authority, and Gateway does not
     generate narrative locally,
-11. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
-12. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+11. RFC-0040 proof-pack AI PM memo handoff now reads manage-owned
+    `DpmProofPackAiEvidenceInput` and executes `lotus-ai` `dpm_pm_memo.pack@v1` as
+    `lotus-gateway`; manage remains proof-pack evidence authority, `lotus-ai` remains workflow-pack
+    execution authority, and Gateway does not generate memos, score PMs, approve trades, contact
+    clients, place orders, or invent evidence,
+12. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+13. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
     fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and
@@ -210,10 +215,12 @@ Most relevant current governance:
     choose alternatives locally.
 13. RFC-0040 proof-pack Gateway routes are active under
     `/api/v1/dpm/command-center/proof-packs*`. Gateway forwards generation, lookup, Markdown,
-    report-input, and AI-evidence-input requests to `lotus-manage`, preserves manage-owned
+    report-input, AI-evidence-input, and AI PM memo requests, preserves manage-owned
     `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
-    report refs, and AI refs, and must not build proof-pack sections, recalculate hashes, infer
-    source readiness, render reports, or generate AI narrative locally.
+    report refs, and AI refs, and executes `lotus-ai` `dpm_pm_memo.pack@v1` only after reading
+    manage-owned AI evidence input. Gateway must not build proof-pack sections, recalculate hashes,
+    infer source readiness, render reports, generate AI narrative or PM memos locally, score PMs,
+    approve trades, contact clients, place orders, or invent missing evidence.
 14. RFC-0041 rebalance-wave Gateway routes are active under
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,

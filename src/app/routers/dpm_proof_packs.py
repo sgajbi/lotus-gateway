@@ -3,12 +3,15 @@ from typing import Any
 from fastapi import APIRouter, Path
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_proof_packs import (
     DpmProofPackErrorDetail,
     DpmProofPackGatewayResponse,
     DpmProofPackGenerateRequest,
     DpmProofPackMarkdownResponse,
+    DpmProofPackMemoGatewayResponse,
+    DpmProofPackMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.dpm_proof_pack_service import DpmProofPackService
@@ -42,6 +45,12 @@ def _dpm_proof_pack_service() -> DpmProofPackService:
         dpm_client=DpmClient(
             base_url=settings.management_service_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        lotus_ai_client=LotusAiClient(
+            base_url=settings.ai_service_base_url,
+            timeout_seconds=settings.ai_service_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
@@ -170,5 +179,34 @@ async def get_proof_pack_ai_evidence_input(
 ) -> DpmProofPackGatewayResponse:
     return await _dpm_proof_pack_service().get_proof_pack_ai_evidence_input(
         proof_pack_id=proof_pack_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.post(
+    "/{proof_pack_id}/ai-pm-memo",
+    response_model=DpmProofPackMemoGatewayResponse,
+    summary="Request proof-pack AI PM memo",
+    description=(
+        "What: requests a governed lotus-ai PM memo workflow-pack run from manage-owned "
+        "DPM proof-pack AI evidence. When: call this only after manage supportability shows AI "
+        "evidence is available and the user needs review-gated PM/control support text. How: "
+        "Gateway first reads manage's DpmProofPackAiEvidenceInput, then executes lotus-ai "
+        "dpm_pm_memo.pack@v1 as lotus-gateway; Gateway does not generate narrative, score PMs, "
+        "approve trades, contact clients, place orders, or invent evidence."
+    ),
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
+async def request_proof_pack_pm_memo(
+    request: DpmProofPackMemoRequest,
+    proof_pack_id: str = Path(
+        ...,
+        description="Manage-owned immutable proof-pack identifier for the bounded AI handoff.",
+        examples=["dpp_rr_001"],
+    ),
+) -> DpmProofPackMemoGatewayResponse:
+    return await _dpm_proof_pack_service().request_proof_pack_pm_memo(
+        proof_pack_id=proof_pack_id,
+        request=request,
         correlation_id=correlation_id_var.get(),
     )

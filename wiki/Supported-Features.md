@@ -71,6 +71,7 @@ Supported routes:
 3. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`
 4. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`
 5. `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`
+6. `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`
 
 Authority and integrations:
 
@@ -80,9 +81,11 @@ Authority and integrations:
 3. Gateway preserves manage-owned `proof_pack_id`, section states, reason codes, `content_hash`,
    `source_hashes`, source refs, report refs, AI refs, deterministic Markdown, report-input
    payloads, and AI-evidence payloads.
-4. Gateway does not generate proof-pack sections, recalculate hashes, infer source readiness,
-   render reports, archive documents, generate AI narrative, or treat `lotus-report` as
-   proof-pack authority.
+4. Gateway reads manage-owned `DpmProofPackAiEvidenceInput` before requesting `lotus-ai`
+   `dpm_pm_memo.pack@v1`, and preserves the resulting workflow-pack run posture for Workbench.
+5. Gateway does not generate proof-pack sections, recalculate hashes, infer source readiness,
+   render reports, archive documents, generate AI narrative or PM memos locally, score PMs,
+   approve trades, contact clients, place orders, or treat `lotus-report` as proof-pack authority.
 
 ```mermaid
 flowchart LR
@@ -92,6 +95,8 @@ flowchart LR
     Manage --> Gateway
     Gateway --> ReportInput[report-input payload for lotus-report handoff]
     Gateway --> AiInput[AI-evidence input for lotus-ai handoff]
+    Gateway --> LotusAI[lotus-ai dpm_pm_memo.pack]
+    LotusAI --> Gateway
     Gateway --> Workbench
 ```
 
@@ -103,6 +108,9 @@ Operational behavior:
    can render it without owning proof-pack generation,
 3. degraded or unavailable manage states are surfaced using product-safe Gateway error detail and
    must remain visible to Workbench supportability UI.
+4. lotus-ai guardrail rejections are preserved as product-safe Gateway error detail with
+   `AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR`, so Workbench can show review/supportability posture
+   without falling back to browser prompt construction.
 
 ## DPM Rebalance-Wave Composition
 

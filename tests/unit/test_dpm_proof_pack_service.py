@@ -1,6 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
+from app.contracts.dpm_proof_packs import DpmProofPackMemoRequest
 from app.services.dpm_proof_pack_service import DpmProofPackService
 
 
@@ -58,6 +59,16 @@ class _FakeDpmClient:
                 "correlation_id": correlation_id,
             }
         )
+        return self.result
+
+
+class _FakeLotusAiClient:
+    def __init__(self, result: tuple):
+        self.result = result
+        self.calls: list[dict[str, object]] = []
+
+    async def execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        self.calls.append(kwargs)
         return self.result
 
 
@@ -182,6 +193,134 @@ async def test_dpm_proof_pack_handoff_inputs_preserve_manage_payloads() -> None:
     assert ai_response.data == ai_payload
     assert ai_response.supportability.reason_codes == ["AI_EVIDENCE_INPUT_READY"]
     assert ai_response.supportability.ai_evidence_input_available is True
+
+
+@pytest.mark.asyncio
+async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -> None:
+    manage_payload = {
+        "contract_version": "DpmProofPackAiEvidenceInput.v1",
+        "proof_pack_id": "dpp_rr_001",
+        "proof_pack_content_hash": "sha256:proof-pack",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of_date": "2026-05-03",
+        "permitted_use": ["pm_memo_support"],
+        "forbidden_actions": [
+            "place_orders",
+            "approve_rebalance",
+            "override_controls",
+            "invent_missing_evidence",
+            "contact_client",
+        ],
+        "forbidden_fields_removed": ["client_name"],
+        "decision_summary": {"decision": "rebalance_ready"},
+        "supportability_status": "SUPPORTED",
+        "reason_codes": ["AI_EVIDENCE_INPUT_READY"],
+        "sections": [{"section_id": "mandate", "state": "READY"}],
+        "source_refs": ["lotus-manage:proof-pack:dpp_rr_001"],
+        "evidence_ref": "ai-evidence:dpp_rr_001",
+        "content_hash": "sha256:ai-evidence",
+    }
+    ai_payload = {
+        "execution": {
+            "audit": {"workflow_pack_run_id": "packrun_dpp_rr_001"},
+            "result": {"dpm_pm_memo_status": "REVIEW_REQUIRED"},
+        },
+        "workflow_pack_run": {
+            "run_id": "packrun_dpp_rr_001",
+            "workflow_authority_owner": "lotus-manage",
+            "review_state": "AWAITING_REVIEW",
+        },
+    }
+    dpm_client = _FakeDpmClient((200, manage_payload))
+    ai_client = _FakeLotusAiClient((200, ai_payload))
+    service = DpmProofPackService(  # type: ignore[arg-type]
+        dpm_client=dpm_client,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.request_proof_pack_pm_memo(
+        proof_pack_id="dpp_rr_001",
+        request=DpmProofPackMemoRequest(
+            requested_outputs=["pm_memo", "evidence_gaps"],
+            audience=["portfolio_manager"],
+        ),
+        correlation_id="corr-proof-pack-memo-1",
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.manage_upstream_status == 200
+    assert response.ai_upstream_status == 200
+    assert response.supportability.state == "SUPPORTED"
+    assert response.ai_evidence_input == manage_payload
+    assert response.memo_request == {
+        "requested_outputs": ["pm_memo", "evidence_gaps"],
+        "audience": ["portfolio_manager"],
+    }
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    [ai_call] = ai_client.calls
+    assert ai_call["pack_id"] == "dpm_pm_memo.pack"
+    assert ai_call["version"] == "v1"
+    assert ai_call["workflow_surface"] == "dpm-proof-pack-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-proof-pack-memo-1"
+    task_request = ai_call["task_request"]
+    assert task_request["task_id"] == "explain.v1"
+    assert task_request["context"]["payload"]["ai_evidence_input"] == manage_payload
+    assert task_request["context"]["payload"]["memo_request"] == response.memo_request
+    assert task_request["context"]["payload"]["supportability"]["blocked_actions"] == [
+        "place_orders",
+        "approve_rebalance",
+        "override_controls",
+        "invent_missing_evidence",
+        "contact_client",
+    ]
+    assert task_request["context"]["source_refs"] == [
+        "lotus-manage:proof-pack-ai-evidence:ai-evidence:dpp_rr_001",
+        "lotus-manage:proof-pack-ai-evidence:dpp_rr_001",
+        "lotus-manage:proof-pack:dpp_rr_001",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_proof_pack_pm_memo_requires_lotus_ai_client() -> None:
+    service = DpmProofPackService(dpm_client=_FakeDpmClient((200, {})))  # type: ignore[arg-type]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_proof_pack_pm_memo(
+            proof_pack_id="dpp_rr_001",
+            request=DpmProofPackMemoRequest(),
+            correlation_id="corr-proof-pack-memo-missing-ai",
+        )
+
+    assert exc_info.value.status_code == 503
+    assert (
+        exc_info.value.detail == "lotus-ai workflow-pack execution is not configured for Gateway."
+    )
+
+
+@pytest.mark.asyncio
+async def test_dpm_proof_pack_pm_memo_preserves_lotus_ai_error() -> None:
+    service = DpmProofPackService(  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient((200, {"proof_pack_id": "dpp_rr_001"})),
+        lotus_ai_client=_FakeLotusAiClient(
+            (422, {"detail": "PROOF_PACK_PM_MEMO_GUARDRAIL_BLOCKED: missing content_hash"})
+        ),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_proof_pack_pm_memo(
+            proof_pack_id="dpp_rr_001",
+            request=DpmProofPackMemoRequest(),
+            correlation_id="corr-proof-pack-memo-ai-error",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == {
+        "source_service": "lotus-ai",
+        "upstream_status": 422,
+        "error_code": "AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
+        "detail": "PROOF_PACK_PM_MEMO_GUARDRAIL_BLOCKED: missing content_hash",
+    }
 
 
 @pytest.mark.asyncio

@@ -125,6 +125,93 @@ class DpmProofPackGatewayResponse(BaseModel):
     )
 
 
+class DpmProofPackMemoRequest(BaseModel):
+    requested_outputs: list[str] = Field(
+        default_factory=lambda: [
+            "pm_memo",
+            "rationale_summary",
+            "approval_checklist",
+            "risk_caveats",
+            "operations_handoff",
+            "evidence_gaps",
+        ],
+        description=(
+            "Support-only PM memo sections requested from lotus-ai. Gateway forwards these "
+            "requests to the governed proof-pack PM memo workflow pack and does not allow "
+            "trade approval, client messaging, PM scoring, or execution instructions."
+        ),
+        examples=[
+            [
+                "pm_memo",
+                "rationale_summary",
+                "approval_checklist",
+                "risk_caveats",
+                "operations_handoff",
+                "evidence_gaps",
+            ]
+        ],
+    )
+    audience: list[str] = Field(
+        default_factory=lambda: ["portfolio_manager", "investment_control", "operations"],
+        description="Intended internal audience labels for the generated support-only memo.",
+        examples=[["portfolio_manager", "investment_control", "operations"]],
+    )
+
+
+class DpmProofPackMemoGatewayResponse(BaseModel):
+    correlation_id: str = Field(
+        description="Correlation identifier propagated across Gateway, lotus-manage, and lotus-ai.",
+        examples=["corr-rfc40-proof-pack-ai-memo-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway BFF contract version for proof-pack AI PM memo handoff.",
+        examples=["v1"],
+    )
+    source_service: str = Field(
+        default="lotus-ai",
+        description="Service that executed the governed PM memo workflow pack.",
+        examples=["lotus-ai"],
+    )
+    evidence_source_service: str = Field(
+        default="lotus-manage",
+        description="Service that supplied the bounded DPM proof-pack AI evidence input.",
+        examples=["lotus-manage"],
+    )
+    manage_upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage for the AI evidence input read.",
+        examples=[200],
+    )
+    ai_upstream_status: int = Field(
+        description="HTTP status returned by lotus-ai for workflow-pack execution.",
+        examples=[200],
+    )
+    supportability: DpmProofPackSupportability = Field(
+        description="Manage-derived supportability summary for the source AI evidence handoff.",
+    )
+    ai_evidence_input: dict[str, object] = Field(
+        description=(
+            "Manage-owned DpmProofPackAiEvidenceInput used as the sole source for PM memo "
+            "generation. Gateway preserves it without adding facts or removing guardrails."
+        ),
+    )
+    memo_request: dict[str, object] = Field(
+        description="Bounded memo request forwarded to lotus-ai with support-only outputs.",
+        examples=[
+            {
+                "requested_outputs": ["pm_memo", "rationale_summary", "evidence_gaps"],
+                "audience": ["portfolio_manager", "investment_control"],
+            }
+        ],
+    )
+    data: dict[str, object] = Field(
+        description=(
+            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
+            "workflow-pack run posture, review state, and guardrail-supported structured output."
+        ),
+    )
+
+
 class DpmProofPackMarkdownResponse(BaseModel):
     correlation_id: str = Field(
         description="Correlation identifier propagated across Gateway and lotus-manage.",

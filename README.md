@@ -50,7 +50,8 @@ It depends on:
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
-  evidence-grounded advisor-brief support through the explicit workflow-pack execution seam and shared run-ledger surfaces
+  evidence-grounded advisor-brief support, outcome-review narrative support, and proof-pack PM
+  memo support through explicit workflow-pack execution seams and shared run-ledger surfaces
 - `lotus-platform`
   generated domain-product catalog, dependency-graph, and live trust certification artifacts for
   read-only product discovery
@@ -99,6 +100,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
+  `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
