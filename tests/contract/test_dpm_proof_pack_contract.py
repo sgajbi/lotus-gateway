@@ -1,6 +1,9 @@
 from fastapi.testclient import TestClient
 
-from app.contracts.dpm_proof_packs import DpmProofPackGatewayResponse
+from app.contracts.dpm_proof_packs import (
+    DpmProofPackGatewayResponse,
+    DpmProofPackMemoGatewayResponse,
+)
 from app.main import app
 
 
@@ -31,6 +34,31 @@ def test_dpm_proof_pack_gateway_response_contract_shape() -> None:
     assert response.data["proof_pack"]["content_hash"] == "sha256:proof-pack"
 
 
+def test_dpm_proof_pack_pm_memo_gateway_response_contract_shape() -> None:
+    response = DpmProofPackMemoGatewayResponse(
+        correlation_id="corr-proof-pack-memo-1",
+        manage_upstream_status=200,
+        ai_upstream_status=200,
+        supportability={
+            "state": "SUPPORTED",
+            "reason_codes": ["AI_EVIDENCE_INPUT_READY"],
+            "proof_pack_id": "dpp_rr_001",
+            "ai_evidence_input_available": True,
+        },
+        ai_evidence_input={
+            "proof_pack_id": "dpp_rr_001",
+            "content_hash": "sha256:ai-evidence",
+        },
+        memo_request={"requested_outputs": ["pm_memo"], "audience": ["portfolio_manager"]},
+        data={"workflow_pack_run": {"workflow_authority_owner": "lotus-manage"}},
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0040"
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
 def test_dpm_proof_pack_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -40,6 +68,7 @@ def test_dpm_proof_pack_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md", "get"),
         ("/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input", "get"),
         ("/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input", "get"),
+        ("/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo", "post"),
     ]
 
     for path, method in expected_paths:
@@ -61,6 +90,8 @@ def test_dpm_proof_pack_openapi_models_are_described() -> None:
         "DpmProofPackGenerateRequest",
         "DpmProofPackGatewayResponse",
         "DpmProofPackMarkdownResponse",
+        "DpmProofPackMemoGatewayResponse",
+        "DpmProofPackMemoRequest",
         "DpmProofPackSupportability",
         "DpmProofPackErrorDetail",
     ]:

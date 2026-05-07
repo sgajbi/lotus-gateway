@@ -3,18 +3,22 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_proof_packs import (
     DpmProofPackErrorDetail,
     DpmProofPackGatewayResponse,
     DpmProofPackMarkdownResponse,
+    DpmProofPackMemoGatewayResponse,
+    DpmProofPackMemoRequest,
     DpmProofPackSupportability,
 )
 
 
 class DpmProofPackService:
-    def __init__(self, dpm_client: DpmClient):
+    def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
         self._dpm_client = dpm_client
+        self._lotus_ai_client = lotus_ai_client
 
     async def generate_proof_pack(
         self,
@@ -85,6 +89,99 @@ class DpmProofPackService:
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
+    async def request_proof_pack_pm_memo(
+        self,
+        proof_pack_id: str,
+        request: DpmProofPackMemoRequest,
+        correlation_id: str,
+    ) -> DpmProofPackMemoGatewayResponse:
+        if self._lotus_ai_client is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
+            )
+
+        manage_status, manage_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
+            proof_pack_id=proof_pack_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            raise _upstream_error(manage_status, manage_payload)
+
+        supportability = _supportability_from(manage_payload)
+        memo_request: dict[str, object] = {
+            "requested_outputs": request.requested_outputs,
+            "audience": request.audience,
+        }
+        task_payload = {
+            "ai_evidence_input": manage_payload,
+            "memo_request": memo_request,
+            "supportability": {
+                "source_state": supportability.state,
+                "reason_codes": supportability.reason_codes,
+                "blocked_actions": [
+                    "place_orders",
+                    "approve_rebalance",
+                    "override_controls",
+                    "invent_missing_evidence",
+                    "contact_client",
+                ],
+                "requires_human_review": True,
+                "unsupported_claims": [
+                    "client_contact",
+                    "trade_approval",
+                    "portfolio_manager_scoring",
+                    "execution_instruction",
+                ],
+            },
+        }
+        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+            pack_id="dpm_pm_memo.pack",
+            version="v1",
+            environment="DEVELOPMENT",
+            caller_identity_class="INTERNAL_SERVICE",
+            workflow_surface="dpm-proof-pack-ai-evidence",
+            task_request={
+                "task_id": "explain.v1",
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
+                        "Generate review-gated proof-pack PM memo from bounded AI evidence "
+                        f"for {proof_pack_id}."
+                    ),
+                    "payload": task_payload,
+                    "source_refs": _proof_pack_ai_source_refs(manage_payload, proof_pack_id),
+                },
+                "expected_output_label": "EXPLANATION_ONLY",
+            },
+            correlation_id=correlation_id,
+        )
+        if ai_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=ai_status,
+                detail={
+                    "source_service": "lotus-ai",
+                    "upstream_status": ai_status,
+                    "error_code": "AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
+                    "detail": _safe_upstream_detail(ai_payload),
+                },
+            )
+
+        return DpmProofPackMemoGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            manage_upstream_status=manage_status,
+            ai_upstream_status=ai_status,
+            supportability=supportability,
+            ai_evidence_input=manage_payload,
+            memo_request=memo_request,
+            data=ai_payload,
+        )
+
     def _compose_response(
         self,
         upstream_status: int,
@@ -133,7 +230,12 @@ def _proof_pack_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _proof_pack_state(payload: dict[str, Any], proof_pack: dict[str, Any]) -> str:
     state = (
-        proof_pack.get("status") or proof_pack.get("state") or payload.get("status") or "UNKNOWN"
+        proof_pack.get("status")
+        or proof_pack.get("state")
+        or payload.get("supportability_status")
+        or payload.get("supportabilityStatus")
+        or payload.get("status")
+        or "UNKNOWN"
     )
     return str(state)
 
@@ -181,6 +283,25 @@ def _safe_str(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _proof_pack_ai_source_refs(payload: dict[str, Any], proof_pack_id: str) -> list[str]:
+    source_refs: list[str] = []
+    for key in ("source_refs", "sourceRefs"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            source_refs.extend(str(item) for item in value if item)
+
+    evidence_ref = payload.get("evidence_ref") or payload.get("ai_evidence_input_ref")
+    if evidence_ref:
+        source_refs.append(f"lotus-manage:proof-pack-ai-evidence:{evidence_ref}")
+
+    payload_proof_pack_id = payload.get("proof_pack_id")
+    if payload_proof_pack_id:
+        source_refs.append(f"lotus-manage:proof-pack:{payload_proof_pack_id}")
+    source_refs.append(f"lotus-manage:proof-pack-ai-evidence:{proof_pack_id}")
+
+    return sorted(set(source_refs))
 
 
 def _safe_upstream_detail(payload: dict[str, Any]) -> str:

@@ -24,6 +24,7 @@
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `GET` and `POST /api/v1/dpm/command-center/construction/alternative-sets*`
 - `GET` and `POST /api/v1/dpm/command-center/proof-packs*`
+- `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`
 - `GET` and `POST /api/v1/workbench/*`
 - `GET` and `POST /api/v1/reports/*`
 - `POST /api/v1/reports/outcome-reviews`
@@ -66,10 +67,13 @@
   freshness and supportability without direct service coupling
 - RFC-0098 proof-pack composition consumes `lotus-manage` RFC-0040 proof-pack APIs through
   `/api/v1/dpm/command-center/proof-packs*`. Gateway exposes generate, get, Markdown,
-  report-input, and AI-evidence-input routes for Workbench, preserving manage `proof_pack_id`,
-  section states, reason codes, content hashes, source hashes, source refs, report refs, and AI
-  refs. Gateway must not build proof-pack sections, recalculate hashes, infer source readiness,
-  render reports, generate AI narrative, or treat `lotus-report` as proof-pack authority.
+  report-input, AI-evidence-input, and AI PM memo routes for Workbench, preserving manage
+  `proof_pack_id`, section states, reason codes, content hashes, source hashes, source refs,
+  report refs, and AI refs. The AI PM memo action reads manage-owned
+  `DpmProofPackAiEvidenceInput` and calls `lotus-ai` `dpm_pm_memo.pack@v1` as `lotus-gateway`.
+  Gateway must not build proof-pack sections, recalculate hashes, infer source readiness, render
+  reports, generate AI narrative or PM memos locally, score PMs, approve trades, contact clients,
+  place orders, or treat `lotus-report` as proof-pack authority.
   `lotus-report` remains report materialization authority, not proof-pack authority.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
@@ -315,6 +319,15 @@ curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/outcome-reviews/or
   -H "Content-Type: application/json" \
   -H "X-Correlation-Id: corr-rfc42-outcome-review-ai-narrative" \
   -d "{\"requested_outputs\":[\"pm_summary\",\"cio_summary\",\"control_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"cio_office\",\"investment_control\"]}"
+```
+
+DPM proof-pack AI PM memo handoff:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/proof-packs/dpp_rr_001/ai-pm-memo" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc40-proof-pack-ai-pm-memo" \
+  -d "{\"requested_outputs\":[\"pm_memo\",\"rationale_summary\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\"]}"
 ```
 
 DPM rebalance-wave create:

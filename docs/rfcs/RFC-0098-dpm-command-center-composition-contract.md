@@ -1141,6 +1141,7 @@ route family so Workbench can consume Gateway/BFF instead of calling `lotus-mana
 | RFC38-WTBD-001 Gateway DPM command-center composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/unit/test_upstream_clients.py` |
 | RFC39-WTBD-001 Gateway construction-alternatives composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_construction.py`, `src/app/services/dpm_construction_service.py`, `src/app/contracts/dpm_construction.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_construction_service.py`, `tests/integration/test_dpm_construction_router.py`, `tests/contract/test_dpm_construction_contract.py` |
 | RFC40-WTBD-001 Gateway proof-pack composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_proof_packs.py`, `src/app/services/dpm_proof_pack_service.py`, `src/app/contracts/dpm_proof_packs.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_proof_pack_service.py`, `tests/integration/test_dpm_proof_pack_router.py`, `tests/contract/test_dpm_proof_pack_contract.py` |
+| RFC40-WTBD-005 Gateway proof-pack AI PM memo handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `DpmProofPackAiEvidenceInput`, executes `lotus-ai` `dpm_pm_memo.pack@v1` as `lotus-gateway`, preserves manage evidence authority and lotus-ai workflow-pack posture, and exposes `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo` |
 | RFC41-WTBD-005 Gateway wave composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_waves.py`, `src/app/services/dpm_wave_service.py`, `src/app/contracts/dpm_waves.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_wave_service.py`, `tests/integration/test_dpm_wave_router.py`, `tests/contract/test_dpm_wave_contract.py`, `tests/unit/test_upstream_clients.py` |
 | RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
 | RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
@@ -1178,11 +1179,15 @@ Implementation boundaries:
    `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
    `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`, and
    `GET /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`.
+   The Gateway AI memo handoff additionally exposes
+   `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`.
 8. Proof-pack routes preserve manage-owned proof-pack identity, section states, reason codes,
    content hashes, source hashes, source refs, report refs, AI refs, Markdown text, report-input
-   payloads, and AI-evidence payloads.
+   payloads, and AI-evidence payloads. The AI memo route preserves manage-owned AI evidence input
+   and lotus-ai workflow-pack run posture.
 9. Gateway does not generate proof-pack sections, recalculate hashes, infer source readiness,
-   render reports, generate AI narrative, or treat `lotus-report` as proof-pack authority.
+   render reports, generate AI narrative or PM memos locally, score PMs, approve trades, contact
+   clients, place orders, or treat `lotus-report` as proof-pack authority.
 10. Gateway now exposes `POST /api/v1/dpm/command-center/waves/preview`,
    `POST /api/v1/dpm/command-center/waves`,
    `GET /api/v1/dpm/command-center/waves`,

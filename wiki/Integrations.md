@@ -104,10 +104,14 @@
     `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
     `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`, and
     `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input` for Workbench.
+    Gateway also exposes
+    `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo` as a governed handoff to
+    `lotus-ai` `dpm_pm_memo.pack@v1` after reading manage-owned proof-pack AI evidence input.
     Gateway forwards request bodies, idempotency keys, and correlation context to manage, then
     preserves proof-pack identity, section states, reason codes, content hashes, source hashes,
-    source refs, report refs, and AI refs without generating proof sections, recalculating hashes,
-    rendering reports, or generating AI narrative.
+    source refs, report refs, AI refs, and lotus-ai workflow-pack run posture without generating
+    proof sections, recalculating hashes, rendering reports, generating PM memos locally, or
+    generating AI narrative.
 14. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
     `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
     idempotency keys, query filters, and correlation context to manage, then preserves wave ids,
