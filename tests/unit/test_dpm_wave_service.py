@@ -274,6 +274,7 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
     assert payload["wave_report_input"] == manage_payload
     assert payload["supportability"]["requires_human_review"] is True
     assert "place_orders" in payload["supportability"]["blocked_actions"]
+    assert "place_orders" in payload["supportability"]["forbidden_actions"]
     assert "trade_approval" in payload["supportability"]["unsupported_claims"]
     assert task_request["context"]["source_refs"] == [
         "lotus-manage:source-check:dwv_001",

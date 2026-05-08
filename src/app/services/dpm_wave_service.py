@@ -247,6 +247,7 @@ class DpmWaveService:
                 "source_state": supportability.state,
                 "reason_codes": supportability.reason_codes,
                 "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
                 "requires_human_review": True,
                 "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
             },
