@@ -110,10 +110,15 @@
   posture, or error semantics locally.
 - RFC-0098 wave composition consumes `lotus-manage` RFC-0041 wave APIs for preview, create,
   search, detail, items, source-check, simulation, selection, approval, staging, handoff, cancel,
-  proof-pack posture, and supportability through `/api/v1/dpm/command-center/waves*`. Gateway now
-  exposes the implementation-backed wave BFF route family, preserves manage `wave_id`, item
-  states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
-  supportability issues, reason codes, and the no-external-execution boundary. Gateway must not calculate affected portfolios, readiness, alternatives, proof-pack state, or external execution posture.
+  proof-pack posture, supportability, and report input through
+  `/api/v1/dpm/command-center/waves*`. Gateway now exposes the implementation-backed wave BFF
+  route family, preserves manage `wave_id`, item states, aggregate metrics, selected alternative
+  refs, proof-pack refs, handoff refs, report-input evidence, supportability issues, reason codes,
+  and the no-external-execution boundary. Gateway also exposes a governed handoff from
+  manage-owned `DpmWaveReportInput` to `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
+  PM/control support text. Gateway must not calculate affected portfolios, readiness,
+  alternatives, proof-pack state, report evidence, AI narrative, PM scoring, trade approval,
+  client contact, order placement, or external execution posture.
 - RFC-0098 outcome-review composition must consume `lotus-manage` RFC-0042 outcome-review APIs
   for preview, durable create, search, detail, source refresh, supportability, report input, AI
   evidence input, run lookup, and wave lookup. Gateway now exposes the first implementation-backed
@@ -354,6 +359,22 @@ DPM rebalance-wave supportability:
 ```bash
 curl "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/supportability" \
   -H "X-Correlation-Id: corr-rfc41-wave-supportability"
+```
+
+DPM rebalance-wave report input:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/report-input" \
+  -H "X-Correlation-Id: corr-rfc41-wave-report-input"
+```
+
+DPM rebalance-wave AI PM memo:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc41-wave-ai-pm-memo" \
+  -d "{\"requested_outputs\":[\"wave_pm_memo\",\"approval_checklist\",\"evidence_gaps\"],\"audience\":[\"portfolio_manager\",\"investment_control\",\"operations\"]}"
 ```
 
 DPM rebalance-wave selection with proof-pack generation:

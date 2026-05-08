@@ -480,6 +480,18 @@ class DpmClient:
             operation="manage.rebalance.waves.supportability",
         )
 
+    async def get_wave_report_input(
+        self,
+        wave_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/waves/{wave_id}/report-input",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.report_input",
+        )
+
     async def generate_construction_alternative_set(
         self,
         body: dict[str, Any],

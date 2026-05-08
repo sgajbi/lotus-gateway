@@ -172,8 +172,8 @@ Business outcome:
 1. portfolio managers and CIO-office users can operate explicit portfolio-list rebalance waves
    through a stable Gateway contract instead of calling `lotus-manage` directly,
 2. operations users can inspect item-level source readiness, simulation, selection, proof-pack,
-   approval, staging, internal handoff, cancellation, and supportability posture from one product
-   route family,
+   approval, staging, internal handoff, cancellation, report-input, AI memo support, and
+   supportability posture from one product route family,
 3. sales/pre-sales and client-demo teams can describe wave orchestration as implementation-backed
    backend composition while keeping Workbench wave cockpit UI as the next owning-repository slice.
 
@@ -193,27 +193,36 @@ Supported routes:
 12. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
 13. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
 14. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+15. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
+16. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
 2. Gateway forwards preview, create, source-check, simulate, select, approve, stage, handoff,
-   cancel, proof-pack posture, and supportability requests to manage.
+   cancel, proof-pack posture, supportability, and report-input requests to manage.
 3. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
-   issues, remediation routes, and `external_execution_claimed=false`.
-4. Gateway does not calculate affected portfolios, classify source readiness, generate
+   issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
+4. Gateway reads manage-owned wave report input before calling `lotus-ai`
+   `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
+5. Gateway does not calculate affected portfolios, classify source readiness, generate
    alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
-   proof packs, cancel external orders, or claim external execution.
+   proof packs, generate report evidence, generate AI narrative locally, score PMs, approve trades,
+   contact clients, place orders, invent missing evidence, cancel external orders, or claim external
+   execution.
 
 ```mermaid
 flowchart LR
     Workbench[lotus-workbench future wave cockpit] --> Gateway[lotus-gateway DPM wave routes]
     Gateway --> Manage[lotus-manage RFC-0041 wave authority]
+    Gateway --> AI[lotus-ai dpm_wave_pm_memo.pack@v1]
     Manage --> Construction[lotus-manage RFC-0039 construction alternatives]
     Manage --> Proof[lotus-manage RFC-0040 proof packs]
+    Manage --> ReportInput[DpmWaveReportInput evidence]
     Manage --> Ops[Internal operations handoff evidence]
     Manage --> Gateway
+    AI --> Gateway
     Gateway --> Workbench
 ```
 
@@ -221,7 +230,9 @@ Operational behavior:
 
 1. Gateway wraps every manage response in a product envelope with manage-derived supportability,
 2. unsupported transitions and missing waves return product-safe manage error details,
-3. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
+3. lotus-ai failures on the wave PM memo route return product-safe `lotus-ai` error details while
+   preserving manage evidence boundaries,
+4. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
    are not claimed by this Gateway slice.
 
 ## DPM Mandate Command Center

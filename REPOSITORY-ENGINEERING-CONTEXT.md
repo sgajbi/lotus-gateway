@@ -232,12 +232,16 @@ Most relevant current governance:
 15. RFC-0041 rebalance-wave Gateway routes are active under
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,
-    cancellation, proof-pack posture, and supportability requests to `lotus-manage`; preserves
-    manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate metrics,
-    selected alternative refs, proof-pack refs, handoff refs, supportability issues, and
-    `external_execution_claimed=false`; and must not calculate affected portfolios, classify
-    source readiness, generate alternatives, select alternatives, approve items, stage items,
-    create handoff evidence, rebuild proof packs, or claim external execution locally.
+    cancellation, proof-pack posture, supportability, and report-input requests to `lotus-manage`;
+    preserves manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate
+    metrics, selected alternative refs, proof-pack refs, handoff refs, supportability issues,
+    report-input evidence, and `external_execution_claimed=false`; and must not calculate affected
+    portfolios, classify source readiness, generate alternatives, select alternatives, approve
+    items, stage items, create handoff evidence, rebuild proof packs, generate report evidence, or
+    claim external execution locally. Gateway can request `lotus-ai`
+    `dpm_wave_pm_memo.pack@v1` from manage-owned wave report input as a review-required PM/control
+    support artifact, but it must not generate AI narrative locally, score PMs, approve trades,
+    contact clients, place orders, or invent missing evidence.
 16. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up

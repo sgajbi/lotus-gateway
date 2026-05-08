@@ -124,9 +124,13 @@
     `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
     idempotency keys, query filters, and correlation context to manage, then preserves wave ids,
     lifecycle state, item states, aggregate metrics, selected-alternative refs, proof-pack refs,
-    internal handoff refs, supportability issues, remediation routes, and no-external-execution
-    posture without discovering affected portfolios, classifying readiness, generating
-    alternatives, approving/staging locally, rebuilding proof packs, or claiming execution.
+    internal handoff refs, report-input evidence, supportability issues, remediation routes, and
+    no-external-execution posture without discovering affected portfolios, classifying readiness,
+    generating alternatives, approving/staging locally, rebuilding proof packs, generating report
+    evidence, or claiming execution. The wave AI PM memo route first reads manage-owned
+    `DpmWaveReportInput`, then calls `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
+    support text; Gateway does not generate narrative locally, score PMs, approve trades, contact
+    clients, place orders, or invent evidence.
 16. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling

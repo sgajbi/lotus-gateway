@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.contracts.dpm_waves import DpmWaveGatewayResponse
+from app.contracts.dpm_waves import DpmWaveGatewayResponse, DpmWaveMemoGatewayResponse
 from app.main import app
 
 
@@ -31,6 +31,29 @@ def test_dpm_wave_gateway_response_contract_shape() -> None:
     assert response.data["wave"]["state"] == "HANDOFF_READY"
 
 
+def test_dpm_wave_memo_gateway_response_contract_shape() -> None:
+    response = DpmWaveMemoGatewayResponse(
+        correlation_id="corr-wave-ai-memo",
+        manage_upstream_status=200,
+        ai_upstream_status=200,
+        supportability={"state": "ready", "reason_codes": ["wave_report_input_ready"]},
+        wave_report_input={
+            "wave_id": "dwv_001",
+            "report_input_ref": "report-input:dwv_001",
+        },
+        memo_request={
+            "requested_outputs": ["wave_pm_memo", "approval_checklist"],
+            "audience": ["portfolio_manager", "investment_control"],
+        },
+        data={"run_id": "wf_run_wave_memo_001", "status": "REVIEW_REQUIRED"},
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0041"
+    assert response.wave_report_input["wave_id"] == "dwv_001"
+
+
 def test_dpm_wave_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -49,6 +72,8 @@ def test_dpm_wave_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/waves/{wave_id}/cancel", "post"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/proof-pack", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/supportability", "get"),
+        ("/api/v1/dpm/command-center/waves/{wave_id}/report-input", "get"),
+        ("/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo", "post"),
     ]
 
     for path, method in expected_paths:
@@ -70,6 +95,8 @@ def test_dpm_wave_openapi_models_are_described() -> None:
         "DpmWaveCreateRequest",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",
+        "DpmWaveMemoGatewayResponse",
+        "DpmWaveMemoRequest",
         "DpmWaveSupportability",
         "DpmWaveErrorDetail",
     ]:

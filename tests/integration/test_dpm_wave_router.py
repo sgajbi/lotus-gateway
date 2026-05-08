@@ -202,3 +202,95 @@ def test_dpm_wave_error_is_not_marked_ready(monkeypatch) -> None:
     assert response.status_code == 404
     assert response.json()["detail"]["error_code"] == "MANAGE_WAVE_UPSTREAM_ERROR"
     assert response.json()["detail"]["detail"] == "Wave dwv_missing was not found."
+
+
+def test_dpm_wave_report_input_preserves_manage_evidence(monkeypatch) -> None:
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+        _ = self
+        return 200, {
+            "wave_id": wave_id,
+            "report_input_ref": f"report-input:{wave_id}",
+            "source_refs": [f"lotus-manage:wave:{wave_id}"],
+            "supportability": {
+                "supportability_state": "ready",
+                "reason_codes": ["wave_report_input_ready"],
+            },
+            "correlation_id": correlation_id,
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_wave_report_input",
+        _fake_get_wave_report_input,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/dpm/command-center/waves/dwv_001/report-input",
+        headers={"X-Correlation-Id": "corr-wave-router-report-input"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["supportability"]["state"] == "ready"
+    assert payload["data"]["report_input_ref"] == "report-input:dwv_001"
+    assert payload["data"]["correlation_id"] == "corr-wave-router-report-input"
+
+
+def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["manage_wave_id"] = wave_id
+        captured["manage_correlation_id"] = correlation_id
+        return 200, {
+            "wave_id": wave_id,
+            "report_input_ref": f"report-input:{wave_id}",
+            "source_refs": [f"lotus-manage:wave:{wave_id}"],
+            "supportability": {
+                "supportability_state": "ready",
+                "reason_codes": ["wave_report_input_ready"],
+            },
+        }
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN001, ANN003
+        _ = self
+        captured["ai_kwargs"] = kwargs
+        return 200, {"run_id": "wf_run_wave_memo_001", "status": "REVIEW_REQUIRED"}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_wave_report_input",
+        _fake_get_wave_report_input,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/waves/dwv_001/ai-pm-memo",
+        json={
+            "requested_outputs": ["wave_pm_memo", "approval_checklist"],
+            "audience": ["portfolio_manager", "investment_control"],
+        },
+        headers={"X-Correlation-Id": "corr-wave-router-ai-memo"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_service"] == "lotus-ai"
+    assert payload["evidence_source_service"] == "lotus-manage"
+    assert payload["wave_report_input"]["report_input_ref"] == "report-input:dwv_001"
+    assert payload["memo_request"]["requested_outputs"] == [
+        "wave_pm_memo",
+        "approval_checklist",
+    ]
+    ai_kwargs = captured["ai_kwargs"]
+    assert ai_kwargs["pack_id"] == "dpm_wave_pm_memo.pack"
+    assert ai_kwargs["workflow_surface"] == "dpm-wave-ai-evidence"
+    assert ai_kwargs["correlation_id"] == "corr-wave-router-ai-memo"
+    assert ai_kwargs["task_request"]["caller"]["caller_app"] == "lotus-gateway"
+    supportability = ai_kwargs["task_request"]["context"]["payload"]["supportability"]
+    assert supportability["requires_human_review"] is True
+    assert "approve_rebalance" in supportability["blocked_actions"]
