@@ -103,6 +103,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
   `/api/v1/dpm/command-center/waves*`,
+  `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
+  `/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
@@ -271,8 +273,11 @@ Important current parameter conventions:
 15. DPM command-center wave routes under `/api/v1/dpm/command-center/waves*` consume
    `lotus-manage` RFC-0041 rebalance-wave APIs and preserve manage-owned `wave_id`, lifecycle
    state, item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
-   supportability, and reason codes without calculating affected portfolios, source readiness,
-   alternatives, proof-pack state, or execution posture locally
+   supportability, report-input evidence, and reason codes without calculating affected portfolios,
+   source readiness, alternatives, proof-pack state, report evidence, or execution posture locally.
+   Gateway also exposes a governed `dpm_wave_pm_memo.pack@v1` handoff to `lotus-ai` from
+   manage-owned wave report input; it does not generate memo narrative, score PMs, approve trades,
+   contact clients, place orders, or invent missing evidence.
 16. DPM portfolio-memory route
    `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` consumes `lotus-manage`
    RFC-0040/RFC-0041/RFC-0042 portfolio-memory truth and preserves event order, event type
@@ -295,7 +300,7 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs,
   RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,
   RFC-0041 rebalance-wave preview/create/search/detail/items/source-check/simulate/select/approve/
-  stage/handoff/cancel/proof-pack/supportability APIs, and RFC-0042 outcome-review
+  stage/handoff/cancel/proof-pack/supportability/report-input APIs, and RFC-0042 outcome-review
   preview/create/search/detail/source-refresh, supportability, report-input, AI-evidence, run
   lookup, and wave lookup
 - contract rule:

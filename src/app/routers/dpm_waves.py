@@ -3,12 +3,15 @@ from typing import Any
 from fastapi import APIRouter, Path, Query
 
 from app.clients.dpm_client import DpmClient
+from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_waves import (
     DpmWaveCreateRequest,
     DpmWaveErrorDetail,
     DpmWaveForwardRequest,
     DpmWaveGatewayResponse,
+    DpmWaveMemoGatewayResponse,
+    DpmWaveMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.dpm_wave_service import DpmWaveService
@@ -42,6 +45,12 @@ def _dpm_wave_service() -> DpmWaveService:
         dpm_client=DpmClient(
             base_url=settings.management_service_base_url,
             timeout_seconds=settings.upstream_timeout_seconds,
+            max_retries=settings.upstream_max_retries,
+            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
+        ),
+        lotus_ai_client=LotusAiClient(
+            base_url=settings.ai_service_base_url,
+            timeout_seconds=settings.ai_service_timeout_seconds,
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
@@ -374,5 +383,56 @@ async def get_wave_supportability(
 ) -> DpmWaveGatewayResponse:
     return await _dpm_wave_service().get_wave_supportability(
         wave_id=wave_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.get(
+    "/{wave_id}/report-input",
+    response_model=DpmWaveGatewayResponse,
+    summary="Get DPM wave report input",
+    description=(
+        "What: returns manage-owned deterministic report-input evidence for one RFC-0041 wave. "
+        "When: call this before report composition or AI memo support for PM/CIO wave review. "
+        "How: Gateway preserves the DpmWaveReportInput payload, source refs, hashes, item "
+        "posture, approval posture, and proof-pack posture without rendering reports or "
+        "reconstructing evidence."
+    ),
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
+async def get_wave_report_input(
+    wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
+) -> DpmWaveGatewayResponse:
+    return await _dpm_wave_service().get_wave_report_input(
+        wave_id=wave_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.post(
+    "/{wave_id}/ai-pm-memo",
+    response_model=DpmWaveMemoGatewayResponse,
+    summary="Request DPM wave AI PM memo",
+    description=(
+        "What: requests a governed lotus-ai PM memo workflow-pack run from manage-owned "
+        "DPM wave report input. When: call this after manage supportability and wave evidence "
+        "are available and the user needs review-gated PM/control support text. How: Gateway "
+        "first reads manage's DpmWaveReportInput, then executes lotus-ai "
+        "dpm_wave_pm_memo.pack@v1 as lotus-gateway; Gateway does not generate narrative, score "
+        "PMs, approve trades, contact clients, place orders, or invent evidence."
+    ),
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
+async def request_wave_pm_memo(
+    request: DpmWaveMemoRequest,
+    wave_id: str = Path(
+        ...,
+        description="Manage-owned rebalance-wave identifier for the bounded AI handoff.",
+        examples=["dwv_001"],
+    ),
+) -> DpmWaveMemoGatewayResponse:
+    return await _dpm_wave_service().request_wave_pm_memo(
+        wave_id=wave_id,
+        request=request,
         correlation_id=correlation_id_var.get(),
     )

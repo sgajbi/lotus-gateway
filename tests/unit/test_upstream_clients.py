@@ -1690,6 +1690,11 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {"wave_id": "dwv_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/supportability",
         ),
+        (
+            "get_wave_report_input",
+            {"wave_id": "dwv_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/dwv_001/report-input",
+        ),
     ],
 )
 async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
@@ -1886,6 +1891,10 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         ),
         (
             client.get_wave_supportability,
+            {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_wave_report_input,
             {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
         ),
         (
