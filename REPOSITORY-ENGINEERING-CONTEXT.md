@@ -36,7 +36,8 @@ Current repository posture:
    `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
-   generate/read/Markdown/report-input/AI-evidence/AI PM memo route families, and RFC-0042 outcome-review
+   generate/read/Markdown/report-input/AI-evidence/AI PM memo route families,
+   RFC-0040/RFC-0041/RFC-0042 portfolio-memory route family, and RFC-0042 outcome-review
    preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
    AI-narrative handoff route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
@@ -221,7 +222,14 @@ Most relevant current governance:
     manage-owned AI evidence input. Gateway must not build proof-pack sections, recalculate hashes,
     infer source readiness, render reports, generate AI narrative or PM memos locally, score PMs,
     approve trades, contact clients, place orders, or invent missing evidence.
-14. RFC-0041 rebalance-wave Gateway routes are active under
+14. RFC-0040/RFC-0041/RFC-0042 portfolio-memory Gateway route is active under
+    `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`. Gateway forwards portfolio id
+    and limit to `lotus-manage` `/api/v1/rebalance/portfolio-memory/{portfolio_id}`, preserves
+    manage-owned event order, event types, source systems, source refs, artifact refs, reason
+    codes, supportability state, content hash, and bounded metadata, and must not reconstruct
+    timeline nodes, infer mandate exceptions, calculate risk, performance, tax, cash, FX,
+    execution, or source-owner methodology locally.
+15. RFC-0041 rebalance-wave Gateway routes are active under
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,
     cancellation, proof-pack posture, and supportability requests to `lotus-manage`; preserves
@@ -230,7 +238,7 @@ Most relevant current governance:
     `external_execution_claimed=false`; and must not calculate affected portfolios, classify
     source readiness, generate alternatives, select alternatives, approve items, stage items,
     create handoff evidence, rebuild proof packs, or claim external execution locally.
-15. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+16. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,

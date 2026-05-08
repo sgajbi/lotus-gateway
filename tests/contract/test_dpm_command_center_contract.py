@@ -4,6 +4,7 @@ from app.contracts.dpm_command_center import (
     DpmCommandCenterGatewayResponse,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
+    DpmPortfolioMemoryGatewayResponse,
 )
 from app.main import app
 
@@ -52,6 +53,35 @@ def test_dpm_command_center_gateway_response_contract_shape() -> None:
     assert response.data["health_distribution"] == {"READY": 3, "PENDING_REVIEW": 1}
 
 
+def test_dpm_portfolio_memory_gateway_response_contract_shape() -> None:
+    response = DpmPortfolioMemoryGatewayResponse(
+        correlation_id="corr-rfc40-memory-1",
+        upstream_status=200,
+        supportability={
+            "state": "READY",
+            "event_count": 2,
+            "event_type_counts": {"PROOF_PACK_CREATED": 1, "OUTCOME_REVIEW_CREATED": 1},
+            "source_systems": ["lotus-manage", "lotus-core"],
+            "reason_codes": ["SOURCE_READY"],
+            "content_hash": "sha256:portfolio-memory",
+        },
+        data={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "event_count": 2,
+            "supportability_state": "READY",
+            "events": [{"event_type": "PROOF_PACK_CREATED"}],
+        },
+    )
+
+    assert response.source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0040/RFC-0041/RFC-0042"
+    assert response.supportability.event_type_counts == {
+        "PROOF_PACK_CREATED": 1,
+        "OUTCOME_REVIEW_CREATED": 1,
+    }
+    assert response.data["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+
+
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
         correlation_id="corr-1",
@@ -89,6 +119,7 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/mandates/{mandate_id}", "get"),
         ("/api/v1/dpm/command-center/mandates/{mandate_id}/health", "get"),
         ("/api/v1/dpm/command-center/mandates/{mandate_id}/diff", "get"),
+        ("/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory", "get"),
         ("/api/v1/dpm/command-center/outcome-reviews/preview", "post"),
         ("/api/v1/dpm/command-center/outcome-reviews", "get"),
         ("/api/v1/dpm/command-center/outcome-reviews", "post"),
@@ -118,6 +149,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     schemas = spec["components"]["schemas"]
     command_center_response_schema = schemas["DpmCommandCenterGatewayResponse"]
     command_center_supportability_schema = schemas["DpmCommandCenterSupportability"]
+    portfolio_memory_response_schema = schemas["DpmPortfolioMemoryGatewayResponse"]
+    portfolio_memory_supportability_schema = schemas["DpmPortfolioMemorySupportability"]
     response_schema = schemas["DpmOutcomeReviewGatewayResponse"]
     narrative_response_schema = schemas["DpmOutcomeReviewNarrativeGatewayResponse"]
     supportability_schema = schemas["DpmOutcomeReviewSupportability"]
@@ -126,6 +159,12 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
         assert property_schema.get("description")
 
     for property_schema in command_center_supportability_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in portfolio_memory_response_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in portfolio_memory_supportability_schema["properties"].values():
         assert property_schema.get("description")
 
     for property_schema in response_schema["properties"].values():
@@ -139,6 +178,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
 
     assert command_center_response_schema["properties"]["data"]["description"]
     assert command_center_supportability_schema["properties"]["state"]["examples"]
+    assert portfolio_memory_response_schema["properties"]["data"]["description"]
+    assert portfolio_memory_supportability_schema["properties"]["state"]["examples"]
     assert response_schema["properties"]["data"]["description"]
     assert narrative_response_schema["properties"]["data"]["description"]
     assert supportability_schema["properties"]["state"]["examples"]

@@ -17,6 +17,7 @@
 - `GET` and `POST /api/v1/dpm/command-center/monitoring/*`
 - `GET` and `POST /api/v1/dpm/command-center/exceptions*`
 - `GET /api/v1/dpm/command-center/mandates*`
+- `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
@@ -75,6 +76,14 @@
   reports, generate AI narrative or PM memos locally, score PMs, approve trades, contact clients,
   place orders, or treat `lotus-report` as proof-pack authority.
   `lotus-report` remains report materialization authority, not proof-pack authority.
+- RFC40-WTBD-010 portfolio-memory Gateway composition consumes `lotus-manage`
+  `/api/v1/rebalance/portfolio-memory/{portfolio_id}` through
+  `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`. Gateway forwards the portfolio
+  id, limit, and correlation context, then preserves manage-owned event order, event types, event
+  counts, source systems, source refs, artifact refs, reason codes, supportability state, bounded
+  metadata, and content hash for Workbench. Gateway must not reconstruct timeline nodes, infer
+  mandate exceptions, calculate risk, performance, tax, cash, FX, execution, or source-owner
+  methodology, or let Workbench bypass Gateway for portfolio memory.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
   generate, get, and select routes for Workbench, preserving manage alternative-set ids, method
@@ -147,8 +156,9 @@
   call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
-  command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0041
-  rebalance-wave authority APIs, and RFC-0042 outcome-review authority APIs
+  command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040
+  proof-pack and portfolio-memory authority APIs, RFC-0041 rebalance-wave authority APIs, and
+  RFC-0042 outcome-review authority APIs
 - `/metrics` includes RFC-0108 gateway analytics fan-out metrics for selected Workbench analytics
   operations plus the central `lotus-advise`, `lotus-manage`, `lotus-report`, `lotus-archive`,
   `lotus-ai`, direct `lotus-core` query/control-plane, and `lotus-core` ingestion client seams:

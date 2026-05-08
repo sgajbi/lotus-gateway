@@ -1649,6 +1649,15 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/proof-packs/dpp_rr_001/ai-evidence-input",
         ),
         (
+            "get_portfolio_memory",
+            {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "params": {"limit": 50, "cursor": None},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/portfolio-memory/PB_SG_GLOBAL_BAL_001",
+        ),
+        (
             "list_wave_outcome_reviews",
             {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
@@ -1935,6 +1944,14 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             client.get_proof_pack_ai_evidence_input,
             {
                 "proof_pack_id": "dpp_rr_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_portfolio_memory,
+            {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "params": {"limit": 100},
                 "correlation_id": "corr-rfc36-canonical",
             },
         ),

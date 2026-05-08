@@ -20,7 +20,8 @@
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
   construction alternative-set authority APIs, RFC-0040
-  proof-pack authority APIs, RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
+  proof-pack authority APIs, RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,
+  RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
   post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
   command-center contract; the RFC-0038 mandate command-center BFF route family, RFC-0039
   construction alternative-set BFF route family, RFC-0040 proof-pack BFF route family, RFC-0041
@@ -112,14 +113,21 @@
     source refs, report refs, AI refs, and lotus-ai workflow-pack run posture without generating
     proof sections, recalculating hashes, rendering reports, generating PM memos locally, or
     generating AI narrative.
-14. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
+14. RFC40-WTBD-010 portfolio memory remains `lotus-manage` truth. Gateway portfolio-memory
+    realization exposes `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` for
+    Workbench. Gateway forwards portfolio id, limit, and correlation context to manage, then
+    preserves event order, event types, source systems, source refs, artifact refs, reason codes,
+    supportability state, bounded metadata, and content hash without reconstructing timeline
+    nodes, inferring mandate exceptions, calculating source-owner methods, or letting Workbench
+    call `lotus-manage` directly.
+15. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
     `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
     idempotency keys, query filters, and correlation context to manage, then preserves wave ids,
     lifecycle state, item states, aggregate metrics, selected-alternative refs, proof-pack refs,
     internal handoff refs, supportability issues, remediation routes, and no-external-execution
     posture without discovering affected portfolios, classifying readiness, generating
     alternatives, approving/staging locally, rebuilding proof packs, or claiming execution.
-15. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
+16. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from

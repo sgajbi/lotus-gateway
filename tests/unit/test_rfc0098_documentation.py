@@ -21,10 +21,13 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "calculate affected portfolios, source readiness, aggregate metrics" in rfc
     assert "`GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`" in rfc
     assert "RFC41-WTBD-005 Gateway wave composition" in rfc
+    assert "RFC40-WTBD-010 Gateway portfolio-memory composition" in rfc
+    assert "`GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`" in rfc
+    assert "does not reconstruct timeline nodes" in rfc
     assert "`POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`" in rfc
-    assert "DPM Rebalance-Wave Composition" in (ROOT / "wiki" / "Supported-Features.md").read_text(
-        encoding="utf-8"
-    )
+    supported_features = (ROOT / "wiki" / "Supported-Features.md").read_text(encoding="utf-8")
+    assert "DPM Rebalance-Wave Composition" in supported_features
+    assert "DPM Portfolio-Memory Composition" in supported_features
     assert "proof_pack_evidence" in rfc
     assert "wave_summary" in rfc
     assert "DpmPreTradeProofPack:v1" in rfc
@@ -37,10 +40,13 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "not recompute outcome truth" in api_surface
     assert "outcome reviews remain `lotus-manage` truth" in integrations
     assert "proof-pack authority APIs" in integrations
+    assert "portfolio-memory read APIs" in integrations
     assert "RFC-0041 rebalance-wave orchestration" in integrations
     assert "not proof-pack authority" in api_surface
     assert "`/api/v1/dpm/command-center/proof-packs*`" in api_surface
+    assert "`/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`" in api_surface
     assert "proof-pack BFF route family" in integrations
+    assert "portfolio memory remains `lotus-manage` truth" in integrations
     assert "must not calculate affected portfolios" in api_surface
     assert "`/api/v1/dpm/command-center/waves*`" in api_surface
     assert "Gateway does not generate proof packs. That belongs to `lotus-report`." not in rfc

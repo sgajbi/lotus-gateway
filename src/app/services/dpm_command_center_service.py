@@ -13,6 +13,8 @@ from app.contracts.dpm_command_center import (
     DpmOutcomeReviewNarrativeGatewayResponse,
     DpmOutcomeReviewNarrativeRequest,
     DpmOutcomeReviewSupportability,
+    DpmPortfolioMemoryGatewayResponse,
+    DpmPortfolioMemorySupportability,
 )
 
 
@@ -170,6 +172,23 @@ class DpmCommandCenterService:
             correlation_id=correlation_id,
         )
         return self._compose_command_center_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_portfolio_memory(
+        self,
+        portfolio_id: str,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPortfolioMemoryGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_portfolio_memory(
+            portfolio_id=portfolio_id,
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_portfolio_memory_response(
             upstream_status,
             upstream_payload,
             correlation_id,
@@ -437,6 +456,30 @@ class DpmCommandCenterService:
             data=upstream_payload,
         )
 
+    def _compose_portfolio_memory_response(
+        self,
+        upstream_status: int,
+        upstream_payload: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPortfolioMemoryGatewayResponse:
+        if upstream_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=upstream_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=upstream_status,
+                    error_code="MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(upstream_payload),
+                ).model_dump(),
+            )
+
+        return DpmPortfolioMemoryGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            upstream_status=upstream_status,
+            supportability=_portfolio_memory_supportability_from(upstream_payload),
+            data=upstream_payload,
+        )
+
 
 def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportability:
     raw = payload.get("supportability")
@@ -510,10 +553,58 @@ def _command_center_supportability_from(payload: dict[str, Any]) -> DpmCommandCe
     )
 
 
+def _portfolio_memory_supportability_from(
+    payload: dict[str, Any],
+) -> DpmPortfolioMemorySupportability:
+    state = (
+        payload.get("supportability_state")
+        or payload.get("supportabilityState")
+        or payload.get("state")
+        or "UNKNOWN"
+    )
+    event_count = payload.get("event_count") or payload.get("eventCount") or 0
+    return DpmPortfolioMemorySupportability(
+        state=str(state),
+        event_count=_safe_int(event_count),
+        event_type_counts=_dict_of_ints(payload.get("event_type_counts")),
+        source_systems=_list_of_strings(payload.get("source_systems") or []),
+        reason_codes=_list_of_strings(payload.get("reason_codes") or []),
+        content_hash=_safe_optional_str(payload.get("content_hash")),
+    )
+
+
 def _list_of_strings(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
+
+
+def _dict_of_ints(value: object) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    counts: dict[str, int] = {}
+    for key, count in value.items():
+        counts[str(key)] = _safe_int(count)
+    return counts
+
+
+def _safe_int(value: object) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return max(value, 0)
+    if isinstance(value, str):
+        try:
+            return max(int(value), 0)
+        except ValueError:
+            return 0
+    return 0
+
+
+def _safe_optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
 
 
 def _outcome_ai_source_refs(payload: dict[str, Any], outcome_review_id: str) -> list[str]:

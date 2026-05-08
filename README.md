@@ -101,6 +101,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/report-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`,
+  `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
@@ -272,6 +273,12 @@ Important current parameter conventions:
    state, item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
    supportability, and reason codes without calculating affected portfolios, source readiness,
    alternatives, proof-pack state, or execution posture locally
+16. DPM portfolio-memory route
+   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` consumes `lotus-manage`
+   RFC-0040/RFC-0041/RFC-0042 portfolio-memory truth and preserves event order, event type
+   counts, source systems, source refs, artifact refs, reason codes, supportability state, and
+   content hash without reconstructing timeline nodes or calculating risk, performance, tax, cash,
+   FX, or execution truth locally
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -286,6 +293,7 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
   certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
   platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs,
+  RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,
   RFC-0041 rebalance-wave preview/create/search/detail/items/source-check/simulate/select/approve/
   stage/handoff/cancel/proof-pack/supportability APIs, and RFC-0042 outcome-review
   preview/create/search/detail/source-refresh, supportability, report-input, AI-evidence, run
