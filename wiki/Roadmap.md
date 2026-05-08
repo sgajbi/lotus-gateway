@@ -31,6 +31,10 @@
    without Gateway optimization or recomputation. RFC-0040 proof-pack composition is
    implementation-backed under `/api/v1/dpm/command-center/proof-packs*`, preserving manage-owned
    proof-pack ids, section states, reason codes, hashes, Markdown, report-input payloads, and
-   AI-evidence payloads without Gateway proof-pack reconstruction.
+   AI-evidence payloads without Gateway proof-pack reconstruction. RFC40-WTBD-010
+   portfolio-memory Gateway composition is implementation-backed under
+   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`, preserving manage-owned event
+   order, source systems, source refs, artifact refs, reason codes, supportability, bounded
+   metadata, and content hash without Gateway timeline reconstruction.
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents

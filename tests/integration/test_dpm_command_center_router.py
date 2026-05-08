@@ -172,6 +172,60 @@ def test_dpm_command_center_mandate_health_drilldown_preserves_dimensions(monkey
     ]
 
 
+def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_portfolio_memory(
+        self,
+        portfolio_id,
+        params,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["portfolio_id"] = portfolio_id
+        captured["params"] = params
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "portfolio_id": portfolio_id,
+            "event_count": 2,
+            "supportability_state": "READY",
+            "event_type_counts": {"PROOF_PACK_CREATED": 1, "OUTCOME_REVIEW_CREATED": 1},
+            "source_systems": ["lotus-manage", "lotus-core"],
+            "reason_codes": ["SOURCE_READY"],
+            "content_hash": "sha256:portfolio-memory",
+            "events": [
+                {"event_id": "memory:proof-pack:dpp_1", "event_type": "PROOF_PACK_CREATED"},
+                {"event_id": "memory:outcome-review:or_1", "event_type": "OUTCOME_REVIEW_CREATED"},
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_portfolio_memory",
+        _fake_get_portfolio_memory,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/dpm/command-center/portfolios/PB_SG_GLOBAL_BAL_001/memory?limit=20",
+        headers={"X-Correlation-Id": "corr-portfolio-memory-router"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "params": {"limit": 20},
+        "correlation_id": "corr-portfolio-memory-router",
+    }
+    payload = response.json()
+    assert payload["supportability"]["state"] == "READY"
+    assert payload["supportability"]["event_count"] == 2
+    assert payload["supportability"]["content_hash"] == "sha256:portfolio-memory"
+    assert payload["data"]["events"] == [
+        {"event_id": "memory:proof-pack:dpp_1", "event_type": "PROOF_PACK_CREATED"},
+        {"event_id": "memory:outcome-review:or_1", "event_type": "OUTCOME_REVIEW_CREATED"},
+    ]
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

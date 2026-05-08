@@ -36,6 +36,17 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_portfolio_memory(self, portfolio_id, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "portfolio_memory",
+                "portfolio_id": portfolio_id,
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_outcome_review_supportability(self, outcome_review_id, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -186,6 +197,81 @@ async def test_dpm_command_center_mandate_health_preserves_manage_dimensions() -
             "correlation_id": "corr-mandate-health",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability() -> None:
+    manage_payload = {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "event_count": 4,
+        "supportability_state": "READY",
+        "event_type_counts": {
+            "PROOF_PACK_CREATED": 1,
+            "WAVE_HANDOFF_READY": 1,
+            "OUTCOME_REVIEW_CREATED": 1,
+            "OUTCOME_REVIEW_EVENT": 1,
+        },
+        "source_systems": ["lotus-manage", "lotus-core", "lotus-risk"],
+        "reason_codes": ["SOURCE_READY", "OUTCOME_REVIEW_READY"],
+        "content_hash": "sha256:portfolio-memory",
+        "events": [
+            {
+                "event_id": "memory:outcome-review:or_1",
+                "event_type": "OUTCOME_REVIEW_CREATED",
+                "event_time": "2026-05-07T10:00:00Z",
+                "source_refs": [{"source_system": "lotus-manage", "source_id": "or_1"}],
+            }
+        ],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_portfolio_memory(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        filters={"limit": 50},
+        correlation_id="corr-portfolio-memory",
+    )
+
+    assert response.correlation_id == "corr-portfolio-memory"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.supportability.authority == "lotus-manage:RFC-0040/RFC-0041/RFC-0042"
+    assert response.supportability.state == "READY"
+    assert response.supportability.event_count == 4
+    assert response.supportability.event_type_counts["WAVE_HANDOFF_READY"] == 1
+    assert response.supportability.source_systems == ["lotus-manage", "lotus-core", "lotus-risk"]
+    assert response.supportability.reason_codes == ["SOURCE_READY", "OUTCOME_REVIEW_READY"]
+    assert response.supportability.content_hash == "sha256:portfolio-memory"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "portfolio_memory",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "params": {"limit": 50},
+            "correlation_id": "corr-portfolio-memory",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_portfolio_memory_manage_errors_are_product_safe() -> None:
+    client = _FakeDpmClient((404, {"detail": "portfolio memory not found"}))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_memory(
+            portfolio_id="missing",
+            filters={"limit": 25},
+            correlation_id="corr-portfolio-memory-error",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 404,
+        "error_code": "MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
+        "detail": "portfolio memory not found",
+    }
 
 
 @pytest.mark.asyncio

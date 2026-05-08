@@ -2,15 +2,15 @@
 
 | Metadata | Details |
 | --- | --- |
-| **Status** | PARTIAL IMPLEMENTATION - RFC-0038 MANDATE COMMAND-CENTER, RFC-0039 CONSTRUCTION, RFC-0040 PROOF-PACK, AND RFC-0042 OUTCOME-REVIEW BFF ROUTES IMPLEMENTED; BROADER WAVE/REPORT/ARCHIVE MODULES PENDING |
+| **Status** | PARTIAL IMPLEMENTATION - RFC-0038 MANDATE COMMAND-CENTER, RFC-0039 CONSTRUCTION, RFC-0040 PROOF-PACK AND PORTFOLIO-MEMORY, RFC-0041 REBALANCE-WAVE, AND RFC-0042 OUTCOME-REVIEW BFF ROUTES IMPLEMENTED; BROADER REPORT/ARCHIVE MODULES AND WORKBENCH TIMELINE UI PENDING |
 | **Created** | 2026-05-03 |
-| **Last Tightened** | 2026-05-05 |
+| **Last Tightened** | 2026-05-08 |
 | **Owner** | `lotus-gateway` |
 | **Primary Consumer** | `lotus-workbench` DPM mandate command center |
 | **Business Sponsor Persona** | DPM head, portfolio manager, CIO desk, investment control, operations, sales/pre-sales |
 | **Depends On** | `lotus-manage` RFC-0037, `lotus-manage` RFC-0038, `lotus-manage` RFC-0040, `lotus-manage` RFC-0041, `lotus-manage` RFC-0042, `lotus-core` RFC-0087, Gateway RFC-0082, Gateway RFC-0108, Workbench RFC-0098 |
 | **Doc Location** | `docs/rfcs/RFC-0098-dpm-command-center-composition-contract.md` |
-| **Implementation Branch** | `feat/rfc42-outcome-review-gateway` for RFC-0042 outcome-review BFF realization |
+| **Implementation Branch** | Ledger-driven WTBD slices; current portfolio-memory Gateway slice uses `wtbd-rfc40-portfolio-memory-gateway` |
 
 ---
 
@@ -27,11 +27,13 @@ that brings together:
 4. performance posture from `lotus-performance`,
 5. proof-pack authority, readiness, Markdown, report-input, and AI-evidence handoff posture from
    `lotus-manage` RFC-0040,
-6. post-trade outcome-review state, expected-versus-realized dimensions, source lineage,
+6. source-backed portfolio-memory timeline lineage across proof packs, rebalance waves, internal
+   handoffs, and outcome reviews from `lotus-manage` RFC-0040/RFC-0041/RFC-0042,
+7. post-trade outcome-review state, expected-versus-realized dimensions, source lineage,
    supportability, report input, and AI evidence input from `lotus-manage` RFC-0042,
-7. report materialization posture from `lotus-report`,
-8. archived evidence metadata and controlled document access from `lotus-archive`,
-9. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
+8. report materialization posture from `lotus-report`,
+9. archived evidence metadata and controlled document access from `lotus-archive`,
+10. governed narrative and task-flow posture from `lotus-ai` where AI support is enabled.
 
 This RFC makes `lotus-gateway` the certified composition boundary for that business view.
 `lotus-manage` must not become a mega-orchestrator for risk and performance, and
@@ -337,7 +339,43 @@ Gateway must not:
 5. expose Workbench action eligibility for proof-pack generation unless manage source readiness and
    entitlement posture support it.
 
-### 8.0B RFC-0041 Rebalance Wave Orchestration Addendum
+### 8.0B RFC40-WTBD-010 Portfolio-Memory Realization Addendum
+
+`lotus-manage` now owns a deterministic portfolio-memory read model over RFC-0040 proof packs,
+RFC-0041 rebalance waves and internal handoffs, and RFC-0042 outcome reviews. Gateway must expose
+that read model to Workbench without reconstructing timeline events or turning source lineage into
+Gateway-owned truth.
+
+Business outcome:
+
+1. portfolio managers can review an auditable portfolio event timeline that links decision,
+   proof, handoff, and outcome evidence,
+2. operations and compliance teams can inspect event-level source refs, artifact refs, reason
+   codes, source systems, supportability, and content hashes from one Gateway route,
+3. sales/pre-sales can explain portfolio memory as source-backed lineage, while clearly preserving
+   manage and source-owner authority.
+
+Gateway responsibility:
+
+1. consume `lotus-manage` `GET /api/v1/rebalance/portfolio-memory/{portfolio_id}`,
+2. expose Workbench-facing `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
+3. preserve manage event order, event types, event counts, source systems, source refs, artifact
+   refs, reason codes, supportability state, bounded metadata, generated timestamp, and content
+   hash,
+4. summarize only product-safe supportability metadata in the Gateway envelope,
+5. return product-safe upstream error details when manage portfolio-memory authority is unavailable
+   or rejects the request.
+
+Gateway must not:
+
+1. reconstruct timeline nodes from proof packs, waves, handoffs, outcomes, mandates, or exceptions,
+2. infer mandate-monitoring exception nodes not present in manage portfolio memory,
+3. calculate risk, performance, tax, cash, FX, liquidity, transaction-cost, execution, or
+   source-owner methodology,
+4. reorder, merge, or redact manage memory events except through explicit future contract changes,
+5. let Workbench call `lotus-manage` directly for portfolio memory.
+
+### 8.0C RFC-0041 Rebalance Wave Orchestration Addendum
 
 `lotus-manage` RFC-0041 makes manage the authority for durable rebalance-wave state, source
 checks, construction simulation delegation, selected alternatives, proof-pack linkage, approval,
@@ -1142,6 +1180,7 @@ route family so Workbench can consume Gateway/BFF instead of calling `lotus-mana
 | RFC39-WTBD-001 Gateway construction-alternatives composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_construction.py`, `src/app/services/dpm_construction_service.py`, `src/app/contracts/dpm_construction.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_construction_service.py`, `tests/integration/test_dpm_construction_router.py`, `tests/contract/test_dpm_construction_contract.py` |
 | RFC40-WTBD-001 Gateway proof-pack composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_proof_packs.py`, `src/app/services/dpm_proof_pack_service.py`, `src/app/contracts/dpm_proof_packs.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_proof_pack_service.py`, `tests/integration/test_dpm_proof_pack_router.py`, `tests/contract/test_dpm_proof_pack_contract.py` |
 | RFC40-WTBD-005 Gateway proof-pack AI PM memo handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `DpmProofPackAiEvidenceInput`, executes `lotus-ai` `dpm_pm_memo.pack@v1` as `lotus-gateway`, preserves manage evidence authority and lotus-ai workflow-pack posture, and exposes `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo` |
+| RFC40-WTBD-010 Gateway portfolio-memory composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `/api/v1/rebalance/portfolio-memory/{portfolio_id}` through `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`, preserves event order, event types, source systems, source refs, artifact refs, reason codes, supportability state, bounded metadata, and content hash, and does not reconstruct timeline nodes or calculate source-owner truth |
 | RFC41-WTBD-005 Gateway wave composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_waves.py`, `src/app/services/dpm_wave_service.py`, `src/app/contracts/dpm_waves.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_wave_service.py`, `tests/integration/test_dpm_wave_router.py`, `tests/contract/test_dpm_wave_contract.py`, `tests/unit/test_upstream_clients.py` |
 | RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
 | RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
@@ -1188,7 +1227,14 @@ Implementation boundaries:
 9. Gateway does not generate proof-pack sections, recalculate hashes, infer source readiness,
    render reports, generate AI narrative or PM memos locally, score PMs, approve trades, contact
    clients, place orders, or treat `lotus-report` as proof-pack authority.
-10. Gateway now exposes `POST /api/v1/dpm/command-center/waves/preview`,
+10. Gateway now exposes `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`.
+11. Portfolio-memory route preserves manage-owned event order, event types, event counts, source
+   systems, source refs, artifact refs, reason codes, supportability state, bounded metadata, and
+   content hash from `lotus-manage` `/api/v1/rebalance/portfolio-memory/{portfolio_id}`.
+12. Gateway does not reconstruct timeline nodes, infer mandate exceptions, calculate risk,
+   performance, tax, cash, FX, execution, liquidity, transaction-cost, or source-owner
+   methodology locally.
+13. Gateway now exposes `POST /api/v1/dpm/command-center/waves/preview`,
    `POST /api/v1/dpm/command-center/waves`,
    `GET /api/v1/dpm/command-center/waves`,
    `GET /api/v1/dpm/command-center/waves/{wave_id}`,
@@ -1202,13 +1248,13 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`,
    `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`, and
    `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`.
-11. Wave routes preserve manage-owned `wave_id`, lifecycle state, item states, reason codes,
+14. Wave routes preserve manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
    issues, source-owner remediation, and the no-external-execution boundary.
-12. Gateway does not calculate affected portfolios, classify source readiness, generate
+15. Gateway does not calculate affected portfolios, classify source readiness, generate
    alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
    proof packs, or claim external execution locally.
-13. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
+16. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
    `POST /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`,
@@ -1219,14 +1265,25 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`,
    `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
    `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
-14. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
+17. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
    lineage, source freshness, supportability, or review state.
-15. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative
+18. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative
    locally, score PM quality, approve trades, contact clients, or claim Workbench UI support in
    this slice. The AI narrative endpoint is a governed handoff to `lotus-ai` over manage evidence.
-16. Workbench product realization remains a separate owning-repository implementation item.
+19. Workbench product realization remains a separate owning-repository implementation item.
 
-Validation performed on 2026-05-05:
+Latest portfolio-memory Gateway validation performed on 2026-05-08:
+
+1. Focused changed-surface tests passed with 62 selected tests across DPM client route tests,
+   DPM command-center service tests, router integration tests, OpenAPI contract tests, and
+   RFC-0098 documentation assertions.
+2. `make check` passed: lint, format, monetary-float guard, mypy, OpenAPI gate, and 480
+   unit/contract tests.
+3. `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway` must be run before merge because
+   this slice intentionally updates repo-authored wiki source; wiki publication remains a
+   post-merge closure action.
+
+Earlier RFC-0098 validation performed on 2026-05-05:
 
 1. Focused changed-surface tests passed: DPM client route tests, DPM command-center service tests,
    router integration tests, and OpenAPI contract tests.
@@ -1235,9 +1292,6 @@ Validation performed on 2026-05-05:
 3. `make test-integration` passed: 151 integration tests.
 4. `make ci` passed: migration smoke, integration tests, full unit/contract/integration coverage
    with 88.44 percent total coverage, and `pip-audit` with no known vulnerabilities.
-5. `Sync-RepoWikis.ps1 -CheckOnly -Repository lotus-gateway` reported drift for
-   `API-Surface.md`, `Integrations.md`, and `Roadmap.md` because this branch intentionally updates
-   repo-authored wiki source; wiki publication remains a post-merge closure action.
 
 ---
 

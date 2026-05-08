@@ -591,6 +591,20 @@ class DpmClient:
             operation="manage.rebalance.proof_packs.ai_evidence_input",
         )
 
+    async def get_portfolio_memory(
+        self,
+        portfolio_id: str,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            f"/api/v1/rebalance/portfolio-memory/{portfolio_id}",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.portfolio_memory.get",
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,

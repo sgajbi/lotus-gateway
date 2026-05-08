@@ -21,7 +21,9 @@
   archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for
   Gateway wave composition, supportability, action eligibility, and proof requirements without
   making Gateway the wave authority, plus the RFC-0042 outcome-review addendum for expected-versus-
-  realized review composition without making Gateway the outcome authority
+  realized review composition without making Gateway the outcome authority, and the
+  RFC40-WTBD-010 Gateway portfolio-memory route for manage-owned timeline lineage without making
+  Gateway the portfolio-memory authority
 
 ## Local references
 

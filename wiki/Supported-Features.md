@@ -112,6 +112,57 @@ Operational behavior:
    `AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR`, so Workbench can show review/supportability posture
    without falling back to browser prompt construction.
 
+## DPM Portfolio-Memory Composition
+
+Status: implementation-backed in Gateway for the Gateway portion of RFC40-WTBD-010.
+
+Business outcome:
+
+1. portfolio managers can review a single portfolio timeline that links proof-pack, rebalance-wave,
+   internal handoff, and outcome-review evidence without reconstructing source truth,
+2. operations, compliance, and audit users can inspect source systems, source refs, artifact refs,
+   event states, reason codes, and content hashes through one Workbench-facing Gateway contract,
+3. sales/pre-sales and client-demo teams can describe portfolio memory as source-backed and
+   implementation-backed at the Gateway/API layer while keeping Workbench UI and browser proof as
+   the next owning-repository slice.
+
+Supported route:
+
+1. `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the RFC-0040/RFC-0041/RFC-0042 portfolio-memory authority.
+2. Gateway forwards portfolio id, limit, and correlation context to
+   `lotus-manage` `/api/v1/rebalance/portfolio-memory/{portfolio_id}`.
+3. Gateway preserves manage-owned event order, event types, event counts, source systems, source
+   refs, artifact refs, reason codes, supportability state, bounded metadata, and content hash.
+4. Gateway does not reconstruct timeline nodes, infer mandate exceptions, calculate risk,
+   performance, tax, cash, FX, execution, liquidity, transaction-cost, or source-owner
+   methodology, or let Workbench call `lotus-manage` directly.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench future portfolio timeline] --> Gateway[lotus-gateway portfolio-memory route]
+    Gateway --> Manage[lotus-manage portfolio-memory read model]
+    Manage --> Proof[Proof packs]
+    Manage --> Wave[Rebalance waves and handoffs]
+    Manage --> Outcome[Outcome reviews]
+    Manage --> Sources[Source refs and content hashes]
+    Manage --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway returns manage payloads under `data` and adds a supportability summary with state,
+   event count, event-type counts, source systems, reason codes, and content hash,
+2. upstream manage errors are surfaced as product-safe Gateway errors with
+   `MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR`,
+3. Workbench timeline rendering, canonical browser screenshots, mandate-monitoring exception
+   timeline nodes, and cross-app retention/audit policy remain open RFC40-WTBD-010 follow-up
+   slices before full product support is claimed.
+
 ## DPM Rebalance-Wave Composition
 
 Status: implementation-backed in Gateway for RFC41-WTBD-005.
