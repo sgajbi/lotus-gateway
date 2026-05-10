@@ -514,6 +514,9 @@ def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportabil
 def _command_center_supportability_from(payload: dict[str, Any]) -> DpmCommandCenterSupportability:
     raw = payload.get("supportability")
     supportability = raw if isinstance(raw, dict) else {}
+    mandate_supportability = _mandate_payload_supportability(payload)
+    if mandate_supportability is not None and not supportability:
+        return mandate_supportability
     data_completeness_state = supportability.get("data_completeness_state") or supportability.get(
         "dataCompletenessState"
     )
@@ -550,6 +553,27 @@ def _command_center_supportability_from(payload: dict[str, Any]) -> DpmCommandCe
         partial_readiness_reasons=partial_reasons,
         source_run_id=str(source_run_id) if source_run_id is not None else None,
         remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
+    )
+
+
+def _mandate_payload_supportability(
+    payload: dict[str, Any],
+) -> DpmCommandCenterSupportability | None:
+    if "mandate_id" not in payload or "portfolio_id" not in payload:
+        return None
+    field_gap_codes = _list_of_strings(payload.get("field_gap_codes") or [])
+    source_lineage = payload.get("source_lineage")
+    has_source_lineage = isinstance(source_lineage, list) and bool(source_lineage)
+    state = "PARTIAL" if field_gap_codes else "READY"
+    if not has_source_lineage:
+        state = "PARTIAL"
+        field_gap_codes = [*field_gap_codes, "SOURCE_LINEAGE_NOT_PUBLISHED"]
+    return DpmCommandCenterSupportability(
+        state=state,
+        data_completeness_state=state,
+        partial_readiness_reasons=field_gap_codes,
+        source_run_id=_safe_optional_str(payload.get("mandate_version")),
+        remediation_owner="Portfolio Operations" if field_gap_codes else None,
     )
 
 
