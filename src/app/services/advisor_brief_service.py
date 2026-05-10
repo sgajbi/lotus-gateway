@@ -379,6 +379,11 @@ class AdvisorBriefService:
                     "actions."
                 ),
             )
+        _assert_advisor_brief_review_action_allowed(
+            workflow_pack_run=brief.workflow_pack_run,
+            run_id=run_id,
+            action_type=request.action_type.value,
+        )
 
         (
             review_status,
@@ -426,6 +431,33 @@ class AdvisorBriefService:
                 "ai_surface_supportability": ai_surface_supportability,
                 "advisory_supportability": advisory_supportability,
             }
+        )
+
+
+def _assert_advisor_brief_review_action_allowed(
+    *,
+    workflow_pack_run: AdvisorBriefWorkflowPackRun | None,
+    run_id: str,
+    action_type: str,
+) -> None:
+    if workflow_pack_run is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Advisor brief workflow-pack run `{run_id}` has no inspectable review posture; "
+                "refresh the brief before recording a bounded review action."
+            ),
+        )
+    allowed_actions = set(workflow_pack_run.allowed_review_actions)
+    if action_type not in allowed_actions:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Advisor brief workflow-pack run `{workflow_pack_run.run_id}` does not allow "
+                f"review action `{action_type}` from runtime state "
+                f"`{workflow_pack_run.runtime_state}` and review state "
+                f"`{workflow_pack_run.review_state}`."
+            ),
         )
 
 
