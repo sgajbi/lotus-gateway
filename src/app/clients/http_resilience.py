@@ -52,9 +52,13 @@ async def request_with_retry(
                 await asyncio.sleep(backoff_seconds * (2**attempt))
                 continue
             return response.status_code, _response_payload(response)
-        except (httpx.TimeoutException, httpx.NetworkError) as exc:
-            if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
+        except httpx.TimeoutException as exc:
+            if not retry_timeout_exceptions:
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
+            if attempt >= max_retries:
+                return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
+            await asyncio.sleep(backoff_seconds * (2**attempt))
+        except httpx.RequestError as exc:
             if attempt >= max_retries:
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
             await asyncio.sleep(backoff_seconds * (2**attempt))
@@ -94,14 +98,23 @@ async def request_binary_with_retry(
             if response.status_code >= 400:
                 error_payload = _response_payload(response)
             return response.status_code, response.content, dict(response.headers), error_payload
-        except (httpx.TimeoutException, httpx.NetworkError) as exc:
-            if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
+        except httpx.TimeoutException as exc:
+            if not retry_timeout_exceptions:
                 return (
                     503,
                     b"",
                     {},
                     {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
                 )
+            if attempt >= max_retries:
+                return (
+                    503,
+                    b"",
+                    {},
+                    {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
+                )
+            await asyncio.sleep(backoff_seconds * (2**attempt))
+        except httpx.RequestError as exc:
             if attempt >= max_retries:
                 return (
                     503,
