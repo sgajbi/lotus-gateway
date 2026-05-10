@@ -16,6 +16,10 @@ class PerformanceComparativeSummary(BaseModel):
     benchmark_id: str | None = None
     benchmark_return_source: str | None = None
     benchmark_input_mode: str | None = None
+    benchmark_currency_state: str | None = None
+    benchmark_calendar_alignment_state: str | None = None
+    benchmark_warning_codes: list[str] = Field(default_factory=list)
+    benchmark_missing_date_count: int | None = None
     begin_market_value: float | None = None
     end_market_value: float | None = None
     beginning_cash_flow: float | None = None
@@ -1140,6 +1144,10 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                     "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_return_source": "calculated",
                     "benchmark_input_mode": "stateful",
+                    "benchmark_currency_state": "fx_decomposed",
+                    "benchmark_calendar_alignment_state": "aligned",
+                    "benchmark_warning_codes": [],
+                    "benchmark_missing_date_count": 0,
                     "begin_market_value": 1200000.0,
                     "end_market_value": 1250000.0,
                     "beginning_cash_flow": 50000.0,
@@ -1157,6 +1165,10 @@ class PerformanceWorkspaceSummaryResponse(BaseModel):
                     "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
                     "benchmark_return_source": "calculated",
                     "benchmark_input_mode": "stateful",
+                    "benchmark_currency_state": "fx_decomposed",
+                    "benchmark_calendar_alignment_state": "aligned",
+                    "benchmark_warning_codes": [],
+                    "benchmark_missing_date_count": 0,
                     "begin_market_value": 1200000.0,
                     "end_market_value": 1250000.0,
                     "beginning_cash_flow": 50000.0,
