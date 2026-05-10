@@ -468,40 +468,67 @@ async def test_apply_sandbox_changes_without_policy_evaluation():
 
 
 @pytest.mark.asyncio
-async def test_get_workbench_analytics_raises_on_pa_error():
+async def test_get_workbench_analytics_degrades_when_performance_snapshot_unavailable():
     service, _, performance, _ = _build_service()
-    performance.analytics_status = 503
-    with pytest.raises(HTTPException) as exc:
-        await service.get_workbench_analytics(
-            portfolio_id="P1",
-            correlation_id="corr-1",
-            period="YTD",
-            group_by="ASSET_CLASS",
-            benchmark_code="MODEL",
-            session_id=None,
-        )
-    assert exc.value.status_code == 502
+    performance.snapshot_status = 503
+    performance.snapshot_payload = {"detail": "lotus-performance unavailable"}
+    response = await service.get_workbench_analytics(
+        portfolio_id="P1",
+        correlation_id="corr-1",
+        period="YTD",
+        group_by="ASSET_CLASS",
+        benchmark_code="MODEL",
+        session_id=None,
+    )
+    assert response.portfolio_return_pct is None
+    assert response.allocation_buckets == []
+    assert "PERFORMANCE_SNAPSHOT_UNAVAILABLE" in response.warnings
+    assert any(
+        failure.source_service == "lotus-performance" and failure.error_code == "HTTP_503"
+        for failure in response.partial_failures
+    )
 
 
 @pytest.mark.asyncio
-async def test_get_workbench_analytics_raises_on_invalid_payload_shape():
-    service, _, performance, _ = _build_service()
-    performance.analytics_payload = {
-        "allocationBuckets": [{"bucketKey": "EQ", "currentQuantity": "bad-number"}],
-        "topChanges": [],
-        "riskProxy": {},
+async def test_get_workbench_analytics_builds_security_grouping_without_stale_pa_route():
+    service, core, performance, _ = _build_service()
+    core.core_payload = {
+        "as_of_date": "2026-02-24",
+        "sections": {
+            "positions_baseline": [
+                {
+                    "security_id": "EQ_1",
+                    "quantity": 10.0,
+                    "market_value_base": 100.0,
+                    "weight": 1.0,
+                }
+            ],
+            "portfolio_totals": {"baseline_total_market_value_base": 100.0},
+            "instrument_enrichment": [
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Equity 1",
+                    "asset_class": "Equity",
+                }
+            ],
+        },
     }
-    with pytest.raises(HTTPException) as exc:
-        await service.get_workbench_analytics(
-            portfolio_id="P1",
-            correlation_id="corr-1",
-            period="YTD",
-            group_by="ASSET_CLASS",
-            benchmark_code="MODEL",
-            session_id=None,
-        )
-    assert exc.value.status_code == 502
-    assert "Invalid lotus-performance workbench analytics payload" in str(exc.value.detail)
+    performance.snapshot_payload = {
+        "results_by_period": {
+            "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+        }
+    }
+    response = await service.get_workbench_analytics(
+        portfolio_id="P1",
+        correlation_id="corr-1",
+        period="YTD",
+        group_by="SECURITY",
+        benchmark_code="MODEL",
+        session_id=None,
+    )
+    assert [bucket.bucket_key for bucket in response.allocation_buckets] == ["EQ_1"]
+    assert response.allocation_buckets[0].current_quantity == pytest.approx(10.0)
+    assert response.allocation_buckets[0].proposed_quantity == pytest.approx(10.0)
 
 
 @pytest.mark.asyncio

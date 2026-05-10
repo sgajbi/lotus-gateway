@@ -682,8 +682,8 @@ async def test_workbench_analytics_response():
     assert response.period == "YTD"
     assert response.benchmark_code == "MODEL_60_40"
     assert response.portfolio_return_pct == pytest.approx(1.0)
-    assert response.benchmark_return_pct == pytest.approx(3.1)
-    assert response.active_return_pct == pytest.approx(-2.1)
+    assert response.benchmark_return_pct is None
+    assert response.active_return_pct is None
     assert len(response.allocation_buckets) == 1
     assert response.allocation_buckets[0].bucket_key == "EQUITY"
     assert response.allocation_buckets[0].current_quantity == pytest.approx(10.0)

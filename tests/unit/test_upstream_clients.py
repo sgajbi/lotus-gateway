@@ -120,15 +120,6 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
             }
         },
     )
-    _FakeAsyncClient.queue_json(
-        200,
-        {
-            "allocationBuckets": [{"bucketKey": "EQUITY"}],
-            "topChanges": [],
-            "riskProxy": {},
-        },
-    )
-
     status_one, payload_one = await client.get_capabilities(
         consumer_system="lotus-gateway",
         tenant_id="default",
@@ -140,10 +131,6 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
         period="YTD",
         correlation_id="corr-1",
     )
-    status_three, payload_three = await client.get_workbench_analytics(
-        payload={"portfolioId": "P1", "groupBy": "ASSET_CLASS"},
-        correlation_id="corr-1",
-    )
 
     assert status_one == 200
     assert payload_one["sourceService"] == "lotus-performance"
@@ -152,15 +139,12 @@ async def test_lotus_analytics_client_calls_and_payload_handling():
         payload_two["results_by_period"]["YTD"]["portfolio"]["summary"]["period_return"]["base"]
         == 2.1
     )
-    assert status_three == 200
-    assert payload_three["allocationBuckets"][0]["bucketKey"] == "EQUITY"
     assert _FakeAsyncClient.calls[0]["url"] == "http://lotus-performance/integration/capabilities"
     assert _FakeAsyncClient.calls[0]["params"] == {
         "consumer_system": "lotus-gateway",
         "tenant_id": "default",
     }
     assert _FakeAsyncClient.calls[1]["url"] == "http://lotus-performance/performance/twr"
-    assert _FakeAsyncClient.calls[2]["url"] == "http://lotus-performance/analytics/workbench"
     assert _FakeAsyncClient.calls[1]["json"]["portfolio_id"] == "P1"
     assert _FakeAsyncClient.calls[1]["json"]["report_end_date"] == "2026-02-24"
     assert _FakeAsyncClient.calls[1]["json"]["stateful_input"] == {}
@@ -1150,8 +1134,10 @@ async def test_lotus_analytics_client_non_json_and_non_dict_payload_handling():
         tenant_id="default",
         correlation_id="corr-1",
     )
-    status_two, payload_two = await client.get_workbench_analytics(
-        payload={"portfolioId": "P1"},
+    status_two, payload_two = await client.get_stateful_twr(
+        portfolio_id="P1",
+        report_end_date="2026-02-24",
+        period="YTD",
         correlation_id="corr-1",
     )
 

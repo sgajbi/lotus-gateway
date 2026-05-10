@@ -265,81 +265,14 @@ class WorkbenchService:
             correlation_id=correlation_id,
             session_id=session_id,
         )
-        analytics_payload = {
-            "portfolioId": portfolio_id,
-            "asOfDate": portfolio_360.as_of_date,
-            "period": period,
-            "groupBy": group_by,
-            "benchmarkCode": benchmark_code,
-            "portfolioReturnPct": (
-                portfolio_360.performance_snapshot.return_pct
-                if portfolio_360.performance_snapshot is not None
-                else None
-            ),
-            "benchmarkReturnPct": (
-                portfolio_360.performance_snapshot.benchmark_return_pct
-                if portfolio_360.performance_snapshot is not None
-                else None
-            ),
-            "currentPositions": [
-                {
-                    "securityId": row.security_id,
-                    "instrumentName": row.instrument_name,
-                    "assetClass": row.asset_class,
-                    "quantity": row.quantity,
-                }
-                for row in portfolio_360.current_positions
-            ],
-            "projectedPositions": [
-                {
-                    "securityId": row.security_id,
-                    "instrumentName": row.instrument_name,
-                    "assetClass": row.asset_class,
-                    "baselineQuantity": row.baseline_quantity,
-                    "proposedQuantity": row.proposed_quantity,
-                    "deltaQuantity": row.delta_quantity,
-                }
-                for row in portfolio_360.projected_positions
-            ],
-        }
-        analytics_status, analytics_response = await self._analytics_client.get_workbench_analytics(
-            payload=analytics_payload,
-            correlation_id=correlation_id,
-        )
-        if analytics_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-performance workbench analytics unavailable: {analytics_response}",
-            )
 
         try:
-            allocation_buckets = [
-                WorkbenchAnalyticsBucket(
-                    bucket_key=str(item.get("bucketKey", "")),
-                    bucket_label=str(item.get("bucketLabel", "")),
-                    current_quantity=float(quantize_quantity(item.get("currentQuantity", 0.0))),
-                    proposed_quantity=float(quantize_quantity(item.get("proposedQuantity", 0.0))),
-                    delta_quantity=float(quantize_quantity(item.get("deltaQuantity", 0.0))),
-                    current_weight_pct=float(
-                        quantize_performance(item.get("currentWeightPct", 0.0))
-                    ),
-                    proposed_weight_pct=float(
-                        quantize_performance(item.get("proposedWeightPct", 0.0))
-                    ),
-                )
-                for item in analytics_response.get("allocationBuckets", [])
-                if isinstance(item, dict)
-            ]
-            top_changes = [
-                WorkbenchTopChange(
-                    security_id=str(item.get("securityId", "")),
-                    instrument_name=str(item.get("instrumentName", "")),
-                    delta_quantity=float(quantize_quantity(item.get("deltaQuantity", 0.0))),
-                    direction=str(item.get("direction", "UNKNOWN")),
-                )
-                for item in analytics_response.get("topChanges", [])
-                if isinstance(item, dict)
-            ]
+            allocation_buckets = self._build_workbench_allocation_buckets(
+                group_by=group_by,
+                current_positions=portfolio_360.current_positions,
+                projected_positions=portfolio_360.projected_positions,
+            )
+            top_changes = self._build_workbench_top_changes(portfolio_360.projected_positions)
             warnings = list(portfolio_360.warnings)
             if "RISK_BFF_PENDING" not in warnings:
                 warnings.append("RISK_BFF_PENDING")
@@ -357,13 +290,25 @@ class WorkbenchService:
             portfolio_360 = portfolio_360.model_copy(
                 update={"warnings": warnings, "partial_failures": partial_failures}
             )
-            portfolio_return = analytics_response.get("portfolioReturnPct")
-            benchmark_return = analytics_response.get("benchmarkReturnPct")
-            active_return = analytics_response.get("activeReturnPct")
+            portfolio_return = (
+                portfolio_360.performance_snapshot.return_pct
+                if portfolio_360.performance_snapshot is not None
+                else None
+            )
+            benchmark_return = (
+                portfolio_360.performance_snapshot.benchmark_return_pct
+                if portfolio_360.performance_snapshot is not None
+                else None
+            )
+            active_return = (
+                float(portfolio_return) - float(benchmark_return)
+                if portfolio_return is not None and benchmark_return is not None
+                else None
+            )
         except (TypeError, ValueError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Invalid lotus-performance workbench analytics payload: {exc}",
+                detail=f"Invalid workbench analytics source payload: {exc}",
             ) from exc
 
         return WorkbenchAnalyticsResponse(
@@ -392,6 +337,126 @@ class WorkbenchService:
             warnings=portfolio_360.warnings,
             partial_failures=portfolio_360.partial_failures,
         )
+
+    def _build_workbench_allocation_buckets(
+        self,
+        *,
+        group_by: str,
+        current_positions: list[WorkbenchPositionView],
+        projected_positions: list[WorkbenchProjectedPositionView],
+    ) -> list[WorkbenchAnalyticsBucket]:
+        bucket_quantities: dict[str, dict[str, float]] = {}
+
+        if projected_positions:
+            for row in projected_positions:
+                bucket_key = self._workbench_position_bucket_key(
+                    group_by=group_by,
+                    security_id=row.security_id,
+                    instrument_name=row.instrument_name,
+                    asset_class=row.asset_class,
+                )
+                bucket = bucket_quantities.setdefault(
+                    bucket_key,
+                    {"current": 0.0, "proposed": 0.0},
+                )
+                bucket["current"] += float(row.baseline_quantity)
+                bucket["proposed"] += float(row.proposed_quantity)
+
+            projected_security_ids = {row.security_id for row in projected_positions}
+            for row in current_positions:
+                if row.security_id in projected_security_ids:
+                    continue
+                bucket_key = self._workbench_position_bucket_key(
+                    group_by=group_by,
+                    security_id=row.security_id,
+                    instrument_name=row.instrument_name,
+                    asset_class=row.asset_class,
+                )
+                bucket = bucket_quantities.setdefault(
+                    bucket_key,
+                    {"current": 0.0, "proposed": 0.0},
+                )
+                bucket["current"] += float(row.quantity)
+                bucket["proposed"] += float(row.quantity)
+        else:
+            for row in current_positions:
+                bucket_key = self._workbench_position_bucket_key(
+                    group_by=group_by,
+                    security_id=row.security_id,
+                    instrument_name=row.instrument_name,
+                    asset_class=row.asset_class,
+                )
+                bucket = bucket_quantities.setdefault(
+                    bucket_key,
+                    {"current": 0.0, "proposed": 0.0},
+                )
+                bucket["current"] += float(row.quantity)
+                bucket["proposed"] += float(row.quantity)
+
+        total_current = sum(abs(bucket["current"]) for bucket in bucket_quantities.values())
+        total_proposed = sum(abs(bucket["proposed"]) for bucket in bucket_quantities.values())
+
+        return [
+            WorkbenchAnalyticsBucket(
+                bucket_key=bucket_key,
+                bucket_label=bucket_key,
+                current_quantity=float(quantize_quantity(values["current"])),
+                proposed_quantity=float(quantize_quantity(values["proposed"])),
+                delta_quantity=float(quantize_quantity(values["proposed"] - values["current"])),
+                current_weight_pct=self._quantity_weight_pct(values["current"], total_current),
+                proposed_weight_pct=self._quantity_weight_pct(values["proposed"], total_proposed),
+            )
+            for bucket_key, values in sorted(bucket_quantities.items())
+        ]
+
+    def _build_workbench_top_changes(
+        self,
+        projected_positions: list[WorkbenchProjectedPositionView],
+    ) -> list[WorkbenchTopChange]:
+        sorted_changes = sorted(
+            projected_positions,
+            key=lambda row: abs(float(row.delta_quantity)),
+            reverse=True,
+        )
+        return [
+            WorkbenchTopChange(
+                security_id=row.security_id,
+                instrument_name=row.instrument_name,
+                delta_quantity=float(quantize_quantity(row.delta_quantity)),
+                direction=self._quantity_change_direction(float(row.delta_quantity)),
+            )
+            for row in sorted_changes
+            if float(row.delta_quantity) != 0.0
+        ][:10]
+
+    def _workbench_position_bucket_key(
+        self,
+        *,
+        group_by: str,
+        security_id: str,
+        instrument_name: str,
+        asset_class: str | None,
+    ) -> str:
+        normalized_group = group_by.upper()
+        if normalized_group == "ASSET_CLASS":
+            return str(asset_class or "UNCLASSIFIED").upper()
+        if normalized_group == "SECURITY":
+            return security_id
+        if normalized_group == "INSTRUMENT":
+            return instrument_name
+        return str(asset_class or "UNCLASSIFIED").upper()
+
+    def _quantity_weight_pct(self, quantity: float, total_abs_quantity: float) -> float:
+        if total_abs_quantity <= 0:
+            return 0.0
+        return float(quantize_performance((abs(quantity) / total_abs_quantity) * 100.0))
+
+    def _quantity_change_direction(self, delta_quantity: float) -> str:
+        if delta_quantity > 0:
+            return "INCREASE"
+        if delta_quantity < 0:
+            return "DECREASE"
+        return "UNCHANGED"
 
     async def _load_workbench_snapshot_context(
         self,

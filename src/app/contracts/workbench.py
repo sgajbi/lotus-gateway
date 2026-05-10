@@ -757,8 +757,8 @@ class WorkbenchAnalyticsResponse(BaseModel):
                 "group_by": "ASSET_CLASS",
                 "benchmark_code": "MODEL_60_40",
                 "portfolio_return_pct": 1.5,
-                "benchmark_return_pct": 3.1,
-                "active_return_pct": -1.6,
+                "benchmark_return_pct": None,
+                "active_return_pct": None,
                 "allocation_buckets": [
                     {
                         "bucket_key": "EQUITY",
