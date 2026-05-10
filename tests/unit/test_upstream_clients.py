@@ -2706,7 +2706,7 @@ async def test_reporting_client_snapshot_request_uses_live_aggregation_query_con
     assert payload["rows"] == []
     assert _FakeAsyncClient.calls[0]["url"] == "http://ras/aggregations/portfolios/P1"
     assert _FakeAsyncClient.calls[0]["params"] == {
-        "asOfDate": "2026-02-24",
+        "as_of_date": "2026-02-24",
         "live": "true",
     }
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-8"
