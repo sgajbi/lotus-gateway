@@ -41,8 +41,16 @@ class PerformanceChartPoint(BaseModel):
 class MoneyWeightedReturnSummary(BaseModel):
     money_weighted_return_pct: float | None = None
     annualized_return_pct: float | None = None
+    holding_period_return_pct: float | None = None
     input_mode: str | None = None
     method: str | None = None
+    status: str | None = None
+    reason_codes: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    is_annualized_primary: bool | None = None
+    fallback_from: str | None = None
+    fallback_reason: str | None = None
+    is_approximation: bool | None = None
     start_date: str | None = None
     end_date: str | None = None
     begin_market_value: float | None = None
