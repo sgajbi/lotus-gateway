@@ -95,6 +95,25 @@ class ContributionLevelView(BaseModel):
     total_portfolio_return_pct: float | None = None
 
 
+class ContributionSmoothingEvidenceView(BaseModel):
+    status: str | None = None
+    reason_codes: list[str] = Field(default_factory=list)
+    raw_contribution_pct: float | None = None
+    final_contribution_pct: float | None = None
+    linked_return_pct: float | None = None
+    smoothing_residual_pct: float | None = None
+
+
+class ContributionSourceEconomicsEvidenceView(BaseModel):
+    status: str | None = None
+    reason_codes: list[str] = Field(default_factory=list)
+    source_contracts: list[str] = Field(default_factory=list)
+    available_economics: list[str] = Field(default_factory=list)
+    unsupported_economics: list[str] = Field(default_factory=list)
+    degraded_economics: list[str] = Field(default_factory=list)
+    source_snapshot_count: int | None = None
+
+
 class ContributionSummaryView(BaseModel):
     metric_basis: str
     weighting_scheme: str | None = None
@@ -105,6 +124,8 @@ class ContributionSummaryView(BaseModel):
     portfolio_fx_contribution_pct: float | None = None
     position_rows: list[ContributionPositionView] = Field(default_factory=list)
     levels: list[ContributionLevelView] = Field(default_factory=list)
+    smoothing_evidence: ContributionSmoothingEvidenceView | None = None
+    source_economics_evidence: ContributionSourceEconomicsEvidenceView | None = None
 
 
 class AttributionRowView(BaseModel):

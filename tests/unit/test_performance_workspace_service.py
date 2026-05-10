@@ -789,6 +789,18 @@ def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
 
 def _contribution_payload(*, dimension: str) -> dict:
     return {
+        "source_economics_evidence": {
+            "status": "SOURCE_LIMITED",
+            "reason_codes": [
+                "LOTUS_CORE_ANALYTICS_INPUTS_USED",
+                "COMPONENT_PNL_NOT_SOURCE_AUTHORED",
+            ],
+            "source_contracts": ["PortfolioTimeseriesInput:v1", "PositionTimeseriesInput:v1"],
+            "available_economics": ["portfolio_market_values", "position_market_values"],
+            "unsupported_economics": ["income_pnl", "tax_pnl"],
+            "degraded_economics": ["unsupported_cash_flow_types"],
+            "source_snapshot_count": 2,
+        },
         "results_by_period": {
             "YTD": {
                 "summary": {
@@ -798,7 +810,15 @@ def _contribution_payload(*, dimension: str) -> dict:
                     "local_contribution": 4.7,
                     "fx_contribution": 0.5,
                 },
-                "total_portfolio_return": 5.2,
+                "total_portfolio_return": 6.4,
+                "smoothing_evidence": {
+                    "status": "APPLIED",
+                    "reason_codes": ["CARINO_FACTOR_APPLIED"],
+                    "linked_return": 6.4,
+                    "raw_contribution": 5.9,
+                    "final_contribution": 5.2,
+                    "smoothing_residual": 0.0,
+                },
                 "levels": [
                     {
                         "level": 1,
@@ -827,7 +847,7 @@ def _contribution_payload(*, dimension: str) -> dict:
                     }
                 ],
             }
-        }
+        },
     }
 
 
@@ -1092,7 +1112,11 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert len(response.net_chart) == 3
     assert response.net_chart[-1].cumulative_active_return_pct == 0.38
     assert response.contribution is not None
-    assert response.contribution.total_portfolio_return_pct == 15.1
+    assert response.contribution.total_portfolio_return_pct == 6.4
+    assert response.contribution.smoothing_evidence is not None
+    assert response.contribution.smoothing_evidence.status == "APPLIED"
+    assert response.contribution.source_economics_evidence is not None
+    assert response.contribution.source_economics_evidence.status == "SOURCE_LIMITED"
     assert response.contribution.levels[0].rows[0].weight_avg_pct == 42.0
     assert response.contribution.levels[0].total_weight_avg_pct is None
     assert response.contribution.position_rows[0].position_id == "AAPL_US"
@@ -1494,12 +1518,24 @@ async def test_workspace_service_maps_position_contributions_from_upstream_contr
     assert response.contribution.position_rows[0].contribution_pct == 1.55
     assert response.contribution.weighting_scheme == "average_weight"
     assert response.contribution.portfolio_contribution_pct == 5.2
-    assert response.contribution.total_portfolio_return_pct == 15.1
+    assert response.contribution.total_portfolio_return_pct == 6.4
     assert response.contribution.coverage_mv_pct == 97.4
     assert response.contribution.portfolio_local_contribution_pct == 4.7
     assert response.contribution.portfolio_fx_contribution_pct == 0.5
     assert response.contribution.levels[0].total_contribution_pct == 3.1
-    assert response.contribution.levels[0].total_portfolio_return_pct is None
+    assert response.contribution.levels[0].total_portfolio_return_pct == 6.4
+    assert response.contribution.smoothing_evidence is not None
+    assert response.contribution.smoothing_evidence.raw_contribution_pct == 5.9
+    assert response.contribution.smoothing_evidence.linked_return_pct == 6.4
+    assert response.contribution.source_economics_evidence is not None
+    assert response.contribution.source_economics_evidence.source_contracts == [
+        "PortfolioTimeseriesInput:v1",
+        "PositionTimeseriesInput:v1",
+    ]
+    assert response.contribution.source_economics_evidence.unsupported_economics == [
+        "income_pnl",
+        "tax_pnl",
+    ]
     assert analytics_client.workspace_summary_calls[0]["reporting_currency"] == "USD"
     assert analytics_client.workspace_summary_calls[0]["include_detail_blocks"] is False
     assert response.capabilities.contribution_ranking.state == "supported"
