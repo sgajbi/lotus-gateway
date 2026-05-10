@@ -3062,7 +3062,9 @@ class PerformanceWorkspaceService:
             benchmark_calendar_alignment_state=self._safe_str(
                 benchmark_supportability.get("calendar_alignment_state")
             ),
-            benchmark_warning_codes=self._safe_str_list(benchmark_supportability.get("warning_codes")),
+            benchmark_warning_codes=self._safe_str_list(
+                benchmark_supportability.get("warning_codes")
+            ),
             benchmark_missing_date_count=self._safe_int(
                 benchmark_supportability.get("missing_benchmark_date_count")
             ),
