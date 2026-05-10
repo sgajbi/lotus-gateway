@@ -2594,8 +2594,18 @@ class PerformanceWorkspaceService:
         return MoneyWeightedReturnSummary(
             money_weighted_return_pct=self._quantize_optional(mwr_payload.get("period_return")),
             annualized_return_pct=self._quantize_optional(mwr_payload.get("annualized_return")),
+            holding_period_return_pct=self._quantize_optional(
+                mwr_payload.get("holding_period_return")
+            ),
             input_mode=self._safe_str(mwr_payload.get("input_mode")),
             method=self._safe_str(mwr_payload.get("method")),
+            status=self._safe_str(mwr_payload.get("status")),
+            reason_codes=self._safe_str_list(mwr_payload.get("reason_codes")),
+            warnings=self._safe_str_list(mwr_payload.get("warnings")),
+            is_annualized_primary=self._safe_bool(mwr_payload.get("is_annualized_primary")),
+            fallback_from=self._safe_str(mwr_payload.get("fallback_from")),
+            fallback_reason=self._safe_str(mwr_payload.get("fallback_reason")),
+            is_approximation=self._safe_bool(mwr_payload.get("is_approximation")),
             start_date=self._safe_str(mwr_payload.get("start_date")),
             end_date=self._safe_str(mwr_payload.get("end_date")),
             begin_market_value=self._quantize_optional(economics_payload.get("begin_market_value")),
@@ -3166,7 +3176,15 @@ class PerformanceWorkspaceService:
         return MoneyWeightedReturnSummary(
             money_weighted_return_pct=self._quantize_optional(payload.get("money_weighted_return")),
             annualized_return_pct=self._quantize_optional(payload.get("mwr_annualized")),
+            holding_period_return_pct=self._quantize_optional(payload.get("holding_period_return")),
             method=self._safe_str(payload.get("method")),
+            status=self._safe_str(payload.get("status")),
+            reason_codes=self._safe_str_list(payload.get("reason_codes")),
+            warnings=self._safe_str_list(payload.get("warnings")),
+            is_annualized_primary=self._safe_bool(payload.get("is_annualized_primary")),
+            fallback_from=self._safe_str(payload.get("fallback_from")),
+            fallback_reason=self._safe_str(payload.get("fallback_reason")),
+            is_approximation=self._safe_bool(payload.get("is_approximation")),
             start_date=self._safe_str(payload.get("start_date")),
             end_date=self._safe_str(payload.get("end_date")),
             notes=[str(note) for note in notes] if isinstance(notes, list) else [],
@@ -3693,6 +3711,16 @@ class PerformanceWorkspaceService:
         if value is None:
             return None
         return str(value)
+
+    def _safe_str_list(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [str(item) for item in value]
+
+    def _safe_bool(self, value: Any) -> bool | None:
+        if isinstance(value, bool):
+            return value
+        return None
 
     def _performance_failure(
         self,
