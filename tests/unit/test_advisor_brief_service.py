@@ -1015,6 +1015,72 @@ async def test_advisor_brief_service_omits_workflow_pack_run_when_surfaces_unava
 
 
 @pytest.mark.asyncio
+async def test_advisor_brief_service_rejects_review_action_not_allowed_by_run_posture():
+    workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
+    ai_client = _StubLotusAiClient(
+        payload={
+            "status": "REJECTED",
+            "task_id": "explain.v1",
+            "result": {
+                "message": _LIVE_EXECUTION_UNAVAILABLE_DETAIL,
+                "structured_output": {},
+            },
+            "audit": {
+                "request_id": "req-not-reviewable-1",
+                "workflow_pack_run_id": "packrun_advisor_brief_req-not-reviewable-1",
+                "task_id": "explain.v1",
+                "provider_mode": "local_openai_compatible",
+                "provider_id": "text.local_openai_compatible",
+                "stubbed": False,
+                "detail": _LIVE_EXECUTION_UNAVAILABLE_DETAIL,
+            },
+            "evidence": {"descriptors": []},
+        }
+    )
+    ai_client.consumer_view_payload = {
+        "run_id": "packrun_advisor_brief_req-not-reviewable-1",
+        "review": {"allowed_actions": []},
+        "lineage": {"workflow_authority_owner": "lotus-gateway"},
+    }
+    ai_client.operator_profile_payload = {
+        "run_id": "packrun_advisor_brief_req-not-reviewable-1",
+        "runtime_state": "FAILED",
+        "review_state": "AWAITING_REVIEW",
+        "supportability_status": "ACTION_REQUIRED",
+        "review_pending": True,
+        "superseded": False,
+        "current_summary_note": "Run failed and requires operator diagnosis.",
+        "replacement_run_id": None,
+        "findings": [],
+    }
+    service = AdvisorBriefService(
+        performance_workspace_service=workspace_service,
+        lotus_ai_client=ai_client,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.apply_performance_advisor_brief_review_action(
+            portfolio_id="PF_1001",
+            correlation_id="corr-not-reviewable",
+            period="YTD",
+            chart_frequency="monthly",
+            contribution_dimension="asset_class",
+            attribution_dimension="asset_class",
+            detail_basis="NET",
+            benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+            request=AdvisorBriefWorkflowPackRunReviewActionRequest(
+                action_type="ACCEPT",
+                reviewed_by="live.validator.accept",
+                reason="Should not proxy invalid actions to lotus-ai.",
+            ),
+        )
+
+    assert exc_info.value.status_code == 409
+    assert "does not allow review action `ACCEPT`" in str(exc_info.value.detail)
+    assert ai_client.review_action_calls == []
+
+
+@pytest.mark.asyncio
 async def test_advisor_brief_service_applies_review_action_and_returns_updated_run_posture():
     workspace_service = _StubPerformanceWorkspaceService(_build_workspace())
     ai_client = _StubLotusAiClient()

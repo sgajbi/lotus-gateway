@@ -87,6 +87,24 @@ class _NetworkErrorAsyncClient:
         raise httpx.NetworkError("disconnected")
 
 
+class _ProtocolErrorAsyncClient:
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _ProtocolErrorAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def post(self, url, headers=None, json=None, data=None, files=None):
+        _ = url, headers, json, data, files
+        raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
+
+
 class _TextPayloadAsyncClient:
     follow_redirects = None
 
@@ -181,6 +199,23 @@ async def test_request_with_retry_returns_503_after_network_error(monkeypatch):
 
     assert status == 503
     assert payload["detail"] == "upstream communication failure: NetworkError"
+
+
+@pytest.mark.asyncio
+async def test_request_with_retry_returns_503_after_protocol_disconnect(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _ProtocolErrorAsyncClient)
+
+    status, payload = await request_with_retry(
+        method="POST",
+        url="http://service/workflow-packs/execute",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+        json_body={"pack_id": "dpm_pm_memo.pack"},
+    )
+
+    assert status == 503
+    assert payload["detail"] == "upstream communication failure: RemoteProtocolError"
 
 
 @pytest.mark.asyncio

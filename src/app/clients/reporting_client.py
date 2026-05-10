@@ -27,7 +27,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/aggregations/portfolios/{portfolio_id}"
-        params = {"asOfDate": as_of_date, "live": "true"}
+        params = {"as_of_date": as_of_date, "live": "true"}
         headers = propagation_headers(correlation_id)
         return await self._request(
             operation="report.aggregations.portfolio-snapshot",

@@ -44,9 +44,10 @@ class DpmCommandCenterSupportability(BaseModel):
     state: str = Field(
         description=(
             "Manage-published command-center supportability state. Gateway preserves this value "
-            "and defaults to UNKNOWN only when the upstream payload omits explicit state."
+            "and derives mandate drill-down readiness only from manage-published field gaps and "
+            "source lineage."
         ),
-        examples=["COMPLETE", "PARTIAL", "EMPTY", "UNKNOWN"],
+        examples=["READY", "PARTIAL", "EMPTY", "UNKNOWN"],
     )
     data_completeness_state: str | None = Field(
         default=None,

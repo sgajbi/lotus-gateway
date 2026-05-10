@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 
 from fastapi import status
@@ -2004,8 +2004,17 @@ def _metadata(*, input_mode: str, cache_status: str) -> WorkbenchRiskMetadata:
     )
 
 
+def _latest_business_day(today: date | None = None) -> date:
+    resolved_today = today or date.today()
+    if resolved_today.weekday() == 5:
+        return resolved_today - timedelta(days=1)
+    if resolved_today.weekday() == 6:
+        return resolved_today - timedelta(days=2)
+    return resolved_today
+
+
 def _resolve_as_of_date(value: str | None) -> str:
-    return value or date.today().isoformat()
+    return value or _latest_business_day().isoformat()
 
 
 def _normalize_period(value: str) -> str:

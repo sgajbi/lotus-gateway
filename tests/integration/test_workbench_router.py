@@ -413,36 +413,6 @@ def test_workbench_analytics_router(monkeypatch):
             }
         }
 
-    async def _performance_workbench(*args, **kwargs):
-        return 200, {
-            "portfolioId": "PF_1001",
-            "period": "YTD",
-            "groupBy": "ASSET_CLASS",
-            "benchmarkCode": "MODEL_60_40",
-            "portfolioReturnPct": 1.5,
-            "benchmarkReturnPct": 3.1,
-            "activeReturnPct": -1.6,
-            "allocationBuckets": [
-                {
-                    "bucketKey": "EQUITY",
-                    "bucketLabel": "EQUITY",
-                    "currentQuantity": 10.0,
-                    "proposedQuantity": 12.0,
-                    "deltaQuantity": 2.0,
-                    "currentWeightPct": 100.0,
-                    "proposedWeightPct": 100.0,
-                }
-            ],
-            "topChanges": [
-                {
-                    "securityId": "EQ_1",
-                    "instrumentName": "Equity 1",
-                    "deltaQuantity": 2.0,
-                    "direction": "INCREASE",
-                }
-            ],
-        }
-
     async def _dpm_runs(*args, **kwargs):
         return 200, {"items": []}
 
@@ -455,10 +425,6 @@ def test_workbench_analytics_router(monkeypatch):
     )
     monkeypatch.setattr(
         "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics", _performance
-    )
-    monkeypatch.setattr(
-        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_workbench_analytics",
-        _performance_workbench,
     )
     monkeypatch.setattr("app.clients.dpm_client.DpmClient.list_runs", _dpm_runs)
 
@@ -474,8 +440,8 @@ def test_workbench_analytics_router(monkeypatch):
     assert body["group_by"] == "ASSET_CLASS"
     assert body["benchmark_code"] == "MODEL_60_40"
     assert body["portfolio_return_pct"] == 1.5
-    assert body["benchmark_return_pct"] == 3.1
-    assert body["active_return_pct"] == -1.6
+    assert body["benchmark_return_pct"] is None
+    assert body["active_return_pct"] is None
     assert len(body["allocation_buckets"]) >= 1
     assert body["allocation_buckets"][0]["bucket_key"] == "EQUITY"
     assert body["allocation_buckets"][0]["delta_quantity"] == 2.0

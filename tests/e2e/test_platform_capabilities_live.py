@@ -23,6 +23,7 @@ def _assert_payload(payload: dict) -> None:
     expected = {
         "lotus_core",
         "lotus_performance",
+        "lotus_advise",
         "lotus_risk",
         "lotus_manage",
         "lotus_report",
@@ -33,12 +34,13 @@ def _assert_payload(payload: dict) -> None:
     passthrough = {
         "lotus_core": "lotus-core",
         "lotus_performance": "lotus-performance",
+        "lotus_advise": "lotus-advise",
         "lotus_risk": "lotus-risk",
-        "lotus_manage": "lotus-advise",
+        "lotus_manage": "lotus-manage",
         "lotus_report": "lotus-report",
     }
     for key, source_name in passthrough.items():
-        actual = sources[key].get("sourceService")
+        actual = sources[key].get("source_service") or sources[key].get("sourceService")
         if actual != source_name:
             raise AssertionError(f"Expected {key}.sourceService={source_name}, got {actual}")
 

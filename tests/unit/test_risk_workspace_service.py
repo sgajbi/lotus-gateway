@@ -1,6 +1,8 @@
+from datetime import date
+
 import pytest
 
-from app.services.risk_workspace_service import RiskWorkspaceService
+from app.services.risk_workspace_service import RiskWorkspaceService, _latest_business_day
 
 
 class _StubRiskClient:
@@ -301,6 +303,12 @@ class _StubRiskClient:
     async def post_risk_historical_attribution(self, payload: dict, correlation_id: str):
         self.attribution_calls.append({"payload": payload, "correlation_id": correlation_id})
         return self.attribution_status, self.attribution_payload
+
+
+def test_latest_business_day_preserves_weekdays_and_rolls_weekends_back() -> None:
+    assert _latest_business_day(date(2026, 5, 8)) == date(2026, 5, 8)
+    assert _latest_business_day(date(2026, 5, 9)) == date(2026, 5, 8)
+    assert _latest_business_day(date(2026, 5, 10)) == date(2026, 5, 8)
 
 
 @pytest.mark.asyncio

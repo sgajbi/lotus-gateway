@@ -36,6 +36,16 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_mandate_by_portfolio(self, portfolio_id, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "mandate_by_portfolio",
+                "portfolio_id": portfolio_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_portfolio_memory(self, portfolio_id, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -197,6 +207,44 @@ async def test_dpm_command_center_mandate_health_preserves_manage_dimensions() -
             "correlation_id": "corr-mandate-health",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_mandate_supportability_uses_manage_field_gaps() -> None:
+    manage_payload = {
+        "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "mandate_version": "1",
+        "investment_objective": (
+            "Preserve and grow global balanced wealth within controlled drawdown limits."
+        ),
+        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+        "review_policy": {
+            "review_frequency": "QUARTERLY",
+            "last_review_date": "2026-03-31",
+            "next_review_due_date": "2026-06-30",
+        },
+        "source_lineage": [
+            {"product_name": "DiscretionaryMandateBinding", "data_quality_status": "ACCEPTED"},
+            {"product_name": "BenchmarkAssignment", "data_quality_status": "COMPLETE"},
+        ],
+        "field_gap_codes": ["CLIENT_INCOME_NEED_PROFILE_NOT_YET_SOURCED"],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_mandate_by_portfolio(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-mandate-by-portfolio",
+    )
+
+    assert response.supportability.state == "PARTIAL"
+    assert response.supportability.data_completeness_state == "PARTIAL"
+    assert response.supportability.partial_readiness_reasons == [
+        "CLIENT_INCOME_NEED_PROFILE_NOT_YET_SOURCED"
+    ]
+    assert response.supportability.source_run_id == "1"
+    assert response.data["benchmark_id"] == "BMK_PB_GLOBAL_BALANCED_60_40"
 
 
 @pytest.mark.asyncio
