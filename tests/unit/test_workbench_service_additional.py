@@ -514,9 +514,7 @@ async def test_get_workbench_analytics_builds_security_grouping_without_stale_pa
         },
     }
     performance.snapshot_payload = {
-        "results_by_period": {
-            "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
-        }
+        "results_by_period": {"YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}}
     }
     response = await service.get_workbench_analytics(
         portfolio_id="P1",
