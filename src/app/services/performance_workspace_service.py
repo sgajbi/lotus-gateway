@@ -12,8 +12,11 @@ from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.performance_workspace import (
     AttributionLevelView,
+    AttributionReasonView,
+    AttributionResidualMaterialityView,
     AttributionRowView,
     AttributionSummaryView,
+    AttributionSupportabilityEvidenceView,
     ContributionLevelView,
     ContributionPositionView,
     ContributionRowView,
@@ -2841,6 +2844,7 @@ class PerformanceWorkspaceService:
             benchmark_context = {}
         levels_payload = result_payload.get("levels", [])
         reconciliation_payload = result_payload.get("reconciliation", {})
+        supportability_evidence_payload = result_payload.get("supportability_evidence")
         if not isinstance(reconciliation_payload, dict):
             reconciliation_payload = {}
         levels: list[AttributionLevelView] = []
@@ -2906,6 +2910,9 @@ class PerformanceWorkspaceService:
                     )
                 )
         return AttributionSummaryView(
+            status=self._safe_str(result_payload.get("status")) or "valid",
+            reason_codes=self._safe_str_list(result_payload.get("reason_codes")),
+            reasons=self._parse_attribution_reasons(result_payload.get("reasons")),
             metric_basis=self._safe_str(attribution_payload.get("metric_basis")) or "NET",
             model=self._safe_str(attribution_payload.get("model")),
             linking=self._safe_str(attribution_payload.get("linking")),
@@ -2918,6 +2925,12 @@ class PerformanceWorkspaceService:
                 reconciliation_payload.get("sum_of_effects")
             ),
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+            residual_materiality=self._parse_attribution_residual_materiality(
+                reconciliation_payload.get("residual_materiality")
+            ),
+            supportability_evidence=self._parse_attribution_supportability_evidence(
+                supportability_evidence_payload
+            ),
             levels=levels,
         )
 
@@ -3505,6 +3518,7 @@ class PerformanceWorkspaceService:
         reconciliation_payload = period_payload.get("reconciliation", {})
         benchmark_context = payload.get("benchmark_context", {})
         levels_payload = period_payload.get("levels", [])
+        supportability_evidence_payload = period_payload.get("supportability_evidence")
         if not isinstance(reconciliation_payload, dict):
             reconciliation_payload = {}
         if not isinstance(benchmark_context, dict):
@@ -3570,6 +3584,9 @@ class PerformanceWorkspaceService:
                     )
                 )
         return AttributionSummaryView(
+            status=self._safe_str(period_payload.get("status")) or "valid",
+            reason_codes=self._safe_str_list(period_payload.get("reason_codes")),
+            reasons=self._parse_attribution_reasons(period_payload.get("reasons")),
             metric_basis=metric_basis,
             model=self._safe_str(payload.get("model")),
             linking=self._safe_str(payload.get("linking")),
@@ -3582,7 +3599,75 @@ class PerformanceWorkspaceService:
                 reconciliation_payload.get("sum_of_effects")
             ),
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+            residual_materiality=self._parse_attribution_residual_materiality(
+                reconciliation_payload.get("residual_materiality")
+            ),
+            supportability_evidence=self._parse_attribution_supportability_evidence(
+                supportability_evidence_payload
+            ),
             levels=levels,
+        )
+
+    def _parse_attribution_reasons(self, payload: Any) -> list[AttributionReasonView]:
+        if not isinstance(payload, list):
+            return []
+        reasons: list[AttributionReasonView] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            reasons.append(
+                AttributionReasonView(
+                    code=self._safe_str(item.get("code")) or "unknown",
+                    severity=self._safe_str(item.get("severity")) or "warning",
+                    message=(
+                        self._safe_str(item.get("message")) or "Attribution supportability reason."
+                    ),
+                    affected_group_count=self._safe_int(item.get("affected_group_count")) or 0,
+                )
+            )
+        return reasons
+
+    def _parse_attribution_residual_materiality(
+        self, payload: Any
+    ) -> AttributionResidualMaterialityView | None:
+        if not isinstance(payload, dict):
+            return None
+        absolute_residual = self._quantize_optional(payload.get("absolute_residual"))
+        warning_threshold = self._quantize_optional(payload.get("warning_threshold"))
+        material_threshold = self._quantize_optional(payload.get("material_threshold"))
+        if absolute_residual is None or warning_threshold is None or material_threshold is None:
+            return None
+        return AttributionResidualMaterialityView(
+            classification=self._safe_str(payload.get("classification")) or "immaterial",
+            treatment=self._safe_str(payload.get("treatment")) or "no_action",
+            absolute_residual_pct=absolute_residual,
+            warning_threshold_pct=warning_threshold,
+            material_threshold_pct=material_threshold,
+        )
+
+    def _parse_attribution_supportability_evidence(
+        self, payload: Any
+    ) -> AttributionSupportabilityEvidenceView | None:
+        if not isinstance(payload, dict):
+            return None
+        return AttributionSupportabilityEvidenceView(
+            portfolio_only_group_count=self._safe_int(payload.get("portfolio_only_group_count"))
+            or 0,
+            benchmark_only_group_count=self._safe_int(payload.get("benchmark_only_group_count"))
+            or 0,
+            unclassified_group_count=self._safe_int(payload.get("unclassified_group_count")) or 0,
+            missing_benchmark_return_count=self._safe_int(
+                payload.get("missing_benchmark_return_count")
+            )
+            or 0,
+            negative_weight_count=self._safe_int(payload.get("negative_weight_count")) or 0,
+            zero_portfolio_exposure_count=self._safe_int(
+                payload.get("zero_portfolio_exposure_count")
+            )
+            or 0,
+            currency_attribution_status=self._safe_str(payload.get("currency_attribution_status"))
+            or "not_requested",
+            linking_status=self._safe_str(payload.get("linking_status")) or "not_requested",
         )
 
     def _merge_contribution_summary_views(
@@ -3756,6 +3841,7 @@ class PerformanceWorkspaceService:
             return None
         if not isinstance(reconciliation_payload, dict):
             reconciliation_payload = {}
+        supportability_evidence_payload = period_payload.get("supportability_evidence")
 
         level_payload = levels_payload[0]
         if not isinstance(level_payload, dict):
@@ -3781,6 +3867,14 @@ class PerformanceWorkspaceService:
                 reconciliation_payload.get("total_active_return")
             ),
             residual_pct=self._quantize_optional(reconciliation_payload.get("residual")),
+            status=self._safe_str(period_payload.get("status")) or "valid",
+            reason_codes=self._safe_str_list(period_payload.get("reason_codes")),
+            residual_materiality=self._parse_attribution_residual_materiality(
+                reconciliation_payload.get("residual_materiality")
+            ),
+            supportability_evidence=self._parse_attribution_supportability_evidence(
+                supportability_evidence_payload
+            ),
         )
 
     def _format_attribution_trend_label(

@@ -423,10 +423,39 @@ def _workspace_summary_payload(*, include_detail_blocks: bool = True) -> dict:
                         "return_source": "calculated",
                     },
                     "result": {
+                        "status": "partial",
+                        "reason_codes": ["off_benchmark_exposure"],
+                        "reasons": [
+                            {
+                                "code": "off_benchmark_exposure",
+                                "severity": "warning",
+                                "message": (
+                                    "Portfolio-only exposure was found in the attribution set."
+                                ),
+                                "affected_group_count": 1,
+                            }
+                        ],
+                        "supportability_evidence": {
+                            "portfolio_only_group_count": 1,
+                            "benchmark_only_group_count": 0,
+                            "unclassified_group_count": 0,
+                            "missing_benchmark_return_count": 0,
+                            "negative_weight_count": 0,
+                            "zero_portfolio_exposure_count": 0,
+                            "currency_attribution_status": "not_requested",
+                            "linking_status": "linked",
+                        },
                         "reconciliation": {
                             "total_active_return": 0.3,
                             "sum_of_effects": 0.28,
                             "residual": 0.02,
+                            "residual_materiality": {
+                                "classification": "watch",
+                                "treatment": "review",
+                                "absolute_residual": 0.02,
+                                "warning_threshold": 0.001,
+                                "material_threshold": 0.01,
+                            },
                         },
                         "levels": [
                             {
@@ -866,10 +895,37 @@ def _attribution_payload(*, dimension: str, report_start_date: str, report_end_d
         },
         "results_by_period": {
             "EXPLICIT": {
+                "status": "partial",
+                "reason_codes": ["off_benchmark_exposure"],
+                "reasons": [
+                    {
+                        "code": "off_benchmark_exposure",
+                        "severity": "warning",
+                        "message": "Portfolio-only exposure was found in the attribution set.",
+                        "affected_group_count": 1,
+                    }
+                ],
+                "supportability_evidence": {
+                    "portfolio_only_group_count": 1,
+                    "benchmark_only_group_count": 0,
+                    "unclassified_group_count": 0,
+                    "missing_benchmark_return_count": 0,
+                    "negative_weight_count": 0,
+                    "zero_portfolio_exposure_count": 0,
+                    "currency_attribution_status": "not_requested",
+                    "linking_status": "linked",
+                },
                 "reconciliation": {
                     "total_active_return": totals["total"],
                     "sum_of_effects": totals["total"],
                     "residual": 0.0,
+                    "residual_materiality": {
+                        "classification": "immaterial",
+                        "treatment": "no_action",
+                        "absolute_residual": 0.0,
+                        "warning_threshold": 0.001,
+                        "material_threshold": 0.01,
+                    },
                 },
                 "levels": [
                     {
@@ -908,10 +964,37 @@ def _attribution_detail_payload(*, dimension: str) -> dict:
         },
         "results_by_period": {
             "YTD": {
+                "status": "partial",
+                "reason_codes": ["off_benchmark_exposure"],
+                "reasons": [
+                    {
+                        "code": "off_benchmark_exposure",
+                        "severity": "warning",
+                        "message": "Portfolio-only exposure was found in the attribution set.",
+                        "affected_group_count": 1,
+                    }
+                ],
+                "supportability_evidence": {
+                    "portfolio_only_group_count": 1,
+                    "benchmark_only_group_count": 0,
+                    "unclassified_group_count": 0,
+                    "missing_benchmark_return_count": 0,
+                    "negative_weight_count": 0,
+                    "zero_portfolio_exposure_count": 0,
+                    "currency_attribution_status": "not_requested",
+                    "linking_status": "linked",
+                },
                 "reconciliation": {
                     "total_active_return": 0.52,
                     "sum_of_effects": 0.5,
                     "residual": 0.02,
+                    "residual_materiality": {
+                        "classification": "watch",
+                        "treatment": "review",
+                        "absolute_residual": 0.02,
+                        "warning_threshold": 0.001,
+                        "material_threshold": 0.01,
+                    },
                 },
                 "levels": [
                     {
@@ -1122,6 +1205,15 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert response.contribution.position_rows[0].position_id == "AAPL_US"
     assert response.attribution is not None
     assert response.attribution.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert response.attribution.status == "partial"
+    assert response.attribution.reason_codes == ["off_benchmark_exposure"]
+    assert response.attribution.reasons[0].affected_group_count == 1
+    assert response.attribution.residual_materiality is not None
+    assert response.attribution.residual_materiality.classification == "immaterial"
+    assert response.attribution.residual_materiality.treatment == "no_action"
+    assert response.attribution.supportability_evidence is not None
+    assert response.attribution.supportability_evidence.portfolio_only_group_count == 1
+    assert response.attribution.supportability_evidence.linking_status == "linked"
     assert response.attribution.levels[0].rows[0].portfolio_weight_avg_pct == 61.0
     assert response.attribution.levels[0].rows[0].benchmark_return_pct == 6.8
     assert response.benchmark_options[0].is_assigned is True
@@ -1723,6 +1815,12 @@ async def test_performance_workspace_service_builds_attribution_trend_contract()
     assert response.chart_frequency == "monthly"
     assert [row.period_label for row in response.rows] == ["2026-01", "2026-02", "2026-03"]
     assert response.rows[0].allocation_pct == 0.12
+    assert response.rows[0].status == "partial"
+    assert response.rows[0].reason_codes == ["off_benchmark_exposure"]
+    assert response.rows[0].residual_materiality is not None
+    assert response.rows[0].residual_materiality.classification == "immaterial"
+    assert response.rows[0].supportability_evidence is not None
+    assert response.rows[0].supportability_evidence.portfolio_only_group_count == 1
     assert response.rows[1].selection_pct == 0.11
     assert response.rows[2].cumulative_total_effect_pct == 0.34
     assert analytics_client.attribution_calls[0]["period"] == "EXPLICIT"
