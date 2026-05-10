@@ -348,50 +348,52 @@ class WorkbenchService:
         bucket_quantities: dict[str, dict[str, float]] = {}
 
         if projected_positions:
-            for row in projected_positions:
+            for projected_row in projected_positions:
                 bucket_key = self._workbench_position_bucket_key(
                     group_by=group_by,
-                    security_id=row.security_id,
-                    instrument_name=row.instrument_name,
-                    asset_class=row.asset_class,
+                    security_id=projected_row.security_id,
+                    instrument_name=projected_row.instrument_name,
+                    asset_class=projected_row.asset_class,
                 )
                 bucket = bucket_quantities.setdefault(
                     bucket_key,
                     {"current": 0.0, "proposed": 0.0},
                 )
-                bucket["current"] += float(row.baseline_quantity)
-                bucket["proposed"] += float(row.proposed_quantity)
+                bucket["current"] += float(projected_row.baseline_quantity)
+                bucket["proposed"] += float(projected_row.proposed_quantity)
 
-            projected_security_ids = {row.security_id for row in projected_positions}
-            for row in current_positions:
-                if row.security_id in projected_security_ids:
+            projected_security_ids = {
+                projected_row.security_id for projected_row in projected_positions
+            }
+            for current_row in current_positions:
+                if current_row.security_id in projected_security_ids:
                     continue
                 bucket_key = self._workbench_position_bucket_key(
                     group_by=group_by,
-                    security_id=row.security_id,
-                    instrument_name=row.instrument_name,
-                    asset_class=row.asset_class,
+                    security_id=current_row.security_id,
+                    instrument_name=current_row.instrument_name,
+                    asset_class=current_row.asset_class,
                 )
                 bucket = bucket_quantities.setdefault(
                     bucket_key,
                     {"current": 0.0, "proposed": 0.0},
                 )
-                bucket["current"] += float(row.quantity)
-                bucket["proposed"] += float(row.quantity)
+                bucket["current"] += float(current_row.quantity)
+                bucket["proposed"] += float(current_row.quantity)
         else:
-            for row in current_positions:
+            for current_row in current_positions:
                 bucket_key = self._workbench_position_bucket_key(
                     group_by=group_by,
-                    security_id=row.security_id,
-                    instrument_name=row.instrument_name,
-                    asset_class=row.asset_class,
+                    security_id=current_row.security_id,
+                    instrument_name=current_row.instrument_name,
+                    asset_class=current_row.asset_class,
                 )
                 bucket = bucket_quantities.setdefault(
                     bucket_key,
                     {"current": 0.0, "proposed": 0.0},
                 )
-                bucket["current"] += float(row.quantity)
-                bucket["proposed"] += float(row.quantity)
+                bucket["current"] += float(current_row.quantity)
+                bucket["proposed"] += float(current_row.quantity)
 
         total_current = sum(abs(bucket["current"]) for bucket in bucket_quantities.values())
         total_proposed = sum(abs(bucket["proposed"]) for bucket in bucket_quantities.values())
