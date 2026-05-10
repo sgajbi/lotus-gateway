@@ -2172,6 +2172,110 @@ async def test_performance_workspace_service_marks_pending_lineage_as_partial_ev
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_promotes_recently_materialized_lineage(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.performance_workspace_service.LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS",
+        0,
+    )
+
+    class _EventuallyCompleteLineageAnalyticsClient(_StubAnalyticsClient):
+        def __init__(self):
+            super().__init__()
+            self._execution_attempts = 0
+            self._lineage_attempts = 0
+
+        async def get_execution(self, *, calculation_id: str, correlation_id: str):
+            _ = correlation_id
+            self._execution_attempts += 1
+            self.execution_calls.append(calculation_id)
+            lineage_stage_status = "in_progress" if self._execution_attempts == 1 else "complete"
+            return 200, {
+                "calculation_id": calculation_id,
+                "analytics_type": "WORKSPACE_SUMMARY",
+                "execution_mode": "sync",
+                "status": "complete",
+                "stages": [
+                    {
+                        "stage_name": "execution",
+                        "status": "complete",
+                        "completed_at_utc": "2026-03-27T12:00:00Z",
+                    },
+                    {
+                        "stage_name": "lineage_materialization",
+                        "status": lineage_stage_status,
+                        "completed_at_utc": (
+                            "2026-03-27T12:00:01Z" if lineage_stage_status == "complete" else None
+                        ),
+                    },
+                ],
+                "upstream_snapshots": [
+                    {
+                        "upstream_endpoint": "portfolio_timeseries",
+                        "source_identifier": "DEMO_ADV_USD_001",
+                        "as_of_date": "2026-03-27",
+                        "retrieval_status": "200",
+                    }
+                ],
+            }
+
+        async def get_lineage(self, *, calculation_id: str, correlation_id: str):
+            _ = correlation_id
+            self._lineage_attempts += 1
+            self.lineage_calls.append(calculation_id)
+            if self._lineage_attempts == 1:
+                return 200, {
+                    "calculation_id": calculation_id,
+                    "status": "pending",
+                    "artifacts": {},
+                }
+            return 200, {
+                "calculation_id": calculation_id,
+                "status": "complete",
+                "artifacts": {
+                    "request.json": {
+                        "url": (
+                            "http://performance.dev.lotus/performance/lineage/"
+                            f"{calculation_id}/artifacts/request.json"
+                        )
+                    },
+                    "response.json": {
+                        "url": (
+                            "http://performance.dev.lotus/performance/lineage/"
+                            f"{calculation_id}/artifacts/response.json"
+                        )
+                    },
+                },
+            }
+
+    analytics_client = _EventuallyCompleteLineageAnalyticsClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+    )
+
+    assert response.capabilities.evidence.state == "supported"
+    assert response.evidence_view is not None
+    assert response.evidence_view.state == "supported"
+    assert response.evidence_view.calculations[0].lineage_status == "complete"
+    assert response.evidence_view.calculations[0].stage_statuses[1].status == "complete"
+    assert len(analytics_client.execution_calls) == 2
+    assert len(analytics_client.lineage_calls) == 2
+    assert "PERFORMANCE_EVIDENCE_PARTIAL" not in response.warnings
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_marks_missing_execution_and_lineage_as_unavailable():
     class _UnavailableEvidenceAnalyticsClient(_StubAnalyticsClient):
         async def get_execution(self, *, calculation_id: str, correlation_id: str):
