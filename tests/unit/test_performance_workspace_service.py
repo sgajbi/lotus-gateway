@@ -768,6 +768,12 @@ def _twr_payload_for_period(result_key: str, source_label: str) -> dict:
         "benchmark_context": {
             "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
             "return_source": "calculated",
+            "supportability_evidence": {
+                "currency_state": "fx_decomposed",
+                "calendar_alignment_state": "partial_overlap",
+                "missing_benchmark_date_count": 1,
+                "warning_codes": ["BENCHMARK_CALENDAR_GAP"],
+            },
         },
         "results_by_period": {
             result_key: {
@@ -1176,6 +1182,30 @@ async def test_performance_workspace_service_returns_workspace_summary_contract(
     assert query_client.benchmark_catalog_calls[0]["benchmark_currency"] == "USD"
     assert query_client.benchmark_catalog_calls[0]["benchmark_status"] == "active"
     assert query_client.benchmark_catalog_calls[0]["benchmark_type"] == "composite"
+
+
+def test_performance_workspace_service_preserves_twr_benchmark_supportability_evidence():
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=_StubAnalyticsClient(),
+        lotus_core_query_client=_StubLotusCoreQueryClient(),
+    )
+
+    summary, _ = service._parse_twr_result(
+        result=(200, _twr_payload_for_period("YTD", "YTD")),
+        metric_basis="NET",
+        chart_frequency="monthly",
+        requested_period="YTD",
+        warnings=[],
+        partial_failures=[],
+    )
+
+    assert summary.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert summary.benchmark_return_source == "calculated"
+    assert summary.benchmark_currency_state == "fx_decomposed"
+    assert summary.benchmark_calendar_alignment_state == "partial_overlap"
+    assert summary.benchmark_missing_date_count == 1
+    assert summary.benchmark_warning_codes == ["BENCHMARK_CALENDAR_GAP"]
 
 
 @pytest.mark.asyncio

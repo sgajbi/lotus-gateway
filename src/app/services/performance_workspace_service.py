@@ -3037,6 +3037,7 @@ class PerformanceWorkspaceService:
         benchmark_context = payload.get("benchmark_context", {})
         if not isinstance(benchmark_context, dict):
             benchmark_context = {}
+        benchmark_supportability = self._benchmark_supportability_evidence(benchmark_context)
 
         portfolio_block = period_payload.get("portfolio", {})
         benchmark_block = period_payload.get("benchmark", {})
@@ -3057,6 +3058,16 @@ class PerformanceWorkspaceService:
             ),
             benchmark_id=self._safe_str(benchmark_context.get("benchmark_id")),
             benchmark_return_source=self._safe_str(benchmark_context.get("return_source")),
+            benchmark_currency_state=self._safe_str(benchmark_supportability.get("currency_state")),
+            benchmark_calendar_alignment_state=self._safe_str(
+                benchmark_supportability.get("calendar_alignment_state")
+            ),
+            benchmark_warning_codes=self._safe_str_list(
+                benchmark_supportability.get("warning_codes")
+            ),
+            benchmark_missing_date_count=self._safe_int(
+                benchmark_supportability.get("missing_benchmark_date_count")
+            ),
         )
         chart_points = self._parse_chart_points(
             portfolio_block=portfolio_block,
@@ -3065,6 +3076,12 @@ class PerformanceWorkspaceService:
             chart_frequency=chart_frequency,
         )
         return summary, chart_points
+
+    def _benchmark_supportability_evidence(
+        self, benchmark_context: dict[str, Any]
+    ) -> dict[str, Any]:
+        evidence = benchmark_context.get("supportability_evidence")
+        return evidence if isinstance(evidence, dict) else {}
 
     def _resolve_results_period_key(
         self,
@@ -3716,6 +3733,13 @@ class PerformanceWorkspaceService:
         if not isinstance(value, list):
             return []
         return [str(item) for item in value]
+
+    def _safe_int(self, value: Any) -> int | None:
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        return None
 
     def _safe_bool(self, value: Any) -> bool | None:
         if isinstance(value, bool):
