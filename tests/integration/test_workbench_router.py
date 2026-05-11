@@ -2161,7 +2161,12 @@ def test_workbench_performance_details_attribution_openapi_contract():
     attribution_row_schema = schema["components"]["schemas"]["AttributionRowView"]
 
     assert details_route["description"]
+    assert attribution_schema["properties"]["status"]["description"]
+    assert attribution_schema["properties"]["reason_codes"]["description"]
+    assert attribution_schema["properties"]["reasons"]["description"]
     assert attribution_schema["properties"]["active_return_pct"]["description"]
+    assert attribution_schema["properties"]["residual_materiality"]["description"]
+    assert attribution_schema["properties"]["supportability_evidence"]["description"]
     assert attribution_schema["properties"]["levels"]["description"]
     assert attribution_level_schema["properties"]["allocation_total_pct"]["description"]
     assert attribution_level_schema["properties"]["selection_total_pct"]["description"]
@@ -2213,6 +2218,10 @@ def test_workbench_performance_attribution_trend_openapi_contract():
     assert row_schema["properties"]["total_effect_pct"]["description"]
     assert row_schema["properties"]["cumulative_total_effect_pct"]["description"]
     assert row_schema["properties"]["residual_pct"]["description"]
+    assert row_schema["properties"]["status"]["description"]
+    assert row_schema["properties"]["reason_codes"]["description"]
+    assert row_schema["properties"]["residual_materiality"]["description"]
+    assert row_schema["properties"]["supportability_evidence"]["description"]
     assert response_schema["example"]["rows"][0]["period_label"] == "2026-01"
     assert response_schema["example"]["rows"][1]["cumulative_total_effect_pct"] == 0.4
 
