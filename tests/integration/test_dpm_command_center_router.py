@@ -396,6 +396,90 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
     assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
+def test_dpm_command_center_exception_summary_executes_lotus_ai(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_list_monitoring_exceptions(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["manage"] = {
+            "params": params,
+            "correlation_id": correlation_id,
+        }
+        return 200, _exception_page()
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        _ = self
+        captured["ai"] = kwargs
+        return 200, {
+            "execution": {
+                "status": "COMPLETED",
+                "audit": {"workflow_pack_run_id": "packrun_exception_1"},
+                "result": {
+                    "structured_output": {
+                        "exception_summary_status": "REVIEW_REQUIRED",
+                        "exception_count": 1,
+                    }
+                },
+            },
+            "workflow_pack_run": {
+                "run_id": "packrun_exception_1",
+                "workflow_authority_owner": "lotus-manage",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_monitoring_exceptions",
+        _fake_list_monitoring_exceptions,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/exceptions/me_source_1/ai-summary",
+        json={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "state": "ACTIVE",
+            "requested_outputs": ["exception_summary", "recommended_triage"],
+            "audience": ["portfolio_manager", "operations"],
+        },
+        headers={"X-Correlation-Id": "corr-exception-router-1"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert captured["manage"] == {
+        "params": {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "mandate_id": None,
+            "state": "ACTIVE",
+            "limit": 200,
+        },
+        "correlation_id": "corr-exception-router-1",
+    }
+    ai_call = captured["ai"]
+    assert ai_call["pack_id"] == "dpm_exception_summary.pack"
+    assert ai_call["workflow_surface"] == "dpm-exception-summary-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-exception-router-1"
+    task_request = ai_call["task_request"]
+    assert task_request["caller"]["caller_app"] == "lotus-gateway"
+    context_payload = task_request["context"]["payload"]
+    assert context_payload["exception_summary_request"] == {
+        "requested_outputs": ["exception_summary", "recommended_triage"],
+        "audience": ["portfolio_manager", "operations"],
+    }
+    assert context_payload["supportability"]["requires_human_review"] is True
+    assert "place_orders" in context_payload["supportability"]["forbidden_actions"]
+    assert "portfolio_manager_scoring" in context_payload["supportability"]["unsupported_claims"]
+    assert payload["source_service"] == "lotus-ai"
+    assert payload["evidence_source_service"] == "lotus-manage"
+    assert payload["exception_summary_input"]["redaction_policy"] == "NO_RAW_PAYLOADS"
+    assert payload["exception_summary_input"]["exceptions"][0]["exception_id"] == "me_source_1"
+    assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
 def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
     return {
         "contract_version": "1.0",
@@ -421,4 +505,33 @@ def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
             "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
         },
         "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
+    }
+
+
+def _exception_page() -> dict[str, object]:
+    return {
+        "items": [
+            {
+                "exception_id": "me_source_1",
+                "monitoring_run_id": "dmr_1",
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "detected_at": "2026-05-12T08:00:00Z",
+                "as_of_date": "2026-05-12",
+                "dimension": "SOURCE_READINESS",
+                "severity": "HIGH",
+                "reason_code": "SOURCE_READINESS_DEGRADED",
+                "state": "ACTIVE",
+                "recommended_action": "REVIEW_WITH_PM",
+                "source_lineage": [
+                    {
+                        "source_system": "lotus-core",
+                        "product_name": "DpmSourceReadiness",
+                        "product_version": "v1",
+                        "content_hash": "sha256:source-readiness",
+                    }
+                ],
+            }
+        ],
+        "next_cursor": None,
     }

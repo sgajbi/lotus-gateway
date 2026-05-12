@@ -338,3 +338,31 @@ Gateway exposes outcome-review preview/create/search/detail/source-refresh/suppo
 report-input, AI-evidence, run lookup, wave lookup, and governed AI narrative handoff routes under
 `/api/v1/dpm/command-center/outcome-reviews*`. `lotus-manage` remains outcome-review authority and
 `lotus-ai` remains AI workflow execution authority.
+
+## DPM Command Center Exception Summary
+
+Status: implementation-backed in Gateway for RFC38/RFC43 exception-summary handoff.
+
+Gateway exposes
+`POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` for internal PM,
+investment-control, and operations triage. The route reads manage-owned monitoring-exception
+evidence from the command-center exception queue, supports optional portfolio, mandate, and state
+filters, builds a bounded no-raw-payload exception-summary input, and executes `lotus-ai`
+`dpm_exception_summary.pack@v1` as `lotus-gateway`.
+
+```mermaid
+flowchart LR
+    Workbench[Workbench command center] --> Gateway[Gateway exception-summary BFF]
+    Gateway --> Manage[lotus-manage monitoring exceptions]
+    Gateway --> AI[lotus-ai dpm_exception_summary.pack@v1]
+    Manage --> Gateway
+    AI --> Gateway
+```
+
+Operational boundaries:
+
+1. `lotus-manage` remains exception evidence authority.
+2. `lotus-ai` remains workflow-pack execution authority.
+3. Gateway preserves source refs, content hashes, supportability, and product-safe upstream errors.
+4. Gateway does not generate summaries locally, score PMs, approve trades, contact clients, route
+   orders, or invent evidence.

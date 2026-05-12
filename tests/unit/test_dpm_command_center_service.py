@@ -1,7 +1,10 @@
 import pytest
 from fastapi import HTTPException
 
-from app.contracts.dpm_command_center import DpmOutcomeReviewNarrativeRequest
+from app.contracts.dpm_command_center import (
+    DpmExceptionSummaryRequest,
+    DpmOutcomeReviewNarrativeRequest,
+)
 from app.services.dpm_command_center_service import DpmCommandCenterService
 
 
@@ -72,6 +75,16 @@ class _FakeDpmClient:
             {
                 "method": "ai_evidence",
                 "outcome_review_id": outcome_review_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_monitoring_exceptions(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "list_exceptions",
+                "params": params,
                 "correlation_id": correlation_id,
             }
         )
@@ -550,6 +563,143 @@ async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() 
     assert "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED" in exc_info.value.detail["detail"]
 
 
+@pytest.mark.asyncio
+async def test_dpm_command_center_requests_exception_summary_from_manage_exception_only() -> None:
+    dpm_client = _FakeDpmClient((200, _exception_page()))
+    ai_client = _FakeLotusAiClient(
+        (
+            200,
+            {
+                "execution": {
+                    "status": "COMPLETED",
+                    "audit": {"workflow_pack_run_id": "packrun_exception_1"},
+                    "result": {
+                        "structured_output": {
+                            "exception_summary_status": "REVIEW_REQUIRED",
+                            "exception_count": 1,
+                        }
+                    },
+                },
+                "workflow_pack_run": {
+                    "run_id": "packrun_exception_1",
+                    "workflow_authority_owner": "lotus-manage",
+                },
+            },
+        )
+    )
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=dpm_client,
+        lotus_ai_client=ai_client,
+    )
+
+    response = await service.request_exception_summary(
+        exception_id="me_source_1",
+        request=DpmExceptionSummaryRequest(
+            portfolio_id="PB_SG_GLOBAL_BAL_001",
+            state="ACTIVE",
+            requested_outputs=["exception_summary", "recommended_triage"],
+            audience=["portfolio_manager", "operations"],
+        ),
+        correlation_id="corr-exception-summary-1",
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.manage_upstream_status == 200
+    assert response.ai_upstream_status == 200
+    assert response.exception_summary_request == {
+        "requested_outputs": ["exception_summary", "recommended_triage"],
+        "audience": ["portfolio_manager", "operations"],
+    }
+    assert response.exception_summary_input["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
+    assert response.exception_summary_input["exception_count"] == 1
+    assert response.exception_summary_input["redaction_policy"] == "NO_RAW_PAYLOADS"
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    assert dpm_client.calls == [
+        {
+            "method": "list_exceptions",
+            "params": {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "mandate_id": None,
+                "state": "ACTIVE",
+                "limit": 200,
+            },
+            "correlation_id": "corr-exception-summary-1",
+        }
+    ]
+    [ai_call] = ai_client.calls
+    assert ai_call["pack_id"] == "dpm_exception_summary.pack"
+    assert ai_call["workflow_surface"] == "dpm-exception-summary-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-exception-summary-1"
+    task_request = ai_call["task_request"]
+    assert task_request["caller"]["caller_app"] == "lotus-gateway"
+    payload = task_request["context"]["payload"]
+    assert payload["exception_summary_input"] == response.exception_summary_input
+    assert payload["exception_summary_request"] == response.exception_summary_request
+    assert payload["supportability"]["forbidden_actions"] == [
+        "approve_rebalance",
+        "contact_client",
+        "invent_missing_evidence",
+        "override_controls",
+        "place_orders",
+        "score_portfolio_manager",
+    ]
+    assert "lotus-manage:monitoring-exception:me_source_1" in task_request["context"]["source_refs"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_exception_summary_preserves_ai_guardrail_failure() -> None:
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient((200, _exception_page())),
+        lotus_ai_client=_FakeLotusAiClient(
+            (
+                422,
+                {
+                    "detail": (
+                        "DPM_EXCEPTION_SUMMARY_GUARDRAIL_BLOCKED: "
+                        "Forbidden exception summary outputs requested: client_message."
+                    )
+                },
+            )
+        ),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_exception_summary(
+            exception_id="me_source_1",
+            request=DpmExceptionSummaryRequest(
+                requested_outputs=["client_message"],
+                audience=["pm"],
+            ),
+            correlation_id="corr-exception-summary-blocked",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail["source_service"] == "lotus-ai"
+    assert exc_info.value.detail["error_code"] == "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR"
+    assert "DPM_EXCEPTION_SUMMARY_GUARDRAIL_BLOCKED" in exc_info.value.detail["detail"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_command_center_exception_summary_missing_exception_is_product_safe() -> None:
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient((200, _exception_page())),
+        lotus_ai_client=_FakeLotusAiClient((200, {})),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_exception_summary(
+            exception_id="missing_exception",
+            request=DpmExceptionSummaryRequest(),
+            correlation_id="corr-exception-summary-missing",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail["source_service"] == "lotus-manage"
+    assert exc_info.value.detail["error_code"] == "MANAGE_MONITORING_EXCEPTION_NOT_FOUND"
+    assert "missing_exception" in exc_info.value.detail["detail"]
+
+
 def _outcome_ai_evidence() -> dict[str, object]:
     return {
         "contract_version": "1.0",
@@ -584,4 +734,33 @@ def _outcome_ai_evidence() -> dict[str, object]:
             "content_hash": "sha256:outcome-ai-evidence-001",
         },
         "content_hash": "sha256:outcome-ai-evidence-001",
+    }
+
+
+def _exception_page() -> dict[str, object]:
+    return {
+        "items": [
+            {
+                "exception_id": "me_source_1",
+                "monitoring_run_id": "dmr_1",
+                "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "detected_at": "2026-05-12T08:00:00Z",
+                "as_of_date": "2026-05-12",
+                "dimension": "SOURCE_READINESS",
+                "severity": "HIGH",
+                "reason_code": "SOURCE_READINESS_DEGRADED",
+                "state": "ACTIVE",
+                "recommended_action": "REVIEW_WITH_PM",
+                "source_lineage": [
+                    {
+                        "source_system": "lotus-core",
+                        "product_name": "DpmSourceReadiness",
+                        "product_version": "v1",
+                        "content_hash": "sha256:source-readiness",
+                    }
+                ],
+            }
+        ],
+        "next_cursor": None,
     }

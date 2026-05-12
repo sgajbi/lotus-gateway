@@ -33,7 +33,10 @@
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
-  evidence-grounded advisor brief narration through the explicit workflow-pack execution seam plus shared workflow-pack run-ledger and RFC-0097 task-flow inspection surfaces
+  evidence-grounded advisor brief narration, DPM exception-summary support, proof-pack PM memo
+  support, wave PM memo support, and outcome-review narrative support through explicit
+  workflow-pack execution seams plus shared workflow-pack run-ledger and RFC-0097 task-flow
+  inspection surfaces
 
 ## Canonical local identities
 
@@ -84,6 +87,11 @@
     distribution, monitoring-run state, active exceptions, reason codes, recommended actions,
     mandate source lineage, version diffs, and supportability without calculating health,
     discovering PM books, inferring source readiness, or resolving exceptions locally.
+    The exception-summary AI route filters the manage exception queue by exception id and optional
+    portfolio, mandate, or state, builds a bounded no-raw-payload evidence envelope, and calls
+    `lotus-ai` `dpm_exception_summary.pack@v1`. Gateway preserves manage source refs and content
+    hashes; it does not generate summaries locally, score PMs, approve trades, contact clients,
+    route orders, or invent evidence.
 11. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
     compose expected-versus-realized review summaries, dimension outcomes, source lineage,
     supportability, report-input posture, and AI-evidence posture without recomputing outcome

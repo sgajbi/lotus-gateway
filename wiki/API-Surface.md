@@ -19,6 +19,7 @@
 - `GET /api/v1/dpm/command-center/mandates*`
 - `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
+- `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
@@ -101,6 +102,13 @@
   Gateway must not discover PM-book membership, calculate health scores, reconstruct source
   readiness, merge exceptions across monitoring runs, resolve exceptions locally, or let Workbench
   call `lotus-manage` directly.
+  The exception-summary AI action
+  `/api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` filters the manage
+  exception queue, builds a bounded no-raw-payload evidence envelope for the selected exception,
+  and calls `lotus-ai` `dpm_exception_summary.pack@v1` as `lotus-gateway`. Gateway preserves
+  manage source refs, content hashes, and supportability boundaries; it must not generate local AI
+  narrative, invent evidence, score PMs, approve trades, contact clients, route orders, or turn an
+  exception summary into client-facing advice.
 - RFC36-WTBD-003 portfolio-level DPM operations posture is exposed on Workbench overview and
   portfolio-360 `rebalance_snapshot`. Gateway reads manage rebalance runs through
   `/api/v1/rebalance/runs`, reads manage supportability summary through

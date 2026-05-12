@@ -50,8 +50,9 @@ It depends on:
 - `lotus-archive`
   archived generated-document metadata and controlled binary retrieval
 - `lotus-ai`
-  evidence-grounded advisor-brief support, outcome-review narrative support, and proof-pack PM
-  memo support through explicit workflow-pack execution seams and shared run-ledger surfaces
+  evidence-grounded advisor-brief support, outcome-review narrative support, DPM exception-summary
+  support, and proof-pack PM memo support through explicit workflow-pack execution seams and shared
+  run-ledger surfaces
 - `lotus-platform`
   generated domain-product catalog, dependency-graph, and live trust certification artifacts for
   read-only product discovery
@@ -106,6 +107,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
   `/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/outcome-reviews*`,
+  `/api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`,
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`,
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `workbench`
@@ -284,6 +286,13 @@ Important current parameter conventions:
    counts, source systems, source refs, artifact refs, reason codes, supportability state, and
    content hash without reconstructing timeline nodes or calculating risk, performance, tax, cash,
    FX, or execution truth locally
+17. DPM exception-summary AI handoff
+   `/api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` reads manage-owned
+   monitoring-exception evidence from the command-center exception queue, builds a bounded
+   no-raw-payload evidence envelope, and calls `lotus-ai` `dpm_exception_summary.pack@v1` as
+   `lotus-gateway`. Gateway preserves manage evidence authority and lotus-ai workflow-pack posture;
+   it does not generate exception narrative locally, score PMs, approve trades, contact clients,
+   route orders, or invent missing evidence.
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -302,7 +311,8 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   RFC-0041 rebalance-wave preview/create/search/detail/items/source-check/simulate/select/approve/
   stage/handoff/cancel/proof-pack/supportability/report-input APIs, and RFC-0042 outcome-review
   preview/create/search/detail/source-refresh, supportability, report-input, AI-evidence, run
-  lookup, and wave lookup
+  lookup, wave lookup, and command-center exception queue reads for bounded exception-summary AI
+  handoff
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority

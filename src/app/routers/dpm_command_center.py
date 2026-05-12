@@ -7,6 +7,8 @@ from app.contracts.dpm_command_center import (
     DpmCommandCenterForwardRequest,
     DpmCommandCenterGatewayResponse,
     DpmCommandCenterResolveExceptionRequest,
+    DpmExceptionSummaryGatewayResponse,
+    DpmExceptionSummaryRequest,
     DpmOutcomeReviewForwardRequest,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
@@ -217,6 +219,35 @@ async def resolve_monitoring_exception(
     return await _dpm_command_center_service().resolve_monitoring_exception(
         exception_id=exception_id,
         body={"resolution_reason": request.resolution_reason},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.post(
+    "/exceptions/{exception_id}/ai-summary",
+    response_model=DpmExceptionSummaryGatewayResponse,
+    summary="Request DPM exception AI summary",
+    description=(
+        "What: requests a governed lotus-ai exception-summary workflow-pack run from "
+        "manage-owned monitoring exception evidence. When: call this only for internal PM, "
+        "investment-control, or operations triage after the exception is visible in the command "
+        "center. How: Gateway reads the manage exception queue, builds a bounded no-raw-payload "
+        "evidence envelope for the selected exception, then executes lotus-ai "
+        "dpm_exception_summary.pack@v1 as lotus-gateway; Gateway does not generate narrative, "
+        "score PMs, approve trades, contact clients, route orders, or invent evidence."
+    ),
+)
+async def request_exception_summary(
+    request: DpmExceptionSummaryRequest,
+    exception_id: str = Path(
+        ...,
+        description="Manage-owned monitoring exception identifier for the bounded AI handoff.",
+        examples=["me_source_readiness_001"],
+    ),
+) -> DpmExceptionSummaryGatewayResponse:
+    return await _dpm_command_center_service().request_exception_summary(
+        exception_id=exception_id,
+        request=request,
         correlation_id=correlation_id_var.get(),
     )
 

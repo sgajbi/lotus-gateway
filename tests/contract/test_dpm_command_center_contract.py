@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.contracts.dpm_command_center import (
     DpmCommandCenterGatewayResponse,
+    DpmExceptionSummaryGatewayResponse,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
     DpmPortfolioMemoryGatewayResponse,
@@ -105,6 +106,38 @@ def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
+def test_dpm_exception_summary_gateway_response_contract_shape() -> None:
+    response = DpmExceptionSummaryGatewayResponse(
+        correlation_id="corr-exception-summary-1",
+        manage_upstream_status=200,
+        ai_upstream_status=200,
+        supportability={"state": "READY", "data_completeness_state": "READY"},
+        exception_summary_input={
+            "contract_version": "1.0",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+            "exception_count": 1,
+            "exceptions": [{"exception_id": "me_source_1", "state": "ACTIVE"}],
+            "redaction_policy": "NO_RAW_PAYLOADS",
+            "content_hash": "sha256:exception-summary",
+        },
+        exception_summary_request={
+            "requested_outputs": ["exception_summary", "recommended_triage"],
+            "audience": ["portfolio_manager", "operations"],
+        },
+        data={
+            "execution": {"status": "COMPLETED"},
+            "workflow_pack_run": {"workflow_authority_owner": "lotus-manage"},
+        },
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0038"
+    assert response.exception_summary_input["redaction_policy"] == "NO_RAW_PAYLOADS"
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
 def test_dpm_command_center_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -115,6 +148,7 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/monitoring/runs/{monitoring_run_id}", "get"),
         ("/api/v1/dpm/command-center/exceptions", "get"),
         ("/api/v1/dpm/command-center/exceptions/{exception_id}/resolve", "post"),
+        ("/api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary", "post"),
         ("/api/v1/dpm/command-center/mandates/by-portfolio/{portfolio_id}", "get"),
         ("/api/v1/dpm/command-center/mandates/{mandate_id}", "get"),
         ("/api/v1/dpm/command-center/mandates/{mandate_id}/health", "get"),
@@ -153,6 +187,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     portfolio_memory_supportability_schema = schemas["DpmPortfolioMemorySupportability"]
     response_schema = schemas["DpmOutcomeReviewGatewayResponse"]
     narrative_response_schema = schemas["DpmOutcomeReviewNarrativeGatewayResponse"]
+    exception_summary_request_schema = schemas["DpmExceptionSummaryRequest"]
+    exception_summary_response_schema = schemas["DpmExceptionSummaryGatewayResponse"]
     supportability_schema = schemas["DpmOutcomeReviewSupportability"]
 
     for property_schema in command_center_response_schema["properties"].values():
@@ -176,10 +212,18 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     for property_schema in narrative_response_schema["properties"].values():
         assert property_schema.get("description")
 
+    for property_schema in exception_summary_request_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in exception_summary_response_schema["properties"].values():
+        assert property_schema.get("description")
+
     assert command_center_response_schema["properties"]["data"]["description"]
     assert command_center_supportability_schema["properties"]["state"]["examples"]
     assert portfolio_memory_response_schema["properties"]["data"]["description"]
     assert portfolio_memory_supportability_schema["properties"]["state"]["examples"]
     assert response_schema["properties"]["data"]["description"]
     assert narrative_response_schema["properties"]["data"]["description"]
+    assert exception_summary_request_schema["properties"]["requested_outputs"]["examples"]
+    assert exception_summary_response_schema["properties"]["data"]["description"]
     assert supportability_schema["properties"]["state"]["examples"]
