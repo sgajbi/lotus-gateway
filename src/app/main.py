@@ -12,6 +12,7 @@ from app.enterprise_readiness import (
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
 from app.routers.archive_documents import router as archive_documents_router
+from app.routers.composite_performance import router as composite_performance_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_construction import router as dpm_construction_router
@@ -72,6 +73,13 @@ app = FastAPI(
             ),
         },
         {
+            "name": "Composite Performance",
+            "description": (
+                "Gateway-facing composite performance operations backed by lotus-performance "
+                "source-owned calculation, inspection, lineage, and evidence contracts."
+            ),
+        },
+        {
             "name": "DPM Command Center",
             "description": (
                 "Gateway BFF composition APIs for DPM command-center, construction, proof-pack, "
@@ -92,6 +100,7 @@ app.include_router(domain_products_router)
 app.include_router(intake_router)
 app.include_router(foundation_router)
 app.include_router(portfolio_router)
+app.include_router(composite_performance_router)
 app.include_router(dpm_command_center_router)
 app.include_router(dpm_construction_router)
 app.include_router(dpm_proof_packs_router)

@@ -349,6 +349,34 @@ class LotusAnalyticsClient:
             correlation_id=correlation_id,
         )
 
+    async def post_composite_twr(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post_analytics_request(
+            path="/performance/composites/twr",
+            payload=payload,
+            correlation_id=correlation_id,
+            operation="performance.composites.twr",
+            async_poll_attempts=40,
+        )
+
+    async def post_composite_inspection(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post_analytics_request(
+            path="/performance/composites/inspect",
+            payload=payload,
+            correlation_id=correlation_id,
+            operation="performance.composites.inspect",
+            async_poll_attempts=40,
+        )
+
     async def get_contribution_analytics(
         self,
         *,
