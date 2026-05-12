@@ -1,3 +1,6 @@
+import hashlib
+import json
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -8,6 +11,8 @@ from app.config import settings
 from app.contracts.dpm_command_center import (
     DpmCommandCenterGatewayResponse,
     DpmCommandCenterSupportability,
+    DpmExceptionSummaryGatewayResponse,
+    DpmExceptionSummaryRequest,
     DpmOutcomeReviewErrorDetail,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
@@ -113,6 +118,133 @@ class DpmCommandCenterService:
             upstream_status,
             upstream_payload,
             correlation_id,
+        )
+
+    async def request_exception_summary(
+        self,
+        exception_id: str,
+        request: DpmExceptionSummaryRequest,
+        correlation_id: str,
+    ) -> DpmExceptionSummaryGatewayResponse:
+        if self._lotus_ai_client is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
+            )
+
+        manage_status, manage_payload = await self._dpm_client.list_monitoring_exceptions(
+            params={
+                "portfolio_id": request.portfolio_id,
+                "mandate_id": request.mandate_id,
+                "state": request.state,
+                "limit": 200,
+            },
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=manage_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=manage_status,
+                    error_code="MANAGE_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(manage_payload),
+                ).model_dump(),
+            )
+
+        exception = _find_exception(manage_payload, exception_id)
+        if exception is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "source_service": "lotus-manage",
+                    "upstream_status": manage_status,
+                    "error_code": "MANAGE_MONITORING_EXCEPTION_NOT_FOUND",
+                    "detail": (
+                        f"Monitoring exception `{exception_id}` was not returned by lotus-manage."
+                    ),
+                },
+            )
+
+        exception_summary_input = _exception_summary_input_from_exception(exception)
+        supportability = DpmCommandCenterSupportability(
+            state="READY",
+            data_completeness_state="READY",
+            partial_readiness_reasons=[],
+            source_run_id=_safe_optional_str(exception.get("monitoring_run_id")),
+        )
+        summary_request: dict[str, object] = {
+            "requested_outputs": request.requested_outputs,
+            "audience": request.audience,
+        }
+        task_payload = {
+            "exception_summary_input": exception_summary_input,
+            "exception_summary_request": summary_request,
+            "supportability": {
+                "source_state": supportability.state,
+                "reason_codes": [],
+                "blocked_actions": [],
+                "forbidden_actions": [
+                    "approve_rebalance",
+                    "contact_client",
+                    "invent_missing_evidence",
+                    "override_controls",
+                    "place_orders",
+                    "score_portfolio_manager",
+                ],
+                "requires_human_review": True,
+                "unsupported_claims": [
+                    "trade_approval",
+                    "order_instruction",
+                    "client_message",
+                    "portfolio_manager_scoring",
+                ],
+            },
+        }
+        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+            pack_id="dpm_exception_summary.pack",
+            version="v1",
+            environment="DEVELOPMENT",
+            caller_identity_class="INTERNAL_SERVICE",
+            workflow_surface="dpm-exception-summary-ai-evidence",
+            task_request={
+                "task_id": "explain.v1",
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
+                        "Generate review-gated DPM exception summary from manage-owned "
+                        f"monitoring exception {exception_id}."
+                    ),
+                    "payload": task_payload,
+                    "source_refs": _exception_summary_source_refs(exception_summary_input),
+                },
+                "expected_output_label": "EXPLANATION_ONLY",
+            },
+            correlation_id=correlation_id,
+        )
+        if ai_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=ai_status,
+                detail={
+                    "source_service": "lotus-ai",
+                    "upstream_status": ai_status,
+                    "error_code": "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
+                    "detail": _safe_upstream_detail(ai_payload),
+                },
+            )
+
+        return DpmExceptionSummaryGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            manage_upstream_status=manage_status,
+            ai_upstream_status=ai_status,
+            supportability=supportability,
+            exception_summary_input=exception_summary_input,
+            exception_summary_request=summary_request,
+            data=ai_payload,
         )
 
     async def get_mandate_by_portfolio(
@@ -629,6 +761,112 @@ def _safe_optional_str(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _find_exception(payload: dict[str, Any], exception_id: str) -> dict[str, Any] | None:
+    items = payload.get("items")
+    if not isinstance(items, list):
+        return None
+    for item in items:
+        if isinstance(item, dict) and item.get("exception_id") == exception_id:
+            return item
+    return None
+
+
+def _exception_summary_input_from_exception(exception: dict[str, Any]) -> dict[str, object]:
+    exception_id = str(exception.get("exception_id") or "")
+    portfolio_id = str(exception.get("portfolio_id") or "")
+    content_hash = _content_hash(
+        {
+            "exception_id": exception_id,
+            "portfolio_id": portfolio_id,
+            "state": exception.get("state"),
+            "severity": exception.get("severity"),
+            "reason_code": exception.get("reason_code"),
+            "recommended_action": exception.get("recommended_action"),
+            "source_lineage": exception.get("source_lineage"),
+        }
+    )
+    source_refs = _bounded_exception_source_refs(exception, content_hash)
+    bounded_exception = {
+        "exception_id": exception_id,
+        "portfolio_id": portfolio_id,
+        "mandate_id": _safe_optional_str(exception.get("mandate_id")) or "",
+        "severity": str(exception.get("severity") or "UNKNOWN"),
+        "state": str(exception.get("state") or "UNKNOWN"),
+        "reason_code": str(exception.get("reason_code") or "UNKNOWN"),
+        "recommended_action": str(exception.get("recommended_action") or "REVIEW_WITH_PM"),
+        "detected_at": _safe_optional_str(exception.get("detected_at")) or "",
+        "source_refs": source_refs,
+    }
+    evidence_ref = {
+        "source_system": "lotus-manage",
+        "source_type": "DPM_EXCEPTION_SUMMARY_INPUT",
+        "source_id": f"{portfolio_id}:dpm_exception_summary_input:{exception_id}",
+        "content_hash": content_hash,
+    }
+    return {
+        "contract_version": "1.0",
+        "portfolio_id": portfolio_id,
+        "mandate_id": bounded_exception["mandate_id"],
+        "as_of_date": _safe_optional_str(exception.get("as_of_date")) or "",
+        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "exception_count": 1,
+        "exceptions": [bounded_exception],
+        "source_refs": [evidence_ref],
+        "redaction_policy": "NO_RAW_PAYLOADS",
+        "evidence_ref": evidence_ref,
+        "content_hash": content_hash,
+    }
+
+
+def _bounded_exception_source_refs(
+    exception: dict[str, Any],
+    content_hash: str,
+) -> list[dict[str, object]]:
+    refs: list[dict[str, object]] = [
+        {
+            "source_system": "lotus-manage",
+            "source_type": "DPM_MONITORING_EXCEPTION",
+            "source_id": str(exception.get("exception_id") or ""),
+            "content_hash": content_hash,
+        }
+    ]
+    source_lineage = exception.get("source_lineage")
+    if isinstance(source_lineage, list):
+        for index, item in enumerate(source_lineage):
+            if isinstance(item, dict):
+                source_system = item.get("source_system") or item.get("sourceSystem")
+                source_type = item.get("source_type") or item.get("product_name")
+                source_id = item.get("source_id") or item.get("product_version") or index
+                if source_system and source_type:
+                    refs.append(
+                        {
+                            "source_system": str(source_system),
+                            "source_type": str(source_type),
+                            "source_id": str(source_id),
+                            "content_hash": _safe_optional_str(item.get("content_hash"))
+                            or content_hash,
+                        }
+                    )
+    return refs
+
+
+def _exception_summary_source_refs(exception_summary_input: dict[str, object]) -> list[str]:
+    refs = [f"lotus-manage:exception-summary:{exception_summary_input['content_hash']}"]
+    exceptions = exception_summary_input.get("exceptions")
+    if isinstance(exceptions, list):
+        for item in exceptions:
+            if isinstance(item, dict):
+                exception_id = item.get("exception_id")
+                if exception_id:
+                    refs.append(f"lotus-manage:monitoring-exception:{exception_id}")
+    return sorted(set(refs))
+
+
+def _content_hash(value: object) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
 def _outcome_ai_source_refs(payload: dict[str, Any], outcome_review_id: str) -> list[str]:

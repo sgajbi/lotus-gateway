@@ -1184,6 +1184,7 @@ route family so Workbench can consume Gateway/BFF instead of calling `lotus-mana
 | RFC41-WTBD-005 Gateway wave composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_waves.py`, `src/app/services/dpm_wave_service.py`, `src/app/contracts/dpm_waves.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_wave_service.py`, `tests/integration/test_dpm_wave_router.py`, `tests/contract/test_dpm_wave_contract.py`, `tests/unit/test_upstream_clients.py` |
 | RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
 | RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
+| RFC38/RFC43-WTBD Gateway exception-summary AI handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned monitoring-exception evidence from the command-center exception queue, executes `lotus-ai` `dpm_exception_summary.pack@v1` as `lotus-gateway`, preserves source refs/content hashes/supportability, and exposes `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` |
 | RFC-0042 manage authority preservation | Implemented for BFF envelope; Gateway forwards payloads and preserves manage supportability | Service tests prove payload preservation and upstream error forwarding; contract tests prove OpenAPI route family registration and What/When/How guidance |
 | Broader RFC-0098 report/archive modules and Workbench cockpit | Not implemented in this slice | Gateway wave composition is a backend BFF contract only; Workbench UI, report materialization, archive, and broader optional AI posture remain governed follow-up work |
 
@@ -1195,6 +1196,7 @@ Implementation boundaries:
    `GET /api/v1/dpm/command-center/monitoring/runs/{monitoring_run_id}`,
    `GET /api/v1/dpm/command-center/exceptions`,
    `POST /api/v1/dpm/command-center/exceptions/{exception_id}/resolve`,
+   `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`,
    `GET /api/v1/dpm/command-center/mandates/by-portfolio/{portfolio_id}`,
    `GET /api/v1/dpm/command-center/mandates/{mandate_id}`,
    `GET /api/v1/dpm/command-center/mandates/{mandate_id}/health`, and
@@ -1205,6 +1207,10 @@ Implementation boundaries:
 3. Gateway does not discover PM-book membership, calculate mandate health, reconstruct health
    dimensions, infer source readiness, merge exceptions across monitoring runs, or resolve
    exceptions locally.
+   The exception-summary AI handoff filters the manage exception queue by exception id and
+   optional portfolio, mandate, or state, builds a bounded no-raw-payload exception-summary input,
+   and calls `lotus-ai` `dpm_exception_summary.pack@v1`. Gateway does not generate summaries
+   locally, score PMs, approve trades, contact clients, route orders, or invent evidence.
 4. Gateway now exposes `POST /api/v1/dpm/command-center/construction/alternative-sets/generate`,
    `GET /api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`, and
    `POST /api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`.
@@ -1268,8 +1274,9 @@ Implementation boundaries:
 17. Gateway does not calculate expected values, realized values, variance, tolerance, hashes,
    lineage, source freshness, supportability, or review state.
 18. Gateway does not generate reports, render artifacts, archive documents, generate AI narrative
-   locally, score PM quality, approve trades, contact clients, or claim Workbench UI support in
-   this slice. The AI narrative endpoint is a governed handoff to `lotus-ai` over manage evidence.
+   locally, score PM quality, approve trades, contact clients, route orders, or claim Workbench UI
+   support in this slice. The AI narrative and exception-summary endpoints are governed handoffs
+   to `lotus-ai` over manage evidence.
 19. Workbench product realization remains a separate owning-repository implementation item.
 
 Latest portfolio-memory Gateway validation performed on 2026-05-08:
