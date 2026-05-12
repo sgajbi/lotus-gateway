@@ -195,6 +195,7 @@ Supported routes:
 14. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
 15. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
 16. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+17. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 
 Authority and integrations:
 
@@ -206,7 +207,9 @@ Authority and integrations:
    issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
 4. Gateway reads manage-owned wave report input before calling `lotus-ai`
    `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
-5. Gateway does not calculate affected portfolios, classify source readiness, generate
+5. Gateway reads manage-owned wave report input with internal handoff refs before calling
+   `lotus-ai` `dpm_operations_handoff_summary.pack@v1`.
+6. Gateway does not calculate affected portfolios, classify source readiness, generate
    alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
    proof packs, generate report evidence, generate AI narrative locally, score PMs, approve trades,
    contact clients, place orders, invent missing evidence, cancel external orders, or claim external
@@ -217,6 +220,7 @@ flowchart LR
     Workbench[lotus-workbench future wave cockpit] --> Gateway[lotus-gateway DPM wave routes]
     Gateway --> Manage[lotus-manage RFC-0041 wave authority]
     Gateway --> AI[lotus-ai dpm_wave_pm_memo.pack@v1]
+    Gateway --> OpsAI[lotus-ai dpm_operations_handoff_summary.pack@v1]
     Manage --> Construction[lotus-manage RFC-0039 construction alternatives]
     Manage --> Proof[lotus-manage RFC-0040 proof packs]
     Manage --> ReportInput[DpmWaveReportInput evidence]
@@ -232,7 +236,11 @@ Operational behavior:
 2. unsupported transitions and missing waves return product-safe manage error details,
 3. lotus-ai failures on the wave PM memo route return product-safe `lotus-ai` error details while
    preserving manage evidence boundaries,
-4. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
+4. lotus-ai failures on the operations-handoff summary route return product-safe `lotus-ai` error
+   details while preserving manage evidence boundaries,
+5. Gateway never turns generated operations handoff support text into order routing, external
+   execution, trade approval, client contact, or PM scoring,
+6. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
    are not claimed by this Gateway slice.
 
 ## DPM Mandate Command Center

@@ -1,6 +1,10 @@
 from fastapi.testclient import TestClient
 
-from app.contracts.dpm_waves import DpmWaveGatewayResponse, DpmWaveMemoGatewayResponse
+from app.contracts.dpm_waves import (
+    DpmOperationsHandoffSummaryGatewayResponse,
+    DpmWaveGatewayResponse,
+    DpmWaveMemoGatewayResponse,
+)
 from app.main import app
 
 
@@ -54,6 +58,30 @@ def test_dpm_wave_memo_gateway_response_contract_shape() -> None:
     assert response.wave_report_input["wave_id"] == "dwv_001"
 
 
+def test_dpm_operations_handoff_summary_gateway_response_contract_shape() -> None:
+    response = DpmOperationsHandoffSummaryGatewayResponse(
+        correlation_id="corr-wave-handoff-summary",
+        manage_upstream_status=200,
+        ai_upstream_status=200,
+        supportability={"state": "ready", "reason_codes": ["wave_report_input_ready"]},
+        wave_report_input={
+            "wave_id": "dwv_001",
+            "handoff_refs": [{"ref_id": "handoff_001"}],
+            "external_execution_claimed": False,
+        },
+        handoff_summary_request={
+            "requested_outputs": ["operations_summary", "blocking_conditions"],
+            "audience": ["operations", "portfolio_manager"],
+        },
+        data={"run_id": "wf_run_handoff_001", "status": "REVIEW_REQUIRED"},
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0041"
+    assert response.wave_report_input["external_execution_claimed"] is False
+
+
 def test_dpm_wave_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -74,6 +102,7 @@ def test_dpm_wave_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/waves/{wave_id}/supportability", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/report-input", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo", "post"),
+        ("/api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary", "post"),
     ]
 
     for path, method in expected_paths:
@@ -95,6 +124,8 @@ def test_dpm_wave_openapi_models_are_described() -> None:
         "DpmWaveCreateRequest",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",
+        "DpmOperationsHandoffSummaryGatewayResponse",
+        "DpmOperationsHandoffSummaryRequest",
         "DpmWaveMemoGatewayResponse",
         "DpmWaveMemoRequest",
         "DpmWaveSupportability",

@@ -6,6 +6,8 @@ from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_waves import (
+    DpmOperationsHandoffSummaryGatewayResponse,
+    DpmOperationsHandoffSummaryRequest,
     DpmWaveCreateRequest,
     DpmWaveErrorDetail,
     DpmWaveForwardRequest,
@@ -432,6 +434,36 @@ async def request_wave_pm_memo(
     ),
 ) -> DpmWaveMemoGatewayResponse:
     return await _dpm_wave_service().request_wave_pm_memo(
+        wave_id=wave_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.post(
+    "/{wave_id}/operations-handoff-summary",
+    response_model=DpmOperationsHandoffSummaryGatewayResponse,
+    summary="Request DPM operations handoff AI summary",
+    description=(
+        "What: requests a governed lotus-ai operations handoff workflow-pack run from "
+        "manage-owned DPM wave report-input and handoff evidence. When: call this after manage "
+        "has staged or handoff-ready wave evidence and operations need review-gated support text. "
+        "How: Gateway first reads manage's DpmWaveReportInput, then executes lotus-ai "
+        "dpm_operations_handoff_summary.pack@v1 as lotus-gateway; Gateway does not generate "
+        "handoff narrative locally, score PMs, approve trades, contact clients, route orders, "
+        "claim external execution, or invent evidence."
+    ),
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
+async def request_operations_handoff_summary(
+    request: DpmOperationsHandoffSummaryRequest,
+    wave_id: str = Path(
+        ...,
+        description="Manage-owned rebalance-wave identifier for the bounded AI handoff.",
+        examples=["dwv_001"],
+    ),
+) -> DpmOperationsHandoffSummaryGatewayResponse:
+    return await _dpm_wave_service().request_operations_handoff_summary(
         wave_id=wave_id,
         request=request,
         correlation_id=correlation_id_var.get(),

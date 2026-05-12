@@ -139,6 +139,11 @@
     `DpmWaveReportInput`, then calls `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
     support text; Gateway does not generate narrative locally, score PMs, approve trades, contact
     clients, place orders, or invent evidence.
+    The operations-handoff summary route also reads manage-owned `DpmWaveReportInput`, including
+    bounded internal `handoff_refs`, then calls `lotus-ai`
+    `dpm_operations_handoff_summary.pack@v1` for review-required operations support text; Gateway
+    does not route orders, claim external execution, approve trades, contact clients, or invent
+    evidence.
 16. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
