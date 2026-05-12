@@ -282,6 +282,61 @@ async def test_lotus_analytics_client_performance_workspace_requests_use_owned_c
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_calls_composite_performance_routes():
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "calculation_id": "calc-1",
+            "composite_id": "PB_GLOBAL_BALANCED_USD",
+            "status": "READY",
+            "periods": [],
+        },
+    )
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "inspection_id": "insp-1",
+            "composite_id": "PB_GLOBAL_BALANCED_USD",
+            "verdict": "supportable",
+            "artifacts": [],
+        },
+    )
+
+    twr_status, twr_payload = await client.post_composite_twr(
+        payload={
+            "calculation_id": "calc-1",
+            "composite_id": "PB_GLOBAL_BALANCED_USD",
+            "period_start": "2026-01-01",
+            "period_end": "2026-03-31",
+        },
+        correlation_id="corr-composite",
+    )
+    inspection_status, inspection_payload = await client.post_composite_inspection(
+        payload={
+            "inspection_id": "insp-1",
+            "composite_id": "PB_GLOBAL_BALANCED_USD",
+            "period_start": "2026-01-01",
+            "period_end": "2026-03-31",
+        },
+        correlation_id="corr-composite",
+    )
+
+    assert twr_status == 200
+    assert twr_payload["status"] == "READY"
+    assert inspection_status == 200
+    assert inspection_payload["verdict"] == "supportable"
+    twr_post = _FakeAsyncClient.calls[0]
+    inspection_post = _FakeAsyncClient.calls[1]
+    assert twr_post["url"] == "http://analytics/performance/composites/twr"
+    assert twr_post["json"]["composite_id"] == "PB_GLOBAL_BALANCED_USD"
+    assert twr_post["headers"]["X-Correlation-Id"] == "corr-composite"
+    assert inspection_post["url"] == "http://analytics/performance/composites/inspect"
+    assert inspection_post["json"]["inspection_id"] == "insp-1"
+    assert inspection_post["headers"]["X-Correlation-Id"] == "corr-composite"
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_omits_stateful_dimension_filter_for_currency_attribution():
     client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(
