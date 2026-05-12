@@ -319,6 +319,54 @@ async def test_lotus_analytics_client_omits_stateful_dimension_filter_for_curren
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_allows_slow_stateful_attribution_to_materialize(monkeypatch):
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr("app.clients.lotus_analytics_client.asyncio.sleep", _no_sleep)
+
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(202, {"result_path": "/performance/attribution/results/calc-1"})
+    for _ in range(12):
+        _FakeAsyncClient.queue_json(202, {"detail": "async attribution result still pending"})
+    _FakeAsyncClient.queue_json(
+        200,
+        {
+            "model": "BF",
+            "linking": "carino",
+            "results_by_period": {
+                "YTD": {
+                    "reconciliation": {
+                        "total_active_return": 0.7,
+                        "sum_of_effects": 0.69,
+                        "residual": 0.01,
+                    },
+                    "levels": [],
+                }
+            },
+        },
+    )
+
+    status, payload = await client.get_attribution_analytics(
+        portfolio_id="P1",
+        report_start_date="2026-01-01",
+        report_end_date="2026-02-24",
+        period="YTD",
+        metric_basis="NET",
+        benchmark_id="MODEL_60_40",
+        dimension="asset_class",
+        correlation_id="corr-performance",
+    )
+
+    assert status == 200
+    assert payload["results_by_period"]["YTD"]["reconciliation"]["sum_of_effects"] == 0.69
+    assert len(_FakeAsyncClient.calls) == 14
+    assert _FakeAsyncClient.calls[-1]["url"] == (
+        "http://analytics/performance/attribution/results/calc-1"
+    )
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
     client = LotusAnalyticsClient(base_url="http://risk", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"results": {}})

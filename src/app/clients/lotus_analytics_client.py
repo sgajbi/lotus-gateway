@@ -85,6 +85,8 @@ class LotusAnalyticsClient:
         correlation_id: str,
         service: str = "lotus-performance",
         operation: str | None = None,
+        async_poll_attempts: int = 10,
+        async_poll_interval_seconds: float = 0.35,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
         headers = propagation_headers(correlation_id)
@@ -140,6 +142,8 @@ class LotusAnalyticsClient:
                     correlation_id=correlation_id,
                     service=service,
                     operation=resolved_operation,
+                    max_attempts=async_poll_attempts,
+                    poll_interval_seconds=async_poll_interval_seconds,
                 )
         emit_gateway_analytics_read_audit_log(
             logger=logger,
@@ -420,6 +424,7 @@ class LotusAnalyticsClient:
             path="/performance/attribution",
             payload=payload,
             correlation_id=correlation_id,
+            async_poll_attempts=40,
         )
 
     async def get_workspace_summary(
