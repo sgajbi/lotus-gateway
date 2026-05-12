@@ -294,3 +294,109 @@ def test_dpm_wave_ai_pm_memo_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
     supportability = ai_kwargs["task_request"]["context"]["payload"]["supportability"]
     assert supportability["requires_human_review"] is True
     assert "approve_rebalance" in supportability["blocked_actions"]
+
+
+def test_dpm_wave_operations_handoff_summary_uses_lotus_ai_workflow_pack(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_wave_report_input(self, wave_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["manage_wave_id"] = wave_id
+        captured["manage_correlation_id"] = correlation_id
+        return 200, _wave_report_input_with_handoff(wave_id)
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN001, ANN003
+        _ = self
+        captured["ai_kwargs"] = kwargs
+        return 200, {"run_id": "wf_run_handoff_001", "status": "REVIEW_REQUIRED"}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_wave_report_input",
+        _fake_get_wave_report_input,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/waves/dwv_001/operations-handoff-summary",
+        json={
+            "requested_outputs": ["operations_summary", "blocking_conditions"],
+            "audience": ["operations", "portfolio_manager"],
+        },
+        headers={"X-Correlation-Id": "corr-wave-router-handoff-summary"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source_service"] == "lotus-ai"
+    assert payload["evidence_source_service"] == "lotus-manage"
+    assert payload["wave_report_input"]["handoff_refs"][0]["ref_id"] == "handoff_001"
+    assert payload["handoff_summary_request"]["requested_outputs"] == [
+        "operations_summary",
+        "blocking_conditions",
+    ]
+    ai_kwargs = captured["ai_kwargs"]
+    assert ai_kwargs["pack_id"] == "dpm_operations_handoff_summary.pack"
+    assert ai_kwargs["workflow_surface"] == "dpm-operations-handoff-ai-evidence"
+    assert ai_kwargs["correlation_id"] == "corr-wave-router-handoff-summary"
+    assert ai_kwargs["task_request"]["caller"]["caller_app"] == "lotus-gateway"
+    supportability = ai_kwargs["task_request"]["context"]["payload"]["supportability"]
+    assert supportability["requires_human_review"] is True
+    assert "approve_rebalance" in supportability["forbidden_actions"]
+    assert "order_routing" in supportability["unsupported_claims"]
+    assert "memo_request" not in ai_kwargs["task_request"]["context"]["payload"]
+
+
+def _wave_report_input_with_handoff(wave_id: str) -> dict[str, object]:
+    return {
+        "contract_version": "1.0",
+        "wave_id": wave_id,
+        "wave_content_hash": "sha256:wave-content",
+        "wave_state": "HANDOFF_READY",
+        "trigger_type": "EXPLICIT_PORTFOLIO_LIST",
+        "trigger_id": "manual-wave-001",
+        "trigger_rationale": "CIO model update for the Singapore balanced DPM book.",
+        "as_of_date": "2026-05-12",
+        "generated_at": "2026-05-12T08:00:00Z",
+        "aggregate_metrics": {"item_count": 1, "handoff_ready_item_count": 1},
+        "supportability": {
+            "supportability_state": "ready",
+            "reason_codes": ["wave_report_input_ready"],
+            "item_count": 1,
+        },
+        "proof_pack_posture": {"ready_count": 1, "blocked_count": 0},
+        "items": [
+            {
+                "wave_item_id": "dwi_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "state": "HANDOFF_READY",
+                "proof_pack_id": "dpp_wave_001",
+            }
+        ],
+        "events": [{"event_type": "HANDOFF_READY", "event_time": "2026-05-12T08:00:00Z"}],
+        "handoff_refs": [
+            {
+                "ref_type": "INTERNAL_OPERATIONS_HANDOFF",
+                "ref_id": "handoff_001",
+                "source_system": "lotus-manage",
+                "content_hash": "sha256:handoff",
+            }
+        ],
+        "source_refs": [
+            f"lotus-manage:wave:{wave_id}",
+            "lotus-manage:handoff:handoff_001",
+        ],
+        "redaction_policy": "NO_RAW_PAYLOADS",
+        "external_execution_claimed": False,
+        "evidence_ref": {
+            "source_system": "lotus-manage",
+            "source_type": "DPM_WAVE_REPORT_INPUT",
+            "source_id": wave_id,
+            "content_hash": "sha256:wave-report-input",
+        },
+        "content_hash": "sha256:wave-report-input",
+        "report_input_ref": f"report-input:{wave_id}",
+    }

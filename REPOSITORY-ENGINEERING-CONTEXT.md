@@ -64,13 +64,19 @@ Current repository posture:
     authority, `lotus-ai` remains workflow-pack execution authority, and Gateway does not generate
     exception summaries locally, score PMs, approve trades, contact clients, route orders, or
     invent evidence,
-12. RFC-0040 proof-pack AI PM memo handoff now reads manage-owned
+12. RFC-0041 operations-handoff summary now reads manage-owned `DpmWaveReportInput` handoff
+    evidence and executes `lotus-ai` `dpm_operations_handoff_summary.pack@v1` as
+    `lotus-gateway`; manage remains wave and handoff evidence authority, `lotus-ai` remains
+    workflow-pack execution authority, and Gateway does not generate handoff summaries locally,
+    score PMs, approve trades, contact clients, route orders, claim external execution, or invent
+    evidence,
+13. RFC-0040 proof-pack AI PM memo handoff now reads manage-owned
     `DpmProofPackAiEvidenceInput` and executes `lotus-ai` `dpm_pm_memo.pack@v1` as
     `lotus-gateway`; manage remains proof-pack evidence authority, `lotus-ai` remains workflow-pack
     execution authority, and Gateway does not generate memos, score PMs, approve trades, contact
     clients, place orders, or invent evidence,
-13. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
-14. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
+14. canonical local startup now depends on environment-scoped service identity and `--app-dir src` to avoid misleading Windows import-path failures.
+15. RFC-0108 analytics UI observability is active for selected Workbench performance summary,
     risk summary, advisor-brief read, and advisor-brief review-action paths, and has expanded
     fan-out coverage for central `lotus-advise`, `lotus-manage`,
     `lotus-report`, `lotus-archive`, `lotus-ai`, direct `lotus-core` query/control-plane, and

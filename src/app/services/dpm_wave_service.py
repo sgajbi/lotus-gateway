@@ -6,6 +6,8 @@ from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_waves import (
+    DpmOperationsHandoffSummaryGatewayResponse,
+    DpmOperationsHandoffSummaryRequest,
     DpmWaveErrorDetail,
     DpmWaveGatewayResponse,
     DpmWaveMemoGatewayResponse,
@@ -25,6 +27,13 @@ _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS = [
     "trade_approval",
     "portfolio_manager_scoring",
     "execution_instruction",
+]
+_OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS = [
+    "client_contact",
+    "trade_approval",
+    "portfolio_manager_scoring",
+    "execution_instruction",
+    "order_routing",
 ]
 
 
@@ -296,6 +305,89 @@ class DpmWaveService:
             supportability=supportability,
             wave_report_input=manage_payload,
             memo_request=memo_request,
+            data=ai_payload,
+        )
+
+    async def request_operations_handoff_summary(
+        self,
+        wave_id: str,
+        request: DpmOperationsHandoffSummaryRequest,
+        correlation_id: str,
+    ) -> DpmOperationsHandoffSummaryGatewayResponse:
+        if self._lotus_ai_client is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
+            )
+
+        manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
+            wave_id=wave_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            raise self._upstream_error(manage_status, manage_payload)
+
+        supportability = _supportability_from(manage_payload)
+        handoff_summary_request: dict[str, object] = {
+            "requested_outputs": request.requested_outputs,
+            "audience": request.audience,
+        }
+        task_payload = {
+            "wave_report_input": manage_payload,
+            "handoff_summary_request": handoff_summary_request,
+            "supportability": {
+                "source_state": supportability.state,
+                "reason_codes": supportability.reason_codes,
+                "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+                "requires_human_review": True,
+                "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
+            },
+        }
+        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+            pack_id="dpm_operations_handoff_summary.pack",
+            version="v1",
+            environment="DEVELOPMENT",
+            caller_identity_class="INTERNAL_SERVICE",
+            workflow_surface="dpm-operations-handoff-ai-evidence",
+            task_request={
+                "task_id": "explain.v1",
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
+                        "Generate review-gated DPM operations handoff summary from "
+                        f"manage-owned handoff evidence for {wave_id}."
+                    ),
+                    "payload": task_payload,
+                    "source_refs": _wave_report_source_refs(manage_payload, wave_id),
+                },
+                "expected_output_label": "EXPLANATION_ONLY",
+            },
+            correlation_id=correlation_id,
+        )
+        if ai_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=ai_status,
+                detail={
+                    "source_service": "lotus-ai",
+                    "upstream_status": ai_status,
+                    "error_code": "AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
+                    "detail": _safe_upstream_detail(ai_payload),
+                },
+            )
+
+        return DpmOperationsHandoffSummaryGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            manage_upstream_status=manage_status,
+            ai_upstream_status=ai_status,
+            supportability=supportability,
+            wave_report_input=manage_payload,
+            handoff_summary_request=handoff_summary_request,
             data=ai_payload,
         )
 

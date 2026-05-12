@@ -24,6 +24,7 @@
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
+- `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 - `GET` and `POST /api/v1/dpm/command-center/construction/alternative-sets*`
 - `GET` and `POST /api/v1/dpm/command-center/proof-packs*`
 - `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`
@@ -127,6 +128,11 @@
   PM/control support text. Gateway must not calculate affected portfolios, readiness,
   alternatives, proof-pack state, report evidence, AI narrative, PM scoring, trade approval,
   client contact, order placement, or external execution posture.
+  The operations-handoff summary action reads manage-owned `DpmWaveReportInput` handoff evidence
+  and calls `lotus-ai` `dpm_operations_handoff_summary.pack@v1` as `lotus-gateway`. Gateway
+  preserves manage handoff refs, source refs, hashes, item posture, and the
+  `external_execution_claimed=false` boundary; it must not generate handoff narrative locally,
+  approve trades, contact clients, route orders, claim execution, or invent evidence.
 - RFC-0098 outcome-review composition must consume `lotus-manage` RFC-0042 outcome-review APIs
   for preview, durable create, search, detail, source refresh, supportability, report input, AI
   evidence input, run lookup, and wave lookup. Gateway now exposes the first implementation-backed
