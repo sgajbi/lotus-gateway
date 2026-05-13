@@ -357,6 +357,44 @@ async def test_risk_summary_uses_stateful_request_and_maps_supportability() -> N
 
 
 @pytest.mark.asyncio
+async def test_risk_workspace_explicit_window_reaches_lotus_risk_period_contract() -> None:
+    client = _StubRiskClient()
+    service = RiskWorkspaceService(client, cache_ttl_seconds=60)
+
+    common = {
+        "portfolio_id": "PF_1",
+        "correlation_id": "corr-explicit",
+        "period": "EXPLICIT",
+        "detail_basis": "NET",
+        "benchmark_code": "BMK_1",
+        "as_of_date": "2026-04-10",
+        "report_start_date": "2026-01-01",
+        "report_end_date": "2026-04-10",
+        "reporting_currency": "USD",
+    }
+
+    await service.get_summary(**common)
+    await service.get_drawdown(**common, include_underwater_series=False)
+    await service.get_rolling(**common, include_time_series=False)
+    await service.get_attribution(
+        **common,
+        attribution_type="TOTAL_RISK",
+        grouping_dimension="SECTOR",
+    )
+
+    expected_period = {
+        "type": "EXPLICIT",
+        "name": "EXPLICIT",
+        "from_date": "2026-01-01",
+        "to_date": "2026-04-10",
+    }
+    assert client.calculate_calls[0]["payload"]["stateful_input"]["periods"] == [expected_period]
+    assert client.drawdown_calls[0]["payload"]["stateful_input"]["periods"] == [expected_period]
+    assert client.rolling_calls[0]["payload"]["stateful_input"]["periods"] == [expected_period]
+    assert client.attribution_calls[0]["payload"]["stateful_input"]["periods"] == [expected_period]
+
+
+@pytest.mark.asyncio
 async def test_risk_summary_reports_partial_when_benchmark_metrics_have_errors() -> None:
     client = _StubRiskClient()
     client.calculate_payload["results"]["YTD"]["metrics"]["TRACKING_ERROR"] = {

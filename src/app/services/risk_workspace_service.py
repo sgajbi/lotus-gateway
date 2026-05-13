@@ -142,6 +142,8 @@ class RiskWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         as_of_date: str | None,
+        report_start_date: str | None = None,
+        report_end_date: str | None = None,
         reporting_currency: str | None,
     ) -> WorkbenchRiskSummaryResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
@@ -152,6 +154,8 @@ class RiskWorkspaceService:
             detail_basis,
             benchmark_code or "",
             resolved_as_of_date,
+            report_start_date or "",
+            report_end_date or "",
             reporting_currency or "",
         )
 
@@ -161,6 +165,8 @@ class RiskWorkspaceService:
                 period=period,
                 detail_basis=detail_basis,
                 as_of_date=resolved_as_of_date,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
                 reporting_currency=reporting_currency,
             )
             upstream_status, upstream_payload = await self._risk_client.post_risk_calculate(
@@ -207,6 +213,8 @@ class RiskWorkspaceService:
         correlation_id: str,
         period: str,
         as_of_date: str | None,
+        report_start_date: str | None = None,
+        report_end_date: str | None = None,
         reporting_currency: str | None,
         benchmark_code: str | None,
     ) -> WorkbenchRiskConcentrationResponse:
@@ -216,6 +224,8 @@ class RiskWorkspaceService:
             portfolio_id,
             period,
             resolved_as_of_date,
+            report_start_date or "",
+            report_end_date or "",
             reporting_currency or "",
             benchmark_code or "",
         )
@@ -272,6 +282,8 @@ class RiskWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         as_of_date: str | None,
+        report_start_date: str | None = None,
+        report_end_date: str | None = None,
         reporting_currency: str | None,
         include_underwater_series: bool,
     ) -> WorkbenchRiskDrawdownResponse:
@@ -283,6 +295,8 @@ class RiskWorkspaceService:
             detail_basis,
             benchmark_code or "",
             resolved_as_of_date,
+            report_start_date or "",
+            report_end_date or "",
             reporting_currency or "",
             include_underwater_series,
         )
@@ -294,6 +308,8 @@ class RiskWorkspaceService:
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
                 as_of_date=resolved_as_of_date,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
                 reporting_currency=reporting_currency,
                 include_underwater_series=include_underwater_series,
             )
@@ -345,6 +361,8 @@ class RiskWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         as_of_date: str | None,
+        report_start_date: str | None = None,
+        report_end_date: str | None = None,
         reporting_currency: str | None,
         include_time_series: bool,
     ) -> WorkbenchRiskRollingResponse:
@@ -356,6 +374,8 @@ class RiskWorkspaceService:
             detail_basis,
             benchmark_code or "",
             resolved_as_of_date,
+            report_start_date or "",
+            report_end_date or "",
             reporting_currency or "",
             include_time_series,
         )
@@ -367,6 +387,8 @@ class RiskWorkspaceService:
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
                 as_of_date=resolved_as_of_date,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
                 reporting_currency=reporting_currency,
                 include_time_series=include_time_series,
                 include_sharpe=True,
@@ -387,6 +409,8 @@ class RiskWorkspaceService:
                     detail_basis=detail_basis,
                     benchmark_code=benchmark_code,
                     as_of_date=resolved_as_of_date,
+                    report_start_date=report_start_date,
+                    report_end_date=report_end_date,
                     reporting_currency=reporting_currency,
                     include_time_series=include_time_series,
                     include_sharpe=False,
@@ -445,6 +469,8 @@ class RiskWorkspaceService:
         detail_basis: str,
         benchmark_code: str | None,
         as_of_date: str | None,
+        report_start_date: str | None = None,
+        report_end_date: str | None = None,
         reporting_currency: str | None,
         attribution_type: str,
         grouping_dimension: str,
@@ -471,6 +497,8 @@ class RiskWorkspaceService:
             detail_basis,
             benchmark_code or "",
             resolved_as_of_date,
+            report_start_date or "",
+            report_end_date or "",
             reporting_currency or "",
             normalized_type,
             normalized_grouping,
@@ -483,6 +511,8 @@ class RiskWorkspaceService:
                 detail_basis=detail_basis,
                 benchmark_code=benchmark_code,
                 as_of_date=resolved_as_of_date,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
                 reporting_currency=reporting_currency,
                 attribution_type=normalized_type,
                 grouping_dimension=normalized_grouping,
@@ -538,6 +568,8 @@ def _build_summary_request(
     period: str,
     detail_basis: str,
     as_of_date: str,
+    report_start_date: str | None,
+    report_end_date: str | None,
     reporting_currency: str | None,
 ) -> dict[str, Any]:
     stateful_input: dict[str, Any] = {
@@ -545,7 +577,11 @@ def _build_summary_request(
         "as_of_date": as_of_date,
         "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
-        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "periods": _build_risk_periods(
+            period=period,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
         "metrics": _SUMMARY_METRICS,
         "options": {
             "frequency": "DAILY",
@@ -590,6 +626,8 @@ def _build_drawdown_request(
     detail_basis: str,
     benchmark_code: str | None,
     as_of_date: str,
+    report_start_date: str | None,
+    report_end_date: str | None,
     reporting_currency: str | None,
     include_underwater_series: bool,
 ) -> dict[str, Any]:
@@ -598,7 +636,11 @@ def _build_drawdown_request(
         "as_of_date": as_of_date,
         "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
-        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "periods": _build_risk_periods(
+            period=period,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
         "benchmark_policy": {
             "include_benchmark": bool(benchmark_code),
             "missing_benchmark_policy": "IGNORE",
@@ -625,6 +667,8 @@ def _build_rolling_request(
     detail_basis: str,
     benchmark_code: str | None,
     as_of_date: str,
+    report_start_date: str | None,
+    report_end_date: str | None,
     reporting_currency: str | None,
     include_time_series: bool,
     include_sharpe: bool,
@@ -639,7 +683,11 @@ def _build_rolling_request(
         "as_of_date": as_of_date,
         "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
-        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "periods": _build_risk_periods(
+            period=period,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
         "rolling_options": {
             "window_lengths": _ROLLING_DEFAULT_WINDOWS,
             "metrics": metrics,
@@ -659,6 +707,8 @@ def _build_attribution_request(
     detail_basis: str,
     benchmark_code: str | None,
     as_of_date: str,
+    report_start_date: str | None,
+    report_end_date: str | None,
     reporting_currency: str | None,
     attribution_type: str,
     grouping_dimension: str,
@@ -668,7 +718,11 @@ def _build_attribution_request(
         "as_of_date": as_of_date,
         "reporting_currency": _resolve_reporting_currency(reporting_currency),
         "net_or_gross": "GROSS" if detail_basis.upper() == "GROSS" else "NET",
-        "periods": [{"type": _normalize_period(period), "name": period.upper()}],
+        "periods": _build_risk_periods(
+            period=period,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
         "attribution_options": {
             "attribution_types": [attribution_type],
             "metrics": ["TRACKING_ERROR" if attribution_type == "ACTIVE_RISK" else "VOLATILITY"],
@@ -2030,6 +2084,20 @@ def _normalize_period(value: str) -> str:
     if normalized == "ITD":
         return "SI"
     return "YTD"
+
+
+def _build_risk_periods(
+    *,
+    period: str,
+    report_start_date: str | None,
+    report_end_date: str | None,
+) -> list[dict[str, Any]]:
+    normalized_period = _normalize_period(period)
+    period_payload: dict[str, Any] = {"type": normalized_period, "name": normalized_period}
+    if normalized_period == "EXPLICIT" and report_start_date and report_end_date:
+        period_payload["from_date"] = report_start_date
+        period_payload["to_date"] = report_end_date
+    return [period_payload]
 
 
 def _map_drawdown_summary(summary_payload: dict[str, Any]) -> WorkbenchRiskDrawdownSummary:
