@@ -471,6 +471,11 @@ class DpmPmOperatingQualitySupportability(BaseModel):
         description="Manage-owned PM operating quality score-run id when returned.",
         examples=["pmq_run_001"],
     )
+    fairness_analysis_id: str | None = Field(
+        default=None,
+        description="Manage-owned PM operating quality fairness-analysis preview id when returned.",
+        examples=["pmq_fair_001"],
+    )
     count: int | None = Field(
         default=None,
         ge=0,

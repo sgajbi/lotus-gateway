@@ -121,6 +121,45 @@ def test_dpm_pm_operating_quality_gateway_response_contract_shape() -> None:
         "autonomous_pm_ranking",
     ]
 
+    fairness_response = DpmPmOperatingQualityGatewayResponse(
+        correlation_id="corr-pmq-fairness-1",
+        upstream_status=200,
+        supportability={
+            "state": "PENDING_REVIEW",
+            "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+            "blocked_actions": ["CREATE_SCORE_RUN"],
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "fairness_analysis_id": "pmq_fair_001",
+        },
+        data={
+            "fairness_analysis": {
+                "product_name": "PmOperatingQualityFairnessAnalysis",
+                "product_version": "v1",
+                "fairness_analysis_id": "pmq_fair_001",
+                "state": "PENDING_REVIEW",
+                "segment_results": [
+                    {
+                        "segment_type": "MANDATE_TYPE",
+                        "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
+                        "state": "REVIEW_REQUIRED",
+                    }
+                ],
+                "forbidden_uses": [
+                    "protected_class_inference",
+                    "autonomous_pm_ranking",
+                    "hr_decision",
+                    "compensation_decision",
+                    "conduct_enforcement",
+                ],
+            }
+        },
+    )
+    assert fairness_response.supportability.fairness_analysis_id == "pmq_fair_001"
+    assert fairness_response.data["fairness_analysis"]["segment_results"][0]["segment_type"] == (
+        "MANDATE_TYPE"
+    )
+
 
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
@@ -196,6 +235,10 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/pm-operating-quality/score-runs/preview", "post"),
         ("/api/v1/dpm/command-center/pm-operating-quality/score-runs", "get"),
         ("/api/v1/dpm/command-center/pm-operating-quality/score-runs", "post"),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview",
+            "post",
+        ),
         (
             "/api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}",
             "get",

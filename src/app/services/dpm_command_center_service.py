@@ -578,6 +578,24 @@ class DpmCommandCenterService:
             correlation_id,
         )
 
+    async def preview_pm_operating_quality_fairness_analysis(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.preview_pm_operating_quality_fairness_analysis(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def list_pm_operating_quality_score_runs(
         self,
         filters: dict[str, Any],
@@ -769,8 +787,12 @@ def _pm_operating_quality_supportability_from(
     payload: dict[str, Any],
 ) -> DpmPmOperatingQualitySupportability:
     score_run = payload.get("score_run")
+    fairness_analysis = payload.get("fairness_analysis")
     policy = payload
-    if isinstance(score_run, dict):
+    if isinstance(fairness_analysis, dict):
+        supportability_source = fairness_analysis
+        policy = fairness_analysis
+    elif isinstance(score_run, dict):
         supportability_source = score_run
         policy = score_run
     elif isinstance(payload.get("score_runs"), list):
@@ -803,6 +825,7 @@ def _pm_operating_quality_supportability_from(
         policy_id=_safe_optional_str(policy.get("policy_id")),
         policy_version=_safe_optional_str(policy.get("policy_version")),
         score_run_id=_safe_optional_str(supportability_source.get("score_run_id")),
+        fairness_analysis_id=_safe_optional_str(supportability_source.get("fairness_analysis_id")),
         count=_safe_int(payload.get("count")) if "count" in payload else None,
     )
 
