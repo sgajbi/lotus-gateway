@@ -130,12 +130,14 @@
     call `lotus-manage` directly.
 15. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
     `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
-    idempotency keys, query filters, and correlation context to manage, then preserves wave ids,
-    lifecycle state, item states, aggregate metrics, selected-alternative refs, proof-pack refs,
-    internal handoff refs, report-input evidence, supportability issues, remediation routes, and
-    no-external-execution posture without discovering affected portfolios, classifying readiness,
-    generating alternatives, approving/staging locally, rebuilding proof packs, generating report
-    evidence, or claiming execution. The wave AI PM memo route first reads manage-owned
+    idempotency keys, query filters, campaign-definition payloads, and correlation context to
+    manage, then preserves wave ids, lifecycle state, item states, aggregate metrics,
+    selected-alternative refs, proof-pack refs, internal handoff refs, campaign definition payloads,
+    report-input evidence, supportability issues, remediation routes, and no-external-execution
+    posture without discovering affected portfolios, discovering cohorts, recomputing campaign
+    membership, classifying readiness, generating alternatives, approving/staging locally,
+    rebuilding proof packs, generating report evidence, or claiming execution. The wave AI PM memo
+    route first reads manage-owned
     `DpmWaveReportInput`, then calls `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
     support text; Gateway does not generate narrative locally, score PMs, approve trades, contact
     clients, place orders, or invent evidence.

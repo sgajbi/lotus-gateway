@@ -20,7 +20,10 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "treat `lotus-report` as the proof-pack authority" in rfc
     assert "calculate affected portfolios, source readiness, aggregate metrics" in rfc
     assert "`GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`" in rfc
+    assert "`GET /api/v1/dpm/command-center/waves/campaign-definitions`" in rfc
+    assert "does not discover cohorts" in rfc
     assert "RFC41-WTBD-005 Gateway wave composition" in rfc
+    assert "RFC41-WTBD-003 Gateway campaign-definition discovery/upsert" in rfc
     assert "RFC40-WTBD-010 Gateway portfolio-memory composition" in rfc
     assert "`GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`" in rfc
     assert "does not reconstruct timeline nodes" in rfc
@@ -48,5 +51,6 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "proof-pack BFF route family" in integrations
     assert "portfolio memory remains `lotus-manage` truth" in integrations
     assert "must not calculate affected portfolios" in api_surface
+    assert "calculate campaign membership" in api_surface
     assert "`/api/v1/dpm/command-center/waves*`" in api_surface
     assert "Gateway does not generate proof packs. That belongs to `lotus-report`." not in rfc

@@ -20,7 +20,8 @@
    The RFC now includes implementation-backed RFC-0041 rebalance-wave realization under
    `/api/v1/dpm/command-center/waves*` for wave preview, create, search, detail, item list,
    source-check, simulation, selection, approval, staging, handoff, cancellation, proof-pack
-   posture, and supportability composition without becoming the wave authority. It also includes
+   posture, supportability, and campaign-definition discovery/upsert composition without becoming
+   the wave or cohort authority. It also includes
    RFC-0042 post-trade outcome-review realization; the first implementation-backed outcome-review
    BFF route family is active under
    `/api/v1/dpm/command-center/outcome-reviews*`, run lookup, and wave lookup routes, preserving

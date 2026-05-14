@@ -32,6 +32,41 @@ class DpmWaveCreateRequest(DpmWaveForwardRequest):
     )
 
 
+class DpmCampaignDefinitionForwardRequest(BaseModel):
+    body: dict[str, object] = Field(
+        description=(
+            "BulkReviewCampaignDefinition:v1 payload forwarded unchanged to lotus-manage. "
+            "Gateway does not discover global portfolios, infer source facts, run maker-checker "
+            "workflow, calculate campaign membership, or claim OMS execution."
+        ),
+        examples=[
+            {
+                "display_name": "May 2026 concentrated holdings review",
+                "status": "ACTIVE",
+                "as_of_date": "2026-05-14",
+                "rationale": "Review source-backed DPM candidates with concentrated holdings.",
+                "eligible_portfolio_types": ["DPM_DISCRETIONARY"],
+                "candidates": [
+                    {
+                        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                        "portfolio_type": "DPM_DISCRETIONARY",
+                        "source_refs": [
+                            {
+                                "source_system": "lotus-risk",
+                                "source_type": "RiskEventAffectedCohort",
+                                "source_id": "risk-event:concentration:2026-05-14",
+                                "content_hash": "sha256:campaign-candidate",
+                            }
+                        ],
+                    }
+                ],
+                "created_by": "pm_sg_1",
+                "correlation_id": "corr-campaign-definition-001",
+            }
+        ],
+    )
+
+
 class DpmWaveMemoRequest(BaseModel):
     requested_outputs: list[str] = Field(
         default_factory=lambda: [
@@ -185,6 +220,42 @@ class DpmWaveGatewayResponse(BaseModel):
                     "aggregate_metrics": {"item_count": 1, "ready_item_count": 1},
                 },
                 "durable": True,
+            }
+        ],
+    )
+
+
+class DpmCampaignDefinitionGatewayResponse(BaseModel):
+    correlation_id: str = Field(
+        description="Correlation identifier propagated across Gateway and lotus-manage.",
+        examples=["corr-campaign-definition-001"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway BFF contract version for DPM campaign-definition responses.",
+        examples=["v1"],
+    )
+    source_service: str = Field(
+        default="lotus-manage",
+        description="Upstream service that supplied the authoritative campaign-definition payload.",
+        examples=["lotus-manage"],
+    )
+    upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage before Gateway envelope composition.",
+        examples=[200],
+    )
+    data: dict[str, object] = Field(
+        description=(
+            "Authoritative manage BulkReviewCampaignDefinition:v1 payload or page preserved for "
+            "Workbench composition. Gateway does not alter candidates, source refs, governance, "
+            "content hashes, status, or as-of posture."
+        ),
+        examples=[
+            {
+                "campaign_id": "campaign-holdings-apple-tesla-20260510",
+                "campaign_version": "2026.05",
+                "product_name": "BulkReviewCampaignDefinition",
+                "status": "ACTIVE",
             }
         ],
     )

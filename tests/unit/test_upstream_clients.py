@@ -47,6 +47,17 @@ class _FakeAsyncClient:
         )
         return self._next_response("POST", url)
 
+    async def put(self, url, json=None, headers=None):
+        self.calls.append(
+            {
+                "method": "PUT",
+                "url": url,
+                "json": json,
+                "headers": headers or {},
+            }
+        )
+        return self._next_response("PUT", url)
+
     @classmethod
     def _next_response(cls, method: str, url: str) -> httpx.Response:
         if not cls.responses:
@@ -1765,6 +1776,24 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/waves/dwv_001",
         ),
         (
+            "list_campaign_definitions",
+            {
+                "params": {"campaign_status": "ACTIVE", "campaign_id": None},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions",
+        ),
+        (
+            "get_campaign_definition",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05",
+        ),
+        (
             "get_wave_items",
             {"wave_id": "dwv_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/items",
@@ -2210,6 +2239,29 @@ async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, exp
     assert _FakeAsyncClient.calls[0]["json"] == kwargs["body"]
     if "idempotency_key" in kwargs:
         assert _FakeAsyncClient.calls[0]["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_put_campaign_definition_uses_manage_contract():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, payload = await client.put_campaign_definition(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        body={"status": "ACTIVE"},
+        correlation_id="corr-5",
+    )
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["method"] == "PUT"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05"
+    )
+    assert _FakeAsyncClient.calls[0]["json"] == {"status": "ACTIVE"}
 
 
 @pytest.mark.asyncio

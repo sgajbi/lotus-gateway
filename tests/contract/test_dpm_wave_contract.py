@@ -89,6 +89,15 @@ def test_dpm_wave_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/waves/preview", "post"),
         ("/api/v1/dpm/command-center/waves", "post"),
         ("/api/v1/dpm/command-center/waves", "get"),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
+            "put",
+        ),
+        ("/api/v1/dpm/command-center/waves/campaign-definitions", "get"),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
+            "get",
+        ),
         ("/api/v1/dpm/command-center/waves/{wave_id}", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/items", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/source-check", "post"),
@@ -122,6 +131,8 @@ def test_dpm_wave_openapi_models_are_described() -> None:
 
     for schema_name in [
         "DpmWaveCreateRequest",
+        "DpmCampaignDefinitionForwardRequest",
+        "DpmCampaignDefinitionGatewayResponse",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",
         "DpmOperationsHandoffSummaryGatewayResponse",
