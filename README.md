@@ -103,6 +103,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
+  `/api/v1/dpm/command-center/pm-operating-quality/policies*`,
+  `/api/v1/dpm/command-center/pm-operating-quality/score-runs*`,
   `/api/v1/dpm/command-center/waves/campaign-definitions*`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
@@ -302,6 +304,13 @@ Important current parameter conventions:
    `lotus-gateway`. Gateway preserves manage evidence authority and lotus-ai workflow-pack posture;
    it does not generate exception narrative locally, score PMs, approve trades, contact clients,
    route orders, or invent missing evidence.
+18. DPM PM operating quality routes under
+   `/api/v1/dpm/command-center/pm-operating-quality/*` consume `lotus-manage`
+   PM operating quality policy and score-run lifecycle APIs. Gateway preserves Manage policy
+   configuration, score-run state, governance evidence, source refs, reason codes, content hashes,
+   and forbidden-use posture without calculating scores, ranking PMs, administering bank policy
+   locally, or creating HR, compensation, conduct-enforcement, approval, client-contact, or
+   execution decisions.
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
@@ -320,8 +329,8 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   RFC-0041 rebalance-wave preview/create/search/detail/items/source-check/simulate/select/approve/
   stage/handoff/cancel/proof-pack/supportability/report-input APIs, and RFC-0042 outcome-review
   preview/create/search/detail/source-refresh, supportability, report-input, AI-evidence, run
-  lookup, wave lookup, and command-center exception queue reads for bounded exception-summary AI
-  handoff
+  lookup, wave lookup, PM operating quality policy/score-run lifecycle APIs, and command-center
+  exception queue reads for bounded exception-summary AI handoff
 - contract rule:
   gateway may reshape, aggregate, and annotate upstream data for product use, but must not assume
   upstream business authority

@@ -657,6 +657,101 @@ class DpmClient:
             operation="manage.rebalance.portfolio_memory.get",
         )
 
+    async def preview_pm_operating_quality_score_run(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/api/v1/rebalance/pm-operating-quality/score-runs/preview",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.score_runs.preview",
+        )
+
+    async def create_pm_operating_quality_score_run(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/api/v1/rebalance/pm-operating-quality/score-runs",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.score_runs.create",
+        )
+
+    async def list_pm_operating_quality_score_runs(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            "/api/v1/rebalance/pm-operating-quality/score-runs",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.score_runs.list",
+        )
+
+    async def get_pm_operating_quality_score_run(
+        self,
+        score_run_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/pm-operating-quality/score-runs/{score_run_id}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.score_runs.get",
+        )
+
+    async def put_pm_operating_quality_policy(
+        self,
+        policy_id: str,
+        policy_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._put(
+            (
+                "/api/v1/rebalance/pm-operating-quality/policies/"
+                f"{policy_id}/versions/{policy_version}"
+            ),
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.policies.put",
+        )
+
+    async def list_pm_operating_quality_policies(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            "/api/v1/rebalance/pm-operating-quality/policies",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.policies.list",
+        )
+
+    async def get_pm_operating_quality_policy(
+        self,
+        policy_id: str,
+        policy_version: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            (
+                "/api/v1/rebalance/pm-operating-quality/policies/"
+                f"{policy_id}/versions/{policy_version}"
+            ),
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.policies.get",
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,

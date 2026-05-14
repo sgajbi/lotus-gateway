@@ -18,6 +18,8 @@ from app.contracts.dpm_command_center import (
     DpmOutcomeReviewNarrativeGatewayResponse,
     DpmOutcomeReviewNarrativeRequest,
     DpmOutcomeReviewSupportability,
+    DpmPmOperatingQualityGatewayResponse,
+    DpmPmOperatingQualitySupportability,
     DpmPortfolioMemoryGatewayResponse,
     DpmPortfolioMemorySupportability,
 )
@@ -540,6 +542,132 @@ class DpmCommandCenterService:
         )
         return self._compose_response(upstream_status, upstream_payload, correlation_id)
 
+    async def preview_pm_operating_quality_score_run(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.preview_pm_operating_quality_score_run(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def create_pm_operating_quality_score_run(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.create_pm_operating_quality_score_run(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_pm_operating_quality_score_runs(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.list_pm_operating_quality_score_runs(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_pm_operating_quality_score_run(
+        self,
+        score_run_id: str,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.get_pm_operating_quality_score_run(
+            score_run_id=score_run_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def put_pm_operating_quality_policy(
+        self,
+        policy_id: str,
+        policy_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.put_pm_operating_quality_policy(
+            policy_id=policy_id,
+            policy_version=policy_version,
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_pm_operating_quality_policies(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.list_pm_operating_quality_policies(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_pm_operating_quality_policy(
+        self,
+        policy_id: str,
+        policy_version: str,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.get_pm_operating_quality_policy(
+            policy_id=policy_id,
+            policy_version=policy_version,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     def _compose_response(
         self,
         upstream_status: int,
@@ -561,6 +689,30 @@ class DpmCommandCenterService:
             contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
+            data=upstream_payload,
+        )
+
+    def _compose_pm_operating_quality_response(
+        self,
+        upstream_status: int,
+        upstream_payload: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        if upstream_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=upstream_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=upstream_status,
+                    error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(upstream_payload),
+                ).model_dump(),
+            )
+
+        return DpmPmOperatingQualityGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            upstream_status=upstream_status,
+            supportability=_pm_operating_quality_supportability_from(upstream_payload),
             data=upstream_payload,
         )
 
@@ -611,6 +763,48 @@ class DpmCommandCenterService:
             supportability=_portfolio_memory_supportability_from(upstream_payload),
             data=upstream_payload,
         )
+
+
+def _pm_operating_quality_supportability_from(
+    payload: dict[str, Any],
+) -> DpmPmOperatingQualitySupportability:
+    score_run = payload.get("score_run")
+    policy = payload
+    if isinstance(score_run, dict):
+        supportability_source = score_run
+        policy = score_run
+    elif isinstance(payload.get("score_runs"), list):
+        score_runs = payload.get("score_runs")
+        first_run = score_runs[0] if score_runs and isinstance(score_runs[0], dict) else {}
+        supportability_source = first_run if isinstance(first_run, dict) else payload
+    elif isinstance(payload.get("policies"), list):
+        policies = payload.get("policies")
+        first_policy = policies[0] if policies and isinstance(policies[0], dict) else {}
+        supportability_source = first_policy if isinstance(first_policy, dict) else payload
+        policy = supportability_source
+    else:
+        supportability_source = payload
+
+    state = (
+        supportability_source.get("state")
+        or supportability_source.get("supportability_state")
+        or supportability_source.get("supportabilityState")
+        or ("EMPTY" if _safe_int(payload.get("count")) == 0 else None)
+        or "UNKNOWN"
+    )
+    return DpmPmOperatingQualitySupportability(
+        state=str(state),
+        reason_codes=_list_of_strings(supportability_source.get("reason_codes") or []),
+        blocked_actions=_list_of_strings(
+            supportability_source.get("blocked_actions")
+            or supportability_source.get("blockedActions")
+            or []
+        ),
+        policy_id=_safe_optional_str(policy.get("policy_id")),
+        policy_version=_safe_optional_str(policy.get("policy_version")),
+        score_run_id=_safe_optional_str(supportability_source.get("score_run_id")),
+        count=_safe_int(payload.get("count")) if "count" in payload else None,
+    )
 
 
 def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportability:

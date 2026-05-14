@@ -22,12 +22,13 @@
   construction alternative-set authority APIs, RFC-0040
   proof-pack authority APIs, RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,
   RFC-0041 rebalance-wave orchestration authority APIs, and RFC-0042
-  post-trade outcome-review authority APIs. RFC-0098 remains the strategic Gateway DPM
+  post-trade outcome-review authority APIs plus PM operating quality policy/score-run lifecycle
+  APIs. RFC-0098 remains the strategic Gateway DPM
   command-center contract; the RFC-0038 mandate command-center BFF route family, RFC-0039
   construction alternative-set BFF route family, RFC-0040 proof-pack BFF route family, RFC-0041
-  rebalance-wave BFF route family, and RFC-0042 outcome-review BFF route family are now
-  implementation-backed, while report materialization, archive, and optional AI posture remain
-  governed follow-on slices until implemented and proven
+  rebalance-wave BFF route family, RFC-0042 outcome-review BFF route family, and PM operating
+  quality BFF route family are now implementation-backed, while report materialization, archive,
+  and optional AI posture remain governed follow-on slices until implemented and proven
 - `lotus-report`
   reporting snapshot, summary, and review payloads
 - `lotus-archive`
@@ -146,7 +147,14 @@
     `dpm_operations_handoff_summary.pack@v1` for review-required operations support text; Gateway
     does not route orders, claim external execution, approve trades, contact clients, or invent
     evidence.
-16. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
+16. PM operating quality remains `lotus-manage` truth. Gateway realization exposes
+    `/api/v1/dpm/command-center/pm-operating-quality/*` for Workbench. Gateway forwards policy
+    list/get/upsert and score-run preview/create/list/get requests to manage, then preserves
+    policy configuration, score-run state, governance evidence, source refs, reason codes,
+    content hashes, and forbidden-use posture without calculating scores, ranking PMs,
+    administering policy locally, creating HR or compensation decisions, performing conduct
+    enforcement, approving trades, contacting clients, routing orders, or inventing evidence.
+17. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from

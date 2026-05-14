@@ -19,6 +19,7 @@
 - `GET /api/v1/dpm/command-center/mandates*`
 - `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`
 - `GET` and `POST /api/v1/dpm/command-center/outcome-reviews*`
+- `GET`, `POST`, and `PUT /api/v1/dpm/command-center/pm-operating-quality/*`
 - `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
@@ -87,6 +88,14 @@
   metadata, and content hash for Workbench. Gateway must not reconstruct timeline nodes, infer
   mandate exceptions, calculate risk, performance, tax, cash, FX, execution, or source-owner
   methodology, or let Workbench bypass Gateway for portfolio memory.
+- PM operating quality composition consumes `lotus-manage`
+  `/api/v1/rebalance/pm-operating-quality/*` through
+  `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway exposes policy list/get/upsert
+  and score-run preview/create/list/get routes for Workbench, preserving manage-owned policy
+  configuration, score-run state, governance evidence, source refs, reason codes, content hashes,
+  and forbidden-use posture. Gateway must not calculate scores, rank PMs, administer bank policy
+  locally, or create HR, compensation, conduct-enforcement, approval, client-contact, order, or
+  execution decisions.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
   generate, get, and select routes for Workbench, preserving manage alternative-set ids, method

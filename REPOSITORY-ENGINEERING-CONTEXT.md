@@ -37,9 +37,10 @@ Current repository posture:
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
    generate/read/Markdown/report-input/AI-evidence/AI PM memo route families,
-   RFC-0040/RFC-0041/RFC-0042 portfolio-memory route family, and RFC-0042 outcome-review
+   RFC-0040/RFC-0041/RFC-0042 portfolio-memory route family, RFC-0042 outcome-review
    preview/create/search/detail/source-refresh/supportability/report-input/AI-evidence and
-   AI-narrative handoff route families,
+   AI-narrative handoff route families, and Manage PM operating quality policy/score-run
+   lifecycle route families,
 4. report job initiation/search/status/event-history/cancellation routes are active for
    gateway-first portfolio review report job workflows under `/api/v1/reports/portfolio-reviews`,
    `/api/v1/report-jobs`, and `/api/v1/report-jobs/*`,
@@ -256,7 +257,14 @@ Most relevant current governance:
     `dpm_wave_pm_memo.pack@v1` from manage-owned wave report input as a review-required PM/control
     support artifact, but it must not generate AI narrative locally, score PMs, approve trades,
     contact clients, place orders, or invent missing evidence.
-16. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
+16. PM operating quality Gateway routes are active under
+    `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway forwards policy list/get/upsert,
+    score-run preview/create/list/get requests to `lotus-manage`, preserves Manage policy
+    configuration, score-run state, governance evidence, source refs, reason codes, content
+    hashes, and forbidden-use posture, and must not calculate scores, rank PMs, administer bank
+    policy locally, create HR or compensation decisions, perform conduct enforcement, approve
+    trades, contact clients, route orders, or invent missing evidence.
+17. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,
