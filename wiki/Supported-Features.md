@@ -222,9 +222,9 @@ Operational behavior:
    counts when available,
 2. upstream manage errors are surfaced as product-safe Gateway errors with
    `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`,
-3. Workbench PM quality UI remains a separate owning-repository slice; Gateway support for the
-   fairness-analysis preview is implementation-backed only after this Gateway branch merges and
-   the corresponding Manage endpoint is available on its owning branch/main.
+3. Workbench PM quality UI is a Gateway-backed owning-repository slice in `lotus-workbench`;
+   end-to-end product support still depends on the corresponding Manage endpoint being available
+   on its owning branch/main and validated through the governed Workbench/Gateway runtime path.
 
 ## DPM Rebalance-Wave Composition
 
