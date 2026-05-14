@@ -92,6 +92,16 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def preview_pm_operating_quality_fairness_analysis(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_fairness_preview",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def list_pm_operating_quality_score_runs(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {"method": "pm_quality_score_runs", "params": params, "correlation_id": correlation_id}
@@ -608,6 +618,77 @@ async def test_dpm_pm_operating_quality_policy_routes_preserve_manage_policy() -
             "policy_version": "2026.05",
             "body": manage_payload,
             "correlation_id": "corr-pmq-policy",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analysis() -> None:
+    manage_payload = {
+        "fairness_analysis": {
+            "product_name": "PmOperatingQualityFairnessAnalysis",
+            "product_version": "v1",
+            "fairness_analysis_id": "pmq_fair_001",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "as_of_date": "2026-05-13",
+            "state": "PENDING_REVIEW",
+            "observed_average_score_spread": "31.00",
+            "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+            "blocked_actions": ["CREATE_SCORE_RUN"],
+            "forbidden_uses": [
+                "protected_class_inference",
+                "autonomous_pm_ranking",
+                "hr_decision",
+                "compensation_decision",
+                "conduct_enforcement",
+            ],
+            "segment_results": [
+                {
+                    "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
+                    "segment_type": "MANDATE_TYPE",
+                    "state": "REVIEW_REQUIRED",
+                    "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+                }
+            ],
+            "source_refs": [
+                {
+                    "source_system": "lotus-manage",
+                    "source_product": "PmOperatingQualityScoreRun",
+                    "source_id": "pmq_run_001",
+                }
+            ],
+        }
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    body = {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+        "segments": [{"segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED"}],
+    }
+    response = await service.preview_pm_operating_quality_fairness_analysis(
+        body=body,
+        correlation_id="corr-pmq-fairness",
+    )
+
+    assert response.source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0042/PM_OPERATING_QUALITY"
+    assert response.supportability.state == "PENDING_REVIEW"
+    assert response.supportability.policy_id == "pmq_sg_dpm"
+    assert response.supportability.policy_version == "2026.05"
+    assert response.supportability.score_run_id is None
+    assert response.supportability.fairness_analysis_id == "pmq_fair_001"
+    assert response.supportability.reason_codes == ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"]
+    assert response.supportability.blocked_actions == ["CREATE_SCORE_RUN"]
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "pm_quality_fairness_preview",
+            "body": body,
+            "correlation_id": "corr-pmq-fairness",
         }
     ]
 

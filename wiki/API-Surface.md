@@ -91,11 +91,12 @@
 - PM operating quality composition consumes `lotus-manage`
   `/api/v1/rebalance/pm-operating-quality/*` through
   `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway exposes policy list/get/upsert
-  and score-run preview/create/list/get routes for Workbench, preserving manage-owned policy
-  configuration, score-run state, governance evidence, source refs, reason codes, content hashes,
-  and forbidden-use posture. Gateway must not calculate scores, rank PMs, administer bank policy
-  locally, or create HR, compensation, conduct-enforcement, approval, client-contact, order, or
-  execution decisions.
+  score-run preview/create/list/get routes, and fairness-analysis preview for Workbench,
+  preserving manage-owned policy configuration, score-run state, fairness-analysis state, segment
+  posture, governance evidence, source refs, reason codes, content hashes, and forbidden-use
+  posture. Gateway must not calculate scores, discover segments, calculate segment averages or
+  fairness spread, infer protected classes, rank PMs, administer bank policy locally, or create HR,
+  compensation, conduct-enforcement, approval, client-contact, order, or execution decisions.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
   generate, get, and select routes for Workbench, preserving manage alternative-set ids, method

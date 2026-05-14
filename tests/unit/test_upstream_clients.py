@@ -2310,6 +2310,14 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             {"body": {"pm_id": "PM_SG_DPM_001"}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs",
         ),
+        (
+            "preview_pm_operating_quality_fairness_analysis",
+            {
+                "body": {"score_run_ids": ["pmq_run_001"], "segments": []},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/pm-operating-quality/fairness-analyses/preview",
+        ),
     ],
 )
 async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, expected_url):

@@ -1282,10 +1282,13 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/preview`,
    `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs`,
    `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs`, and
-   `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}`.
+   `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}`, plus
+   `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview`.
 17. PM operating quality routes preserve manage-owned policy configuration, score-run state,
-   governance evidence, source refs, reason codes, content hashes, and forbidden-use posture.
-18. Gateway does not calculate scores, rank PMs, administer bank policy locally, create HR or
+   fairness-analysis state, segment posture, governance evidence, source refs, reason codes,
+   content hashes, and forbidden-use posture.
+18. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
+   spread, infer protected classes, rank PMs, administer bank policy locally, create HR or
    compensation decisions, perform conduct enforcement, approve trades, contact clients, route
    orders, claim execution, or invent missing evidence.
 19. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,

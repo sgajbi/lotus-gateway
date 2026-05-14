@@ -681,6 +681,18 @@ class DpmClient:
             operation="manage.rebalance.pm_operating_quality.score_runs.create",
         )
 
+    async def preview_pm_operating_quality_fairness_analysis(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/api/v1/rebalance/pm-operating-quality/fairness-analyses/preview",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.fairness_analyses.preview",
+        )
+
     async def list_pm_operating_quality_score_runs(
         self,
         params: dict[str, Any],
