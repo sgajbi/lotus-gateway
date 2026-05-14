@@ -163,6 +163,62 @@ Operational behavior:
    timeline nodes, and cross-app retention/audit policy remain open RFC40-WTBD-010 follow-up
    slices before full product support is claimed.
 
+## DPM PM Operating Quality Composition
+
+Status: implementation-backed in Gateway for the Gateway portion of the PM operating quality
+product path.
+
+Business outcome:
+
+1. portfolio managers, supervisors, and operations users can access PM operating quality policy
+   and score-run lifecycle evidence through the Gateway command-center boundary,
+2. Workbench can prepare PM quality product surfaces without calling `lotus-manage` directly,
+3. sales/pre-sales and control users can describe the API layer as implementation-backed while
+   preserving explicit non-claims around PM ranking, HR, compensation, conduct enforcement,
+   autonomous decisions, client contact, and execution.
+
+Supported routes:
+
+1. `PUT /api/v1/dpm/command-center/pm-operating-quality/policies/{policy_id}/versions/{policy_version}`
+2. `GET /api/v1/dpm/command-center/pm-operating-quality/policies`
+3. `GET /api/v1/dpm/command-center/pm-operating-quality/policies/{policy_id}/versions/{policy_version}`
+4. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/preview`
+5. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs`
+6. `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs`
+7. `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}`
+
+Authority and integrations:
+
+1. `lotus-manage` remains the PM operating quality policy and score-run authority.
+2. Gateway forwards policy list/get/upsert and score-run preview/create/list/get requests to
+   `lotus-manage`.
+3. Gateway preserves manage-owned policy configuration, score-run state, governance evidence,
+   source refs, reason codes, content hashes, and forbidden-use posture.
+4. Gateway does not calculate scores, rank PMs, administer bank policy locally, create HR or
+   compensation decisions, perform conduct enforcement, approve trades, contact clients, route
+   orders, claim execution, or invent missing evidence.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench future PM quality UI] --> Gateway[lotus-gateway PM quality routes]
+    Gateway --> Manage[lotus-manage PM operating quality authority]
+    Manage --> Policy[Bank policy versions]
+    Manage --> ScoreRun[PmOperatingQualityScoreRun:v1]
+    Manage --> Sources[Source refs and governance evidence]
+    Manage --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway returns manage payloads under `data` and adds a supportability summary with state,
+   policy id/version, score-run id, reason codes, blocked actions, and list counts when available,
+2. upstream manage errors are surfaced as product-safe Gateway errors with
+   `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`,
+3. Workbench PM quality UI, canonical browser screenshots, advanced cross-segment fairness
+   analytics, and bank-specific policy content remain separate owning-repository or
+   bank-owned slices before full product support is claimed.
+
 ## DPM Rebalance-Wave Composition
 
 Status: implementation-backed in Gateway for RFC41-WTBD-005.

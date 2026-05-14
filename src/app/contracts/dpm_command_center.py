@@ -146,6 +146,29 @@ class DpmOutcomeReviewRefreshRequest(BaseModel):
     )
 
 
+class DpmPmOperatingQualityForwardRequest(BaseModel):
+    body: dict[str, object] = Field(
+        description=(
+            "Request payload forwarded unchanged to the lotus-manage PM operating quality "
+            "authority. Gateway does not score PMs, administer bank policy locally, infer "
+            "source evidence, rank PMs, or create HR, compensation, conduct-enforcement, "
+            "approval, execution, or client-contact decisions."
+        ),
+        examples=[
+            {
+                "pm_id": "PM_SG_DPM_001",
+                "book_id": "BOOK_SG_BALANCED_DPM",
+                "as_of_date": "2026-05-12",
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "evidence_items": [],
+                "outcome_review_ids": ["or_20260415_001"],
+                "actor_id": "workbench.pm.sg.001",
+            }
+        ],
+    )
+
+
 class DpmOutcomeReviewNarrativeRequest(BaseModel):
     requested_outputs: list[str] = Field(
         default_factory=lambda: [
@@ -397,6 +420,97 @@ class DpmOutcomeReviewGatewayResponse(BaseModel):
                 ],
             }
         ],
+    )
+
+
+class DpmPmOperatingQualitySupportability(BaseModel):
+    source_service: str = Field(
+        default="lotus-manage",
+        description="Authoritative service that owns PM operating quality policy and score truth.",
+        examples=["lotus-manage"],
+    )
+    authority: str = Field(
+        default="lotus-manage:RFC-0042/PM_OPERATING_QUALITY",
+        description=(
+            "Business authority and product provenance for PM operating quality policy and "
+            "score-run lifecycle evidence."
+        ),
+        examples=["lotus-manage:RFC-0042/PM_OPERATING_QUALITY"],
+    )
+    state: str = Field(
+        description=(
+            "Manage-published score-run state, policy posture, or aggregate list state. Gateway "
+            "preserves this value and only defaults when the upstream payload omits it."
+        ),
+        examples=["READY", "WATCH", "BREACHED", "DISABLED", "EMPTY", "UNKNOWN"],
+    )
+    reason_codes: list[str] = Field(
+        default_factory=list,
+        description="Manage-published reason codes explaining PM quality posture.",
+        examples=[["PM_QUALITY_POLICY_DISABLED"]],
+    )
+    blocked_actions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Manage-published or Gateway-preserved actions that product callers must block."
+        ),
+        examples=[["CREATE_SCORE_RUN"]],
+    )
+    policy_id: str | None = Field(
+        default=None,
+        description="Manage-owned PM operating quality policy id when returned.",
+        examples=["pmq_sg_dpm"],
+    )
+    policy_version: str | None = Field(
+        default=None,
+        description="Manage-owned PM operating quality policy version when returned.",
+        examples=["2026.05"],
+    )
+    score_run_id: str | None = Field(
+        default=None,
+        description="Manage-owned PM operating quality score-run id when returned.",
+        examples=["pmq_run_001"],
+    )
+    count: int | None = Field(
+        default=None,
+        ge=0,
+        description="Returned row count for list responses when manage publishes one.",
+        examples=[3],
+    )
+
+
+class DpmPmOperatingQualityGatewayResponse(BaseModel):
+    correlation_id: str = Field(
+        description="Correlation identifier propagated across Gateway and lotus-manage.",
+        examples=["corr-pmq-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway BFF contract version for PM operating quality responses.",
+        examples=["v1"],
+    )
+    source_service: str = Field(
+        default="lotus-manage",
+        description="Upstream service that supplied PM operating quality payloads.",
+        examples=["lotus-manage"],
+    )
+    upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage before Gateway envelope composition.",
+        examples=[200],
+    )
+    supportability: DpmPmOperatingQualitySupportability = Field(
+        description=(
+            "Gateway-normalized supportability summary derived only from manage-published PM "
+            "quality policy and score-run fields."
+        ),
+    )
+    data: dict[str, object] = Field(
+        description=(
+            "Authoritative manage PM operating quality payload preserved for Workbench "
+            "composition. Gateway does not calculate scores, alter policy governance evidence, "
+            "rank PMs, or convert the payload into HR, compensation, conduct, approval, client "
+            "contact, or execution decisions."
+        ),
     )
 
 

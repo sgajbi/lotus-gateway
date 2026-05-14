@@ -5,6 +5,7 @@ from app.contracts.dpm_command_center import (
     DpmExceptionSummaryGatewayResponse,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
+    DpmPmOperatingQualityGatewayResponse,
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.main import app
@@ -83,6 +84,44 @@ def test_dpm_portfolio_memory_gateway_response_contract_shape() -> None:
     assert response.data["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
 
 
+def test_dpm_pm_operating_quality_gateway_response_contract_shape() -> None:
+    response = DpmPmOperatingQualityGatewayResponse(
+        correlation_id="corr-pmq-1",
+        upstream_status=200,
+        supportability={
+            "state": "READY",
+            "reason_codes": ["PM_QUALITY_READY"],
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "score_run_id": "pmq_run_001",
+        },
+        data={
+            "score_run": {
+                "product_name": "PmOperatingQualityScoreRun",
+                "product_version": "v1",
+                "score_run_id": "pmq_run_001",
+                "state": "READY",
+                "forbidden_uses": [
+                    "compensation_decision",
+                    "hr_decision",
+                    "conduct_enforcement",
+                    "autonomous_pm_ranking",
+                ],
+            }
+        },
+    )
+
+    assert response.source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0042/PM_OPERATING_QUALITY"
+    assert response.supportability.score_run_id == "pmq_run_001"
+    assert response.data["score_run"]["forbidden_uses"] == [
+        "compensation_decision",
+        "hr_decision",
+        "conduct_enforcement",
+        "autonomous_pm_ranking",
+    ]
+
+
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
         correlation_id="corr-1",
@@ -154,6 +193,24 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/mandates/{mandate_id}/health", "get"),
         ("/api/v1/dpm/command-center/mandates/{mandate_id}/diff", "get"),
         ("/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory", "get"),
+        ("/api/v1/dpm/command-center/pm-operating-quality/score-runs/preview", "post"),
+        ("/api/v1/dpm/command-center/pm-operating-quality/score-runs", "get"),
+        ("/api/v1/dpm/command-center/pm-operating-quality/score-runs", "post"),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/policies/"
+            "{policy_id}/versions/{policy_version}",
+            "put",
+        ),
+        ("/api/v1/dpm/command-center/pm-operating-quality/policies", "get"),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/policies/"
+            "{policy_id}/versions/{policy_version}",
+            "get",
+        ),
         ("/api/v1/dpm/command-center/outcome-reviews/preview", "post"),
         ("/api/v1/dpm/command-center/outcome-reviews", "get"),
         ("/api/v1/dpm/command-center/outcome-reviews", "post"),
@@ -185,6 +242,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     command_center_supportability_schema = schemas["DpmCommandCenterSupportability"]
     portfolio_memory_response_schema = schemas["DpmPortfolioMemoryGatewayResponse"]
     portfolio_memory_supportability_schema = schemas["DpmPortfolioMemorySupportability"]
+    pm_quality_response_schema = schemas["DpmPmOperatingQualityGatewayResponse"]
+    pm_quality_supportability_schema = schemas["DpmPmOperatingQualitySupportability"]
     response_schema = schemas["DpmOutcomeReviewGatewayResponse"]
     narrative_response_schema = schemas["DpmOutcomeReviewNarrativeGatewayResponse"]
     exception_summary_request_schema = schemas["DpmExceptionSummaryRequest"]
@@ -201,6 +260,12 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
         assert property_schema.get("description")
 
     for property_schema in portfolio_memory_supportability_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in pm_quality_response_schema["properties"].values():
+        assert property_schema.get("description")
+
+    for property_schema in pm_quality_supportability_schema["properties"].values():
         assert property_schema.get("description")
 
     for property_schema in response_schema["properties"].values():
@@ -222,6 +287,8 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     assert command_center_supportability_schema["properties"]["state"]["examples"]
     assert portfolio_memory_response_schema["properties"]["data"]["description"]
     assert portfolio_memory_supportability_schema["properties"]["state"]["examples"]
+    assert pm_quality_response_schema["properties"]["data"]["description"]
+    assert pm_quality_supportability_schema["properties"]["state"]["examples"]
     assert response_schema["properties"]["data"]["description"]
     assert narrative_response_schema["properties"]["data"]["description"]
     assert exception_summary_request_schema["properties"]["requested_outputs"]["examples"]

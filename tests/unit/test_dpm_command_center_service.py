@@ -80,6 +80,74 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def preview_pm_operating_quality_score_run(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "pm_quality_preview", "body": body, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def create_pm_operating_quality_score_run(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "pm_quality_create", "body": body, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def list_pm_operating_quality_score_runs(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "pm_quality_score_runs", "params": params, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def get_pm_operating_quality_score_run(self, score_run_id, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_score_run",
+                "score_run_id": score_run_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def put_pm_operating_quality_policy(  # noqa: ANN001
+        self,
+        policy_id,
+        policy_version,
+        body,
+        correlation_id,
+    ):
+        self.calls.append(
+            {
+                "method": "pm_quality_policy_put",
+                "policy_id": policy_id,
+                "policy_version": policy_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_pm_operating_quality_policies(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {"method": "pm_quality_policies", "params": params, "correlation_id": correlation_id}
+        )
+        return self.result
+
+    async def get_pm_operating_quality_policy(  # noqa: ANN001
+        self,
+        policy_id,
+        policy_version,
+        correlation_id,
+    ):
+        self.calls.append(
+            {
+                "method": "pm_quality_policy",
+                "policy_id": policy_id,
+                "policy_version": policy_version,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def list_monitoring_exceptions(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -461,6 +529,106 @@ async def test_dpm_command_center_forwards_manage_errors_as_product_safe_detail(
         "upstream_status": 409,
         "error_code": "MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
         "detail": "execution evidence incomplete",
+    }
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_preview_preserves_manage_score_run() -> None:
+    manage_payload = {
+        "score_run": {
+            "product_name": "PmOperatingQualityScoreRun",
+            "product_version": "v1",
+            "score_run_id": "pmq_run_001",
+            "pm_id": "PM_SG_DPM_001",
+            "book_id": "BOOK_SG_BALANCED_DPM",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "state": "READY",
+            "score": "86.5",
+            "reason_codes": ["PM_QUALITY_READY"],
+            "forbidden_uses": [
+                "compensation_decision",
+                "hr_decision",
+                "conduct_enforcement",
+                "autonomous_pm_ranking",
+            ],
+        }
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.preview_pm_operating_quality_score_run(
+        body={"pm_id": "PM_SG_DPM_001", "policy_id": "pmq_sg_dpm"},
+        correlation_id="corr-pmq-preview",
+    )
+
+    assert response.source_service == "lotus-manage"
+    assert response.supportability.authority == "lotus-manage:RFC-0042/PM_OPERATING_QUALITY"
+    assert response.supportability.state == "READY"
+    assert response.supportability.policy_id == "pmq_sg_dpm"
+    assert response.supportability.policy_version == "2026.05"
+    assert response.supportability.score_run_id == "pmq_run_001"
+    assert response.supportability.reason_codes == ["PM_QUALITY_READY"]
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "pm_quality_preview",
+            "body": {"pm_id": "PM_SG_DPM_001", "policy_id": "pmq_sg_dpm"},
+            "correlation_id": "corr-pmq-preview",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_policy_routes_preserve_manage_policy() -> None:
+    manage_payload = {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "enabled": True,
+        "as_of_date": "2026-05-12",
+        "reason_codes": ["POLICY_APPROVED"],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.put_pm_operating_quality_policy(
+        policy_id="pmq_sg_dpm",
+        policy_version="2026.05",
+        body=manage_payload,
+        correlation_id="corr-pmq-policy",
+    )
+
+    assert response.supportability.policy_id == "pmq_sg_dpm"
+    assert response.supportability.policy_version == "2026.05"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "pm_quality_policy_put",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "body": manage_payload,
+            "correlation_id": "corr-pmq-policy",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_manage_errors_are_product_safe() -> None:
+    client = _FakeDpmClient((422, {"detail": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"}))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.create_pm_operating_quality_score_run(
+            body={"pm_id": "PM_SG_DPM_001"},
+            correlation_id="corr-pmq-error",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 422,
+        "error_code": "MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        "detail": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED",
     }
 
 

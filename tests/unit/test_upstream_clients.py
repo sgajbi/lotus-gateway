@@ -1758,6 +1758,30 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/portfolio-memory/PB_SG_GLOBAL_BAL_001",
         ),
         (
+            "list_pm_operating_quality_score_runs",
+            {"params": {"pm_id": "PM_SG_DPM_001"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs",
+        ),
+        (
+            "get_pm_operating_quality_score_run",
+            {"score_run_id": "pmq_run_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs/pmq_run_001",
+        ),
+        (
+            "list_pm_operating_quality_policies",
+            {"params": {"policy_id": "pmq_sg_dpm"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/policies",
+        ),
+        (
+            "get_pm_operating_quality_policy",
+            {
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/pm-operating-quality/policies/pmq_sg_dpm/versions/2026.05",
+        ),
+        (
             "list_wave_outcome_reviews",
             {"wave_id": "wave_1", "params": {"state": None}, "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/wave_1/outcome-reviews",
@@ -2082,6 +2106,58 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "correlation_id": "corr-rfc36-canonical",
             },
         ),
+        (
+            client.preview_pm_operating_quality_score_run,
+            {
+                "body": {"pm_id": "PM_SG_DPM_001", "policy_id": "pmq_sg_dpm"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.create_pm_operating_quality_score_run,
+            {
+                "body": {"pm_id": "PM_SG_DPM_001", "policy_id": "pmq_sg_dpm"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.list_pm_operating_quality_score_runs,
+            {
+                "params": {"pm_id": "PM_SG_DPM_001"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_pm_operating_quality_score_run,
+            {
+                "score_run_id": "pmq_run_001",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.put_pm_operating_quality_policy,
+            {
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "body": {"policy_id": "pmq_sg_dpm", "policy_version": "2026.05"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.list_pm_operating_quality_policies,
+            {
+                "params": {"policy_id": "pmq_sg_dpm"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.get_pm_operating_quality_policy,
+            {
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
     ]
     for _method, _kwargs in calls:
         _FakeAsyncClient.queue_json(200, {"ok": True})
@@ -2224,6 +2300,16 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
             },
             "http://dpm/api/v1/rebalance/waves/dwv_001/cancel",
         ),
+        (
+            "preview_pm_operating_quality_score_run",
+            {"body": {"pm_id": "PM_SG_DPM_001"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs/preview",
+        ),
+        (
+            "create_pm_operating_quality_score_run",
+            {"body": {"pm_id": "PM_SG_DPM_001"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs",
+        ),
     ],
 )
 async def test_dpm_client_outcome_review_command_routes(method_name, kwargs, expected_url):
@@ -2262,6 +2348,32 @@ async def test_dpm_client_put_campaign_definition_uses_manage_contract():
         "campaign-holdings-202605/versions/2026.05"
     )
     assert _FakeAsyncClient.calls[0]["json"] == {"status": "ACTIVE"}
+
+
+@pytest.mark.asyncio
+async def test_dpm_client_put_pm_operating_quality_policy_uses_manage_contract():
+    client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"policy_id": "pmq_sg_dpm"})
+
+    status_code, payload = await client.put_pm_operating_quality_policy(
+        policy_id="pmq_sg_dpm",
+        policy_version="2026.05",
+        body={"policy_id": "pmq_sg_dpm", "policy_version": "2026.05"},
+        correlation_id="corr-5",
+    )
+
+    assert status_code == 200
+    assert payload["policy_id"] == "pmq_sg_dpm"
+    assert _FakeAsyncClient.calls[0]["method"] == "PUT"
+    assert (
+        _FakeAsyncClient.calls[0]["url"]
+        == "http://dpm/api/v1/rebalance/pm-operating-quality/policies/"
+        "pmq_sg_dpm/versions/2026.05"
+    )
+    assert _FakeAsyncClient.calls[0]["json"] == {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+    }
 
 
 @pytest.mark.asyncio
