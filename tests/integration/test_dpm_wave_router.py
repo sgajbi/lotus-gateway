@@ -131,6 +131,121 @@ def test_dpm_wave_list_passes_filters_without_reconstructing_state(monkeypatch) 
     assert response.json()["data"]["items"][0]["wave_state"] == "HANDOFF_READY"
 
 
+def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_put_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        _ = self
+        captured["put"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "product_name": "BulkReviewCampaignDefinition",
+            "status": body["status"],
+            "content_hash": "sha256:campaign-definition",
+        }
+
+    async def _fake_list_campaign_definitions(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["list"] = {"params": params, "correlation_id": correlation_id}
+        return 200, {
+            "items": [
+                {
+                    "campaign_id": "campaign-holdings-202605",
+                    "campaign_version": "2026.05",
+                    "product_name": "BulkReviewCampaignDefinition",
+                }
+            ],
+            "limit": params["limit"],
+            "offset": params["offset"],
+            "count": 1,
+        }
+
+    async def _fake_get_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        _ = self
+        captured["get"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "product_name": "BulkReviewCampaignDefinition",
+            "status": "ACTIVE",
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.put_campaign_definition",
+        _fake_put_campaign_definition,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_campaign_definitions",
+        _fake_list_campaign_definitions,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_campaign_definition",
+        _fake_get_campaign_definition,
+    )
+
+    client = TestClient(app)
+    put_response = client.put(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05",
+        json={"body": {"status": "ACTIVE", "candidates": []}},
+        headers={"X-Correlation-Id": "corr-campaign-put"},
+    )
+    list_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-definitions"
+        "?campaign_status=ACTIVE&limit=25&offset=0",
+        headers={"X-Correlation-Id": "corr-campaign-list"},
+    )
+    get_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05",
+        headers={"X-Correlation-Id": "corr-campaign-get"},
+    )
+
+    assert put_response.status_code == 200
+    assert put_response.json()["data"]["product_name"] == "BulkReviewCampaignDefinition"
+    assert list_response.status_code == 200
+    assert list_response.json()["data"]["items"][0]["campaign_id"] == "campaign-holdings-202605"
+    assert get_response.status_code == 200
+    assert get_response.json()["data"]["campaign_version"] == "2026.05"
+    assert captured == {
+        "put": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": {"status": "ACTIVE", "candidates": []},
+            "correlation_id": "corr-campaign-put",
+        },
+        "list": {
+            "params": {
+                "campaign_id": None,
+                "campaign_status": "ACTIVE",
+                "as_of_date": None,
+                "limit": 25,
+                "offset": 0,
+            },
+            "correlation_id": "corr-campaign-list",
+        },
+        "get": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "correlation_id": "corr-campaign-get",
+        },
+    }
+
+
 def test_dpm_wave_actions_preserve_manage_payload(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

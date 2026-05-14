@@ -352,6 +352,46 @@ class DpmClient:
             operation="manage.rebalance.waves.get",
         )
 
+    async def put_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._put(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.put",
+        )
+
+    async def list_campaign_definitions(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            "/api/v1/rebalance/waves/campaign-definitions",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.list",
+        )
+
+    async def get_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.get",
+        )
+
     async def get_wave_items(
         self,
         wave_id: str,
@@ -679,6 +719,27 @@ class DpmClient:
             service="lotus-manage",
             operation=operation,
             method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+            json_body=body,
+        )
+
+    async def _put(
+        self,
+        path: str,
+        body: dict[str, Any],
+        headers: dict[str, str],
+        operation: str,
+    ) -> tuple[int, dict[str, Any]]:
+        url = f"{self._base_url}{path}"
+        return await request_observed_fanout(
+            logger=logger,
+            service="lotus-manage",
+            operation=operation,
+            method="PUT",
             url=url,
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,

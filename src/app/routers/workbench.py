@@ -380,6 +380,18 @@ async def get_workbench_risk_summary(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit risk window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date when the caller requests an explicit risk window.",
+        examples=["2026-03-27"],
+    ),
     reporting_currency: str = Query(
         default="USD",
         description="Reporting currency used for stateful risk and risk-free-rate sourcing.",
@@ -409,6 +421,8 @@ async def get_workbench_risk_summary(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         reporting_currency=reporting_currency,
     )
 
@@ -448,6 +462,18 @@ async def get_workbench_risk_concentration(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit risk window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date when the caller requests an explicit risk window.",
+        examples=["2026-03-27"],
+    ),
     reporting_currency: str = Query(
         default="USD",
         description="Reporting currency used for stateful concentration analytics.",
@@ -461,6 +487,8 @@ async def get_workbench_risk_concentration(
         correlation_id=correlation_id,
         period=period,
         as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         reporting_currency=reporting_currency,
         benchmark_code=benchmark_code,
     )
@@ -505,6 +533,18 @@ async def get_workbench_risk_drawdown(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit risk window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date when the caller requests an explicit risk window.",
+        examples=["2026-03-27"],
+    ),
     reporting_currency: str = Query(
         default="USD",
         description="Reporting currency used for stateful drawdown analytics.",
@@ -525,6 +565,8 @@ async def get_workbench_risk_drawdown(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         reporting_currency=reporting_currency,
         include_underwater_series=include_underwater_series,
     )
@@ -570,6 +612,18 @@ async def get_workbench_risk_rolling(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit risk window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date when the caller requests an explicit risk window.",
+        examples=["2026-03-27"],
+    ),
     reporting_currency: str = Query(
         default="USD",
         description=(
@@ -594,6 +648,8 @@ async def get_workbench_risk_rolling(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         reporting_currency=reporting_currency,
         include_time_series=include_time_series,
     )
@@ -639,6 +695,18 @@ async def get_workbench_risk_attribution(
         description="Optional business as-of date in YYYY-MM-DD format.",
         examples=["2026-02-24"],
     ),
+    report_start_date: str | None = Query(
+        default=None,
+        description=(
+            "Inclusive explicit start date when the caller requests an explicit risk window."
+        ),
+        examples=["2026-01-01"],
+    ),
+    report_end_date: str | None = Query(
+        default=None,
+        description="Inclusive explicit end date when the caller requests an explicit risk window.",
+        examples=["2026-03-27"],
+    ),
     reporting_currency: str = Query(
         default="USD",
         description="Reporting currency used for stateful risk attribution analytics.",
@@ -670,6 +738,8 @@ async def get_workbench_risk_attribution(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         reporting_currency=reporting_currency,
         attribution_type=attribution_type,
         grouping_dimension=grouping_dimension,

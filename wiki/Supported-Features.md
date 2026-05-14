@@ -174,7 +174,10 @@ Business outcome:
 2. operations users can inspect item-level source readiness, simulation, selection, proof-pack,
    approval, staging, internal handoff, cancellation, report-input, AI memo support, and
    supportability posture from one product route family,
-3. sales/pre-sales and client-demo teams can describe wave orchestration as implementation-backed
+3. portfolio managers can discover and upsert manage-owned campaign definitions for tactical
+   house-view, risk-event, and bulk-review waves without Gateway recomputing source-owned cohort
+   facts,
+4. sales/pre-sales and client-demo teams can describe wave orchestration as implementation-backed
    backend composition while keeping Workbench wave cockpit UI as the next owning-repository slice.
 
 Supported routes:
@@ -182,26 +185,30 @@ Supported routes:
 1. `POST /api/v1/dpm/command-center/waves/preview`
 2. `POST /api/v1/dpm/command-center/waves`
 3. `GET /api/v1/dpm/command-center/waves`
-4. `GET /api/v1/dpm/command-center/waves/{wave_id}`
-5. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
-6. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
-7. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
-8. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
-9. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
-10. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
-11. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
-12. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
-13. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
-14. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
-15. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
-16. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
-17. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
+4. `GET /api/v1/dpm/command-center/waves/campaign-definitions`
+5. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
+6. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
+7. `GET /api/v1/dpm/command-center/waves/{wave_id}`
+8. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
+9. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
+10. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
+11. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
+12. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
+13. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
+14. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
+15. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
+16. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
+17. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+18. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
+19. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+20. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
-2. Gateway forwards preview, create, source-check, simulate, select, approve, stage, handoff,
-   cancel, proof-pack posture, supportability, and report-input requests to manage.
+2. Gateway forwards preview, create, campaign-definition list/get/upsert, source-check, simulate,
+   select, approve, stage, handoff, cancel, proof-pack posture, supportability, and report-input
+   requests to manage.
 3. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
    issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
@@ -209,11 +216,11 @@ Authority and integrations:
    `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
 5. Gateway reads manage-owned wave report input with internal handoff refs before calling
    `lotus-ai` `dpm_operations_handoff_summary.pack@v1`.
-6. Gateway does not calculate affected portfolios, classify source readiness, generate
-   alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
-   proof packs, generate report evidence, generate AI narrative locally, score PMs, approve trades,
-   contact clients, place orders, invent missing evidence, cancel external orders, or claim external
-   execution.
+6. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
+   recompute campaign membership, generate alternatives, select alternatives, approve items, stage
+   items, create handoff evidence, rebuild proof packs, generate report evidence, generate AI
+   narrative locally, score PMs, approve trades, contact clients, place orders, invent missing
+   evidence, cancel external orders, or claim external execution.
 
 ```mermaid
 flowchart LR
@@ -221,6 +228,7 @@ flowchart LR
     Gateway --> Manage[lotus-manage RFC-0041 wave authority]
     Gateway --> AI[lotus-ai dpm_wave_pm_memo.pack@v1]
     Gateway --> OpsAI[lotus-ai dpm_operations_handoff_summary.pack@v1]
+    Manage --> Campaigns[Manage-owned campaign definitions]
     Manage --> Construction[lotus-manage RFC-0039 construction alternatives]
     Manage --> Proof[lotus-manage RFC-0040 proof packs]
     Manage --> ReportInput[DpmWaveReportInput evidence]

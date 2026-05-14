@@ -36,8 +36,11 @@ async def request_with_retry(
                 timeout=timeout_seconds,
                 follow_redirects=True,
             ) as client:
-                if method.upper() == "GET":
+                request_method = method.upper()
+                if request_method == "GET":
                     response = await client.get(url, params=params, headers=headers)
+                elif request_method == "PUT":
+                    response = await client.put(url, headers=headers, json=json_body)
                 else:
                     response = await client.post(
                         url,

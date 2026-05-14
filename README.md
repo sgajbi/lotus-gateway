@@ -103,6 +103,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-evidence-input`,
   `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo`,
   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
+  `/api/v1/dpm/command-center/waves/campaign-definitions*`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
   `/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`,
@@ -278,6 +279,10 @@ Important current parameter conventions:
    state, item states, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
    supportability, report-input evidence, and reason codes without calculating affected portfolios,
    source readiness, alternatives, proof-pack state, report evidence, or execution posture locally.
+   Gateway also exposes campaign-definition list, get, and upsert routes under
+   `/api/v1/dpm/command-center/waves/campaign-definitions*` so Workbench can discover and preserve
+   manage-owned campaign/cohort definitions without recomputing cohort facts, portfolio
+   eligibility, maker-checker posture, or membership locally.
    Gateway also exposes a governed `dpm_wave_pm_memo.pack@v1` handoff to `lotus-ai` from
    manage-owned wave report input; it does not generate memo narrative, score PMs, approve trades,
    contact clients, place orders, or invent missing evidence.

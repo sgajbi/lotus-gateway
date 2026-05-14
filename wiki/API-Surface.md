@@ -22,6 +22,7 @@
 - `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary`
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
+- `GET` and `PUT /api/v1/dpm/command-center/waves/campaign-definitions*`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
@@ -119,11 +120,17 @@
   posture, or error semantics locally.
 - RFC-0098 wave composition consumes `lotus-manage` RFC-0041 wave APIs for preview, create,
   search, detail, items, source-check, simulation, selection, approval, staging, handoff, cancel,
-  proof-pack posture, supportability, and report input through
+  proof-pack posture, supportability, report input, and campaign-definition discovery/upsert through
   `/api/v1/dpm/command-center/waves*`. Gateway now exposes the implementation-backed wave BFF
   route family, preserves manage `wave_id`, item states, aggregate metrics, selected alternative
   refs, proof-pack refs, handoff refs, report-input evidence, supportability issues, reason codes,
-  and the no-external-execution boundary. Gateway also exposes a governed handoff from
+  campaign definition payloads, and the no-external-execution boundary. Gateway also exposes
+  `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
+  `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
+  and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
+  for manage-owned campaign/cohort definition discovery. Gateway does not discover cohorts,
+  calculate campaign membership, evaluate portfolio eligibility, or own maker-checker posture.
+  Gateway also exposes a governed handoff from
   manage-owned `DpmWaveReportInput` to `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
   PM/control support text. Gateway must not calculate affected portfolios, readiness,
   alternatives, proof-pack state, report evidence, AI narrative, PM scoring, trade approval,

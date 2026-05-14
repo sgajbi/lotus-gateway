@@ -1182,6 +1182,7 @@ route family so Workbench can consume Gateway/BFF instead of calling `lotus-mana
 | RFC40-WTBD-005 Gateway proof-pack AI PM memo handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `DpmProofPackAiEvidenceInput`, executes `lotus-ai` `dpm_pm_memo.pack@v1` as `lotus-gateway`, preserves manage evidence authority and lotus-ai workflow-pack posture, and exposes `POST /api/v1/dpm/command-center/proof-packs/{proof_pack_id}/ai-pm-memo` |
 | RFC40-WTBD-010 Gateway portfolio-memory composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `/api/v1/rebalance/portfolio-memory/{portfolio_id}` through `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`, preserves event order, event types, source systems, source refs, artifact refs, reason codes, supportability state, bounded metadata, and content hash, and does not reconstruct timeline nodes or calculate source-owner truth |
 | RFC41-WTBD-005 Gateway wave composition | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | `src/app/routers/dpm_waves.py`, `src/app/services/dpm_wave_service.py`, `src/app/contracts/dpm_waves.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_wave_service.py`, `tests/integration/test_dpm_wave_router.py`, `tests/contract/test_dpm_wave_contract.py`, `tests/unit/test_upstream_clients.py` |
+| RFC41-WTBD-003 Gateway campaign-definition discovery/upsert | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway forwards manage-owned campaign definition list, get, and upsert APIs through `/api/v1/dpm/command-center/waves/campaign-definitions*`, preserves campaign payloads unchanged, and does not discover cohorts, recompute campaign membership, or own maker-checker posture |
 | RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
 | RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
 | RFC38/RFC43-WTBD Gateway exception-summary AI handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned monitoring-exception evidence from the command-center exception queue, executes `lotus-ai` `dpm_exception_summary.pack@v1` as `lotus-gateway`, preserves source refs/content hashes/supportability, and exposes `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` |
@@ -1258,12 +1259,17 @@ Implementation boundaries:
    `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`,
    `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`, and
    `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`.
+   Gateway also exposes `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
+   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
+   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`.
 14. Wave routes preserve manage-owned `wave_id`, lifecycle state, item states, reason codes,
-   aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
-   issues, source-owner remediation, and the no-external-execution boundary.
+   aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, campaign
+   definition payloads, supportability issues, source-owner remediation, and the
+   no-external-execution boundary.
 15. Gateway does not calculate affected portfolios, classify source readiness, generate
-   alternatives, select alternatives, approve items, stage items, create handoff evidence, rebuild
-   proof packs, or claim external execution locally.
+   alternatives, discover cohorts, recompute campaign membership, select alternatives, approve
+   items, stage items, create handoff evidence, rebuild proof packs, or claim external execution
+   locally.
    The operations-handoff summary AI handoff reads manage-owned wave report input with bounded
    internal handoff refs and calls `lotus-ai` `dpm_operations_handoff_summary.pack@v1`. Gateway
    does not generate summaries locally, score PMs, approve trades, contact clients, route orders,

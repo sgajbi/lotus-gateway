@@ -52,6 +52,43 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def list_campaign_definitions(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "list_campaign_definitions",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def get_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "get_campaign_definition",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def put_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "put_campaign_definition",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
 
 class _FakeLotusAiClient:
     def __init__(self, result: tuple[int, dict]):
@@ -113,6 +150,40 @@ async def test_dpm_wave_service_preserves_manage_wave_truth_and_supportability()
             "body": {"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
             "idempotency_key": "wave-idem-1",
             "correlation_id": "corr-wave-create",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_definition_payloads() -> None:
+    manage_payload = {
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "product_name": "BulkReviewCampaignDefinition",
+        "status": "ACTIVE",
+        "content_hash": "sha256:campaign-definition",
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.put_campaign_definition(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        body={"status": "ACTIVE"},
+        correlation_id="corr-campaign-definition",
+    )
+
+    assert response.correlation_id == "corr-campaign-definition"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "put_campaign_definition",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": {"status": "ACTIVE"},
+            "correlation_id": "corr-campaign-definition",
         }
     ]
 
