@@ -226,6 +226,109 @@ def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(m
     ]
 
 
+def test_dpm_command_center_pm_quality_fairness_preview_forwards_segment_refs(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_preview_pm_operating_quality_fairness_analysis(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["body"] = body
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "fairness_analysis": {
+                "product_name": "PmOperatingQualityFairnessAnalysis",
+                "product_version": "v1",
+                "fairness_analysis_id": "pmq_fair_001",
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "state": "PENDING_REVIEW",
+                "as_of_date": "2026-05-13",
+                "minimum_segment_score_run_count": 2,
+                "maximum_average_score_spread": "15.00",
+                "observed_average_score_spread": "31.00",
+                "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+                "blocked_actions": ["CREATE_SCORE_RUN"],
+                "forbidden_uses": [
+                    "protected_class_inference",
+                    "autonomous_pm_ranking",
+                    "hr_decision",
+                ],
+                "segment_results": [
+                    {
+                        "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
+                        "segment_type": "MANDATE_TYPE",
+                        "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+                        "source_refs": [
+                            {
+                                "source_system": "lotus-core",
+                                "source_product": "MandateSegment",
+                                "source_id": "disc_balanced",
+                            }
+                        ],
+                    }
+                ],
+            }
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.preview_pm_operating_quality_fairness_analysis",
+        _fake_preview_pm_operating_quality_fairness_analysis,
+    )
+
+    request_body = {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "as_of_date": "2026-05-13",
+        "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+        "segments": [
+            {
+                "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
+                "segment_type": "MANDATE_TYPE",
+                "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+                "source_refs": [
+                    {
+                        "source_system": "lotus-core",
+                        "source_product": "MandateSegment",
+                        "source_id": "disc_balanced",
+                    }
+                ],
+            }
+        ],
+    }
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-fairness-router"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "body": request_body,
+        "correlation_id": "corr-pmq-fairness-router",
+    }
+    payload = response.json()
+    assert payload["source_service"] == "lotus-manage"
+    assert payload["supportability"]["state"] == "PENDING_REVIEW"
+    assert payload["supportability"]["policy_id"] == "pmq_sg_dpm"
+    assert payload["supportability"]["fairness_analysis_id"] == "pmq_fair_001"
+    assert payload["supportability"]["blocked_actions"] == ["CREATE_SCORE_RUN"]
+    analysis = payload["data"]["fairness_analysis"]
+    assert analysis["observed_average_score_spread"] == "31.00"
+    assert analysis["forbidden_uses"] == [
+        "protected_class_inference",
+        "autonomous_pm_ranking",
+        "hr_decision",
+    ]
+    assert analysis["segment_results"][0]["source_refs"][0]["source_product"] == ("MandateSegment")
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
