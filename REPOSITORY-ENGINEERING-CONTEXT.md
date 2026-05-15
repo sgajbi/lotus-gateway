@@ -97,7 +97,11 @@ Current repository posture:
     fields remain forbidden. Gateway preserves upstream `metadata.calculation_supportability`
     from `lotus-performance` and `lotus-risk` as product-safe source calculation posture for
     evidence views, risk module supportability, fan-out state, and bounded degraded metrics without
-    recomputing domain calculation truth.
+    recomputing domain calculation truth. For `ConcentrationRiskReport:v1`, Gateway validates and
+    forwards source-owned single-position concentration fields, including
+    `top_position_weight_current`, `top_position_weight_proposed`, `top_position_weight_delta`,
+    `top_position_current`, and `top_position_proposed`; `TOP_POSITION_WEIGHT` methodology truth
+    remains owned by `lotus-risk`.
 
 ## Architecture And Module Map
 

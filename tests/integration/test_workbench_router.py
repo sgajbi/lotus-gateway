@@ -777,6 +777,13 @@ def test_workbench_risk_concentration_router_maps_stateful_concentration(monkeyp
         body["payload"]["single_position_concentration"]["top_position_current"]["security_name"]
         == "PIMCO GIS Income Fund"
     )
+    assert body["payload"]["single_position_concentration"]["top_position_weight_current"] == 0.2
+    assert body["payload"]["single_position_concentration"]["top_position_weight_proposed"] == 0.21
+    assert body["payload"]["single_position_concentration"]["top_position_weight_delta"] == 0.01
+    assert (
+        body["payload"]["single_position_concentration"]["top_position_proposed"]["security_id"]
+        == "FO_FUND_PIMCO_INC"
+    )
     assert (
         body["payload"]["single_position_concentration"]["top_n_cumulative_weight_proposed"] == 0.52
     )
