@@ -633,6 +633,8 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
             "policy_version": "2026.05",
             "as_of_date": "2026-05-13",
             "state": "PENDING_REVIEW",
+            "minimum_segment_score_run_count": 2,
+            "maximum_average_score_spread": "15.00",
             "observed_average_score_spread": "31.00",
             "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
             "blocked_actions": ["CREATE_SCORE_RUN"],
@@ -647,8 +649,23 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
                 {
                     "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
                     "segment_type": "MANDATE_TYPE",
+                    "display_name": "Discretionary Balanced",
                     "state": "REVIEW_REQUIRED",
                     "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+                    "score_run_refs": [
+                        {
+                            "source_system": "lotus-manage",
+                            "source_product": "PmOperatingQualityScoreRun",
+                            "source_id": "pmq_run_001",
+                        }
+                    ],
+                    "source_refs": [
+                        {
+                            "source_system": "lotus-core",
+                            "source_product": "MandateSegment",
+                            "source_id": "disc_balanced",
+                        }
+                    ],
                 }
             ],
             "source_refs": [
@@ -666,8 +683,23 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
     body = {
         "policy_id": "pmq_sg_dpm",
         "policy_version": "2026.05",
+        "as_of_date": "2026-05-13",
         "score_run_ids": ["pmq_run_001", "pmq_run_002"],
-        "segments": [{"segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED"}],
+        "segments": [
+            {
+                "segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED",
+                "segment_type": "MANDATE_TYPE",
+                "display_name": "Discretionary Balanced",
+                "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+                "source_refs": [
+                    {
+                        "source_system": "lotus-core",
+                        "source_product": "MandateSegment",
+                        "source_id": "disc_balanced",
+                    }
+                ],
+            }
+        ],
     }
     response = await service.preview_pm_operating_quality_fairness_analysis(
         body=body,
@@ -684,6 +716,24 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
     assert response.supportability.reason_codes == ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"]
     assert response.supportability.blocked_actions == ["CREATE_SCORE_RUN"]
     assert response.data == manage_payload
+    analysis = response.data["fairness_analysis"]
+    assert analysis["minimum_segment_score_run_count"] == 2
+    assert analysis["maximum_average_score_spread"] == "15.00"
+    assert analysis["observed_average_score_spread"] == "31.00"
+    assert analysis["forbidden_uses"] == [
+        "protected_class_inference",
+        "autonomous_pm_ranking",
+        "hr_decision",
+        "compensation_decision",
+        "conduct_enforcement",
+    ]
+    assert analysis["segment_results"][0]["source_refs"] == [
+        {
+            "source_system": "lotus-core",
+            "source_product": "MandateSegment",
+            "source_id": "disc_balanced",
+        }
+    ]
     assert client.calls == [
         {
             "method": "pm_quality_fairness_preview",
