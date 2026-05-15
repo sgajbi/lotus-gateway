@@ -57,6 +57,13 @@ outputs.
    when the product surface depends on it. Gateway preserves upstream
    `metadata.calculation_supportability` from performance and risk calculations as product-safe
    source calculation posture, but it does not recompute or override source-owned supportability.
+   For `ConcentrationRiskReport:v1`, Gateway preserves the source-owned
+   `single_position_concentration.top_position_weight_current`,
+   `single_position_concentration.top_position_weight_proposed`,
+   `single_position_concentration.top_position_weight_delta`,
+   `single_position_concentration.top_position_current`, and
+   `single_position_concentration.top_position_proposed` fields; it does not recompute
+   `TOP_POSITION_WEIGHT`.
 5. Any new upstream dependency must be classified into an RFC-0082 family before becoming a stable
    Workbench-facing contract.
 6. Transport optimization discussions start with query shape, payload shape, caching, export semantics,

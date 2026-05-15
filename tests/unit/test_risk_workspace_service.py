@@ -472,8 +472,14 @@ async def test_risk_concentration_uses_stateful_request_and_maps_issuer_supporta
     assert response.state == "partial"
     assert response.payload is not None
     assert response.payload.portfolio_concentration.hhi_current == 1200.0
+    assert response.payload.single_position_concentration.top_position_weight_current == 0.18
+    assert response.payload.single_position_concentration.top_position_weight_proposed == 0.18
+    assert response.payload.single_position_concentration.top_position_weight_delta == 0.0
     assert response.payload.single_position_concentration.top_position_current.security_name == (
         "PIMCO GIS Income Fund"
+    )
+    assert response.payload.single_position_concentration.top_position_proposed.security_id == (
+        "FO_FUND_PIMCO_INC"
     )
     assert response.payload.issuer_concentration.coverage_ratio_current == 0.8
     assert response.payload.execution_context is not None

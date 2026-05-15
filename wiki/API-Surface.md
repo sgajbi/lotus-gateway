@@ -204,6 +204,11 @@
   correlation, request, response, raw prompt, and model output content are not metric labels.
   Performance and risk upstream `metadata.calculation_supportability` is folded into Gateway
   fan-out state and degraded reason labels using the same bounded label contract.
+- Workbench risk concentration remains a `lotus-risk` source-owned calculation. Gateway preserves
+  `ConcentrationRiskReport:v1` top-position weights and current/proposed driver identities for
+  Workbench, including `top_position_weight_current`, `top_position_weight_proposed`,
+  `top_position_weight_delta`, `top_position_current`, and `top_position_proposed`; Gateway does
+  not recompute `TOP_POSITION_WEIGHT`.
 - analytics UI protected diagnostics lookup is gateway-first under
   `/api/v1/analytics-ui/diagnostics/{support_reference}`. It requires `X-Actor-Id`,
   `X-Tenant-Id`, `X-Region`, and an operator support role in `X-Role`; it returns only safe panel,
