@@ -149,8 +149,8 @@
     evidence.
 16. PM operating quality remains `lotus-manage` truth. Gateway realization exposes
     `/api/v1/dpm/command-center/pm-operating-quality/*` for Workbench. Gateway forwards policy
-    list/get/upsert, score-run preview/create/list/get, and fairness-analysis preview requests to
-    manage, then preserves policy configuration, score-run state, fairness-analysis state, segment
+    list/get/upsert, score-run preview/create/list/get, and fairness-analysis preview/create/list/get
+    requests to manage, then preserves policy configuration, score-run state, fairness-analysis state, segment
     posture, governance evidence, source refs, reason codes, content hashes, and forbidden-use
     posture without calculating scores, discovering segments, calculating segment averages or
     fairness spread, inferring protected classes, ranking PMs, administering policy locally,

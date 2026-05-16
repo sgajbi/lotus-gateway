@@ -706,6 +706,43 @@ class DpmClient:
             operation="manage.rebalance.pm_operating_quality.fairness_analyses.preview",
         )
 
+    async def create_pm_operating_quality_fairness_analysis(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/api/v1/rebalance/pm-operating-quality/fairness-analyses",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.fairness_analyses.create",
+        )
+
+    async def list_pm_operating_quality_fairness_analyses(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            "/api/v1/rebalance/pm-operating-quality/fairness-analyses",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.fairness_analyses.list",
+        )
+
+    async def get_pm_operating_quality_fairness_analysis(
+        self,
+        fairness_analysis_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/pm-operating-quality/fairness-analyses/{fairness_analysis_id}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.pm_operating_quality.fairness_analyses.get",
+        )
+
     async def list_pm_operating_quality_score_runs(
         self,
         params: dict[str, Any],

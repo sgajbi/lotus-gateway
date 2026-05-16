@@ -596,6 +596,60 @@ class DpmCommandCenterService:
             correlation_id,
         )
 
+    async def create_pm_operating_quality_fairness_analysis(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.create_pm_operating_quality_fairness_analysis(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_pm_operating_quality_fairness_analyses(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.list_pm_operating_quality_fairness_analyses(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_pm_operating_quality_fairness_analysis(
+        self,
+        fairness_analysis_id: str,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.get_pm_operating_quality_fairness_analysis(
+            fairness_analysis_id=fairness_analysis_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def list_pm_operating_quality_score_runs(
         self,
         filters: dict[str, Any],
@@ -795,6 +849,15 @@ def _pm_operating_quality_supportability_from(
     elif isinstance(score_run, dict):
         supportability_source = score_run
         policy = score_run
+    elif isinstance(payload.get("fairness_analyses"), list):
+        fairness_analyses = payload.get("fairness_analyses")
+        first_analysis = (
+            fairness_analyses[0]
+            if fairness_analyses and isinstance(fairness_analyses[0], dict)
+            else {}
+        )
+        supportability_source = first_analysis if isinstance(first_analysis, dict) else payload
+        policy = supportability_source
     elif isinstance(payload.get("score_runs"), list):
         score_runs = payload.get("score_runs")
         first_run = score_runs[0] if score_runs and isinstance(score_runs[0], dict) else {}
