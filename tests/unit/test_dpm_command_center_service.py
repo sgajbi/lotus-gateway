@@ -1007,6 +1007,20 @@ async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> N
     }
 
 
+def test_dpm_pm_operating_quality_summary_rejects_unsupported_request_labels() -> None:
+    with pytest.raises(ValueError, match="Unsupported PM quality summary outputs requested"):
+        DpmPmOperatingQualitySummaryRequest(
+            requested_outputs=["score_run_summary", "pm_ranking"],
+            audience=["portfolio_manager"],
+        )
+
+    with pytest.raises(ValueError, match="Unsupported PM quality summary audiences requested"):
+        DpmPmOperatingQualitySummaryRequest(
+            requested_outputs=["score_run_summary"],
+            audience=["portfolio_manager", "hr_committee"],
+        )
+
+
 @pytest.mark.asyncio
 async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_only() -> None:
     ai_evidence = _outcome_ai_evidence()
