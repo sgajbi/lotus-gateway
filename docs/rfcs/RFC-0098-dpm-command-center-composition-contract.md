@@ -1263,6 +1263,7 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`.
    Gateway also exposes `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
    `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
+   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events`,
    and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`.
 14. Wave routes preserve manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, campaign

@@ -392,6 +392,19 @@ class DpmClient:
             operation="manage.rebalance.waves.campaign_definitions.get",
         )
 
+    async def get_campaign_definition_lifecycle_events(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.lifecycle_events",
+        )
+
     async def get_wave_items(
         self,
         wave_id: str,

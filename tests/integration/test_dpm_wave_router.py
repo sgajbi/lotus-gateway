@@ -184,6 +184,27 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "status": "ACTIVE",
         }
 
+    async def _fake_get_campaign_definition_lifecycle_events(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        _ = self
+        captured["lifecycle_events"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "events": [
+                {
+                    "event_type": "CAMPAIGN_DEFINITION_CREATED",
+                    "actor_id": "pm_sg_1",
+                    "source_service": "lotus-manage",
+                }
+            ],
+        }
+
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.put_campaign_definition",
         _fake_put_campaign_definition,
@@ -195,6 +216,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_campaign_definition",
         _fake_get_campaign_definition,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_campaign_definition_lifecycle_events",
+        _fake_get_campaign_definition_lifecycle_events,
     )
 
     client = TestClient(app)
@@ -214,6 +239,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "campaign-holdings-202605/versions/2026.05",
         headers={"X-Correlation-Id": "corr-campaign-get"},
     )
+    lifecycle_events_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/lifecycle-events",
+        headers={"X-Correlation-Id": "corr-campaign-lifecycle"},
+    )
 
     assert put_response.status_code == 200
     assert put_response.json()["data"]["product_name"] == "BulkReviewCampaignDefinition"
@@ -221,6 +251,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     assert list_response.json()["data"]["items"][0]["campaign_id"] == "campaign-holdings-202605"
     assert get_response.status_code == 200
     assert get_response.json()["data"]["campaign_version"] == "2026.05"
+    assert lifecycle_events_response.status_code == 200
+    assert (
+        lifecycle_events_response.json()["data"]["events"][0]["event_type"]
+        == "CAMPAIGN_DEFINITION_CREATED"
+    )
     assert captured == {
         "put": {
             "campaign_id": "campaign-holdings-202605",
@@ -242,6 +277,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-get",
+        },
+        "lifecycle_events": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "correlation_id": "corr-campaign-lifecycle",
         },
     }
 

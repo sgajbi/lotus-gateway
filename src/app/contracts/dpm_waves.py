@@ -246,9 +246,9 @@ class DpmCampaignDefinitionGatewayResponse(BaseModel):
     )
     data: dict[str, object] = Field(
         description=(
-            "Authoritative manage BulkReviewCampaignDefinition:v1 payload or page preserved for "
-            "Workbench composition. Gateway does not alter candidates, source refs, governance, "
-            "content hashes, status, or as-of posture."
+            "Authoritative manage BulkReviewCampaignDefinition:v1 payload, page, or lifecycle "
+            "event list preserved for Workbench composition. Gateway does not alter candidates, "
+            "source refs, governance, content hashes, lifecycle events, status, or as-of posture."
         ),
         examples=[
             {

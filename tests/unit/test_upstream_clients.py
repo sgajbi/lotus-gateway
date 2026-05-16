@@ -1818,6 +1818,16 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05",
         ),
         (
+            "get_campaign_definition_lifecycle_events",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/lifecycle-events",
+        ),
+        (
             "get_wave_items",
             {"wave_id": "dwv_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/items",

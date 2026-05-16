@@ -137,9 +137,11 @@
   campaign definition payloads, and the no-external-execution boundary. Gateway also exposes
   `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
+  `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events`,
   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-  for manage-owned campaign/cohort definition discovery. Gateway does not discover cohorts,
-  calculate campaign membership, evaluate portfolio eligibility, or own maker-checker posture.
+  for manage-owned campaign/cohort definition discovery and lifecycle evidence. Gateway does not
+  discover cohorts, calculate campaign membership, evaluate portfolio eligibility, infer campaign
+  lifecycle state, or own maker-checker posture.
   Gateway also exposes a governed handoff from
   manage-owned `DpmWaveReportInput` to `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
   PM/control support text. Gateway must not calculate affected portfolios, readiness,

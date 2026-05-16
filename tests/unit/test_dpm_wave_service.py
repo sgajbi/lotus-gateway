@@ -75,6 +75,19 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_campaign_definition_lifecycle_events(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "get_campaign_definition_lifecycle_events",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def put_campaign_definition(  # noqa: ANN001
         self, campaign_id, campaign_version, body, correlation_id
     ):
@@ -184,6 +197,43 @@ async def test_dpm_wave_service_preserves_campaign_definition_payloads() -> None
             "campaign_version": "2026.05",
             "body": {"status": "ACTIVE"},
             "correlation_id": "corr-campaign-definition",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
+    manage_payload = {
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "events": [
+            {
+                "event_type": "CAMPAIGN_DEFINITION_CREATED",
+                "actor_id": "pm_sg_1",
+                "occurred_at": "2026-05-14T09:30:00Z",
+                "source_service": "lotus-manage",
+            }
+        ],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_campaign_definition_lifecycle_events(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        correlation_id="corr-campaign-lifecycle",
+    )
+
+    assert response.correlation_id == "corr-campaign-lifecycle"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "get_campaign_definition_lifecycle_events",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "correlation_id": "corr-campaign-lifecycle",
         }
     ]
 
