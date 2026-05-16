@@ -140,6 +140,26 @@ class DpmWaveService:
             correlation_id,
         )
 
+    async def get_campaign_definition_lifecycle_events(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        correlation_id: str,
+    ) -> DpmCampaignDefinitionGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.get_campaign_definition_lifecycle_events(
+            campaign_id=campaign_id,
+            campaign_version=campaign_version,
+            correlation_id=correlation_id,
+        )
+        return self._compose_campaign_definition_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def get_wave_items(
         self,
         wave_id: str,
