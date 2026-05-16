@@ -160,6 +160,21 @@ class DpmWaveService:
             correlation_id,
         )
 
+    async def discover_campaigns(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCampaignDefinitionGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.discover_campaigns(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_campaign_definition_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def get_wave_items(
         self,
         wave_id: str,

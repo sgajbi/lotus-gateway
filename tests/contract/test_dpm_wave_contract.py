@@ -102,6 +102,7 @@ def test_dpm_wave_openapi_contract_registered() -> None:
             "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events",
             "get",
         ),
+        ("/api/v1/dpm/command-center/waves/campaign-discovery", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/items", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/source-check", "post"),

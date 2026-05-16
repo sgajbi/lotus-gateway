@@ -88,6 +88,16 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def discover_campaigns(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "discover_campaigns",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def put_campaign_definition(  # noqa: ANN001
         self, campaign_id, campaign_version, body, correlation_id
     ):
@@ -234,6 +244,58 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_discovery_payload() -> None:
+    manage_payload = {
+        "items": [
+            {
+                "product_name": "BulkReviewCampaignDiscovery",
+                "product_version": "v1",
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "campaign_status": "ACTIVE",
+                "candidate_count": 12,
+                "eligible_candidate_count": 10,
+                "content_hash": "sha256:campaign-discovery",
+            }
+        ],
+        "limit": 25,
+        "offset": 0,
+        "count": 1,
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.discover_campaigns(
+        filters={
+            "campaign_status": "ACTIVE",
+            "active_on": "2026-05-16",
+            "include_expired": False,
+            "limit": 25,
+            "offset": 0,
+        },
+        correlation_id="corr-campaign-discovery",
+    )
+
+    assert response.correlation_id == "corr-campaign-discovery"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "discover_campaigns",
+            "params": {
+                "campaign_status": "ACTIVE",
+                "active_on": "2026-05-16",
+                "include_expired": False,
+                "limit": 25,
+                "offset": 0,
+            },
+            "correlation_id": "corr-campaign-discovery",
         }
     ]
 
