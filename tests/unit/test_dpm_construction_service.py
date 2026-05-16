@@ -70,9 +70,23 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
     assert response.supportability.authority == "lotus-manage:RFC-0039"
     assert response.supportability.state == "READY"
     assert response.supportability.reason_codes == [
+        "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
         "REGIME_SCENARIO_PACK_READY",
         "TARGET_METHOD_COMPARISON_AVAILABLE",
     ]
+    currency_context = response.data["alternatives"][0]["diagnostics"]["authority_context"][
+        "currency_overlay_context"
+    ]
+    assert currency_context["external_hedge_policy_source_product_name"] == ("ExternalHedgePolicy")
+    assert currency_context["external_hedge_policy_source_product_version"] == "v1"
+    assert currency_context["external_hedge_policy_source_id"] == ("sha256:external-hedge-policy")
+    assert currency_context["external_hedge_policy_content_hash"] == (
+        "sha256:external-hedge-policy-content"
+    )
+    assert currency_context["external_hedge_policy_rule_count"] == 0
+    assert currency_context["external_hedge_policy_rules"] == []
+    assert currency_context["missing_data_families"] == ["external_hedge_policy"]
+    assert "hedge_policy_approval" in currency_context["blocked_capabilities"]
     assert response.data == manage_payload
     assert client.calls == [
         {
@@ -184,6 +198,28 @@ def _construction_alternative_set() -> dict[str, object]:
                 "constraint_trace": [],
                 "comparison_metrics": {"turnover_weight": "0.05"},
                 "diagnostics": {
+                    "authority_context": {
+                        "currency_overlay_context": {
+                            "supportability_status": "BLOCKED",
+                            "source_system": "lotus-core",
+                            "external_hedge_policy_source_product_name": ("ExternalHedgePolicy"),
+                            "external_hedge_policy_source_product_version": "v1",
+                            "external_hedge_policy_source_id": ("sha256:external-hedge-policy"),
+                            "external_hedge_policy_content_hash": (
+                                "sha256:external-hedge-policy-content"
+                            ),
+                            "external_hedge_policy_rule_count": 0,
+                            "external_hedge_policy_rules": [],
+                            "missing_data_families": ["external_hedge_policy"],
+                            "blocked_capabilities": [
+                                "hedge_policy_approval",
+                                "treasury_instruction",
+                                "counterparty_selection",
+                                "oms_acknowledgement",
+                            ],
+                            "reason_codes": ["EXTERNAL_HEDGE_POLICY_FAIL_CLOSED"],
+                        }
+                    },
                     "method_plan": {
                         "reason_codes": ["TARGET_METHOD_COMPARISON_AVAILABLE"],
                     },

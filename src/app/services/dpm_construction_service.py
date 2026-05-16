@@ -119,6 +119,17 @@ def _reason_codes_from_payload(payload: dict[str, Any]) -> list[str]:
                         method_plan.get("reason_codes") or method_plan.get("reasonCodes") or []
                     )
                 )
+            authority_context = diagnostics.get("authority_context")
+            if isinstance(authority_context, dict):
+                currency_overlay_context = authority_context.get("currency_overlay_context")
+                if isinstance(currency_overlay_context, dict):
+                    reason_codes.extend(
+                        _list_of_strings(
+                            currency_overlay_context.get("reason_codes")
+                            or currency_overlay_context.get("reasonCodes")
+                            or []
+                        )
+                    )
     return reason_codes
 
 
