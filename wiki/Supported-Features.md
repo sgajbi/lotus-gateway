@@ -254,26 +254,28 @@ Supported routes:
 4. `GET /api/v1/dpm/command-center/waves/campaign-definitions`
 5. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
 6. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events`
-7. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-8. `GET /api/v1/dpm/command-center/waves/{wave_id}`
-9. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
-10. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
-11. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
-12. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
-13. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
-14. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
-15. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
-16. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
-17. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
-18. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
-19. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
-20. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
-21. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
+7. `GET /api/v1/dpm/command-center/waves/campaign-discovery`
+8. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
+9. `GET /api/v1/dpm/command-center/waves/{wave_id}`
+10. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
+11. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
+12. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
+13. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
+14. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
+15. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
+16. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
+17. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
+18. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
+19. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+20. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
+21. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+22. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
-2. Gateway forwards preview, create, campaign-definition list/get/lifecycle-events/upsert, source-check, simulate,
+2. Gateway forwards preview, create, campaign-definition list/get/lifecycle-events/upsert,
+   bounded campaign-discovery, source-check, simulate,
    select, approve, stage, handoff, cancel, proof-pack posture, supportability, and report-input
    requests to manage.
 3. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,

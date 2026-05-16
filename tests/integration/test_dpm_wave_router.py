@@ -205,6 +205,27 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             ],
         }
 
+    async def _fake_discover_campaigns(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["discovery"] = {"params": params, "correlation_id": correlation_id}
+        return 200, {
+            "items": [
+                {
+                    "product_name": "BulkReviewCampaignDiscovery",
+                    "product_version": "v1",
+                    "campaign_id": "campaign-holdings-202605",
+                    "campaign_version": "2026.05",
+                    "campaign_status": "ACTIVE",
+                    "candidate_count": 12,
+                    "eligible_candidate_count": 10,
+                    "content_hash": "sha256:campaign-discovery",
+                }
+            ],
+            "limit": params["limit"],
+            "offset": params["offset"],
+            "count": 1,
+        }
+
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.put_campaign_definition",
         _fake_put_campaign_definition,
@@ -220,6 +241,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_campaign_definition_lifecycle_events",
         _fake_get_campaign_definition_lifecycle_events,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.discover_campaigns",
+        _fake_discover_campaigns,
     )
 
     client = TestClient(app)
@@ -244,6 +269,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         headers={"X-Correlation-Id": "corr-campaign-lifecycle"},
     )
+    discovery_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-discovery"
+        "?campaign_status=ACTIVE&active_on=2026-05-16&include_expired=true&limit=25&offset=0",
+        headers={"X-Correlation-Id": "corr-campaign-discovery"},
+    )
 
     assert put_response.status_code == 200
     assert put_response.json()["data"]["product_name"] == "BulkReviewCampaignDefinition"
@@ -255,6 +285,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     assert (
         lifecycle_events_response.json()["data"]["events"][0]["event_type"]
         == "CAMPAIGN_DEFINITION_CREATED"
+    )
+    assert discovery_response.status_code == 200
+    assert (
+        discovery_response.json()["data"]["items"][0]["product_name"]
+        == "BulkReviewCampaignDiscovery"
     )
     assert captured == {
         "put": {
@@ -282,6 +317,18 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        },
+        "discovery": {
+            "params": {
+                "campaign_id": None,
+                "campaign_status": "ACTIVE",
+                "as_of_date": None,
+                "active_on": "2026-05-16",
+                "include_expired": True,
+                "limit": 25,
+                "offset": 0,
+            },
+            "correlation_id": "corr-campaign-discovery",
         },
     }
 

@@ -1838,6 +1838,14 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         ),
         (
+            "discover_campaigns",
+            {
+                "params": {"campaign_status": "ACTIVE", "active_on": "2026-05-16"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-discovery",
+        ),
+        (
             "get_wave_items",
             {"wave_id": "dwv_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/items",

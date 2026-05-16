@@ -138,6 +138,7 @@
   `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events`,
+  `GET /api/v1/dpm/command-center/waves/campaign-discovery`,
   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
   for manage-owned campaign/cohort definition discovery and lifecycle evidence. Gateway does not
   discover cohorts, calculate campaign membership, evaluate portfolio eligibility, infer campaign
