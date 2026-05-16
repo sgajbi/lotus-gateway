@@ -1763,9 +1763,19 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs",
         ),
         (
+            "list_pm_operating_quality_fairness_analyses",
+            {"params": {"policy_id": "pmq_sg_dpm"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/fairness-analyses",
+        ),
+        (
             "get_pm_operating_quality_score_run",
             {"score_run_id": "pmq_run_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/pm-operating-quality/score-runs/pmq_run_001",
+        ),
+        (
+            "get_pm_operating_quality_fairness_analysis",
+            {"fairness_analysis_id": "pmq_fair_001", "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/pm-operating-quality/fairness-analyses/pmq_fair_001",
         ),
         (
             "list_pm_operating_quality_policies",
@@ -2327,6 +2337,14 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/pm-operating-quality/fairness-analyses/preview",
+        ),
+        (
+            "create_pm_operating_quality_fairness_analysis",
+            {
+                "body": {"score_run_ids": ["pmq_run_001"], "segments": []},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/pm-operating-quality/fairness-analyses",
         ),
     ],
 )

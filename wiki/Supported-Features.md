@@ -171,7 +171,7 @@ product path.
 Business outcome:
 
 1. portfolio managers, supervisors, and operations users can access PM operating quality policy,
-   score-run lifecycle, and fairness-analysis preview evidence through the Gateway command-center
+   score-run lifecycle, and fairness-analysis preview/create/list/get evidence through the Gateway command-center
    boundary,
 2. Workbench can prepare PM quality product surfaces without calling `lotus-manage` directly,
 3. sales/pre-sales and control users can describe the API layer as implementation-backed while
@@ -188,13 +188,16 @@ Supported routes:
 6. `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs`
 7. `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}`
 8. `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview`
+9. `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
+10. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
+11. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/{fairness_analysis_id}`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the PM operating quality policy, score-run, and fairness-analysis
    authority.
 2. Gateway forwards policy list/get/upsert, score-run preview/create/list/get, and
-   fairness-analysis preview requests to `lotus-manage`.
+   fairness-analysis preview/create/list/get requests to `lotus-manage`.
 3. Gateway preserves manage-owned policy configuration, score-run state, fairness-analysis state,
    segment posture, governance evidence, source refs, reason codes, content hashes, and
    forbidden-use posture.

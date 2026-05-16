@@ -151,8 +151,9 @@ class DpmPmOperatingQualityForwardRequest(BaseModel):
         description=(
             "Request payload forwarded unchanged to the lotus-manage PM operating quality "
             "authority. Gateway does not score PMs, administer bank policy locally, infer "
-            "source evidence, rank PMs, or create HR, compensation, conduct-enforcement, "
-            "approval, execution, or client-contact decisions."
+            "source evidence or protected classes, calculate fairness spread, rank PMs, or "
+            "create HR, compensation, conduct-enforcement, approval, execution, or "
+            "client-contact decisions."
         ),
         examples=[
             {
@@ -473,7 +474,7 @@ class DpmPmOperatingQualitySupportability(BaseModel):
     )
     fairness_analysis_id: str | None = Field(
         default=None,
-        description="Manage-owned PM operating quality fairness-analysis preview id when returned.",
+        description="Manage-owned PM operating quality fairness-analysis id when returned.",
         examples=["pmq_fair_001"],
     )
     count: int | None = Field(
@@ -506,15 +507,16 @@ class DpmPmOperatingQualityGatewayResponse(BaseModel):
     supportability: DpmPmOperatingQualitySupportability = Field(
         description=(
             "Gateway-normalized supportability summary derived only from manage-published PM "
-            "quality policy and score-run fields."
+            "quality policy, score-run, and fairness-analysis fields."
         ),
     )
     data: dict[str, object] = Field(
         description=(
             "Authoritative manage PM operating quality payload preserved for Workbench "
             "composition. Gateway does not calculate scores, alter policy governance evidence, "
-            "rank PMs, or convert the payload into HR, compensation, conduct, approval, client "
-            "contact, or execution decisions."
+            "calculate fairness spread, infer protected classes, rank PMs, or convert the "
+            "payload into HR, compensation, conduct, approval, client contact, or execution "
+            "decisions."
         ),
     )
 

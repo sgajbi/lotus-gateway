@@ -239,6 +239,13 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
             "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview",
             "post",
         ),
+        ("/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses", "get"),
+        ("/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses", "post"),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/"
+            "fairness-analyses/{fairness_analysis_id}",
+            "get",
+        ),
         (
             "/api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}",
             "get",

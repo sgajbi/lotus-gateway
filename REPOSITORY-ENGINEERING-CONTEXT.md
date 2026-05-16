@@ -263,8 +263,8 @@ Most relevant current governance:
     contact clients, place orders, or invent missing evidence.
 16. PM operating quality Gateway routes are active under
     `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway forwards policy list/get/upsert,
-    score-run preview/create/list/get, and fairness-analysis preview requests to `lotus-manage`,
-    preserves Manage policy configuration, score-run state, fairness-analysis state,
+    score-run preview/create/list/get, and fairness-analysis preview/create/list/get requests to
+    `lotus-manage`, preserves Manage policy configuration, score-run state, fairness-analysis state,
     source-defined segment posture, governance evidence, source refs, reason codes, content
     hashes, and forbidden-use posture, and must not calculate scores, discover segments,
     calculate segment averages or fairness spread, infer protected classes, rank PMs, administer

@@ -329,6 +329,136 @@ def test_dpm_command_center_pm_quality_fairness_preview_forwards_segment_refs(
     assert analysis["segment_results"][0]["source_refs"][0]["source_product"] == ("MandateSegment")
 
 
+def test_dpm_command_center_pm_quality_fairness_lifecycle_routes_preserve_manage_payloads(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_create_pm_operating_quality_fairness_analysis(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["create_body"] = body
+        captured["create_correlation_id"] = correlation_id
+        return 201, {
+            "fairness_analysis": {
+                "fairness_analysis_id": "pmq_fair_001",
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "state": "PENDING_REVIEW",
+                "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+                "blocked_actions": ["CREATE_SCORE_RUN"],
+                "segment_results": [{"segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED"}],
+            }
+        }
+
+    async def _fake_list_pm_operating_quality_fairness_analyses(
+        self,
+        params,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["list_params"] = params
+        captured["list_correlation_id"] = correlation_id
+        return 200, {
+            "count": 1,
+            "fairness_analyses": [
+                {
+                    "fairness_analysis_id": "pmq_fair_001",
+                    "policy_id": "pmq_sg_dpm",
+                    "policy_version": "2026.05",
+                    "state": "PENDING_REVIEW",
+                }
+            ],
+        }
+
+    async def _fake_get_pm_operating_quality_fairness_analysis(
+        self,
+        fairness_analysis_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["get_fairness_analysis_id"] = fairness_analysis_id
+        captured["get_correlation_id"] = correlation_id
+        return 200, {
+            "fairness_analysis": {
+                "fairness_analysis_id": fairness_analysis_id,
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "state": "PENDING_REVIEW",
+                "forbidden_uses": [
+                    "protected_class_inference",
+                    "autonomous_pm_ranking",
+                    "hr_decision",
+                ],
+            }
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.create_pm_operating_quality_fairness_analysis",
+        _fake_create_pm_operating_quality_fairness_analysis,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_pm_operating_quality_fairness_analyses",
+        _fake_list_pm_operating_quality_fairness_analyses,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_pm_operating_quality_fairness_analysis",
+        _fake_get_pm_operating_quality_fairness_analysis,
+    )
+
+    request_body = {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+        "segments": [{"segment_ref": "MANDATE_TYPE:DISCRETIONARY_BALANCED"}],
+    }
+    client = TestClient(app)
+
+    create_response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-fairness-create"},
+    )
+    list_response = client.get(
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses"
+            "?policy_id=pmq_sg_dpm&policy_version=2026.05&limit=25&offset=0"
+        ),
+        headers={"X-Correlation-Id": "corr-pmq-fairness-list"},
+    )
+    get_response = client.get(
+        "/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/pmq_fair_001",
+        headers={"X-Correlation-Id": "corr-pmq-fairness-get"},
+    )
+
+    assert create_response.status_code == 200
+    assert list_response.status_code == 200
+    assert get_response.status_code == 200
+    assert captured["create_body"] == request_body
+    assert captured["create_correlation_id"] == "corr-pmq-fairness-create"
+    assert captured["list_params"] == {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "as_of_date": None,
+        "state": None,
+        "limit": 25,
+        "offset": 0,
+    }
+    assert captured["list_correlation_id"] == "corr-pmq-fairness-list"
+    assert captured["get_fairness_analysis_id"] == "pmq_fair_001"
+    assert captured["get_correlation_id"] == "corr-pmq-fairness-get"
+    assert create_response.json()["supportability"]["fairness_analysis_id"] == "pmq_fair_001"
+    assert list_response.json()["supportability"]["count"] == 1
+    assert get_response.json()["data"]["fairness_analysis"]["forbidden_uses"] == [
+        "protected_class_inference",
+        "autonomous_pm_ranking",
+        "hr_decision",
+    ]
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

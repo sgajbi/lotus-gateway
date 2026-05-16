@@ -102,6 +102,40 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def create_pm_operating_quality_fairness_analysis(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_fairness_create",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_pm_operating_quality_fairness_analyses(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_fairness_analyses",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def get_pm_operating_quality_fairness_analysis(  # noqa: ANN001
+        self,
+        fairness_analysis_id,
+        correlation_id,
+    ):
+        self.calls.append(
+            {
+                "method": "pm_quality_fairness_analysis",
+                "fairness_analysis_id": fairness_analysis_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def list_pm_operating_quality_score_runs(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {"method": "pm_quality_score_runs", "params": params, "correlation_id": correlation_id}
@@ -739,6 +773,94 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
             "method": "pm_quality_fairness_preview",
             "body": body,
             "correlation_id": "corr-pmq-fairness",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_fairness_lifecycle_preserves_manage_payloads() -> None:
+    create_payload = {
+        "fairness_analysis": {
+            "fairness_analysis_id": "pmq_fair_001",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "state": "PENDING_REVIEW",
+            "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+            "blocked_actions": ["CREATE_SCORE_RUN"],
+        }
+    }
+    create_client = _FakeDpmClient((201, create_payload))
+    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    body = {
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "score_run_ids": ["pmq_run_001", "pmq_run_002"],
+        "segments": [],
+    }
+
+    created = await create_service.create_pm_operating_quality_fairness_analysis(
+        body=body,
+        correlation_id="corr-pmq-fairness-create",
+    )
+
+    assert created.upstream_status == 201
+    assert created.supportability.fairness_analysis_id == "pmq_fair_001"
+    assert created.data == create_payload
+    assert create_client.calls == [
+        {
+            "method": "pm_quality_fairness_create",
+            "body": body,
+            "correlation_id": "corr-pmq-fairness-create",
+        }
+    ]
+
+    list_payload = {
+        "count": 1,
+        "fairness_analyses": [
+            {
+                "fairness_analysis_id": "pmq_fair_001",
+                "policy_id": "pmq_sg_dpm",
+                "policy_version": "2026.05",
+                "state": "PENDING_REVIEW",
+                "reason_codes": ["PM_QUALITY_FAIRNESS_SPREAD_REVIEW_REQUIRED"],
+            }
+        ],
+    }
+    list_client = _FakeDpmClient((200, list_payload))
+    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+
+    listed = await list_service.list_pm_operating_quality_fairness_analyses(
+        filters={"policy_id": "pmq_sg_dpm", "limit": 50, "offset": 0},
+        correlation_id="corr-pmq-fairness-list",
+    )
+
+    assert listed.supportability.count == 1
+    assert listed.supportability.policy_id == "pmq_sg_dpm"
+    assert listed.supportability.fairness_analysis_id == "pmq_fair_001"
+    assert listed.data == list_payload
+    assert list_client.calls == [
+        {
+            "method": "pm_quality_fairness_analyses",
+            "params": {"policy_id": "pmq_sg_dpm", "limit": 50, "offset": 0},
+            "correlation_id": "corr-pmq-fairness-list",
+        }
+    ]
+
+    get_client = _FakeDpmClient((200, create_payload))
+    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+
+    fetched = await get_service.get_pm_operating_quality_fairness_analysis(
+        fairness_analysis_id="pmq_fair_001",
+        correlation_id="corr-pmq-fairness-get",
+    )
+
+    assert fetched.supportability.fairness_analysis_id == "pmq_fair_001"
+    assert fetched.data == create_payload
+    assert get_client.calls == [
+        {
+            "method": "pm_quality_fairness_analysis",
+            "fairness_analysis_id": "pmq_fair_001",
+            "correlation_id": "corr-pmq-fairness-get",
         }
     ]
 
