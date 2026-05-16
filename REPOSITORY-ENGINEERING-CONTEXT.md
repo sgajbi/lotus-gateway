@@ -265,12 +265,15 @@ Most relevant current governance:
 16. PM operating quality Gateway routes are active under
     `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway forwards policy list/get/upsert,
     score-run preview/create/list/get, and fairness-analysis preview/create/list/get requests to
-    `lotus-manage`, preserves Manage policy configuration, score-run state, fairness-analysis state,
-    source-defined segment posture, governance evidence, source refs, reason codes, content
-    hashes, and forbidden-use posture, and must not calculate scores, discover segments,
-    calculate segment averages or fairness spread, infer protected classes, rank PMs, administer
-    bank policy locally, create HR or compensation decisions, perform conduct enforcement,
-    approve trades, contact clients, route orders, claim execution, or invent missing evidence.
+    `lotus-manage`, and exposes a governed
+    `/score-runs/{score_run_id}/ai-summary` route that reads Manage score-run evidence before
+    executing `lotus-ai` `pm_quality_summary.pack@v1` as `lotus-gateway`. Gateway preserves Manage
+    policy configuration, score-run state, fairness-analysis state, source-defined segment posture,
+    governance evidence, source refs, reason codes, content hashes, supportability, and
+    forbidden-use posture, and must not calculate scores, discover segments, calculate segment
+    averages or fairness spread, infer protected classes, rank PMs, administer bank policy locally,
+    create HR or compensation decisions, perform conduct enforcement, approve trades, contact
+    clients, route orders, claim OMS/execution, or invent missing evidence.
 17. The Workbench overview and portfolio-360 `rebalance_snapshot` now carry bounded
     portfolio-level DPM operations posture for RFC36-WTBD-003: latest rebalance status, last run,
     manage action-register supportability from `/api/v1/rebalance/supportability/summary`, and up

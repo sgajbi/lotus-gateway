@@ -1186,7 +1186,7 @@ Gateway/BFF instead of calling `lotus-manage` directly.
 | RFC41-WTBD-003 Gateway campaign-definition discovery/upsert | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway forwards manage-owned campaign definition list, get, lifecycle-events, upsert, and bounded campaign-discovery APIs through `/api/v1/dpm/command-center/waves/campaign-definitions*` and `/api/v1/dpm/command-center/waves/campaign-discovery`, preserves campaign payloads unchanged, and does not discover cohorts beyond the Manage-owned persisted campaign read model, recompute campaign membership, or own maker-checker posture |
 | RFC42-WTBD-001 Gateway outcome-review composition and BFF contract | Implemented and merged before this slice | `src/app/routers/dpm_command_center.py`, `src/app/services/dpm_command_center_service.py`, `src/app/contracts/dpm_command_center.py`, `src/app/clients/dpm_client.py`, `tests/unit/test_dpm_command_center_service.py`, `tests/integration/test_dpm_command_center_router.py`, `tests/contract/test_dpm_command_center_contract.py`, `make ci` |
 | RFC42-WTBD-005 Gateway AI narrative handoff | Implemented and merged before this slice | Gateway reads manage-owned `DpmOutcomeAiEvidenceInput`, executes `lotus-ai` `outcome_review_narrative.pack@v1` as `lotus-gateway`, preserves manage workflow authority, and exposes `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative` |
-| RFC42-WTBD-008 Gateway PM operating quality composition | Implemented and merged; Gateway docs/wiki truth present on main | Gateway forwards manage-owned PM operating quality policy list/get/upsert, score-run preview/create/list/get, and fairness-analysis preview/create/list/get APIs through `/api/v1/dpm/command-center/pm-operating-quality/*`, preserves policy configuration, score-run state, fairness-analysis state, segment posture, governance evidence, source refs, reason codes, content hashes, and forbidden-use posture, and does not calculate scores, discover segments, calculate segment averages or fairness spread, infer protected classes, rank PMs, administer policy locally, or create HR, compensation, conduct-enforcement, approval, client-contact, or execution decisions |
+| RFC42-WTBD-008 Gateway PM operating quality composition | Implemented and merged; PM-quality summary invocation added in current Gateway branch pending PR/merge/CI/wiki closure | Gateway forwards manage-owned PM operating quality policy list/get/upsert, score-run preview/create/list/get, and fairness-analysis preview/create/list/get APIs through `/api/v1/dpm/command-center/pm-operating-quality/*`; reads Manage-owned score-run evidence before invoking `lotus-ai` `pm_quality_summary.pack@v1`; preserves policy configuration, score-run state, fairness-analysis state, segment posture, governance evidence, source refs, reason codes, content hashes, supportability, and forbidden-use posture; and does not calculate scores, discover segments, calculate segment averages or fairness spread, infer protected classes, rank PMs, administer policy locally, or create HR, compensation, conduct-enforcement, approval, client-contact, OMS, or execution decisions |
 | RFC38/RFC43-WTBD Gateway exception-summary AI handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned monitoring-exception evidence from the command-center exception queue, executes `lotus-ai` `dpm_exception_summary.pack@v1` as `lotus-gateway`, preserves source refs/content hashes/supportability, and exposes `POST /api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` |
 | RFC41/RFC43-WTBD Gateway operations-handoff summary AI handoff | Implemented in current Gateway branch; pending PR/merge/CI/wiki closure | Gateway reads manage-owned `DpmWaveReportInput` with bounded internal handoff refs, executes `lotus-ai` `dpm_operations_handoff_summary.pack@v1` as `lotus-gateway`, preserves manage handoff evidence authority and lotus-ai workflow-pack posture, and exposes `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary` |
 | RFC-0042 manage authority preservation | Implemented for BFF envelope; Gateway forwards payloads and preserves manage supportability | Service tests prove payload preservation and upstream error forwarding; contract tests prove OpenAPI route family registration and What/When/How guidance |
@@ -1285,18 +1285,22 @@ Implementation boundaries:
    `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs`,
    `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs`, and
    `GET /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}`, plus
+   `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`,
    `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview`,
    `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`,
    `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`, and
    `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/{fairness_analysis_id}`.
-17. PM operating quality routes preserve manage-owned policy configuration, score-run state,
+17. The PM quality summary route reads Manage-owned score-run evidence before invoking
+   `lotus-ai` `pm_quality_summary.pack@v1` as `lotus-gateway` for review-gated support-only
+   summaries.
+18. PM operating quality routes preserve manage-owned policy configuration, score-run state,
    fairness-analysis state, segment posture, governance evidence, source refs, reason codes,
-   content hashes, and forbidden-use posture.
-18. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
+   content hashes, supportability, and forbidden-use posture.
+19. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
    spread, infer protected classes, rank PMs, administer bank policy locally, create HR or
    compensation decisions, perform conduct enforcement, approve trades, contact clients, route
-   orders, claim execution, or invent missing evidence.
-19. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
+   orders, claim OMS/execution, or invent missing evidence.
+20. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
    `POST /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}`,

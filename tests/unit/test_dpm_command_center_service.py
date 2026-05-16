@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from app.contracts.dpm_command_center import (
     DpmExceptionSummaryRequest,
     DpmOutcomeReviewNarrativeRequest,
+    DpmPmOperatingQualitySummaryRequest,
 )
 from app.services.dpm_command_center_service import DpmCommandCenterService
 
@@ -886,6 +887,127 @@ async def test_dpm_pm_operating_quality_manage_errors_are_product_safe() -> None
 
 
 @pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_ai() -> None:
+    manage_payload = {
+        "score_run": _pm_quality_score_run(),
+        "portfolio_memory_context": {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "event_count": 1,
+            "events": [
+                {
+                    "event_id": "pmq-memory-1",
+                    "event_type": "PM_QUALITY_SCORE_RUN",
+                    "source_refs": [
+                        {
+                            "source_system": "lotus-manage",
+                            "source_type": "PmOperatingQualityScoreRun",
+                            "source_id": "pmq_run_001",
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+    dpm_client = _FakeDpmClient((200, manage_payload))
+    ai_client = _FakeLotusAiClient(
+        (
+            200,
+            {
+                "execution": {
+                    "status": "COMPLETED",
+                    "audit": {"workflow_pack_run_id": "packrun_pmq_1"},
+                    "result": {
+                        "structured_output": {
+                            "workflow_pack_family": "pm_quality_summary",
+                            "summary_status": "REVIEW_REQUIRED",
+                        }
+                    },
+                },
+                "workflow_pack_run": {
+                    "run_id": "packrun_pmq_1",
+                    "workflow_authority_owner": "lotus-manage",
+                },
+            },
+        )
+    )
+    service = DpmCommandCenterService(
+        dpm_client=dpm_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+    )
+
+    response = await service.request_pm_operating_quality_summary(
+        score_run_id="pmq_run_001",
+        request=DpmPmOperatingQualitySummaryRequest(
+            requested_outputs=["score_run_summary", "support_references"],
+            audience=["portfolio_manager", "investment_control"],
+        ),
+        correlation_id="corr-pmq-summary",
+    )
+
+    assert response.source_service == "lotus-ai"
+    assert response.evidence_source_service == "lotus-manage"
+    assert response.manage_upstream_status == 200
+    assert response.ai_upstream_status == 200
+    assert response.supportability.score_run_id == "pmq_run_001"
+    assert response.score_run["score_run_id"] == "pmq_run_001"
+    assert response.summary_request == {
+        "requested_outputs": ["score_run_summary", "support_references"],
+        "audience": ["portfolio_manager", "investment_control"],
+    }
+    assert dpm_client.calls == [
+        {
+            "method": "pm_quality_score_run",
+            "score_run_id": "pmq_run_001",
+            "correlation_id": "corr-pmq-summary",
+        }
+    ]
+    ai_call = ai_client.calls[0]
+    assert ai_call["pack_id"] == "pm_quality_summary.pack"
+    assert ai_call["version"] == "v1"
+    assert ai_call["workflow_surface"] == "dpm-pm-quality-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-pmq-summary"
+    task_request = ai_call["task_request"]
+    assert task_request["caller"] == {
+        "caller_app": "lotus-gateway",
+        "correlation_id": "corr-pmq-summary",
+    }
+    payload = task_request["context"]["payload"]
+    assert payload["score_run"] == manage_payload["score_run"]
+    assert payload["summary_request"] == response.summary_request
+    assert payload["supportability"]["requires_human_review"] is True
+    assert "rank_portfolio_managers" in payload["supportability"]["forbidden_actions"]
+    assert "compensation_decision" in payload["supportability"]["unsupported_claims"]
+    assert payload["portfolio_memory_context"] == manage_payload["portfolio_memory_context"]
+    assert "lotus-manage:pm-quality-score-run:pmq_run_001" in task_request["context"]["source_refs"]
+    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> None:
+    dpm_client = _FakeDpmClient((200, {"score_run": _pm_quality_score_run()}))
+    ai_client = _FakeLotusAiClient((422, {"detail": "pm ranking output blocked"}))
+    service = DpmCommandCenterService(
+        dpm_client=dpm_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_pm_operating_quality_summary(
+            score_run_id="pmq_run_001",
+            request=DpmPmOperatingQualitySummaryRequest(),
+            correlation_id="corr-pmq-summary-error",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == {
+        "source_service": "lotus-ai",
+        "upstream_status": 422,
+        "error_code": "AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
+        "detail": "pm ranking output blocked",
+    }
+
+
+@pytest.mark.asyncio
 async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_only() -> None:
     ai_evidence = _outcome_ai_evidence()
     dpm_client = _FakeDpmClient((200, ai_evidence))
@@ -1155,6 +1277,57 @@ def _outcome_ai_evidence() -> dict[str, object]:
             "content_hash": "sha256:outcome-ai-evidence-001",
         },
         "content_hash": "sha256:outcome-ai-evidence-001",
+    }
+
+
+def _pm_quality_score_run() -> dict[str, object]:
+    return {
+        "product_name": "PmOperatingQualityScoreRun",
+        "product_version": "1.0",
+        "score_run_id": "pmq_run_001",
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "portfolio_manager_id": "PM_SG_DPM_001",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of_date": "2026-05-16",
+        "state": "READY",
+        "score": "86.5",
+        "reason_codes": ["PM_QUALITY_READY"],
+        "indicator_results": [
+            {
+                "indicator_id": "source_evidence_completeness",
+                "state": "READY",
+                "score": "92.0",
+                "reason_codes": ["PM_QUALITY_SOURCE_EVIDENCE_COMPLETE"],
+                "source_refs": [
+                    {
+                        "source_system": "lotus-manage",
+                        "source_type": "PmOperatingQualityScoreRun",
+                        "source_id": "pmq_run_001",
+                        "content_hash": "sha256:pmq-run-001",
+                    }
+                ],
+            }
+        ],
+        "governance_evidence": {
+            "approval_ref": "PMQ-APPROVAL-2026-05",
+            "fairness_review_ref": "PMQ-FAIRNESS-2026-05",
+        },
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "PmOperatingQualityScoreRun",
+                "source_id": "pmq_run_001",
+                "content_hash": "sha256:pmq-run-001",
+            }
+        ],
+        "content_hash": "sha256:pmq-run-001",
+        "forbidden_uses": [
+            "compensation_decision",
+            "hr_decision",
+            "conduct_enforcement",
+            "autonomous_pm_ranking",
+        ],
     }
 
 

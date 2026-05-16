@@ -170,6 +170,42 @@ class DpmPmOperatingQualityForwardRequest(BaseModel):
     )
 
 
+class DpmPmOperatingQualitySummaryRequest(BaseModel):
+    requested_outputs: list[str] = Field(
+        default_factory=lambda: [
+            "score_run_summary",
+            "governance_summary",
+            "fairness_review_posture",
+            "support_references",
+            "evidence_gaps",
+        ],
+        description=(
+            "Support-only PM quality summary sections requested from lotus-ai. Gateway forwards "
+            "these labels to pm_quality_summary.pack@v1 and does not allow PM ranking, HR, "
+            "compensation, conduct, client-contact, approval, execution, OMS, or invented-fact "
+            "outputs."
+        ),
+        examples=[
+            [
+                "score_run_summary",
+                "governance_summary",
+                "fairness_review_posture",
+                "support_references",
+                "evidence_gaps",
+            ]
+        ],
+    )
+    audience: list[str] = Field(
+        default_factory=lambda: [
+            "portfolio_manager",
+            "investment_control",
+            "cio_office",
+        ],
+        description="Intended internal audience labels for the support-only PM quality summary.",
+        examples=[["portfolio_manager", "investment_control", "cio_office"]],
+    )
+
+
 class DpmOutcomeReviewNarrativeRequest(BaseModel):
     requested_outputs: list[str] = Field(
         default_factory=lambda: [
@@ -517,6 +553,62 @@ class DpmPmOperatingQualityGatewayResponse(BaseModel):
             "calculate fairness spread, infer protected classes, rank PMs, or convert the "
             "payload into HR, compensation, conduct, approval, client contact, or execution "
             "decisions."
+        ),
+    )
+
+
+class DpmPmOperatingQualitySummaryGatewayResponse(BaseModel):
+    correlation_id: str = Field(
+        description="Correlation identifier propagated across Gateway, lotus-manage, and lotus-ai.",
+        examples=["corr-pmq-summary-1"],
+    )
+    contract_version: str = Field(
+        default="v1",
+        description="Gateway BFF contract version for PM quality AI summary handoff.",
+        examples=["v1"],
+    )
+    source_service: str = Field(
+        default="lotus-ai",
+        description="Service that executed the governed PM quality summary workflow pack.",
+        examples=["lotus-ai"],
+    )
+    evidence_source_service: str = Field(
+        default="lotus-manage",
+        description="Service that supplied the Manage-owned PM quality score-run evidence.",
+        examples=["lotus-manage"],
+    )
+    manage_upstream_status: int = Field(
+        description="HTTP status returned by lotus-manage for the score-run evidence read.",
+        examples=[200],
+    )
+    ai_upstream_status: int = Field(
+        description="HTTP status returned by lotus-ai for workflow-pack execution.",
+        examples=[200],
+    )
+    supportability: DpmPmOperatingQualitySupportability = Field(
+        description="Manage-derived supportability summary for the PM quality score-run handoff.",
+    )
+    score_run: dict[str, object] = Field(
+        description=(
+            "Manage-owned PmOperatingQualityScoreRun evidence supplied to lotus-ai. Gateway "
+            "preserves score-run identity, policy refs, source refs, governance posture, "
+            "supportability, reason codes, and content hash without calculating or modifying "
+            "scores."
+        ),
+    )
+    summary_request: dict[str, object] = Field(
+        description="Bounded PM quality summary request forwarded to lotus-ai.",
+        examples=[
+            {
+                "requested_outputs": ["score_run_summary", "governance_summary"],
+                "audience": ["portfolio_manager", "investment_control"],
+            }
+        ],
+    )
+    data: dict[str, object] = Field(
+        description=(
+            "Authoritative lotus-ai workflow-pack execution response, including execution audit, "
+            "workflow-pack run posture, review state, and guardrail-supported structured output."
         ),
     )
 

@@ -713,6 +713,87 @@ def test_dpm_command_center_exception_summary_executes_lotus_ai(monkeypatch) -> 
     assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
+def test_dpm_command_center_pm_quality_summary_executes_lotus_ai(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_pm_operating_quality_score_run(
+        self,
+        score_run_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["manage"] = {
+            "score_run_id": score_run_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"score_run": _pm_quality_score_run(score_run_id)}
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        _ = self
+        captured["ai"] = kwargs
+        return 200, {
+            "execution": {
+                "status": "COMPLETED",
+                "audit": {"workflow_pack_run_id": "packrun_pmq_1"},
+                "result": {
+                    "structured_output": {
+                        "workflow_pack_family": "pm_quality_summary",
+                        "summary_status": "REVIEW_REQUIRED",
+                    }
+                },
+            },
+            "workflow_pack_run": {
+                "run_id": "packrun_pmq_1",
+                "workflow_authority_owner": "lotus-manage",
+            },
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_pm_operating_quality_score_run",
+        _fake_get_pm_operating_quality_score_run,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/score-runs/pmq_run_001/ai-summary",
+        json={
+            "requested_outputs": ["score_run_summary", "fairness_review_posture"],
+            "audience": ["portfolio_manager", "investment_control"],
+        },
+        headers={"X-Correlation-Id": "corr-pmq-summary-router"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert captured["manage"] == {
+        "score_run_id": "pmq_run_001",
+        "correlation_id": "corr-pmq-summary-router",
+    }
+    ai_call = captured["ai"]
+    assert ai_call["pack_id"] == "pm_quality_summary.pack"
+    assert ai_call["version"] == "v1"
+    assert ai_call["workflow_surface"] == "dpm-pm-quality-ai-evidence"
+    assert ai_call["correlation_id"] == "corr-pmq-summary-router"
+    task_request = ai_call["task_request"]
+    assert task_request["caller"]["caller_app"] == "lotus-gateway"
+    context_payload = task_request["context"]["payload"]
+    assert context_payload["score_run"]["score_run_id"] == "pmq_run_001"
+    assert context_payload["summary_request"] == {
+        "requested_outputs": ["score_run_summary", "fairness_review_posture"],
+        "audience": ["portfolio_manager", "investment_control"],
+    }
+    assert "rank_portfolio_managers" in context_payload["supportability"]["forbidden_actions"]
+    assert "execution_instruction" in context_payload["supportability"]["unsupported_claims"]
+    assert payload["source_service"] == "lotus-ai"
+    assert payload["evidence_source_service"] == "lotus-manage"
+    assert payload["score_run"]["score_run_id"] == "pmq_run_001"
+    assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+
+
 def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
     return {
         "contract_version": "1.0",
@@ -767,4 +848,49 @@ def _exception_page() -> dict[str, object]:
             }
         ],
         "next_cursor": None,
+    }
+
+
+def _pm_quality_score_run(score_run_id: str) -> dict[str, object]:
+    return {
+        "product_name": "PmOperatingQualityScoreRun",
+        "product_version": "1.0",
+        "score_run_id": score_run_id,
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "portfolio_manager_id": "PM_SG_DPM_001",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "as_of_date": "2026-05-16",
+        "state": "READY",
+        "score": "86.5",
+        "reason_codes": ["PM_QUALITY_READY"],
+        "indicator_results": [
+            {
+                "indicator_id": "source_evidence_completeness",
+                "state": "READY",
+                "score": "92.0",
+                "reason_codes": ["PM_QUALITY_SOURCE_EVIDENCE_COMPLETE"],
+                "source_refs": [
+                    {
+                        "source_system": "lotus-manage",
+                        "source_type": "PmOperatingQualityScoreRun",
+                        "source_id": score_run_id,
+                        "content_hash": "sha256:pmq-run-001",
+                    }
+                ],
+            }
+        ],
+        "governance_evidence": {
+            "approval_ref": "PMQ-APPROVAL-2026-05",
+            "fairness_review_ref": "PMQ-FAIRNESS-2026-05",
+        },
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "PmOperatingQualityScoreRun",
+                "source_id": score_run_id,
+                "content_hash": "sha256:pmq-run-001",
+            }
+        ],
+        "content_hash": "sha256:pmq-run-001",
     }
