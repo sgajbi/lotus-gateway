@@ -19,10 +19,33 @@ from app.contracts.dpm_command_center import (
     DpmOutcomeReviewNarrativeRequest,
     DpmOutcomeReviewSupportability,
     DpmPmOperatingQualityGatewayResponse,
+    DpmPmOperatingQualitySummaryGatewayResponse,
+    DpmPmOperatingQualitySummaryRequest,
     DpmPmOperatingQualitySupportability,
     DpmPortfolioMemoryGatewayResponse,
     DpmPortfolioMemorySupportability,
 )
+
+_PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS = [
+    "rank_portfolio_managers",
+    "make_hr_decisions",
+    "make_compensation_decisions",
+    "enforce_conduct_action",
+    "approve_rebalance",
+    "contact_client",
+    "place_orders",
+    "invent_missing_evidence",
+]
+_PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS = [
+    "pm_ranking",
+    "hr_decision",
+    "compensation_decision",
+    "conduct_enforcement",
+    "client_message",
+    "trade_approval",
+    "execution_instruction",
+    "oms_acknowledgement",
+]
 
 
 class DpmCommandCenterService:
@@ -686,6 +709,113 @@ class DpmCommandCenterService:
             correlation_id,
         )
 
+    async def request_pm_operating_quality_summary(
+        self,
+        score_run_id: str,
+        request: DpmPmOperatingQualitySummaryRequest,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualitySummaryGatewayResponse:
+        if self._lotus_ai_client is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
+            )
+
+        manage_status, manage_payload = await self._dpm_client.get_pm_operating_quality_score_run(
+            score_run_id=score_run_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=manage_status,
+                detail=DpmOutcomeReviewErrorDetail(
+                    upstream_status=manage_status,
+                    error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+                    detail=_safe_upstream_detail(manage_payload),
+                ).model_dump(),
+            )
+
+        score_run = _pm_quality_score_run_from(manage_payload)
+        if score_run is None:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "source_service": "lotus-manage",
+                    "upstream_status": manage_status,
+                    "error_code": "MANAGE_PM_OPERATING_QUALITY_SCORE_RUN_MISSING",
+                    "detail": (
+                        f"Manage response for score run `{score_run_id}` did not include a "
+                        "score_run object."
+                    ),
+                },
+            )
+
+        supportability = _pm_operating_quality_supportability_from(manage_payload)
+        summary_request: dict[str, object] = {
+            "requested_outputs": request.requested_outputs,
+            "audience": request.audience,
+        }
+        task_payload: dict[str, object] = {
+            "score_run": score_run,
+            "summary_request": summary_request,
+            "supportability": {
+                "source_state": supportability.state,
+                "requires_human_review": True,
+                "forbidden_actions": _PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS,
+                "unsupported_claims": _PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS,
+            },
+        }
+        portfolio_memory_context = manage_payload.get("portfolio_memory_context")
+        if isinstance(portfolio_memory_context, dict):
+            task_payload["portfolio_memory_context"] = portfolio_memory_context
+
+        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+            pack_id="pm_quality_summary.pack",
+            version="v1",
+            environment="DEVELOPMENT",
+            caller_identity_class="INTERNAL_SERVICE",
+            workflow_surface="dpm-pm-quality-ai-evidence",
+            task_request={
+                "task_id": "explain.v1",
+                "input_mode": "STRUCTURED_CONTEXT",
+                "caller": {
+                    "caller_app": "lotus-gateway",
+                    "correlation_id": correlation_id,
+                },
+                "context": {
+                    "summary": (
+                        "Generate review-gated PM operating quality summary from "
+                        f"Manage-owned score-run evidence for {score_run_id}."
+                    ),
+                    "payload": task_payload,
+                    "source_refs": _pm_quality_summary_source_refs(score_run),
+                },
+                "expected_output_label": "EXPLANATION_ONLY",
+            },
+            correlation_id=correlation_id,
+        )
+        if ai_status >= status.HTTP_400_BAD_REQUEST:
+            raise HTTPException(
+                status_code=ai_status,
+                detail={
+                    "source_service": "lotus-ai",
+                    "upstream_status": ai_status,
+                    "error_code": "AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
+                    "detail": _safe_upstream_detail(ai_payload),
+                },
+            )
+
+        return DpmPmOperatingQualitySummaryGatewayResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            manage_upstream_status=manage_status,
+            ai_upstream_status=ai_status,
+            supportability=supportability,
+            score_run=score_run,
+            summary_request=summary_request,
+            data=ai_payload,
+        )
+
     async def put_pm_operating_quality_policy(
         self,
         policy_id: str,
@@ -891,6 +1021,48 @@ def _pm_operating_quality_supportability_from(
         fairness_analysis_id=_safe_optional_str(supportability_source.get("fairness_analysis_id")),
         count=_safe_int(payload.get("count")) if "count" in payload else None,
     )
+
+
+def _pm_quality_score_run_from(payload: dict[str, Any]) -> dict[str, object] | None:
+    score_run = payload.get("score_run")
+    if isinstance(score_run, dict):
+        return score_run
+    if payload.get("score_run_id") is not None:
+        return payload
+    return None
+
+
+def _pm_quality_summary_source_refs(score_run: dict[str, object]) -> list[str]:
+    refs: list[str] = []
+    source_refs = score_run.get("source_refs")
+    if isinstance(source_refs, list):
+        for item in source_refs:
+            ref = _source_ref_label(item)
+            if ref is not None:
+                refs.append(ref)
+
+    score_run_id = _safe_optional_str(score_run.get("score_run_id"))
+    if score_run_id is not None:
+        refs.append(f"lotus-manage:pm-quality-score-run:{score_run_id}")
+    policy_id = _safe_optional_str(score_run.get("policy_id"))
+    policy_version = _safe_optional_str(score_run.get("policy_version"))
+    if policy_id is not None and policy_version is not None:
+        refs.append(f"lotus-manage:pm-quality-policy:{policy_id}:{policy_version}")
+
+    return sorted(set(refs))
+
+
+def _source_ref_label(value: object) -> str | None:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    source_system = value.get("source_system") or value.get("sourceSystem") or "lotus-manage"
+    source_type = value.get("source_type") or value.get("sourceType") or value.get("product_name")
+    source_id = value.get("source_id") or value.get("sourceId")
+    if source_type is None or source_id is None:
+        return None
+    return f"{source_system}:{source_type}:{source_id}"
 
 
 def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportability:

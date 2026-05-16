@@ -171,8 +171,8 @@ product path.
 Business outcome:
 
 1. portfolio managers, supervisors, and operations users can access PM operating quality policy,
-   score-run lifecycle, and fairness-analysis preview/create/list/get evidence through the Gateway command-center
-   boundary,
+   score-run lifecycle, fairness-analysis preview/create/list/get evidence, and review-gated
+   support-only PM quality summaries through the Gateway command-center boundary,
 2. Workbench can prepare PM quality product surfaces without calling `lotus-manage` directly,
 3. sales/pre-sales and control users can describe the API layer as implementation-backed while
    preserving explicit non-claims around PM ranking, HR, compensation, conduct enforcement,
@@ -191,6 +191,7 @@ Supported routes:
 9. `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
 10. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
 11. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/{fairness_analysis_id}`
+12. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`
 
 Authority and integrations:
 
@@ -198,23 +199,27 @@ Authority and integrations:
    authority.
 2. Gateway forwards policy list/get/upsert, score-run preview/create/list/get, and
    fairness-analysis preview/create/list/get requests to `lotus-manage`.
-3. Gateway preserves manage-owned policy configuration, score-run state, fairness-analysis state,
+3. Gateway executes `lotus-ai` `pm_quality_summary.pack@v1` only after reading Manage-owned
+   `PmOperatingQualityScoreRun` evidence for the requested score-run id.
+4. Gateway preserves manage-owned policy configuration, score-run state, fairness-analysis state,
    segment posture, governance evidence, source refs, reason codes, content hashes, and
    forbidden-use posture.
-4. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
+5. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
    spread, infer protected classes, rank PMs, administer bank policy locally, create HR or
    compensation decisions, perform conduct enforcement, approve trades, contact clients, route
-   orders, claim execution, or invent missing evidence.
+   orders, claim OMS/execution, or invent missing evidence.
 
 ```mermaid
 flowchart LR
     Workbench[lotus-workbench future PM quality UI] --> Gateway[lotus-gateway PM quality routes]
     Gateway --> Manage[lotus-manage PM operating quality authority]
+    Gateway --> AI[lotus-ai pm_quality_summary.pack@v1]
     Manage --> Policy[Bank policy versions]
     Manage --> ScoreRun[PmOperatingQualityScoreRun:v1]
     Manage --> Fairness[PmOperatingQualityFairnessAnalysis:v1]
     Manage --> Sources[Source refs and governance evidence]
     Manage --> Gateway
+    AI --> Gateway
     Gateway --> Workbench
 ```
 
@@ -225,7 +230,9 @@ Operational behavior:
    counts when available,
 2. upstream manage errors are surfaced as product-safe Gateway errors with
    `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`,
-3. Workbench PM quality UI is a Gateway-backed owning-repository slice in `lotus-workbench`;
+3. upstream lotus-ai summary errors are surfaced as product-safe Gateway errors with
+   `AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR`,
+4. Workbench PM quality UI is a Gateway-backed owning-repository slice in `lotus-workbench`;
    end-to-end product support still depends on the corresponding Manage endpoint being available
    on its owning branch/main and validated through the governed Workbench/Gateway runtime path.
 
