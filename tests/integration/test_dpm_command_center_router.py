@@ -794,6 +794,49 @@ def test_dpm_command_center_pm_quality_summary_executes_lotus_ai(monkeypatch) ->
     assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
+def test_dpm_command_center_pm_quality_summary_rejects_unsupported_outputs(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {"manage_called": False, "ai_called": False}
+
+    async def _fake_get_pm_operating_quality_score_run(
+        self,
+        score_run_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self, score_run_id, correlation_id
+        captured["manage_called"] = True
+        return 200, {"score_run": _pm_quality_score_run("pmq_run_001")}
+
+    async def _fake_execute_workflow_pack(self, **kwargs):  # noqa: ANN003
+        _ = self, kwargs
+        captured["ai_called"] = True
+        return 200, {}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_pm_operating_quality_score_run",
+        _fake_get_pm_operating_quality_score_run,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_ai_client.LotusAiClient.execute_workflow_pack",
+        _fake_execute_workflow_pack,
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/score-runs/pmq_run_001/ai-summary",
+        json={
+            "requested_outputs": ["score_run_summary", "pm_ranking"],
+            "audience": ["portfolio_manager"],
+        },
+        headers={"X-Correlation-Id": "corr-pmq-summary-router"},
+    )
+
+    assert response.status_code == 422
+    assert "Unsupported PM quality summary outputs requested" in response.text
+    assert captured == {"manage_called": False, "ai_called": False}
+
+
 def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
     return {
         "contract_version": "1.0",

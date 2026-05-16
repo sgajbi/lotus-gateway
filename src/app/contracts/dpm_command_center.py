@@ -1,4 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+PM_QUALITY_SUMMARY_ALLOWED_OUTPUTS = {
+    "score_run_summary",
+    "governance_summary",
+    "fairness_review_posture",
+    "support_references",
+    "evidence_gaps",
+}
+PM_QUALITY_SUMMARY_ALLOWED_AUDIENCES = {
+    "portfolio_manager",
+    "investment_control",
+    "cio_office",
+}
 
 
 class DpmCommandCenterForwardRequest(BaseModel):
@@ -204,6 +217,34 @@ class DpmPmOperatingQualitySummaryRequest(BaseModel):
         description="Intended internal audience labels for the support-only PM quality summary.",
         examples=[["portfolio_manager", "investment_control", "cio_office"]],
     )
+
+    @field_validator("requested_outputs")
+    @classmethod
+    def validate_requested_outputs(cls, value: list[str]) -> list[str]:
+        forbidden = sorted(
+            output for output in value if output not in PM_QUALITY_SUMMARY_ALLOWED_OUTPUTS
+        )
+        if forbidden:
+            raise ValueError(
+                "Unsupported PM quality summary outputs requested: "
+                f"{', '.join(forbidden)}. Allowed outputs are: "
+                f"{', '.join(sorted(PM_QUALITY_SUMMARY_ALLOWED_OUTPUTS))}."
+            )
+        return value
+
+    @field_validator("audience")
+    @classmethod
+    def validate_audience(cls, value: list[str]) -> list[str]:
+        forbidden = sorted(
+            audience for audience in value if audience not in PM_QUALITY_SUMMARY_ALLOWED_AUDIENCES
+        )
+        if forbidden:
+            raise ValueError(
+                "Unsupported PM quality summary audiences requested: "
+                f"{', '.join(forbidden)}. Allowed audiences are: "
+                f"{', '.join(sorted(PM_QUALITY_SUMMARY_ALLOWED_AUDIENCES))}."
+            )
+        return value
 
 
 class DpmOutcomeReviewNarrativeRequest(BaseModel):
