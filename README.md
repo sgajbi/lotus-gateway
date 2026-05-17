@@ -86,6 +86,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/platform/*`
 - `domain-products`
   `/api/v1/domain-products/*`
+- `source-products`
+  `/api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `proposals`
   `/api/v1/proposals/*`
 - `intake` and `lookups`

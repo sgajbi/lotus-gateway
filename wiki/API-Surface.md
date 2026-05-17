@@ -9,6 +9,7 @@
 - `GET /api/v1/domain-products/products/{producer_repository}/{product_name}/{product_version}`
 - `GET /api/v1/domain-products/dependency-graph`
 - `GET /api/v1/domain-products/trust-certification`
+- `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -51,6 +52,10 @@
   `producer_repository`, `product_name`, and `product_version`
 - domain-product trust certification returns certified platform trust posture when the RFC-0087
   artifact exists and an explicit unavailable posture when it has not been generated
+- source-product external order execution acknowledgement is a lotus-core pass-through that
+  preserves fail-closed `UNAVAILABLE` supportability, missing data, blocked capabilities, and
+  lineage without creating execution, OMS acknowledgement, fills, settlement, or best-execution
+  truth
 - reporting snapshot and reporting request payloads use `asOfDate`; portfolio review requests also
   support `benchmarkCode` for RFC-0002 performance and risk context
 - reporting review preserves `client_sections`, `advisor_sections`, readiness, evidence, and

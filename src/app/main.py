@@ -27,6 +27,7 @@ from app.routers.reporting import batches_router as reporting_batches_router
 from app.routers.reporting import jobs_router as reporting_jobs_router
 from app.routers.reporting import router as reporting_router
 from app.routers.reporting import schedules_router as reporting_schedules_router
+from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
 
 
@@ -87,6 +88,13 @@ app = FastAPI(
                 "lotus-manage authority."
             ),
         },
+        {
+            "name": "Source Products",
+            "description": (
+                "Gateway source-consumer routes for source-owned products that Workbench may "
+                "display as evidence or supportability posture without recalculating source truth."
+            ),
+        },
     ],
 )
 setup_logging()
@@ -97,6 +105,7 @@ Instrumentator().instrument(app).expose(app)
 app.include_router(proposals_router)
 app.include_router(platform_router)
 app.include_router(domain_products_router)
+app.include_router(source_products_router)
 app.include_router(intake_router)
 app.include_router(foundation_router)
 app.include_router(portfolio_router)
