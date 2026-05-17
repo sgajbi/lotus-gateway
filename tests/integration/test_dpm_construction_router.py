@@ -44,6 +44,7 @@ def test_dpm_construction_generate_preserves_manage_truth(monkeypatch) -> None:
     assert payload["source_service"] == "lotus-manage"
     assert payload["supportability"]["state"] == "READY"
     assert payload["supportability"]["reason_codes"] == [
+        "EXTERNAL_ELIGIBLE_HEDGE_INSTRUMENTS_FAIL_CLOSED",
         "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
         "REGIME_SCENARIO_PACK_READY",
         "TARGET_METHOD_COMPARISON_AVAILABLE",
@@ -54,8 +55,24 @@ def test_dpm_construction_generate_preserves_manage_truth(monkeypatch) -> None:
     assert currency_context["external_hedge_policy_source_product_name"] == ("ExternalHedgePolicy")
     assert currency_context["external_hedge_policy_rule_count"] == 0
     assert currency_context["external_hedge_policy_rules"] == []
-    assert currency_context["missing_data_families"] == ["external_hedge_policy"]
+    assert currency_context["external_eligible_hedge_instrument_source_product_name"] == (
+        "ExternalEligibleHedgeInstrument"
+    )
+    assert currency_context["external_eligible_hedge_instrument_source_product_version"] == "v1"
+    assert currency_context["external_eligible_hedge_instrument_source_id"] == (
+        "sha256:external-eligible-hedge-instrument"
+    )
+    assert currency_context["external_eligible_hedge_instrument_content_hash"] == (
+        "sha256:external-eligible-hedge-instrument-content"
+    )
+    assert currency_context["external_eligible_hedge_instrument_count"] == 0
+    assert currency_context["external_eligible_hedge_instruments"] == []
+    assert currency_context["missing_data_families"] == [
+        "external_hedge_policy",
+        "external_eligible_hedge_instrument",
+    ]
     assert "hedge_policy_approval" in currency_context["blocked_capabilities"]
+    assert "eligible_instrument_selection" in currency_context["blocked_capabilities"]
     assert payload["data"] == _construction_alternative_set()
 
 
@@ -171,14 +188,39 @@ def _construction_alternative_set() -> dict[str, object]:
                             ),
                             "external_hedge_policy_rule_count": 0,
                             "external_hedge_policy_rules": [],
-                            "missing_data_families": ["external_hedge_policy"],
+                            "external_eligible_hedge_instrument_source_product_name": (
+                                "ExternalEligibleHedgeInstrument"
+                            ),
+                            "external_eligible_hedge_instrument_source_product_version": "v1",
+                            "external_eligible_hedge_instrument_source_id": (
+                                "sha256:external-eligible-hedge-instrument"
+                            ),
+                            "external_eligible_hedge_instrument_content_hash": (
+                                "sha256:external-eligible-hedge-instrument-content"
+                            ),
+                            "external_eligible_hedge_instrument_count": 0,
+                            "external_eligible_hedge_instruments": [],
+                            "missing_data_families": [
+                                "external_hedge_policy",
+                                "external_eligible_hedge_instrument",
+                            ],
                             "blocked_capabilities": [
                                 "hedge_policy_approval",
+                                "eligible_instrument_selection",
+                                "suitability_approval",
+                                "product_recommendation",
                                 "treasury_instruction",
                                 "counterparty_selection",
+                                "best_execution",
                                 "oms_acknowledgement",
+                                "fills",
+                                "settlement",
+                                "autonomous_treasury_action",
                             ],
-                            "reason_codes": ["EXTERNAL_HEDGE_POLICY_FAIL_CLOSED"],
+                            "reason_codes": [
+                                "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
+                                "EXTERNAL_ELIGIBLE_HEDGE_INSTRUMENTS_FAIL_CLOSED",
+                            ],
                         }
                     },
                     "method_plan": {
