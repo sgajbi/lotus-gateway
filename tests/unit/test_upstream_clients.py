@@ -3250,6 +3250,52 @@ async def test_lotus_core_query_client_support_routes_use_control_plane_contract
 
 
 @pytest.mark.asyncio
+async def test_lotus_core_query_client_external_execution_acknowledgement_uses_control_plane():
+    client = LotusCoreQueryClient(
+        base_url="http://core-query",
+        control_plane_base_url="http://core-control",
+        timeout_seconds=2.0,
+    )
+    core_payload = {
+        "product_name": "ExternalOrderExecutionAcknowledgement",
+        "product_version": "v1",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "acknowledgements": [],
+        "supportability": {
+            "state": "UNAVAILABLE",
+            "reason": "EXTERNAL_OMS_SOURCE_NOT_INGESTED",
+            "acknowledgement_count": 0,
+            "missing_data_families": ["external_oms_order_execution_acknowledgement"],
+            "blocked_capabilities": ["oms_acknowledgement", "fills", "settlement"],
+        },
+        "lineage": {"runtime_posture": "fail_closed"},
+    }
+    request_payload = {
+        "as_of_date": "2026-05-18",
+        "tenant_id": "default",
+        "order_reference_ids": ["ord-001"],
+    }
+    _FakeAsyncClient.queue_json(200, core_payload)
+
+    status_code, payload = await client.get_external_order_execution_acknowledgement(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        payload=request_payload,
+        correlation_id="corr-exec-ack",
+    )
+
+    assert status_code == 200
+    assert payload == core_payload
+    request = _FakeAsyncClient.calls[0]
+    assert request["method"] == "POST"
+    assert request["url"] == (
+        "http://core-control/integration/portfolios/"
+        "PB_SG_GLOBAL_BAL_001/external-order-execution-acknowledgement"
+    )
+    assert request["json"] == request_payload
+    assert request["headers"]["X-Correlation-Id"] == "corr-exec-ack"
+
+
+@pytest.mark.asyncio
 async def test_lotus_core_query_client_emits_safe_fanout_metrics_without_runtime_ids(caplog):
     caplog.set_level(logging.INFO, logger="analytics_ui.gateway")
     client = LotusCoreQueryClient(
