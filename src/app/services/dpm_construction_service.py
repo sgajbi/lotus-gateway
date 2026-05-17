@@ -130,6 +130,17 @@ def _reason_codes_from_payload(payload: dict[str, Any]) -> list[str]:
                             or []
                         )
                     )
+                execution_acknowledgement_context = authority_context.get(
+                    "execution_acknowledgement_context"
+                )
+                if isinstance(execution_acknowledgement_context, dict):
+                    reason_codes.extend(
+                        _list_of_strings(
+                            execution_acknowledgement_context.get("reason_codes")
+                            or execution_acknowledgement_context.get("reasonCodes")
+                            or []
+                        )
+                    )
     return reason_codes
 
 
