@@ -1842,6 +1842,7 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             {
                 "campaign_id": "campaign-holdings-202605",
                 "campaign_version": "2026.05",
+                "params": {"limit": 25, "offset": 0},
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
@@ -1921,6 +1922,8 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
             "consumer_system": "lotus-gateway",
             "tenant_id": "default",
         }
+    elif method_name == "get_campaign_definition_launch_history":
+        assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
 
 
 @pytest.mark.asyncio

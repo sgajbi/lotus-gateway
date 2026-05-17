@@ -89,13 +89,14 @@ class _FakeDpmClient:
         return self.result
 
     async def get_campaign_definition_launch_history(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id
     ):
         self.calls.append(
             {
                 "method": "get_campaign_definition_launch_history",
                 "campaign_id": campaign_id,
                 "campaign_version": campaign_version,
+                "params": params,
                 "correlation_id": correlation_id,
             }
         )
@@ -296,20 +297,30 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
 @pytest.mark.asyncio
 async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> None:
     manage_payload = {
+        "product_name": "BulkReviewCampaignDefinitionLaunchHistory",
+        "product_version": "v1",
         "campaign_id": "campaign-holdings-202605",
         "campaign_version": "2026.05",
         "items": [
             {
                 "wave_id": "dwv_campaign_launch_001",
-                "actor_id": "pm_sg_1",
+                "launched_at": "2026-05-10T00:00:00Z",
+                "launched_by": "pm_sg_1",
                 "requested_as_of_date": "2026-05-10",
                 "correlation_id": "corr-campaign-launch",
                 "idempotency_key": "campaign-launch:campaign-holdings-202605:2026.05:abc",
-                "idempotent_replay": True,
-                "reason_codes": ["campaign_definition_launch_replayed"],
             }
         ],
+        "limit": 25,
+        "offset": 0,
         "count": 1,
+        "total_count": 1,
+        "operating_boundaries": [
+            "NO_MAKER_CHECKER_WORKFLOW",
+            "NO_TRADE_APPROVAL",
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+        ],
     }
     client = _FakeDpmClient((200, manage_payload))
     service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
@@ -317,6 +328,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> N
     response = await service.get_campaign_definition_launch_history(
         campaign_id="campaign-holdings-202605",
         campaign_version="2026.05",
+        filters={"limit": 25, "offset": 0},
         correlation_id="corr-campaign-launch-history",
     )
 
@@ -327,11 +339,15 @@ async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> N
     assert response.data["items"][0]["idempotency_key"] == (
         "campaign-launch:campaign-holdings-202605:2026.05:abc"
     )
+    assert response.data["items"][0]["launched_by"] == "pm_sg_1"
+    assert response.data["total_count"] == 1
+    assert response.data["operating_boundaries"] == manage_payload["operating_boundaries"]
     assert client.calls == [
         {
             "method": "get_campaign_definition_launch_history",
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
+            "params": {"limit": 25, "offset": 0},
             "correlation_id": "corr-campaign-launch-history",
         }
     ]
