@@ -67,6 +67,25 @@ class DpmCampaignDefinitionForwardRequest(BaseModel):
     )
 
 
+class DpmCampaignDefinitionLaunchRequest(BaseModel):
+    body: dict[str, object] = Field(
+        description=(
+            "Bulk-review campaign launch payload forwarded unchanged to lotus-manage. "
+            "Manage owns launch-package readiness, deterministic replay posture, wave creation, "
+            "reason codes, and launch history. Gateway does not recompute campaign membership or "
+            "readiness, run maker-checker workflow, approve trades, stage orders, or claim OMS "
+            "execution."
+        ),
+        examples=[
+            {
+                "requested_as_of_date": "2026-05-10",
+                "actor_id": "pm_sg_1",
+                "correlation_id": "corr-campaign-definition-launch-001",
+            }
+        ],
+    )
+
+
 class DpmWaveMemoRequest(BaseModel):
     requested_outputs: list[str] = Field(
         default_factory=lambda: [

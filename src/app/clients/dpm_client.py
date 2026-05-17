@@ -405,6 +405,35 @@ class DpmClient:
             operation="manage.rebalance.waves.campaign_definitions.lifecycle_events",
         )
 
+    async def get_campaign_definition_launch_package(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.launch_package",
+        )
+
+    async def launch_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.launch",
+        )
+
     async def discover_campaigns(
         self,
         params: dict[str, Any],

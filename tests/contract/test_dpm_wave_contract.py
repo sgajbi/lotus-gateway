@@ -102,6 +102,14 @@ def test_dpm_wave_openapi_contract_registered() -> None:
             "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events",
             "get",
         ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch",
+            "post",
+        ),
         ("/api/v1/dpm/command-center/waves/campaign-discovery", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/items", "get"),
@@ -137,6 +145,7 @@ def test_dpm_wave_openapi_models_are_described() -> None:
     for schema_name in [
         "DpmWaveCreateRequest",
         "DpmCampaignDefinitionForwardRequest",
+        "DpmCampaignDefinitionLaunchRequest",
         "DpmCampaignDefinitionGatewayResponse",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",

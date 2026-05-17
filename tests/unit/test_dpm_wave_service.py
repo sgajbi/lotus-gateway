@@ -88,6 +88,34 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_campaign_definition_launch_package(  # noqa: ANN001
+        self, campaign_id, campaign_version, params, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "get_campaign_definition_launch_package",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def launch_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "launch_campaign_definition",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def discover_campaigns(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -244,6 +272,94 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_launch_package_payload() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignDefinitionLaunchPackage",
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "launch_state": "READY",
+        "reason_codes": [],
+        "create_headers": {
+            "Idempotency-Key": "campaign-launch:campaign-holdings-202605:2026.05:abc",
+            "X-Correlation-Id": "corr-campaign-launch",
+        },
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_campaign_definition_launch_package(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        filters={
+            "requested_as_of_date": "2026-05-10",
+            "actor_id": "pm_sg_1",
+            "correlation_id": "corr-campaign-launch",
+        },
+        correlation_id="corr-gateway",
+    )
+
+    assert response.correlation_id == "corr-gateway"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "get_campaign_definition_launch_package",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "params": {
+                "requested_as_of_date": "2026-05-10",
+                "actor_id": "pm_sg_1",
+                "correlation_id": "corr-campaign-launch",
+            },
+            "correlation_id": "corr-gateway",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_launch_wave_truth() -> None:
+    manage_payload = {
+        "wave": {
+            "wave_id": "dwv_campaign_launch_001",
+            "state": "CREATED",
+            "trigger_type": "BULK_REVIEW_CAMPAIGN",
+        },
+        "durable": True,
+        "idempotent_replay": True,
+        "supportability": {
+            "supportability_state": "ready",
+            "reason_codes": ["campaign_definition_launch_replayed"],
+        },
+    }
+    body = {
+        "requested_as_of_date": "2026-05-10",
+        "actor_id": "pm_sg_1",
+        "correlation_id": "corr-campaign-launch",
+    }
+    client = _FakeDpmClient((201, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.launch_campaign_definition(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        body=body,
+        correlation_id="corr-gateway",
+    )
+
+    assert response.upstream_status == 201
+    assert response.supportability.state == "ready"
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "launch_campaign_definition",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": body,
+            "correlation_id": "corr-gateway",
         }
     ]
 
