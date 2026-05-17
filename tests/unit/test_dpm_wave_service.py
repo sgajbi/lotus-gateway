@@ -88,6 +88,19 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_campaign_definition_launch_history(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "get_campaign_definition_launch_history",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_campaign_definition_launch_package(  # noqa: ANN001
         self, campaign_id, campaign_version, params, correlation_id
     ):
@@ -246,10 +259,14 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
         "campaign_version": "2026.05",
         "events": [
             {
-                "event_type": "CAMPAIGN_DEFINITION_CREATED",
+                "event_type": "LAUNCHED",
                 "actor_id": "pm_sg_1",
                 "occurred_at": "2026-05-14T09:30:00Z",
                 "source_service": "lotus-manage",
+                "wave_id": "dwv_campaign_launch_001",
+                "requested_as_of_date": "2026-05-10",
+                "correlation_id": "corr-campaign-launch",
+                "idempotency_key": "campaign-launch:campaign-holdings-202605:2026.05:abc",
             }
         ],
     }
@@ -272,6 +289,50 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> None:
+    manage_payload = {
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "items": [
+            {
+                "wave_id": "dwv_campaign_launch_001",
+                "actor_id": "pm_sg_1",
+                "requested_as_of_date": "2026-05-10",
+                "correlation_id": "corr-campaign-launch",
+                "idempotency_key": "campaign-launch:campaign-holdings-202605:2026.05:abc",
+                "idempotent_replay": True,
+                "reason_codes": ["campaign_definition_launch_replayed"],
+            }
+        ],
+        "count": 1,
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_campaign_definition_launch_history(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        correlation_id="corr-campaign-launch-history",
+    )
+
+    assert response.correlation_id == "corr-campaign-launch-history"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert response.data["items"][0]["idempotency_key"] == (
+        "campaign-launch:campaign-holdings-202605:2026.05:abc"
+    )
+    assert client.calls == [
+        {
+            "method": "get_campaign_definition_launch_history",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "correlation_id": "corr-campaign-launch-history",
         }
     ]
 
