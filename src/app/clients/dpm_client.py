@@ -405,6 +405,19 @@ class DpmClient:
             operation="manage.rebalance.waves.campaign_definitions.lifecycle_events",
         )
 
+    async def get_campaign_definition_launch_history(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.launch_history",
+        )
+
     async def get_campaign_definition_launch_package(
         self,
         campaign_id: str,

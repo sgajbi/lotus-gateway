@@ -1838,6 +1838,16 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         ),
         (
+            "get_campaign_definition_launch_history",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/launch-history",
+        ),
+        (
             "get_campaign_definition_launch_package",
             {
                 "campaign_id": "campaign-holdings-202605",

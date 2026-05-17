@@ -198,11 +198,41 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_version": campaign_version,
             "events": [
                 {
-                    "event_type": "CAMPAIGN_DEFINITION_CREATED",
+                    "event_type": "LAUNCHED",
                     "actor_id": "pm_sg_1",
+                    "wave_id": "dwv_campaign_launch_001",
+                    "requested_as_of_date": "2026-05-10",
+                    "correlation_id": "corr-launch-package",
+                    "idempotency_key": ("campaign-launch:campaign-holdings-202605:2026.05:abc"),
                     "source_service": "lotus-manage",
                 }
             ],
+        }
+
+    async def _fake_get_campaign_definition_launch_history(  # noqa: ANN001
+        self, campaign_id, campaign_version, correlation_id
+    ):
+        _ = self
+        captured["launch_history"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "items": [
+                {
+                    "wave_id": "dwv_campaign_launch_001",
+                    "actor_id": "pm_sg_1",
+                    "requested_as_of_date": "2026-05-10",
+                    "correlation_id": "corr-launch-package",
+                    "idempotency_key": ("campaign-launch:campaign-holdings-202605:2026.05:abc"),
+                    "idempotent_replay": True,
+                    "reason_codes": ["campaign_definition_launch_replayed"],
+                }
+            ],
+            "count": 1,
         }
 
     async def _fake_get_campaign_definition_launch_package(  # noqa: ANN001
@@ -286,6 +316,10 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         _fake_get_campaign_definition_lifecycle_events,
     )
     monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_campaign_definition_launch_history",
+        _fake_get_campaign_definition_launch_history,
+    )
+    monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.get_campaign_definition_launch_package",
         _fake_get_campaign_definition_launch_package,
     )
@@ -320,6 +354,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         headers={"X-Correlation-Id": "corr-campaign-lifecycle"},
     )
+    launch_history_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/launch-history",
+        headers={"X-Correlation-Id": "corr-campaign-launch-history"},
+    )
     launch_package_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
         "campaign-holdings-202605/versions/2026.05/launch-package"
@@ -351,10 +390,16 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     assert get_response.status_code == 200
     assert get_response.json()["data"]["campaign_version"] == "2026.05"
     assert lifecycle_events_response.status_code == 200
+    assert lifecycle_events_response.json()["data"]["events"][0]["event_type"] == "LAUNCHED"
     assert (
-        lifecycle_events_response.json()["data"]["events"][0]["event_type"]
-        == "CAMPAIGN_DEFINITION_CREATED"
+        lifecycle_events_response.json()["data"]["events"][0]["idempotency_key"]
+        == "campaign-launch:campaign-holdings-202605:2026.05:abc"
     )
+    assert launch_history_response.status_code == 200
+    assert launch_history_response.json()["data"]["items"][0]["wave_id"] == (
+        "dwv_campaign_launch_001"
+    )
+    assert launch_history_response.json()["data"]["items"][0]["idempotent_replay"] is True
     assert launch_package_response.status_code == 200
     assert launch_package_response.json()["data"]["launch_state"] == "READY"
     assert launch_response.status_code == 200
@@ -391,6 +436,11 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        },
+        "launch_history": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "correlation_id": "corr-campaign-launch-history",
         },
         "launch_package": {
             "campaign_id": "campaign-holdings-202605",

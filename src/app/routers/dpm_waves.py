@@ -258,6 +258,30 @@ async def get_campaign_definition_lifecycle_events(
 
 
 @router.get(
+    "/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
+    response_model=DpmCampaignDefinitionGatewayResponse,
+    summary="Get DPM campaign-definition launch history",
+    description=(
+        "What: retrieves manage-owned append-only launch-history audit evidence for one "
+        "BulkReviewCampaignDefinition:v1 version. When: use this for Workbench review of durable "
+        "campaign launch attempts and replay posture. How: Gateway forwards the read unchanged to "
+        "lotus-manage and does not recompute launch state, campaign membership, readiness, "
+        "idempotency, maker-checker, trade approval, routing, or OMS execution."
+    ),
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
+async def get_campaign_definition_launch_history(
+    campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
+    campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await _dpm_wave_service().get_campaign_definition_launch_history(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package",
     response_model=DpmCampaignDefinitionGatewayResponse,
     summary="Get DPM campaign-definition launch package",
