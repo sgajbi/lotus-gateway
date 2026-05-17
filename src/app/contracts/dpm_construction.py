@@ -160,7 +160,40 @@ class DpmConstructionGatewayResponse(BaseModel):
                                         "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
                                         "EXTERNAL_ELIGIBLE_HEDGE_INSTRUMENTS_FAIL_CLOSED",
                                     ],
-                                }
+                                },
+                                "execution_acknowledgement_context": {
+                                    "supportability_status": "BLOCKED",
+                                    "source_system": "lotus-core",
+                                    "source_product_name": (
+                                        "ExternalOrderExecutionAcknowledgement"
+                                    ),
+                                    "source_product_version": "v1",
+                                    "source_id": (
+                                        "sha256:external-order-execution-acknowledgement"
+                                    ),
+                                    "content_hash": (
+                                        "sha256:external-order-execution-acknowledgement-content"
+                                    ),
+                                    "acknowledgement_count": 0,
+                                    "missing_data_families": [
+                                        "external_oms_order_execution_acknowledgement"
+                                    ],
+                                    "blocked_capabilities": [
+                                        "order_generation",
+                                        "venue_routing",
+                                        "best_execution",
+                                        "oms_acknowledgement",
+                                        "fills",
+                                        "settlement",
+                                        "execution_status_certification",
+                                        "autonomous_execution",
+                                    ],
+                                    "acknowledgements": [],
+                                    "reason_codes": [
+                                        "EXTERNAL_OMS_SOURCE_NOT_INGESTED",
+                                        ("EXTERNAL_ORDER_EXECUTION_ACKNOWLEDGEMENT_FAIL_CLOSED"),
+                                    ],
+                                },
                             }
                         },
                     }

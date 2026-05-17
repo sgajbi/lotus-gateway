@@ -72,6 +72,8 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
     assert response.supportability.reason_codes == [
         "EXTERNAL_ELIGIBLE_HEDGE_INSTRUMENTS_FAIL_CLOSED",
         "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
+        "EXTERNAL_OMS_SOURCE_NOT_INGESTED",
+        "EXTERNAL_ORDER_EXECUTION_ACKNOWLEDGEMENT_FAIL_CLOSED",
         "REGIME_SCENARIO_PACK_READY",
         "TARGET_METHOD_COMPARISON_AVAILABLE",
     ]
@@ -104,6 +106,28 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
     ]
     assert "hedge_policy_approval" in currency_context["blocked_capabilities"]
     assert "eligible_instrument_selection" in currency_context["blocked_capabilities"]
+    acknowledgement_context = response.data["alternatives"][0]["diagnostics"]["authority_context"][
+        "execution_acknowledgement_context"
+    ]
+    assert acknowledgement_context["source_product_name"] == (
+        "ExternalOrderExecutionAcknowledgement"
+    )
+    assert acknowledgement_context["source_product_version"] == "v1"
+    assert acknowledgement_context["source_id"] == (
+        "sha256:external-order-execution-acknowledgement"
+    )
+    assert acknowledgement_context["content_hash"] == (
+        "sha256:external-order-execution-acknowledgement-content"
+    )
+    assert acknowledgement_context["acknowledgement_count"] == 0
+    assert acknowledgement_context["acknowledgements"] == []
+    assert (
+        "external_oms_order_execution_acknowledgement"
+        in (acknowledgement_context["missing_data_families"])
+    )
+    assert "oms_acknowledgement" in acknowledgement_context["blocked_capabilities"]
+    assert "fills" in acknowledgement_context["blocked_capabilities"]
+    assert "settlement" in acknowledgement_context["blocked_capabilities"]
     assert response.data == manage_payload
     assert client.calls == [
         {
@@ -260,7 +284,36 @@ def _construction_alternative_set() -> dict[str, object]:
                                 "EXTERNAL_HEDGE_POLICY_FAIL_CLOSED",
                                 "EXTERNAL_ELIGIBLE_HEDGE_INSTRUMENTS_FAIL_CLOSED",
                             ],
-                        }
+                        },
+                        "execution_acknowledgement_context": {
+                            "supportability_status": "BLOCKED",
+                            "source_system": "lotus-core",
+                            "source_product_name": "ExternalOrderExecutionAcknowledgement",
+                            "source_product_version": "v1",
+                            "source_id": "sha256:external-order-execution-acknowledgement",
+                            "content_hash": (
+                                "sha256:external-order-execution-acknowledgement-content"
+                            ),
+                            "acknowledgement_count": 0,
+                            "missing_data_families": [
+                                "external_oms_order_execution_acknowledgement"
+                            ],
+                            "blocked_capabilities": [
+                                "order_generation",
+                                "venue_routing",
+                                "best_execution",
+                                "oms_acknowledgement",
+                                "fills",
+                                "settlement",
+                                "execution_status_certification",
+                                "autonomous_execution",
+                            ],
+                            "acknowledgements": [],
+                            "reason_codes": [
+                                "EXTERNAL_OMS_SOURCE_NOT_INGESTED",
+                                "EXTERNAL_ORDER_EXECUTION_ACKNOWLEDGEMENT_FAIL_CLOSED",
+                            ],
+                        },
                     },
                     "method_plan": {
                         "reason_codes": ["TARGET_METHOD_COMPARISON_AVAILABLE"],
