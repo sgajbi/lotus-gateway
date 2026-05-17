@@ -1838,6 +1838,36 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         ),
         (
+            "get_campaign_definition_launch_package",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {
+                    "requested_as_of_date": "2026-05-10",
+                    "actor_id": "pm_sg_1",
+                    "correlation_id": "corr-launch",
+                },
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/launch-package",
+        ),
+        (
+            "launch_campaign_definition",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {
+                    "requested_as_of_date": "2026-05-10",
+                    "actor_id": "pm_sg_1",
+                    "correlation_id": "corr-launch",
+                },
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/launch",
+        ),
+        (
             "discover_campaigns",
             {
                 "params": {"campaign_status": "ACTIVE", "active_on": "2026-05-16"},

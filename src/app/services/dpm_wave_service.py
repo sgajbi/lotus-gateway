@@ -160,6 +160,43 @@ class DpmWaveService:
             correlation_id,
         )
 
+    async def get_campaign_definition_launch_package(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmCampaignDefinitionGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.get_campaign_definition_launch_package(
+            campaign_id=campaign_id,
+            campaign_version=campaign_version,
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_campaign_definition_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def launch_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmWaveGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.launch_campaign_definition(
+            campaign_id=campaign_id,
+            campaign_version=campaign_version,
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_response(upstream_status, upstream_payload, correlation_id)
+
     async def discover_campaigns(
         self,
         filters: dict[str, Any],
