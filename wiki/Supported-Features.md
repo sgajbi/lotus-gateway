@@ -284,16 +284,19 @@ Supported routes:
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
-2. Gateway forwards preview, create, campaign-definition list/get/lifecycle-events/launch-history/
+2. Gateway forwards preview, create, campaign-definition list/get/lifecycle-events/paged launch-history/
    launch-package/launch/upsert, bounded campaign-discovery, source-check, simulate,
    select, approve, stage, handoff, cancel, proof-pack posture, supportability, and report-input
    requests to manage.
-3. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
+3. Gateway preserves `BulkReviewCampaignDefinitionLaunchHistory:v1` campaign id/version, launch
+   records, count, total count, limit, offset, and `operating_boundaries` exactly without inferring
+   maker-checker, trade approval, order generation, routing, fills, settlement, or OMS execution.
+4. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
    issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
-4. Gateway reads manage-owned wave report input before calling `lotus-ai`
+5. Gateway reads manage-owned wave report input before calling `lotus-ai`
    `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
-5. Gateway reads manage-owned wave report input with internal handoff refs before calling
+6. Gateway reads manage-owned wave report input with internal handoff refs before calling
    `lotus-ai` `dpm_operations_handoff_summary.pack@v1`.
 6. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
    recompute campaign membership, generate alternatives, select alternatives, approve items, stage

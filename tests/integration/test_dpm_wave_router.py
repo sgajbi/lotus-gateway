@@ -210,29 +210,40 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         }
 
     async def _fake_get_campaign_definition_launch_history(  # noqa: ANN001
-        self, campaign_id, campaign_version, correlation_id
+        self, campaign_id, campaign_version, params, correlation_id
     ):
         _ = self
         captured["launch_history"] = {
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
+            "params": params,
             "correlation_id": correlation_id,
         }
         return 200, {
+            "product_name": "BulkReviewCampaignDefinitionLaunchHistory",
+            "product_version": "v1",
             "campaign_id": campaign_id,
             "campaign_version": campaign_version,
             "items": [
                 {
                     "wave_id": "dwv_campaign_launch_001",
-                    "actor_id": "pm_sg_1",
+                    "launched_at": "2026-05-10T00:00:00Z",
+                    "launched_by": "pm_sg_1",
                     "requested_as_of_date": "2026-05-10",
                     "correlation_id": "corr-launch-package",
                     "idempotency_key": ("campaign-launch:campaign-holdings-202605:2026.05:abc"),
-                    "idempotent_replay": True,
-                    "reason_codes": ["campaign_definition_launch_replayed"],
                 }
             ],
+            "limit": 2,
+            "offset": 1,
             "count": 1,
+            "total_count": 2,
+            "operating_boundaries": [
+                "NO_MAKER_CHECKER_WORKFLOW",
+                "NO_TRADE_APPROVAL",
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+            ],
         }
 
     async def _fake_get_campaign_definition_launch_package(  # noqa: ANN001
@@ -356,7 +367,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     )
     launch_history_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-definitions/"
-        "campaign-holdings-202605/versions/2026.05/launch-history",
+        "campaign-holdings-202605/versions/2026.05/launch-history?limit=2&offset=1",
         headers={"X-Correlation-Id": "corr-campaign-launch-history"},
     )
     launch_package_response = client.get(
@@ -396,10 +407,21 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         == "campaign-launch:campaign-holdings-202605:2026.05:abc"
     )
     assert launch_history_response.status_code == 200
-    assert launch_history_response.json()["data"]["items"][0]["wave_id"] == (
-        "dwv_campaign_launch_001"
+    launch_history_data = launch_history_response.json()["data"]
+    assert launch_history_data["product_name"] == "BulkReviewCampaignDefinitionLaunchHistory"
+    assert launch_history_data["product_version"] == "v1"
+    assert launch_history_data["limit"] == 2
+    assert launch_history_data["offset"] == 1
+    assert launch_history_data["count"] == 1
+    assert launch_history_data["total_count"] == 2
+    assert launch_history_data["items"][0]["wave_id"] == "dwv_campaign_launch_001"
+    assert launch_history_data["items"][0]["launched_at"] == "2026-05-10T00:00:00Z"
+    assert launch_history_data["items"][0]["launched_by"] == "pm_sg_1"
+    assert launch_history_data["items"][0]["idempotency_key"] == (
+        "campaign-launch:campaign-holdings-202605:2026.05:abc"
     )
-    assert launch_history_response.json()["data"]["items"][0]["idempotent_replay"] is True
+    assert "NO_ORDER_GENERATION" in launch_history_data["operating_boundaries"]
+    assert "NO_OMS_EXECUTION_CLAIM" in launch_history_data["operating_boundaries"]
     assert launch_package_response.status_code == 200
     assert launch_package_response.json()["data"]["launch_state"] == "READY"
     assert launch_response.status_code == 200
@@ -440,6 +462,7 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         "launch_history": {
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
+            "params": {"limit": 2, "offset": 1},
             "correlation_id": "corr-campaign-launch-history",
         },
         "launch_package": {

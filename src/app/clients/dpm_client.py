@@ -409,11 +409,13 @@ class DpmClient:
         self,
         campaign_id: str,
         campaign_version: str,
+        params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
         return await self._get(
             f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
-            params={},
+            params=cleaned_params,
             headers=self._headers(correlation_id),
             operation="manage.rebalance.waves.campaign_definitions.launch_history",
         )

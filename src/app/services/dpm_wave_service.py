@@ -164,6 +164,7 @@ class DpmWaveService:
         self,
         campaign_id: str,
         campaign_version: str,
+        filters: dict[str, Any],
         correlation_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
         (
@@ -172,6 +173,7 @@ class DpmWaveService:
         ) = await self._dpm_client.get_campaign_definition_launch_history(
             campaign_id=campaign_id,
             campaign_version=campaign_version,
+            params=filters,
             correlation_id=correlation_id,
         )
         return self._compose_campaign_definition_response(
