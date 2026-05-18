@@ -26,12 +26,27 @@ def test_dpm_outcome_review_gateway_response_contract_shape() -> None:
             "state": "READY",
             "portfolio_id": "PB_SG_GLOBAL_BAL_001",
             "expected_snapshot_hash": "sha256:expected",
+            "client_communication_boundary": {
+                "boundary_id": "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY",
+                "supportability_state": "BLOCKED",
+                "client_communication_projected": False,
+                "client_approval_projected": False,
+                "required_source_product": "ClientCommunicationRecord:v1",
+            },
         },
     )
 
     assert response.source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0042"
     assert response.data["outcome_review_id"] == "or_1"
+    assert response.data["client_communication_boundary"]["boundary_id"] == (
+        "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY"
+    )
+    assert response.data["client_communication_boundary"]["client_communication_projected"] is False
+    assert response.data["client_communication_boundary"]["client_approval_projected"] is False
+    assert response.data["client_communication_boundary"]["required_source_product"] == (
+        "ClientCommunicationRecord:v1"
+    )
 
 
 def test_dpm_command_center_gateway_response_contract_shape() -> None:
@@ -171,6 +186,13 @@ def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
         ai_evidence_input={
             "outcome_review_id": "or_1",
             "content_hash": "sha256:ai-evidence",
+            "client_communication_boundary": {
+                "boundary_id": "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY",
+                "supportability_state": "BLOCKED",
+                "client_communication_projected": False,
+                "client_approval_projected": False,
+                "required_source_product": "ClientCommunicationRecord:v1",
+            },
         },
         narrative_request={"requested_outputs": ["pm_summary"], "audience": ["pm"]},
         data={
@@ -182,6 +204,9 @@ def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     assert response.source_service == "lotus-ai"
     assert response.evidence_source_service == "lotus-manage"
     assert response.supportability.authority == "lotus-manage:RFC-0042"
+    assert response.ai_evidence_input["client_communication_boundary"]["boundary_id"] == (
+        "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY"
+    )
     assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
@@ -404,7 +429,12 @@ def test_dpm_command_center_openapi_models_are_described() -> None:
     assert pm_quality_summary_request_schema["properties"]["requested_outputs"]["examples"]
     assert pm_quality_summary_response_schema["properties"]["data"]["description"]
     assert response_schema["properties"]["data"]["description"]
+    assert "client_communication_boundary" in response_schema["properties"]["data"]["description"]
     assert narrative_response_schema["properties"]["data"]["description"]
+    assert (
+        "client_communication_boundary"
+        in narrative_response_schema["properties"]["ai_evidence_input"]["description"]
+    )
     assert exception_summary_request_schema["properties"]["requested_outputs"]["examples"]
     assert exception_summary_response_schema["properties"]["data"]["description"]
     assert supportability_schema["properties"]["state"]["examples"]

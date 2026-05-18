@@ -175,10 +175,12 @@
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. These routes preserve manage
   `outcome_review_id`, state, dimension outcomes, expected values, realized values, variance,
   tolerances, source refs, source hashes, freshness, report-input posture, AI-evidence posture,
-  remediation routes, and supportability. Gateway also exposes a governed AI narrative handoff
-  action that reads manage-owned `DpmOutcomeAiEvidenceInput` and calls `lotus-ai`
+  remediation routes, supportability, and Manage-owned `client_communication_boundary` posture
+  when present. Gateway also exposes a governed AI narrative handoff action that reads
+  manage-owned `DpmOutcomeAiEvidenceInput` and calls `lotus-ai`
   `outcome_review_narrative.pack@v1` as `lotus-gateway`; Gateway must not recompute outcome
-  truth, generate reports, generate AI narrative locally, infer PM quality, approve trades, contact
+  truth, synthesize client communication truth, generate reports, generate AI narrative locally,
+  infer PM quality, approve trades, contact
   clients, or let Workbench bypass Gateway.
   In short: Gateway must not recompute outcome truth.
 - report batch schedule list and run-due actions are gateway-first under

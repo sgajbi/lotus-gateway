@@ -57,8 +57,9 @@ Current repository posture:
 9. the advisor-brief path now calls the explicit `lotus-ai` workflow-pack execution seam and consumes the returned run identity directly instead of inferring it from task audit request ids; it also preserves bounded RFC-0097 task-flow posture and replacement lineage from `lotus-ai` without making gateway the task-flow authority,
 10. RFC-0042 outcome-review AI narrative handoff now reads manage-owned
     `DpmOutcomeAiEvidenceInput` and executes `lotus-ai` `outcome_review_narrative.pack@v1` as
-    `lotus-gateway`; manage remains outcome evidence and workflow authority, and Gateway does not
-    generate narrative locally,
+    `lotus-gateway`; manage remains outcome evidence and workflow authority, Gateway preserves
+    Manage-owned `client_communication_boundary` posture when present, and Gateway does not
+    generate narrative or client communication truth locally,
 11. RFC-0038 DPM exception-summary AI handoff now reads manage-owned monitoring-exception evidence
     from the command-center exception queue and executes `lotus-ai`
     `dpm_exception_summary.pack@v1` as `lotus-gateway`; manage remains exception evidence
@@ -216,8 +217,8 @@ Most relevant current governance:
     `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
     `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. Gateway composes a BFF envelope
     and supportability summary over manage truth, but it must not recompute outcome dimensions,
-    generate reports, generate AI narrative, infer PM quality, or let Workbench call manage
-    directly.
+    synthesize `client_communication_boundary`, generate reports, generate AI narrative, infer PM
+    quality, or let Workbench call manage directly.
 11. RFC-0038 mandate command-center Gateway routes are active under
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and

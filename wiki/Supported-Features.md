@@ -434,8 +434,11 @@ Status: implementation-backed in Gateway for RFC42-WTBD-001 and RFC42-WTBD-005.
 
 Gateway exposes outcome-review preview/create/search/detail/source-refresh/supportability,
 report-input, AI-evidence, run lookup, wave lookup, and governed AI narrative handoff routes under
-`/api/v1/dpm/command-center/outcome-reviews*`. `lotus-manage` remains outcome-review authority and
-`lotus-ai` remains AI workflow execution authority.
+`/api/v1/dpm/command-center/outcome-reviews*`. The supportability, report-input, and AI-evidence
+payloads preserve Manage-owned `client_communication_boundary` posture when Manage publishes it,
+including fail-closed no-client-communication and no-client-approval projection flags.
+`lotus-manage` remains outcome-review authority and `lotus-ai` remains AI workflow execution
+authority; Gateway does not synthesize client communication truth.
 
 ## DPM Command Center Exception Summary
 
