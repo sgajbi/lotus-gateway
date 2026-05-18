@@ -544,6 +544,127 @@ def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> N
     assert response.json()["data"]["items"][0]["outcome_review_id"] == "or_1"
 
 
+def test_dpm_command_center_outcome_review_boundary_is_preserved_in_handoffs(
+    monkeypatch,
+) -> None:
+    boundary = _client_communication_boundary()
+    captured: dict[str, object] = {}
+
+    async def _fake_get_outcome_review_supportability(
+        self,
+        outcome_review_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["supportability"] = {
+            "outcome_review_id": outcome_review_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "outcome_review_id": outcome_review_id,
+            "state": "SUPPORTED",
+            "client_communication_boundary": boundary,
+            "supportability": {
+                "state": "SUPPORTED",
+                "reason_codes": ["READY_FOR_REPORT_INPUT"],
+                "blocked_actions": [],
+            },
+        }
+
+    async def _fake_get_outcome_review_report_input(
+        self,
+        outcome_review_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["report_input"] = {
+            "outcome_review_id": outcome_review_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "outcome_review_id": outcome_review_id,
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "content_hash": "sha256:report-input",
+            "client_communication_boundary": boundary,
+        }
+
+    async def _fake_get_outcome_review_ai_evidence_input(
+        self,
+        outcome_review_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["ai_evidence_input"] = {
+            "outcome_review_id": outcome_review_id,
+            "correlation_id": correlation_id,
+        }
+        payload = _outcome_ai_evidence(outcome_review_id)
+        payload["client_communication_boundary"] = boundary
+        return 200, payload
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_outcome_review_supportability",
+        _fake_get_outcome_review_supportability,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_outcome_review_report_input",
+        _fake_get_outcome_review_report_input,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_outcome_review_ai_evidence_input",
+        _fake_get_outcome_review_ai_evidence_input,
+    )
+
+    client = TestClient(app)
+    supportability_response = client.get(
+        "/api/v1/dpm/command-center/outcome-reviews/or_1/supportability",
+        headers={"X-Correlation-Id": "corr-boundary-supportability"},
+    )
+    report_response = client.get(
+        "/api/v1/dpm/command-center/outcome-reviews/or_1/report-input",
+        headers={"X-Correlation-Id": "corr-boundary-report"},
+    )
+    ai_response = client.get(
+        "/api/v1/dpm/command-center/outcome-reviews/or_1/ai-evidence-input",
+        headers={"X-Correlation-Id": "corr-boundary-ai"},
+    )
+
+    assert supportability_response.status_code == 200
+    assert report_response.status_code == 200
+    assert ai_response.status_code == 200
+    assert captured == {
+        "supportability": {
+            "outcome_review_id": "or_1",
+            "correlation_id": "corr-boundary-supportability",
+        },
+        "report_input": {
+            "outcome_review_id": "or_1",
+            "correlation_id": "corr-boundary-report",
+        },
+        "ai_evidence_input": {
+            "outcome_review_id": "or_1",
+            "correlation_id": "corr-boundary-ai",
+        },
+    }
+
+    for payload in (
+        supportability_response.json()["data"],
+        report_response.json()["data"],
+        ai_response.json()["data"],
+    ):
+        assert payload["client_communication_boundary"] == boundary
+        assert (
+            payload["client_communication_boundary"]["boundary_id"]
+            == "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY"
+        )
+        assert payload["client_communication_boundary"]["client_communication_projected"] is False
+        assert payload["client_communication_boundary"]["client_approval_projected"] is False
+        assert (
+            payload["client_communication_boundary"]["required_source_product"]
+            == "ClientCommunicationRecord:v1"
+        )
+
+
 def test_dpm_command_center_outcome_review_error_is_not_marked_supported(monkeypatch) -> None:
     async def _fake_get_outcome_review(self, outcome_review_id, correlation_id):  # noqa: ANN001
         _ = self, outcome_review_id, correlation_id
@@ -626,6 +747,9 @@ def test_dpm_command_center_outcome_review_ai_narrative_executes_lotus_ai(monkey
     assert payload["source_service"] == "lotus-ai"
     assert payload["evidence_source_service"] == "lotus-manage"
     assert payload["ai_evidence_input"]["content_hash"] == "sha256:or_1-ai-evidence"
+    assert payload["ai_evidence_input"]["client_communication_boundary"] == (
+        _client_communication_boundary()
+    )
     assert payload["data"]["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
 
 
@@ -861,7 +985,35 @@ def _outcome_ai_evidence(outcome_review_id: str) -> dict[str, object]:
             "source_id": f"{outcome_review_id}:dpm_outcome_ai_evidence_input",
             "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
         },
+        "client_communication_boundary": _client_communication_boundary(),
         "content_hash": f"sha256:{outcome_review_id}-ai-evidence",
+    }
+
+
+def _client_communication_boundary() -> dict[str, object]:
+    return {
+        "boundary_id": "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY",
+        "supportability_state": "BLOCKED",
+        "source_system": "lotus-manage",
+        "source_product_name": "DpmPostTradeOutcomeReview",
+        "source_product_version": "v1",
+        "client_communication_projected": False,
+        "client_approval_projected": False,
+        "reason_code": "OUTCOME_CLIENT_COMMUNICATION_NOT_SUPPORTED",
+        "blocked_capabilities": [
+            "client_approval",
+            "client_contact",
+            "client_message_generation",
+            "communication_audit",
+            "delivery_confirmation",
+        ],
+        "required_owner": "future client-communication owner",
+        "required_source_product": "ClientCommunicationRecord:v1",
+        "summary": (
+            "Outcome review is internal-only until a client-communication owner publishes "
+            "governed source events."
+        ),
+        "content_hash": "sha256:client-communication-boundary",
     }
 
 

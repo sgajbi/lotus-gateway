@@ -480,7 +480,8 @@ class DpmOutcomeReviewGatewayResponse(BaseModel):
     data: dict[str, object] = Field(
         description=(
             "Authoritative manage outcome-review payload preserved for Workbench composition. "
-            "Gateway does not alter manage-owned calculations, hashes, lineage, state, or evidence."
+            "Gateway does not alter manage-owned calculations, hashes, lineage, state, evidence, "
+            "or client_communication_boundary posture."
         ),
         examples=[
             {
@@ -496,6 +497,13 @@ class DpmOutcomeReviewGatewayResponse(BaseModel):
                         "state": "WITHIN_TOLERANCE",
                     }
                 ],
+                "client_communication_boundary": {
+                    "boundary_id": "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY",
+                    "supportability_state": "BLOCKED",
+                    "client_communication_projected": False,
+                    "client_approval_projected": False,
+                    "required_source_product": "ClientCommunicationRecord:v1",
+                },
             }
         ],
     )
@@ -688,7 +696,8 @@ class DpmOutcomeReviewNarrativeGatewayResponse(BaseModel):
     ai_evidence_input: dict[str, object] = Field(
         description=(
             "Manage-owned DpmOutcomeAiEvidenceInput used as the sole source for narrative "
-            "generation. Gateway preserves it without adding facts or removing guardrails."
+            "generation. Gateway preserves it without adding facts, removing guardrails, or "
+            "rewriting client_communication_boundary posture."
         ),
     )
     narrative_request: dict[str, object] = Field(

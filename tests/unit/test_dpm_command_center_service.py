@@ -1065,6 +1065,9 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
     assert response.manage_upstream_status == 200
     assert response.ai_upstream_status == 200
     assert response.ai_evidence_input == ai_evidence
+    assert response.ai_evidence_input["client_communication_boundary"] == (
+        _client_communication_boundary()
+    )
     assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
     assert dpm_client.calls == [
         {
@@ -1080,6 +1083,10 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
     task_request = ai_call["task_request"]
     assert task_request["caller"]["caller_app"] == "lotus-gateway"
     assert task_request["context"]["payload"]["ai_evidence_input"] == ai_evidence
+    assert (
+        task_request["context"]["payload"]["ai_evidence_input"]["client_communication_boundary"]
+        == _client_communication_boundary()
+    )
     assert task_request["context"]["payload"]["narrative_request"] == {
         "requested_outputs": ["pm_summary", "evidence_gaps"],
         "audience": ["pm"],
@@ -1290,7 +1297,35 @@ def _outcome_ai_evidence() -> dict[str, object]:
             "source_id": "or_1:dpm_outcome_ai_evidence_input",
             "content_hash": "sha256:outcome-ai-evidence-001",
         },
+        "client_communication_boundary": _client_communication_boundary(),
         "content_hash": "sha256:outcome-ai-evidence-001",
+    }
+
+
+def _client_communication_boundary() -> dict[str, object]:
+    return {
+        "boundary_id": "DPM_OUTCOME_CLIENT_COMMUNICATION_BOUNDARY",
+        "supportability_state": "BLOCKED",
+        "source_system": "lotus-manage",
+        "source_product_name": "DpmPostTradeOutcomeReview",
+        "source_product_version": "v1",
+        "client_communication_projected": False,
+        "client_approval_projected": False,
+        "reason_code": "OUTCOME_CLIENT_COMMUNICATION_NOT_SUPPORTED",
+        "blocked_capabilities": [
+            "client_approval",
+            "client_contact",
+            "client_message_generation",
+            "communication_audit",
+            "delivery_confirmation",
+        ],
+        "required_owner": "future client-communication owner",
+        "required_source_product": "ClientCommunicationRecord:v1",
+        "summary": (
+            "Outcome review is internal-only until a client-communication owner publishes "
+            "governed source events."
+        ),
+        "content_hash": "sha256:client-communication-boundary",
     }
 
 
