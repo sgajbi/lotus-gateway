@@ -103,6 +103,10 @@ def test_dpm_wave_openapi_contract_registered() -> None:
             "get",
         ),
         (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/preview-readiness",
+            "get",
+        ),
+        (
             "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
             "get",
         ),

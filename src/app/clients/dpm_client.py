@@ -405,6 +405,21 @@ class DpmClient:
             operation="manage.rebalance.waves.campaign_definitions.lifecycle_events",
         )
 
+    async def get_campaign_definition_preview_readiness(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/preview-readiness",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.preview_readiness",
+        )
+
     async def get_campaign_definition_launch_history(
         self,
         campaign_id: str,

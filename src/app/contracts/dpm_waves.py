@@ -266,9 +266,11 @@ class DpmCampaignDefinitionGatewayResponse(BaseModel):
     data: dict[str, object] = Field(
         description=(
             "Authoritative manage BulkReviewCampaignDefinition:v1 payload, "
-            "BulkReviewCampaignDiscovery:v1 page, or lifecycle event list preserved for Workbench "
-            "composition. Gateway does not alter candidates, source refs, governance, content "
-            "hashes, lifecycle events, status, expiry, candidate counts, or as-of posture."
+            "BulkReviewCampaignDiscovery:v1 page, lifecycle event list, "
+            "BulkReviewCampaignDefinitionPreviewReadiness:v1 posture, launch package, or launch "
+            "history preserved for Workbench composition. Gateway does not alter candidates, "
+            "source refs, governance, content hashes, lifecycle events, status, expiry, "
+            "candidate counts, readiness, reason codes, blocked actions, or as-of posture."
         ),
         examples=[
             {

@@ -1838,6 +1838,17 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05/lifecycle-events",
         ),
         (
+            "get_campaign_definition_preview_readiness",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/preview-readiness",
+        ),
+        (
             "get_campaign_definition_launch_history",
             {
                 "campaign_id": "campaign-holdings-202605",
@@ -1923,6 +1934,8 @@ async def test_dpm_client_manage_routes(method_name, kwargs, expected_url):
             "tenant_id": "default",
         }
     elif method_name == "get_campaign_definition_launch_history":
+        assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
+    elif method_name == "get_campaign_definition_preview_readiness":
         assert _FakeAsyncClient.calls[0]["params"] == kwargs["params"]
 
 

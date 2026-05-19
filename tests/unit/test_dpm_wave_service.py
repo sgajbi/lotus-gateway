@@ -88,6 +88,20 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_campaign_definition_preview_readiness(  # noqa: ANN001
+        self, campaign_id, campaign_version, params, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "get_campaign_definition_preview_readiness",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_campaign_definition_launch_history(  # noqa: ANN001
         self, campaign_id, campaign_version, params, correlation_id
     ):
@@ -290,6 +304,60 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
             "campaign_id": "campaign-holdings-202605",
             "campaign_version": "2026.05",
             "correlation_id": "corr-campaign-lifecycle",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_preview_readiness_payload() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignDefinitionPreviewReadiness",
+        "product_version": "v1",
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "requested_as_of_date": "2026-05-10",
+        "actor_id": "pm_sg_1",
+        "supportability_state": "BLOCKED",
+        "reason_codes": ["campaign_definition_actor_not_entitled"],
+        "blocked_actions": ["preview_wave", "create_wave"],
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "BulkReviewCampaignDefinition",
+                "source_id": "campaign-holdings-202605:2026.05",
+                "content_hash": "sha256:campaign-definition",
+            }
+        ],
+        "operating_boundaries": [
+            "NO_MEMBERSHIP_RECALCULATION",
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+        ],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_campaign_definition_preview_readiness(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        filters={"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"},
+        correlation_id="corr-campaign-preview-readiness",
+    )
+
+    assert response.correlation_id == "corr-campaign-preview-readiness"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert response.data["supportability_state"] == "BLOCKED"
+    assert response.data["reason_codes"] == ["campaign_definition_actor_not_entitled"]
+    assert response.data["operating_boundaries"] == manage_payload["operating_boundaries"]
+    assert client.calls == [
+        {
+            "method": "get_campaign_definition_preview_readiness",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "params": {"requested_as_of_date": "2026-05-10", "actor_id": "pm_sg_1"},
+            "correlation_id": "corr-campaign-preview-readiness",
         }
     ]
 
