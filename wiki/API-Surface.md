@@ -145,18 +145,22 @@
   `GET /api/v1/dpm/command-center/waves/campaign-definitions`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events`,
+  `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/preview-readiness`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package`,
   `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch`,
   `GET /api/v1/dpm/command-center/waves/campaign-discovery`,
   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-  for manage-owned campaign/cohort definition discovery, lifecycle evidence, paged append-only
+  for manage-owned campaign/cohort definition discovery, lifecycle evidence, fail-closed
+  `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
   `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, and ready-only launch posture.
-  Gateway preserves launch-history campaign id/version, launch records, count, total count, limit,
-  offset, and operating boundaries exactly. Gateway does not discover cohorts, calculate campaign membership,
-  evaluate portfolio eligibility, infer campaign lifecycle state, recompute launch
-  readiness or idempotency, or own maker-checker, staging, trade-approval, order generation,
-  routing, fills, settlement, or OMS posture.
+  Gateway preserves preview-readiness supportability state, reason codes, blocked actions, source
+  refs, requested as-of date, actor id, and operating boundaries exactly. Gateway also preserves
+  launch-history campaign id/version, launch records, count, total count, limit, offset, and
+  operating boundaries exactly. Gateway does not discover cohorts, calculate campaign membership,
+  evaluate portfolio eligibility, infer campaign lifecycle state, recompute launch readiness or
+  preview readiness, infer actor entitlement, or own maker-checker, staging, trade-approval, order
+  generation, routing, fills, settlement, or OMS posture.
   Gateway also exposes a governed handoff from
   manage-owned `DpmWaveReportInput` to `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
   PM/control support text. Gateway must not calculate affected portfolios, readiness,

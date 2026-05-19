@@ -251,7 +251,8 @@ Most relevant current governance:
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,
     cancellation, proof-pack posture, supportability, report-input, campaign-definition list,
-    get, lifecycle-events, upsert, and bounded campaign-discovery requests to `lotus-manage`;
+    get, lifecycle-events, preview-readiness, upsert, and bounded campaign-discovery requests to
+    `lotus-manage`;
     preserves manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate
     metrics, selected alternative refs, proof-pack refs, handoff refs, campaign definition payloads,
     supportability issues, report-input evidence, and `external_execution_claimed=false`; and must
