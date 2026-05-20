@@ -459,6 +459,156 @@ def test_dpm_command_center_pm_quality_fairness_lifecycle_routes_preserve_manage
     ]
 
 
+def test_dpm_command_center_pm_quality_review_action_routes_preserve_manage_payloads(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+    review_action = {
+        "review_action_id": "pmq_review_001",
+        "review_action_ref": "PMQ-REVIEW-2026-05-001",
+        "target_type": "SCORE_RUN",
+        "target_id": "pmq_run_001",
+        "target_content_hash": "sha256:pmq-run-001",
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "as_of_date": "2026-05-20",
+        "action_type": "REQUEST_EVIDENCE_REMEDIATION",
+        "action_state": "REVIEW_REQUIRED",
+        "review_reason": "Evidence remediation required before supervisory closure.",
+        "actor_id": "ops",
+        "reason_codes": ["PM_QUALITY_REVIEW_ACTION_STATE_REVIEW_REQUIRED"],
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "PmOperatingQualityScoreRun",
+                "source_id": "pmq_run_001",
+            }
+        ],
+        "forbidden_uses": ["hr_decision", "client_contact", "oms_execution"],
+        "operating_boundaries": ["NO_PM_RANKING", "NO_ORDER_OR_OMS_EXECUTION"],
+    }
+
+    async def _fake_preview_pm_operating_quality_review_action(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["preview_body"] = body
+        captured["preview_correlation_id"] = correlation_id
+        return 200, {"review_action": review_action}
+
+    async def _fake_create_pm_operating_quality_review_action(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["create_body"] = body
+        captured["create_correlation_id"] = correlation_id
+        return 201, {"review_action": review_action}
+
+    async def _fake_list_pm_operating_quality_review_actions(
+        self,
+        params,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["list_params"] = params
+        captured["list_correlation_id"] = correlation_id
+        return 200, {"count": 1, "review_actions": [review_action], "limit": 25, "offset": 0}
+
+    async def _fake_get_pm_operating_quality_review_action(
+        self,
+        review_action_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["get_review_action_id"] = review_action_id
+        captured["get_correlation_id"] = correlation_id
+        return 200, {"review_action": review_action}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.preview_pm_operating_quality_review_action",
+        _fake_preview_pm_operating_quality_review_action,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.create_pm_operating_quality_review_action",
+        _fake_create_pm_operating_quality_review_action,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_pm_operating_quality_review_actions",
+        _fake_list_pm_operating_quality_review_actions,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_pm_operating_quality_review_action",
+        _fake_get_pm_operating_quality_review_action,
+    )
+
+    request_body = {
+        "target_type": "SCORE_RUN",
+        "target_id": "pmq_run_001",
+        "action_type": "REQUEST_EVIDENCE_REMEDIATION",
+        "review_action_ref": "PMQ-REVIEW-2026-05-001",
+        "review_reason": "Evidence remediation required before supervisory closure.",
+        "actor_id": "ops",
+        "source_refs": [],
+    }
+    client = TestClient(app)
+
+    preview_response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/review-actions/preview",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-review-preview"},
+    )
+    create_response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/review-actions",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-review-create"},
+    )
+    list_response = client.get(
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/review-actions"
+            "?target_type=SCORE_RUN&target_id=pmq_run_001&policy_id=pmq_sg_dpm"
+            "&action_state=REVIEW_REQUIRED&limit=25&offset=0"
+        ),
+        headers={"X-Correlation-Id": "corr-pmq-review-list"},
+    )
+    get_response = client.get(
+        "/api/v1/dpm/command-center/pm-operating-quality/review-actions/pmq_review_001",
+        headers={"X-Correlation-Id": "corr-pmq-review-get"},
+    )
+
+    assert preview_response.status_code == 200
+    assert create_response.status_code == 200
+    assert list_response.status_code == 200
+    assert get_response.status_code == 200
+    assert captured["preview_body"] == request_body
+    assert captured["create_body"] == request_body
+    assert captured["preview_correlation_id"] == "corr-pmq-review-preview"
+    assert captured["create_correlation_id"] == "corr-pmq-review-create"
+    assert captured["list_params"] == {
+        "target_type": "SCORE_RUN",
+        "target_id": "pmq_run_001",
+        "policy_id": "pmq_sg_dpm",
+        "as_of_date": None,
+        "action_state": "REVIEW_REQUIRED",
+        "limit": 25,
+        "offset": 0,
+    }
+    assert captured["get_review_action_id"] == "pmq_review_001"
+    assert captured["get_correlation_id"] == "corr-pmq-review-get"
+    assert list_response.json()["supportability"]["review_action_id"] == "pmq_review_001"
+    assert get_response.json()["data"]["review_action"]["review_reason"] == (
+        "Evidence remediation required before supervisory closure."
+    )
+    assert get_response.json()["data"]["review_action"]["forbidden_uses"] == [
+        "hr_decision",
+        "client_contact",
+        "oms_execution",
+    ]
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

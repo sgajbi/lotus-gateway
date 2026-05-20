@@ -171,8 +171,9 @@ product path.
 Business outcome:
 
 1. portfolio managers, supervisors, and operations users can access PM operating quality policy,
-   score-run lifecycle, fairness-analysis preview/create/list/get evidence, and review-gated
-   support-only PM quality summaries through the Gateway command-center boundary,
+   score-run lifecycle, fairness-analysis preview/create/list/get evidence, immutable
+   review-action preview/create/list/get evidence, and review-gated support-only PM quality
+   summaries through the Gateway command-center boundary,
 2. Workbench can prepare PM quality product surfaces without calling `lotus-manage` directly,
 3. sales/pre-sales and control users can describe the API layer as implementation-backed while
    preserving explicit non-claims around PM ranking, HR, compensation, conduct enforcement,
@@ -191,23 +192,28 @@ Supported routes:
 9. `POST /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
 10. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses`
 11. `GET /api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/{fairness_analysis_id}`
-12. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`
+12. `POST /api/v1/dpm/command-center/pm-operating-quality/review-actions/preview`
+13. `POST /api/v1/dpm/command-center/pm-operating-quality/review-actions`
+14. `GET /api/v1/dpm/command-center/pm-operating-quality/review-actions`
+15. `GET /api/v1/dpm/command-center/pm-operating-quality/review-actions/{review_action_id}`
+16. `POST /api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`
 
 Authority and integrations:
 
-1. `lotus-manage` remains the PM operating quality policy, score-run, and fairness-analysis
-   authority.
+1. `lotus-manage` remains the PM operating quality policy, score-run, fairness-analysis, and
+   review-action authority.
 2. Gateway forwards policy list/get/upsert, score-run preview/create/list/get, and
-   fairness-analysis preview/create/list/get requests to `lotus-manage`.
+   fairness-analysis preview/create/list/get, and review-action preview/create/list/get requests to
+   `lotus-manage`.
 3. Gateway executes `lotus-ai` `pm_quality_summary.pack@v1` only after reading Manage-owned
    `PmOperatingQualityScoreRun` evidence for the requested score-run id.
 4. Gateway preserves manage-owned policy configuration, score-run state, fairness-analysis state,
-   segment posture, governance evidence, source refs, reason codes, content hashes, and
-   forbidden-use posture.
+   review-action state, bounded rationale, target content hashes, segment posture, governance
+   evidence, source refs, reason codes, content hashes, and forbidden-use posture.
 5. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
    spread, infer protected classes, rank PMs, administer bank policy locally, create HR or
-   compensation decisions, perform conduct enforcement, approve trades, contact clients, route
-   orders, claim OMS/execution, or invent missing evidence.
+   compensation decisions, perform conduct enforcement, reinterpret review rationale, approve
+   trades, contact clients, route orders, claim OMS/execution, or invent missing evidence.
 
 ```mermaid
 flowchart LR
@@ -217,6 +223,7 @@ flowchart LR
     Manage --> Policy[Bank policy versions]
     Manage --> ScoreRun[PmOperatingQualityScoreRun:v1]
     Manage --> Fairness[PmOperatingQualityFairnessAnalysis:v1]
+    Manage --> ReviewAction[PmOperatingQualityReviewAction:v1]
     Manage --> Sources[Source refs and governance evidence]
     Manage --> Gateway
     AI --> Gateway
@@ -226,8 +233,8 @@ flowchart LR
 Operational behavior:
 
 1. Gateway returns manage payloads under `data` and adds a supportability summary with state,
-   policy id/version, score-run id, fairness-analysis id, reason codes, blocked actions, and list
-   counts when available,
+   policy id/version, score-run id, fairness-analysis id, review-action id, reason codes, blocked
+   actions, and list counts when available,
 2. upstream manage errors are surfaced as product-safe Gateway errors with
    `MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR`,
 3. upstream lotus-ai summary errors are surfaced as product-safe Gateway errors with

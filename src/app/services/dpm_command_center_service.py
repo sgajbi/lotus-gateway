@@ -673,6 +673,78 @@ class DpmCommandCenterService:
             correlation_id,
         )
 
+    async def preview_pm_operating_quality_review_action(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.preview_pm_operating_quality_review_action(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def create_pm_operating_quality_review_action(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.create_pm_operating_quality_review_action(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def list_pm_operating_quality_review_actions(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.list_pm_operating_quality_review_actions(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
+    async def get_pm_operating_quality_review_action(
+        self,
+        review_action_id: str,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualityGatewayResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._dpm_client.get_pm_operating_quality_review_action(
+            review_action_id=review_action_id,
+            correlation_id=correlation_id,
+        )
+        return self._compose_pm_operating_quality_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def list_pm_operating_quality_score_runs(
         self,
         filters: dict[str, Any],
@@ -972,13 +1044,24 @@ def _pm_operating_quality_supportability_from(
 ) -> DpmPmOperatingQualitySupportability:
     score_run = payload.get("score_run")
     fairness_analysis = payload.get("fairness_analysis")
+    review_action = payload.get("review_action")
     policy = payload
-    if isinstance(fairness_analysis, dict):
+    if isinstance(review_action, dict):
+        supportability_source = review_action
+        policy = review_action
+    elif isinstance(fairness_analysis, dict):
         supportability_source = fairness_analysis
         policy = fairness_analysis
     elif isinstance(score_run, dict):
         supportability_source = score_run
         policy = score_run
+    elif isinstance(payload.get("review_actions"), list):
+        review_actions = payload.get("review_actions")
+        first_action = (
+            review_actions[0] if review_actions and isinstance(review_actions[0], dict) else {}
+        )
+        supportability_source = first_action if isinstance(first_action, dict) else payload
+        policy = supportability_source
     elif isinstance(payload.get("fairness_analyses"), list):
         fairness_analyses = payload.get("fairness_analyses")
         first_analysis = (
@@ -1002,6 +1085,7 @@ def _pm_operating_quality_supportability_from(
 
     state = (
         supportability_source.get("state")
+        or supportability_source.get("action_state")
         or supportability_source.get("supportability_state")
         or supportability_source.get("supportabilityState")
         or ("EMPTY" if _safe_int(payload.get("count")) == 0 else None)
@@ -1019,6 +1103,7 @@ def _pm_operating_quality_supportability_from(
         policy_version=_safe_optional_str(policy.get("policy_version")),
         score_run_id=_safe_optional_str(supportability_source.get("score_run_id")),
         fairness_analysis_id=_safe_optional_str(supportability_source.get("fairness_analysis_id")),
+        review_action_id=_safe_optional_str(supportability_source.get("review_action_id")),
         count=_safe_int(payload.get("count")) if "count" in payload else None,
     )
 

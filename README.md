@@ -109,6 +109,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/pm-operating-quality/score-runs*`,
   `/api/v1/dpm/command-center/pm-operating-quality/score-runs/{score_run_id}/ai-summary`,
   `/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview`,
+  `/api/v1/dpm/command-center/pm-operating-quality/review-actions*`,
   `/api/v1/dpm/command-center/waves/campaign-definitions*`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
@@ -312,14 +313,17 @@ Important current parameter conventions:
    route orders, or invent missing evidence.
 18. DPM PM operating quality routes under
    `/api/v1/dpm/command-center/pm-operating-quality/*` consume `lotus-manage`
-   PM operating quality policy, score-run lifecycle, and fairness-analysis lifecycle APIs. Gateway
-   also reads Manage-owned score-run evidence before invoking `lotus-ai`
+   PM operating quality policy, score-run lifecycle, fairness-analysis lifecycle, and
+   review-action lifecycle APIs. Gateway also reads Manage-owned score-run evidence before invoking
+   `lotus-ai`
    `pm_quality_summary.pack@v1` for review-gated support-only summaries. Gateway preserves Manage
-   policy configuration, score-run state, fairness-analysis state, segment posture, governance
-   evidence, source refs, reason codes, content hashes, and forbidden-use posture without
-   calculating scores, discovering segments, calculating fairness spread, inferring protected
-   classes, ranking PMs, administering bank policy locally, or creating HR, compensation,
-   conduct-enforcement, approval, client-contact, order-routing, OMS, or execution decisions.
+   policy configuration, score-run state, fairness-analysis state, review-action state, bounded
+   rationale, target content hashes, segment posture, governance evidence, source refs, reason
+   codes, content hashes, and forbidden-use posture without calculating scores, discovering
+   segments, calculating fairness spread, inferring protected classes, ranking PMs, administering
+   bank policy locally, reinterpreting review rationale, or creating HR, compensation,
+   conduct-enforcement, approval, client-contact, trade, order-routing, OMS, or execution
+   decisions.
 
 Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
 
