@@ -39,9 +39,10 @@
    metadata, and content hash without Gateway timeline reconstruction. PM operating quality
    Gateway composition is implementation-backed under
    `/api/v1/dpm/command-center/pm-operating-quality/*`, preserving manage-owned policy
-   configuration, score-run lifecycle evidence, governance evidence, source refs, reason codes,
-   content hashes, and forbidden-use posture without Gateway PM scoring, ranking, local policy
-   administration, HR, compensation, conduct-enforcement, approval, client-contact, or execution
-   decisions.
+   configuration, score-run lifecycle evidence, fairness-analysis evidence, review-action
+   evidence, bounded rationale, target content hashes, governance evidence, source refs, reason
+   codes, content hashes, and forbidden-use posture without Gateway PM scoring, fairness
+   recomputation, review-rationale reinterpretation, ranking, local policy administration, HR,
+   compensation, conduct-enforcement, approval, client-contact, OMS, or execution decisions.
 3. preserve RFC-0082 boundary discipline as integrations evolve
 4. keep request-convention and runtime guidance explicit for operators and future agents

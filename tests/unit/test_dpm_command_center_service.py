@@ -137,6 +137,50 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def preview_pm_operating_quality_review_action(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_review_action_preview",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def create_pm_operating_quality_review_action(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_review_action_create",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_pm_operating_quality_review_actions(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_review_actions",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def get_pm_operating_quality_review_action(  # noqa: ANN001
+        self,
+        review_action_id,
+        correlation_id,
+    ):
+        self.calls.append(
+            {
+                "method": "pm_quality_review_action",
+                "review_action_id": review_action_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def list_pm_operating_quality_score_runs(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {"method": "pm_quality_score_runs", "params": params, "correlation_id": correlation_id}
@@ -862,6 +906,145 @@ async def test_dpm_pm_operating_quality_fairness_lifecycle_preserves_manage_payl
             "method": "pm_quality_fairness_analysis",
             "fairness_analysis_id": "pmq_fair_001",
             "correlation_id": "corr-pmq-fairness-get",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage_payloads() -> None:
+    action_payload = {
+        "review_action": {
+            "review_action_id": "pmq_review_001",
+            "review_action_ref": "PMQ-REVIEW-2026-05-001",
+            "target_type": "SCORE_RUN",
+            "target_id": "pmq_run_001",
+            "target_content_hash": "sha256:pmq-run-001",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "as_of_date": "2026-05-20",
+            "action_type": "REQUEST_EVIDENCE_REMEDIATION",
+            "action_state": "REVIEW_REQUIRED",
+            "review_reason": "Evidence remediation required before supervisory closure.",
+            "actor_id": "ops",
+            "reason_codes": [
+                "PM_QUALITY_REVIEW_ACTION_REQUEST_EVIDENCE_REMEDIATION",
+                "PM_QUALITY_REVIEW_ACTION_STATE_REVIEW_REQUIRED",
+            ],
+            "source_refs": [
+                {
+                    "source_system": "lotus-manage",
+                    "source_type": "PmOperatingQualityScoreRun",
+                    "source_id": "pmq_run_001",
+                }
+            ],
+            "forbidden_uses": [
+                "compensation_decision",
+                "hr_decision",
+                "conduct_enforcement",
+                "client_contact",
+                "trade_approval",
+                "order_routing",
+                "oms_execution",
+                "autonomous_pm_ranking",
+            ],
+            "operating_boundaries": [
+                "IMMUTABLE_REVIEW_ACTION_LEDGER",
+                "NO_SCORE_RECALCULATION",
+                "NO_FAIRNESS_RECOMPUTATION",
+                "NO_PM_RANKING",
+                "NO_HR_COMPENSATION_OR_CONDUCT_DECISION",
+                "NO_CLIENT_CONTACT",
+                "NO_TRADE_APPROVAL",
+                "NO_ORDER_OR_OMS_EXECUTION",
+            ],
+        }
+    }
+    body = {
+        "target_type": "SCORE_RUN",
+        "target_id": "pmq_run_001",
+        "action_type": "REQUEST_EVIDENCE_REMEDIATION",
+        "review_action_ref": "PMQ-REVIEW-2026-05-001",
+        "review_reason": "Evidence remediation required before supervisory closure.",
+        "actor_id": "ops",
+        "source_refs": [],
+    }
+    preview_client = _FakeDpmClient((200, action_payload))
+    preview_service = DpmCommandCenterService(dpm_client=preview_client)  # type: ignore[arg-type]
+
+    previewed = await preview_service.preview_pm_operating_quality_review_action(
+        body=body,
+        correlation_id="corr-pmq-review-preview",
+    )
+
+    assert previewed.supportability.review_action_id == "pmq_review_001"
+    assert previewed.supportability.state == "REVIEW_REQUIRED"
+    assert previewed.data == action_payload
+    assert preview_client.calls == [
+        {
+            "method": "pm_quality_review_action_preview",
+            "body": body,
+            "correlation_id": "corr-pmq-review-preview",
+        }
+    ]
+
+    create_client = _FakeDpmClient((201, action_payload))
+    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    created = await create_service.create_pm_operating_quality_review_action(
+        body=body,
+        correlation_id="corr-pmq-review-create",
+    )
+
+    assert created.upstream_status == 201
+    assert created.supportability.review_action_id == "pmq_review_001"
+    assert created.data["review_action"]["review_reason"] == (
+        "Evidence remediation required before supervisory closure."
+    )
+    assert create_client.calls == [
+        {
+            "method": "pm_quality_review_action_create",
+            "body": body,
+            "correlation_id": "corr-pmq-review-create",
+        }
+    ]
+
+    list_payload = {
+        "count": 1,
+        "review_actions": [action_payload["review_action"]],
+        "limit": 50,
+        "offset": 0,
+    }
+    list_client = _FakeDpmClient((200, list_payload))
+    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+    listed = await list_service.list_pm_operating_quality_review_actions(
+        filters={"target_type": "SCORE_RUN", "action_state": "REVIEW_REQUIRED", "limit": 50},
+        correlation_id="corr-pmq-review-list",
+    )
+
+    assert listed.supportability.count == 1
+    assert listed.supportability.review_action_id == "pmq_review_001"
+    assert listed.data == list_payload
+    assert list_client.calls == [
+        {
+            "method": "pm_quality_review_actions",
+            "params": {"target_type": "SCORE_RUN", "action_state": "REVIEW_REQUIRED", "limit": 50},
+            "correlation_id": "corr-pmq-review-list",
+        }
+    ]
+
+    get_client = _FakeDpmClient((200, action_payload))
+    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+    fetched = await get_service.get_pm_operating_quality_review_action(
+        review_action_id="pmq_review_001",
+        correlation_id="corr-pmq-review-get",
+    )
+
+    assert fetched.supportability.review_action_id == "pmq_review_001"
+    assert fetched.data == action_payload
+    assert get_client.calls == [
+        {
+            "method": "pm_quality_review_action",
+            "review_action_id": "pmq_review_001",
+            "correlation_id": "corr-pmq-review-get",
         }
     ]
 

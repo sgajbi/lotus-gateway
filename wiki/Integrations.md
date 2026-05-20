@@ -149,15 +149,17 @@
     evidence.
 16. PM operating quality remains `lotus-manage` truth. Gateway realization exposes
     `/api/v1/dpm/command-center/pm-operating-quality/*` for Workbench. Gateway forwards policy
-    list/get/upsert, score-run preview/create/list/get, and fairness-analysis preview/create/list/get
-    requests to manage, and reads Manage score-run evidence before invoking `lotus-ai`
+    list/get/upsert, score-run preview/create/list/get, fairness-analysis preview/create/list/get,
+    and review-action preview/create/list/get requests to manage, and reads Manage score-run
+    evidence before invoking `lotus-ai`
     `pm_quality_summary.pack@v1` for review-gated support-only summaries. Gateway preserves policy
-    configuration, score-run state, fairness-analysis state, segment posture, governance evidence,
-    source refs, reason codes, content hashes, supportability, and forbidden-use posture without
-    calculating scores, discovering segments, calculating segment averages or fairness spread,
-    inferring protected classes, ranking PMs, administering policy locally, creating HR or
-    compensation decisions, performing conduct enforcement, approving trades, contacting clients,
-    routing orders, claiming OMS/execution, or inventing evidence.
+    configuration, score-run state, fairness-analysis state, review-action state, bounded
+    rationale, target content hashes, segment posture, governance evidence, source refs, reason
+    codes, content hashes, supportability, and forbidden-use posture without calculating scores,
+    discovering segments, calculating segment averages or fairness spread, inferring protected
+    classes, ranking PMs, administering policy locally, reinterpreting review rationale, creating
+    HR or compensation decisions, performing conduct enforcement, approving trades, contacting
+    clients, routing orders, claiming OMS/execution, or inventing evidence.
 17. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling

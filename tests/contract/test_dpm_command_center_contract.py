@@ -176,6 +176,54 @@ def test_dpm_pm_operating_quality_gateway_response_contract_shape() -> None:
         "MANDATE_TYPE"
     )
 
+    review_action_response = DpmPmOperatingQualityGatewayResponse(
+        correlation_id="corr-pmq-review-1",
+        upstream_status=200,
+        supportability={
+            "state": "REVIEW_REQUIRED",
+            "reason_codes": ["PM_QUALITY_REVIEW_ACTION_STATE_REVIEW_REQUIRED"],
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "review_action_id": "pmq_review_001",
+        },
+        data={
+            "review_action": {
+                "product_name": "PmOperatingQualityReviewAction",
+                "product_version": "v1",
+                "review_action_id": "pmq_review_001",
+                "target_type": "SCORE_RUN",
+                "target_id": "pmq_run_001",
+                "target_content_hash": "sha256:pmq-run-001",
+                "action_state": "REVIEW_REQUIRED",
+                "review_reason": "Evidence remediation required before supervisory closure.",
+                "forbidden_uses": [
+                    "compensation_decision",
+                    "hr_decision",
+                    "conduct_enforcement",
+                    "client_contact",
+                    "trade_approval",
+                    "order_routing",
+                    "oms_execution",
+                    "autonomous_pm_ranking",
+                ],
+                "operating_boundaries": [
+                    "IMMUTABLE_REVIEW_ACTION_LEDGER",
+                    "NO_SCORE_RECALCULATION",
+                    "NO_FAIRNESS_RECOMPUTATION",
+                    "NO_PM_RANKING",
+                    "NO_HR_COMPENSATION_OR_CONDUCT_DECISION",
+                    "NO_CLIENT_CONTACT",
+                    "NO_TRADE_APPROVAL",
+                    "NO_ORDER_OR_OMS_EXECUTION",
+                ],
+            }
+        },
+    )
+    assert review_action_response.supportability.review_action_id == "pmq_review_001"
+    assert review_action_response.data["review_action"]["target_content_hash"] == (
+        "sha256:pmq-run-001"
+    )
+
 
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
@@ -319,6 +367,16 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         (
             "/api/v1/dpm/command-center/pm-operating-quality/"
             "fairness-analyses/{fairness_analysis_id}",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/review-actions/preview",
+            "post",
+        ),
+        ("/api/v1/dpm/command-center/pm-operating-quality/review-actions", "get"),
+        ("/api/v1/dpm/command-center/pm-operating-quality/review-actions", "post"),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/review-actions/{review_action_id}",
             "get",
         ),
         (
