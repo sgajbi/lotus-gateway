@@ -147,9 +147,14 @@ async def test_platform_capabilities_all_sources_success():
                 "policyVersion": "advise-tenant-a-v2",
                 "supportedInputModes": ["pas_ref", "inline_bundle"],
                 "features": [
-                    {"key": "advise.proposals.lifecycle", "enabled": True},
+                    {"key": "advisory.proposals.lifecycle", "enabled": True},
                 ],
-                "workflows": [{"workflow_key": "proposal_lifecycle", "enabled": True}],
+                "workflows": [{"workflow_key": "advisory_proposal_lifecycle", "enabled": True}],
+                "supportability": {
+                    "state": "ready",
+                    "reason": "advisory_ready",
+                    "freshness_bucket": "current",
+                },
             },
         ),
         manage_client=_StubClient(
@@ -303,7 +308,8 @@ async def test_platform_capabilities_all_sources_success():
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
     assert proposal_workspace.enabled is False
-    assert proposal_workspace.supportability.state == "unavailable"
+    assert proposal_workspace.supportability.state == "ready"
+    assert proposal_workspace.supportability.reasons == ["advisory_ready"]
     assert proposal_workspace.caching.correctness_critical is True
 
 
@@ -535,6 +541,90 @@ def test_platform_capabilities_feature_and_workflow_skip_non_dict_entries():
         )
         is True
     )
+
+
+@pytest.mark.asyncio
+async def test_platform_capabilities_preserves_advise_supportability_without_local_inference():
+    service = PlatformCapabilitiesService(
+        advise_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-advise",
+                "policy_version": "advisory.v1",
+                "features": [
+                    {
+                        "key": "advisory.proposals.lifecycle",
+                        "enabled": True,
+                        "operational_ready": True,
+                    },
+                    {
+                        "key": "advise.observability.advisory_supportability",
+                        "enabled": True,
+                        "operational_ready": True,
+                    },
+                ],
+                "workflows": [
+                    {"workflow_key": "advisory_proposal_lifecycle", "enabled": True},
+                ],
+                "supportability": {
+                    "state": "degraded",
+                    "reason": "dependency_degraded",
+                    "freshness_bucket": "unknown",
+                    "dependency_count": 5,
+                    "ready_dependency_count": 4,
+                    "degraded_dependency_count": 1,
+                    "enabled_feature_count": 9,
+                    "ready_feature_count": 8,
+                },
+            },
+        ),
+        manage_client=_StubClient(
+            200,
+            {"source_service": "lotus-manage", "features": [], "workflows": []},
+        ),
+        lotus_core_query_client=_StubClient(
+            200,
+            {
+                "source_service": "lotus-core",
+                "features": [{"key": "pas.integration.core_snapshot", "enabled": True}],
+                "workflows": [],
+            },
+        ),
+        analytics_client=_StubClient(
+            200,
+            {"source_service": "lotus-performance", "features": [], "workflows": []},
+        ),
+        reporting_client=_StubClient(
+            200,
+            {"source_service": "lotus-report", "features": [], "workflows": []},
+        ),
+        contract_version="v1",
+    )
+
+    response = await service.get_platform_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="default",
+        correlation_id="corr-wtbd-004",
+    )
+
+    normalized = response.data.normalized
+    assert normalized.navigation["advisory_pipeline"] is True
+    assert normalized.workflow_flags["proposal_lifecycle"] is True
+    assert response.data.sources["lotus_advise"]["supportability"]["state"] == "degraded"
+    proposal_workspace = next(
+        workspace
+        for workspace in normalized.shell_bootstrap.workspaces
+        if workspace.id == "proposal"
+    )
+    advisory_workspace = next(
+        workspace
+        for workspace in normalized.shell_bootstrap.workspaces
+        if workspace.id == "advisory"
+    )
+    assert proposal_workspace.supportability.state == "degraded"
+    assert proposal_workspace.supportability.reasons == ["dependency_degraded"]
+    assert advisory_workspace.supportability.state == "degraded"
+    assert advisory_workspace.supportability.reasons == ["dependency_degraded"]
 
 
 def test_platform_capabilities_module_health_marks_unknown_sources():
