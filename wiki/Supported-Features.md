@@ -274,20 +274,34 @@ Supported routes:
 10. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch`
 11. `GET /api/v1/dpm/command-center/waves/campaign-discovery`
 12. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-13. `GET /api/v1/dpm/command-center/waves/{wave_id}`
-14. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
-15. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
-16. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
-17. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
-18. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
-19. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
-20. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
-21. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
-22. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
-23. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
-24. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
-25. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
-26. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
+13. `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`
+14. `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`
+15. `GET /api/v1/dpm/command-center/waves/campaign-workflow-board`
+16. `GET /api/v1/dpm/command-center/waves/campaign-assignment-plan`
+17. `GET /api/v1/dpm/command-center/waves/campaign-workflow-automation`
+18. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
+19. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
+20. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
+21. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
+22. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
+23. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
+24. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions`
+25. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
+26. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
+27. `GET /api/v1/dpm/command-center/waves/{wave_id}`
+28. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
+29. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
+30. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
+31. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
+32. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
+33. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
+34. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
+35. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
+36. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
+37. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+38. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
+39. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+40. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 
 Authority and integrations:
 
@@ -303,17 +317,22 @@ Authority and integrations:
 4. Gateway preserves `BulkReviewCampaignDefinitionLaunchHistory:v1` campaign id/version, launch
    records, count, total count, limit, offset, and `operating_boundaries` exactly without inferring
    maker-checker, trade approval, order generation, routing, fills, settlement, or OMS execution.
-5. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
+5. Gateway preserves campaign workflow/audit operating queue, approval inbox, workflow board,
+   assignment plan, workflow automation, approval-decision, assignment-action, assignment-task,
+   task-transition, and maker-checker evidence with Manage-owned count/page metadata,
+   supportability, source refs, reason codes, operating boundaries, and hashes exactly.
+6. Gateway preserves manage-owned `wave_id`, lifecycle state, item states, reason codes,
    aggregate metrics, selected alternative refs, proof-pack refs, handoff refs, supportability
    issues, report-input evidence, remediation routes, and `external_execution_claimed=false`.
-6. Gateway reads manage-owned wave report input before calling `lotus-ai`
+7. Gateway reads manage-owned wave report input before calling `lotus-ai`
    `dpm_wave_pm_memo.pack@v1` for review-required PM/control support text.
-7. Gateway reads manage-owned wave report input with internal handoff refs before calling
+8. Gateway reads manage-owned wave report input with internal handoff refs before calling
    `lotus-ai` `dpm_operations_handoff_summary.pack@v1`.
-8. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
+9. Gateway does not calculate affected portfolios, classify source readiness, discover cohorts,
    recompute campaign membership, generate alternatives, select alternatives, approve items, stage
    items, create handoff evidence, rebuild proof packs, generate report evidence, generate AI
-   narrative locally, score PMs, approve trades, contact clients, place orders, invent missing
+   narrative locally, calculate task state, approval state, maker-checker state, SLA posture,
+   workflow orchestration, score PMs, approve trades, contact clients, place orders, invent missing
    evidence, cancel external orders, or claim external execution.
 
 ```mermaid

@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.contracts.dpm_waves import (
+    DpmCampaignWorkflowGatewayResponse,
     DpmOperationsHandoffSummaryGatewayResponse,
     DpmWaveGatewayResponse,
     DpmWaveMemoGatewayResponse,
@@ -82,6 +83,29 @@ def test_dpm_operations_handoff_summary_gateway_response_contract_shape() -> Non
     assert response.wave_report_input["external_execution_claimed"] is False
 
 
+def test_dpm_campaign_workflow_gateway_response_contract_shape() -> None:
+    response = DpmCampaignWorkflowGatewayResponse(
+        correlation_id="corr-campaign-workflow",
+        upstream_status=200,
+        data={
+            "product_name": "BulkReviewCampaignOperatingQueue",
+            "items": [{"task_ref": "task-review-001", "content_hash": "sha256:task"}],
+            "count": 1,
+            "limit": 50,
+            "offset": 0,
+            "operating_boundaries": [
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+                "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+            ],
+        },
+    )
+
+    assert response.source_service == "lotus-manage"
+    assert response.data["count"] == 1
+    assert "NO_OMS_EXECUTION_CLAIM" in response.data["operating_boundaries"]
+
+
 def test_dpm_wave_openapi_contract_registered() -> None:
     client = TestClient(app)
     spec = client.get("/openapi.json").json()
@@ -119,6 +143,47 @@ def test_dpm_wave_openapi_contract_registered() -> None:
             "post",
         ),
         ("/api/v1/dpm/command-center/waves/campaign-discovery", "get"),
+        ("/api/v1/dpm/command-center/waves/campaign-operating-queue", "get"),
+        ("/api/v1/dpm/command-center/waves/campaign-approval-inbox", "get"),
+        ("/api/v1/dpm/command-center/waves/campaign-workflow-board", "get"),
+        ("/api/v1/dpm/command-center/waves/campaign-assignment-plan", "get"),
+        ("/api/v1/dpm/command-center/waves/campaign-workflow-automation", "get"),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls",
+            "post",
+        ),
         ("/api/v1/dpm/command-center/waves/{wave_id}", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/items", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/source-check", "post"),
@@ -155,6 +220,8 @@ def test_dpm_wave_openapi_models_are_described() -> None:
         "DpmCampaignDefinitionForwardRequest",
         "DpmCampaignDefinitionLaunchRequest",
         "DpmCampaignDefinitionGatewayResponse",
+        "DpmCampaignWorkflowForwardRequest",
+        "DpmCampaignWorkflowGatewayResponse",
         "DpmWaveForwardRequest",
         "DpmWaveGatewayResponse",
         "DpmOperationsHandoffSummaryGatewayResponse",

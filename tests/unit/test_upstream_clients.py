@@ -1908,6 +1908,132 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "http://dpm/api/v1/rebalance/waves/campaign-discovery",
         ),
         (
+            "get_campaign_operating_queue",
+            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/campaign-operating-queue",
+        ),
+        (
+            "get_campaign_approval_inbox",
+            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/campaign-approval-inbox",
+        ),
+        (
+            "get_campaign_workflow_board",
+            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/campaign-workflow-board",
+        ),
+        (
+            "get_campaign_assignment_plan",
+            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/campaign-assignment-plan",
+        ),
+        (
+            "get_campaign_workflow_automation",
+            {"params": {"campaign_id": "campaign-holdings-202605"}, "correlation_id": "corr-5"},
+            "http://dpm/api/v1/rebalance/waves/campaign-workflow-automation",
+        ),
+        (
+            "list_campaign_approval_decisions",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"limit": 25},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/approval-decisions",
+        ),
+        (
+            "create_campaign_approval_decision",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"decision": "ACKNOWLEDGED"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/approval-decisions",
+        ),
+        (
+            "list_campaign_assignment_actions",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"limit": 25},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/assignment-actions",
+        ),
+        (
+            "create_campaign_assignment_action",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"action_type": "ASSIGN"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/assignment-actions",
+        ),
+        (
+            "list_campaign_assignment_tasks",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"limit": 25},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/assignment-tasks",
+        ),
+        (
+            "create_campaign_assignment_task",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"task_ref": "task-review-001"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/assignment-tasks",
+        ),
+        (
+            "transition_campaign_assignment_task",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "task_ref": "task-review-001",
+                "body": {"transition_type": "MARK_SUPPORTABLE"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/assignment-tasks/"
+            "task-review-001/transitions",
+        ),
+        (
+            "list_campaign_maker_checker_controls",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"limit": 25},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/maker-checker-controls",
+        ),
+        (
+            "create_campaign_maker_checker_control",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"control_type": "MAKER_CHECKER_REVIEW"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/maker-checker-controls",
+        ),
+        (
             "get_wave_items",
             {"wave_id": "dwv_001", "correlation_id": "corr-5"},
             "http://dpm/api/v1/rebalance/waves/dwv_001/items",
@@ -2132,6 +2258,41 @@ async def test_dpm_client_uses_only_canonical_manage_api_v1_contracts():
         (
             client.get_wave_report_input,
             {"wave_id": "dwv_001", "correlation_id": "corr-rfc36-canonical"},
+        ),
+        (
+            client.get_campaign_operating_queue,
+            {
+                "params": {"campaign_id": "campaign-holdings-202605"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.create_campaign_assignment_task,
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"task_ref": "task-review-001"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.transition_campaign_assignment_task,
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "task_ref": "task-review-001",
+                "body": {"transition_type": "MARK_SUPPORTABLE"},
+                "correlation_id": "corr-rfc36-canonical",
+            },
+        ),
+        (
+            client.list_campaign_maker_checker_controls,
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "params": {"limit": 25},
+                "correlation_id": "corr-rfc36-canonical",
+            },
         ),
         (
             client.generate_construction_alternative_set,

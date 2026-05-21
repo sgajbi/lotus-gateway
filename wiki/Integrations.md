@@ -134,9 +134,11 @@
     idempotency keys, query filters, campaign-definition payloads, and correlation context to
     manage, then preserves wave ids, lifecycle state, item states, aggregate metrics,
     selected-alternative refs, proof-pack refs, internal handoff refs, campaign definition payloads,
-    report-input evidence, supportability issues, remediation routes, and no-external-execution
-    posture without discovering affected portfolios, discovering cohorts, recomputing campaign
-    membership, classifying readiness, generating alternatives, approving/staging locally,
+    campaign workflow/audit payloads, count/page metadata, source refs, hashes, report-input
+    evidence, supportability issues, remediation routes, and no-external-execution posture without
+    discovering affected portfolios, discovering cohorts, recomputing campaign membership,
+    calculating task state, approval state, maker-checker state, SLA posture, or workflow
+    orchestration, classifying readiness, generating alternatives, approving/staging locally,
     rebuilding proof packs, generating report evidence, or claiming execution. The wave AI PM memo
     route first reads manage-owned
     `DpmWaveReportInput`, then calls `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required

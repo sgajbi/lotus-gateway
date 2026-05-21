@@ -251,16 +251,19 @@ Most relevant current governance:
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,
     cancellation, proof-pack posture, supportability, report-input, campaign-definition list,
-    get, lifecycle-events, preview-readiness, upsert, and bounded campaign-discovery requests to
-    `lotus-manage`;
+    get, lifecycle-events, preview-readiness, upsert, bounded campaign-discovery, campaign
+    operating queue, approval inbox, workflow board, assignment plan, workflow automation,
+    approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
+    evidence requests to `lotus-manage`;
     preserves manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate
     metrics, selected alternative refs, proof-pack refs, handoff refs, campaign definition payloads,
-    supportability issues, report-input evidence, and `external_execution_claimed=false`; and must
-    not calculate affected portfolios, classify source readiness, discover cohorts, recompute
-    campaign membership, discover global campaign cohorts, generate alternatives, select
-    alternatives, approve items, stage items,
-    create handoff evidence, rebuild proof packs, generate report evidence, or claim external
-    execution locally. Gateway can request `lotus-ai`
+    campaign workflow/audit payloads, count/page metadata, supportability issues, source refs,
+    content hashes, report-input evidence, and `external_execution_claimed=false`; and must not
+    calculate affected portfolios, classify source readiness, discover cohorts, recompute campaign
+    membership, discover global campaign cohorts, calculate task state, approval state,
+    maker-checker state, SLA posture, workflow orchestration, generate alternatives, select
+    alternatives, approve items, stage items, create handoff evidence, rebuild proof packs,
+    generate report evidence, or claim external execution locally. Gateway can request `lotus-ai`
     `dpm_wave_pm_memo.pack@v1` from manage-owned wave report input as a review-required PM/control
     support artifact, but it must not generate AI narrative locally, score PMs, approve trades,
     contact clients, place orders, or invent missing evidence.
