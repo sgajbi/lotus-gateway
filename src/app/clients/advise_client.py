@@ -25,6 +25,8 @@ class AdviseClient:
     async def get_platform_capabilities(
         self,
         *,
+        consumer_system: str = "lotus-gateway",
+        tenant_id: str = "default",
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         return await request_observed_fanout(
@@ -36,6 +38,7 @@ class AdviseClient:
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
+            params={"consumer_system": consumer_system, "tenant_id": tenant_id},
             headers=propagation_headers(correlation_id),
         )
 
@@ -45,8 +48,12 @@ class AdviseClient:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        _ = consumer_system, tenant_id
-        return await self.get_platform_capabilities(correlation_id=correlation_id)
+        _ = consumer_system
+        return await self.get_platform_capabilities(
+            consumer_system="lotus-gateway",
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
+        )
 
     async def simulate_proposal(
         self,

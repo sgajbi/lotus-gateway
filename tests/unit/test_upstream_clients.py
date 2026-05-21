@@ -2764,6 +2764,26 @@ async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):
 
 
 @pytest.mark.asyncio
+async def test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context():
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, payload = await client.get_capabilities(
+        consumer_system="lotus-workbench",
+        tenant_id="tenant-sg",
+        correlation_id="corr-workbench",
+    )
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    assert _FakeAsyncClient.calls[0]["url"] == "http://advise/platform/capabilities"
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "consumer_system": "lotus-gateway",
+        "tenant_id": "tenant-sg",
+    }
+
+
+@pytest.mark.asyncio
 async def test_dpm_client_has_no_stale_proposal_routes():
     client = DpmClient(base_url="http://dpm", timeout_seconds=2.0)
 
