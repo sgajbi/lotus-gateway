@@ -25,6 +25,11 @@
 - `GET /api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`
 - `GET` and `POST /api/v1/dpm/command-center/waves*`
 - `GET` and `PUT /api/v1/dpm/command-center/waves/campaign-definitions*`
+- `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`
+- `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`
+- `GET /api/v1/dpm/command-center/waves/campaign-workflow-board`
+- `GET /api/v1/dpm/command-center/waves/campaign-assignment-plan`
+- `GET /api/v1/dpm/command-center/waves/campaign-workflow-automation`
 - `GET /api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`
 - `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative`
 - `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
@@ -152,17 +157,33 @@
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package`,
   `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch`,
   `GET /api/v1/dpm/command-center/waves/campaign-discovery`,
+  `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`,
+  `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`,
+  `GET /api/v1/dpm/command-center/waves/campaign-workflow-board`,
+  `GET /api/v1/dpm/command-center/waves/campaign-assignment-plan`,
+  `GET /api/v1/dpm/command-center/waves/campaign-workflow-automation`,
+  `GET` and `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`,
+  `GET` and `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`,
+  `GET` and `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`,
+  `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions`,
+  `GET` and `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`,
   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
   for manage-owned campaign/cohort definition discovery, lifecycle evidence, fail-closed
   `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
-  `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, and ready-only launch posture.
+  `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, ready-only launch posture, and
+  bounded campaign workflow/audit evidence.
   Gateway preserves preview-readiness supportability state, reason codes, blocked actions, source
   refs, requested as-of date, actor id, and operating boundaries exactly. Gateway also preserves
   launch-history campaign id/version, launch records, count, total count, limit, offset, and
   operating boundaries exactly. Gateway does not discover cohorts, calculate campaign membership,
   evaluate portfolio eligibility, infer campaign lifecycle state, recompute launch readiness or
   preview readiness, infer actor entitlement, or own maker-checker, staging, trade-approval, order
-  generation, routing, fills, settlement, or OMS posture.
+  generation, routing, fills, settlement, or OMS posture. Gateway also preserves workflow/audit
+  count/page metadata, approval-decision evidence, assignment-action evidence, assignment-task
+  evidence, task-transition evidence, maker-checker evidence, supportability, source refs, reason
+  codes, operating boundaries, and content hashes without calculating task state, SLA, escalation,
+  approval state, maker-checker state, workflow orchestration, client contact, orders, OMS
+  execution, fills, or settlement.
   Gateway also exposes a governed handoff from
   manage-owned `DpmWaveReportInput` to `lotus-ai` `dpm_wave_pm_memo.pack@v1` for review-required
   PM/control support text. Gateway must not calculate affected portfolios, readiness,

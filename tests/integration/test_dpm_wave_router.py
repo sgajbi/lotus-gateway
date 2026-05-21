@@ -558,6 +558,177 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     }
 
 
+def test_campaign_workflow_audit_routes_preserve_manage_payloads(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_get_campaign_operating_queue(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["operating_queue"] = {"params": params, "correlation_id": correlation_id}
+        return 200, {
+            "product_name": "BulkReviewCampaignOperatingQueue",
+            "items": [
+                {
+                    "campaign_id": params["campaign_id"],
+                    "task_ref": "task-review-001",
+                    "content_hash": "sha256:operating-queue",
+                }
+            ],
+            "count": 1,
+            "limit": params["limit"],
+            "offset": params["offset"],
+            "operating_boundaries": [
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+                "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+            ],
+        }
+
+    async def _fake_get_campaign_workflow_automation(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["workflow_automation"] = {"params": params, "correlation_id": correlation_id}
+        return 200, {
+            "product_name": "BulkReviewCampaignWorkflowAutomation",
+            "supportability_state": "READY",
+            "suggested_task_posture": [{"task_ref": "task-review-001", "status": "SUGGESTED"}],
+            "operating_boundaries": ["NO_EXTERNAL_WORKFLOW_ORCHESTRATION"],
+        }
+
+    async def _fake_create_campaign_assignment_task(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        _ = self
+        captured["assignment_task"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 201, {
+            "product_name": "BulkReviewCampaignAssignmentTask",
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "task_ref": "task-review-001",
+            "status": "READY_FOR_REVIEW",
+            "reason_codes": ["campaign_assignment_task_recorded"],
+            "content_hash": "sha256:assignment-task",
+            "operating_boundaries": ["NO_ORDER_GENERATION", "NO_OMS_EXECUTION_CLAIM"],
+        }
+
+    async def _fake_transition_campaign_assignment_task(  # noqa: ANN001
+        self, campaign_id, campaign_version, task_ref, body, correlation_id
+    ):
+        _ = self
+        captured["assignment_task_transition"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "task_ref": task_ref,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 201, {
+            "product_name": "BulkReviewCampaignAssignmentTaskTransition",
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "task_ref": task_ref,
+            "transition_type": body["transition_type"],
+            "from_status": "READY_FOR_REVIEW",
+            "to_status": "SUPPORTABLE",
+            "reason_codes": ["campaign_assignment_task_transition_recorded"],
+            "content_hash": "sha256:task-transition",
+            "operating_boundaries": [
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+                "NO_CLIENT_CONTACT_WORKFLOW",
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_campaign_operating_queue",
+        _fake_get_campaign_operating_queue,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_campaign_workflow_automation",
+        _fake_get_campaign_workflow_automation,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.create_campaign_assignment_task",
+        _fake_create_campaign_assignment_task,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.transition_campaign_assignment_task",
+        _fake_transition_campaign_assignment_task,
+    )
+
+    client = TestClient(app)
+    queue_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-operating-queue"
+        "?campaign_id=campaign-holdings-202605&limit=25&offset=0",
+        headers={"X-Correlation-Id": "corr-campaign-operating-queue"},
+    )
+    automation_response = client.get(
+        "/api/v1/dpm/command-center/waves/campaign-workflow-automation"
+        "?campaign_id=campaign-holdings-202605&actor_id=pm_sg_1",
+        headers={"X-Correlation-Id": "corr-campaign-workflow-automation"},
+    )
+    task_response = client.post(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/assignment-tasks",
+        json={"body": {"task_ref": "task-review-001", "actor_id": "pm_sg_1"}},
+        headers={"X-Correlation-Id": "corr-campaign-assignment-task"},
+    )
+    transition_response = client.post(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/assignment-tasks/"
+        "task-review-001/transitions",
+        json={"body": {"transition_type": "MARK_SUPPORTABLE", "actor_id": "pm_sg_1"}},
+        headers={"X-Correlation-Id": "corr-campaign-task-transition"},
+    )
+
+    assert queue_response.status_code == 200
+    queue_data = queue_response.json()["data"]
+    assert queue_data["count"] == 1
+    assert queue_data["items"][0]["content_hash"] == "sha256:operating-queue"
+    assert "NO_EXTERNAL_WORKFLOW_ORCHESTRATION" in queue_data["operating_boundaries"]
+    assert automation_response.status_code == 200
+    assert automation_response.json()["data"]["supportability_state"] == "READY"
+    assert task_response.status_code == 200
+    assert task_response.json()["upstream_status"] == 201
+    assert task_response.json()["data"]["task_ref"] == "task-review-001"
+    assert transition_response.status_code == 200
+    transition_data = transition_response.json()["data"]
+    assert transition_data["transition_type"] == "MARK_SUPPORTABLE"
+    assert transition_data["from_status"] == "READY_FOR_REVIEW"
+    assert transition_data["to_status"] == "SUPPORTABLE"
+    assert "NO_CLIENT_CONTACT_WORKFLOW" in transition_data["operating_boundaries"]
+    assert captured == {
+        "operating_queue": {
+            "params": {
+                "campaign_id": "campaign-holdings-202605",
+                "limit": "25",
+                "offset": "0",
+            },
+            "correlation_id": "corr-campaign-operating-queue",
+        },
+        "workflow_automation": {
+            "params": {"campaign_id": "campaign-holdings-202605", "actor_id": "pm_sg_1"},
+            "correlation_id": "corr-campaign-workflow-automation",
+        },
+        "assignment_task": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": {"task_ref": "task-review-001", "actor_id": "pm_sg_1"},
+            "correlation_id": "corr-campaign-assignment-task",
+        },
+        "assignment_task_transition": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "task_ref": "task-review-001",
+            "body": {"transition_type": "MARK_SUPPORTABLE", "actor_id": "pm_sg_1"},
+            "correlation_id": "corr-campaign-task-transition",
+        },
+    }
+
+
 def test_dpm_wave_actions_preserve_manage_payload(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

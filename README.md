@@ -111,6 +111,11 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/dpm/command-center/pm-operating-quality/fairness-analyses/preview`,
   `/api/v1/dpm/command-center/pm-operating-quality/review-actions*`,
   `/api/v1/dpm/command-center/waves/campaign-definitions*`,
+  `/api/v1/dpm/command-center/waves/campaign-operating-queue`,
+  `/api/v1/dpm/command-center/waves/campaign-approval-inbox`,
+  `/api/v1/dpm/command-center/waves/campaign-workflow-board`,
+  `/api/v1/dpm/command-center/waves/campaign-assignment-plan`,
+  `/api/v1/dpm/command-center/waves/campaign-workflow-automation`,
   `/api/v1/dpm/command-center/waves*`,
   `/api/v1/dpm/command-center/waves/{wave_id}/report-input`,
   `/api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`,
@@ -287,11 +292,14 @@ Important current parameter conventions:
    supportability, report-input evidence, and reason codes without calculating affected portfolios,
    source readiness, alternatives, proof-pack state, report evidence, or execution posture locally.
    Gateway also exposes campaign-definition list, get, lifecycle-events, launch-package, launch,
-   and upsert routes under
+   upsert, operating queue, approval inbox, workflow board, assignment plan, workflow automation,
+   approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
+   evidence routes under
    `/api/v1/dpm/command-center/waves/campaign-definitions*` so Workbench can discover and preserve
-   manage-owned campaign/cohort definitions and launch posture without recomputing cohort facts,
-   portfolio eligibility, readiness, maker-checker posture, durable replay state, or membership
-   locally.
+   manage-owned campaign/cohort definitions, launch posture, workflow/audit posture, count/page
+   metadata, supportability, source refs, reason codes, operating boundaries, and content hashes
+   without recomputing cohort facts, portfolio eligibility, readiness, task state, approval state,
+   maker-checker posture, workflow orchestration, durable replay state, or membership locally.
    Gateway also exposes a governed `dpm_wave_pm_memo.pack@v1` handoff to `lotus-ai` from
    manage-owned wave report input; it does not generate memo narrative, score PMs, approve trades,
    contact clients, place orders, or invent missing evidence.

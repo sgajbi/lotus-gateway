@@ -154,6 +154,45 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def get_campaign_operating_queue(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "get_campaign_operating_queue",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def create_campaign_assignment_task(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "create_campaign_assignment_task",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def transition_campaign_assignment_task(  # noqa: ANN001
+        self, campaign_id, campaign_version, task_ref, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "transition_campaign_assignment_task",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "task_ref": task_ref,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def put_campaign_definition(  # noqa: ANN001
         self, campaign_id, campaign_version, body, correlation_id
     ):
@@ -557,6 +596,106 @@ async def test_dpm_wave_service_preserves_campaign_discovery_payload() -> None:
                 "offset": 0,
             },
             "correlation_id": "corr-campaign-discovery",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_workflow_queue_payload() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignOperatingQueue",
+        "product_version": "v1",
+        "items": [
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "task_ref": "task-review-001",
+                "supportability_state": "READY",
+                "source_refs": [{"source_system": "lotus-manage"}],
+                "content_hash": "sha256:operating-queue",
+            }
+        ],
+        "count": 1,
+        "limit": 25,
+        "offset": 0,
+        "operating_boundaries": [
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+            "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+        ],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_campaign_operating_queue(
+        filters={"campaign_status": "ACTIVE", "limit": 25, "offset": 0},
+        correlation_id="corr-campaign-operating-queue",
+    )
+
+    assert response.correlation_id == "corr-campaign-operating-queue"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert response.data["items"][0]["content_hash"] == "sha256:operating-queue"
+    assert "NO_OMS_EXECUTION_CLAIM" in response.data["operating_boundaries"]
+    assert client.calls == [
+        {
+            "method": "get_campaign_operating_queue",
+            "params": {"campaign_status": "ACTIVE", "limit": 25, "offset": 0},
+            "correlation_id": "corr-campaign-operating-queue",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_payload() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignAssignmentTaskTransition",
+        "product_version": "v1",
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "task_ref": "task-review-001",
+        "transition_type": "MARK_SUPPORTABLE",
+        "from_status": "READY_FOR_REVIEW",
+        "to_status": "SUPPORTABLE",
+        "reason_codes": ["campaign_assignment_task_transition_recorded"],
+        "source_refs": [{"source_system": "lotus-manage"}],
+        "content_hash": "sha256:task-transition",
+        "operating_boundaries": [
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+            "NO_CLIENT_CONTACT_WORKFLOW",
+        ],
+    }
+    body = {
+        "transition_type": "MARK_SUPPORTABLE",
+        "actor_id": "pm_sg_1",
+        "reason_code": "campaign_assignment_task_transition_recorded",
+    }
+    client = _FakeDpmClient((201, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.transition_campaign_assignment_task(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        task_ref="task-review-001",
+        body=body,
+        correlation_id="corr-campaign-task-transition",
+    )
+
+    assert response.upstream_status == 201
+    assert response.data == manage_payload
+    assert response.data["from_status"] == "READY_FOR_REVIEW"
+    assert response.data["to_status"] == "SUPPORTABLE"
+    assert "NO_CLIENT_CONTACT_WORKFLOW" in response.data["operating_boundaries"]
+    assert client.calls == [
+        {
+            "method": "transition_campaign_assignment_task",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "task_ref": "task-review-001",
+            "body": body,
+            "correlation_id": "corr-campaign-task-transition",
         }
     ]
 
