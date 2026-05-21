@@ -289,6 +289,7 @@ class PlatformCapabilitiesService:
                 sources=sources,
                 source_name="lotus_advise",
                 feature_keys=(
+                    "advisory.proposals.lifecycle",
                     "lotus_advise.proposals.lifecycle",
                     "advise.proposals.lifecycle",
                     "dpm.proposals.lifecycle",
@@ -353,15 +354,21 @@ class PlatformCapabilitiesService:
             "advisory_workspace": False,
         }
         workflow_flags = {
-            "proposal_lifecycle": self._workflow_enabled(
+            "proposal_lifecycle": self._any_workflow_enabled(
                 sources=sources,
                 source_name="lotus_advise",
-                workflow_key="proposal_lifecycle",
+                workflow_keys=(
+                    "advisory_proposal_lifecycle",
+                    "proposal_lifecycle",
+                ),
             ),
-            "proposal_approval_flow": self._workflow_enabled(
+            "proposal_approval_flow": self._any_workflow_enabled(
                 sources=sources,
                 source_name="lotus_advise",
-                workflow_key="proposal_approval_flow",
+                workflow_keys=(
+                    "advisory_proposal_approval_flow",
+                    "proposal_approval_flow",
+                ),
             ),
             "portfolio_bulk_onboarding": self._workflow_enabled(
                 sources=sources,
@@ -384,6 +391,7 @@ class PlatformCapabilitiesService:
             errors=errors,
         )
         shell_bootstrap = self._build_shell_bootstrap(
+            sources=sources,
             navigation=navigation,
             module_health=module_health,
             policy_versions_by_source=policy_versions_by_source,
@@ -404,6 +412,7 @@ class PlatformCapabilitiesService:
     def _build_shell_bootstrap(
         self,
         *,
+        sources: dict[str, dict[str, Any]],
         navigation: dict[str, bool],
         module_health: dict[str, str],
         policy_versions_by_source: dict[str, str],
@@ -452,6 +461,7 @@ class PlatformCapabilitiesService:
                     href="/portfolio",
                     enabled=navigation["portfolio_workspace"],
                     dependency_source="lotus_core",
+                    source_supportability=None,
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -467,6 +477,7 @@ class PlatformCapabilitiesService:
                     href="/performance",
                     enabled=navigation["performance_workspace"],
                     dependency_source="lotus_performance",
+                    source_supportability=None,
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -482,6 +493,7 @@ class PlatformCapabilitiesService:
                     href="/performance?mode=risk",
                     enabled=navigation["risk_workspace"],
                     dependency_source="lotus_risk",
+                    source_supportability=None,
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -497,6 +509,10 @@ class PlatformCapabilitiesService:
                     href="/proposals",
                     enabled=navigation["proposal_workspace"],
                     dependency_source="lotus_advise",
+                    source_supportability=self._source_supportability(
+                        sources=sources,
+                        source_name="lotus_advise",
+                    ),
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -512,6 +528,10 @@ class PlatformCapabilitiesService:
                     href="/recommendations",
                     enabled=navigation["advisory_workspace"],
                     dependency_source="lotus_advise",
+                    source_supportability=self._source_supportability(
+                        sources=sources,
+                        source_name="lotus_advise",
+                    ),
                     module_health=module_health,
                     policy_versions_by_source=policy_versions_by_source,
                     error_services=error_services,
@@ -532,6 +552,7 @@ class PlatformCapabilitiesService:
         href: str,
         enabled: bool,
         dependency_source: str,
+        source_supportability: dict[str, Any] | None,
         module_health: dict[str, str],
         policy_versions_by_source: dict[str, str],
         error_services: list[str],
@@ -559,6 +580,10 @@ class PlatformCapabilitiesService:
             reasons = (
                 [f"{workspace_id}_disabled"] if not enabled else [f"{dependency_source}_unknown"]
             )
+        if source_supportability is not None and source_health == "available":
+            supportability_state = str(source_supportability.get("state") or supportability_state)
+            source_reason = source_supportability.get("reason")
+            reasons = [str(source_reason)] if source_reason else reasons
 
         return PlatformShellWorkspaceDescriptor(
             id=workspace_id,
@@ -646,6 +671,33 @@ class PlatformCapabilitiesService:
             if str(workflow.get("workflow_key")) == workflow_key:
                 return bool(workflow.get("enabled"))
         return False
+
+    def _any_workflow_enabled(
+        self,
+        *,
+        sources: dict[str, dict[str, Any]],
+        source_name: str,
+        workflow_keys: tuple[str, ...],
+    ) -> bool:
+        return any(
+            self._workflow_enabled(
+                sources=sources,
+                source_name=source_name,
+                workflow_key=workflow_key,
+            )
+            for workflow_key in workflow_keys
+        )
+
+    def _source_supportability(
+        self,
+        *,
+        sources: dict[str, dict[str, Any]],
+        source_name: str,
+    ) -> dict[str, Any] | None:
+        supportability = sources.get(source_name, {}).get("supportability")
+        if not isinstance(supportability, dict):
+            return None
+        return supportability
 
     def _module_health(
         self,
