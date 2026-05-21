@@ -77,8 +77,12 @@ def test_dpm_portfolio_memory_gateway_response_contract_shape() -> None:
         upstream_status=200,
         supportability={
             "state": "READY",
-            "event_count": 2,
-            "event_type_counts": {"PROOF_PACK_CREATED": 1, "OUTCOME_REVIEW_CREATED": 1},
+            "event_count": 3,
+            "event_type_counts": {
+                "PROOF_PACK_CREATED": 1,
+                "OUTCOME_REVIEW_CREATED": 1,
+                "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION": 1,
+            },
             "source_systems": ["lotus-manage", "lotus-core"],
             "reason_codes": ["SOURCE_READY"],
             "content_hash": "sha256:portfolio-memory",
@@ -96,6 +100,7 @@ def test_dpm_portfolio_memory_gateway_response_contract_shape() -> None:
     assert response.supportability.event_type_counts == {
         "PROOF_PACK_CREATED": 1,
         "OUTCOME_REVIEW_CREATED": 1,
+        "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION": 1,
     }
     assert response.data["portfolio_id"] == "PB_SG_GLOBAL_BAL_001"
 

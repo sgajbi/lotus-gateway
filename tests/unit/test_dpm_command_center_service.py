@@ -421,13 +421,14 @@ async def test_dpm_command_center_mandate_supportability_uses_manage_field_gaps(
 async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability() -> None:
     manage_payload = {
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-        "event_count": 4,
+        "event_count": 5,
         "supportability_state": "READY",
         "event_type_counts": {
             "PROOF_PACK_CREATED": 1,
             "WAVE_HANDOFF_READY": 1,
             "OUTCOME_REVIEW_CREATED": 1,
             "OUTCOME_REVIEW_EVENT": 1,
+            "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION": 1,
         },
         "source_systems": ["lotus-manage", "lotus-core", "lotus-risk"],
         "reason_codes": ["SOURCE_READY", "OUTCOME_REVIEW_READY"],
@@ -455,8 +456,12 @@ async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability
     assert response.upstream_status == 200
     assert response.supportability.authority == "lotus-manage:RFC-0040/RFC-0041/RFC-0042"
     assert response.supportability.state == "READY"
-    assert response.supportability.event_count == 4
+    assert response.supportability.event_count == 5
     assert response.supportability.event_type_counts["WAVE_HANDOFF_READY"] == 1
+    assert (
+        response.supportability.event_type_counts["BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION"]
+        == 1
+    )
     assert response.supportability.source_systems == ["lotus-manage", "lotus-core", "lotus-risk"]
     assert response.supportability.reason_codes == ["SOURCE_READY", "OUTCOME_REVIEW_READY"]
     assert response.supportability.content_hash == "sha256:portfolio-memory"
@@ -467,6 +472,106 @@ async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability
             "portfolio_id": "PB_SG_GLOBAL_BAL_001",
             "params": {"limit": 50},
             "correlation_id": "corr-portfolio-memory",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_portfolio_memory_preserves_campaign_assignment_transition_event() -> None:
+    transition_event = {
+        "event_id": (
+            "memory:campaign_definition:campaign_001:v1:"
+            "assignment-task:task_001:transition:transition_001"
+        ),
+        "event_type": "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION",
+        "event_time": "2026-05-21T08:15:00Z",
+        "actor": "ops_lead",
+        "source_system": "lotus-manage",
+        "source_type": "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION",
+        "source_id": "transition_001",
+        "status": "IN_PROGRESS",
+        "supportability_state": "PENDING_REVIEW",
+        "summary": "Bounded Manage transition summary from source truth.",
+        "reason_codes": [
+            "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION_RECORDED",
+            "ACKNOWLEDGE",
+            "IN_PROGRESS",
+            "ON_TRACK",
+        ],
+        "source_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "BulkReviewCampaignDefinition",
+                "source_id": "campaign_001:v1",
+                "content_hash": "sha256:campaign-definition",
+            }
+        ],
+        "artifact_refs": [
+            {
+                "source_system": "lotus-manage",
+                "source_type": "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK",
+                "source_id": "task_001",
+                "content_hash": "sha256:assignment-task",
+            }
+        ],
+        "content_hash": "sha256:assignment-task-transition",
+        "metadata": {
+            "task_ref": "task-ref-001",
+            "assignment_task_id": "task_001",
+            "transition_type": "ACKNOWLEDGE",
+            "from_status": "OPEN",
+            "to_status": "IN_PROGRESS",
+            "sla_posture": "ON_TRACK",
+            "supportability_state": "PENDING_REVIEW",
+            "transition_reason_projected": False,
+            "external_workflow_orchestration_claimed": False,
+            "client_contact_claimed": False,
+            "external_execution_claimed": False,
+            "transition_reason": "unsafe upstream rationale stays source-owned",
+            "raw_rationale": "unsafe raw rationale stays source-owned",
+            "client_contact": "message client",
+            "oms_action": "route order",
+            "order_instruction": "buy security",
+        },
+    }
+    manage_payload = {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "event_count": 1,
+        "supportability_state": "READY",
+        "event_type_counts": {
+            "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION": 1,
+        },
+        "source_systems": ["lotus-manage"],
+        "reason_codes": ["BULK_REVIEW_CAMPAIGN_WORKFLOW_SOURCE_EVENTS_SUPPORTED"],
+        "content_hash": "sha256:portfolio-memory",
+        "events": [transition_event],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.get_portfolio_memory(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        filters={"limit": 25},
+        correlation_id="corr-campaign-assignment-task-transition",
+    )
+
+    assert (
+        response.supportability.event_type_counts["BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION"]
+        == 1
+    )
+    assert response.data["events"][0] == transition_event
+    assert response.data["events"][0]["source_refs"] == transition_event["source_refs"]
+    assert response.data["events"][0]["artifact_refs"] == transition_event["artifact_refs"]
+    assert response.data["events"][0]["content_hash"] == "sha256:assignment-task-transition"
+    assert response.data["events"][0]["metadata"]["transition_reason_projected"] is False
+    assert response.data["events"][0]["metadata"]["client_contact_claimed"] is False
+    assert response.data["events"][0]["metadata"]["external_execution_claimed"] is False
+    assert client.calls == [
+        {
+            "method": "portfolio_memory",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "params": {"limit": 25},
+            "correlation_id": "corr-campaign-assignment-task-transition",
         }
     ]
 
