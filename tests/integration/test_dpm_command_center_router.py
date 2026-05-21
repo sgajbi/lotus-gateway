@@ -187,15 +187,36 @@ def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(m
         captured["correlation_id"] = correlation_id
         return 200, {
             "portfolio_id": portfolio_id,
-            "event_count": 2,
+            "event_count": 3,
             "supportability_state": "READY",
-            "event_type_counts": {"PROOF_PACK_CREATED": 1, "OUTCOME_REVIEW_CREATED": 1},
+            "event_type_counts": {
+                "PROOF_PACK_CREATED": 1,
+                "OUTCOME_REVIEW_CREATED": 1,
+                "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION": 1,
+            },
             "source_systems": ["lotus-manage", "lotus-core"],
             "reason_codes": ["SOURCE_READY"],
             "content_hash": "sha256:portfolio-memory",
             "events": [
                 {"event_id": "memory:proof-pack:dpp_1", "event_type": "PROOF_PACK_CREATED"},
                 {"event_id": "memory:outcome-review:or_1", "event_type": "OUTCOME_REVIEW_CREATED"},
+                {
+                    "event_id": "memory:campaign-assignment-task-transition:transition_001",
+                    "event_type": "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION",
+                    "source_refs": [
+                        {"source_system": "lotus-manage", "source_id": "campaign_001:v1"}
+                    ],
+                    "artifact_refs": [{"source_system": "lotus-manage", "source_id": "task_001"}],
+                    "content_hash": "sha256:assignment-task-transition",
+                    "reason_codes": ["BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION_RECORDED"],
+                    "metadata": {
+                        "task_ref": "task-ref-001",
+                        "transition_type": "ACKNOWLEDGE",
+                        "from_status": "OPEN",
+                        "to_status": "IN_PROGRESS",
+                        "sla_posture": "ON_TRACK",
+                    },
+                },
             ],
         }
 
@@ -218,12 +239,24 @@ def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(m
     }
     payload = response.json()
     assert payload["supportability"]["state"] == "READY"
-    assert payload["supportability"]["event_count"] == 2
+    assert payload["supportability"]["event_count"] == 3
+    assert (
+        payload["supportability"]["event_type_counts"][
+            "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION"
+        ]
+        == 1
+    )
     assert payload["supportability"]["content_hash"] == "sha256:portfolio-memory"
-    assert payload["data"]["events"] == [
-        {"event_id": "memory:proof-pack:dpp_1", "event_type": "PROOF_PACK_CREATED"},
-        {"event_id": "memory:outcome-review:or_1", "event_type": "OUTCOME_REVIEW_CREATED"},
+    transition_event = payload["data"]["events"][2]
+    assert transition_event["event_type"] == "BULK_REVIEW_CAMPAIGN_ASSIGNMENT_TASK_TRANSITION"
+    assert transition_event["source_refs"] == [
+        {"source_system": "lotus-manage", "source_id": "campaign_001:v1"}
     ]
+    assert transition_event["artifact_refs"] == [
+        {"source_system": "lotus-manage", "source_id": "task_001"}
+    ]
+    assert transition_event["content_hash"] == "sha256:assignment-task-transition"
+    assert transition_event["metadata"]["transition_type"] == "ACKNOWLEDGE"
 
 
 def test_dpm_command_center_pm_quality_fairness_preview_forwards_segment_refs(
