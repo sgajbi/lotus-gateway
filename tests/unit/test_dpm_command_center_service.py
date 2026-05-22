@@ -181,6 +181,50 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def preview_pm_operating_quality_summary_invocation(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_summary_invocation_preview",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def create_pm_operating_quality_summary_invocation(self, body, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_summary_invocation_create",
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_pm_operating_quality_summary_invocations(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "pm_quality_summary_invocations",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def get_pm_operating_quality_summary_invocation(  # noqa: ANN001
+        self,
+        summary_invocation_id,
+        correlation_id,
+    ):
+        self.calls.append(
+            {
+                "method": "pm_quality_summary_invocation",
+                "summary_invocation_id": summary_invocation_id,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def list_pm_operating_quality_score_runs(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {"method": "pm_quality_score_runs", "params": params, "correlation_id": correlation_id}
@@ -1150,6 +1194,149 @@ async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage
             "method": "pm_quality_review_action",
             "review_action_id": "pmq_review_001",
             "correlation_id": "corr-pmq-review-get",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_payloads() -> None:
+    invocation_payload = {
+        "summary_invocation": {
+            "summary_invocation_id": "pmq_summary_001",
+            "score_run_id": "pmq_run_001",
+            "review_action_id": "pmq_review_001",
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "as_of_date": "2026-05-20",
+            "invocation_state": "REQUESTED",
+            "summary_ref": "PMQ-SUMMARY-2026-05-001",
+            "workflow_pack_name": "pm_quality_summary.pack",
+            "workflow_pack_version": "v1",
+            "workflow_run_id": "packrun_pmq_001",
+            "summary_artifact_ref": "artifact://pmq-summary-001",
+            "summary_content_hash": "sha256:pmq-summary-artifact-001",
+            "requested_by": "ops",
+            "reason_codes": ["PM_QUALITY_SUMMARY_INVOCATION_REQUESTED"],
+            "source_refs": [
+                {
+                    "source_system": "lotus-ai",
+                    "source_type": "WorkflowPackRun",
+                    "source_id": "packrun_pmq_001",
+                }
+            ],
+            "operating_boundaries": [
+                "NO_GENERATED_SUMMARY_TEXT_RETENTION",
+                "NO_PROMPT_OR_MODEL_RESPONSE_EXPOSURE",
+                "NO_PM_RANKING",
+                "NO_CLIENT_CONTACT",
+                "NO_TRADE_ORDER_OR_OMS_EXECUTION",
+            ],
+            "text_boundary": {
+                "boundary_id": "PM_QUALITY_SUMMARY_TEXT_BOUNDARY",
+                "generated_summary_text_stored": False,
+                "prompt_body_stored": False,
+                "model_response_stored": False,
+                "client_communication_projected": False,
+                "order_or_oms_projected": False,
+                "content_hash": "sha256:pmq-summary-text-boundary",
+            },
+            "content_hash": "sha256:pmq-summary-invocation-001",
+        }
+    }
+    body = {
+        "score_run_id": "pmq_run_001",
+        "review_action_id": "pmq_review_001",
+        "summary_ref": "PMQ-SUMMARY-2026-05-001",
+        "workflow_run_id": "packrun_pmq_001",
+        "summary_artifact_ref": "artifact://pmq-summary-001",
+        "summary_content_hash": "sha256:pmq-summary-artifact-001",
+        "requested_by": "ops",
+        "source_refs": [],
+    }
+    preview_client = _FakeDpmClient((200, invocation_payload))
+    preview_service = DpmCommandCenterService(dpm_client=preview_client)  # type: ignore[arg-type]
+
+    previewed = await preview_service.preview_pm_operating_quality_summary_invocation(
+        body=body,
+        correlation_id="corr-pmq-summary-preview",
+    )
+
+    assert previewed.supportability.summary_invocation_id == "pmq_summary_001"
+    assert previewed.supportability.review_action_id == "pmq_review_001"
+    assert previewed.data == invocation_payload
+    assert "generated summary text" not in str(previewed.data).lower()
+    assert preview_client.calls == [
+        {
+            "method": "pm_quality_summary_invocation_preview",
+            "body": body,
+            "correlation_id": "corr-pmq-summary-preview",
+        }
+    ]
+
+    create_client = _FakeDpmClient((201, invocation_payload))
+    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    created = await create_service.create_pm_operating_quality_summary_invocation(
+        body=body,
+        correlation_id="corr-pmq-summary-create",
+    )
+
+    assert created.upstream_status == 201
+    assert created.supportability.summary_invocation_id == "pmq_summary_001"
+    assert created.data["summary_invocation"]["text_boundary"]["model_response_stored"] is False
+    assert create_client.calls == [
+        {
+            "method": "pm_quality_summary_invocation_create",
+            "body": body,
+            "correlation_id": "corr-pmq-summary-create",
+        }
+    ]
+
+    list_payload = {
+        "count": 1,
+        "summary_invocations": [invocation_payload["summary_invocation"]],
+        "limit": 50,
+        "offset": 0,
+    }
+    list_client = _FakeDpmClient((200, list_payload))
+    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+    listed = await list_service.list_pm_operating_quality_summary_invocations(
+        filters={
+            "score_run_id": "pmq_run_001",
+            "invocation_state": "REQUESTED",
+            "limit": 50,
+        },
+        correlation_id="corr-pmq-summary-list",
+    )
+
+    assert listed.supportability.count == 1
+    assert listed.supportability.summary_invocation_id == "pmq_summary_001"
+    assert listed.data == list_payload
+    assert list_client.calls == [
+        {
+            "method": "pm_quality_summary_invocations",
+            "params": {
+                "score_run_id": "pmq_run_001",
+                "invocation_state": "REQUESTED",
+                "limit": 50,
+            },
+            "correlation_id": "corr-pmq-summary-list",
+        }
+    ]
+
+    get_client = _FakeDpmClient((200, invocation_payload))
+    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+    fetched = await get_service.get_pm_operating_quality_summary_invocation(
+        summary_invocation_id="pmq_summary_001",
+        correlation_id="corr-pmq-summary-get",
+    )
+
+    assert fetched.supportability.summary_invocation_id == "pmq_summary_001"
+    assert fetched.data == invocation_payload
+    assert get_client.calls == [
+        {
+            "method": "pm_quality_summary_invocation",
+            "summary_invocation_id": "pmq_summary_001",
+            "correlation_id": "corr-pmq-summary-get",
         }
     ]
 

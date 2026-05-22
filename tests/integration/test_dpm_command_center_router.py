@@ -642,6 +642,176 @@ def test_dpm_command_center_pm_quality_review_action_routes_preserve_manage_payl
     ]
 
 
+def test_dpm_command_center_pm_quality_summary_invocation_routes_preserve_manage_payloads(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+    summary_invocation = {
+        "summary_invocation_id": "pmq_summary_001",
+        "score_run_id": "pmq_run_001",
+        "review_action_id": "pmq_review_001",
+        "policy_id": "pmq_sg_dpm",
+        "policy_version": "2026.05",
+        "as_of_date": "2026-05-20",
+        "invocation_state": "REQUESTED",
+        "summary_ref": "PMQ-SUMMARY-2026-05-001",
+        "workflow_pack_name": "pm_quality_summary.pack",
+        "workflow_pack_version": "v1",
+        "workflow_run_id": "packrun_pmq_001",
+        "summary_artifact_ref": "artifact://pmq-summary-001",
+        "summary_content_hash": "sha256:pmq-summary-artifact-001",
+        "requested_by": "ops",
+        "reason_codes": ["PM_QUALITY_SUMMARY_INVOCATION_REQUESTED"],
+        "source_refs": [
+            {
+                "source_system": "lotus-ai",
+                "source_type": "WorkflowPackRun",
+                "source_id": "packrun_pmq_001",
+            }
+        ],
+        "operating_boundaries": [
+            "NO_GENERATED_SUMMARY_TEXT_RETENTION",
+            "NO_PROMPT_OR_MODEL_RESPONSE_EXPOSURE",
+            "NO_PM_RANKING",
+            "NO_CLIENT_CONTACT",
+            "NO_TRADE_ORDER_OR_OMS_EXECUTION",
+        ],
+        "text_boundary": {
+            "boundary_id": "PM_QUALITY_SUMMARY_TEXT_BOUNDARY",
+            "generated_summary_text_stored": False,
+            "prompt_body_stored": False,
+            "model_response_stored": False,
+            "client_communication_projected": False,
+            "order_or_oms_projected": False,
+            "content_hash": "sha256:pmq-summary-text-boundary",
+        },
+        "content_hash": "sha256:pmq-summary-invocation-001",
+    }
+
+    async def _fake_preview_pm_operating_quality_summary_invocation(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["preview_body"] = body
+        captured["preview_correlation_id"] = correlation_id
+        return 200, {"summary_invocation": summary_invocation}
+
+    async def _fake_create_pm_operating_quality_summary_invocation(
+        self,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["create_body"] = body
+        captured["create_correlation_id"] = correlation_id
+        return 201, {"summary_invocation": summary_invocation}
+
+    async def _fake_list_pm_operating_quality_summary_invocations(
+        self,
+        params,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["list_params"] = params
+        captured["list_correlation_id"] = correlation_id
+        return (
+            200,
+            {"count": 1, "summary_invocations": [summary_invocation], "limit": 25, "offset": 0},
+        )
+
+    async def _fake_get_pm_operating_quality_summary_invocation(
+        self,
+        summary_invocation_id,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["get_summary_invocation_id"] = summary_invocation_id
+        captured["get_correlation_id"] = correlation_id
+        return 200, {"summary_invocation": summary_invocation}
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.preview_pm_operating_quality_summary_invocation",
+        _fake_preview_pm_operating_quality_summary_invocation,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.create_pm_operating_quality_summary_invocation",
+        _fake_create_pm_operating_quality_summary_invocation,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.list_pm_operating_quality_summary_invocations",
+        _fake_list_pm_operating_quality_summary_invocations,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.get_pm_operating_quality_summary_invocation",
+        _fake_get_pm_operating_quality_summary_invocation,
+    )
+
+    request_body = {
+        "score_run_id": "pmq_run_001",
+        "review_action_id": "pmq_review_001",
+        "summary_ref": "PMQ-SUMMARY-2026-05-001",
+        "workflow_run_id": "packrun_pmq_001",
+        "summary_artifact_ref": "artifact://pmq-summary-001",
+        "summary_content_hash": "sha256:pmq-summary-artifact-001",
+        "requested_by": "ops",
+        "source_refs": [],
+    }
+    client = TestClient(app)
+
+    preview_response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations/preview",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-summary-preview"},
+    )
+    create_response = client.post(
+        "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations",
+        json={"body": request_body},
+        headers={"X-Correlation-Id": "corr-pmq-summary-create"},
+    )
+    list_response = client.get(
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations"
+            "?score_run_id=pmq_run_001&review_action_id=pmq_review_001&policy_id=pmq_sg_dpm"
+            "&invocation_state=REQUESTED&limit=25&offset=0"
+        ),
+        headers={"X-Correlation-Id": "corr-pmq-summary-list"},
+    )
+    get_response = client.get(
+        "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations/pmq_summary_001",
+        headers={"X-Correlation-Id": "corr-pmq-summary-get"},
+    )
+
+    assert preview_response.status_code == 200
+    assert create_response.status_code == 200
+    assert list_response.status_code == 200
+    assert get_response.status_code == 200
+    assert captured["preview_body"] == request_body
+    assert captured["create_body"] == request_body
+    assert captured["list_params"] == {
+        "score_run_id": "pmq_run_001",
+        "review_action_id": "pmq_review_001",
+        "policy_id": "pmq_sg_dpm",
+        "as_of_date": None,
+        "invocation_state": "REQUESTED",
+        "limit": 25,
+        "offset": 0,
+    }
+    assert captured["get_summary_invocation_id"] == "pmq_summary_001"
+    assert list_response.json()["supportability"]["summary_invocation_id"] == "pmq_summary_001"
+    assert (
+        get_response.json()["data"]["summary_invocation"]["text_boundary"][
+            "generated_summary_text_stored"
+        ]
+        is False
+    )
+    assert (
+        get_response.json()["data"]["summary_invocation"]["text_boundary"]["model_response_stored"]
+        is False
+    )
+
+
 def test_dpm_command_center_outcome_review_create_preserves_manage_truth(monkeypatch) -> None:
     captured: dict[str, object] = {}
 

@@ -567,6 +567,13 @@ class DpmPmOperatingQualitySupportability(BaseModel):
         description="Manage-owned PM operating quality review-action id when returned.",
         examples=["pmq_review_001"],
     )
+    summary_invocation_id: str | None = Field(
+        default=None,
+        description=(
+            "Manage-owned PM operating quality support-summary invocation id when returned."
+        ),
+        examples=["pmq_summary_001"],
+    )
     count: int | None = Field(
         default=None,
         ge=0,
@@ -597,7 +604,8 @@ class DpmPmOperatingQualityGatewayResponse(BaseModel):
     supportability: DpmPmOperatingQualitySupportability = Field(
         description=(
             "Gateway-normalized supportability summary derived only from manage-published PM "
-            "quality policy, score-run, fairness-analysis, and review-action fields."
+            "quality policy, score-run, fairness-analysis, review-action, and "
+            "summary-invocation fields."
         ),
     )
     data: dict[str, object] = Field(
@@ -605,7 +613,8 @@ class DpmPmOperatingQualityGatewayResponse(BaseModel):
             "Authoritative manage PM operating quality payload preserved for Workbench "
             "composition. Gateway does not calculate scores, alter policy governance evidence, "
             "calculate fairness spread, infer protected classes, rank PMs, reinterpret review "
-            "rationale, or convert the payload into HR, compensation, conduct, approval, client "
+            "rationale, store or expose generated summary text, reconstruct prompts or model "
+            "responses, or convert the payload into HR, compensation, conduct, approval, client "
             "contact, trade, order, OMS, or execution decisions."
         ),
     )

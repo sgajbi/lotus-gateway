@@ -102,15 +102,18 @@
   `/api/v1/rebalance/pm-operating-quality/*` through
   `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway exposes policy list/get/upsert
   score-run preview/create/list/get routes, fairness-analysis preview/create/list/get,
-  review-action preview/create/list/get, and a score-run AI summary handoff that executes
-  `lotus-ai` `pm_quality_summary.pack@v1` only after reading Manage-owned score-run evidence.
+  review-action preview/create/list/get, summary-invocation preview/create/list/get, and a
+  score-run AI summary handoff that executes `lotus-ai` `pm_quality_summary.pack@v1` only after
+  reading Manage-owned score-run evidence.
   Gateway preserves manage-owned policy configuration, score-run state, fairness-analysis state,
-  review-action state, bounded rationale, target content hashes, segment posture, governance
-  evidence, source refs, reason codes, content hashes, supportability, and forbidden-use posture.
+  review-action state, summary-invocation workflow lineage, bounded rationale, target content
+  hashes, segment posture, governance evidence, source refs, reason codes, content hashes,
+  supportability, summary-text boundary evidence, and forbidden-use posture.
   Gateway must not calculate scores, discover segments, calculate segment averages or fairness
   spread, infer protected classes, rank PMs, administer bank policy locally, reinterpret review
-  rationale, or create HR, compensation, conduct-enforcement, approval, client-contact, order,
-  OMS, or execution decisions.
+  rationale, store or expose generated summary text, reconstruct prompts or model responses, or
+  create HR, compensation, conduct-enforcement, approval, client-contact, order, OMS, or execution
+  decisions.
 - RFC-0098 construction-alternative composition consumes `lotus-manage` RFC-0039 construction
   APIs through `/api/v1/dpm/command-center/construction/alternative-sets*`. Gateway exposes
   generate, get, and select routes for Workbench, preserving manage alternative-set ids, method
