@@ -395,6 +395,82 @@ async def get_portfolio_memory(
     )
 
 
+@router.get(
+    "/portfolio-memory/search",
+    response_model=DpmPortfolioMemoryGatewayResponse,
+    summary="Search DPM portfolio memory by persisted source lineage",
+    description=(
+        "What: forwards bounded manage-local portfolio-memory search filters, including source "
+        "system and source type, to lotus-manage. When: use this for source-family posture over "
+        "persisted memory evidence before selecting a portfolio timeline. How: Gateway preserves "
+        "the Manage search payload, applied filters, source counts, reason codes, boundaries, and "
+        "content hashes without querying source-owner stores, discovering the global portfolio "
+        "universe, reconstructing raw source payloads, or claiming OMS, execution, client "
+        "communication, fill, or settlement truth."
+    ),
+)
+async def search_portfolio_memory(
+    portfolio_ids: list[str] | None = Query(
+        default=None,
+        description="Optional repeated portfolio identifiers for bounded persisted memory search.",
+        examples=[["PB_SG_GLOBAL_BAL_001", "PB_SG_GLOBAL_INC_002"]],
+    ),
+    event_type: str | None = Query(
+        default=None,
+        description="Optional manage-owned portfolio-memory event type filter.",
+        examples=["OUTCOME_REVIEW_CREATED"],
+    ),
+    supportability_state: str | None = Query(
+        default=None,
+        description="Optional manage-published supportability state filter.",
+        examples=["READY"],
+    ),
+    source_system: str | None = Query(
+        default=None,
+        description="Optional persisted source-system filter.",
+        examples=["lotus-performance"],
+    ),
+    source_type: str | None = Query(
+        default=None,
+        description="Optional persisted source-type filter.",
+        examples=["PortfolioRealizedTaxSummary:v1"],
+    ),
+    limit: int = Query(
+        default=25,
+        ge=1,
+        le=200,
+        description="Maximum number of persisted memory events to return.",
+        examples=[25],
+    ),
+    offset: int = Query(
+        default=0,
+        ge=0,
+        description="Manage-local offset for bounded persisted memory search.",
+        examples=[0],
+    ),
+    source_scan_limit: int | None = Query(
+        default=None,
+        ge=1,
+        le=1000,
+        description="Optional Manage-local scan cap for source-lineage facet derivation.",
+        examples=[250],
+    ),
+) -> DpmPortfolioMemoryGatewayResponse:
+    return await _dpm_command_center_service().search_portfolio_memory(
+        filters={
+            "portfolio_ids": portfolio_ids,
+            "event_type": event_type,
+            "supportability_state": supportability_state,
+            "source_system": source_system,
+            "source_type": source_type,
+            "limit": limit,
+            "offset": offset,
+            "source_scan_limit": source_scan_limit,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/pm-operating-quality/score-runs/preview",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -1024,12 +1100,35 @@ async def list_outcome_reviews(
         description="Optional manage-published outcome-review state filter.",
         examples=["READY"],
     ),
+    source_system: str | None = Query(
+        default=None,
+        description="Optional persisted source-system filter for Manage-local lineage facets.",
+        examples=["lotus-performance"],
+    ),
+    source_type: str | None = Query(
+        default=None,
+        description="Optional persisted source-type filter for Manage-local lineage facets.",
+        examples=["PortfolioCashMovementSummary:v1"],
+    ),
     limit: int = Query(
         default=25,
         ge=1,
         le=200,
         description="Maximum number of outcome-review records to return.",
         examples=[25],
+    ),
+    offset: int | None = Query(
+        default=None,
+        ge=0,
+        description="Optional Manage-local offset for outcome-review source-lineage search.",
+        examples=[0],
+    ),
+    source_scan_limit: int | None = Query(
+        default=None,
+        ge=1,
+        le=1000,
+        description="Optional Manage-local scan cap for outcome-review source-lineage facets.",
+        examples=[250],
     ),
     cursor: str | None = Query(
         default=None,
@@ -1042,7 +1141,11 @@ async def list_outcome_reviews(
         "rebalance_run_id": rebalance_run_id,
         "wave_id": wave_id,
         "state": state,
+        "source_system": source_system,
+        "source_type": source_type,
         "limit": limit,
+        "offset": offset,
+        "source_scan_limit": source_scan_limit,
         "cursor": cursor,
     }
     return await _dpm_command_center_service().list_outcome_reviews(

@@ -244,13 +244,16 @@ Most relevant current governance:
     manage-owned AI evidence input. Gateway must not build proof-pack sections, recalculate hashes,
     infer source readiness, render reports, generate AI narrative or PM memos locally, score PMs,
     approve trades, contact clients, place orders, or invent missing evidence.
-14. RFC-0040/RFC-0041/RFC-0042 portfolio-memory Gateway route is active under
-    `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`. Gateway forwards portfolio id
-    and limit to `lotus-manage` `/api/v1/rebalance/portfolio-memory/{portfolio_id}`, preserves
-    manage-owned event order, event types, source systems, source refs, artifact refs, reason
-    codes, supportability state, content hash, and bounded metadata, and must not reconstruct
-    timeline nodes, infer mandate exceptions, calculate risk, performance, tax, cash, FX,
-    execution, or source-owner methodology locally.
+14. RFC-0040/RFC-0041/RFC-0042 portfolio-memory Gateway routes are active under
+    `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` and
+    `/api/v1/dpm/command-center/portfolio-memory/search`. Gateway forwards portfolio, event,
+    supportability, source-system, source-type, pagination, and scan-limit filters to
+    `lotus-manage` portfolio-memory APIs, preserves manage-owned event order, event types, source
+    systems, source-system/type facets, source refs, artifact refs, applied filters, reason codes,
+    supportability state, support boundary, content hash, and bounded metadata, and must not
+    reconstruct timeline nodes, infer mandate exceptions, query source-owner stores, discover the
+    global portfolio universe, calculate risk, performance, tax, cash, FX, OMS execution, fills,
+    settlement, client communication, or source-owner methodology locally.
 15. RFC-0041 rebalance-wave Gateway routes are active under
     `/api/v1/dpm/command-center/waves*`. Gateway forwards preview, durable create, search, detail,
     item list, source-check, simulation, item selection, approval, staging, internal handoff,

@@ -478,6 +478,7 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/ai-narrative", "post"),
         ("/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review", "get"),
         ("/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews", "get"),
+        ("/api/v1/dpm/command-center/portfolio-memory/search", "get"),
     ]
 
     for path, method in expected_paths:
