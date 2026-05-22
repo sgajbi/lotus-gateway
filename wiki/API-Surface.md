@@ -91,13 +91,18 @@
   place orders, or treat `lotus-report` as proof-pack authority.
   `lotus-report` remains report materialization authority, not proof-pack authority.
 - RFC40-WTBD-010 portfolio-memory Gateway composition consumes `lotus-manage`
-  `/api/v1/rebalance/portfolio-memory/{portfolio_id}` through
-  `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`. Gateway forwards the portfolio
-  id, limit, and correlation context, then preserves manage-owned event order, event types, event
-  counts, source systems, source refs, artifact refs, reason codes, supportability state, bounded
-  metadata, and content hash for Workbench. Gateway must not reconstruct timeline nodes, infer
-  mandate exceptions, calculate risk, performance, tax, cash, FX, execution, or source-owner
-  methodology, or let Workbench bypass Gateway for portfolio memory.
+  `/api/v1/rebalance/portfolio-memory/{portfolio_id}` and
+  `/api/v1/rebalance/portfolio-memory/search` through
+  `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` and
+  `/api/v1/dpm/command-center/portfolio-memory/search`. Gateway forwards portfolio, event,
+  supportability, source-system, source-type, limit, offset, source-scan-limit, and correlation
+  context, then preserves manage-owned event order, event types, event counts, source systems,
+  source-system/source-type facets, source refs, artifact refs, applied filters, reason codes,
+  supportability state, support boundary, bounded metadata, and content hash for Workbench.
+  Gateway must not reconstruct timeline nodes, infer mandate exceptions, query source-owner
+  stores, discover the global portfolio universe, calculate risk, performance, tax, cash, FX,
+  OMS execution, fills, settlement, client communication, or source-owner methodology, or let
+  Workbench bypass Gateway for portfolio memory.
 - PM operating quality composition consumes `lotus-manage`
   `/api/v1/rebalance/pm-operating-quality/*` through
   `/api/v1/dpm/command-center/pm-operating-quality/*`. Gateway exposes policy list/get/upsert
@@ -207,14 +212,16 @@
   `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
   `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`. These routes preserve manage
   `outcome_review_id`, state, dimension outcomes, expected values, realized values, variance,
-  tolerances, source refs, source hashes, freshness, report-input posture, AI-evidence posture,
-  remediation routes, supportability, and Manage-owned `client_communication_boundary` posture
-  when present. Gateway also exposes a governed AI narrative handoff action that reads
+  tolerances, source refs, source hashes, freshness, applied source-lineage filters,
+  source-owner counts, source-type counts, support boundaries, report-input posture,
+  AI-evidence posture, remediation routes, supportability, and Manage-owned
+  `client_communication_boundary` posture when present. Gateway also exposes a governed AI
+  narrative handoff action that reads
   manage-owned `DpmOutcomeAiEvidenceInput` and calls `lotus-ai`
   `outcome_review_narrative.pack@v1` as `lotus-gateway`; Gateway must not recompute outcome
-  truth, synthesize client communication truth, generate reports, generate AI narrative locally,
-  infer PM quality, approve trades, contact
-  clients, or let Workbench bypass Gateway.
+  truth, synthesize client communication truth, query source-owner stores, discover the global
+  portfolio universe, generate reports, generate AI narrative locally, infer PM quality, approve
+  trades, contact clients, or let Workbench bypass Gateway.
   In short: Gateway must not recompute outcome truth.
 - report batch schedule list and run-due actions are gateway-first under
   `/api/v1/report-batch-schedules`; schedules remain config-backed in `lotus-report`, and gateway

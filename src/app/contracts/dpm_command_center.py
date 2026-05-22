@@ -358,6 +358,16 @@ class DpmPortfolioMemorySupportability(BaseModel):
         description="Source systems represented by the returned manage memory events.",
         examples=[["lotus-manage", "lotus-core", "lotus-risk", "lotus-performance"]],
     )
+    source_system_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="Manage-published matching memory event counts by source system.",
+        examples=[{"lotus-manage": 4, "lotus-core": 2}],
+    )
+    source_type_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="Manage-published matching memory event counts by persisted source type.",
+        examples=[{"PortfolioRealizedTaxSummary:v1": 2, "DpmProofPack:v1": 1}],
+    )
     reason_codes: list[str] = Field(
         default_factory=list,
         description="Manage-published aggregate reason codes for memory readiness and lineage.",
@@ -450,6 +460,29 @@ class DpmOutcomeReviewSupportability(BaseModel):
             "Manage-published remediation owner when source or supportability action is needed."
         ),
         examples=["Portfolio Operations"],
+    )
+    applied_filters: dict[str, object] = Field(
+        default_factory=dict,
+        description="Manage-published outcome-review source-lineage filters applied to the list.",
+        examples=[{"portfolio_id": "PB_SG_GLOBAL_BAL_001", "source_type": "DpmProofPack:v1"}],
+    )
+    source_owner_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="Manage-published matching outcome-review counts by source owner/system.",
+        examples=[{"lotus-manage": 5, "lotus-performance": 2}],
+    )
+    source_type_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description="Manage-published matching outcome-review counts by persisted source type.",
+        examples=[{"PortfolioRealizedTaxSummary:v1": 2, "PortfolioCashMovementSummary:v1": 1}],
+    )
+    support_boundary: dict[str, object] = Field(
+        default_factory=dict,
+        description=(
+            "Manage-published support boundary for bounded persisted-lineage search. Gateway "
+            "does not reinterpret this as global portfolio-universe or source-owner-store search."
+        ),
+        examples=[{"source_owner_store_query": False, "global_portfolio_discovery": False}],
     )
 
 

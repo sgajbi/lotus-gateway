@@ -351,6 +351,21 @@ class DpmCommandCenterService:
             correlation_id,
         )
 
+    async def search_portfolio_memory(
+        self,
+        filters: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmPortfolioMemoryGatewayResponse:
+        upstream_status, upstream_payload = await self._dpm_client.search_portfolio_memory(
+            params=filters,
+            correlation_id=correlation_id,
+        )
+        return self._compose_portfolio_memory_response(
+            upstream_status,
+            upstream_payload,
+            correlation_id,
+        )
+
     async def preview_outcome_review(
         self,
         body: dict[str, Any],
@@ -1265,6 +1280,10 @@ def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportabil
         reason_codes=reason_codes,
         blocked_actions=blocked_actions,
         remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
+        applied_filters=_dict_of_objects(payload.get("applied_filters")),
+        source_owner_counts=_dict_of_ints(payload.get("source_owner_counts")),
+        source_type_counts=_dict_of_ints(payload.get("source_type_counts")),
+        support_boundary=_dict_of_objects(payload.get("support_boundary")),
     )
 
 
@@ -1349,6 +1368,8 @@ def _portfolio_memory_supportability_from(
         event_count=_safe_int(event_count),
         event_type_counts=_dict_of_ints(payload.get("event_type_counts")),
         source_systems=_list_of_strings(payload.get("source_systems") or []),
+        source_system_counts=_dict_of_ints(payload.get("source_system_counts")),
+        source_type_counts=_dict_of_ints(payload.get("source_type_counts")),
         reason_codes=_list_of_strings(payload.get("reason_codes") or []),
         content_hash=_safe_optional_str(payload.get("content_hash")),
     )
@@ -1367,6 +1388,12 @@ def _dict_of_ints(value: object) -> dict[str, int]:
     for key, count in value.items():
         counts[str(key)] = _safe_int(count)
     return counts
+
+
+def _dict_of_objects(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items()}
 
 
 def _safe_int(value: object) -> int:

@@ -259,6 +259,74 @@ def test_dpm_command_center_portfolio_memory_passes_limit_and_preserves_events(m
     assert transition_event["metadata"]["transition_type"] == "ACKNOWLEDGE"
 
 
+def test_dpm_command_center_portfolio_memory_search_forwards_source_filters(
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_search_portfolio_memory(self, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["params"] = params
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "items": [
+                {
+                    "event_id": "memory:cash:cash_001",
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "source_system": "lotus-performance",
+                    "source_type": "PortfolioCashMovementSummary:v1",
+                    "content_hash": "sha256:cash-memory",
+                }
+            ],
+            "event_count": 1,
+            "supportability_state": "READY",
+            "source_system_counts": {"lotus-performance": 1},
+            "source_type_counts": {"PortfolioCashMovementSummary:v1": 1},
+            "support_boundary": {
+                "manage_persisted_lineage_only": True,
+                "source_owner_store_query": False,
+                "global_portfolio_discovery": False,
+            },
+            "reason_codes": ["PERSISTED_LINEAGE_SEARCH_ONLY"],
+            "content_hash": "sha256:memory-search",
+        }
+
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.search_portfolio_memory",
+        _fake_search_portfolio_memory,
+    )
+
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/dpm/command-center/portfolio-memory/search"
+        "?portfolio_ids=PB_SG_GLOBAL_BAL_001&portfolio_ids=PB_SG_GLOBAL_INC_002"
+        "&event_type=OUTCOME_REVIEW_SOURCE_LINEAGE_RECORDED"
+        "&supportability_state=READY&source_system=lotus-performance"
+        "&source_type=PortfolioCashMovementSummary%3Av1&limit=10&offset=5&source_scan_limit=250",
+        headers={"X-Correlation-Id": "corr-memory-search-router"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "params": {
+            "portfolio_ids": ["PB_SG_GLOBAL_BAL_001", "PB_SG_GLOBAL_INC_002"],
+            "event_type": "OUTCOME_REVIEW_SOURCE_LINEAGE_RECORDED",
+            "supportability_state": "READY",
+            "source_system": "lotus-performance",
+            "source_type": "PortfolioCashMovementSummary:v1",
+            "limit": 10,
+            "offset": 5,
+            "source_scan_limit": 250,
+        },
+        "correlation_id": "corr-memory-search-router",
+    }
+    payload = response.json()
+    assert payload["supportability"]["source_system_counts"] == {"lotus-performance": 1}
+    assert payload["supportability"]["source_type_counts"] == {"PortfolioCashMovementSummary:v1": 1}
+    assert payload["data"]["support_boundary"]["source_owner_store_query"] is False
+    assert payload["data"]["items"][0]["content_hash"] == "sha256:cash-memory"
+
+
 def test_dpm_command_center_pm_quality_fairness_preview_forwards_segment_refs(
     monkeypatch,
 ) -> None:
@@ -867,6 +935,16 @@ def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> N
         return 200, {
             "items": [{"outcome_review_id": "or_1", "state": "READY"}],
             "next_cursor": None,
+            "applied_filters": {
+                "source_system": "lotus-performance",
+                "source_type": "PortfolioRealizedTaxSummary:v1",
+            },
+            "source_owner_counts": {"lotus-performance": 1},
+            "source_type_counts": {"PortfolioRealizedTaxSummary:v1": 1},
+            "support_boundary": {
+                "manage_persisted_lineage_only": True,
+                "source_owner_store_query": False,
+            },
             "supportability": {"state": "SUPPORTED"},
         }
 
@@ -878,7 +956,9 @@ def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> N
     client = TestClient(app)
     response = client.get(
         "/api/v1/dpm/command-center/outcome-reviews"
-        "?portfolio_id=PB_SG_GLOBAL_BAL_001&state=READY&limit=10",
+        "?portfolio_id=PB_SG_GLOBAL_BAL_001&state=READY&limit=10"
+        "&source_system=lotus-performance&source_type=PortfolioRealizedTaxSummary%3Av1"
+        "&offset=5&source_scan_limit=250",
         headers={"X-Correlation-Id": "corr-router-2"},
     )
 
@@ -889,12 +969,22 @@ def test_dpm_command_center_outcome_review_list_passes_filters(monkeypatch) -> N
             "rebalance_run_id": None,
             "wave_id": None,
             "state": "READY",
+            "source_system": "lotus-performance",
+            "source_type": "PortfolioRealizedTaxSummary:v1",
             "limit": 10,
+            "offset": 5,
+            "source_scan_limit": 250,
             "cursor": None,
         },
         "correlation_id": "corr-router-2",
     }
     assert response.json()["data"]["items"][0]["outcome_review_id"] == "or_1"
+    assert response.json()["data"]["source_owner_counts"] == {"lotus-performance": 1}
+    assert response.json()["supportability"]["source_type_counts"] == {
+        "PortfolioRealizedTaxSummary:v1": 1
+    }
+    support_boundary = response.json()["supportability"]["support_boundary"]
+    assert support_boundary["source_owner_store_query"] is False
 
 
 def test_dpm_command_center_outcome_review_boundary_is_preserved_in_handoffs(

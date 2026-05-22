@@ -358,21 +358,27 @@ Business outcome:
 Gateway responsibility:
 
 1. consume `lotus-manage` `GET /api/v1/rebalance/portfolio-memory/{portfolio_id}`,
-2. expose Workbench-facing `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
-3. preserve manage event order, event types, event counts, source systems, source refs, artifact
-   refs, reason codes, supportability state, bounded metadata, generated timestamp, and content
-   hash,
-4. summarize only product-safe supportability metadata in the Gateway envelope,
-5. return product-safe upstream error details when manage portfolio-memory authority is unavailable
+2. consume `lotus-manage` `GET /api/v1/rebalance/portfolio-memory/search` for bounded
+   Manage-local persisted-lineage search by portfolio, event type, supportability, source system,
+   source type, pagination, and source scan limit,
+3. expose Workbench-facing `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`,
+4. expose Workbench-facing `GET /api/v1/dpm/command-center/portfolio-memory/search`,
+5. preserve manage event order, event types, event counts, source systems, source-system/type
+   counts, source refs, artifact refs, applied filters, reason codes, supportability state,
+   support boundary, bounded metadata, generated timestamp, and content hash,
+6. summarize only product-safe supportability metadata in the Gateway envelope,
+7. return product-safe upstream error details when manage portfolio-memory authority is unavailable
    or rejects the request.
 
 Gateway must not:
 
 1. reconstruct timeline nodes from proof packs, waves, handoffs, outcomes, mandates, or exceptions,
 2. infer mandate-monitoring exception nodes not present in manage portfolio memory,
-3. calculate risk, performance, tax, cash, FX, liquidity, transaction-cost, execution, or
-   source-owner methodology,
+3. calculate risk, performance, tax, cash, FX, liquidity, transaction-cost, OMS execution, fills,
+   settlement, client communication, or source-owner methodology,
 4. reorder, merge, or redact manage memory events except through explicit future contract changes,
+5. query source-owner stores, discover the global portfolio universe, or perform cross-app
+   source-event search,
 5. let Workbench call `lotus-manage` directly for portfolio memory.
 
 ### 8.0C RFC-0041 Rebalance Wave Orchestration Addendum
@@ -534,8 +540,9 @@ Gateway responsibility:
    `POST /api/v1/dpm/command-center/outcome-reviews`, and
    `POST /api/v1/dpm/command-center/outcome-reviews/{outcome_review_id}/refresh-sources`,
 3. preserve manage `outcome_review_id`, state, reason codes, dimension results, expected values,
-   realized values, variance, tolerance, source refs, source hashes, freshness, retention, report
-   input posture, AI evidence input posture, and supportability diagnostics,
+   realized values, variance, tolerance, source refs, source hashes, freshness, retention, applied
+   source-lineage filters, source-owner counts, source-type counts, support boundary, report input
+   posture, AI evidence input posture, and supportability diagnostics,
 4. compose outcome review modules using common command-center states while preserving manage
    domain states `READY`, `PENDING_REVIEW`, `BREACHED`, `DEGRADED`, `BLOCKED`, and
    `NOT_SUPPORTED` inside detail evidence,

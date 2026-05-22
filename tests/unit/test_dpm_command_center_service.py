@@ -61,6 +61,26 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def search_portfolio_memory(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "portfolio_memory_search",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def list_outcome_reviews(self, params, correlation_id):  # noqa: ANN001
+        self.calls.append(
+            {
+                "method": "outcome_reviews",
+                "params": params,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def get_outcome_review_supportability(self, outcome_review_id, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -521,6 +541,79 @@ async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability
 
 
 @pytest.mark.asyncio
+async def test_dpm_portfolio_memory_search_preserves_source_facets_and_boundaries() -> None:
+    manage_payload = {
+        "items": [
+            {
+                "event_id": "memory:tax:PMTAX_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "event_type": "OUTCOME_REVIEW_SOURCE_LINEAGE_RECORDED",
+                "source_system": "lotus-performance",
+                "source_type": "PortfolioRealizedTaxSummary:v1",
+                "source_id": "PMTAX_001",
+                "source_refs": [
+                    {
+                        "source_system": "lotus-performance",
+                        "source_type": "PortfolioRealizedTaxSummary:v1",
+                        "source_id": "PMTAX_001",
+                    }
+                ],
+                "content_hash": "sha256:tax-lineage",
+            }
+        ],
+        "event_count": 1,
+        "supportability_state": "READY",
+        "event_type_counts": {"OUTCOME_REVIEW_SOURCE_LINEAGE_RECORDED": 1},
+        "source_system_counts": {"lotus-performance": 1},
+        "source_type_counts": {"PortfolioRealizedTaxSummary:v1": 1},
+        "applied_filters": {
+            "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+            "source_type": "PortfolioRealizedTaxSummary:v1",
+            "source_scan_limit": 200,
+        },
+        "support_boundary": {
+            "source_owner_store_query": False,
+            "global_portfolio_discovery": False,
+            "cross_app_source_event_search": False,
+        },
+        "content_hash": "sha256:memory-search",
+        "reason_codes": ["PERSISTED_LINEAGE_SEARCH_ONLY"],
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.search_portfolio_memory(
+        filters={
+            "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+            "source_type": "PortfolioRealizedTaxSummary:v1",
+            "source_scan_limit": 200,
+        },
+        correlation_id="corr-memory-search",
+    )
+
+    assert response.supportability.source_system_counts == {"lotus-performance": 1}
+    assert response.supportability.source_type_counts == {"PortfolioRealizedTaxSummary:v1": 1}
+    assert response.supportability.content_hash == "sha256:memory-search"
+    assert response.data == manage_payload
+    assert response.data["support_boundary"] == {
+        "source_owner_store_query": False,
+        "global_portfolio_discovery": False,
+        "cross_app_source_event_search": False,
+    }
+    assert client.calls == [
+        {
+            "method": "portfolio_memory_search",
+            "params": {
+                "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+                "source_type": "PortfolioRealizedTaxSummary:v1",
+                "source_scan_limit": 200,
+            },
+            "correlation_id": "corr-memory-search",
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_dpm_portfolio_memory_preserves_campaign_assignment_transition_event() -> None:
     transition_event = {
         "event_id": (
@@ -694,6 +787,74 @@ async def test_dpm_command_center_preserves_manage_payload_and_supportability() 
             "method": "create",
             "body": {"rebalance_run_id": "rr_1"},
             "correlation_id": "corr-1",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_outcome_review_list_preserves_source_lineage_facets() -> None:
+    manage_payload = {
+        "items": [
+            {
+                "outcome_review_id": "or_1",
+                "state": "READY",
+                "source_lineage": [
+                    {
+                        "source_system": "lotus-performance",
+                        "source_type": "PortfolioCashMovementSummary:v1",
+                        "source_id": "cash_001",
+                    }
+                ],
+            }
+        ],
+        "applied_filters": {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "source_system": "lotus-performance",
+            "source_type": "PortfolioCashMovementSummary:v1",
+            "source_scan_limit": 250,
+        },
+        "source_owner_counts": {"lotus-performance": 1},
+        "source_type_counts": {"PortfolioCashMovementSummary:v1": 1},
+        "support_boundary": {
+            "manage_persisted_lineage_only": True,
+            "source_owner_store_query": False,
+            "global_portfolio_discovery": False,
+            "cross_app_source_event_search": False,
+        },
+        "supportability": {
+            "state": "SUPPORTED",
+            "reason_codes": ["PERSISTED_LINEAGE_SEARCH_ONLY"],
+        },
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.list_outcome_reviews(
+        filters={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "source_system": "lotus-performance",
+            "source_type": "PortfolioCashMovementSummary:v1",
+            "source_scan_limit": 250,
+        },
+        correlation_id="corr-outcome-facets",
+    )
+
+    assert response.supportability.state == "SUPPORTED"
+    assert response.supportability.applied_filters == manage_payload["applied_filters"]
+    assert response.supportability.source_owner_counts == {"lotus-performance": 1}
+    assert response.supportability.source_type_counts == {"PortfolioCashMovementSummary:v1": 1}
+    assert response.supportability.support_boundary == manage_payload["support_boundary"]
+    assert response.data == manage_payload
+    assert client.calls == [
+        {
+            "method": "outcome_reviews",
+            "params": {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "source_system": "lotus-performance",
+                "source_type": "PortfolioCashMovementSummary:v1",
+                "source_scan_limit": 250,
+            },
+            "correlation_id": "corr-outcome-facets",
         }
     ]
 

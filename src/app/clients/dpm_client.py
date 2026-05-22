@@ -978,6 +978,19 @@ class DpmClient:
             operation="manage.rebalance.portfolio_memory.get",
         )
 
+    async def search_portfolio_memory(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        cleaned_params = {key: value for key, value in params.items() if value is not None}
+        return await self._get(
+            "/api/v1/rebalance/portfolio-memory/search",
+            params=cleaned_params,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.portfolio_memory.search",
+        )
+
     async def preview_pm_operating_quality_score_run(
         self,
         body: dict[str, Any],

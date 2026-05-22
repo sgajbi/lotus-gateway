@@ -282,7 +282,9 @@ Important current parameter conventions:
 13. DPM command-center outcome-review routes under
    `/api/v1/dpm/command-center/outcome-reviews*` consume `lotus-manage` RFC-0042 APIs and preserve
    manage-owned `outcome_review_id`, state, supportability, lineage, hashes, report-input payloads,
-   and AI-evidence payloads without recomputing expected-versus-realized outcome truth
+   AI-evidence payloads, applied source-lineage filters, source-owner counts, source-type counts,
+   and support boundaries without recomputing expected-versus-realized outcome truth or querying
+   source-owner stores
 14. DPM command-center construction routes under
    `/api/v1/dpm/command-center/construction/alternative-sets*` consume `lotus-manage` RFC-0039
    construction authority APIs and preserve manage-owned alternative-set ids, method ids, method
@@ -311,12 +313,15 @@ Important current parameter conventions:
    Gateway also exposes a governed `dpm_operations_handoff_summary.pack@v1` handoff to `lotus-ai`
    from the same manage-owned wave report input and internal handoff refs; it does not route
    orders, claim external execution, approve trades, contact clients, or invent missing evidence.
-16. DPM portfolio-memory route
-   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` consumes `lotus-manage`
-   RFC-0040/RFC-0041/RFC-0042 portfolio-memory truth and preserves event order, event type
-   counts, source systems, source refs, artifact refs, reason codes, supportability state, and
-   content hash without reconstructing timeline nodes or calculating risk, performance, tax, cash,
-   FX, or execution truth locally
+16. DPM portfolio-memory routes
+   `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` and
+   `/api/v1/dpm/command-center/portfolio-memory/search` consume `lotus-manage`
+   RFC-0040/RFC-0041/RFC-0042 portfolio-memory truth and preserve event order, event type
+   counts, source systems, source-system/source-type facets, source refs, artifact refs, applied
+   filters, reason codes, supportability state, support boundaries, and content hash without
+   reconstructing timeline nodes, querying source-owner stores, discovering the global portfolio
+   universe, or calculating risk, performance, tax, cash, FX, OMS, fill, settlement, client
+   communication, or execution truth locally
 17. DPM exception-summary AI handoff
    `/api/v1/dpm/command-center/exceptions/{exception_id}/ai-summary` reads manage-owned
    monitoring-exception evidence from the command-center exception queue, builds a bounded

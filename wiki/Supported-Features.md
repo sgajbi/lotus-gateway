@@ -180,17 +180,22 @@ Business outcome:
 Supported route:
 
 1. `GET /api/v1/dpm/command-center/portfolios/{portfolio_id}/memory`
+2. `GET /api/v1/dpm/command-center/portfolio-memory/search`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0040/RFC-0041/RFC-0042 portfolio-memory authority.
-2. Gateway forwards portfolio id, limit, and correlation context to
-   `lotus-manage` `/api/v1/rebalance/portfolio-memory/{portfolio_id}`.
+2. Gateway forwards portfolio id, event, supportability, source-system, source-type, pagination,
+   source-scan-limit, and correlation context to `lotus-manage`
+   `/api/v1/rebalance/portfolio-memory/{portfolio_id}` and
+   `/api/v1/rebalance/portfolio-memory/search`.
 3. Gateway preserves manage-owned event order, event types, event counts, source systems, source
-   refs, artifact refs, reason codes, supportability state, bounded metadata, and content hash.
+   system/type counts, source refs, artifact refs, applied filters, reason codes, supportability
+   state, support boundary, bounded metadata, and content hash.
 4. Gateway does not reconstruct timeline nodes, infer mandate exceptions, calculate risk,
-   performance, tax, cash, FX, execution, liquidity, transaction-cost, or source-owner
-   methodology, or let Workbench call `lotus-manage` directly.
+   performance, tax, cash, FX, execution, liquidity, transaction-cost, OMS, fills, settlement,
+   client communication, global portfolio discovery, cross-app source-event search, or
+   source-owner methodology, or let Workbench call `lotus-manage` directly.
 
 ```mermaid
 flowchart LR
@@ -207,7 +212,8 @@ flowchart LR
 Operational behavior:
 
 1. Gateway returns manage payloads under `data` and adds a supportability summary with state,
-   event count, event-type counts, source systems, reason codes, and content hash,
+   event count, event-type counts, source systems, source-system/type counts, reason codes, and
+   content hash,
 2. upstream manage errors are surfaced as product-safe Gateway errors with
    `MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR`,
 3. Workbench timeline rendering, canonical browser screenshots, mandate-monitoring exception
@@ -528,6 +534,9 @@ report-input, AI-evidence, run lookup, wave lookup, and governed AI narrative ha
 `/api/v1/dpm/command-center/outcome-reviews*`. The supportability, report-input, and AI-evidence
 payloads preserve Manage-owned `client_communication_boundary` posture when Manage publishes it,
 including fail-closed no-client-communication and no-client-approval projection flags.
+Outcome-review list filtering also forwards bounded source-system, source-type, and source-scan
+filters to Manage and preserves Manage-published applied filters, source-owner counts,
+source-type counts, and support boundary as persisted-lineage evidence only.
 `lotus-manage` remains outcome-review authority and `lotus-ai` remains AI workflow execution
 authority; Gateway does not synthesize client communication truth.
 

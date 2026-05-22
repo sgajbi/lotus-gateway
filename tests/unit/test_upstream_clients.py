@@ -1700,7 +1700,16 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
         ),
         (
             "list_outcome_reviews",
-            {"params": {"portfolio_id": "P1", "state": None}, "correlation_id": "corr-5"},
+            {
+                "params": {
+                    "portfolio_id": "P1",
+                    "state": None,
+                    "source_system": "lotus-performance",
+                    "source_type": "PortfolioRealizedTaxSummary:v1",
+                    "source_scan_limit": 250,
+                },
+                "correlation_id": "corr-5",
+            },
             "http://dpm/api/v1/rebalance/outcome-reviews",
         ),
         (
@@ -1756,6 +1765,19 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
                 "correlation_id": "corr-5",
             },
             "http://dpm/api/v1/rebalance/portfolio-memory/PB_SG_GLOBAL_BAL_001",
+        ),
+        (
+            "search_portfolio_memory",
+            {
+                "params": {
+                    "portfolio_ids": ["PB_SG_GLOBAL_BAL_001"],
+                    "source_system": "lotus-performance",
+                    "source_type": "PortfolioRealizedTaxSummary:v1",
+                    "source_scan_limit": 250,
+                },
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/portfolio-memory/search",
         ),
         (
             "list_pm_operating_quality_score_runs",
