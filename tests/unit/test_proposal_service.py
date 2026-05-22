@@ -279,6 +279,140 @@ class _FakeAdviseClient:
             ],
         }
 
+    async def review_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "review_proposal_narrative",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_state": "DRAFT"},
+            "narrative_review": {
+                "review_id": "pwe_narrative_review_1",
+                "proposal_id": proposal_id,
+                "proposal_version_no": version_no,
+                "narrative_id": "pn_1",
+                "action": body["action"],
+                "review_state": "APPROVED_FOR_ADVISOR_USE",
+                "client_ready_status": "NOT_REQUESTED",
+                "reviewed_by": body["reviewed_by"],
+                "reviewed_at": "2026-05-22T08:30:00+00:00",
+                "reason": body["reason"],
+                "source_narrative_hash": "sha256:narrative-1",
+                "replacement_narrative_id": None,
+                "replayed": False,
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_narrative_review_1",
+                "event_type": "NARRATIVE_REVIEWED",
+                "to_state": "DRAFT",
+                "actor_id": body["reviewed_by"],
+                "occurred_at": "2026-05-22T08:30:00+00:00",
+                "reason": {"review_state": "APPROVED_FOR_ADVISOR_USE"},
+            },
+            "policy_version": "proposal-narrative-deterministic.v1",
+            "audience": "ADVISOR_REVIEW",
+            "source_refs": [{"source_system": "lotus-advise", "source_id": "proposal_artifact"}],
+            "input_hashes": {"artifact_hash": "sha256:artifact-1"},
+        }
+
+    async def create_report_request(
+        self,
+        proposal_id: str,
+        body: dict,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "create_report_request",
+                {
+                    "proposal_id": proposal_id,
+                    "body": body,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_state": "DRAFT"},
+            "report_request_id": "prr_1",
+            "report_type": body["report_type"],
+            "report_service": "lotus-report",
+            "status": "READY",
+            "generated_at": "2026-05-22T09:00:00+00:00",
+            "report_reference_id": "lotus_report_reviewed_narrative_1",
+            "artifact_url": None,
+            "explanation": {
+                "include_reviewed_narrative": body["include_reviewed_narrative"],
+                "proposal_narrative_package": {
+                    "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+                    "review_state": "APPROVED_FOR_ADVISOR_USE",
+                    "source_narrative_hash": "sha256:narrative-1",
+                },
+            },
+        }
+
+    async def get_delivery_summary(self, proposal_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_delivery_summary",
+                {
+                    "proposal_id": proposal_id,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_state": "DRAFT"},
+            "reporting": {
+                "report_request_id": "prr_1",
+                "report_type": "PORTFOLIO_REVIEW",
+                "report_service": "lotus-report",
+                "status": "READY",
+                "report_reference_id": "lotus_report_reviewed_narrative_1",
+                "requested_by": "advisor_1",
+                "include_execution_summary": True,
+                "include_reviewed_narrative": True,
+                "proposal_narrative_package": {
+                    "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+                    "review_state": "APPROVED_FOR_ADVISOR_USE",
+                },
+                "generated_at": "2026-05-22T09:00:00+00:00",
+            },
+            "explanation": {"source": "ADVISORY_WORKFLOW_EVENTS"},
+        }
+
+    async def get_delivery_events(self, proposal_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_delivery_events",
+                {
+                    "proposal_id": proposal_id,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_state": "DRAFT"},
+            "event_count": 1,
+            "latest_event": {"event_type": "REPORT_REQUESTED", "to_state": "DRAFT"},
+            "events": [{"event_type": "REPORT_REQUESTED", "to_state": "DRAFT"}],
+            "explanation": {"filter": "DELIVERY_ONLY"},
+        }
+
 
 class _FakeAdviseErrorClient(_FakeAdviseClient):
     async def record_approval(
@@ -509,6 +643,57 @@ async def test_get_proposal_lineage_wraps_envelope() -> None:
     assert lineage.data.proposal.proposal_id == "pp_1"
     assert lineage.data.proposal_id == "pp_1"
     assert lineage.data.versions[0].version_no == 1
+
+
+@pytest.mark.asyncio
+async def test_reviewed_narrative_and_delivery_posture_routes_wrap_source_payloads() -> None:
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
+
+    review = await service.review_proposal_narrative(
+        proposal_id="pp_1",
+        version_no=2,
+        body={
+            "action": "APPROVE",
+            "reviewed_by": "compliance_1",
+            "reason": "Evidence-grounded advisor-use narrative.",
+        },
+        idempotency_key="idem-narrative-review-1",
+        correlation_id="corr_narrative",
+    )
+    report = await service.create_report_request(
+        proposal_id="pp_1",
+        body={
+            "report_type": "PORTFOLIO_REVIEW",
+            "requested_by": "advisor_1",
+            "include_execution_summary": True,
+            "include_reviewed_narrative": True,
+        },
+        correlation_id="corr_report",
+    )
+    summary = await service.get_delivery_summary(
+        proposal_id="pp_1",
+        correlation_id="corr_summary",
+    )
+    events = await service.get_delivery_events(
+        proposal_id="pp_1",
+        correlation_id="corr_events",
+    )
+
+    assert review.data["narrative_review"]["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert review.data["narrative_review"]["source_narrative_hash"] == "sha256:narrative-1"
+    assert report.data["explanation"]["proposal_narrative_package"]["package_status"] == (
+        "INCLUDED_REVIEWED_NARRATIVE"
+    )
+    assert summary.data["reporting"]["include_reviewed_narrative"] is True
+    assert events.data["event_count"] == 1
+    assert [name for name, _ in client.calls[-4:]] == [
+        "review_proposal_narrative",
+        "create_report_request",
+        "get_delivery_summary",
+        "get_delivery_events",
+    ]
+    assert client.calls[-4][1]["idempotency_key"] == "idem-narrative-review-1"
 
 
 @pytest.mark.asyncio

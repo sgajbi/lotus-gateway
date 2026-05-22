@@ -32,8 +32,12 @@ Current repository posture:
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
 3. performance, proposal, foundation, reporting, and capability aggregation routes are active,
-   with proposal simulation/lifecycle/workflow/approval/lineage routed to `lotus-advise`
-   `/advisory/proposals/*`; `lotus-manage` consumption is through versioned `/api/v1` APIs for
+   with proposal simulation/lifecycle/workflow/approval/lineage, reviewed narrative posture,
+   report-request, and delivery-posture routes routed to `lotus-advise`
+   `/advisory/proposals/*`; Gateway preserves source-hash, review, report-package, and delivery
+   event posture without generating narrative, inferring client-ready publication, rendering
+   reports, archiving documents, or recomputing advisory delivery truth; `lotus-manage`
+   consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
    generate/read/Markdown/report-input/AI-evidence/AI PM memo route families,

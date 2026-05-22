@@ -5,6 +5,57 @@ developers, business users, operations, sales/pre-sales, and client demos; it mu
 future capability as supported until the owning service, Gateway contract, tests, and validation
 evidence exist.
 
+## Advisory Proposal Narrative Posture
+
+Status: implementation-backed in Gateway for the RFC-0023 advisory narrative posture path.
+
+Business outcome:
+
+1. advisors, compliance reviewers, and investment-control users can record and inspect
+   advisor-use narrative review posture without leaving the governed Gateway boundary,
+2. Workbench can request report materialization with an approved, source-backed advisory narrative
+   package without calling `lotus-advise` directly,
+3. operations and audit users can inspect proposal delivery posture, report-request state, source
+   hashes, and append-only delivery events through one product-facing API surface.
+
+Supported routes:
+
+1. `POST /api/v1/proposals/{proposal_id}/versions/{version_no}/narrative/review`
+2. `POST /api/v1/proposals/{proposal_id}/report-requests`
+3. `GET /api/v1/proposals/{proposal_id}/delivery-summary`
+4. `GET /api/v1/proposals/{proposal_id}/delivery-events`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the proposal workflow, narrative review, report-request, and delivery
+   posture authority.
+2. Gateway forwards proposal ids, version numbers, request bodies, correlation context, and
+   optional narrative-review idempotency keys to `lotus-advise`.
+3. Gateway preserves Advise-owned review state, policy version, guardrail/disclosure posture,
+   `source_narrative_hash`, report narrative-package posture, source refs, and delivery events.
+4. Gateway does not generate or edit narrative, infer client-ready publication, render reports,
+   archive documents, contact clients, create orders, or recompute advisory delivery truth.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench advisory workflow] --> Gateway[lotus-gateway proposal routes]
+    Gateway --> Advise[lotus-advise RFC-0023 proposal authority]
+    Advise --> Report[lotus-report report realization]
+    Report --> Render[lotus-render artifact realization]
+    Render --> Archive[lotus-archive reviewed narrative metadata]
+    Archive --> Advise
+    Advise --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. Gateway returns source payloads under `data` and keeps correlation ids visible for support,
+2. unsupported review/report posture is blocked by `lotus-advise` and surfaced as product-safe
+   Gateway error detail,
+3. client-ready publication remains explicitly out of Gateway scope until the owning RFC slice
+   proves the end-to-end release control path.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

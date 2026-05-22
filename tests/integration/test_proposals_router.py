@@ -887,3 +887,191 @@ def test_workflow_events_and_approvals_preserve_query_context(monkeypatch):
             "correlation_id": "corr-proposal-approvals",
         },
     }
+
+
+def test_reviewed_narrative_gateway_routes_preserve_source_posture(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_review_proposal_narrative(
+        self,
+        proposal_id,
+        version_no,
+        body,
+        idempotency_key,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["review"] = {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "body": body,
+            "idempotency_key": idempotency_key,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "narrative_review": {
+                "review_state": "APPROVED_FOR_ADVISOR_USE",
+                "source_narrative_hash": "sha256:narrative-001",
+                "guardrail_policy_version": "rfc0023.narrative.v1",
+            }
+        }
+
+    async def _fake_create_report_request(
+        self,
+        proposal_id,
+        body,
+        correlation_id,
+    ):  # noqa: ANN001
+        _ = self
+        captured["report_request"] = {
+            "proposal_id": proposal_id,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "report_request_id": "prr_001",
+            "status": "READY",
+            "explanation": {
+                "include_reviewed_narrative": True,
+                "proposal_narrative_package": {
+                    "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+                    "source_narrative_hash": "sha256:narrative-001",
+                },
+            },
+        }
+
+    async def _fake_get_delivery_summary(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["delivery_summary"] = {
+            "proposal_id": proposal_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "proposal_id": proposal_id,
+            "reporting_summary": {
+                "include_reviewed_narrative": True,
+                "source_narrative_hash": "sha256:narrative-001",
+            },
+        }
+
+    async def _fake_get_delivery_events(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["delivery_events"] = {
+            "proposal_id": proposal_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "proposal_id": proposal_id,
+            "event_count": 2,
+            "events": [
+                {"event_type": "NARRATIVE_APPROVED_FOR_ADVISOR_USE"},
+                {"event_type": "REPORT_REQUESTED"},
+            ],
+        }
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.review_proposal_narrative",
+        _fake_review_proposal_narrative,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.create_report_request",
+        _fake_create_report_request,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_delivery_summary",
+        _fake_get_delivery_summary,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_delivery_events",
+        _fake_get_delivery_events,
+    )
+
+    client = TestClient(app)
+    review = client.post(
+        "/api/v1/proposals/pp_1/versions/2/narrative/review",
+        json={
+            "action": "APPROVE",
+            "reviewed_by": "compliance_reviewer_001",
+            "reason": "Evidence-grounded and suitable for advisor use.",
+        },
+        headers={
+            "Idempotency-Key": "idem-narrative-review-001",
+            "X-Correlation-Id": "corr-narrative-review",
+        },
+    )
+    report_request = client.post(
+        "/api/v1/proposals/pp_1/report-requests",
+        json={
+            "report_type": "PORTFOLIO_REVIEW",
+            "requested_by": "advisor_1",
+            "related_version_no": 2,
+            "include_reviewed_narrative": True,
+        },
+        headers={"X-Correlation-Id": "corr-report-request"},
+    )
+    delivery_summary = client.get(
+        "/api/v1/proposals/pp_1/delivery-summary",
+        headers={"X-Correlation-Id": "corr-delivery-summary"},
+    )
+    delivery_events = client.get(
+        "/api/v1/proposals/pp_1/delivery-events",
+        headers={"X-Correlation-Id": "corr-delivery-events"},
+    )
+
+    assert review.status_code == 200
+    assert report_request.status_code == 200
+    assert delivery_summary.status_code == 200
+    assert delivery_events.status_code == 200
+
+    review_payload = review.json()["data"]["narrative_review"]
+    report_payload = report_request.json()["data"]["explanation"]
+    summary_payload = delivery_summary.json()["data"]["reporting_summary"]
+    events_payload = delivery_events.json()["data"]
+
+    assert review_payload["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert review_payload["source_narrative_hash"] == "sha256:narrative-001"
+    assert (
+        report_payload["proposal_narrative_package"]["package_status"]
+        == "INCLUDED_REVIEWED_NARRATIVE"
+    )
+    assert report_payload["proposal_narrative_package"]["source_narrative_hash"] == (
+        "sha256:narrative-001"
+    )
+    assert summary_payload["include_reviewed_narrative"] is True
+    assert summary_payload["source_narrative_hash"] == "sha256:narrative-001"
+    assert events_payload["event_count"] == 2
+    assert events_payload["events"][0]["event_type"] == "NARRATIVE_APPROVED_FOR_ADVISOR_USE"
+
+    assert captured == {
+        "review": {
+            "proposal_id": "pp_1",
+            "version_no": 2,
+            "body": {
+                "action": "APPROVE",
+                "reviewed_by": "compliance_reviewer_001",
+                "reason": "Evidence-grounded and suitable for advisor use.",
+                "client_ready_release_requested": False,
+            },
+            "idempotency_key": "idem-narrative-review-001",
+            "correlation_id": "corr-narrative-review",
+        },
+        "report_request": {
+            "proposal_id": "pp_1",
+            "body": {
+                "report_type": "PORTFOLIO_REVIEW",
+                "requested_by": "advisor_1",
+                "related_version_no": 2,
+                "include_execution_summary": True,
+                "include_reviewed_narrative": True,
+            },
+            "correlation_id": "corr-report-request",
+        },
+        "delivery_summary": {
+            "proposal_id": "pp_1",
+            "correlation_id": "corr-delivery-summary",
+        },
+        "delivery_events": {
+            "proposal_id": "pp_1",
+            "correlation_id": "corr-delivery-events",
+        },
+    }

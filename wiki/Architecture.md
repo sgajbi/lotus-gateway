@@ -15,7 +15,8 @@
 - `platform`
   aggregated capability posture for shell bootstrap and gating
 - `proposals`
-  advisory proposal lifecycle and approvals
+  advisory proposal lifecycle, approvals, lineage, reviewed narrative posture, report-request
+  posture, and delivery-posture inspection over `lotus-advise`
 - `intake` and `lookups`
   ingress handoff and selector catalog surfaces
 - `portfolio`
@@ -48,3 +49,6 @@
    gateway exposes the governed operator boundary and rewrites only gateway-relative status URLs
 7. construction alternatives stay in `lotus-manage`; gateway exposes the Workbench contract and
    preserves manage-owned alternatives, statuses, diagnostics, supportability, and selections
+8. proposal narrative review and delivery posture stay in `lotus-advise`; gateway preserves
+   source hashes, review state, narrative-package posture, and delivery events without generating
+   narrative or recomputing advisory delivery truth

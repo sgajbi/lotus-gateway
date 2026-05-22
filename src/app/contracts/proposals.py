@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class ProposalSimulateRequest(BaseModel):
     body: dict[str, Any] = Field(
-        description="Opaque simulation request payload forwarded unchanged to lotus-manage.",
+        description="Opaque simulation request payload forwarded unchanged to lotus-advise.",
         examples=[
             {
                 "portfolio_id": "PF_1001",
@@ -27,7 +27,7 @@ class ProposalSimulateResponse(BaseModel):
         examples=["v1"],
     )
     data: "ProposalSimulationData" = Field(
-        description="Proposal simulation payload returned by lotus-manage.",
+        description="Proposal simulation payload returned by lotus-advise.",
     )
 
 
@@ -199,6 +199,72 @@ class ProposalApprovalActionRequest(BaseModel):
     )
 
 
+class ProposalNarrativeReviewRequest(BaseModel):
+    action: Literal["APPROVE", "REJECT", "REQUEST_REGENERATION"] = Field(
+        description=(
+            "Bounded review action for the persisted proposal narrative version. Gateway forwards "
+            "the action to lotus-advise and does not regenerate or edit narrative locally."
+        ),
+        examples=["APPROVE"],
+    )
+    reviewed_by: str = Field(
+        description="Actor identifier recording the narrative review decision.",
+        examples=["compliance_reviewer_001"],
+    )
+    reason: str = Field(
+        description="Human-readable review rationale captured by lotus-advise for audit.",
+        examples=["Narrative is evidence-grounded and suitable for advisor use."],
+    )
+    client_ready_release_requested: bool = Field(
+        default=False,
+        description=(
+            "Whether the reviewer requests client-ready release posture. RFC-0023 keeps "
+            "client-ready publication gated until later slices prove the full control path."
+        ),
+        examples=[False],
+    )
+    replacement_narrative_id: str | None = Field(
+        default=None,
+        description="Optional replacement narrative identifier when a regeneration review applies.",
+        examples=["pn_replacement_001"],
+    )
+
+
+class ProposalReportRequest(BaseModel):
+    report_type: str = Field(
+        description="Lotus-branded advisory report payload requested from lotus-report.",
+        examples=["PORTFOLIO_REVIEW"],
+    )
+    requested_by: str = Field(
+        description="Actor identifier requesting advisory report generation.",
+        examples=["advisor_123"],
+    )
+    related_version_no: int | None = Field(
+        default=None,
+        description=(
+            "Optional immutable proposal version number to anchor the report payload. "
+            "Defaults to the current proposal version when omitted upstream."
+        ),
+        examples=[2],
+    )
+    include_execution_summary: bool = Field(
+        default=True,
+        description=(
+            "Whether advisory execution-state summary should be included in report context."
+        ),
+        examples=[True],
+    )
+    include_reviewed_narrative: bool = Field(
+        default=False,
+        description=(
+            "Whether the request must include the approved, source-backed proposal narrative "
+            "package. lotus-advise blocks the request unless review posture and source hash "
+            "continuity are sufficient."
+        ),
+        examples=[True],
+    )
+
+
 class ProposalEnvelopeBase(BaseModel):
     correlation_id: str = Field(
         description="Correlation identifier propagated through the gateway request.",
@@ -244,7 +310,7 @@ class ProposalSummaryData(BaseModel):
         examples=["2026-02-19T12:05:00+00:00"],
     )
     current_state: str = Field(
-        description="Current workflow state reported by lotus-manage.",
+        description="Current workflow state reported by lotus-advise.",
         examples=["DRAFT"],
     )
     current_version_no: int | None = Field(
@@ -363,7 +429,7 @@ class ProposalWorkflowEventData(BaseModel):
         examples=["pp_1"],
     )
     event_type: str = Field(
-        description="Workflow event type emitted by lotus-manage.",
+        description="Workflow event type emitted by lotus-advise.",
         examples=["SUBMITTED_FOR_RISK_REVIEW"],
     )
     from_state: str | None = Field(
@@ -550,7 +616,7 @@ class ProposalLineageData(BaseModel):
 
 
 class ProposalListEnvelopeResponse(ProposalEnvelopeBase):
-    data: ProposalListData = Field(description="Proposal list payload returned by lotus-manage.")
+    data: ProposalListData = Field(description="Proposal list payload returned by lotus-advise.")
 
 
 class ProposalDetailEnvelopeResponse(ProposalEnvelopeBase):
@@ -567,19 +633,80 @@ class ProposalVersionEnvelopeResponse(ProposalEnvelopeBase):
 
 class ProposalWorkflowEventsEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalWorkflowEventsData = Field(
-        description="Workflow timeline payload returned by lotus-manage."
+        description="Workflow timeline payload returned by lotus-advise."
     )
 
 
 class ProposalApprovalsEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalApprovalsData = Field(
-        description="Approval and consent payload returned by lotus-manage."
+        description="Approval and consent payload returned by lotus-advise."
     )
 
 
 class ProposalLineageEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalLineageData = Field(
-        description="Proposal lineage payload returned by lotus-manage."
+        description="Proposal lineage payload returned by lotus-advise."
+    )
+
+
+class ProposalNarrativeReviewEnvelopeResponse(ProposalEnvelopeBase):
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Narrative review payload returned by lotus-advise, including review state, policy "
+            "version, guardrail, disclosure, source-hash, and workflow-event evidence."
+        ),
+        examples=[
+            {
+                "narrative_review": {
+                    "review_id": "pwe_narrative_review_001",
+                    "review_state": "APPROVED_FOR_ADVISOR_USE",
+                    "source_narrative_hash": "sha256:9c8a2f1d",
+                }
+            }
+        ],
+    )
+
+
+class ProposalReportRequestEnvelopeResponse(ProposalEnvelopeBase):
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Report-request payload returned by lotus-advise. When requested and approved, the "
+            "payload includes a compact reviewed advisory narrative package for downstream report, "
+            "render, and archive realization."
+        ),
+        examples=[
+            {
+                "report_request_id": "prr_001",
+                "status": "READY",
+                "explanation": {
+                    "include_reviewed_narrative": True,
+                    "proposal_narrative_package": {"package_status": "INCLUDED_REVIEWED_NARRATIVE"},
+                },
+            }
+        ],
+    )
+
+
+class ProposalDeliverySummaryEnvelopeResponse(ProposalEnvelopeBase):
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Latest proposal delivery posture from lotus-advise, including execution and reporting "
+            "summaries, reviewed narrative package posture where present, and source ownership "
+            "explanation."
+        ),
+    )
+
+
+class ProposalDeliveryEventsEnvelopeResponse(ProposalEnvelopeBase):
+    data: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Delivery-only proposal workflow history from lotus-advise, preserving append-only "
+            "report, archive, and execution posture without gateway recomputation."
+        ),
     )
 
 
@@ -642,13 +769,13 @@ class ProposalStateTransitionData(BaseModel):
 
 class ProposalCreateEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalCreateData = Field(
-        description="Create or create-version payload returned by lotus-manage."
+        description="Create or create-version payload returned by lotus-advise."
     )
 
 
 class ProposalStateTransitionEnvelopeResponse(ProposalEnvelopeBase):
     data: ProposalStateTransitionData = Field(
-        description="Workflow transition or approval payload returned by lotus-manage."
+        description="Workflow transition or approval payload returned by lotus-advise."
     )
 
 

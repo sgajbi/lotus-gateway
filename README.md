@@ -39,7 +39,8 @@ It depends on:
 - `lotus-risk`
   stateful risk workspace analytics
 - `lotus-advise`
-  proposal simulation, persisted proposal lifecycle, workflow, approval, and lineage capability
+  proposal simulation, persisted proposal lifecycle, workflow, approval, lineage, reviewed
+  narrative posture, report-request, and delivery-posture capability
 - `lotus-manage`
   discretionary management run lookup, supportability summary, platform capability posture, and
   RFC-0039 construction alternative-set authority, RFC-0040 proof-pack authority, and RFC-0042
@@ -261,7 +262,8 @@ Important current parameter conventions:
    `allowPartial`
 7. some lookup filters intentionally remain snake_case, such as `cif_id`, `booking_center`,
    `product_type`, and `instrument_page_limit`
-8. proposal write routes require `Idempotency-Key`
+8. proposal lifecycle write routes require `Idempotency-Key`; narrative review accepts an optional
+   `Idempotency-Key` and preserves the reviewed narrative posture returned by `lotus-advise`
 9. report batch materialization uses canonical snake_case body fields and requires
    `Idempotency-Key`; report batch status/control/operator-run routes require caller context
    headers and forward the operation to `lotus-report` as the lifecycle authority
@@ -347,7 +349,10 @@ Copy-paste request examples live in [wiki/API-Surface.md](wiki/API-Surface.md).
   `lotus-core`, `lotus-performance`, `lotus-risk`, `lotus-advise`, `lotus-manage`, `lotus-report`,
   `lotus-archive`, `lotus-ai`
 - downstream ownership rule:
-  proposal routes call `lotus-advise` `/advisory/proposals/*`; `lotus-manage` calls are limited to
+  proposal routes call `lotus-advise` `/advisory/proposals/*`, including reviewed narrative
+  posture, report-request, and delivery-posture routes; Gateway does not generate narrative,
+  infer client-ready publication, render reports, archive documents, or recompute advisory
+  delivery truth. `lotus-manage` calls are limited to
   certified `/api/v1` discretionary management APIs, including run lookup, supportability summary,
   platform capabilities, RFC-0039 construction alternative-set generate/get/select APIs,
   RFC-0040/RFC-0041/RFC-0042 portfolio-memory read APIs,

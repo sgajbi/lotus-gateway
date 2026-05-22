@@ -4,10 +4,16 @@ from app.contracts.proposals import (
     ProposalApprovalActionRequest,
     ProposalApprovalsEnvelopeResponse,
     ProposalCreateEnvelopeResponse,
+    ProposalDeliveryEventsEnvelopeResponse,
+    ProposalDeliverySummaryEnvelopeResponse,
     ProposalDetailEnvelopeResponse,
     ProposalEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
+    ProposalNarrativeReviewEnvelopeResponse,
+    ProposalNarrativeReviewRequest,
+    ProposalReportRequest,
+    ProposalReportRequestEnvelopeResponse,
     ProposalSimulateResponse,
     ProposalStateTransitionEnvelopeResponse,
     ProposalSubmitRequest,
@@ -133,6 +139,71 @@ def test_proposal_write_envelope_contract_shape() -> None:
     assert transition_payload.data.latest_workflow_event.event_type == "SUBMITTED_FOR_RISK_REVIEW"
 
 
+def test_proposal_reviewed_narrative_contract_shapes() -> None:
+    review_request = ProposalNarrativeReviewRequest(
+        action="APPROVE",
+        reviewed_by="compliance_reviewer_001",
+        reason="Evidence-grounded and suitable for advisor use.",
+    )
+    report_request = ProposalReportRequest(
+        report_type="PORTFOLIO_REVIEW",
+        requested_by="advisor_1",
+        related_version_no=2,
+        include_reviewed_narrative=True,
+    )
+    review_payload = ProposalNarrativeReviewEnvelopeResponse(
+        correlation_id="corr_11",
+        contract_version="v1",
+        data={
+            "narrative_review": {
+                "review_state": "APPROVED_FOR_ADVISOR_USE",
+                "source_narrative_hash": "sha256:narrative-001",
+            }
+        },
+    )
+    report_payload = ProposalReportRequestEnvelopeResponse(
+        correlation_id="corr_12",
+        contract_version="v1",
+        data={
+            "report_request_id": "prr_001",
+            "status": "READY",
+            "explanation": {
+                "include_reviewed_narrative": True,
+                "proposal_narrative_package": {
+                    "package_status": "INCLUDED_REVIEWED_NARRATIVE",
+                    "source_narrative_hash": "sha256:narrative-001",
+                },
+            },
+        },
+    )
+    summary_payload = ProposalDeliverySummaryEnvelopeResponse(
+        correlation_id="corr_13",
+        contract_version="v1",
+        data={
+            "proposal_id": "pp_1",
+            "reporting_summary": {
+                "include_reviewed_narrative": True,
+                "source_narrative_hash": "sha256:narrative-001",
+            },
+        },
+    )
+    events_payload = ProposalDeliveryEventsEnvelopeResponse(
+        correlation_id="corr_14",
+        contract_version="v1",
+        data={"proposal_id": "pp_1", "event_count": 1},
+    )
+
+    assert review_request.client_ready_release_requested is False
+    assert report_request.include_execution_summary is True
+    assert review_payload.data["narrative_review"]["review_state"] == "APPROVED_FOR_ADVISOR_USE"
+    assert (
+        report_payload.data["explanation"]["proposal_narrative_package"]["source_narrative_hash"]
+        == "sha256:narrative-001"
+    )
+    assert summary_payload.data["reporting_summary"]["include_reviewed_narrative"] is True
+    assert events_payload.data["event_count"] == 1
+
+
 def test_proposal_submit_request_contract_shape() -> None:
     payload = ProposalSubmitRequest(actor_id="advisor_1")
     assert payload.review_type == "RISK"
@@ -157,6 +228,12 @@ def test_proposals_openapi_read_contract() -> None:
     events_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/workflow-events"]["get"]
     approvals_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/approvals"]["get"]
     lineage_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/lineage"]["get"]
+    delivery_summary_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/delivery-summary"][
+        "get"
+    ]
+    delivery_events_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/delivery-events"][
+        "get"
+    ]
 
     list_parameters = {parameter["name"]: parameter for parameter in list_operation["parameters"]}
     detail_parameters = {
@@ -173,6 +250,12 @@ def test_proposals_openapi_read_contract() -> None:
     }
     lineage_parameters = {
         parameter["name"]: parameter for parameter in lineage_operation["parameters"]
+    }
+    delivery_summary_parameters = {
+        parameter["name"]: parameter for parameter in delivery_summary_operation["parameters"]
+    }
+    delivery_events_parameters = {
+        parameter["name"]: parameter for parameter in delivery_events_operation["parameters"]
     }
 
     assert "portfolio" in list_operation["description"].lower()
@@ -210,6 +293,12 @@ def test_proposals_openapi_read_contract() -> None:
     assert approvals_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert lineage_parameters["proposal_id"]["description"]
     assert lineage_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert delivery_summary_parameters["proposal_id"]["description"]
+    assert delivery_summary_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert delivery_events_parameters["proposal_id"]["description"]
+    assert delivery_events_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert "reviewed advisory narrative" in delivery_summary_operation["description"].lower()
+    assert "without gateway-side inference" in delivery_events_operation["description"].lower()
 
     list_response_ref = list_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
@@ -229,6 +318,12 @@ def test_proposals_openapi_read_contract() -> None:
     lineage_response_ref = lineage_operation["responses"]["200"]["content"]["application/json"][
         "schema"
     ]["$ref"]
+    delivery_summary_response_ref = delivery_summary_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    delivery_events_response_ref = delivery_events_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
 
     assert list_response_ref.endswith("/ProposalListEnvelopeResponse")
     assert detail_response_ref.endswith("/ProposalDetailEnvelopeResponse")
@@ -236,6 +331,8 @@ def test_proposals_openapi_read_contract() -> None:
     assert events_response_ref.endswith("/ProposalWorkflowEventsEnvelopeResponse")
     assert approvals_response_ref.endswith("/ProposalApprovalsEnvelopeResponse")
     assert lineage_response_ref.endswith("/ProposalLineageEnvelopeResponse")
+    assert delivery_summary_response_ref.endswith("/ProposalDeliverySummaryEnvelopeResponse")
+    assert delivery_events_response_ref.endswith("/ProposalDeliveryEventsEnvelopeResponse")
 
 
 def test_proposals_openapi_write_contract() -> None:
@@ -251,6 +348,12 @@ def test_proposals_openapi_write_contract() -> None:
         "/api/v1/proposals/{proposal_id}/approve-compliance"
     ]["post"]
     consent_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/record-client-consent"][
+        "post"
+    ]
+    narrative_review_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/narrative/review"
+    ]["post"]
+    report_request_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/report-requests"][
         "post"
     ]
 
@@ -274,6 +377,12 @@ def test_proposals_openapi_write_contract() -> None:
     }
     consent_parameters = {
         parameter["name"]: parameter for parameter in consent_operation["parameters"]
+    }
+    narrative_review_parameters = {
+        parameter["name"]: parameter for parameter in narrative_review_operation["parameters"]
+    }
+    report_request_parameters = {
+        parameter["name"]: parameter for parameter in report_request_operation["parameters"]
     }
 
     assert "idempotency" in simulate_operation["description"].lower()
@@ -312,6 +421,18 @@ def test_proposals_openapi_write_contract() -> None:
     assert consent_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert consent_parameters["Idempotency-Key"]["description"]
     assert consent_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-client-consent-1"]
+    assert narrative_review_parameters["proposal_id"]["description"]
+    assert narrative_review_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert narrative_review_parameters["version_no"]["description"]
+    assert narrative_review_parameters["version_no"]["schema"]["examples"] == [2]
+    assert narrative_review_parameters["Idempotency-Key"]["description"]
+    assert narrative_review_parameters["Idempotency-Key"]["schema"]["examples"] == [
+        "proposal-narrative-review-idem-001"
+    ]
+    assert report_request_parameters["proposal_id"]["description"]
+    assert report_request_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert "never regenerates narrative locally" in narrative_review_operation["description"]
+    assert "source-hash continuity" in report_request_operation["description"]
 
     assert create_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
@@ -331,12 +452,22 @@ def test_proposals_openapi_write_contract() -> None:
     assert consent_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/ProposalStateTransitionEnvelopeResponse")
+    assert narrative_review_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalNarrativeReviewEnvelopeResponse")
+    assert report_request_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalReportRequestEnvelopeResponse")
 
     simulate_request_schema = spec["components"]["schemas"]["ProposalSimulateRequest"]
     create_request_schema = spec["components"]["schemas"]["ProposalCreateRequest"]
     version_request_schema = spec["components"]["schemas"]["ProposalVersionCreateRequest"]
     submit_request_schema = spec["components"]["schemas"]["ProposalSubmitRequest"]
     approval_request_schema = spec["components"]["schemas"]["ProposalApprovalActionRequest"]
+    narrative_review_request_schema = spec["components"]["schemas"][
+        "ProposalNarrativeReviewRequest"
+    ]
+    report_request_schema = spec["components"]["schemas"]["ProposalReportRequest"]
     simulate_response_schema = spec["components"]["schemas"]["ProposalSimulateResponse"]
     simulate_data_schema = spec["components"]["schemas"]["ProposalSimulationData"]
     list_envelope_schema = spec["components"]["schemas"]["ProposalListEnvelopeResponse"]
@@ -347,6 +478,18 @@ def test_proposals_openapi_write_contract() -> None:
     ]
     approvals_envelope_schema = spec["components"]["schemas"]["ProposalApprovalsEnvelopeResponse"]
     lineage_envelope_schema = spec["components"]["schemas"]["ProposalLineageEnvelopeResponse"]
+    narrative_review_envelope_schema = spec["components"]["schemas"][
+        "ProposalNarrativeReviewEnvelopeResponse"
+    ]
+    report_request_envelope_schema = spec["components"]["schemas"][
+        "ProposalReportRequestEnvelopeResponse"
+    ]
+    delivery_summary_envelope_schema = spec["components"]["schemas"][
+        "ProposalDeliverySummaryEnvelopeResponse"
+    ]
+    delivery_events_envelope_schema = spec["components"]["schemas"][
+        "ProposalDeliveryEventsEnvelopeResponse"
+    ]
     create_envelope_schema = spec["components"]["schemas"]["ProposalCreateEnvelopeResponse"]
     transition_envelope_schema = spec["components"]["schemas"][
         "ProposalStateTransitionEnvelopeResponse"
@@ -390,6 +533,17 @@ def test_proposals_openapi_write_contract() -> None:
     assert approval_request_schema["properties"]["details"]["examples"][0]["decision"] == (
         "APPROVED"
     )
+    assert narrative_review_request_schema["properties"]["action"]["description"]
+    assert narrative_review_request_schema["properties"]["action"]["examples"] == ["APPROVE"]
+    assert narrative_review_request_schema["properties"]["reviewed_by"]["description"]
+    assert narrative_review_request_schema["properties"]["reason"]["description"]
+    assert (
+        narrative_review_request_schema["properties"]["client_ready_release_requested"]["default"]
+        is False
+    )
+    assert report_request_schema["properties"]["report_type"]["examples"] == ["PORTFOLIO_REVIEW"]
+    assert report_request_schema["properties"]["requested_by"]["description"]
+    assert report_request_schema["properties"]["include_reviewed_narrative"]["examples"] == [True]
 
     assert simulate_response_schema["properties"]["correlation_id"]["description"]
     assert simulate_response_schema["properties"]["correlation_id"]["examples"] == [
@@ -423,6 +577,10 @@ def test_proposals_openapi_write_contract() -> None:
         workflow_envelope_schema,
         approvals_envelope_schema,
         lineage_envelope_schema,
+        narrative_review_envelope_schema,
+        report_request_envelope_schema,
+        delivery_summary_envelope_schema,
+        delivery_events_envelope_schema,
         create_envelope_schema,
         transition_envelope_schema,
     ):

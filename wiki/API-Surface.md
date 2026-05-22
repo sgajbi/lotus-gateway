@@ -240,8 +240,13 @@
 - selected lookup filters remain snake_case, such as `cif_id`, `booking_center`, `product_type`,
   and `instrument_page_limit`
 - proposal writes require `Idempotency-Key`
-- proposal simulation, create, list, detail, version, workflow-event, approval, and lineage routes
-  call `lotus-advise` `/advisory/proposals/*`; they do not call `lotus-manage`
+- proposal simulation, create, list, detail, version, workflow-event, approval, lineage, reviewed
+  narrative, report-request, delivery-summary, and delivery-event routes call `lotus-advise`
+  `/advisory/proposals/*`; they do not call `lotus-manage`
+- reviewed narrative Gateway routes preserve `lotus-advise` review state, source-hash,
+  policy/guardrail/disclosure posture, report narrative-package posture, and append-only delivery
+  events. Gateway does not generate narrative, infer client-ready publication, render reports,
+  archive documents, contact clients, or recompute advisory delivery truth
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040
@@ -570,6 +575,35 @@ curl -X POST "http://127.0.0.1:8111/api/v1/proposals" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: idem-create-1" \
   -d @docs/demo/payloads/proposal-create.json
+```
+
+Proposal narrative review:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/versions/2/narrative/review" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: proposal-narrative-review-idem-001" \
+  -H "X-Correlation-Id: corr-rfc23-narrative-review" \
+  -d "{\"action\":\"APPROVE\",\"reviewed_by\":\"compliance_reviewer_001\",\"reason\":\"Evidence-grounded and suitable for advisor use.\"}"
+```
+
+Proposal report request with reviewed narrative package:
+
+```bash
+curl -X POST "http://127.0.0.1:8111/api/v1/proposals/pp_1/report-requests" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: corr-rfc23-report-request" \
+  -d "{\"report_type\":\"PORTFOLIO_REVIEW\",\"requested_by\":\"advisor_1\",\"related_version_no\":2,\"include_reviewed_narrative\":true}"
+```
+
+Proposal delivery posture:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-summary" \
+  -H "X-Correlation-Id: corr-rfc23-delivery-summary"
+
+curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-events" \
+  -H "X-Correlation-Id: corr-rfc23-delivery-events"
 ```
 
 Use these examples to preserve the current gateway-facing parameter shapes until a contract is

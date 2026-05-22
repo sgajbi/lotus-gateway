@@ -7,9 +7,15 @@ from app.contracts.proposals import (
     ProposalApprovalsEnvelopeResponse,
     ProposalCreateEnvelopeResponse,
     ProposalCreateRequest,
+    ProposalDeliveryEventsEnvelopeResponse,
+    ProposalDeliverySummaryEnvelopeResponse,
     ProposalDetailEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
+    ProposalNarrativeReviewEnvelopeResponse,
+    ProposalNarrativeReviewRequest,
+    ProposalReportRequest,
+    ProposalReportRequestEnvelopeResponse,
     ProposalSimulateRequest,
     ProposalSimulateResponse,
     ProposalStateTransitionEnvelopeResponse,
@@ -427,6 +433,123 @@ async def get_proposal_lineage(
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_lineage(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/{proposal_id}/versions/{version_no}/narrative/review",
+    response_model=ProposalNarrativeReviewEnvelopeResponse,
+    summary="Review Proposal Narrative",
+    description=(
+        "Records a review decision for a persisted proposal-version narrative through "
+        "lotus-advise. Gateway preserves review, source-hash, policy, disclosure, and guardrail "
+        "evidence returned by the advisory authority and never regenerates narrative locally."
+    ),
+)
+async def review_proposal_narrative(
+    request: ProposalNarrativeReviewRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        ge=1,
+        description="Immutable proposal version number containing the narrative to review.",
+        examples=[2],
+    ),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        description="Optional idempotency key for replay-safe narrative review writes.",
+        examples=["proposal-narrative-review-idem-001"],
+    ),
+) -> ProposalNarrativeReviewEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.review_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.model_dump(exclude_none=True),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/{proposal_id}/report-requests",
+    response_model=ProposalReportRequestEnvelopeResponse,
+    summary="Request Proposal Report",
+    description=(
+        "Requests a proposal report through lotus-advise and the downstream report/render/archive "
+        "path. When `include_reviewed_narrative=true`, lotus-advise blocks unsupported requests "
+        "unless approved advisor-use narrative posture and source-hash continuity are present."
+    ),
+)
+async def create_report_request(
+    request: ProposalReportRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+) -> ProposalReportRequestEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_report_request(
+        proposal_id=proposal_id,
+        body=request.model_dump(exclude_none=True),
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/{proposal_id}/delivery-summary",
+    response_model=ProposalDeliverySummaryEnvelopeResponse,
+    summary="Get Proposal Delivery Summary",
+    description=(
+        "Returns lotus-advise delivery posture for proposal execution and reporting. The reporting "
+        "summary includes reviewed advisory narrative package posture when it was included in a "
+        "source-backed report/render/archive flow."
+    ),
+)
+async def get_delivery_summary(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+) -> ProposalDeliverySummaryEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_delivery_summary(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/{proposal_id}/delivery-events",
+    response_model=ProposalDeliveryEventsEnvelopeResponse,
+    summary="Get Proposal Delivery Events",
+    description=(
+        "Returns delivery-only advisory workflow events from lotus-advise so product consumers can "
+        "inspect report, archive, and execution posture without gateway-side inference."
+    ),
+)
+async def get_delivery_events(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+) -> ProposalDeliveryEventsEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_delivery_events(
         proposal_id=proposal_id,
         correlation_id=correlation_id,
     )
