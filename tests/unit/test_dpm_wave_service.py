@@ -144,6 +144,34 @@ class _FakeDpmClient:
         )
         return self.result
 
+    async def retire_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "retire_campaign_definition",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+    async def supersede_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        self.calls.append(
+            {
+                "method": "supersede_campaign_definition",
+                "campaign_id": campaign_id,
+                "campaign_version": campaign_version,
+                "body": body,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
     async def discover_campaigns(self, params, correlation_id):  # noqa: ANN001
         self.calls.append(
             {
@@ -544,6 +572,110 @@ async def test_dpm_wave_service_preserves_campaign_launch_wave_truth() -> None:
             "campaign_version": "2026.05",
             "body": body,
             "correlation_id": "corr-gateway",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_retire_lifecycle_truth() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignDefinitionLifecycleCommand",
+        "product_version": "v1",
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "status": "RETIRED",
+        "actor_id": "pm_sg_1",
+        "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+        "correlation_id": "corr-campaign-retire",
+        "content_hash": "sha256:campaign-retired",
+        "reason_codes": ["campaign_definition_retired"],
+        "operating_boundaries": [
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+            "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+        ],
+    }
+    body = {
+        "actor_id": "pm_sg_1",
+        "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+        "correlation_id": "corr-campaign-retire",
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.retire_campaign_definition(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        body=body,
+        correlation_id="corr-gateway-retire",
+    )
+
+    assert response.correlation_id == "corr-gateway-retire"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert "NO_OMS_EXECUTION_CLAIM" in response.data["operating_boundaries"]
+    assert client.calls == [
+        {
+            "method": "retire_campaign_definition",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": body,
+            "correlation_id": "corr-gateway-retire",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -> None:
+    manage_payload = {
+        "product_name": "BulkReviewCampaignDefinitionLifecycleCommand",
+        "product_version": "v1",
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "status": "SUPERSEDED",
+        "actor_id": "pm_sg_1",
+        "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
+        "replacement_campaign_version": "2026.06",
+        "replacement_content_hash": "sha256:campaign-replacement",
+        "correlation_id": "corr-campaign-supersede",
+        "content_hash": "sha256:campaign-superseded",
+        "reason_codes": ["campaign_definition_superseded"],
+        "operating_boundaries": [
+            "NO_ORDER_GENERATION",
+            "NO_OMS_EXECUTION_CLAIM",
+            "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+        ],
+    }
+    body = {
+        "actor_id": "pm_sg_1",
+        "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
+        "replacement_campaign_version": "2026.06",
+        "replacement_content_hash": "sha256:campaign-replacement",
+        "correlation_id": "corr-campaign-supersede",
+    }
+    client = _FakeDpmClient((200, manage_payload))
+    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+
+    response = await service.supersede_campaign_definition(
+        campaign_id="campaign-holdings-202605",
+        campaign_version="2026.05",
+        body=body,
+        correlation_id="corr-gateway-supersede",
+    )
+
+    assert response.correlation_id == "corr-gateway-supersede"
+    assert response.source_service == "lotus-manage"
+    assert response.upstream_status == 200
+    assert response.data == manage_payload
+    assert response.data["replacement_content_hash"] == "sha256:campaign-replacement"
+    assert client.calls == [
+        {
+            "method": "supersede_campaign_definition",
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": body,
+            "correlation_id": "corr-gateway-supersede",
         }
     ]
 

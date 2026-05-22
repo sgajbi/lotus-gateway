@@ -324,6 +324,64 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
             "supportability": {"supportability_state": "ready"},
         }
 
+    async def _fake_retire_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        _ = self
+        captured["retire"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "product_name": "BulkReviewCampaignDefinitionLifecycleCommand",
+            "product_version": "v1",
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "status": "RETIRED",
+            "actor_id": body["actor_id"],
+            "reason_code": body["reason_code"],
+            "correlation_id": body["correlation_id"],
+            "content_hash": "sha256:campaign-retired",
+            "reason_codes": ["campaign_definition_retired"],
+            "operating_boundaries": [
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+                "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+            ],
+        }
+
+    async def _fake_supersede_campaign_definition(  # noqa: ANN001
+        self, campaign_id, campaign_version, body, correlation_id
+    ):
+        _ = self
+        captured["supersede"] = {
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "product_name": "BulkReviewCampaignDefinitionLifecycleCommand",
+            "product_version": "v1",
+            "campaign_id": campaign_id,
+            "campaign_version": campaign_version,
+            "status": "SUPERSEDED",
+            "actor_id": body["actor_id"],
+            "reason_code": body["reason_code"],
+            "replacement_campaign_version": body["replacement_campaign_version"],
+            "replacement_content_hash": body["replacement_content_hash"],
+            "correlation_id": body["correlation_id"],
+            "content_hash": "sha256:campaign-superseded",
+            "reason_codes": ["campaign_definition_superseded"],
+            "operating_boundaries": [
+                "NO_ORDER_GENERATION",
+                "NO_OMS_EXECUTION_CLAIM",
+                "NO_EXTERNAL_WORKFLOW_ORCHESTRATION",
+            ],
+        }
+
     async def _fake_discover_campaigns(self, params, correlation_id):  # noqa: ANN001
         _ = self
         captured["discovery"] = {"params": params, "correlation_id": correlation_id}
@@ -376,6 +434,14 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.launch_campaign_definition",
         _fake_launch_campaign_definition,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.retire_campaign_definition",
+        _fake_retire_campaign_definition,
+    )
+    monkeypatch.setattr(
+        "app.clients.dpm_client.DpmClient.supersede_campaign_definition",
+        _fake_supersede_campaign_definition,
     )
     monkeypatch.setattr(
         "app.clients.dpm_client.DpmClient.discover_campaigns",
@@ -433,6 +499,32 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
         },
         headers={"X-Correlation-Id": "corr-campaign-launch"},
     )
+    retire_response = client.post(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/retire",
+        json={
+            "body": {
+                "actor_id": "pm_sg_1",
+                "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+                "correlation_id": "corr-campaign-retire",
+            }
+        },
+        headers={"X-Correlation-Id": "corr-gateway-retire"},
+    )
+    supersede_response = client.post(
+        "/api/v1/dpm/command-center/waves/campaign-definitions/"
+        "campaign-holdings-202605/versions/2026.05/supersede",
+        json={
+            "body": {
+                "actor_id": "pm_sg_1",
+                "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
+                "replacement_campaign_version": "2026.06",
+                "replacement_content_hash": "sha256:campaign-replacement",
+                "correlation_id": "corr-campaign-supersede",
+            }
+        },
+        headers={"X-Correlation-Id": "corr-gateway-supersede"},
+    )
     discovery_response = client.get(
         "/api/v1/dpm/command-center/waves/campaign-discovery"
         "?campaign_status=ACTIVE&active_on=2026-05-16&include_expired=true&limit=25&offset=0",
@@ -479,6 +571,17 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
     assert launch_response.status_code == 200
     assert launch_response.json()["upstream_status"] == 201
     assert launch_response.json()["data"]["idempotent_replay"] is True
+    assert retire_response.status_code == 200
+    retire_data = retire_response.json()["data"]
+    assert retire_data["status"] == "RETIRED"
+    assert retire_data["content_hash"] == "sha256:campaign-retired"
+    assert "NO_EXTERNAL_WORKFLOW_ORCHESTRATION" in retire_data["operating_boundaries"]
+    assert supersede_response.status_code == 200
+    supersede_data = supersede_response.json()["data"]
+    assert supersede_data["status"] == "SUPERSEDED"
+    assert supersede_data["replacement_campaign_version"] == "2026.06"
+    assert supersede_data["replacement_content_hash"] == "sha256:campaign-replacement"
+    assert "NO_OMS_EXECUTION_CLAIM" in supersede_data["operating_boundaries"]
     assert discovery_response.status_code == 200
     assert (
         discovery_response.json()["data"]["items"][0]["product_name"]
@@ -542,6 +645,28 @@ def test_campaign_definition_routes_preserve_manage_payloads(monkeypatch) -> Non
                 "correlation_id": "corr-launch-package",
             },
             "correlation_id": "corr-campaign-launch",
+        },
+        "retire": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": {
+                "actor_id": "pm_sg_1",
+                "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+                "correlation_id": "corr-campaign-retire",
+            },
+            "correlation_id": "corr-gateway-retire",
+        },
+        "supersede": {
+            "campaign_id": "campaign-holdings-202605",
+            "campaign_version": "2026.05",
+            "body": {
+                "actor_id": "pm_sg_1",
+                "reason_code": "CAMPAIGN_DEFINITION_REPLACED_BY_SOURCE_REFRESH",
+                "replacement_campaign_version": "2026.06",
+                "replacement_content_hash": "sha256:campaign-replacement",
+                "correlation_id": "corr-campaign-supersede",
+            },
+            "correlation_id": "corr-gateway-supersede",
         },
         "discovery": {
             "params": {

@@ -293,14 +293,16 @@ Important current parameter conventions:
    supportability, report-input evidence, and reason codes without calculating affected portfolios,
    source readiness, alternatives, proof-pack state, report evidence, or execution posture locally.
    Gateway also exposes campaign-definition list, get, lifecycle-events, launch-package, launch,
-   upsert, operating queue, approval inbox, workflow board, assignment plan, workflow automation,
-   approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
-   evidence routes under
+   retire, supersede, upsert, operating queue, approval inbox, workflow board, assignment plan,
+   workflow automation, approval-decision, assignment-action, assignment-task, task-transition,
+   and maker-checker evidence routes under
    `/api/v1/dpm/command-center/waves/campaign-definitions*` so Workbench can discover and preserve
-   manage-owned campaign/cohort definitions, launch posture, workflow/audit posture, count/page
-   metadata, supportability, source refs, reason codes, operating boundaries, and content hashes
+   manage-owned campaign/cohort definitions, launch posture, lifecycle lineage, workflow/audit
+   posture, count/page metadata, supportability, source refs, reason codes, operating boundaries,
+   replacement version/hash evidence, and content hashes
    without recomputing cohort facts, portfolio eligibility, readiness, task state, approval state,
-   maker-checker posture, workflow orchestration, durable replay state, or membership locally.
+   maker-checker posture, workflow orchestration, durable replay state, lifecycle state, or
+   membership locally.
    Gateway also exposes a governed `dpm_wave_pm_memo.pack@v1` handoff to `lotus-ai` from
    manage-owned wave report input; it does not generate memo narrative, score PMs, approve trades,
    contact clients, place orders, or invent missing evidence.
