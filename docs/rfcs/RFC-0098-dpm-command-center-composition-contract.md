@@ -1311,18 +1311,23 @@ Implementation boundaries:
    plus `POST /api/v1/dpm/command-center/pm-operating-quality/review-actions/preview`,
    `POST /api/v1/dpm/command-center/pm-operating-quality/review-actions`,
    `GET /api/v1/dpm/command-center/pm-operating-quality/review-actions`, and
-   `GET /api/v1/dpm/command-center/pm-operating-quality/review-actions/{review_action_id}`.
+   `GET /api/v1/dpm/command-center/pm-operating-quality/review-actions/{review_action_id}`,
+   plus `POST /api/v1/dpm/command-center/pm-operating-quality/summary-invocations/preview`,
+   `POST /api/v1/dpm/command-center/pm-operating-quality/summary-invocations`,
+   `GET /api/v1/dpm/command-center/pm-operating-quality/summary-invocations`, and
+   `GET /api/v1/dpm/command-center/pm-operating-quality/summary-invocations/{summary_invocation_id}`.
 17. The PM quality summary route reads Manage-owned score-run evidence before invoking
    `lotus-ai` `pm_quality_summary.pack@v1` as `lotus-gateway` for review-gated support-only
    summaries.
 18. PM operating quality routes preserve manage-owned policy configuration, score-run state,
-   fairness-analysis state, review-action state, bounded rationale, target content hashes, segment
-   posture, governance evidence, source refs, reason codes, content hashes, supportability, and
-   forbidden-use posture.
+   fairness-analysis state, review-action state, summary-invocation workflow lineage, bounded
+   rationale, target content hashes, segment posture, governance evidence, source refs, reason
+   codes, content hashes, supportability, summary-text boundary evidence, and forbidden-use posture.
 19. Gateway does not calculate scores, discover segments, calculate segment averages or fairness
    spread, infer protected classes, rank PMs, administer bank policy locally, create HR or
-   compensation decisions, perform conduct enforcement, reinterpret review rationale, approve
-   trades, contact clients, route orders, claim OMS/execution, or invent missing evidence.
+   compensation decisions, perform conduct enforcement, reinterpret review rationale, store or
+   expose generated summary text, reconstruct prompts or model responses, approve trades, contact
+   clients, route orders, claim OMS/execution, or invent missing evidence.
 20. Gateway now exposes `POST /api/v1/dpm/command-center/outcome-reviews/preview`,
    `POST /api/v1/dpm/command-center/outcome-reviews`,
    `GET /api/v1/dpm/command-center/outcome-reviews`,

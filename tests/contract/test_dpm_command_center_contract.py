@@ -229,6 +229,53 @@ def test_dpm_pm_operating_quality_gateway_response_contract_shape() -> None:
         "sha256:pmq-run-001"
     )
 
+    summary_invocation_response = DpmPmOperatingQualityGatewayResponse(
+        correlation_id="corr-pmq-summary-history-1",
+        upstream_status=200,
+        supportability={
+            "state": "REQUESTED",
+            "reason_codes": ["PM_QUALITY_SUMMARY_INVOCATION_REQUESTED"],
+            "policy_id": "pmq_sg_dpm",
+            "policy_version": "2026.05",
+            "score_run_id": "pmq_run_001",
+            "review_action_id": "pmq_review_001",
+            "summary_invocation_id": "pmq_summary_001",
+        },
+        data={
+            "summary_invocation": {
+                "product_name": "PmOperatingQualitySummaryInvocation",
+                "product_version": "v1",
+                "summary_invocation_id": "pmq_summary_001",
+                "score_run_id": "pmq_run_001",
+                "review_action_id": "pmq_review_001",
+                "invocation_state": "REQUESTED",
+                "workflow_pack_name": "pm_quality_summary.pack",
+                "workflow_run_id": "packrun_pmq_001",
+                "summary_artifact_ref": "artifact://pmq-summary-001",
+                "summary_content_hash": "sha256:pmq-summary-artifact-001",
+                "text_boundary": {
+                    "generated_summary_text_stored": False,
+                    "prompt_body_stored": False,
+                    "model_response_stored": False,
+                },
+                "operating_boundaries": [
+                    "NO_GENERATED_SUMMARY_TEXT_RETENTION",
+                    "NO_PROMPT_OR_MODEL_RESPONSE_EXPOSURE",
+                    "NO_PM_RANKING",
+                    "NO_CLIENT_CONTACT",
+                    "NO_TRADE_ORDER_OR_OMS_EXECUTION",
+                ],
+            }
+        },
+    )
+    assert summary_invocation_response.supportability.summary_invocation_id == ("pmq_summary_001")
+    assert (
+        summary_invocation_response.data["summary_invocation"]["text_boundary"][
+            "model_response_stored"
+        ]
+        is False
+    )
+
 
 def test_dpm_outcome_review_narrative_gateway_response_contract_shape() -> None:
     response = DpmOutcomeReviewNarrativeGatewayResponse(
@@ -382,6 +429,23 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         ("/api/v1/dpm/command-center/pm-operating-quality/review-actions", "post"),
         (
             "/api/v1/dpm/command-center/pm-operating-quality/review-actions/{review_action_id}",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations/preview",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations",
+            "get",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/summary-invocations",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/pm-operating-quality/"
+            "summary-invocations/{summary_invocation_id}",
             "get",
         ),
         (
