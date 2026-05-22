@@ -199,6 +199,61 @@ class AdviseClient:
             operation="advise.advisory.proposals.lineage",
         )
 
+    async def review_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.narrative.review",
+        )
+
+    async def create_report_request(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/report-requests",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.report-requests.create",
+        )
+
+    async def get_delivery_summary(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/delivery-summary",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.delivery-summary",
+        )
+
+    async def get_delivery_events(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/delivery-events",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.delivery-events",
+        )
+
     def _headers(
         self,
         correlation_id: str,

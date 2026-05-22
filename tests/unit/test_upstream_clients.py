@@ -2967,6 +2967,39 @@ async def test_dpm_client_rfc38_command_center_routes(
             {"proposal_id": "PR-1", "correlation_id": "corr-5"},
             "http://advise/advisory/proposals/PR-1/lineage",
         ),
+        (
+            "review_proposal_narrative",
+            {
+                "proposal_id": "PR-1",
+                "version_no": 2,
+                "body": {"action": "APPROVE", "reviewed_by": "compliance_1"},
+                "idempotency_key": "idem-narrative-review-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions/2/narrative/review",
+        ),
+        (
+            "create_report_request",
+            {
+                "proposal_id": "PR-1",
+                "body": {
+                    "report_type": "PORTFOLIO_REVIEW",
+                    "include_reviewed_narrative": True,
+                },
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/report-requests",
+        ),
+        (
+            "get_delivery_summary",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/delivery-summary",
+        ),
+        (
+            "get_delivery_events",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/delivery-events",
+        ),
     ],
 )
 async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):

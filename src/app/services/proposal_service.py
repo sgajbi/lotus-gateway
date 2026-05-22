@@ -9,12 +9,16 @@ from app.contracts.proposals import (
     ProposalApprovalsEnvelopeResponse,
     ProposalCreateData,
     ProposalCreateEnvelopeResponse,
+    ProposalDeliveryEventsEnvelopeResponse,
+    ProposalDeliverySummaryEnvelopeResponse,
     ProposalDetailData,
     ProposalDetailEnvelopeResponse,
     ProposalLineageData,
     ProposalLineageEnvelopeResponse,
     ProposalListData,
     ProposalListEnvelopeResponse,
+    ProposalNarrativeReviewEnvelopeResponse,
+    ProposalReportRequestEnvelopeResponse,
     ProposalSimulateResponse,
     ProposalSimulationData,
     ProposalStateTransitionData,
@@ -293,6 +297,78 @@ class ProposalService:
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             data=ProposalLineageData.model_validate(upstream_payload),
+        )
+
+    async def review_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalNarrativeReviewEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.review_proposal_narrative(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalNarrativeReviewEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def create_report_request(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> ProposalReportRequestEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_report_request(
+            proposal_id=proposal_id,
+            body=body,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalReportRequestEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_delivery_summary(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalDeliverySummaryEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_delivery_summary(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalDeliverySummaryEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_delivery_events(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalDeliveryEventsEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_delivery_events(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalDeliveryEventsEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
         )
 
     async def _record_approval(

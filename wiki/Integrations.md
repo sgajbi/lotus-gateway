@@ -14,8 +14,8 @@
 - `lotus-risk`
   stateful risk workspace analytics
 - `lotus-advise`
-  proposal simulation, proposal persistence, workflow events, approvals, and lineage through
-  `/advisory/proposals/*`
+  proposal simulation, proposal persistence, workflow events, approvals, lineage, reviewed
+  narrative posture, report-request, and proposal delivery posture through `/advisory/proposals/*`
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
@@ -77,11 +77,17 @@
    does not call `lotus-archive` directly
 8. Workbench and other product clients consume `lotus-gateway`; they do not call `lotus-advise` or
    `lotus-manage` directly for proposal or management workflow data
-9. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
+9. RFC-0023 advisory narrative posture remains `lotus-advise` truth. Gateway exposes reviewed
+   narrative, report-request, delivery-summary, and delivery-event routes for Workbench and
+   preserves Advise-owned source hashes, review state, policy/guardrail/disclosure posture,
+   report narrative-package posture, and append-only delivery events. Gateway does not generate
+   narrative, infer client-ready publication, render reports, archive documents, contact clients,
+   or recompute advisory delivery truth.
+10. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.
-10. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
+11. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for
     Workbench. Gateway forwards filters and request bodies to manage, then preserves health
@@ -93,14 +99,14 @@
     `lotus-ai` `dpm_exception_summary.pack@v1`. Gateway preserves manage source refs and content
     hashes; it does not generate summaries locally, score PMs, approve trades, contact clients,
     route orders, or invent evidence.
-11. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
+12. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
     compose expected-versus-realized review summaries, dimension outcomes, source lineage,
     supportability, report-input posture, and AI-evidence posture without recomputing outcome
     values or calling source-owner apps behind manage's review authority. The implemented Gateway
     route family is `/api/v1/dpm/command-center/outcome-reviews*`,
     `/api/v1/dpm/command-center/runs/{rebalance_run_id}/outcome-review`, and
     `/api/v1/dpm/command-center/waves/{wave_id}/outcome-reviews`.
-12. RFC-0039 construction alternatives remain `lotus-manage` truth. Gateway construction
+13. RFC-0039 construction alternatives remain `lotus-manage` truth. Gateway construction
     realization exposes `/api/v1/dpm/command-center/construction/alternative-sets/generate`,
     `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}`, and
     `/api/v1/dpm/command-center/construction/alternative-sets/{alternative_set_id}/selections`
@@ -108,7 +114,7 @@
     then preserves alternatives, method status, diagnostics, comparison metrics, supportability,
     and selection decisions without performing optimization, recomputation, readiness inference, or
     order execution.
-13. RFC-0040 proof packs remain `lotus-manage` truth. Gateway proof-pack realization exposes
+14. RFC-0040 proof packs remain `lotus-manage` truth. Gateway proof-pack realization exposes
     `/api/v1/dpm/command-center/proof-packs`,
     `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}`,
     `/api/v1/dpm/command-center/proof-packs/{proof_pack_id}/summary.md`,
@@ -122,14 +128,14 @@
     source refs, report refs, AI refs, and lotus-ai workflow-pack run posture without generating
     proof sections, recalculating hashes, rendering reports, generating PM memos locally, or
     generating AI narrative.
-14. RFC40-WTBD-010 portfolio memory remains `lotus-manage` truth. Gateway portfolio-memory
+15. RFC40-WTBD-010 portfolio memory remains `lotus-manage` truth. Gateway portfolio-memory
     realization exposes `/api/v1/dpm/command-center/portfolios/{portfolio_id}/memory` for
     Workbench. Gateway forwards portfolio id, limit, and correlation context to manage, then
     preserves event order, event types, source systems, source refs, artifact refs, reason codes,
     supportability state, bounded metadata, and content hash without reconstructing timeline
     nodes, inferring mandate exceptions, calculating source-owner methods, or letting Workbench
     call `lotus-manage` directly.
-15. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
+16. RFC-0041 rebalance waves remain `lotus-manage` truth. Gateway wave realization exposes
     `/api/v1/dpm/command-center/waves*` for Workbench. Gateway forwards request bodies,
     idempotency keys, query filters, campaign-definition payloads, and correlation context to
     manage, then preserves wave ids, lifecycle state, item states, aggregate metrics,
@@ -149,7 +155,7 @@
     `dpm_operations_handoff_summary.pack@v1` for review-required operations support text; Gateway
     does not route orders, claim external execution, approve trades, contact clients, or invent
     evidence.
-16. PM operating quality remains `lotus-manage` truth. Gateway realization exposes
+17. PM operating quality remains `lotus-manage` truth. Gateway realization exposes
     `/api/v1/dpm/command-center/pm-operating-quality/*` for Workbench. Gateway forwards policy
     list/get/upsert, score-run preview/create/list/get, fairness-analysis preview/create/list/get,
     and review-action preview/create/list/get requests to manage, and reads Manage score-run
@@ -162,7 +168,7 @@
     classes, ranking PMs, administering policy locally, reinterpreting review rationale, creating
     HR or compensation decisions, performing conduct enforcement, approving trades, contacting
     clients, routing orders, claiming OMS/execution, or inventing evidence.
-17. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
+18. RFC36-WTBD-003 portfolio-level DPM operations dashboards consume Gateway Workbench
     `rebalance_snapshot` only. Gateway reads manage rebalance runs, preserves manage
     supportability summary and bounded recent-run posture, and keeps Workbench from calling
     `lotus-manage` directly or inventing workflow/error semantics. Supportability comes from
