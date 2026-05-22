@@ -159,6 +159,8 @@
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history`,
   `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package`,
   `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch`,
+  `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/retire`,
+  `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/supersede`,
   `GET /api/v1/dpm/command-center/waves/campaign-discovery`,
   `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`,
   `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`,
@@ -171,7 +173,8 @@
   `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions`,
   `GET` and `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`,
   and `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-  for manage-owned campaign/cohort definition discovery, lifecycle evidence, fail-closed
+  for manage-owned campaign/cohort definition discovery, lifecycle evidence, retire/supersede
+  lifecycle commands, fail-closed
   `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
   `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, ready-only launch posture, and
   bounded campaign workflow/audit evidence.

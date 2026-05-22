@@ -1910,6 +1910,32 @@ async def test_pas_ingestion_client_forwards_bundle_idempotency_header():
             "campaign-holdings-202605/versions/2026.05/launch",
         ),
         (
+            "retire_campaign_definition",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {"actor_id": "pm_sg_1", "reason_code": "CAMPAIGN_RETIRED"},
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/retire",
+        ),
+        (
+            "supersede_campaign_definition",
+            {
+                "campaign_id": "campaign-holdings-202605",
+                "campaign_version": "2026.05",
+                "body": {
+                    "actor_id": "pm_sg_1",
+                    "reason_code": "CAMPAIGN_SUPERSEDED",
+                    "replacement_campaign_version": "2026.06",
+                },
+                "correlation_id": "corr-5",
+            },
+            "http://dpm/api/v1/rebalance/waves/campaign-definitions/"
+            "campaign-holdings-202605/versions/2026.05/supersede",
+        ),
+        (
             "discover_campaigns",
             {
                 "params": {"campaign_status": "ACTIVE", "active_on": "2026-05-16"},

@@ -279,42 +279,44 @@ Supported routes:
 8. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history`
 9. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package`
 10. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch`
-11. `GET /api/v1/dpm/command-center/waves/campaign-discovery`
-12. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
-13. `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`
-14. `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`
-15. `GET /api/v1/dpm/command-center/waves/campaign-workflow-board`
-16. `GET /api/v1/dpm/command-center/waves/campaign-assignment-plan`
-17. `GET /api/v1/dpm/command-center/waves/campaign-workflow-automation`
-18. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
-19. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
-20. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
-21. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
-22. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
-23. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
-24. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions`
-25. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
-26. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
-27. `GET /api/v1/dpm/command-center/waves/{wave_id}`
-28. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
-29. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
-30. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
-31. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
-32. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
-33. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
-34. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
-35. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
-36. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
-37. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
-38. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
-39. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
-40. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
+11. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/retire`
+12. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/supersede`
+13. `GET /api/v1/dpm/command-center/waves/campaign-discovery`
+14. `PUT /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}`
+15. `GET /api/v1/dpm/command-center/waves/campaign-operating-queue`
+16. `GET /api/v1/dpm/command-center/waves/campaign-approval-inbox`
+17. `GET /api/v1/dpm/command-center/waves/campaign-workflow-board`
+18. `GET /api/v1/dpm/command-center/waves/campaign-assignment-plan`
+19. `GET /api/v1/dpm/command-center/waves/campaign-workflow-automation`
+20. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
+21. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions`
+22. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
+23. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions`
+24. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
+25. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks`
+26. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions`
+27. `GET /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
+28. `POST /api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/maker-checker-controls`
+29. `GET /api/v1/dpm/command-center/waves/{wave_id}`
+30. `GET /api/v1/dpm/command-center/waves/{wave_id}/items`
+31. `POST /api/v1/dpm/command-center/waves/{wave_id}/source-check`
+32. `POST /api/v1/dpm/command-center/waves/{wave_id}/simulate`
+33. `POST /api/v1/dpm/command-center/waves/{wave_id}/items/{wave_item_id}/select`
+34. `POST /api/v1/dpm/command-center/waves/{wave_id}/approve`
+35. `POST /api/v1/dpm/command-center/waves/{wave_id}/stage`
+36. `POST /api/v1/dpm/command-center/waves/{wave_id}/handoff`
+37. `POST /api/v1/dpm/command-center/waves/{wave_id}/cancel`
+38. `GET /api/v1/dpm/command-center/waves/{wave_id}/proof-pack`
+39. `GET /api/v1/dpm/command-center/waves/{wave_id}/supportability`
+40. `GET /api/v1/dpm/command-center/waves/{wave_id}/report-input`
+41. `POST /api/v1/dpm/command-center/waves/{wave_id}/ai-pm-memo`
+42. `POST /api/v1/dpm/command-center/waves/{wave_id}/operations-handoff-summary`
 
 Authority and integrations:
 
 1. `lotus-manage` remains the RFC-0041 rebalance-wave authority.
 2. Gateway forwards preview, create, campaign-definition list/get/lifecycle-events/preview-readiness/
-   paged launch-history/launch-package/launch/upsert, bounded campaign-discovery, source-check, simulate,
+   paged launch-history/launch-package/launch/retire/supersede/upsert, bounded campaign-discovery, source-check, simulate,
    select, approve, stage, handoff, cancel, proof-pack posture, supportability, and report-input
    requests to manage.
 3. Gateway preserves `BulkReviewCampaignDefinitionPreviewReadiness:v1` supportability state,

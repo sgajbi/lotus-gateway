@@ -464,6 +464,34 @@ class DpmClient:
             operation="manage.rebalance.waves.campaign_definitions.launch",
         )
 
+    async def retire_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/retire",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.retire",
+        )
+
+    async def supersede_campaign_definition(
+        self,
+        campaign_id: str,
+        campaign_version: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/api/v1/rebalance/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/supersede",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="manage.rebalance.waves.campaign_definitions.supersede",
+        )
+
     async def discover_campaigns(
         self,
         params: dict[str, Any],

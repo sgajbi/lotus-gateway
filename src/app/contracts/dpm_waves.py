@@ -86,6 +86,25 @@ class DpmCampaignDefinitionLaunchRequest(BaseModel):
     )
 
 
+class DpmCampaignDefinitionLifecycleCommandRequest(BaseModel):
+    body: dict[str, object] = Field(
+        description=(
+            "Campaign-definition lifecycle command payload forwarded unchanged to lotus-manage. "
+            "Manage owns retire/supersede validation, lifecycle lineage, supportability, content "
+            "hashes, reason codes, and operating boundaries. Gateway does not calculate campaign "
+            "lifecycle, membership, readiness, approval state, maker-checker state, order state, "
+            "OMS state, or external workflow orchestration."
+        ),
+        examples=[
+            {
+                "actor_id": "pm_sg_1",
+                "reason_code": "CAMPAIGN_DEFINITION_RETIRED_BY_OWNER",
+                "correlation_id": "corr-campaign-definition-retire-001",
+            }
+        ],
+    )
+
+
 class DpmCampaignWorkflowForwardRequest(BaseModel):
     body: dict[str, object] = Field(
         description=(

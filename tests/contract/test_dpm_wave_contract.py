@@ -142,6 +142,14 @@ def test_dpm_wave_openapi_contract_registered() -> None:
             "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch",
             "post",
         ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/retire",
+            "post",
+        ),
+        (
+            "/api/v1/dpm/command-center/waves/campaign-definitions/{campaign_id}/versions/{campaign_version}/supersede",
+            "post",
+        ),
         ("/api/v1/dpm/command-center/waves/campaign-discovery", "get"),
         ("/api/v1/dpm/command-center/waves/campaign-operating-queue", "get"),
         ("/api/v1/dpm/command-center/waves/campaign-approval-inbox", "get"),
@@ -219,6 +227,7 @@ def test_dpm_wave_openapi_models_are_described() -> None:
         "DpmWaveCreateRequest",
         "DpmCampaignDefinitionForwardRequest",
         "DpmCampaignDefinitionLaunchRequest",
+        "DpmCampaignDefinitionLifecycleCommandRequest",
         "DpmCampaignDefinitionGatewayResponse",
         "DpmCampaignWorkflowForwardRequest",
         "DpmCampaignWorkflowGatewayResponse",
