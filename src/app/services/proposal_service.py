@@ -30,6 +30,26 @@ from app.contracts.proposals import (
 )
 
 
+def _normalize_proposal_context_payload(
+    upstream_payload: dict[str, Any],
+    *,
+    proposal_id: str,
+) -> dict[str, Any]:
+    if upstream_payload.get("proposal_id"):
+        return upstream_payload
+
+    proposal = upstream_payload.get("proposal")
+    if not isinstance(proposal, dict):
+        return upstream_payload
+
+    normalized = dict(upstream_payload)
+    normalized["proposal_id"] = proposal.get("proposal_id") or proposal_id
+    normalized["current_state"] = upstream_payload.get("current_state") or proposal.get(
+        "current_state"
+    )
+    return normalized
+
+
 class ProposalService:
     def __init__(self, advise_client: AdviseClient):
         self._advise_client = advise_client
@@ -264,7 +284,12 @@ class ProposalService:
         return ProposalWorkflowEventsEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=ProposalWorkflowEventsData.model_validate(upstream_payload),
+            data=ProposalWorkflowEventsData.model_validate(
+                _normalize_proposal_context_payload(
+                    upstream_payload,
+                    proposal_id=proposal_id,
+                )
+            ),
         )
 
     async def get_approvals(
@@ -280,7 +305,12 @@ class ProposalService:
         return ProposalApprovalsEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            data=ProposalApprovalsData.model_validate(upstream_payload),
+            data=ProposalApprovalsData.model_validate(
+                _normalize_proposal_context_payload(
+                    upstream_payload,
+                    proposal_id=proposal_id,
+                )
+            ),
         )
 
     async def get_proposal_lineage(

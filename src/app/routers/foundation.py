@@ -71,7 +71,10 @@ async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
         "Returns the first-paint Foundation workspace payload for a single portfolio. "
         "Use this route when the UI needs portfolio identity, valuation summary, "
         "allocation shape, top positions, readiness posture, workflow launch cues, "
-        "and advisor-facing evidence of degraded upstream dependencies in one response."
+        "and advisor-facing evidence of degraded upstream dependencies in one response. "
+        "Gateway resolves the Core analytics reference before requesting performance so "
+        "Foundation YTD return evidence is aligned to the latest complete calculable "
+        "performance horizon."
     ),
 )
 async def get_foundation_workspace(

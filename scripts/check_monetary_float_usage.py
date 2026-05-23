@@ -17,7 +17,8 @@ KEYWORDS = (
     "notional",
     "weight",
 )
-IGNORE_DIRS = {"tests", ".venv", "venv", "docs", "rfcs", "output", "build", "dist", "__pycache__"}
+IGNORE_DIRS = {"tests", "venv", "docs", "rfcs", "output", "build", "dist", "__pycache__"}
+IGNORE_DIR_PREFIXES = (".venv",)
 
 FLOAT_ANNOTATION = re.compile(r"\bfloat\b")
 
@@ -25,6 +26,8 @@ FLOAT_ANNOTATION = re.compile(r"\bfloat\b")
 def is_candidate(path: Path) -> bool:
     parts = set(path.parts)
     if any(p in parts for p in IGNORE_DIRS):
+        return False
+    if any(part.startswith(IGNORE_DIR_PREFIXES) for part in path.parts):
         return False
     return path.suffix == ".py"
 

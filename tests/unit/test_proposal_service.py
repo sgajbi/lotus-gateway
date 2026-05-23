@@ -634,6 +634,64 @@ async def test_get_workflow_events_and_approvals_wrap_typed_envelopes() -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_approvals_normalizes_nested_advisory_payload() -> None:
+    class NestedApprovalsClient(_FakeAdviseClient):
+        async def get_approvals(self, proposal_id: str, correlation_id: str):
+            _ = correlation_id
+            return 200, {
+                "proposal": {
+                    "proposal_id": proposal_id,
+                    "current_state": "DRAFT",
+                },
+                "pending_approval": None,
+                "approvals": [],
+            }
+
+    service = ProposalService(advise_client=NestedApprovalsClient())
+
+    approvals = await service.get_approvals(proposal_id="pp_1", correlation_id="corr_3")
+
+    assert approvals.data.proposal_id == "pp_1"
+    assert approvals.data.current_state == "DRAFT"
+    assert approvals.data.approvals == []
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_events_normalizes_nested_advisory_payload() -> None:
+    class NestedWorkflowClient(_FakeAdviseClient):
+        async def get_workflow_events(self, proposal_id: str, correlation_id: str):
+            _ = correlation_id
+            return 200, {
+                "proposal": {
+                    "proposal_id": proposal_id,
+                    "current_state": "DRAFT",
+                },
+                "current_state": "DRAFT",
+                "event_count": 1,
+                "events": [
+                    {
+                        "event_id": "pwe_1",
+                        "proposal_id": proposal_id,
+                        "event_type": "CREATED",
+                        "from_state": None,
+                        "to_state": "DRAFT",
+                        "actor_id": "advisor_1",
+                        "occurred_at": "2026-02-19T12:00:00+00:00",
+                        "reason": {},
+                    }
+                ],
+            }
+
+    service = ProposalService(advise_client=NestedWorkflowClient())
+
+    events = await service.get_workflow_events(proposal_id="pp_1", correlation_id="corr_3")
+
+    assert events.data.proposal_id == "pp_1"
+    assert events.data.current_state == "DRAFT"
+    assert events.data.events[0].event_type == "CREATED"
+
+
+@pytest.mark.asyncio
 async def test_get_proposal_lineage_wraps_envelope() -> None:
     client = _FakeAdviseClient()
     service = ProposalService(advise_client=client)
