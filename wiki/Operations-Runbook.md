@@ -61,6 +61,18 @@
 - Dashboard claims and Workbench attention events outside the Workbench surface remain planned
   until later RFC-0108 slices promote them with evidence.
 
+## Foundation workspace performance horizon
+
+- The Foundation workspace resolves the Core analytics reference before calling
+  `lotus-performance`.
+- `PortfolioAnalyticsReference.performance_end_date` is the report end date for the Foundation YTD
+  TWR request when Core publishes it.
+- This prevents a weekend, holiday, or otherwise incomplete calendar date from creating a
+  misleading degraded performance fan-out when the latest complete performance horizon is ready.
+- If the analytics reference lookup is unavailable, Gateway falls back to the snapshot as-of date
+  and surfaces any resulting performance degradation through the normal warning and partial-failure
+  contract.
+
 ## Practical probes
 
 ```powershell

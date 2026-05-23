@@ -265,6 +265,103 @@ def test_portfolio_workspace_router(monkeypatch):
     assert captured["support_as_of_date"] is None
 
 
+def test_portfolio_workspace_router_uses_source_resolved_date_for_default_performance(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _get_portfolio(*args, **kwargs):
+        return 200, {
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "portfolio_name": "Global Balanced Advisory",
+            "base_currency": "USD",
+            "status": "ACTIVE",
+            "portfolio_type": "ADVISORY",
+            "open_date": "2024-01-15",
+        }
+
+    async def _query_aum(*args, **kwargs):
+        captured["aum_as_of_date"] = kwargs.get("as_of_date")
+        return 200, {
+            "resolved_as_of_date": "2026-04-10",
+            "portfolios": [
+                {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "aum_reporting_currency": 1000.0,
+                    "position_count": 2,
+                }
+            ],
+        }
+
+    async def _analytics_reference(*args, **kwargs):
+        captured["analytics_reference_as_of_date"] = kwargs.get("as_of_date")
+        return 200, {"performance_end_date": kwargs.get("as_of_date")}
+
+    async def _twr(*args, **kwargs):
+        captured["twr_report_end_date"] = kwargs.get("report_end_date")
+        return 200, {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio": {
+                        "summary": {
+                            "period_return": {"base": 2.5},
+                        }
+                    }
+                }
+            }
+        }
+
+    async def _support(*args, **kwargs):
+        return 200, {"business_date": "2026-04-10", "publish_allowed": True}
+
+    async def _readiness(*args, **kwargs):
+        return 200, {
+            "holdings": {"status": "READY", "reasons": []},
+            "pricing": {"status": "READY", "reasons": []},
+            "transactions": {"status": "READY", "reasons": []},
+            "reporting": {"status": "READY", "reasons": []},
+            "blocking_reasons": [],
+        }
+
+    async def _cashflow(*args, **kwargs):
+        return 200, {
+            "as_of_date": "2026-04-10",
+            "range_end_date": "2026-04-20",
+            "total_net_cashflow": 0,
+            "projection_days": 10,
+            "include_projected": True,
+            "points": [],
+        }
+
+    async def _cash_balances(*args, **kwargs):
+        return 200, {
+            "totals": {"cash_account_count": 1, "total_balance_reporting_currency": 100.0},
+            "cash_accounts": [],
+        }
+
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio", _get_portfolio)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.query_assets_under_management", _query_aum)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_support_overview", _support)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_readiness", _readiness)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_cashflow_projection", _cashflow)
+    monkeypatch.setattr(f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_cash_balances", _cash_balances)
+    monkeypatch.setattr(
+        f"{LOTUS_CORE_QUERY_CLIENT}.get_portfolio_analytics_reference",
+        _analytics_reference,
+    )
+    monkeypatch.setattr(
+        "app.clients.lotus_analytics_client.LotusAnalyticsClient.get_twr_analytics",
+        _twr,
+    )
+
+    client = TestClient(app)
+    response = client.get("/api/v1/portfolio/portfolios/PB_SG_GLOBAL_BAL_001/workspace")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["as_of_date"] == "2026-04-10"
+    assert captured["analytics_reference_as_of_date"] == "2026-04-10"
+    assert captured["twr_report_end_date"] == "2026-04-10"
+
+
 def test_portfolio_readiness_router(monkeypatch):
     async def _get_portfolio(*args, **kwargs):
         return 200, {"portfolio_id": "PF_1001", "base_currency": "USD", "status": "ACTIVE"}

@@ -109,10 +109,15 @@ class FoundationService:
             payload=pas_payload,
             fallback_as_of_date=as_of_date,
         )
+        performance_report_end_date = await self._resolve_performance_report_end_date(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
 
         performance_task = self._analytics_client.get_stateful_twr(
             portfolio_id=portfolio_id,
-            report_end_date=as_of_date,
+            report_end_date=performance_report_end_date,
             period="YTD",
             correlation_id=correlation_id,
         )
@@ -176,6 +181,30 @@ class FoundationService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
+
+    async def _resolve_performance_report_end_date(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> str:
+        try:
+            reference_status, reference_payload = (
+                await self._lotus_core_query_client.get_portfolio_analytics_reference(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                    consumer_system="lotus-gateway",
+                    correlation_id=correlation_id,
+                )
+            )
+        except Exception:
+            return as_of_date
+
+        if reference_status >= status.HTTP_400_BAD_REQUEST:
+            return as_of_date
+        if not isinstance(reference_payload, dict):
+            return as_of_date
+        return self._optional_str(reference_payload.get("performance_end_date")) or as_of_date
 
     def _parse_catalog_item(self, item: dict[str, Any]) -> FoundationPortfolioCatalogItem:
         portfolio_id = str(item.get("portfolio_id", item.get("id", ""))).strip()
@@ -381,7 +410,7 @@ class FoundationService:
         if payload is None:
             return None
 
-        results_by_period = payload.get("resultsByPeriod", {})
+        results_by_period = payload.get("results_by_period", payload.get("resultsByPeriod", {}))
         if not isinstance(results_by_period, dict):
             warnings.append("FOUNDATION_PERFORMANCE_INVALID")
             return None
@@ -395,8 +424,31 @@ class FoundationService:
             return None
         return FoundationPerformanceSummary(
             period=period_key,
-            return_pct=period_payload.get("net_cumulative_return"),
+            return_pct=self._extract_performance_return_pct(period_payload),
         )
+
+    def _extract_performance_return_pct(self, period_payload: dict[str, Any]) -> float | None:
+        legacy_return = period_payload.get("net_cumulative_return")
+        if isinstance(legacy_return, int | float):
+            return float(legacy_return)
+
+        portfolio_payload = period_payload.get("portfolio")
+        if not isinstance(portfolio_payload, dict):
+            return None
+        summary = portfolio_payload.get("summary")
+        if not isinstance(summary, dict):
+            return None
+        period_return = summary.get("period_return")
+        if isinstance(period_return, dict):
+            base_return = period_return.get("base")
+            if isinstance(base_return, int | float):
+                return float(base_return)
+        cumulative_return = summary.get("cumulative_return")
+        if isinstance(cumulative_return, dict):
+            base_return = cumulative_return.get("base")
+            if isinstance(base_return, int | float):
+                return float(base_return)
+        return None
 
     def _parse_rebalance_result(
         self,

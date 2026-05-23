@@ -6,13 +6,23 @@ from app.services.foundation_service import FoundationService
 
 class _StubLotusCoreQueryClient:
     def __init__(
-        self, list_payload: dict, snapshot_payload: dict, portfolio_payload: dict | None = None
+        self,
+        list_payload: dict,
+        snapshot_payload: dict,
+        portfolio_payload: dict | None = None,
+        analytics_reference_payload: dict | None = None,
+        analytics_reference_status_code: int = 200,
     ):
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
         self.portfolio_payload = portfolio_payload or {}
+        self.analytics_reference_payload = analytics_reference_payload or {
+            "performance_end_date": "2026-03-25"
+        }
+        self.analytics_reference_status_code = analytics_reference_status_code
         self.snapshot_calls: list[dict[str, object]] = []
         self.portfolio_calls: list[dict[str, object]] = []
+        self.analytics_reference_calls: list[dict[str, object]] = []
 
     async def get_portfolio_lookups(self, correlation_id: str):
         return 200, self.list_payload
@@ -45,11 +55,29 @@ class _StubLotusCoreQueryClient:
         )
         return 200, self.snapshot_payload
 
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ):
+        self.analytics_reference_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "as_of_date": as_of_date,
+                "consumer_system": consumer_system,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.analytics_reference_status_code, self.analytics_reference_payload
+
 
 class _StubAnalyticsClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
+        self.twr_calls: list[dict[str, str]] = []
 
     async def get_stateful_twr(
         self,
@@ -58,6 +86,14 @@ class _StubAnalyticsClient:
         period: str,
         correlation_id: str,
     ):
+        self.twr_calls.append(
+            {
+                "portfolio_id": portfolio_id,
+                "report_end_date": report_end_date,
+                "period": period,
+                "correlation_id": correlation_id,
+            }
+        )
         return self.status_code, self.payload
 
 
@@ -257,6 +293,103 @@ async def test_foundation_workspace_success():
     assert response.evidence.warning_count == 0
     assert response.evidence.partial_failure_count == 0
     assert response.partial_failures == []
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_parses_live_stateful_twr_shape():
+    core_client = _StubLotusCoreQueryClient(
+        list_payload={"items": []},
+        portfolio_payload={"portfolio_id": "PF_1001", "base_currency": "USD"},
+        snapshot_payload={
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-05-23",
+            "sections": {
+                "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 1000.0}],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
+            },
+        },
+        analytics_reference_payload={"performance_end_date": "2026-05-22"},
+    )
+    analytics_client = _StubAnalyticsClient(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {
+                    "portfolio": {
+                        "summary": {
+                            "period_return": {"base": -0.692074},
+                            "cumulative_return": {"base": -0.701},
+                        }
+                    }
+                }
+            }
+        },
+    )
+    service = FoundationService(
+        lotus_core_query_client=core_client,
+        analytics_client=analytics_client,
+        dpm_client=_StubDpmClient(200, {"items": []}),
+        reporting_client=_StubReportingClient(200, {"rows": []}),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-live-twr",
+    )
+
+    assert response.performance is not None
+    assert response.performance.period == "YTD"
+    assert response.performance.return_pct == -0.692074
+    assert core_client.analytics_reference_calls == [
+        {
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-05-23",
+            "consumer_system": "lotus-gateway",
+            "correlation_id": "corr-live-twr",
+        }
+    ]
+    assert analytics_client.twr_calls[0]["report_end_date"] == "2026-05-22"
+    assert response.evidence.status == "ready"
+    assert response.partial_failures == []
+
+
+@pytest.mark.asyncio
+async def test_foundation_workspace_falls_back_when_analytics_reference_unavailable():
+    core_client = _StubLotusCoreQueryClient(
+        list_payload={"items": []},
+        portfolio_payload={"portfolio_id": "PF_1001", "base_currency": "USD"},
+        snapshot_payload={
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-05-23",
+            "sections": {
+                "positions_baseline": [{"security_id": "EQ_1", "market_value_base": 1000.0}],
+                "portfolio_totals": {"baseline_total_market_value_base": 1000.0},
+                "instrument_enrichment": [{"security_id": "EQ_1", "asset_class": "Equity"}],
+            },
+        },
+        analytics_reference_payload={"detail": "reference unavailable"},
+        analytics_reference_status_code=503,
+    )
+    analytics_client = _StubAnalyticsClient(
+        200, {"resultsByPeriod": {"YTD": {"net_cumulative_return": 1.25}}}
+    )
+    service = FoundationService(
+        lotus_core_query_client=core_client,
+        analytics_client=analytics_client,
+        dpm_client=_StubDpmClient(200, {"items": []}),
+        reporting_client=_StubReportingClient(200, {"rows": []}),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PF_1001",
+        correlation_id="corr-reference-fallback",
+    )
+
+    assert response.performance is not None
+    assert response.performance.return_pct == 1.25
+    assert analytics_client.twr_calls[0]["report_end_date"] == "2026-05-23"
+    assert response.evidence.status == "ready"
 
 
 @pytest.mark.asyncio

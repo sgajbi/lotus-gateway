@@ -576,6 +576,55 @@ async def test_portfolio_workspace_uses_aum_and_cash_balance_reporting():
 
 
 @pytest.mark.asyncio
+async def test_portfolio_workspace_uses_source_resolved_date_for_default_performance_snapshot():
+    class _RecordingCoreClient(_StubLotusCoreQueryClient):
+        def __init__(self) -> None:
+            self.analytics_reference_as_of_date: str | None = None
+
+        async def query_assets_under_management(self, **kwargs):
+            payload = await super().query_assets_under_management(**kwargs)
+            payload[1]["resolved_as_of_date"] = "2026-04-10"
+            return payload
+
+        async def get_portfolio_analytics_reference(
+            self,
+            portfolio_id: str,
+            as_of_date: str,
+            consumer_system: str,
+            correlation_id: str,
+        ):
+            self.analytics_reference_as_of_date = as_of_date
+            _ = portfolio_id, consumer_system, correlation_id
+            return 200, {"performance_end_date": as_of_date}
+
+    class _RecordingAnalyticsClient(_StubAnalyticsClient):
+        def __init__(self) -> None:
+            self.twr_kwargs: dict[str, object] | None = None
+
+        async def get_twr_analytics(self, **kwargs):
+            self.twr_kwargs = kwargs
+            return await super().get_twr_analytics(**kwargs)
+
+    core_client = _RecordingCoreClient()
+    analytics_client = _RecordingAnalyticsClient()
+    service = PortfolioService(
+        core_client,
+        analytics_client=analytics_client,
+        dpm_client=_StubDpmClient(),
+    )
+
+    response = await service.get_portfolio_workspace(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-canonical-default-date",
+    )
+
+    assert response.as_of_date == "2026-04-10"
+    assert core_client.analytics_reference_as_of_date == "2026-04-10"
+    assert analytics_client.twr_kwargs is not None
+    assert analytics_client.twr_kwargs["report_end_date"] == "2026-04-10"
+
+
+@pytest.mark.asyncio
 async def test_portfolio_workspace_preserves_rebalance_supportability_without_latest_run():
     class _NoRunDpmClient(_StubDpmClient):
         async def list_runs(self, params: dict[str, object], correlation_id: str):

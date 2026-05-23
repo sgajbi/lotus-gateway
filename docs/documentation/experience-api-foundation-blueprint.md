@@ -43,6 +43,24 @@ The gateway should not own:
 2. permanent workarounds for upstream contract defects,
 3. business semantics that belong in domain apps.
 
+## Implemented Foundation Workspace Behavior
+
+The `GET /api/v1/foundation/portfolios/{portfolio_id}/workspace` contract composes the first-paint
+front-office workspace from source-owned services:
+
+1. `lotus-core` portfolio identity and `core-snapshot` sections provide the portfolio summary,
+   allocation, and top-position view.
+2. `lotus-core` `PortfolioAnalyticsReference.performance_end_date` provides the source-owned
+   performance horizon for the Foundation YTD return request. Gateway must not send a future or
+   non-overlapping calendar date to `lotus-performance` when Core has already resolved the latest
+   complete calculable performance horizon.
+3. `lotus-performance` remains the authority for TWR calculations. Gateway reshapes the returned
+   `results_by_period` payload into the Foundation summary and preserves degraded or unavailable
+   upstream results through warnings and partial failures.
+4. If the analytics reference lookup is unavailable, Gateway falls back to the snapshot as-of date
+   and lets the performance supportability response determine whether the Foundation workspace is
+   ready or degraded.
+
 ## Product Areas
 
 The long-term gateway direction should support:

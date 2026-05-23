@@ -495,6 +495,8 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
+        resolved_as_of_date = self._extract_resolved_as_of_date(aum_result) or effective_as_of_date
+        performance_as_of_date = as_of_date or resolved_as_of_date
         (
             performance_result,
             rebalance_result,
@@ -503,7 +505,7 @@ class PortfolioService:
             self._get_workspace_performance_result(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=effective_as_of_date,
+                as_of_date=performance_as_of_date,
             ),
             self._get_workspace_rebalance_result(
                 portfolio_id=portfolio_id,
@@ -543,7 +545,6 @@ class PortfolioService:
             partial_failures,
         )
         operations = self._parse_operations(support_result, warnings, partial_failures)
-        resolved_as_of_date = self._extract_resolved_as_of_date(aum_result) or effective_as_of_date
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,

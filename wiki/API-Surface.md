@@ -317,6 +317,12 @@ Foundation workspace:
 curl "http://127.0.0.1:8111/api/v1/foundation/portfolios/PF_1001/workspace"
 ```
 
+The Foundation workspace uses `lotus-core` portfolio identity and core-snapshot sections for
+first-paint holdings context, then resolves `PortfolioAnalyticsReference.performance_end_date`
+before requesting YTD TWR from `lotus-performance`. This keeps the displayed return, supportability
+state, and fan-out logs aligned to the latest complete calculable performance horizon instead of a
+raw calendar date.
+
 Performance summary:
 
 ```bash
