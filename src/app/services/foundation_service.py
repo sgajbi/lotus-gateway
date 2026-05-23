@@ -189,13 +189,14 @@ class FoundationService:
         as_of_date: str,
     ) -> str:
         try:
-            reference_status, reference_payload = (
-                await self._lotus_core_query_client.get_portfolio_analytics_reference(
-                    portfolio_id=portfolio_id,
-                    as_of_date=as_of_date,
-                    consumer_system="lotus-gateway",
-                    correlation_id=correlation_id,
-                )
+            (
+                reference_status,
+                reference_payload,
+            ) = await self._lotus_core_query_client.get_portfolio_analytics_reference(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                consumer_system="lotus-gateway",
+                correlation_id=correlation_id,
             )
         except Exception:
             return as_of_date
