@@ -5,11 +5,13 @@ from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalActionRequest,
     ProposalApprovalsEnvelopeResponse,
+    ProposalBodyRequest,
     ProposalCreateEnvelopeResponse,
     ProposalCreateRequest,
     ProposalDeliveryEventsEnvelopeResponse,
     ProposalDeliverySummaryEnvelopeResponse,
     ProposalDetailEnvelopeResponse,
+    ProposalEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
     ProposalMemoAiCommentaryEnvelopeResponse,
@@ -72,6 +74,33 @@ async def simulate_proposal(
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.simulate_proposal(
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/artifact",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal Artifact",
+    description=(
+        "Creates a deterministic advisory proposal artifact through lotus-advise. Gateway "
+        "preserves decision summary, alternatives, evidence bundle, and hashes without "
+        "constructing artifact content locally."
+    ),
+)
+async def create_proposal_artifact(
+    request: ProposalBodyRequest,
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for proposal artifact generation.",
+        examples=["idem-artifact-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal_artifact(
         body=request.body,
         idempotency_key=idempotency_key,
         correlation_id=correlation_id,
@@ -166,6 +195,121 @@ async def list_proposals(
     return await service.list_proposals(filters=filters, correlation_id=correlation_id)
 
 
+@router.post(
+    "/async",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal Asynchronously",
+    description=(
+        "Starts an asynchronous proposal create operation in lotus-advise. Gateway returns the "
+        "source-owned operation reference and does not manage advisory operation state locally."
+    ),
+)
+async def create_proposal_async(
+    request: ProposalBodyRequest,
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for async proposal creation.",
+        examples=["idem-proposal-async-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal_async(
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/operations/{operation_id}",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Operation",
+    description="Returns async proposal operation state from lotus-advise.",
+)
+async def get_proposal_operation(
+    operation_id: str = Path(
+        ...,
+        description="lotus-advise async proposal operation identifier.",
+        examples=["apo_001"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_operation(
+        operation_id=operation_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/operations/by-correlation/{operation_correlation_id}",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Operation by Correlation",
+    description="Looks up a source-owned async proposal operation by its operation correlation id.",
+)
+async def get_proposal_operation_by_correlation(
+    operation_correlation_id: str = Path(
+        ...,
+        description="Operation correlation identifier recorded by lotus-advise.",
+        examples=["corr-operation-001"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_operation_by_correlation(
+        operation_correlation_id=operation_correlation_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/operations/{operation_id}/replay-evidence",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Operation Replay Evidence",
+    description=(
+        "Returns source-owned replay evidence for an async proposal operation from lotus-advise."
+    ),
+)
+async def get_proposal_operation_replay_evidence(
+    operation_id: str = Path(
+        ...,
+        description="lotus-advise async proposal operation identifier.",
+        examples=["apo_001"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_operation_replay_evidence(
+        operation_id=operation_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/idempotency/{idempotency_key}",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Idempotency Record",
+    description=(
+        "Returns the source-owned idempotency record from lotus-advise for support and replay "
+        "diagnosis. Gateway does not interpret or mutate idempotency state."
+    ),
+)
+async def get_proposal_idempotency_record(
+    idempotency_key: str = Path(
+        ...,
+        description="Idempotency key recorded by lotus-advise.",
+        examples=["idem-create-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_idempotency_record(
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}",
     response_model=ProposalDetailEnvelopeResponse,
@@ -228,6 +372,35 @@ async def get_proposal_version(
     )
 
 
+@router.get(
+    "/{proposal_id}/versions/{version_no}/replay-evidence",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Version Replay Evidence",
+    description=(
+        "Returns source-owned replay evidence for one immutable proposal version from lotus-advise."
+    ),
+)
+async def get_proposal_version_replay_evidence(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        description="Persisted proposal version number to retrieve replay evidence for.",
+        examples=[2],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_version_replay_evidence(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions",
     response_model=ProposalCreateEnvelopeResponse,
@@ -250,6 +423,38 @@ async def create_proposal_version(
     service = _proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_version(
+        proposal_id=proposal_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/{proposal_id}/versions/async",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal Version Asynchronously",
+    description=(
+        "Starts an asynchronous version-create operation in lotus-advise for an existing "
+        "proposal. Gateway returns source-owned operation posture only."
+    ),
+)
+async def create_proposal_version_async(
+    request: ProposalBodyRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for async proposal-version creation.",
+        examples=["idem-version-async-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal_version_async(
         proposal_id=proposal_id,
         body=request.body,
         idempotency_key=idempotency_key,
@@ -450,6 +655,70 @@ async def get_proposal_lineage(
 
 
 @router.post(
+    "/{proposal_id}/versions/{version_no}/narrative/regenerate",
+    response_model=ProposalEnvelopeResponse,
+    summary="Regenerate Proposal Narrative Candidate",
+    description=(
+        "Requests a non-persistent advisor-review narrative candidate from lotus-advise for a "
+        "persisted proposal version. Gateway does not generate or edit narrative text locally."
+    ),
+)
+async def regenerate_proposal_narrative(
+    request: ProposalBodyRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        ge=1,
+        description="Immutable proposal version number containing narrative evidence.",
+        examples=[2],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.regenerate_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.body,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/{proposal_id}/versions/{version_no}/narrative",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Narrative",
+    description=(
+        "Returns the persisted proposal narrative and review posture from lotus-advise. Gateway "
+        "does not regenerate narrative text on read."
+    ),
+)
+async def get_proposal_narrative(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        ge=1,
+        description="Immutable proposal version number containing narrative evidence.",
+        examples=[2],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
     "/{proposal_id}/versions/{version_no}/narrative/review",
     response_model=ProposalNarrativeReviewEnvelopeResponse,
     summary="Review Proposal Narrative",
@@ -517,6 +786,39 @@ async def create_report_request(
     )
 
 
+@router.post(
+    "/{proposal_id}/execution-handoffs",
+    response_model=ProposalEnvelopeResponse,
+    summary="Create Proposal Execution Handoff",
+    description=(
+        "Records a source-owned advisory execution handoff in lotus-advise. Gateway preserves "
+        "the boundary that downstream systems remain execution authorities."
+    ),
+)
+async def create_execution_handoff(
+    request: ProposalBodyRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        description="Optional idempotency key for execution handoff requests.",
+        examples=["idem-execution-handoff-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_execution_handoff(
+        proposal_id=proposal_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/delivery-summary",
     response_model=ProposalDeliverySummaryEnvelopeResponse,
@@ -562,6 +864,63 @@ async def get_delivery_events(
     correlation_id = correlation_id_var.get()
     return await service.get_delivery_events(
         proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.get(
+    "/{proposal_id}/execution-status",
+    response_model=ProposalEnvelopeResponse,
+    summary="Get Proposal Execution Status",
+    description=(
+        "Returns advisory execution status projection from lotus-advise without Gateway claiming "
+        "OMS, fill, or settlement authority."
+    ),
+)
+async def get_execution_status(
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_execution_status(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/{proposal_id}/execution-updates",
+    response_model=ProposalEnvelopeResponse,
+    summary="Record Proposal Execution Update",
+    description=(
+        "Records a downstream execution-status update in lotus-advise while preserving external "
+        "execution-system ownership."
+    ),
+)
+async def record_execution_update(
+    request: ProposalBodyRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        description="Optional idempotency key for execution update requests.",
+        examples=["idem-execution-update-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.record_execution_update(
+        proposal_id=proposal_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
         correlation_id=correlation_id,
     )
 
@@ -707,6 +1066,45 @@ async def review_proposal_memo(
         proposal_id=proposal_id,
         version_no=version_no,
         body=request.model_dump(exclude_none=True),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
+@router.post(
+    "/{proposal_id}/versions/{version_no}/memo/report-package-events",
+    response_model=ProposalEnvelopeResponse,
+    summary="Record Proposal Memo Report Package Event",
+    description=(
+        "Records report/render/archive package event posture through lotus-advise. Gateway does "
+        "not synthesize archive refs, render state, or memo lineage locally."
+    ),
+)
+async def record_proposal_memo_report_package_event(
+    request: ProposalBodyRequest,
+    proposal_id: str = Path(
+        ...,
+        description="Gateway-visible proposal identifier returned by lotus-advise.",
+        examples=["pp_1"],
+    ),
+    version_no: int = Path(
+        ...,
+        description="Immutable proposal version number used as the memo source.",
+        examples=[2],
+    ),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        description="Caller-supplied idempotency key for memo report-package events.",
+        examples=["idem-memo-report-package-event-1"],
+    ),
+) -> ProposalEnvelopeResponse:
+    service = _proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.record_proposal_memo_report_package_event(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.body,
         idempotency_key=idempotency_key,
         correlation_id=correlation_id,
     )

@@ -68,6 +68,19 @@ class AdviseClient:
             operation="advise.advisory.proposals.simulate",
         )
 
+    async def create_proposal_artifact(
+        self,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/proposals/artifact",
+            body=body,
+            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="advise.advisory.proposals.artifact",
+        )
+
     async def create_advisory_workspace(
         self,
         body: dict[str, Any],
@@ -128,6 +141,84 @@ class AdviseClient:
             body=body,
             headers=self._headers(correlation_id),
             operation="advise.advisory.workspaces.save",
+        )
+
+    async def list_advisory_workspace_saved_versions(
+        self,
+        workspace_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.saved-versions.list",
+        )
+
+    async def get_advisory_workspace_saved_version_replay_evidence(
+        self,
+        workspace_id: str,
+        workspace_version_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/workspaces/{workspace_id}/saved-versions/"
+            f"{workspace_version_id}/replay-evidence",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.saved-versions.replay-evidence",
+        )
+
+    async def resume_advisory_workspace(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/resume",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.resume",
+        )
+
+    async def compare_advisory_workspace(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/compare",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.compare",
+        )
+
+    async def request_advisory_workspace_rationale(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.assistant.rationale",
+        )
+
+    async def review_advisory_workspace_rationale(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.assistant.rationale.review-actions",
         )
 
     async def handoff_advisory_workspace(
@@ -214,6 +305,69 @@ class AdviseClient:
             operation="advise.advisory.proposals.versions.create",
         )
 
+    async def create_proposal_async(
+        self,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/proposals/async",
+            body=body,
+            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="advise.advisory.proposals.async.create",
+        )
+
+    async def create_proposal_version_async(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/async",
+            body=body,
+            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="advise.advisory.proposals.versions.async.create",
+        )
+
+    async def get_proposal_operation(
+        self,
+        operation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/operations/{operation_id}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.operations.get",
+        )
+
+    async def get_proposal_operation_by_correlation(
+        self,
+        operation_correlation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/operations/by-correlation/{operation_correlation_id}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.operations.by-correlation",
+        )
+
+    async def get_proposal_operation_replay_evidence(
+        self,
+        operation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/operations/{operation_id}/replay-evidence",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.operations.replay-evidence",
+        )
+
     async def transition_proposal(
         self,
         proposal_id: str,
@@ -278,6 +432,58 @@ class AdviseClient:
             operation="advise.advisory.proposals.lineage",
         )
 
+    async def get_proposal_version_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/replay-evidence",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.versions.replay-evidence",
+        )
+
+    async def get_proposal_idempotency_record(
+        self,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/idempotency/{idempotency_key}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.idempotency.get",
+        )
+
+    async def regenerate_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/regenerate",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.narrative.regenerate",
+        )
+
+    async def get_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.narrative.get",
+        )
+
     async def review_proposal_narrative(
         self,
         proposal_id: str,
@@ -309,6 +515,23 @@ class AdviseClient:
             operation="advise.advisory.proposals.report-requests.create",
         )
 
+    async def create_execution_handoff(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/execution-handoffs",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.execution-handoffs.create",
+        )
+
     async def get_delivery_summary(
         self,
         proposal_id: str,
@@ -331,6 +554,35 @@ class AdviseClient:
             params={},
             headers=self._headers(correlation_id),
             operation="advise.advisory.proposals.delivery-events",
+        )
+
+    async def get_execution_status(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/execution-status",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.execution-status",
+        )
+
+    async def record_execution_update(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/execution-updates",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.execution-updates.record",
         )
 
     async def create_proposal_memo(
@@ -394,6 +646,24 @@ class AdviseClient:
             body=body,
             headers=headers,
             operation="advise.advisory.proposals.memo.review",
+        )
+
+    async def record_proposal_memo_report_package_event(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.memo.report-package-events",
         )
 
     async def request_proposal_memo_report_package(
