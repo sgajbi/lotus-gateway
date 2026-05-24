@@ -257,6 +257,8 @@ class PlatformCapabilitiesService:
                 source_name="lotus_core",
                 feature_keys=(
                     "lotus_core.integration.core_snapshot",
+                    "lotus_core.support.overview_api",
+                    "lotus_core.ingestion.portfolio_bundle_adapter",
                     "pas.integration.core_snapshot",
                 ),
             ),
@@ -265,6 +267,8 @@ class PlatformCapabilitiesService:
                 source_name="lotus_core",
                 feature_keys=(
                     "lotus_core.ingestion.bulk_upload",
+                    "lotus_core.ingestion.bulk_upload_adapter",
+                    "lotus_core.ingestion.portfolio_bundle_adapter",
                     "pas.ingestion.bulk_upload",
                 ),
             ),

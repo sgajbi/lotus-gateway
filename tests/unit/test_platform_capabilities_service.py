@@ -924,7 +924,11 @@ async def test_platform_capabilities_normalizes_live_snake_case_capability_metad
                 "source_service": "lotus-core",
                 "policy_version": "tenant-default-v1",
                 "supported_input_modes": ["lotus_core_ref"],
-                "features": [],
+                "features": [
+                    {"key": "lotus_core.support.overview_api", "enabled": True},
+                    {"key": "lotus_core.ingestion.bulk_upload_adapter", "enabled": True},
+                    {"key": "lotus_core.ingestion.portfolio_bundle_adapter", "enabled": True},
+                ],
                 "workflows": [],
             },
         ),
@@ -984,6 +988,8 @@ async def test_platform_capabilities_normalizes_live_snake_case_capability_metad
         "inline_bundle",
         "simulation",
     ]
+    assert normalized.navigation["portfolio_intake"] is True
+    assert normalized.navigation["portfolio_workspace"] is True
     assert normalized.policy_versions_by_source == {
         "lotus_core": "tenant-default-v1",
         "lotus_performance": "tenant-default-v1",
