@@ -107,8 +107,8 @@ def test_platform_capabilities_router_success(monkeypatch):
     assert body["normalized"]["navigation"]["portfolio_workspace"] is True
     assert body["normalized"]["navigation"]["performance_workspace"] is True
     assert body["normalized"]["navigation"]["risk_workspace"] is True
-    assert body["normalized"]["navigation"]["proposal_workspace"] is False
-    assert body["normalized"]["navigation"]["advisory_workspace"] is False
+    assert body["normalized"]["navigation"]["proposal_workspace"] is True
+    assert body["normalized"]["navigation"]["advisory_workspace"] is True
     assert body["normalized"]["workflowFlags"]["proposal_lifecycle"] is True
     assert body["normalized"]["workflowFlags"]["portfolio_reporting"] is True
     assert body["normalized"]["policyVersionsBySource"] == {
@@ -163,8 +163,8 @@ def test_platform_capabilities_router_success(monkeypatch):
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap["workspaces"] if workspace["id"] == "proposal"
     )
-    assert proposal_workspace["enabled"] is False
-    assert proposal_workspace["supportability"]["state"] == "unavailable"
+    assert proposal_workspace["enabled"] is True
+    assert proposal_workspace["supportability"]["state"] == "ready"
     assert proposal_workspace["caching"]["correctnessCritical"] is True
 
 

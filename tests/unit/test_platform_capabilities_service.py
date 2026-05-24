@@ -249,8 +249,8 @@ async def test_platform_capabilities_all_sources_success():
     assert response.data.normalized.navigation["portfolio_workspace"] is True
     assert response.data.normalized.navigation["performance_workspace"] is True
     assert response.data.normalized.navigation["risk_workspace"] is True
-    assert response.data.normalized.navigation["proposal_workspace"] is False
-    assert response.data.normalized.navigation["advisory_workspace"] is False
+    assert response.data.normalized.navigation["proposal_workspace"] is True
+    assert response.data.normalized.navigation["advisory_workspace"] is True
     assert response.data.normalized.workflow_flags["proposal_lifecycle"] is True
     assert response.data.normalized.workflow_flags["portfolio_reporting"] is True
     assert "inline_bundle" in response.data.normalized.input_modes_union
@@ -307,7 +307,7 @@ async def test_platform_capabilities_all_sources_success():
     proposal_workspace = next(
         workspace for workspace in shell_bootstrap.workspaces if workspace.id == "proposal"
     )
-    assert proposal_workspace.enabled is False
+    assert proposal_workspace.enabled is True
     assert proposal_workspace.supportability.state == "ready"
     assert proposal_workspace.supportability.reasons == ["advisory_ready"]
     assert proposal_workspace.caching.correctness_critical is True
@@ -623,8 +623,10 @@ async def test_platform_capabilities_preserves_advise_supportability_without_loc
     )
     assert proposal_workspace.supportability.state == "degraded"
     assert proposal_workspace.supportability.reasons == ["dependency_degraded"]
+    assert proposal_workspace.enabled is True
     assert advisory_workspace.supportability.state == "degraded"
     assert advisory_workspace.supportability.reasons == ["dependency_degraded"]
+    assert advisory_workspace.enabled is True
 
 
 def test_platform_capabilities_module_health_marks_unknown_sources():

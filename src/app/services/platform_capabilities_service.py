@@ -350,8 +350,8 @@ class PlatformCapabilitiesService:
             ),
             "performance_workspace": feature_enabled["lotus_performance_analytics"],
             "risk_workspace": feature_enabled["lotus_risk_analytics"],
-            "proposal_workspace": False,
-            "advisory_workspace": False,
+            "proposal_workspace": feature_enabled["lotus_advise_lifecycle"],
+            "advisory_workspace": feature_enabled["lotus_advise_lifecycle"],
         }
         workflow_flags = {
             "proposal_lifecycle": self._any_workflow_enabled(
