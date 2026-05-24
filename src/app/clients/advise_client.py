@@ -254,6 +254,130 @@ class AdviseClient:
             operation="advise.advisory.proposals.delivery-events",
         )
 
+    async def create_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo",
+            body=body,
+            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="advise.advisory.proposals.memo.create",
+        )
+
+    async def get_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.memo.get",
+        )
+
+    async def get_proposal_memo_projection(
+        self,
+        proposal_id: str,
+        version_no: int,
+        audience: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        params: dict[str, Any] = {}
+        if audience:
+            params["audience"] = audience
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/projection",
+            params=params,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.memo.projection",
+        )
+
+    async def review_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.memo.review",
+        )
+
+    async def request_proposal_memo_report_package(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-packages",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.memo.report-packages",
+        )
+
+    async def request_proposal_memo_ai_commentary(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.proposals.memo.ai-commentary",
+        )
+
+    async def get_proposal_memo_lineage(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/memos/lineage",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.memo.lineage",
+        )
+
+    async def get_proposal_memo_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.proposals.memo.replay-evidence",
+        )
+
     def _headers(
         self,
         correlation_id: str,
