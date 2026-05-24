@@ -413,6 +413,201 @@ class _FakeAdviseClient:
             "explanation": {"filter": "DELIVERY_ONLY"},
         }
 
+    async def create_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "create_proposal_memo",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
+            "memo_id": "memo_1",
+            "memo_status": "PENDING_REVIEW",
+            "lifecycle_status": body["lifecycle_status"],
+            "memo_hash": "sha256:memo-1",
+            "projection": {"client_ready_publication": "BLOCKED"},
+            "review_posture": {"advisor_use": "PENDING_REVIEW"},
+            "report_package_posture": {"status": "NOT_REQUESTED"},
+        }
+
+    async def get_proposal_memo(self, proposal_id: str, version_no: int, correlation_id: str):
+        self.calls.append(
+            (
+                "get_proposal_memo",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
+            "memo_id": "memo_1",
+            "memo_status": "APPROVED_FOR_ADVISOR_USE",
+            "memo_hash": "sha256:memo-1",
+            "read_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
+        }
+
+    async def get_proposal_memo_projection(
+        self,
+        proposal_id: str,
+        version_no: int,
+        audience: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "get_proposal_memo_projection",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "audience": audience,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
+            "projection": {"audience": audience, "client_ready_publication": "BLOCKED"},
+            "sections": [{"section_id": "DISCLOSURES", "supportability": "SOURCE_BACKED"}],
+            "projection_posture": {"supportability": "SUPPORTED_ADVISOR_USE"},
+        }
+
+    async def review_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "review_proposal_memo",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "memo": {"memo_hash": body["source_memo_hash"]},
+            "review_event": {"action": body["action"], "reviewed_by": body["reviewed_by"]},
+            "review_posture": {"advisor_use": "APPROVED_FOR_ADVISOR_USE"},
+        }
+
+    async def request_proposal_memo_report_package(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "request_proposal_memo_report_package",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "memo": {"memo_hash": body["source_memo_hash"]},
+            "report_package_event": {"client_ready_document_requested": False},
+            "report": {"render_status": "READY", "archive_refs": ["archive://memo/report/1"]},
+        }
+
+    async def request_proposal_memo_ai_commentary(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "request_proposal_memo_ai_commentary",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "memo": {"memo_hash": body["source_memo_hash"]},
+            "ai_event": {"requested_sections": body["requested_sections"]},
+            "commentary": {"status": "AVAILABLE", "authority": "NON_AUTHORITATIVE"},
+        }
+
+    async def get_proposal_memo_lineage(self, proposal_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_proposal_memo_lineage",
+                {"proposal_id": proposal_id, "correlation_id": correlation_id},
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id},
+            "memos": [
+                {
+                    "memo_id": "memo_1",
+                    "memo_hash": "sha256:memo-1",
+                    "report_package_posture": {"archive_refs": ["archive://memo/report/1"]},
+                    "ai_commentary_posture": {"status": "AVAILABLE"},
+                }
+            ],
+        }
+
+    async def get_proposal_memo_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "get_proposal_memo_replay_evidence",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {"proposal_id": proposal_id, "current_version_no": version_no},
+            "hashes": {"memo_hash": "sha256:memo-1", "artifact_hash": "sha256:artifact-1"},
+            "audit_events": [{"event_type": "MEMO_CREATED"}],
+            "supportability": {"client_ready_publication": "BLOCKED"},
+        }
+
 
 class _FakeAdviseErrorClient(_FakeAdviseClient):
     async def record_approval(
@@ -752,6 +947,102 @@ async def test_reviewed_narrative_and_delivery_posture_routes_wrap_source_payloa
         "get_delivery_events",
     ]
     assert client.calls[-4][1]["idempotency_key"] == "idem-narrative-review-1"
+
+
+@pytest.mark.asyncio
+async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
+    client = _FakeAdviseClient()
+    service = ProposalService(advise_client=client)
+
+    created = await service.create_proposal_memo(
+        proposal_id="pp_1",
+        version_no=2,
+        body={
+            "created_by": "advisor_1",
+            "lifecycle_status": "DRAFT",
+            "reason": {"purpose": "advisor-use memo pack"},
+        },
+        idempotency_key="idem-memo-create-1",
+        correlation_id="corr_memo_create",
+    )
+    memo = await service.get_proposal_memo(
+        proposal_id="pp_1",
+        version_no=2,
+        correlation_id="corr_memo_read",
+    )
+    projection = await service.get_proposal_memo_projection(
+        proposal_id="pp_1",
+        version_no=2,
+        audience="COMPLIANCE",
+        correlation_id="corr_memo_projection",
+    )
+    review = await service.review_proposal_memo(
+        proposal_id="pp_1",
+        version_no=2,
+        body={
+            "action": "APPROVE_FOR_ADVISOR_USE",
+            "reviewed_by": "compliance_1",
+            "reason": "Advisor-use memo is evidence backed.",
+            "source_memo_hash": "sha256:memo-1",
+        },
+        idempotency_key="idem-memo-review-1",
+        correlation_id="corr_memo_review",
+    )
+    report_package = await service.request_proposal_memo_report_package(
+        proposal_id="pp_1",
+        version_no=2,
+        body={
+            "requested_by": "advisor_1",
+            "source_memo_hash": "sha256:memo-1",
+            "requested_output_formats": ["pdf"],
+            "client_ready_document_requested": False,
+            "reason": {"purpose": "advisor-use memo report"},
+        },
+        idempotency_key="idem-memo-report-1",
+        correlation_id="corr_memo_report",
+    )
+    ai_commentary = await service.request_proposal_memo_ai_commentary(
+        proposal_id="pp_1",
+        version_no=2,
+        body={
+            "requested_by": "advisor_1",
+            "source_memo_hash": "sha256:memo-1",
+            "requested_sections": ["EXECUTIVE_SUMMARY"],
+            "reason": {"purpose": "advisor-use commentary"},
+        },
+        idempotency_key="idem-memo-ai-1",
+        correlation_id="corr_memo_ai",
+    )
+    lineage = await service.get_proposal_memo_lineage(
+        proposal_id="pp_1",
+        correlation_id="corr_memo_lineage",
+    )
+    replay = await service.get_proposal_memo_replay_evidence(
+        proposal_id="pp_1",
+        version_no=2,
+        correlation_id="corr_memo_replay",
+    )
+
+    assert created.data["memo_hash"] == "sha256:memo-1"
+    assert memo.data["read_posture"]["supportability"] == "SUPPORTED_ADVISOR_USE"
+    assert projection.data["projection"]["audience"] == "COMPLIANCE"
+    assert review.data["review_event"]["action"] == "APPROVE_FOR_ADVISOR_USE"
+    assert report_package.data["report"]["archive_refs"] == ["archive://memo/report/1"]
+    assert ai_commentary.data["commentary"]["authority"] == "NON_AUTHORITATIVE"
+    assert lineage.data["memos"][0]["ai_commentary_posture"]["status"] == "AVAILABLE"
+    assert replay.data["hashes"]["artifact_hash"] == "sha256:artifact-1"
+    assert [name for name, _ in client.calls[-8:]] == [
+        "create_proposal_memo",
+        "get_proposal_memo",
+        "get_proposal_memo_projection",
+        "review_proposal_memo",
+        "request_proposal_memo_report_package",
+        "request_proposal_memo_ai_commentary",
+        "get_proposal_memo_lineage",
+        "get_proposal_memo_replay_evidence",
+    ]
+    assert client.calls[-5][1]["idempotency_key"] == "idem-memo-review-1"
+    assert client.calls[-4][1]["body"]["client_ready_document_requested"] is False
 
 
 @pytest.mark.asyncio

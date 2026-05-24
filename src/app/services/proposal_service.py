@@ -17,6 +17,13 @@ from app.contracts.proposals import (
     ProposalLineageEnvelopeResponse,
     ProposalListData,
     ProposalListEnvelopeResponse,
+    ProposalMemoAiCommentaryEnvelopeResponse,
+    ProposalMemoEnvelopeResponse,
+    ProposalMemoLineageEnvelopeResponse,
+    ProposalMemoProjectionEnvelopeResponse,
+    ProposalMemoReplayEvidenceEnvelopeResponse,
+    ProposalMemoReportPackageEnvelopeResponse,
+    ProposalMemoReviewEnvelopeResponse,
     ProposalNarrativeReviewEnvelopeResponse,
     ProposalReportRequestEnvelopeResponse,
     ProposalSimulateResponse,
@@ -396,6 +403,175 @@ class ProposalService:
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return ProposalDeliveryEventsEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def create_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ProposalMemoEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_proposal_memo(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> ProposalMemoEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_memo(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_proposal_memo_projection(
+        self,
+        proposal_id: str,
+        version_no: int,
+        audience: str | None,
+        correlation_id: str,
+    ) -> ProposalMemoProjectionEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_memo_projection(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            audience=audience,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoProjectionEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def review_proposal_memo(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalMemoReviewEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.review_proposal_memo(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoReviewEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def request_proposal_memo_report_package(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalMemoReportPackageEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.request_proposal_memo_report_package(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoReportPackageEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def request_proposal_memo_ai_commentary(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalMemoAiCommentaryEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.request_proposal_memo_ai_commentary(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoAiCommentaryEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_proposal_memo_lineage(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalMemoLineageEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_memo_lineage(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoLineageEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
+        )
+
+    async def get_proposal_memo_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> ProposalMemoReplayEvidenceEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_proposal_memo_replay_evidence(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return ProposalMemoReplayEvidenceEnvelopeResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             data=upstream_payload,

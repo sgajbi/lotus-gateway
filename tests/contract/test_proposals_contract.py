@@ -10,6 +10,17 @@ from app.contracts.proposals import (
     ProposalEnvelopeResponse,
     ProposalLineageEnvelopeResponse,
     ProposalListEnvelopeResponse,
+    ProposalMemoAiCommentaryEnvelopeResponse,
+    ProposalMemoAiCommentaryRequest,
+    ProposalMemoCreateRequest,
+    ProposalMemoEnvelopeResponse,
+    ProposalMemoLineageEnvelopeResponse,
+    ProposalMemoProjectionEnvelopeResponse,
+    ProposalMemoReplayEvidenceEnvelopeResponse,
+    ProposalMemoReportPackageEnvelopeResponse,
+    ProposalMemoReportPackageRequest,
+    ProposalMemoReviewEnvelopeResponse,
+    ProposalMemoReviewRequest,
     ProposalNarrativeReviewEnvelopeResponse,
     ProposalNarrativeReviewRequest,
     ProposalReportRequest,
@@ -204,6 +215,71 @@ def test_proposal_reviewed_narrative_contract_shapes() -> None:
     assert events_payload.data["event_count"] == 1
 
 
+def test_proposal_memo_contract_shapes() -> None:
+    create_request = ProposalMemoCreateRequest(created_by="advisor_1")
+    review_request = ProposalMemoReviewRequest(
+        action="APPROVE_FOR_ADVISOR_USE",
+        reviewed_by="compliance_1",
+        reason="Evidence-backed advisor-use memo.",
+        source_memo_hash="sha256:memo-001",
+    )
+    report_request = ProposalMemoReportPackageRequest(
+        requested_by="advisor_1",
+        source_memo_hash="sha256:memo-001",
+    )
+    ai_request = ProposalMemoAiCommentaryRequest(
+        requested_by="advisor_1",
+        source_memo_hash="sha256:memo-001",
+    )
+    memo_payload = ProposalMemoEnvelopeResponse(
+        correlation_id="corr_memo_1",
+        contract_version="v1",
+        data={"memo_hash": "sha256:memo-001", "projection": {"client_ready": "BLOCKED"}},
+    )
+    projection_payload = ProposalMemoProjectionEnvelopeResponse(
+        correlation_id="corr_memo_2",
+        contract_version="v1",
+        data={"projection": {"audience": "COMPLIANCE"}, "sections": []},
+    )
+    review_payload = ProposalMemoReviewEnvelopeResponse(
+        correlation_id="corr_memo_3",
+        contract_version="v1",
+        data={"review_posture": {"advisor_use": "APPROVED_FOR_ADVISOR_USE"}},
+    )
+    report_payload = ProposalMemoReportPackageEnvelopeResponse(
+        correlation_id="corr_memo_4",
+        contract_version="v1",
+        data={"report": {"archive_refs": ["archive://memo/report/1"]}},
+    )
+    ai_payload = ProposalMemoAiCommentaryEnvelopeResponse(
+        correlation_id="corr_memo_5",
+        contract_version="v1",
+        data={"commentary": {"authority": "NON_AUTHORITATIVE"}},
+    )
+    lineage_payload = ProposalMemoLineageEnvelopeResponse(
+        correlation_id="corr_memo_6",
+        contract_version="v1",
+        data={"memos": [{"memo_hash": "sha256:memo-001"}]},
+    )
+    replay_payload = ProposalMemoReplayEvidenceEnvelopeResponse(
+        correlation_id="corr_memo_7",
+        contract_version="v1",
+        data={"hashes": {"memo_hash": "sha256:memo-001"}},
+    )
+
+    assert create_request.lifecycle_status == "DRAFT"
+    assert review_request.client_ready_release_requested is False
+    assert report_request.client_ready_document_requested is False
+    assert ai_request.requested_sections
+    assert memo_payload.data["memo_hash"] == "sha256:memo-001"
+    assert projection_payload.data["projection"]["audience"] == "COMPLIANCE"
+    assert review_payload.data["review_posture"]["advisor_use"] == "APPROVED_FOR_ADVISOR_USE"
+    assert report_payload.data["report"]["archive_refs"] == ["archive://memo/report/1"]
+    assert ai_payload.data["commentary"]["authority"] == "NON_AUTHORITATIVE"
+    assert lineage_payload.data["memos"][0]["memo_hash"] == "sha256:memo-001"
+    assert replay_payload.data["hashes"]["memo_hash"] == "sha256:memo-001"
+
+
 def test_proposal_submit_request_contract_shape() -> None:
     payload = ProposalSubmitRequest(actor_id="advisor_1")
     assert payload.review_type == "RISK"
@@ -234,6 +310,16 @@ def test_proposals_openapi_read_contract() -> None:
     delivery_events_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/delivery-events"][
         "get"
     ]
+    memo_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/versions/{version_no}/memo"][
+        "get"
+    ]
+    memo_projection_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo/projection"
+    ]["get"]
+    memo_lineage_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/memos/lineage"]["get"]
+    memo_replay_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo/replay-evidence"
+    ]["get"]
 
     list_parameters = {parameter["name"]: parameter for parameter in list_operation["parameters"]}
     detail_parameters = {
@@ -256,6 +342,16 @@ def test_proposals_openapi_read_contract() -> None:
     }
     delivery_events_parameters = {
         parameter["name"]: parameter for parameter in delivery_events_operation["parameters"]
+    }
+    memo_parameters = {parameter["name"]: parameter for parameter in memo_operation["parameters"]}
+    memo_projection_parameters = {
+        parameter["name"]: parameter for parameter in memo_projection_operation["parameters"]
+    }
+    memo_lineage_parameters = {
+        parameter["name"]: parameter for parameter in memo_lineage_operation["parameters"]
+    }
+    memo_replay_parameters = {
+        parameter["name"]: parameter for parameter in memo_replay_operation["parameters"]
     }
 
     assert "portfolio" in list_operation["description"].lower()
@@ -299,6 +395,15 @@ def test_proposals_openapi_read_contract() -> None:
     assert delivery_events_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert "reviewed advisory narrative" in delivery_summary_operation["description"].lower()
     assert "without gateway-side inference" in delivery_events_operation["description"].lower()
+    assert memo_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert memo_parameters["version_no"]["schema"]["examples"] == [2]
+    assert memo_projection_parameters["audience"]["schema"]["examples"] == ["COMPLIANCE"]
+    assert memo_lineage_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert memo_replay_parameters["version_no"]["schema"]["examples"] == [2]
+    assert "does not recompute" in memo_operation["description"].lower()
+    assert "does not redact" in memo_projection_operation["description"].lower()
+    assert "without gateway-side recomputation" in memo_lineage_operation["description"].lower()
+    assert "without local gateway interpretation" in memo_replay_operation["description"].lower()
 
     list_response_ref = list_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
@@ -324,6 +429,18 @@ def test_proposals_openapi_read_contract() -> None:
     delivery_events_response_ref = delivery_events_operation["responses"]["200"]["content"][
         "application/json"
     ]["schema"]["$ref"]
+    memo_response_ref = memo_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    memo_projection_response_ref = memo_projection_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    memo_lineage_response_ref = memo_lineage_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
+    memo_replay_response_ref = memo_replay_operation["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["$ref"]
 
     assert list_response_ref.endswith("/ProposalListEnvelopeResponse")
     assert detail_response_ref.endswith("/ProposalDetailEnvelopeResponse")
@@ -333,6 +450,10 @@ def test_proposals_openapi_read_contract() -> None:
     assert lineage_response_ref.endswith("/ProposalLineageEnvelopeResponse")
     assert delivery_summary_response_ref.endswith("/ProposalDeliverySummaryEnvelopeResponse")
     assert delivery_events_response_ref.endswith("/ProposalDeliveryEventsEnvelopeResponse")
+    assert memo_response_ref.endswith("/ProposalMemoEnvelopeResponse")
+    assert memo_projection_response_ref.endswith("/ProposalMemoProjectionEnvelopeResponse")
+    assert memo_lineage_response_ref.endswith("/ProposalMemoLineageEnvelopeResponse")
+    assert memo_replay_response_ref.endswith("/ProposalMemoReplayEvidenceEnvelopeResponse")
 
 
 def test_proposals_openapi_write_contract() -> None:
@@ -356,6 +477,18 @@ def test_proposals_openapi_write_contract() -> None:
     report_request_operation = spec["paths"]["/api/v1/proposals/{proposal_id}/report-requests"][
         "post"
     ]
+    memo_create_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo"
+    ]["post"]
+    memo_review_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo/review"
+    ]["post"]
+    memo_report_package_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo/report-packages"
+    ]["post"]
+    memo_ai_commentary_operation = spec["paths"][
+        "/api/v1/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary"
+    ]["post"]
 
     simulate_parameters = {
         parameter["name"]: parameter for parameter in simulate_operation["parameters"]
@@ -383,6 +516,18 @@ def test_proposals_openapi_write_contract() -> None:
     }
     report_request_parameters = {
         parameter["name"]: parameter for parameter in report_request_operation["parameters"]
+    }
+    memo_create_parameters = {
+        parameter["name"]: parameter for parameter in memo_create_operation["parameters"]
+    }
+    memo_review_parameters = {
+        parameter["name"]: parameter for parameter in memo_review_operation["parameters"]
+    }
+    memo_report_package_parameters = {
+        parameter["name"]: parameter for parameter in memo_report_package_operation["parameters"]
+    }
+    memo_ai_commentary_parameters = {
+        parameter["name"]: parameter for parameter in memo_ai_commentary_operation["parameters"]
     }
 
     assert "idempotency" in simulate_operation["description"].lower()
@@ -433,6 +578,21 @@ def test_proposals_openapi_write_contract() -> None:
     assert report_request_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
     assert "never regenerates narrative locally" in narrative_review_operation["description"]
     assert "source-hash continuity" in report_request_operation["description"]
+    assert memo_create_parameters["proposal_id"]["schema"]["examples"] == ["pp_1"]
+    assert memo_create_parameters["version_no"]["schema"]["examples"] == [2]
+    assert memo_create_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-memo-create-1"]
+    assert memo_review_parameters["Idempotency-Key"]["schema"]["examples"] == ["idem-memo-review-1"]
+    assert memo_report_package_parameters["Idempotency-Key"]["schema"]["examples"] == [
+        "idem-memo-report-package-1"
+    ]
+    assert memo_ai_commentary_parameters["Idempotency-Key"]["schema"]["examples"] == [
+        "idem-memo-ai-commentary-1"
+    ]
+    assert "does not promote client-ready release" in memo_review_operation["description"]
+    assert "does not synthesize archive refs" in memo_report_package_operation["description"]
+    assert (
+        "does not treat commentary as memo evidence" in memo_ai_commentary_operation["description"]
+    )
 
     assert create_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
@@ -458,6 +618,18 @@ def test_proposals_openapi_write_contract() -> None:
     assert report_request_operation["responses"]["200"]["content"]["application/json"]["schema"][
         "$ref"
     ].endswith("/ProposalReportRequestEnvelopeResponse")
+    assert memo_create_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalMemoEnvelopeResponse")
+    assert memo_review_operation["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ].endswith("/ProposalMemoReviewEnvelopeResponse")
+    assert memo_report_package_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/ProposalMemoReportPackageEnvelopeResponse")
+    assert memo_ai_commentary_operation["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]["$ref"].endswith("/ProposalMemoAiCommentaryEnvelopeResponse")
 
     simulate_request_schema = spec["components"]["schemas"]["ProposalSimulateRequest"]
     create_request_schema = spec["components"]["schemas"]["ProposalCreateRequest"]
@@ -468,6 +640,10 @@ def test_proposals_openapi_write_contract() -> None:
         "ProposalNarrativeReviewRequest"
     ]
     report_request_schema = spec["components"]["schemas"]["ProposalReportRequest"]
+    memo_create_request_schema = spec["components"]["schemas"]["ProposalMemoCreateRequest"]
+    memo_review_request_schema = spec["components"]["schemas"]["ProposalMemoReviewRequest"]
+    memo_report_request_schema = spec["components"]["schemas"]["ProposalMemoReportPackageRequest"]
+    memo_ai_request_schema = spec["components"]["schemas"]["ProposalMemoAiCommentaryRequest"]
     simulate_response_schema = spec["components"]["schemas"]["ProposalSimulateResponse"]
     simulate_data_schema = spec["components"]["schemas"]["ProposalSimulationData"]
     list_envelope_schema = spec["components"]["schemas"]["ProposalListEnvelopeResponse"]
@@ -489,6 +665,25 @@ def test_proposals_openapi_write_contract() -> None:
     ]
     delivery_events_envelope_schema = spec["components"]["schemas"][
         "ProposalDeliveryEventsEnvelopeResponse"
+    ]
+    memo_envelope_schema = spec["components"]["schemas"]["ProposalMemoEnvelopeResponse"]
+    memo_projection_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoProjectionEnvelopeResponse"
+    ]
+    memo_review_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoReviewEnvelopeResponse"
+    ]
+    memo_report_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoReportPackageEnvelopeResponse"
+    ]
+    memo_ai_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoAiCommentaryEnvelopeResponse"
+    ]
+    memo_lineage_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoLineageEnvelopeResponse"
+    ]
+    memo_replay_envelope_schema = spec["components"]["schemas"][
+        "ProposalMemoReplayEvidenceEnvelopeResponse"
     ]
     create_envelope_schema = spec["components"]["schemas"]["ProposalCreateEnvelopeResponse"]
     transition_envelope_schema = spec["components"]["schemas"][
@@ -544,6 +739,20 @@ def test_proposals_openapi_write_contract() -> None:
     assert report_request_schema["properties"]["report_type"]["examples"] == ["PORTFOLIO_REVIEW"]
     assert report_request_schema["properties"]["requested_by"]["description"]
     assert report_request_schema["properties"]["include_reviewed_narrative"]["examples"] == [True]
+    assert memo_create_request_schema["properties"]["created_by"]["examples"] == ["advisor_1"]
+    assert memo_create_request_schema["properties"]["lifecycle_status"]["default"] == "DRAFT"
+    assert memo_review_request_schema["properties"]["source_memo_hash"]["examples"] == [
+        "sha256:memo-001"
+    ]
+    assert (
+        memo_review_request_schema["properties"]["client_ready_release_requested"]["default"]
+        is False
+    )
+    assert (
+        memo_report_request_schema["properties"]["client_ready_document_requested"]["default"]
+        is False
+    )
+    assert memo_ai_request_schema["properties"]["requested_sections"]["description"]
 
     assert simulate_response_schema["properties"]["correlation_id"]["description"]
     assert simulate_response_schema["properties"]["correlation_id"]["examples"] == [
@@ -581,6 +790,13 @@ def test_proposals_openapi_write_contract() -> None:
         report_request_envelope_schema,
         delivery_summary_envelope_schema,
         delivery_events_envelope_schema,
+        memo_envelope_schema,
+        memo_projection_envelope_schema,
+        memo_review_envelope_schema,
+        memo_report_envelope_schema,
+        memo_ai_envelope_schema,
+        memo_lineage_envelope_schema,
+        memo_replay_envelope_schema,
         create_envelope_schema,
         transition_envelope_schema,
     ):
