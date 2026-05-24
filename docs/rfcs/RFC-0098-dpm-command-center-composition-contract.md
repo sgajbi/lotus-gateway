@@ -426,19 +426,22 @@ Gateway responsibility:
 3. preserve manage `wave_id`, `wave_version`, optimistic `version`, `state`, item states,
    reason codes, aggregate metrics, selected alternative refs, proof-pack refs, handoff refs,
    retention policy, event refs, and supportability refs,
-4. compose module posture using the common command-center states `ready`, `degraded`, `blocked`,
+4. preserve `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE` and related lotus-core
+   `DpmPortfolioUniverseCandidate:v1` filters for lotus-manage while rejecting non-empty
+   caller-supplied candidate portfolio fields in that source-discovery mode,
+5. compose module posture using the common command-center states `ready`, `degraded`, `blocked`,
    `not_supported`, `unavailable`, and `error`,
-5. compose risk, performance, report, archive, and AI posture only from owning services and only
+6. compose risk, performance, report, archive, and AI posture only from owning services and only
    as adjacent modules; Gateway must not infer missing domain readiness from manage wave state,
-6. expose action eligibility as a Gateway view over manage-supported actions, entitlement posture,
+7. expose action eligibility as a Gateway view over manage-supported actions, entitlement posture,
    upstream availability, and supportability state, with disabled reasons when actions are blocked.
 
 Gateway must not:
 
 1. calculate affected portfolios, source readiness, aggregate metrics, item readiness,
    construction alternatives, proof-pack state, or handoff state,
-2. create implicit PM-book or CIO model-change cohort discovery until `lotus-core` or another
-   owning app exposes a certified cohort product,
+2. create implicit PM-book, CIO model-change, or campaign candidate discovery beyond forwarding
+   source-discovery requests to `lotus-manage`,
 3. mark handoff as external execution; manage handoff refs explicitly use
    `external_execution_claimed=false`,
 4. expose a Workbench route that bypasses manage supportability diagnostics for operator

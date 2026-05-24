@@ -52,5 +52,9 @@ def test_rfc0098_ownership_matches_manage_rfc0040_rfc0041_and_rfc0042() -> None:
     assert "portfolio memory remains `lotus-manage` truth" in integrations
     assert "must not calculate affected portfolios" in api_surface
     assert "calculate campaign membership" in api_surface
+    assert "DpmPortfolioUniverseCandidate:v1" in rfc
+    assert "DpmPortfolioUniverseCandidate:v1" in api_surface
+    assert "campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE" in api_surface
+    assert "non-empty caller-supplied" in api_surface
     assert "`/api/v1/dpm/command-center/waves*`" in api_surface
     assert "Gateway does not generate proof packs. That belongs to `lotus-report`." not in rfc

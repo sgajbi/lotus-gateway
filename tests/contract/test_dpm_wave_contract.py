@@ -246,3 +246,7 @@ def test_dpm_wave_openapi_models_are_described() -> None:
 
     assert schemas["DpmWaveSupportability"]["properties"]["state"]["examples"]
     assert schemas["DpmWaveGatewayResponse"]["properties"]["data"]["description"]
+    wave_forward_body = schemas["DpmWaveForwardRequest"]["properties"]["body"]
+    assert "DpmPortfolioUniverseCandidate:v1" in wave_forward_body["description"]
+    assert "CORE_DPM_PORTFOLIO_UNIVERSE" in str(wave_forward_body["examples"])
+    assert "caller-supplied candidate portfolios" in wave_forward_body["description"]
