@@ -1679,23 +1679,37 @@ class PerformanceWorkspaceService:
     ) -> str | None:
         if benchmark_code:
             return benchmark_code
-        return cast(
-            str | None,
-            await self._get_cached_upstream_result(
-                (
-                    "benchmark_assignment",
-                    portfolio_id,
-                    as_of_date,
-                    portfolio_currency,
-                ),
-                lambda: self._fetch_assigned_benchmark_code(
-                    portfolio_id=portfolio_id,
-                    as_of_date=as_of_date,
-                    portfolio_currency=portfolio_currency,
-                    correlation_id=correlation_id,
-                ),
+        cache_key = (
+            "benchmark_assignment",
+            portfolio_id,
+            as_of_date,
+            portfolio_currency,
+        )
+        resolved_benchmark_code, cache_hit = await self._upstream_cache.get_or_set_with_status(
+            key=cache_key,
+            factory=lambda: self._fetch_assigned_benchmark_code(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                portfolio_currency=portfolio_currency,
+                correlation_id=correlation_id,
             ),
         )
+        if resolved_benchmark_code:
+            return cast(str, resolved_benchmark_code)
+
+        self._upstream_cache.discard(cache_key)
+        if not cache_hit:
+            return None
+
+        refreshed_benchmark_code = await self._fetch_assigned_benchmark_code(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            portfolio_currency=portfolio_currency,
+            correlation_id=correlation_id,
+        )
+        if refreshed_benchmark_code:
+            self._upstream_cache.set(cache_key, refreshed_benchmark_code)
+        return refreshed_benchmark_code
 
     async def _fetch_assigned_benchmark_code(
         self,

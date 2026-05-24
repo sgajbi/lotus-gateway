@@ -56,3 +56,10 @@ class AsyncTtlCache(Generic[T]):
     def clear(self) -> None:
         self._entries.clear()
         self._inflight.clear()
+
+    def discard(self, key: tuple[object, ...]) -> None:
+        self._entries.pop(key, None)
+        self._inflight.pop(key, None)
+
+    def set(self, key: tuple[object, ...], value: T) -> None:
+        self._entries[key] = (monotonic() + self._ttl_seconds, value)

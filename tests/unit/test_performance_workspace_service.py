@@ -1529,6 +1529,55 @@ async def test_performance_workspace_service_resolves_linked_benchmark_when_code
 
 
 @pytest.mark.asyncio
+async def test_performance_workspace_service_does_not_negative_cache_missing_benchmark_assignment():
+    class _LaggedBenchmarkAssignmentClient(_StubLotusCoreQueryClient):
+        async def get_benchmark_assignment(self, **kwargs):
+            self.benchmark_assignment_calls.append(kwargs)
+            if len(self.benchmark_assignment_calls) == 1:
+                return 200, {"benchmark_id": None, "assignment_status": "not_found"}
+            return 200, {
+                "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                "assignment_status": "active",
+            }
+
+    analytics_client = _StubAnalyticsClient()
+    query_client = _LaggedBenchmarkAssignmentClient()
+    service = PerformanceWorkspaceService(
+        workbench_service=_StubWorkbenchService(),
+        analytics_client=analytics_client,
+        lotus_core_query_client=query_client,
+    )
+
+    await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-first",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+    )
+    second_response = await service.get_performance_workspace_summary(
+        portfolio_id="DEMO_ADV_USD_001",
+        correlation_id="corr-performance-second",
+        period="YTD",
+        chart_frequency="monthly",
+        contribution_dimension="asset_class",
+        attribution_dimension="asset_class",
+        detail_basis="NET",
+        benchmark_code=None,
+    )
+
+    assert analytics_client.workspace_summary_calls[0]["benchmark_id"] is None
+    assert second_response.benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert analytics_client.workspace_summary_calls[1]["benchmark_id"] == (
+        "BMK_PB_GLOBAL_BALANCED_60_40"
+    )
+    assert len(query_client.benchmark_assignment_calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_performance_workspace_service_builds_horizon_comparison_contract():
     analytics_client = _StubAnalyticsClient()
     query_client = _StubLotusCoreQueryClient()
