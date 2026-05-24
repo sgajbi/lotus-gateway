@@ -262,6 +262,9 @@ Most relevant current governance:
     operating queue, approval inbox, workflow board, assignment plan, workflow automation,
     approval-decision, assignment-action, assignment-task, task-transition, and maker-checker
     evidence requests to `lotus-manage`;
+    preserves the bounded `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE` request shape
+    for Manage/Core `DpmPortfolioUniverseCandidate:v1` consumption while rejecting non-empty
+    caller-supplied candidate portfolio fields at the BFF boundary;
     preserves manage-owned `wave_id`, lifecycle state, item states, reason codes, aggregate
     metrics, selected alternative refs, proof-pack refs, handoff refs, campaign definition payloads,
     campaign workflow/audit payloads, count/page metadata, supportability issues, source refs,

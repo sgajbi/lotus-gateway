@@ -183,6 +183,12 @@
   `BulkReviewCampaignDefinitionPreviewReadiness:v1`, paged append-only
   `BulkReviewCampaignDefinitionLaunchHistory:v1` audit history, ready-only launch posture, and
   bounded campaign workflow/audit evidence.
+  For bounded Core-owned campaign candidate discovery, Gateway preserves
+  `campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE`,
+  `model_portfolio_ids`, `include_inactive_mandates`, and `campaign_candidate_page_size` for
+  lotus-manage, which consumes lotus-core `DpmPortfolioUniverseCandidate:v1`; Gateway rejects
+  non-empty caller-supplied `portfolios`, `portfolio_ids`, or `source_candidates` in that mode and
+  does not discover or rank a global portfolio universe.
   Gateway preserves preview-readiness supportability state, reason codes, blocked actions, source
   refs, requested as-of date, actor id, and operating boundaries exactly. Gateway also preserves
   launch-history campaign id/version, launch records, count, total count, limit, offset, and

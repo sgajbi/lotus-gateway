@@ -1,4 +1,17 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+_CORE_DPM_PORTFOLIO_UNIVERSE = "CORE_DPM_PORTFOLIO_UNIVERSE"
+_CORE_DISCOVERY_CALLER_SUPPLIED_FIELDS = ("portfolios", "portfolio_ids", "source_candidates")
+
+
+def _has_supplied_value(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set, dict)):
+        return len(value) > 0
+    return True
 
 
 class DpmWaveForwardRequest(BaseModel):
@@ -7,7 +20,11 @@ class DpmWaveForwardRequest(BaseModel):
             "Request payload forwarded unchanged to the lotus-manage RFC-0041 rebalance-wave "
             "authority. Gateway does not discover PM books, infer affected portfolios, classify "
             "source readiness, simulate construction alternatives, approve items, stage items, "
-            "create handoff evidence, or cancel wave state locally."
+            "create handoff evidence, or cancel wave state locally. For BULK_REVIEW_CAMPAIGN, "
+            "`campaign_candidate_source=CORE_DPM_PORTFOLIO_UNIVERSE` asks lotus-manage to resolve "
+            "bounded source-owned candidates from lotus-core `DpmPortfolioUniverseCandidate:v1`; "
+            "Gateway preserves the request shape and rejects caller-supplied candidate portfolios "
+            "in that mode so Workbench cannot mix source discovery with explicit-list input."
         ),
         examples=[
             {
@@ -17,9 +34,38 @@ class DpmWaveForwardRequest(BaseModel):
                 "as_of_date": "2026-05-03",
                 "actor_id": "pm_sg_1",
                 "portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
-            }
+            },
+            {
+                "trigger_type": "BULK_REVIEW_CAMPAIGN",
+                "trigger_id": "campaign-core-universe-20260524",
+                "rationale": "Review bounded Core-owned DPM mandate candidates.",
+                "as_of_date": "2026-05-24",
+                "actor_id": "pm_sg_1",
+                "campaign_candidate_source": "CORE_DPM_PORTFOLIO_UNIVERSE",
+                "model_portfolio_ids": ["MODEL_PB_SG_GLOBAL_BAL_DPM"],
+                "include_inactive_mandates": False,
+                "campaign_candidate_page_size": 500,
+            },
         ],
     )
+
+    @model_validator(mode="after")
+    def reject_caller_portfolios_for_core_candidate_source(self) -> "DpmWaveForwardRequest":
+        if self.body.get("campaign_candidate_source") != _CORE_DPM_PORTFOLIO_UNIVERSE:
+            return self
+        supplied_fields = [
+            field
+            for field in _CORE_DISCOVERY_CALLER_SUPPLIED_FIELDS
+            if _has_supplied_value(self.body.get(field))
+        ]
+        if supplied_fields:
+            supplied = ", ".join(supplied_fields)
+            raise ValueError(
+                "CORE_DPM_PORTFOLIO_UNIVERSE candidate discovery supplies the portfolio set from "
+                "lotus-core DpmPortfolioUniverseCandidate:v1; omit caller-supplied candidate "
+                f"fields: {supplied}."
+            )
+        return self
 
 
 class DpmWaveCreateRequest(DpmWaveForwardRequest):

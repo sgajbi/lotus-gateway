@@ -39,6 +39,92 @@ def test_dpm_wave_preview_preserves_manage_supportability(monkeypatch) -> None:
     assert payload["data"]["supportability"]["supportability_state"] == "ready"
 
 
+def test_dpm_wave_preview_forwards_core_candidate_source_without_portfolios(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    async def _fake_preview_wave(self, body, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["body"] = body
+        captured["correlation_id"] = correlation_id
+        return 200, {
+            "wave": {
+                "wave_id": "dwv_core_candidates_preview",
+                "state": "PREVIEWED",
+                "trigger_type": "BULK_REVIEW_CAMPAIGN",
+            },
+            "durable": False,
+            "supportability": {
+                "supportability_state": "ready",
+                "reason": "core_portfolio_universe_candidates_ready",
+            },
+            "source_refs": [
+                {
+                    "source_system": "lotus-core",
+                    "source_type": "DpmPortfolioUniverseCandidate",
+                    "source_id": "core-dpm-universe:2026-05-24",
+                    "source_version": "v1",
+                    "content_hash": "sha256:core-candidates",
+                }
+            ],
+        }
+
+    monkeypatch.setattr("app.clients.dpm_client.DpmClient.preview_wave", _fake_preview_wave)
+
+    client = TestClient(app)
+    body = {
+        "trigger_type": "BULK_REVIEW_CAMPAIGN",
+        "trigger_id": "campaign-core-universe-20260524",
+        "rationale": "Review bounded Core-owned DPM mandate candidates.",
+        "as_of_date": "2026-05-24",
+        "actor_id": "pm_sg_1",
+        "campaign_candidate_source": "CORE_DPM_PORTFOLIO_UNIVERSE",
+        "model_portfolio_ids": ["MODEL_PB_SG_GLOBAL_BAL_DPM"],
+        "include_inactive_mandates": False,
+        "campaign_candidate_page_size": 500,
+    }
+    response = client.post(
+        "/api/v1/dpm/command-center/waves/preview",
+        json={"body": body},
+        headers={"X-Correlation-Id": "corr-wave-router-core-candidates"},
+    )
+
+    assert response.status_code == 200
+    assert captured == {
+        "body": body,
+        "correlation_id": "corr-wave-router-core-candidates",
+    }
+    payload = response.json()
+    assert payload["supportability"]["state"] == "ready"
+    assert payload["data"]["source_refs"][0]["source_type"] == "DpmPortfolioUniverseCandidate"
+
+
+def test_dpm_wave_preview_rejects_core_candidate_source_with_caller_portfolios() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/dpm/command-center/waves/preview",
+        json={
+            "body": {
+                "trigger_type": "BULK_REVIEW_CAMPAIGN",
+                "trigger_id": "campaign-core-universe-20260524",
+                "rationale": "Review bounded Core-owned DPM mandate candidates.",
+                "as_of_date": "2026-05-24",
+                "actor_id": "pm_sg_1",
+                "campaign_candidate_source": "CORE_DPM_PORTFOLIO_UNIVERSE",
+                "model_portfolio_ids": ["MODEL_PB_SG_GLOBAL_BAL_DPM"],
+                "portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+            }
+        },
+        headers={"X-Correlation-Id": "corr-wave-router-core-candidates-rejected"},
+    )
+
+    assert response.status_code == 422
+    error_text = str(response.json())
+    expected_error = "CORE_DPM_PORTFOLIO_UNIVERSE candidate discovery supplies the portfolio set"
+    assert expected_error in error_text
+    assert "portfolios" in error_text
+    assert "DpmPortfolioUniverseCandidate:v1" in error_text
+
+
 def test_dpm_wave_create_forwards_body_and_idempotency_key(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
