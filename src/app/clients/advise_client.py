@@ -68,6 +68,85 @@ class AdviseClient:
             operation="advise.advisory.proposals.simulate",
         )
 
+    async def create_advisory_workspace(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/workspaces",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.create",
+        )
+
+    async def get_advisory_workspace(
+        self,
+        workspace_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/workspaces/{workspace_id}",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.get",
+        )
+
+    async def apply_advisory_workspace_draft_action(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/draft-actions",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.draft-action",
+        )
+
+    async def evaluate_advisory_workspace(
+        self,
+        workspace_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/evaluate",
+            body={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.evaluate",
+        )
+
+    async def save_advisory_workspace(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/save",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.workspaces.save",
+        )
+
+    async def handoff_advisory_workspace(
+        self,
+        workspace_id: str,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        headers = self._headers(correlation_id)
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        return await self._post(
+            f"/advisory/workspaces/{workspace_id}/handoff",
+            body=body,
+            headers=headers,
+            operation="advise.advisory.workspaces.handoff",
+        )
+
     async def create_proposal(
         self,
         body: dict[str, Any],

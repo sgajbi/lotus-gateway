@@ -10,6 +10,7 @@ from app.enterprise_readiness import (
     validate_enterprise_runtime_config,
 )
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
+from app.routers.advisory_workspaces import router as advisory_workspaces_router
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
 from app.routers.archive_documents import router as archive_documents_router
 from app.routers.composite_performance import router as composite_performance_router
@@ -102,6 +103,7 @@ validate_enterprise_runtime_config()
 app.middleware("http")(correlation_middleware)
 app.middleware("http")(build_enterprise_audit_middleware("lotus-gateway"))
 Instrumentator().instrument(app).expose(app)
+app.include_router(advisory_workspaces_router)
 app.include_router(proposals_router)
 app.include_router(platform_router)
 app.include_router(domain_products_router)
