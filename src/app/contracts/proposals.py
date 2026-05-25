@@ -151,6 +151,22 @@ class ProposalVersionCreateRequest(BaseModel):
     )
 
 
+class ProposalBodyRequest(BaseModel):
+    body: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Opaque advisory proposal payload forwarded unchanged to lotus-advise for "
+            "source-owned support, execution, memo, narrative, async, or artifact workflows."
+        ),
+        examples=[
+            {
+                "actor_id": "advisor_1",
+                "reason": {"summary": "Advisor workflow action requested from Workbench."},
+            }
+        ],
+    )
+
+
 class ProposalSubmitRequest(BaseModel):
     actor_id: str = Field(
         description="Actor identifier requesting the submit transition.",

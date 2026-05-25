@@ -13,6 +13,7 @@ from app.contracts.proposals import (
     ProposalDeliverySummaryEnvelopeResponse,
     ProposalDetailData,
     ProposalDetailEnvelopeResponse,
+    ProposalEnvelopeResponse,
     ProposalLineageData,
     ProposalLineageEnvelopeResponse,
     ProposalListData,
@@ -84,6 +85,20 @@ class ProposalService:
             contract_version=settings.contract_version,
             data=ProposalSimulationData.model_validate(upstream_payload),
         )
+
+    async def create_proposal_artifact(
+        self,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_proposal_artifact(
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
 
     async def create_proposal(
         self,
@@ -176,6 +191,78 @@ class ProposalService:
             contract_version=settings.contract_version,
             data=ProposalCreateData.model_validate(upstream_payload),
         )
+
+    async def create_proposal_async(
+        self,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_proposal_async(
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def create_proposal_version_async(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_proposal_version_async(
+            proposal_id=proposal_id,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def get_proposal_operation(
+        self,
+        operation_id: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_operation(
+            operation_id=operation_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def get_proposal_operation_by_correlation(
+        self,
+        operation_correlation_id: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_proposal_operation_by_correlation(
+            operation_correlation_id=operation_correlation_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def get_proposal_operation_replay_evidence(
+        self,
+        operation_id: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_proposal_operation_replay_evidence(
+            operation_id=operation_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
 
     async def submit_proposal(
         self,
@@ -336,6 +423,68 @@ class ProposalService:
             data=ProposalLineageData.model_validate(upstream_payload),
         )
 
+    async def get_proposal_version_replay_evidence(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_proposal_version_replay_evidence(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def get_proposal_idempotency_record(
+        self,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_proposal_idempotency_record(
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def regenerate_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.regenerate_proposal_narrative(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def get_proposal_narrative(
+        self,
+        proposal_id: str,
+        version_no: int,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_proposal_narrative(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
     async def review_proposal_narrative(
         self,
         proposal_id: str,
@@ -376,6 +525,22 @@ class ProposalService:
             data=upstream_payload,
         )
 
+    async def create_execution_handoff(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.create_execution_handoff(
+            proposal_id=proposal_id,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
     async def get_delivery_summary(
         self,
         proposal_id: str,
@@ -407,6 +572,34 @@ class ProposalService:
             contract_version=settings.contract_version,
             data=upstream_payload,
         )
+
+    async def get_execution_status(
+        self,
+        proposal_id: str,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.get_execution_status(
+            proposal_id=proposal_id,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
+
+    async def record_execution_update(
+        self,
+        proposal_id: str,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        upstream_status, upstream_payload = await self._advise_client.record_execution_update(
+            proposal_id=proposal_id,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
 
     async def create_proposal_memo(
         self,
@@ -489,6 +682,27 @@ class ProposalService:
             contract_version=settings.contract_version,
             data=upstream_payload,
         )
+
+    async def record_proposal_memo_report_package_event(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict[str, Any],
+        idempotency_key: str | None,
+        correlation_id: str,
+    ) -> ProposalEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.record_proposal_memo_report_package_event(
+            proposal_id=proposal_id,
+            version_no=version_no,
+            body=body,
+            idempotency_key=idempotency_key,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._opaque_envelope(correlation_id, upstream_payload)
 
     async def request_proposal_memo_report_package(
         self,
@@ -609,6 +823,17 @@ class ProposalService:
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             data=ProposalStateTransitionData.model_validate(upstream_payload),
+        )
+
+    def _opaque_envelope(
+        self,
+        correlation_id: str,
+        upstream_payload: dict[str, Any],
+    ) -> ProposalEnvelopeResponse:
+        return ProposalEnvelopeResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            data=upstream_payload,
         )
 
     def _raise_for_upstream_error(

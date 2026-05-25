@@ -160,6 +160,271 @@ def test_proposal_create_requires_idempotency_header():
     assert response.status_code == 422
 
 
+def test_proposal_artifact_async_and_support_routes_preserve_advise_contract(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_artifact(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["artifact"] = {
+            "body": body,
+            "idempotency_key": idempotency_key,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"artifact_id": "artifact_001", "artifact_hash": "sha256:artifact"}
+
+    async def _fake_async(self, body, idempotency_key, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["async"] = {
+            "body": body,
+            "idempotency_key": idempotency_key,
+            "correlation_id": correlation_id,
+        }
+        return 202, {"operation_id": "apo_001", "status": "ACCEPTED"}
+
+    async def _fake_operation(self, operation_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["operation"] = {
+            "operation_id": operation_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"operation_id": operation_id, "status": "SUCCEEDED"}
+
+    async def _fake_version_replay(self, proposal_id, version_no, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["version_replay"] = {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"proposal_id": proposal_id, "version_no": version_no, "replayable": True}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.create_proposal_artifact",
+        _fake_artifact,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.create_proposal_async",
+        _fake_async,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal_operation",
+        _fake_operation,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal_version_replay_evidence",
+        _fake_version_replay,
+    )
+
+    client = TestClient(app)
+    artifact = client.post(
+        "/api/v1/proposals/artifact",
+        json={"body": {"proposal_run_id": "pr_001"}},
+        headers={"Idempotency-Key": "idem-artifact", "X-Correlation-Id": "corr-artifact"},
+    )
+    async_create = client.post(
+        "/api/v1/proposals/async",
+        json={"body": {"created_by": "advisor_1"}},
+        headers={"Idempotency-Key": "idem-async", "X-Correlation-Id": "corr-async"},
+    )
+    operation = client.get(
+        "/api/v1/proposals/operations/apo_001",
+        headers={"X-Correlation-Id": "corr-operation"},
+    )
+    replay = client.get(
+        "/api/v1/proposals/pp_001/versions/2/replay-evidence",
+        headers={"X-Correlation-Id": "corr-replay"},
+    )
+
+    assert artifact.status_code == 200
+    assert async_create.status_code == 200
+    assert operation.status_code == 200
+    assert replay.status_code == 200
+    assert captured == {
+        "artifact": {
+            "body": {"proposal_run_id": "pr_001"},
+            "idempotency_key": "idem-artifact",
+            "correlation_id": "corr-artifact",
+        },
+        "async": {
+            "body": {"created_by": "advisor_1"},
+            "idempotency_key": "idem-async",
+            "correlation_id": "corr-async",
+        },
+        "operation": {"operation_id": "apo_001", "correlation_id": "corr-operation"},
+        "version_replay": {
+            "proposal_id": "pp_001",
+            "version_no": 2,
+            "correlation_id": "corr-replay",
+        },
+    }
+    assert artifact.json()["data"]["artifact_hash"] == "sha256:artifact"
+    assert async_create.json()["data"]["operation_id"] == "apo_001"
+    assert operation.json()["data"]["status"] == "SUCCEEDED"
+    assert replay.json()["data"]["replayable"] is True
+
+
+def test_proposal_narrative_execution_and_memo_support_routes_forward_to_advise(monkeypatch):
+    captured: dict[str, object] = {}
+
+    async def _fake_regenerate_narrative(
+        self,
+        proposal_id,
+        version_no,
+        body,
+        correlation_id,  # noqa: ANN001
+    ):
+        _ = self
+        captured["regenerate_narrative"] = {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "body": body,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"narrative_id": "pn_candidate", "status": "READY_FOR_ADVISOR_REVIEW"}
+
+    async def _fake_get_narrative(self, proposal_id, version_no, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["get_narrative"] = {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"narrative_id": "pn_persisted", "review_state": "DRAFT"}
+
+    async def _fake_handoff(
+        self,
+        proposal_id,
+        body,
+        idempotency_key,
+        correlation_id,  # noqa: ANN001
+    ):
+        _ = self
+        captured["execution_handoff"] = {
+            "proposal_id": proposal_id,
+            "body": body,
+            "idempotency_key": idempotency_key,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"execution_request_id": "pex_001", "handoff_status": "REQUESTED"}
+
+    async def _fake_execution_status(self, proposal_id, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["execution_status"] = {
+            "proposal_id": proposal_id,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"proposal_id": proposal_id, "handoff_status": "REQUESTED"}
+
+    async def _fake_memo_report_event(
+        self,
+        proposal_id,
+        version_no,
+        body,
+        idempotency_key,
+        correlation_id,  # noqa: ANN001
+    ):
+        _ = self
+        captured["memo_report_event"] = {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "body": body,
+            "idempotency_key": idempotency_key,
+            "correlation_id": correlation_id,
+        }
+        return 200, {"event_id": "memo_report_event_001", "event_type": "ARCHIVED"}
+
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.regenerate_proposal_narrative",
+        _fake_regenerate_narrative,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_proposal_narrative",
+        _fake_get_narrative,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.create_execution_handoff",
+        _fake_handoff,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_execution_status",
+        _fake_execution_status,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.record_proposal_memo_report_package_event",
+        _fake_memo_report_event,
+    )
+
+    client = TestClient(app)
+    regenerated = client.post(
+        "/api/v1/proposals/pp_001/versions/2/narrative/regenerate",
+        json={"body": {"requested_by": "advisor_1"}},
+        headers={"X-Correlation-Id": "corr-narrative-regenerate"},
+    )
+    narrative = client.get(
+        "/api/v1/proposals/pp_001/versions/2/narrative",
+        headers={"X-Correlation-Id": "corr-narrative-read"},
+    )
+    handoff = client.post(
+        "/api/v1/proposals/pp_001/execution-handoffs",
+        json={"body": {"requested_by": "advisor_1", "execution_provider": "lotus-manage"}},
+        headers={
+            "Idempotency-Key": "idem-exec-handoff",
+            "X-Correlation-Id": "corr-exec-handoff",
+        },
+    )
+    execution_status = client.get(
+        "/api/v1/proposals/pp_001/execution-status",
+        headers={"X-Correlation-Id": "corr-exec-status"},
+    )
+    memo_event = client.post(
+        "/api/v1/proposals/pp_001/versions/2/memo/report-package-events",
+        json={"body": {"event_type": "ARCHIVED", "archive_ref": "archive_001"}},
+        headers={
+            "Idempotency-Key": "idem-memo-report-event",
+            "X-Correlation-Id": "corr-memo-report-event",
+        },
+    )
+
+    assert regenerated.status_code == 200
+    assert narrative.status_code == 200
+    assert handoff.status_code == 200
+    assert execution_status.status_code == 200
+    assert memo_event.status_code == 200
+    assert captured == {
+        "regenerate_narrative": {
+            "proposal_id": "pp_001",
+            "version_no": 2,
+            "body": {"requested_by": "advisor_1"},
+            "correlation_id": "corr-narrative-regenerate",
+        },
+        "get_narrative": {
+            "proposal_id": "pp_001",
+            "version_no": 2,
+            "correlation_id": "corr-narrative-read",
+        },
+        "execution_handoff": {
+            "proposal_id": "pp_001",
+            "body": {"requested_by": "advisor_1", "execution_provider": "lotus-manage"},
+            "idempotency_key": "idem-exec-handoff",
+            "correlation_id": "corr-exec-handoff",
+        },
+        "execution_status": {
+            "proposal_id": "pp_001",
+            "correlation_id": "corr-exec-status",
+        },
+        "memo_report_event": {
+            "proposal_id": "pp_001",
+            "version_no": 2,
+            "body": {"event_type": "ARCHIVED", "archive_ref": "archive_001"},
+            "idempotency_key": "idem-memo-report-event",
+            "correlation_id": "corr-memo-report-event",
+        },
+    }
+    assert regenerated.json()["data"]["status"] == "READY_FOR_ADVISOR_REVIEW"
+    assert handoff.json()["data"]["execution_request_id"] == "pex_001"
+    assert memo_event.json()["data"]["event_type"] == "ARCHIVED"
+
+
 def test_proposal_list_success(monkeypatch):
     async def _fake_list_proposals(self, params, correlation_id):  # noqa: ANN001
         _ = self, correlation_id
