@@ -260,6 +260,15 @@
   policy/guardrail/disclosure posture, report narrative-package posture, and append-only delivery
   events. Gateway does not generate narrative, infer client-ready publication, render reports,
   archive documents, contact clients, or recompute advisory delivery truth
+- advisory policy routes call `lotus-advise` policy-pack and policy-evaluation endpoints:
+  `/api/v1/advisory-policy-packs/*`,
+  `/api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations`, and
+  `/api/v1/advisory-policy-evaluations/*`. Gateway preserves Advise-owned policy-pack,
+  evaluation, review-queue, workflow, sign-off package, sign-off decision, lineage, replay,
+  event, report-package, AI-evidence, degraded, and blocked posture. Gateway does not evaluate
+  suitability or best-interest rules, infer supportability, approve sign-off, override
+  client-ready blockers, generate AI evidence, or promote blocked/degraded evaluations to client
+  output.
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040

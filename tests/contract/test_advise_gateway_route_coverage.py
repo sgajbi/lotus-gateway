@@ -90,3 +90,35 @@ def test_gateway_exposes_supported_lotus_advise_workspace_surface() -> None:
     }
 
     assert expected - routes == set()
+
+
+def test_gateway_exposes_supported_lotus_advise_policy_surface() -> None:
+    routes = _route_keys()
+    expected = {
+        ("GET", "/api/v1/advisory-policy-packs"),
+        ("GET", "/api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}"),
+        (
+            "POST",
+            "/api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/validate",
+        ),
+        (
+            "POST",
+            "/api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/activate",
+        ),
+        (
+            "POST",
+            "/api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+        ),
+        ("GET", "/api/v1/advisory-policy-evaluations/review-queue"),
+        ("GET", "/api/v1/advisory-policy-evaluations/{evaluation_id}"),
+        ("POST", "/api/v1/advisory-policy-evaluations/{evaluation_id}/replay"),
+        ("POST", "/api/v1/advisory-policy-evaluations/{evaluation_id}/events"),
+        ("GET", "/api/v1/advisory-policy-evaluations/{evaluation_id}/lineage"),
+        ("GET", "/api/v1/advisory-policy-evaluations/{evaluation_id}/sign-off-package"),
+        ("GET", "/api/v1/advisory-policy-evaluations/{evaluation_id}/workflow"),
+        ("POST", "/api/v1/advisory-policy-evaluations/{evaluation_id}/sign-off-decisions"),
+        ("POST", "/api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages"),
+        ("POST", "/api/v1/advisory-policy-evaluations/{evaluation_id}/ai-evidence"),
+    }
+
+    assert expected - routes == set()

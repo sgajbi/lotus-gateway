@@ -3038,6 +3038,106 @@ async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "kwargs", "expected_method", "expected_url"),
+    [
+        (
+            "list_policy_packs",
+            {"correlation_id": "corr-policy"},
+            "GET",
+            "http://advise/advisory/policy-packs",
+        ),
+        (
+            "get_policy_pack_version",
+            {
+                "policy_pack_id": "policy_pack_sg_private_banking",
+                "policy_version": "2026.05",
+                "correlation_id": "corr-policy",
+            },
+            "GET",
+            "http://advise/advisory/policy-packs/policy_pack_sg_private_banking/versions/2026.05",
+        ),
+        (
+            "validate_policy_pack_version",
+            {
+                "policy_pack_id": "policy_pack_sg_private_banking",
+                "policy_version": "2026.05",
+                "body": {"validated_by": "policy_admin_1"},
+                "idempotency_key": "idem-policy-validate",
+                "correlation_id": "corr-policy",
+            },
+            "POST",
+            "http://advise/advisory/policy-packs/"
+            "policy_pack_sg_private_banking/versions/2026.05/validate",
+        ),
+        (
+            "create_policy_evaluation",
+            {
+                "proposal_id": "pp_001",
+                "proposal_version_id": "ppv_001",
+                "body": {"requested_by": "advisor_1"},
+                "idempotency_key": "idem-policy-evaluation",
+                "correlation_id": "corr-policy",
+            },
+            "POST",
+            "http://advise/advisory/proposals/pp_001/versions/ppv_001/policy-evaluations",
+        ),
+        (
+            "request_policy_ai_evidence",
+            {
+                "evaluation_id": "pev_001",
+                "body": {"requested_by": "advisor_1"},
+                "idempotency_key": "idem-policy-ai",
+                "correlation_id": "corr-policy",
+            },
+            "POST",
+            "http://advise/advisory/policy-evaluations/pev_001/ai-evidence",
+        ),
+    ],
+)
+async def test_advise_client_policy_routes_forward_correlation_and_idempotency(
+    method_name,
+    kwargs,
+    expected_method,
+    expected_url,
+):
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    method = getattr(client, method_name)
+    status_code, payload = await method(**kwargs)
+
+    assert status_code == 200
+    assert payload["ok"] is True
+    call = _FakeAsyncClient.calls[0]
+    assert call["method"] == expected_method
+    assert call["url"] == expected_url
+    assert call["headers"]["X-Correlation-Id"] == "corr-policy"
+    if expected_method == "POST":
+        assert call["json"] == kwargs["body"]
+    if "idempotency_key" in kwargs:
+        assert call["headers"]["Idempotency-Key"] == kwargs["idempotency_key"]
+
+
+@pytest.mark.asyncio
+async def test_advise_client_policy_review_queue_omits_empty_filters() -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, _ = await client.get_policy_review_queue(
+        evaluation_status=None,
+        correlation_id="corr-policy-queue",
+    )
+
+    assert status_code == 200
+    assert _FakeAsyncClient.calls[0]["url"] == (
+        "http://advise/advisory/policy-evaluations/review-queue"
+    )
+    assert _FakeAsyncClient.calls[0]["params"] == {}
+    assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-policy-queue"
+
+
+@pytest.mark.asyncio
 async def test_advise_client_capabilities_uses_gateway_consumer_and_tenant_context():
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"ok": True})
