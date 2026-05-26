@@ -15,7 +15,9 @@
   stateful risk workspace analytics
 - `lotus-advise`
   proposal simulation, proposal persistence, workflow events, approvals, lineage, reviewed
-  narrative posture, report-request, and proposal delivery posture through `/advisory/proposals/*`
+  narrative posture, report-request, proposal delivery posture, and RFC-0025 policy-pack /
+  policy-evaluation posture through `/advisory/proposals/*`, `/advisory/policy-packs/*`, and
+  `/advisory/policy-evaluations/*`
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
@@ -83,11 +85,17 @@
    report narrative-package posture, and append-only delivery events. Gateway does not generate
    narrative, infer client-ready publication, render reports, archive documents, contact clients,
    or recompute advisory delivery truth.
-10. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
+10. RFC-0025 suitability and best-interest policy posture remains `lotus-advise` truth. Gateway
+   exposes policy-pack, policy-evaluation, review-queue, workflow, sign-off, report-package,
+   lineage, replay, event, and AI-evidence routes for Workbench and preserves Advise-owned
+   degraded, blocked, supportability, maker-checker, and client-ready posture. Gateway does not
+   evaluate policy rules, administer policy locally, generate AI evidence, override sign-off, or
+   release blocked/degraded evaluations to client output.
+11. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.
-11. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
+12. RFC-0038 mandate command-center truth remains in `lotus-manage`. Gateway realization exposes
     `/api/v1/dpm/command-center`, `/api/v1/dpm/command-center/monitoring/*`,
     `/api/v1/dpm/command-center/exceptions*`, and `/api/v1/dpm/command-center/mandates*` for
     Workbench. Gateway forwards filters and request bodies to manage, then preserves health
@@ -99,7 +107,7 @@
     `lotus-ai` `dpm_exception_summary.pack@v1`. Gateway preserves manage source refs and content
     hashes; it does not generate summaries locally, score PMs, approve trades, contact clients,
     route orders, or invent evidence.
-12. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
+13. RFC-0042 outcome reviews remain `lotus-manage` truth. Gateway outcome-review realization must
     compose expected-versus-realized review summaries, dimension outcomes, source lineage,
     supportability, report-input posture, and AI-evidence posture without recomputing outcome
     values or calling source-owner apps behind manage's review authority. The implemented Gateway

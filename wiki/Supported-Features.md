@@ -56,6 +56,70 @@ Operational behavior:
 3. client-ready publication remains explicitly out of Gateway scope until the owning RFC slice
    proves the end-to-end release control path.
 
+## Advisory Suitability And Best-Interest Policy Posture
+
+Status: implementation-backed in Gateway for the RFC-0025 policy-pack and policy-evaluation BFF
+surface. Workbench product realization and live browser proof remain separate RFC-0025 Slice 12
+work.
+
+Business outcome:
+
+1. advisors can request policy evaluation for a proposal version without bypassing Gateway,
+2. compliance, investment desk, operations, and supervisory users can inspect review queues,
+   workflow posture, sign-off packages, source lineage, replay evidence, and report-package
+   posture through one product-facing API surface,
+3. support teams can see degraded, blocked, and AI-evidence-unavailable posture exactly as
+   `lotus-advise` returned it.
+
+Supported routes:
+
+1. `GET /api/v1/advisory-policy-packs`
+2. `GET /api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}`
+3. `POST /api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/validate`
+4. `POST /api/v1/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/activate`
+5. `POST /api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations`
+6. `GET /api/v1/advisory-policy-evaluations/review-queue`
+7. `GET /api/v1/advisory-policy-evaluations/{evaluation_id}`
+8. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/replay`
+9. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/events`
+10. `GET /api/v1/advisory-policy-evaluations/{evaluation_id}/lineage`
+11. `GET /api/v1/advisory-policy-evaluations/{evaluation_id}/sign-off-package`
+12. `GET /api/v1/advisory-policy-evaluations/{evaluation_id}/workflow`
+13. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/sign-off-decisions`
+14. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages`
+15. `POST /api/v1/advisory-policy-evaluations/{evaluation_id}/ai-evidence`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the policy-pack, policy-evaluation, workflow, sign-off, report-package,
+   lineage, replay, event, and AI-evidence authority.
+2. Gateway forwards policy ids, proposal ids, proposal-version ids, evaluation ids, request bodies,
+   idempotency keys, and correlation context to `lotus-advise`.
+3. Gateway preserves Advise-owned supportability, degraded posture, blocked posture,
+   maker-checker state, client-ready blockers, source hashes, AI non-authoritative posture, and
+   report-package state.
+4. Gateway does not evaluate suitability or best-interest rules, administer policy locally,
+   generate AI evidence, infer supportability, override sign-off, or release blocked/degraded
+   evaluations to client output.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench advisory journey] --> Gateway[lotus-gateway advisory-policy routes]
+    Gateway --> Advise[lotus-advise RFC-0025 policy authority]
+    Advise --> Gateway
+    Gateway --> Workbench
+    Advise --> Report[lotus-report optional package realization]
+    Report --> Archive[lotus-archive governed artifact retention]
+```
+
+Operational behavior:
+
+1. policy-pack validation, activation, and policy-evaluation creation require `Idempotency-Key`,
+2. event, sign-off decision, report-package, and AI-evidence actions accept optional
+   `Idempotency-Key`,
+3. Gateway returns source payloads under `data`; clients must use Advise-owned posture fields
+   rather than deriving readiness locally.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

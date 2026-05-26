@@ -31,16 +31,21 @@ Current repository posture:
 
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
-3. performance, proposal, advisory-workspace, foundation, reporting, and capability aggregation
+3. performance, proposal, advisory-workspace, advisory-policy, foundation, reporting, and capability aggregation
    routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, async
    operation support, idempotency lookup, replay evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
    routes routed to `lotus-advise` `/advisory/proposals/*`; advisory workspace create/draft/save,
    saved-version replay, resume, compare, rationale request/review, and handoff routes are routed
-   to `lotus-advise` `/advisory/workspaces/*`. Gateway preserves source-hash, review,
-   report-package, workspace replay, execution handoff, and delivery event posture without
-   generating narrative, inferring client-ready publication, rendering reports, archiving
-   documents, sourcing portfolio positions locally, or recomputing advisory delivery truth;
+   to `lotus-advise` `/advisory/workspaces/*`; advisory policy-pack, policy-evaluation,
+   review-queue, workflow, sign-off package, sign-off decision, report-package, lineage, replay,
+   event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
+   `/advisory/proposals/*/policy-evaluations`. Gateway preserves source-hash, review,
+   report-package, workspace replay, execution handoff, policy supportability, degraded/blocked
+   posture, maker-checker state, sign-off posture, AI-evidence posture, and delivery event posture
+   without generating narrative, evaluating policy rules, inferring client-ready publication,
+   rendering reports, archiving documents, sourcing portfolio positions locally, or recomputing
+   advisory delivery truth;
    `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack
