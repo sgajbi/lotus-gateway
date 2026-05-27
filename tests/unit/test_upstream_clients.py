@@ -3126,6 +3126,7 @@ async def test_advise_client_policy_review_queue_omits_empty_filters() -> None:
 
     status_code, _ = await client.get_policy_review_queue(
         evaluation_status=None,
+        portfolio_id=None,
         correlation_id="corr-policy-queue",
     )
 
@@ -3135,6 +3136,27 @@ async def test_advise_client_policy_review_queue_omits_empty_filters() -> None:
     )
     assert _FakeAsyncClient.calls[0]["params"] == {}
     assert _FakeAsyncClient.calls[0]["headers"]["X-Correlation-Id"] == "corr-policy-queue"
+
+
+@pytest.mark.asyncio
+async def test_advise_client_policy_review_queue_forwards_portfolio_filter() -> None:
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(200, {"ok": True})
+
+    status_code, _ = await client.get_policy_review_queue(
+        evaluation_status="PENDING_REVIEW",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        correlation_id="corr-policy-queue",
+    )
+
+    assert status_code == 200
+    assert _FakeAsyncClient.calls[0]["url"] == (
+        "http://advise/advisory/policy-evaluations/review-queue"
+    )
+    assert _FakeAsyncClient.calls[0]["params"] == {
+        "evaluation_status": "PENDING_REVIEW",
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+    }
 
 
 @pytest.mark.asyncio

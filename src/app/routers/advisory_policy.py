@@ -180,9 +180,15 @@ async def get_policy_review_queue(
         description="Optional policy evaluation status filter owned by lotus-advise.",
         examples=["PENDING_REVIEW"],
     ),
+    portfolio_id: str | None = Query(
+        default=None,
+        description="Optional portfolio identifier filter owned by lotus-advise.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    ),
 ) -> AdvisoryPolicyEnvelopeResponse:
     return await _advisory_policy_service().get_policy_review_queue(
         evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -329,8 +335,8 @@ async def record_policy_sign_off_decision(
     response_model=AdvisoryPolicyEnvelopeResponse,
     summary="Request Advisory Policy Report Package",
     description=(
-        "Requests a source-owned supervisory or client-draft report package through lotus-advise. "
-        "Gateway does not promote blocked or degraded evaluations to client-ready output."
+        "Requests a source-owned advisor/compliance policy sign-off package through lotus-advise. "
+        "Gateway does not promote blocked or degraded evaluations to client-ready publication."
     ),
 )
 async def request_policy_report_package(

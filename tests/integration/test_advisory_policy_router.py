@@ -153,10 +153,11 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
             },
         }
 
-    async def _fake_queue(self, evaluation_status, correlation_id):  # noqa: ANN001
+    async def _fake_queue(self, evaluation_status, portfolio_id, correlation_id):  # noqa: ANN001
         _ = self
         captured["queue"] = {
             "evaluation_status": evaluation_status,
+            "portfolio_id": portfolio_id,
             "correlation_id": correlation_id,
         }
         return 200, {"items": [{"evaluation_id": "pev_001", "queue": "Compliance"}]}
@@ -231,7 +232,8 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         },
     )
     queue_response = client.get(
-        "/api/v1/advisory-policy-evaluations/review-queue?evaluation_status=PENDING_REVIEW",
+        "/api/v1/advisory-policy-evaluations/review-queue"
+        "?evaluation_status=PENDING_REVIEW&portfolio_id=PB_SG_GLOBAL_BAL_001",
         headers={"X-Correlation-Id": "corr-policy-queue"},
     )
     workflow_response = client.get(
@@ -272,6 +274,7 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         },
         "queue": {
             "evaluation_status": "PENDING_REVIEW",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
             "correlation_id": "corr-policy-queue",
         },
         "workflow": {"evaluation_id": "pev_001", "correlation_id": "corr-policy-workflow"},
@@ -397,7 +400,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
     )
     report_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/report-packages",
-        json={"body": {"audience": "CLIENT_DRAFT", "requested_by": "advisor_1"}},
+        json={"body": {"audience": "ADVISOR_COMPLIANCE", "requested_by": "advisor_1"}},
         headers={
             "Idempotency-Key": "idem-policy-report",
             "X-Correlation-Id": "corr-policy-report",
@@ -432,7 +435,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         },
         "report": {
             "evaluation_id": "pev_001",
-            "body": {"audience": "CLIENT_DRAFT", "requested_by": "advisor_1"},
+            "body": {"audience": "ADVISOR_COMPLIANCE", "requested_by": "advisor_1"},
             "idempotency_key": "idem-policy-report",
             "correlation_id": "corr-policy-report",
         },

@@ -94,10 +94,12 @@ class AdvisoryPolicyService:
         self,
         *,
         evaluation_status: str | None,
+        portfolio_id: str | None,
         correlation_id: str,
     ) -> AdvisoryPolicyEnvelopeResponse:
         upstream_status, upstream_payload = await self._advise_client.get_policy_review_queue(
             evaluation_status=evaluation_status,
+            portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)

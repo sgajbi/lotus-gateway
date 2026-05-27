@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "lotus-gateway for Advisor Workbench"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi>=0.129.0",
+  "fastapi>=0.129.0,<0.136.3",
   "uvicorn>=0.35.0",
   "pydantic>=2.11.0",
   "pydantic-settings>=2.10.0",
@@ -54,5 +54,4 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
-
 
