@@ -153,10 +153,11 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
             },
         }
 
-    async def _fake_queue(self, evaluation_status, correlation_id):  # noqa: ANN001
+    async def _fake_queue(self, evaluation_status, portfolio_id, correlation_id):  # noqa: ANN001
         _ = self
         captured["queue"] = {
             "evaluation_status": evaluation_status,
+            "portfolio_id": portfolio_id,
             "correlation_id": correlation_id,
         }
         return 200, {"items": [{"evaluation_id": "pev_001", "queue": "Compliance"}]}
@@ -231,7 +232,8 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         },
     )
     queue_response = client.get(
-        "/api/v1/advisory-policy-evaluations/review-queue?evaluation_status=PENDING_REVIEW",
+        "/api/v1/advisory-policy-evaluations/review-queue"
+        "?evaluation_status=PENDING_REVIEW&portfolio_id=PB_SG_GLOBAL_BAL_001",
         headers={"X-Correlation-Id": "corr-policy-queue"},
     )
     workflow_response = client.get(
@@ -272,6 +274,7 @@ def test_policy_evaluation_routes_preserve_advise_boundary_and_blockers(monkeypa
         },
         "queue": {
             "evaluation_status": "PENDING_REVIEW",
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
             "correlation_id": "corr-policy-queue",
         },
         "workflow": {"evaluation_id": "pev_001", "correlation_id": "corr-policy-workflow"},

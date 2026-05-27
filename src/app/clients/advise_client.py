@@ -310,11 +310,14 @@ class AdviseClient:
     async def get_policy_review_queue(
         self,
         evaluation_status: str | None,
+        portfolio_id: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         params: dict[str, Any] = {}
         if evaluation_status is not None:
             params["evaluation_status"] = evaluation_status
+        if portfolio_id is not None:
+            params["portfolio_id"] = portfolio_id
         return await self._get(
             "/advisory/policy-evaluations/review-queue",
             params=params,

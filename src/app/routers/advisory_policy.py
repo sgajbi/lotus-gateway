@@ -180,9 +180,15 @@ async def get_policy_review_queue(
         description="Optional policy evaluation status filter owned by lotus-advise.",
         examples=["PENDING_REVIEW"],
     ),
+    portfolio_id: str | None = Query(
+        default=None,
+        description="Optional portfolio identifier filter owned by lotus-advise.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    ),
 ) -> AdvisoryPolicyEnvelopeResponse:
     return await _advisory_policy_service().get_policy_review_queue(
         evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
     )
 
