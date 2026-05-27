@@ -20,7 +20,7 @@ class _FakeAdviseClient:
             ],
             "supportability": {
                 "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
-                "workbench_posture": "MANDATORY_SUBSEQUENT_RFC0026_SLICE",
+                "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
                 "client_ready_publication": "BLOCKED",
             },
         }

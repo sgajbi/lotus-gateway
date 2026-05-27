@@ -45,7 +45,8 @@ def test_rfc0026_gateway_documentation_matches_implemented_cockpit_boundary() ->
     assert "without reconstructing advisory semantics" in wiki_architecture
     assert "not reconstruct advisory policy, memo blockers, cockpit action semantics" in wiki_api
     assert "publication remains blocked" in wiki_supported_features.lower()
-    assert "Workbench product realization" in wiki_supported_features
+    assert "workbench" in wiki_supported_features.lower()
+    assert "canonical proof" in wiki_supported_features.lower()
     assert "RFC26_ADVISOR_COCKPIT_CANONICAL" in gateway_rfc
-    assert "full product support remain mandatory later RFC-0026 slices" in gateway_rfc
-    assert "full demo readiness" in gateway_rfc
+    assert "Workbench advisor cockpit support and canonical populated browser proof" in gateway_rfc
+    assert "full RFC-0028 demo readiness" in gateway_rfc

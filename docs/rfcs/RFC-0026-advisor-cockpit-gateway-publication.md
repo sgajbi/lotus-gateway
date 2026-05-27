@@ -36,9 +36,10 @@ idempotency key, and correlation context. Gateway does not reconstruct:
 5. supportability or unsupported-capability posture,
 6. client-ready publication or external client communication posture.
 
-Workbench implementation, canonical `RFC26_ADVISOR_COCKPIT_CANONICAL` automation, data-product
-promotion, and full product support remain mandatory later RFC-0026 slices. This Gateway slice only
-certifies the product-facing API publication boundary.
+Workbench implementation, canonical `RFC26_ADVISOR_COCKPIT_CANONICAL` automation, and
+data-product promotion are now proven in the coordinated RFC-0026 program. This Gateway slice
+certifies the product-facing API publication boundary and records that Gateway preserves the
+Advise-owned cockpit supportability posture used by the Workbench canonical proof.
 
 ## Validation Evidence
 
@@ -55,6 +56,8 @@ certifies the product-facing API publication boundary.
 
 ## No Product Overclaim
 
-This slice does not claim Workbench advisor cockpit UI support, canonical populated browser proof,
-data-product promotion, client-ready policy approval, OMS/order/fill/settlement support, external
-client communication, or full demo readiness.
+This slice does not claim client-ready policy approval, OMS/order/fill/settlement support,
+external client communication, CRM system-of-record behavior, or full RFC-0028 demo readiness.
+Workbench advisor cockpit support and canonical populated browser proof are claimed only through
+the separate Workbench evidence and Advise-owned supportability posture; Gateway remains a
+semantics-preserving publication boundary.

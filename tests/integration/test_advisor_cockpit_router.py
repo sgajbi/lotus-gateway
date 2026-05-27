@@ -28,7 +28,7 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "snapshot_id": "cockpit_snapshot_PB_SG_GLOBAL_BAL_001",
             "supportability": {
                 "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
-                "workbench_posture": "MANDATORY_SUBSEQUENT_RFC0026_SLICE",
+                "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
                 "client_ready_publication": "BLOCKED",
             },
         }
@@ -37,10 +37,10 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         _ = self
         captured["supportability"] = {"params": params, "correlation_id": correlation_id}
         return 200, {
-            "posture": "ADVISE_API_SUPPORTED_DOWNSTREAM_GATED",
+            "posture": "ADVISE_GATEWAY_WORKBENCH_CANONICAL_PROOF_SUPPORTED",
             "supportability": {
                 "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
-                "workbench_posture": "MANDATORY_SUBSEQUENT_RFC0026_SLICE",
+                "workbench_posture": "CANONICAL_WORKBENCH_PROOF_PASSED_RFC0026",
                 "client_ready_publication": "BLOCKED",
             },
         }

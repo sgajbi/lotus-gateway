@@ -122,9 +122,9 @@ Operational behavior:
 
 ## Advisor Cockpit Operating Workflow
 
-Status: implementation-backed in Gateway for the RFC-0026 API publication slice. Workbench
-product realization, canonical `RFC26_ADVISOR_COCKPIT_CANONICAL` automation, data-product
-promotion, and full demo readiness remain separate mandatory RFC-0026 slices.
+Status: implementation-backed in Gateway for the RFC-0026 API publication slice, with Workbench
+canonical proof and Advise data-product promotion now recorded in the coordinated RFC-0026 program.
+Full RFC-0028 demo readiness remains outside this Gateway capability claim.
 
 Business outcome:
 
@@ -160,7 +160,7 @@ Authority and integrations:
 
 ```mermaid
 flowchart LR
-    Workbench[lotus-workbench future advisor cockpit] --> Gateway[lotus-gateway advisor-cockpit routes]
+    Workbench[lotus-workbench advisor cockpit] --> Gateway[lotus-gateway advisor-cockpit routes]
     Gateway --> Advise[lotus-advise RFC-0026 cockpit authority]
     Advise --> Gateway
     Gateway --> Workbench
