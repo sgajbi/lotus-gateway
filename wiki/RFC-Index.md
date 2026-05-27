@@ -16,6 +16,10 @@
   context and agent guidance system
 - RFC-0082
   upstream contract-family classification and boundary hardening
+- RFC-0026
+  advisor cockpit Gateway publication for Advise-owned action, snapshot, supportability, and
+  acknowledgement APIs; Workbench UI, canonical automation, data-product promotion, and full
+  product/demo readiness remain mandatory later RFC-0026 slices
 - RFC-0098
   proposed DPM command-center composition contract over core, manage, risk, performance, report,
   archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for

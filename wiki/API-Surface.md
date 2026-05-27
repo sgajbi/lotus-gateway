@@ -269,6 +269,15 @@
   suitability or best-interest rules, infer supportability, approve sign-off, override
   client-ready blockers, generate AI evidence, or promote blocked/degraded evaluations to client
   output.
+- advisor cockpit routes call `lotus-advise` `/advisory/cockpit/*` through
+  `/api/v1/advisor-cockpit/actions`, `/api/v1/advisor-cockpit/snapshot`,
+  `/api/v1/advisor-cockpit/supportability`, and
+  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`. Gateway preserves
+  Advise-owned action status, priority, owner role, reason codes, SLA, source refs, evidence refs,
+  lineage refs, unsupported capabilities, supportability, and acknowledgement state. Gateway does
+  not reconstruct advisory policy, memo blockers, cockpit action semantics, client-ready
+  publication, external client communication, OMS/order/fill/settlement posture, or demo-readiness
+  claims.
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040

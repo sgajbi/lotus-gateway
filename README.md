@@ -40,7 +40,8 @@ It depends on:
   stateful risk workspace analytics
 - `lotus-advise`
   proposal simulation, persisted proposal lifecycle, workflow, approval, lineage, reviewed
-  narrative posture, report-request, and delivery-posture capability
+  narrative posture, report-request, delivery-posture, advisory policy, and advisor cockpit
+  capability
 - `lotus-manage`
   discretionary management run lookup, supportability summary, platform capability posture, and
   RFC-0039 construction alternative-set authority, RFC-0040 proof-pack authority, and RFC-0042
@@ -68,8 +69,8 @@ Boundary rules that matter:
 ## Current Operational Posture
 
 1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
-2. Foundation, platform capabilities, proposals, reporting, intake/lookups, portfolio, and workbench
-   route families are active.
+2. Foundation, platform capabilities, proposals, advisory policy, advisor cockpit, reporting,
+   intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
 4. The repository is still moving from thin pass-through behavior toward cleaner experience-API
@@ -95,6 +96,12 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/advisory-policy-packs/*`,
   `/api/v1/advisory-policy-evaluations/*`,
   `/api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations`
+- `advisor-cockpit`
+  `/api/v1/advisor-cockpit/actions`,
+  `/api/v1/advisor-cockpit/actions/{action_item_id}`,
+  `/api/v1/advisor-cockpit/snapshot`,
+  `/api/v1/advisor-cockpit/supportability`,
+  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
 - `intake` and `lookups`
   `/api/v1/intake/*`, `/api/v1/lookups/*`
 - `portfolio`

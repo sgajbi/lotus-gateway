@@ -44,6 +44,7 @@ async def request_with_retry(
                 else:
                     response = await client.post(
                         url,
+                        params=params,
                         headers=headers,
                         json=json_body,
                         data=data,

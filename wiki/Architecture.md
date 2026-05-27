@@ -17,6 +17,9 @@
 - `proposals`
   advisory proposal lifecycle, approvals, lineage, reviewed narrative posture, report-request
   posture, and delivery-posture inspection over `lotus-advise`
+- `advisor-cockpit`
+  advisor operating actions, snapshot, supportability, and idempotent acknowledgement boundary
+  over `lotus-advise` RFC-0026
 - `intake` and `lookups`
   ingress handoff and selector catalog surfaces
 - `portfolio`
@@ -52,3 +55,6 @@
 8. proposal narrative review and delivery posture stay in `lotus-advise`; gateway preserves
    source hashes, review state, narrative-package posture, and delivery events without generating
    narrative or recomputing advisory delivery truth
+9. advisor cockpit action construction, SLA, supportability, evidence, lineage, and
+   acknowledgement truth stay in `lotus-advise`; gateway publishes the product-facing route
+   family and preserves Advise-owned posture without reconstructing advisory semantics
