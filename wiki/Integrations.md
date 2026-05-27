@@ -93,11 +93,12 @@
    evaluate policy rules, administer policy locally, generate AI evidence, override sign-off, or
    release blocked/degraded evaluations to client output.
 11. RFC-0026 advisor cockpit posture remains `lotus-advise` truth. Gateway exposes action list,
-   single-action, snapshot, supportability, and acknowledgement routes for Workbench and preserves
-   Advise-owned action status, priority, owner role, reason codes, source refs, evidence refs,
-   lineage refs, unsupported capabilities, supportability, and acknowledgement state. Gateway does
-   not reconstruct policy or memo semantics, infer client-ready publication, contact clients,
-   claim external execution, or promote full product/demo readiness.
+   preparation-packet, single-action, snapshot, supportability, and acknowledgement routes for
+   Workbench and preserves Advise-owned action status, priority, owner role, reason codes, source
+   refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
+   supportability, and acknowledgement state. Gateway does not reconstruct policy, memo, or
+   meeting preparation semantics, infer client-ready publication, contact clients, claim external
+   execution, or promote full product/demo readiness.
 12. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,

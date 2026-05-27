@@ -55,6 +55,7 @@
 8. proposal narrative review and delivery posture stay in `lotus-advise`; gateway preserves
    source hashes, review state, narrative-package posture, and delivery events without generating
    narrative or recomputing advisory delivery truth
-9. advisor cockpit action construction, SLA, supportability, evidence, lineage, and
-   acknowledgement truth stay in `lotus-advise`; gateway publishes the product-facing route
-   family and preserves Advise-owned posture without reconstructing advisory semantics
+9. advisor cockpit action construction, preparation packets, SLA, supportability, evidence,
+   lineage, and acknowledgement truth stay in `lotus-advise`; gateway publishes the
+   product-facing route family and preserves Advise-owned posture without reconstructing advisory
+   or meeting preparation semantics

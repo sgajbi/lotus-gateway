@@ -24,6 +24,22 @@ class AdvisorCockpitService:
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
 
+    async def list_preparation_packets(
+        self,
+        *,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> AdvisorCockpitEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.list_advisor_cockpit_preparation_packets(
+            params=params,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._envelope(correlation_id, upstream_payload)
+
     async def get_action(
         self,
         *,

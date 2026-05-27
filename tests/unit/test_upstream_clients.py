@@ -3163,7 +3163,7 @@ async def test_advise_client_policy_review_queue_forwards_portfolio_filter() -> 
 @pytest.mark.asyncio
 async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempotency() -> None:
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
-    for _ in range(5):
+    for _ in range(6):
         _FakeAsyncClient.queue_json(200, {"ok": True})
 
     action_filters = {
@@ -3180,6 +3180,10 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
     }
 
     await client.list_advisor_cockpit_actions(action_filters, correlation_id="corr-cockpit")
+    await client.list_advisor_cockpit_preparation_packets(
+        action_filters,
+        correlation_id="corr-cockpit",
+    )
     await client.get_advisor_cockpit_action(
         "cockpit_action_001",
         acknowledgement_filters,
@@ -3210,11 +3214,20 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
         "limit": 25,
     }
     assert _FakeAsyncClient.calls[1]["url"] == (
+        "http://advise/advisory/cockpit/preparation-packets"
+    )
+    assert _FakeAsyncClient.calls[1]["params"] == {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+        "advisor_id": "advisor_sg_001",
+        "role": "ADVISOR",
+        "limit": 25,
+    }
+    assert _FakeAsyncClient.calls[2]["url"] == (
         "http://advise/advisory/cockpit/actions/cockpit_action_001"
     )
-    assert _FakeAsyncClient.calls[2]["url"] == "http://advise/advisory/cockpit/snapshot"
-    assert _FakeAsyncClient.calls[3]["url"] == "http://advise/advisory/cockpit/supportability"
-    acknowledgement_call = _FakeAsyncClient.calls[4]
+    assert _FakeAsyncClient.calls[3]["url"] == "http://advise/advisory/cockpit/snapshot"
+    assert _FakeAsyncClient.calls[4]["url"] == "http://advise/advisory/cockpit/supportability"
+    acknowledgement_call = _FakeAsyncClient.calls[5]
     assert acknowledgement_call["method"] == "POST"
     assert acknowledgement_call["url"] == (
         "http://advise/advisory/cockpit/actions/cockpit_action_001/acknowledgements"

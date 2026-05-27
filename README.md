@@ -98,6 +98,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations`
 - `advisor-cockpit`
   `/api/v1/advisor-cockpit/actions`,
+  `/api/v1/advisor-cockpit/preparation-packets`,
   `/api/v1/advisor-cockpit/actions/{action_item_id}`,
   `/api/v1/advisor-cockpit/snapshot`,
   `/api/v1/advisor-cockpit/supportability`,

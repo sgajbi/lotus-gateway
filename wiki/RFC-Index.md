@@ -17,10 +17,10 @@
 - RFC-0082
   upstream contract-family classification and boundary hardening
 - RFC-0026
-  advisor cockpit Gateway publication for Advise-owned action, snapshot, supportability, and
-  acknowledgement APIs; Workbench canonical proof and Advise data-product promotion are now
-  recorded in the coordinated RFC-0026 program, while full RFC-0028 demo readiness remains outside
-  the Gateway claim
+  advisor cockpit Gateway publication for Advise-owned action, preparation-packet, snapshot,
+  supportability, and acknowledgement APIs; Workbench canonical proof and Advise data-product
+  promotion are now recorded in the coordinated RFC-0026 program, while full RFC-0028 demo
+  readiness remains outside the Gateway claim
 - RFC-0098
   proposed DPM command-center composition contract over core, manage, risk, performance, report,
   archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for

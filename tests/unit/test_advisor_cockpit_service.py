@@ -39,6 +39,20 @@ class _FakeAdviseClient:
         )
         return self.status, self.payload
 
+    async def list_advisor_cockpit_preparation_packets(
+        self,
+        *,
+        params: dict[str, object],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, object]]:
+        self.calls.append(
+            (
+                "list_advisor_cockpit_preparation_packets",
+                {"params": params, "correlation_id": correlation_id},
+            )
+        )
+        return self.status, self.payload
+
     async def acknowledge_advisor_cockpit_action(
         self,
         *,
@@ -90,6 +104,56 @@ async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -
                     "role": "ADVISOR",
                 },
                 "correlation_id": "corr-cockpit-list",
+            },
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_cockpit_service_preserves_advise_owned_preparation_packets() -> None:
+    advise_client = _FakeAdviseClient()
+    advise_client.payload = {
+        "items": [
+            {
+                "packet_id": "prep_packet_PB_SG_GLOBAL_BAL_001",
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "meeting_posture": "READY_WITH_REVIEW_ITEMS",
+                "memo_evidence_refs": ["memo:proposal_001:v1"],
+                "policy_posture": "PENDING_REVIEW",
+                "client_ready_publication": "BLOCKED",
+            }
+        ],
+        "supportability": {
+            "gateway_posture": "SUPPORTED_BY_LOTUS_GATEWAY_RFC0026",
+            "client_ready_publication": "BLOCKED",
+        },
+    }
+    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+
+    response = await service.list_preparation_packets(
+        params={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "advisor_id": "advisor_sg_001",
+            "role": "ADVISOR",
+            "limit": 10,
+        },
+        correlation_id="corr-cockpit-prep",
+    )
+
+    assert response.correlation_id == "corr-cockpit-prep"
+    assert response.data == advise_client.payload
+    assert response.data["items"][0]["client_ready_publication"] == "BLOCKED"
+    assert advise_client.calls == [
+        (
+            "list_advisor_cockpit_preparation_packets",
+            {
+                "params": {
+                    "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                    "advisor_id": "advisor_sg_001",
+                    "role": "ADVISOR",
+                    "limit": 10,
+                },
+                "correlation_id": "corr-cockpit-prep",
             },
         )
     ]

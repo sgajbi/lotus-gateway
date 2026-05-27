@@ -132,7 +132,9 @@ Business outcome:
    snapshots through Gateway without calling `lotus-advise` directly,
 2. operations and support teams can inspect supportability and unsupported-capability posture in
    one product-facing envelope,
-3. advisors can record replay-safe action acknowledgements while blocking policy, memo,
+3. advisors can retrieve Advise-owned meeting preparation packets with memo evidence, policy
+   posture, follow-up posture, and lineage intact,
+4. advisors can record replay-safe action acknowledgements while blocking policy, memo,
    supportability, owner-role, and client-ready posture remain Advise-owned. Client-ready
    publication remains blocked unless and until `lotus-advise` returns source-owned support for
    that posture.
@@ -140,23 +142,24 @@ Business outcome:
 Supported routes:
 
 1. `GET /api/v1/advisor-cockpit/actions`
-2. `GET /api/v1/advisor-cockpit/actions/{action_item_id}`
-3. `GET /api/v1/advisor-cockpit/snapshot`
-4. `GET /api/v1/advisor-cockpit/supportability`
-5. `POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
+2. `GET /api/v1/advisor-cockpit/preparation-packets`
+3. `GET /api/v1/advisor-cockpit/actions/{action_item_id}`
+4. `GET /api/v1/advisor-cockpit/snapshot`
+5. `GET /api/v1/advisor-cockpit/supportability`
+6. `POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
 
 Authority and integrations:
 
-1. `lotus-advise` remains the advisor cockpit action, snapshot, supportability, acknowledgement,
-   evidence, and lineage authority.
+1. `lotus-advise` remains the advisor cockpit action, preparation-packet, snapshot,
+   supportability, acknowledgement, evidence, and lineage authority.
 2. Gateway forwards portfolio, advisor, caller role, pagination, action id, acknowledgement body,
    idempotency key, and correlation context to `lotus-advise`.
 3. Gateway preserves Advise-owned action status, priority, owner role, reason codes, SLA, source
-   refs, evidence refs, lineage refs, unsupported capabilities, supportability posture, and
-   acknowledgement state.
+   refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
+   supportability posture, and acknowledgement state.
 4. Gateway does not reconstruct advisory policy results, proposal memo blockers, action
-   prioritization, SLA posture, supportability, client-ready publication, external client
-   communication, OMS/order/fill/settlement posture, or demo-readiness claims.
+   prioritization, meeting preparation, SLA posture, supportability, client-ready publication,
+   external client communication, OMS/order/fill/settlement posture, or demo-readiness claims.
 
 ```mermaid
 flowchart LR
@@ -168,7 +171,7 @@ flowchart LR
 
 Operational behavior:
 
-1. action listing is paginated and bounded by Advise-owned cursor semantics,
+1. action and preparation-packet listing are paginated and bounded by Advise-owned cursor semantics,
 2. acknowledgement writes require `Idempotency-Key`,
 3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.

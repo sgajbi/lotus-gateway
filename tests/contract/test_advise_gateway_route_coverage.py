@@ -128,6 +128,7 @@ def test_gateway_exposes_supported_lotus_advise_advisor_cockpit_surface() -> Non
     routes = _route_keys()
     expected = {
         ("GET", "/api/v1/advisor-cockpit/actions"),
+        ("GET", "/api/v1/advisor-cockpit/preparation-packets"),
         ("GET", "/api/v1/advisor-cockpit/actions/{action_item_id}"),
         ("GET", "/api/v1/advisor-cockpit/snapshot"),
         ("GET", "/api/v1/advisor-cockpit/supportability"),

@@ -40,12 +40,13 @@ Current repository posture:
    to `lotus-advise` `/advisory/workspaces/*`; advisory policy-pack, policy-evaluation,
    review-queue, workflow, sign-off package, sign-off decision, report-package, lineage, replay,
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
-   `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, single-action,
-   snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
+   `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, preparation-packet,
+   single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
    `/advisory/cockpit/*`. Gateway preserves source-hash, review,
    report-package, workspace replay, execution handoff, policy supportability, degraded/blocked
    posture, maker-checker state, sign-off posture, AI-evidence posture, cockpit action status,
-   owner role, reason codes, evidence refs, lineage refs, acknowledgement state, and delivery event posture
+   owner role, reason codes, preparation-packet posture, evidence refs, lineage refs,
+   acknowledgement state, and delivery event posture
    without generating narrative, evaluating policy rules, inferring client-ready publication,
    rendering reports, archiving documents, sourcing portfolio positions locally, or recomputing
    advisory delivery truth;

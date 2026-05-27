@@ -37,13 +37,16 @@ def test_rfc0026_gateway_documentation_matches_implemented_cockpit_boundary() ->
         assert "advisor cockpit" in lowered or "advisor-cockpit" in lowered
 
     assert "`GET /api/v1/advisor-cockpit/actions`" in gateway_rfc
+    assert "`GET /api/v1/advisor-cockpit/preparation-packets`" in gateway_rfc
     assert "`GET /api/v1/advisor-cockpit/actions/{action_item_id}`" in gateway_rfc
     assert "`GET /api/v1/advisor-cockpit/snapshot`" in gateway_rfc
     assert "`GET /api/v1/advisor-cockpit/supportability`" in gateway_rfc
     assert "`POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`" in gateway_rfc
     assert "`/advisory/cockpit/*`" in upstream_map
-    assert "without reconstructing advisory semantics" in wiki_architecture
-    assert "not reconstruct advisory policy, memo blockers, cockpit action semantics" in wiki_api
+    assert "without reconstructing advisory" in wiki_architecture
+    assert "meeting preparation semantics" in wiki_architecture
+    assert "not reconstruct advisory policy, memo blockers, cockpit" in wiki_api
+    assert "preparation-packet posture" in wiki_supported_features
     assert "publication remains blocked" in wiki_supported_features.lower()
     assert "workbench" in wiki_supported_features.lower()
     assert "canonical proof" in wiki_supported_features.lower()

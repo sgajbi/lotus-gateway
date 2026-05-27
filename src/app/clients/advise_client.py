@@ -426,6 +426,18 @@ class AdviseClient:
             operation="advise.advisory.cockpit.actions.list",
         )
 
+    async def list_advisor_cockpit_preparation_packets(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/cockpit/preparation-packets",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.preparation-packets.list",
+        )
+
     async def get_advisor_cockpit_action(
         self,
         action_item_id: str,
