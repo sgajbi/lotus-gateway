@@ -106,6 +106,22 @@ class AdvisorCockpitService:
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
 
+    async def evaluate_house_view_cohort(
+        self,
+        *,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> AdvisorCockpitEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.evaluate_advisor_cockpit_house_view_cohort(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._envelope(correlation_id, upstream_payload)
+
     def _envelope(
         self,
         correlation_id: str,

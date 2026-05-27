@@ -272,12 +272,15 @@
 - advisor cockpit routes call `lotus-advise` `/advisory/cockpit/*` through
   `/api/v1/advisor-cockpit/actions`, `/api/v1/advisor-cockpit/preparation-packets`,
   `/api/v1/advisor-cockpit/snapshot`, `/api/v1/advisor-cockpit/supportability`, and
-  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`. Gateway preserves
+  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`, plus
+  `/api/v1/advisor-cockpit/house-view-cohorts/evaluate` for source-backed tactical house-view
+  cohort publication. Gateway preserves
   Advise-owned action status, priority, owner role, reason codes, SLA, source refs, evidence refs,
-  lineage refs, unsupported capabilities, supportability, preparation-packet posture, and
-  acknowledgement state. Gateway does not reconstruct advisory policy, memo blockers, cockpit
-  action or preparation semantics, client-ready publication, external client communication,
-  OMS/order/fill/settlement posture, or demo-readiness claims.
+  lineage refs, unsupported capabilities, supportability, preparation-packet posture,
+  tactical house-view cohort membership, and acknowledgement state.
+  Gateway does not reconstruct advisory policy, memo blockers, cockpit action or preparation semantics, tactical house-view membership,
+  client-ready publication, external client communication, OMS/order/fill/settlement posture, or
+  demo-readiness claims.
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040

@@ -147,15 +147,18 @@ Supported routes:
 4. `GET /api/v1/advisor-cockpit/snapshot`
 5. `GET /api/v1/advisor-cockpit/supportability`
 6. `POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
+7. `POST /api/v1/advisor-cockpit/house-view-cohorts/evaluate`
 
 Authority and integrations:
 
-1. `lotus-advise` remains the advisor cockpit action, preparation-packet, snapshot,
-   supportability, acknowledgement, evidence, and lineage authority.
+1. `lotus-advise` remains the advisor cockpit action, preparation-packet, tactical house-view
+   cohort, snapshot, supportability, acknowledgement, evidence, and lineage authority.
 2. Gateway forwards portfolio, advisor, caller role, pagination, action id, acknowledgement body,
-   idempotency key, and correlation context to `lotus-advise`.
+   tactical house-view affected-cohort body, idempotency key, and correlation context to
+   `lotus-advise`.
 3. Gateway preserves Advise-owned action status, priority, owner role, reason codes, SLA, source
    refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
+   tactical house-view cohort membership,
    supportability posture, and acknowledgement state.
 4. Gateway does not reconstruct advisory policy results, proposal memo blockers, action
    prioritization, meeting preparation, SLA posture, supportability, client-ready publication,

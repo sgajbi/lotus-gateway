@@ -18,8 +18,8 @@
   advisory proposal lifecycle, approvals, lineage, reviewed narrative posture, report-request
   posture, and delivery-posture inspection over `lotus-advise`
 - `advisor-cockpit`
-  advisor operating actions, snapshot, supportability, and idempotent acknowledgement boundary
-  over `lotus-advise` RFC-0026
+  advisor operating actions, preparation packets, tactical house-view cohort publication,
+  snapshot, supportability, and idempotent acknowledgement boundary over `lotus-advise` RFC-0026
 - `intake` and `lookups`
   ingress handoff and selector catalog surfaces
 - `portfolio`

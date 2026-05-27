@@ -102,7 +102,8 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/advisor-cockpit/actions/{action_item_id}`,
   `/api/v1/advisor-cockpit/snapshot`,
   `/api/v1/advisor-cockpit/supportability`,
-  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
+  `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`,
+  `/api/v1/advisor-cockpit/house-view-cohorts/evaluate`
 - `intake` and `lookups`
   `/api/v1/intake/*`, `/api/v1/lookups/*`
 - `portfolio`

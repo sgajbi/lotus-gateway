@@ -491,6 +491,18 @@ class AdviseClient:
             params=self._clean_params(params),
         )
 
+    async def evaluate_advisor_cockpit_house_view_cohort(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/tactical-house-view/cohorts/evaluate",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.tactical-house-view.cohorts.evaluate",
+        )
+
     async def request_policy_report_package(
         self,
         evaluation_id: str,

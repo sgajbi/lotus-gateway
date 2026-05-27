@@ -83,6 +83,15 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "replayed": False,
         }
 
+    async def _fake_house_view(self, body, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["house_view"] = {"body": body, "correlation_id": correlation_id}
+        return 200, {
+            "product_name": "TacticalHouseViewAffectedCohort",
+            "affected_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+            "supportability": {"state": "READY"},
+        }
+
     monkeypatch.setattr(
         "app.clients.advise_client.AdviseClient.list_advisor_cockpit_actions",
         _fake_list,
@@ -102,6 +111,10 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
     monkeypatch.setattr(
         "app.clients.advise_client.AdviseClient.acknowledge_advisor_cockpit_action",
         _fake_ack,
+    )
+    monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.evaluate_advisor_cockpit_house_view_cohort",
+        _fake_house_view,
     )
 
     client = TestClient(app)
@@ -148,12 +161,23 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "X-Correlation-Id": "corr-cockpit-ack",
         },
     )
+    house_view_response = client.post(
+        "/api/v1/advisor-cockpit/house-view-cohorts/evaluate",
+        json={
+            "body": {
+                "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
+                "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+            }
+        },
+        headers={"X-Correlation-Id": "corr-cockpit-house-view"},
+    )
 
     assert list_response.status_code == 200
     assert snapshot_response.status_code == 200
     assert preparation_packets_response.status_code == 200
     assert supportability_response.status_code == 200
     assert acknowledgement_response.status_code == 200
+    assert house_view_response.status_code == 200
     assert list_response.json()["data"]["items"][0]["status"] == "PENDING_REVIEW"
     assert snapshot_response.json()["data"]["supportability"]["client_ready_publication"] == (
         "BLOCKED"
@@ -163,6 +187,7 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         == "BLOCKED"
     )
     assert acknowledgement_response.json()["data"]["action_item"]["status"] == "PENDING_REVIEW"
+    assert house_view_response.json()["data"]["product_name"] == "TacticalHouseViewAffectedCohort"
     assert captured == {
         "list": {
             "params": {
@@ -201,6 +226,13 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             "idempotency_key": "idem-cockpit-ack",
             "correlation_id": "corr-cockpit-ack",
         },
+        "house_view": {
+            "body": {
+                "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
+                "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+            },
+            "correlation_id": "corr-cockpit-house-view",
+        },
     }
 
 
@@ -208,12 +240,17 @@ def test_advisor_cockpit_openapi_documents_boundary_and_idempotency() -> None:
     schema = app.openapi()
     action_operation = schema["paths"]["/api/v1/advisor-cockpit/actions"]["get"]
     preparation_operation = schema["paths"]["/api/v1/advisor-cockpit/preparation-packets"]["get"]
+    house_view_operation = schema["paths"]["/api/v1/advisor-cockpit/house-view-cohorts/evaluate"][
+        "post"
+    ]
     ack_operation = schema["paths"][
         "/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements"
     ]["post"]
 
     assert "without reconstructing advisory semantics" in action_operation["description"]
     assert "without reconstructing preparation semantics" in preparation_operation["description"]
+    assert "HOUSE_VIEW_IMPACT_REVIEW" in house_view_operation["description"]
+    assert "does not discover candidate portfolios" in house_view_operation["description"]
     assert "does not clear blocking policy" in ack_operation["description"]
     assert ack_operation["responses"]["409"]["description"] == (
         "lotus-advise rejected a conflicting acknowledgement idempotency key."

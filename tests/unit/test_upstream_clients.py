@@ -3163,7 +3163,7 @@ async def test_advise_client_policy_review_queue_forwards_portfolio_filter() -> 
 @pytest.mark.asyncio
 async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempotency() -> None:
     client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
-    for _ in range(6):
+    for _ in range(7):
         _FakeAsyncClient.queue_json(200, {"ok": True})
 
     action_filters = {
@@ -3204,6 +3204,13 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
         idempotency_key="idem-cockpit-ack",
         correlation_id="corr-cockpit",
     )
+    await client.evaluate_advisor_cockpit_house_view_cohort(
+        body={
+            "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
+            "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+        },
+        correlation_id="corr-cockpit",
+    )
 
     assert _FakeAsyncClient.calls[0]["method"] == "GET"
     assert _FakeAsyncClient.calls[0]["url"] == "http://advise/advisory/cockpit/actions"
@@ -3241,6 +3248,13 @@ async def test_advise_client_advisor_cockpit_routes_forward_filters_and_idempote
         "acknowledged_by": "advisor_sg_001",
     }
     assert acknowledgement_call["headers"]["Idempotency-Key"] == "idem-cockpit-ack"
+    house_view_call = _FakeAsyncClient.calls[6]
+    assert house_view_call["method"] == "POST"
+    assert house_view_call["url"] == ("http://advise/advisory/tactical-house-view/cohorts/evaluate")
+    assert house_view_call["json"] == {
+        "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
+        "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+    }
     for call in _FakeAsyncClient.calls:
         assert call["headers"]["X-Correlation-Id"] == "corr-cockpit"
 

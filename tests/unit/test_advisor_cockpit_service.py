@@ -76,6 +76,20 @@ class _FakeAdviseClient:
         )
         return self.status, self.payload
 
+    async def evaluate_advisor_cockpit_house_view_cohort(
+        self,
+        *,
+        body: dict[str, object],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, object]]:
+        self.calls.append(
+            (
+                "evaluate_advisor_cockpit_house_view_cohort",
+                {"body": body, "correlation_id": correlation_id},
+            )
+        )
+        return self.status, self.payload
+
 
 @pytest.mark.asyncio
 async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -> None:
@@ -155,6 +169,34 @@ async def test_advisor_cockpit_service_preserves_advise_owned_preparation_packet
                 },
                 "correlation_id": "corr-cockpit-prep",
             },
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_advisor_cockpit_service_preserves_house_view_cohort_product() -> None:
+    advise_client = _FakeAdviseClient()
+    advise_client.payload = {
+        "product_name": "TacticalHouseViewAffectedCohort",
+        "affected_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+        "supportability": {"state": "READY"},
+    }
+    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+    body = {
+        "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
+        "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
+    }
+
+    response = await service.evaluate_house_view_cohort(
+        body=body,
+        correlation_id="corr-house-view",
+    )
+
+    assert response.data == advise_client.payload
+    assert advise_client.calls == [
+        (
+            "evaluate_advisor_cockpit_house_view_cohort",
+            {"body": body, "correlation_id": "corr-house-view"},
         )
     ]
 

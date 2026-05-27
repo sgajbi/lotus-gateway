@@ -17,8 +17,9 @@
   proposal simulation, proposal persistence, workflow events, approvals, lineage, reviewed
   narrative posture, report-request, proposal delivery posture, and RFC-0025 policy-pack /
   policy-evaluation posture, and RFC-0026 advisor-cockpit action/snapshot/supportability/
-  acknowledgement posture through `/advisory/proposals/*`, `/advisory/policy-packs/*`,
-  `/advisory/policy-evaluations/*`, and `/advisory/cockpit/*`
+  acknowledgement posture plus tactical house-view cohort evidence through
+  `/advisory/proposals/*`, `/advisory/policy-packs/*`, `/advisory/policy-evaluations/*`,
+  `/advisory/cockpit/*`, and `/advisory/tactical-house-view/cohorts/evaluate`
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039

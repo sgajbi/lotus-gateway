@@ -42,10 +42,14 @@ def test_rfc0026_gateway_documentation_matches_implemented_cockpit_boundary() ->
     assert "`GET /api/v1/advisor-cockpit/snapshot`" in gateway_rfc
     assert "`GET /api/v1/advisor-cockpit/supportability`" in gateway_rfc
     assert "`POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`" in gateway_rfc
+    assert "`POST /api/v1/advisor-cockpit/house-view-cohorts/evaluate`" in gateway_rfc
+    assert "`/advisory/tactical-house-view/cohorts/evaluate`" in upstream_map
     assert "`/advisory/cockpit/*`" in upstream_map
     assert "without reconstructing advisory" in wiki_architecture
+    assert "tactical house-view cohort publication" in wiki_architecture
     assert "meeting preparation semantics" in wiki_architecture
     assert "not reconstruct advisory policy, memo blockers, cockpit" in wiki_api
+    assert "tactical house-view cohort membership" in wiki_api
     assert "preparation-packet posture" in wiki_supported_features
     assert "publication remains blocked" in wiki_supported_features.lower()
     assert "workbench" in wiki_supported_features.lower()

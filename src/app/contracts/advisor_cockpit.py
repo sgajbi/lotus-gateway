@@ -34,6 +34,60 @@ class AdvisorCockpitAcknowledgeRequest(BaseModel):
     )
 
 
+class AdvisorCockpitHouseViewCohortRequest(BaseModel):
+    body: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Opaque tactical house-view affected-cohort request forwarded unchanged to "
+            "lotus-advise. Gateway does not discover the portfolio universe, infer DPM "
+            "eligibility, create campaign waves, approve trades, or claim OMS execution."
+        ),
+        examples=[
+            {
+                "tactical_view": {
+                    "tactical_view_id": "thv_2026_05_asia_duration",
+                    "tactical_view_version": "2026.05",
+                    "theme_id": "asia_duration_reduce",
+                    "as_of_date": "2026-05-14",
+                    "target_action": "REDUCE",
+                    "rationale": "Reduce duration exposure in Asia balanced discretionary books.",
+                    "source_refs": [
+                        {
+                            "source_system": "lotus-advise",
+                            "source_type": "TACTICAL_HOUSE_VIEW",
+                            "source_id": "thv_2026_05_asia_duration",
+                            "source_version": "2026.05",
+                            "content_hash": "sha256:house-view",
+                        }
+                    ],
+                },
+                "candidate_portfolios": [
+                    {
+                        "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                        "mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001",
+                        "portfolio_type": "DPM",
+                        "discretionary_mandate": True,
+                        "booking_center_code": "Singapore",
+                        "current_exposure_weight": "0.18",
+                        "alignment_signal": "OVERWEIGHT",
+                        "source_refs": [
+                            {
+                                "source_system": "lotus-core",
+                                "source_type": "HoldingsAsOf",
+                                "source_id": "holdings:PB_SG_GLOBAL_BAL_001:2026-05-14",
+                                "source_version": "v1",
+                                "content_hash": "sha256:holdings",
+                            }
+                        ],
+                    }
+                ],
+                "eligible_portfolio_types": ["DPM"],
+                "correlation_id": "corr-house-view-001",
+            }
+        ],
+    )
+
+
 class AdvisorCockpitEnvelopeResponse(BaseModel):
     correlation_id: str = Field(
         description="Correlation identifier propagated through the gateway request.",
