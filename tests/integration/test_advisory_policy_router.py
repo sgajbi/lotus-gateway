@@ -400,7 +400,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
     )
     report_response = client.post(
         "/api/v1/advisory-policy-evaluations/pev_001/report-packages",
-        json={"body": {"audience": "CLIENT_DRAFT", "requested_by": "advisor_1"}},
+        json={"body": {"audience": "ADVISOR_COMPLIANCE", "requested_by": "advisor_1"}},
         headers={
             "Idempotency-Key": "idem-policy-report",
             "X-Correlation-Id": "corr-policy-report",
@@ -435,7 +435,7 @@ def test_policy_decision_report_event_lineage_and_replay_routes_forward_unchange
         },
         "report": {
             "evaluation_id": "pev_001",
-            "body": {"audience": "CLIENT_DRAFT", "requested_by": "advisor_1"},
+            "body": {"audience": "ADVISOR_COMPLIANCE", "requested_by": "advisor_1"},
             "idempotency_key": "idem-policy-report",
             "correlation_id": "corr-policy-report",
         },

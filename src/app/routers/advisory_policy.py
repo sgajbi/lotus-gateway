@@ -335,8 +335,8 @@ async def record_policy_sign_off_decision(
     response_model=AdvisoryPolicyEnvelopeResponse,
     summary="Request Advisory Policy Report Package",
     description=(
-        "Requests a source-owned supervisory or client-draft report package through lotus-advise. "
-        "Gateway does not promote blocked or degraded evaluations to client-ready output."
+        "Requests a source-owned advisor/compliance policy sign-off package through lotus-advise. "
+        "Gateway does not promote blocked or degraded evaluations to client-ready publication."
     ),
 )
 async def request_policy_report_package(

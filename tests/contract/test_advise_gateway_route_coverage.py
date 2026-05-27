@@ -122,3 +122,13 @@ def test_gateway_exposes_supported_lotus_advise_policy_surface() -> None:
     }
 
     assert expected - routes == set()
+
+
+def test_gateway_policy_report_package_openapi_stays_within_supported_boundary() -> None:
+    operation = app.openapi()["paths"][
+        "/api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages"
+    ]["post"]
+
+    assert "client-draft" not in operation["description"].lower()
+    assert "advisor/compliance policy sign-off package" in operation["description"]
+    assert "client-ready publication" in operation["description"]
