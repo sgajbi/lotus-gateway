@@ -120,6 +120,65 @@ Operational behavior:
 3. Gateway returns source payloads under `data`; clients must use Advise-owned posture fields
    rather than deriving readiness locally.
 
+## Advisor Cockpit Operating Workflow
+
+Status: implementation-backed in Gateway for the RFC-0026 API publication slice, with Workbench
+canonical proof and Advise data-product promotion now recorded in the coordinated RFC-0026 program.
+Full RFC-0028 demo readiness remains outside this Gateway capability claim.
+
+Business outcome:
+
+1. advisors and supervisory users can retrieve source-backed cockpit actions and operating
+   snapshots through Gateway without calling `lotus-advise` directly,
+2. operations and support teams can inspect supportability and unsupported-capability posture in
+   one product-facing envelope,
+3. advisors can retrieve Advise-owned meeting preparation packets with memo evidence, policy
+   posture, follow-up posture, and lineage intact,
+4. advisors can record replay-safe action acknowledgements while blocking policy, memo,
+   supportability, owner-role, and client-ready posture remain Advise-owned. Client-ready
+   publication remains blocked unless and until `lotus-advise` returns source-owned support for
+   that posture.
+
+Supported routes:
+
+1. `GET /api/v1/advisor-cockpit/actions`
+2. `GET /api/v1/advisor-cockpit/preparation-packets`
+3. `GET /api/v1/advisor-cockpit/actions/{action_item_id}`
+4. `GET /api/v1/advisor-cockpit/snapshot`
+5. `GET /api/v1/advisor-cockpit/supportability`
+6. `POST /api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`
+7. `POST /api/v1/advisor-cockpit/house-view-cohorts/evaluate`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the advisor cockpit action, preparation-packet, tactical house-view
+   cohort, snapshot, supportability, acknowledgement, evidence, and lineage authority.
+2. Gateway forwards portfolio, advisor, caller role, pagination, action id, acknowledgement body,
+   tactical house-view affected-cohort body, idempotency key, and correlation context to
+   `lotus-advise`.
+3. Gateway preserves Advise-owned action status, priority, owner role, reason codes, SLA, source
+   refs, evidence refs, lineage refs, unsupported capabilities, preparation-packet posture,
+   tactical house-view cohort membership,
+   supportability posture, and acknowledgement state.
+4. Gateway does not reconstruct advisory policy results, proposal memo blockers, action
+   prioritization, meeting preparation, SLA posture, supportability, client-ready publication,
+   external client communication, OMS/order/fill/settlement posture, or demo-readiness claims.
+
+```mermaid
+flowchart LR
+    Workbench[lotus-workbench advisor cockpit] --> Gateway[lotus-gateway advisor-cockpit routes]
+    Gateway --> Advise[lotus-advise RFC-0026 cockpit authority]
+    Advise --> Gateway
+    Gateway --> Workbench
+```
+
+Operational behavior:
+
+1. action and preparation-packet listing are paginated and bounded by Advise-owned cursor semantics,
+2. acknowledgement writes require `Idempotency-Key`,
+3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
+   Gateway errors without rewriting cockpit semantics.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

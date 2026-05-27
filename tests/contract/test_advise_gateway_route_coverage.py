@@ -124,6 +124,21 @@ def test_gateway_exposes_supported_lotus_advise_policy_surface() -> None:
     assert expected - routes == set()
 
 
+def test_gateway_exposes_supported_lotus_advise_advisor_cockpit_surface() -> None:
+    routes = _route_keys()
+    expected = {
+        ("GET", "/api/v1/advisor-cockpit/actions"),
+        ("GET", "/api/v1/advisor-cockpit/preparation-packets"),
+        ("GET", "/api/v1/advisor-cockpit/actions/{action_item_id}"),
+        ("GET", "/api/v1/advisor-cockpit/snapshot"),
+        ("GET", "/api/v1/advisor-cockpit/supportability"),
+        ("POST", "/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements"),
+        ("POST", "/api/v1/advisor-cockpit/house-view-cohorts/evaluate"),
+    }
+
+    assert expected - routes == set()
+
+
 def test_gateway_policy_report_package_openapi_stays_within_supported_boundary() -> None:
     operation = app.openapi()["paths"][
         "/api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages"

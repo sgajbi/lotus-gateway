@@ -414,6 +414,95 @@ class AdviseClient:
             operation="advise.advisory.policy-evaluations.sign-off-decisions",
         )
 
+    async def list_advisor_cockpit_actions(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/cockpit/actions",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.actions.list",
+        )
+
+    async def list_advisor_cockpit_preparation_packets(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/cockpit/preparation-packets",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.preparation-packets.list",
+        )
+
+    async def get_advisor_cockpit_action(
+        self,
+        action_item_id: str,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            f"/advisory/cockpit/actions/{action_item_id}",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.actions.get",
+        )
+
+    async def get_advisor_cockpit_snapshot(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/cockpit/snapshot",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.snapshot",
+        )
+
+    async def get_advisor_cockpit_supportability(
+        self,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/cockpit/supportability",
+            params=self._clean_params(params),
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.cockpit.supportability",
+        )
+
+    async def acknowledge_advisor_cockpit_action(
+        self,
+        action_item_id: str,
+        body: dict[str, Any],
+        params: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            f"/advisory/cockpit/actions/{action_item_id}/acknowledgements",
+            body=body,
+            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            operation="advise.advisory.cockpit.actions.acknowledge",
+            params=self._clean_params(params),
+        )
+
+    async def evaluate_advisor_cockpit_house_view_cohort(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/tactical-house-view/cohorts/evaluate",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.tactical-house-view.cohorts.evaluate",
+        )
+
     async def request_policy_report_package(
         self,
         evaluation_id: str,
@@ -956,6 +1045,7 @@ class AdviseClient:
         body: dict[str, Any],
         headers: dict[str, str],
         operation: str,
+        params: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         return await request_observed_fanout(
             logger=logger,
@@ -966,6 +1056,7 @@ class AdviseClient:
             timeout_seconds=self._timeout,
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
+            params=params,
             json_body=body,
             headers=headers,
         )
@@ -989,3 +1080,6 @@ class AdviseClient:
             params=params,
             headers=headers,
         )
+
+    def _clean_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        return {key: value for key, value in params.items() if value is not None}

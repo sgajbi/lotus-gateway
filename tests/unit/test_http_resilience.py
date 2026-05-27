@@ -32,8 +32,8 @@ class _FlakyAsyncClient:
             request=httpx.Request("GET", "http://test"),
         )
 
-    async def post(self, url, headers=None, json=None, data=None, files=None):
-        _ = url, headers, json, data, files
+    async def post(self, url, params=None, headers=None, json=None, data=None, files=None):
+        _ = url, params, headers, json, data, files
         _FlakyAsyncClient.calls += 1
         if _FlakyAsyncClient.calls == 1:
             raise httpx.TimeoutException("timed out")
@@ -100,8 +100,8 @@ class _ProtocolErrorAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    async def post(self, url, headers=None, json=None, data=None, files=None):
-        _ = url, headers, json, data, files
+    async def post(self, url, params=None, headers=None, json=None, data=None, files=None):
+        _ = url, params, headers, json, data, files
         raise httpx.RemoteProtocolError("Server disconnected without sending a response.")
 
 
@@ -118,13 +118,33 @@ class _TextPayloadAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    async def post(self, url, headers=None, json=None, data=None, files=None):
-        _ = url, headers, json, data, files
+    async def post(self, url, params=None, headers=None, json=None, data=None, files=None):
+        _ = url, params, headers, json, data, files
         return httpx.Response(
             500,
             text="plain-text-error",
             request=httpx.Request("POST", "http://test"),
         )
+
+
+class _PostParamsAsyncClient:
+    calls: list[dict] = []
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _PostParamsAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def post(self, url, params=None, headers=None, json=None, data=None, files=None):
+        _ = headers, data, files
+        _PostParamsAsyncClient.calls.append({"url": url, "params": params, "json": json})
+        return httpx.Response(200, json={"ok": True}, request=httpx.Request("POST", url))
 
 
 @pytest.mark.asyncio
@@ -233,6 +253,32 @@ async def test_request_with_retry_wraps_non_json_payload(monkeypatch):
 
     assert status == 500
     assert payload == {"detail": "plain-text-error"}
+
+
+@pytest.mark.asyncio
+async def test_request_with_retry_forwards_post_query_params(monkeypatch):
+    _PostParamsAsyncClient.calls = []
+    monkeypatch.setattr("httpx.AsyncClient", _PostParamsAsyncClient)
+
+    status, payload = await request_with_retry(
+        method="POST",
+        url="http://service/advisory/cockpit/actions/action-1/acknowledgements",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+        params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
+        json_body={"action_item_version": 1},
+    )
+
+    assert status == 200
+    assert payload == {"ok": True}
+    assert _PostParamsAsyncClient.calls == [
+        {
+            "url": "http://service/advisory/cockpit/actions/action-1/acknowledgements",
+            "params": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
+            "json": {"action_item_version": 1},
+        }
+    ]
 
 
 @pytest.mark.asyncio
