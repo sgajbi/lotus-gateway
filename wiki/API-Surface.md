@@ -283,12 +283,14 @@
   demo-readiness claims.
 - advisory copilot routes call `lotus-advise` `/advisory/copilot/*` through
   `/api/v1/advisory-copilot/evidence-packets`,
+  `/api/v1/advisory-copilot/evidence-packets/from-proposal-version`,
   `/api/v1/advisory-copilot/actions`, `/api/v1/advisory-copilot/actions/{run_id}`,
   `/api/v1/advisory-copilot/actions/{run_id}/reviews`,
   `/api/v1/advisory-copilot/supportability`, and
   `/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`.
-  Gateway preserves Advise-owned evidence packets, action/run state, review audit, guardrail
-  posture, workflow-pack/model-risk lineage, supportability, and blocked client-ready posture.
+  Gateway preserves Advise-owned source projection, evidence packets, action/run state, review
+  audit, guardrail posture, workflow-pack/model-risk lineage, supportability, and blocked
+  client-ready posture.
   Gateway does not call `lotus-ai` for advisory copilot behavior, generate prompts, rebuild
   evidence packets, evaluate guardrails, mutate review state locally, infer client-ready
   publication, or claim Gateway/Workbench canonical proof.

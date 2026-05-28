@@ -14,6 +14,7 @@ locally, or infer client-ready publication.
 | Gateway route | Advise route | Purpose |
 | --- | --- | --- |
 | `POST /api/v1/advisory-copilot/evidence-packets` | `POST /advisory/copilot/evidence-packets` | Creates a bounded Advise-owned evidence packet. |
+| `POST /api/v1/advisory-copilot/evidence-packets/from-proposal-version` | `POST /advisory/copilot/evidence-packets/from-proposal-version` | Requests Advise-owned source projection for a proposal version without browser-built evidence sections. |
 | `GET /api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}` | `GET /advisory/copilot/evidence-packets/{evidence_packet_id}` | Reads a persisted Advise-owned evidence packet. |
 | `POST /api/v1/advisory-copilot/actions` | `POST /advisory/copilot/actions` | Runs an Advise-owned governed copilot action. |
 | `GET /api/v1/advisory-copilot/actions/{run_id}` | `GET /advisory/copilot/actions/{run_id}` | Reads an Advise-owned copilot run and review audit. |
@@ -50,4 +51,5 @@ Targeted commands:
 2. `python -m pytest tests/unit/test_advisory_copilot_service.py tests/contract/test_advise_gateway_route_coverage.py -q`
 
 Implementation-backed tests verify route coverage, absence of a free-form prompt route, payload
-preservation, idempotency propagation, and upstream conflict propagation.
+preservation, source-projection forwarding, idempotency propagation, and upstream conflict
+propagation.

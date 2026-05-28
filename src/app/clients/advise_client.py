@@ -515,6 +515,18 @@ class AdviseClient:
             operation="advise.advisory.copilot.evidence-packets.create",
         )
 
+    async def create_copilot_evidence_packet_from_proposal_version(
+        self,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/copilot/evidence-packets/from-proposal-version",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.copilot.evidence-packets.proposal-version.create",
+        )
+
     async def get_copilot_evidence_packet(
         self,
         evidence_packet_id: str,

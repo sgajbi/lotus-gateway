@@ -106,6 +106,7 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/advisor-cockpit/house-view-cohorts/evaluate`
 - `advisory-copilot`
   `/api/v1/advisory-copilot/evidence-packets`,
+  `/api/v1/advisory-copilot/evidence-packets/from-proposal-version`,
   `/api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}`,
   `/api/v1/advisory-copilot/actions`,
   `/api/v1/advisory-copilot/actions/{run_id}`,

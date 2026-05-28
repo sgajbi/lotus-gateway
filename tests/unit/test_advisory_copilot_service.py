@@ -17,6 +17,19 @@ class _FakeAdviseClient:
         self.calls.append(("create_packet", {"body": body, "correlation_id": correlation_id}))
         return self.status, self.payload
 
+    async def create_copilot_evidence_packet_from_proposal_version(  # noqa: ANN001
+        self,
+        body,
+        correlation_id,
+    ):
+        self.calls.append(
+            (
+                "create_packet_from_proposal_version",
+                {"body": body, "correlation_id": correlation_id},
+            )
+        )
+        return self.status, self.payload
+
     async def run_copilot_action(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         self.calls.append(
             (
@@ -99,3 +112,33 @@ async def test_advisory_copilot_service_propagates_review_conflict() -> None:
             "correlation_id": "corr-copilot-review",
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_advisory_copilot_service_preserves_source_projection_payload() -> None:
+    advise_client = _FakeAdviseClient()
+    service = AdvisoryCopilotService(advise_client=advise_client)  # type: ignore[arg-type]
+
+    response = await service.create_evidence_packet_from_proposal_version(
+        body={
+            "proposal_id": "proposal_sg_structured_note_001",
+            "proposal_version_no": 1,
+            "action_family": "PROPOSAL_EXPLANATION",
+        },
+        correlation_id="corr-copilot-projection",
+    )
+
+    assert response.correlation_id == "corr-copilot-projection"
+    assert advise_client.calls == [
+        (
+            "create_packet_from_proposal_version",
+            {
+                "body": {
+                    "proposal_id": "proposal_sg_structured_note_001",
+                    "proposal_version_no": 1,
+                    "action_family": "PROPOSAL_EXPLANATION",
+                },
+                "correlation_id": "corr-copilot-projection",
+            },
+        )
+    ]

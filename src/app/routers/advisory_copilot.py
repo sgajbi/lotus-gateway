@@ -53,6 +53,27 @@ async def create_advisory_copilot_evidence_packet(
     )
 
 
+@router.post(
+    "/evidence-packets/from-proposal-version",
+    response_model=AdvisoryCopilotEnvelopeResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Proposal Version Advisory Copilot Evidence Packet",
+    description=(
+        "Forwards source-owned proposal-version evidence projection to lotus-advise. Workbench "
+        "and other clients request proposal/version/action-family scope; Gateway does not "
+        "construct evidence sections, prompts, guardrails, review state, or advisory semantics."
+    ),
+    responses=ADVISORY_COPILOT_RESPONSES,
+)
+async def create_advisory_copilot_evidence_packet_from_proposal_version(
+    request: AdvisoryCopilotBodyRequest,
+) -> AdvisoryCopilotEnvelopeResponse:
+    return await _advisory_copilot_service().create_evidence_packet_from_proposal_version(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/evidence-packets/{evidence_packet_id}",
     response_model=AdvisoryCopilotEnvelopeResponse,

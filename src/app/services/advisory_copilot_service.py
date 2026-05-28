@@ -24,6 +24,19 @@ class AdvisoryCopilotService:
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
 
+    async def create_evidence_packet_from_proposal_version(
+        self, *, body: dict[str, Any], correlation_id: str
+    ) -> AdvisoryCopilotEnvelopeResponse:
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.create_copilot_evidence_packet_from_proposal_version(
+            body=body,
+            correlation_id=correlation_id,
+        )
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return self._envelope(correlation_id, upstream_payload)
+
     async def get_evidence_packet(
         self, *, evidence_packet_id: str, correlation_id: str
     ) -> AdvisoryCopilotEnvelopeResponse:

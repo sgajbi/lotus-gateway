@@ -143,6 +143,7 @@ def test_gateway_exposes_supported_lotus_advise_advisory_copilot_surface() -> No
     routes = _route_keys()
     expected = {
         ("POST", "/api/v1/advisory-copilot/evidence-packets"),
+        ("POST", "/api/v1/advisory-copilot/evidence-packets/from-proposal-version"),
         ("GET", "/api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}"),
         ("POST", "/api/v1/advisory-copilot/actions"),
         ("GET", "/api/v1/advisory-copilot/actions/{run_id}"),
