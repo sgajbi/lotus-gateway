@@ -41,7 +41,8 @@ It depends on:
 - `lotus-advise`
   proposal simulation, persisted proposal lifecycle, workflow, approval, lineage, reviewed
   narrative posture, report-request, delivery-posture, advisory policy, and advisor cockpit
-  capability
+  capability, plus RFC-0028 bank-demo proof scenario, supported-claim, material-review, and
+  backend proof-pack authority
 - `lotus-manage`
   discretionary management run lookup, supportability summary, platform capability posture, and
   RFC-0039 construction alternative-set authority, RFC-0040 proof-pack authority, and RFC-0042
@@ -69,8 +70,8 @@ Boundary rules that matter:
 ## Current Operational Posture
 
 1. `lotus-gateway` is the primary experience API for `lotus-workbench`.
-2. Foundation, platform capabilities, proposals, advisory policy, advisor cockpit, reporting,
-   intake/lookups, portfolio, and workbench route families are active.
+2. Foundation, platform capabilities, proposals, advisory policy, advisor cockpit, bank-demo proof,
+   reporting, intake/lookups, portfolio, and workbench route families are active.
 3. Domain-product catalog, product detail, dependency-graph, and trust-certification discovery
    routes are active as read-only facades over platform-generated artifacts.
 4. The repository is still moving from thin pass-through behavior toward cleaner experience-API
@@ -104,6 +105,10 @@ Main runtime surfaces come from [src/app/main.py](src/app/main.py):
   `/api/v1/advisor-cockpit/supportability`,
   `/api/v1/advisor-cockpit/actions/{action_item_id}/acknowledgements`,
   `/api/v1/advisor-cockpit/house-view-cohorts/evaluate`
+- `bank-demo-proof`
+  `/api/v1/advisory/bank-demo-proof/scenario-contract`,
+  `/api/v1/advisory/bank-demo-proof/supported-claim-register`,
+  `/api/v1/advisory/bank-demo-proof/proof-packs`
 - `intake` and `lookups`
   `/api/v1/intake/*`, `/api/v1/lookups/*`
 - `portfolio`

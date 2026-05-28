@@ -31,7 +31,7 @@ Current repository posture:
 
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
-3. performance, proposal, advisory-workspace, advisory-policy, advisor-cockpit, foundation, reporting, and capability aggregation
+3. performance, proposal, advisory-workspace, advisory-policy, advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
    routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, async
    operation support, idempotency lookup, replay evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
@@ -42,11 +42,14 @@ Current repository posture:
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
    `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, preparation-packet,
    single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
-   `/advisory/cockpit/*`. Gateway preserves source-hash, review,
+   `/advisory/cockpit/*`; bank-demo proof scenario-contract, supported-claim register, and
+   proof-pack capture routes are routed to `lotus-advise`
+   `/advisory/bank-demo-proof/*`. Gateway preserves source-hash, review,
    report-package, workspace replay, execution handoff, policy supportability, degraded/blocked
    posture, maker-checker state, sign-off posture, AI-evidence posture, cockpit action status,
    owner role, reason codes, preparation-packet posture, evidence refs, lineage refs,
-   acknowledgement state, and delivery event posture
+   acknowledgement state, supported-claim classifications, material-review conflicts, backend
+   proof-pack posture, and delivery event posture
    without generating narrative, evaluating policy rules, inferring client-ready publication,
    rendering reports, archiving documents, sourcing portfolio positions locally, or recomputing
    advisory delivery truth;
@@ -312,6 +315,13 @@ Most relevant current governance:
     to five recent manage runs from `/api/v1/rebalance/runs` with bounded status, timestamp,
     workflow posture, and error code. Gateway remains the product-facing composition boundary and
     does not calculate supportability, workflow state, or error semantics locally.
+18. RFC-0028 bank-demo proof Gateway routes are active under
+    `/api/v1/advisory/bank-demo-proof/*`. Gateway forwards scenario-contract, supported-claim
+    register, and proof-pack capture requests to `lotus-advise`, preserves Advise-owned
+    classifications, material-review posture, source refs, lineage refs, proof markers, and
+    blocked/supportability posture, and must not infer demo readiness, client-ready publication,
+    Workbench browser proof, screenshot readiness, RFP/security completion, external client
+    communication, OMS/order/fill/settlement posture, or proof semantics locally.
 
 ## Context Maintenance Rule
 

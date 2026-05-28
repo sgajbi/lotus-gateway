@@ -20,6 +20,9 @@
 - `advisor-cockpit`
   advisor operating actions, preparation packets, tactical house-view cohort publication,
   snapshot, supportability, and idempotent acknowledgement boundary over `lotus-advise` RFC-0026
+- `bank-demo-proof`
+  bank-demo scenario contract, supported-claim register, and backend proof-pack publication over
+  `lotus-advise` RFC-0028 authority
 - `intake` and `lookups`
   ingress handoff and selector catalog surfaces
 - `portfolio`
@@ -59,3 +62,7 @@
    lineage, and acknowledgement truth stay in `lotus-advise`; gateway publishes the
    product-facing route family and preserves Advise-owned posture without reconstructing advisory
    or meeting preparation semantics
+10. bank-demo scenario-contract, supported-claim classification, material-review, and backend
+    proof-pack truth stay in `lotus-advise`; gateway publishes the product-facing route family and
+    preserves Advise-owned posture without inferring client-ready, screenshot, Workbench browser,
+    RFP/security, external communication, OMS, order, fill, or settlement readiness
