@@ -15,6 +15,7 @@ from app.routers.advisory_policy import router as advisory_policy_router
 from app.routers.advisory_workspaces import router as advisory_workspaces_router
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
 from app.routers.archive_documents import router as archive_documents_router
+from app.routers.bank_demo_proof import router as bank_demo_proof_router
 from app.routers.composite_performance import router as composite_performance_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
@@ -105,6 +106,13 @@ app = FastAPI(
                 "acknowledgement APIs backed by lotus-advise source truth."
             ),
         },
+        {
+            "name": "bank-demo-proof",
+            "description": (
+                "Gateway-facing RFC-0028 bank-demo proof contract APIs backed by lotus-advise "
+                "source-owned scenario, supported-claim, and sanitized proof-pack truth."
+            ),
+        },
     ],
 )
 setup_logging()
@@ -113,6 +121,7 @@ app.middleware("http")(correlation_middleware)
 app.middleware("http")(build_enterprise_audit_middleware("lotus-gateway"))
 Instrumentator().instrument(app).expose(app)
 app.include_router(advisor_cockpit_router)
+app.include_router(bank_demo_proof_router)
 app.include_router(advisory_workspaces_router)
 app.include_router(advisory_policy_router)
 app.include_router(proposals_router)

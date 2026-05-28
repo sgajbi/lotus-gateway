@@ -139,6 +139,17 @@ def test_gateway_exposes_supported_lotus_advise_advisor_cockpit_surface() -> Non
     assert expected - routes == set()
 
 
+def test_gateway_exposes_rfc0028_bank_demo_proof_surface() -> None:
+    routes = _route_keys()
+    expected = {
+        ("GET", "/api/v1/advisory/bank-demo-proof/scenario-contract"),
+        ("GET", "/api/v1/advisory/bank-demo-proof/supported-claim-register"),
+        ("POST", "/api/v1/advisory/bank-demo-proof/proof-packs"),
+    }
+
+    assert expected - routes == set()
+
+
 def test_gateway_policy_report_package_openapi_stays_within_supported_boundary() -> None:
     operation = app.openapi()["paths"][
         "/api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages"

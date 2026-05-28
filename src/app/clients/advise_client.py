@@ -55,6 +55,43 @@ class AdviseClient:
             correlation_id=correlation_id,
         )
 
+    async def get_bank_demo_proof_scenario_contract(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/bank-demo-proof/scenario-contract",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.bank-demo-proof.scenario-contract",
+        )
+
+    async def get_bank_demo_supported_claim_register(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._get(
+            "/advisory/bank-demo-proof/supported-claim-register",
+            params={},
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.bank-demo-proof.supported-claim-register",
+        )
+
+    async def build_bank_demo_proof_pack(
+        self,
+        *,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._post(
+            "/advisory/bank-demo-proof/proof-packs",
+            body=body,
+            headers=self._headers(correlation_id),
+            operation="advise.advisory.bank-demo-proof.proof-packs",
+        )
+
     async def simulate_proposal(
         self,
         body: dict[str, Any],

@@ -3039,6 +3039,41 @@ async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):
 
 
 @pytest.mark.asyncio
+async def test_advise_client_bank_demo_proof_routes_preserve_correlation_and_body():
+    client = AdviseClient(base_url="http://advise", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(
+        200,
+        {"scenario_id": "RFC28_BANK_DEMO_CLIENT_READY_PROOF_CANONICAL"},
+    )
+    _FakeAsyncClient.queue_json(200, {"claims": []})
+    _FakeAsyncClient.queue_json(
+        200,
+        {"proof_pack": {"proof_marker": "BANK_DEMO_PROOF_PACK_CREATED"}},
+    )
+
+    await client.get_bank_demo_proof_scenario_contract(correlation_id="corr-rfc0028")
+    await client.get_bank_demo_supported_claim_register(correlation_id="corr-rfc0028")
+    await client.build_bank_demo_proof_pack(
+        body={"live_runtime_payload": {"parity": {}}, "runtime_posture": {"endpoints": []}},
+        correlation_id="corr-rfc0028",
+    )
+
+    assert [call["url"] for call in _FakeAsyncClient.calls] == [
+        "http://advise/advisory/bank-demo-proof/scenario-contract",
+        "http://advise/advisory/bank-demo-proof/supported-claim-register",
+        "http://advise/advisory/bank-demo-proof/proof-packs",
+    ]
+    assert [call["method"] for call in _FakeAsyncClient.calls] == ["GET", "GET", "POST"]
+    assert all(
+        call["headers"]["X-Correlation-Id"] == "corr-rfc0028" for call in _FakeAsyncClient.calls
+    )
+    assert _FakeAsyncClient.calls[2]["json"] == {
+        "live_runtime_payload": {"parity": {}},
+        "runtime_posture": {"endpoints": []},
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("method_name", "kwargs", "expected_method", "expected_url"),
     [
