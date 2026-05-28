@@ -11,6 +11,7 @@
 - `GET /api/v1/domain-products/trust-certification`
 - `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
+- `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
 - `GET /api/v1/portfolio/*`
@@ -281,6 +282,15 @@
   Gateway does not reconstruct advisory policy, memo blockers, cockpit action or preparation semantics, tactical house-view membership,
   client-ready publication, external client communication, OMS/order/fill/settlement posture, or
   demo-readiness claims.
+- bank-demo proof routes call `lotus-advise` `/advisory/bank-demo-proof/*` through
+  `/api/v1/advisory/bank-demo-proof/scenario-contract`,
+  `/api/v1/advisory/bank-demo-proof/supported-claim-register`, and
+  `/api/v1/advisory/bank-demo-proof/proof-packs`. Gateway preserves Advise-owned scenario
+  identity, supported-claim classifications, material-review posture, proof markers, source refs,
+  lineage refs, blocked/supportability posture, and sanitized proof-pack payloads.
+  Gateway does not reconstruct bank-demo proof, infer Workbench browser proof, promote screenshot
+  readiness, claim RFP/security evidence completion, infer client-ready publication, contact
+  clients, or claim OMS/order/fill/settlement posture.
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040
@@ -645,6 +655,18 @@ curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-summary" \
 curl "http://127.0.0.1:8111/api/v1/proposals/pp_1/delivery-events" \
   -H "X-Correlation-Id: corr-rfc23-delivery-events"
 ```
+
+Bank-demo proof supported-claim register:
+
+```bash
+curl "http://127.0.0.1:8111/api/v1/advisory/bank-demo-proof/supported-claim-register" \
+  -H "X-Correlation-Id: corr-rfc0028-claims"
+```
+
+Bank-demo proof-pack capture is automation-oriented. The `POST
+/api/v1/advisory/bank-demo-proof/proof-packs` body should be the governed evidence envelope
+produced by the canonical runtime proof flow, including `live_runtime_payload` and sanitized
+`runtime_posture`; do not hand-build demo proof payloads in UI code.
 
 Use these examples to preserve the current gateway-facing parameter shapes until a contract is
 intentionally changed.

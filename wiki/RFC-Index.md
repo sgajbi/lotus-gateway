@@ -21,6 +21,11 @@
   supportability, and acknowledgement APIs; Workbench canonical proof and Advise data-product
   promotion are now recorded in the coordinated RFC-0026 program, while full RFC-0028 demo
   readiness remains outside the Gateway claim
+- RFC-0028
+  bank-demo proof Gateway publication for Advise-owned scenario-contract, supported-claim
+  register, material-review, and backend proof-pack APIs; Workbench product UI, screenshot packs,
+  client-ready publication, RFP/security evidence, and external client communication remain
+  unclaimed until their owning implementation and live proof are complete
 - RFC-0098
   proposed DPM command-center composition contract over core, manage, risk, performance, report,
   archive, and AI domain products; the RFC now includes the RFC-0041 rebalance-wave addendum for

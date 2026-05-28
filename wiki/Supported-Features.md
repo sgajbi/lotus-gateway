@@ -179,6 +179,57 @@ Operational behavior:
 3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.
 
+## Bank Demo Proof Publication
+
+Status: implementation-backed in Gateway for the RFC-0028 API publication slice. This is the
+Gateway contract for source-owned bank-demo proof material; Workbench product UI, browser proof,
+demo screenshot packs, client-ready publication, RFP/security evidence, and external client
+communication remain unclaimed until their owning implementation and live evidence are complete.
+
+Business outcome:
+
+1. advisors, operations users, and demo teams can retrieve the source-owned bank-demo scenario
+   contract and supported-claim register through Gateway without calling `lotus-advise` directly,
+2. automation can submit governed runtime evidence for backend proof-pack capture through the
+   product-facing boundary,
+3. sales/pre-sales can describe only implementation-backed claims because Advise-owned supported,
+   blocked, unsupported, and material-review posture is preserved rather than rewritten by Gateway.
+
+Supported routes:
+
+1. `GET /api/v1/advisory/bank-demo-proof/scenario-contract`
+2. `GET /api/v1/advisory/bank-demo-proof/supported-claim-register`
+3. `POST /api/v1/advisory/bank-demo-proof/proof-packs`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the RFC-0028 bank-demo scenario, supported-claim, material-review, and
+   proof-pack authority.
+2. Gateway forwards proof-capture request bodies and correlation context to `lotus-advise`.
+3. Gateway preserves Advise-owned scenario identity, supported-claim classifications,
+   material-review posture, proof markers, source refs, lineage refs, blocked/supportability
+   posture, and sanitized proof-pack payloads.
+4. Gateway does not reconstruct bank-demo proof, infer Workbench browser proof, promote screenshot
+   readiness, claim RFP/security evidence completion, infer client-ready publication, contact
+   clients, place orders, or claim OMS/order/fill/settlement posture.
+
+```mermaid
+flowchart LR
+    Automation[canonical automation] --> Gateway[lotus-gateway bank-demo-proof routes]
+    Workbench[future lotus-workbench proof surfaces] --> Gateway
+    Gateway --> Advise[lotus-advise RFC-0028 proof authority]
+    Advise --> Gateway
+    Gateway --> Consumers[operations and demo consumers]
+```
+
+Operational behavior:
+
+1. Gateway returns source-owned proof payloads under `data` in a product envelope,
+2. `409 Conflict` material-review responses from `lotus-advise` remain visible to automation and
+   operators as blocked proof posture,
+3. this route family is a prerequisite for Workbench product proof but does not by itself certify
+   the Workbench UI or demo screenshots.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

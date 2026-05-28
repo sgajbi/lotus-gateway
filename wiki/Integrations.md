@@ -17,9 +17,11 @@
   proposal simulation, proposal persistence, workflow events, approvals, lineage, reviewed
   narrative posture, report-request, proposal delivery posture, and RFC-0025 policy-pack /
   policy-evaluation posture, and RFC-0026 advisor-cockpit action/snapshot/supportability/
-  acknowledgement posture plus tactical house-view cohort evidence through
+  acknowledgement posture plus tactical house-view cohort evidence, and RFC-0028 bank-demo proof
+  scenario/supported-claim/proof-pack posture through
   `/advisory/proposals/*`, `/advisory/policy-packs/*`, `/advisory/policy-evaluations/*`,
-  `/advisory/cockpit/*`, and `/advisory/tactical-house-view/cohorts/evaluate`
+  `/advisory/cockpit/*`, `/advisory/tactical-house-view/cohorts/evaluate`, and
+  `/advisory/bank-demo-proof/*`
 - `lotus-manage`
   discretionary management run lookup, supportability summary, capabilities, RFC-0038 mandate
   command-center summary/monitoring/exception/mandate drill-down authority APIs, RFC-0039
@@ -100,7 +102,15 @@
    supportability, and acknowledgement state. Gateway does not reconstruct policy, memo, or
    meeting preparation semantics, infer client-ready publication, contact clients, claim external
    execution, or promote full product/demo readiness.
-12. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
+12. RFC-0028 bank-demo proof posture remains `lotus-advise` truth. Gateway exposes scenario
+   contract, supported-claim register, and proof-pack capture routes for Workbench and automation
+   consumers, and preserves Advise-owned scenario identity, supported-claim classifications,
+   material-review posture, proof markers, source refs, lineage refs, blocked/supportability
+   posture, and sanitized proof-pack payloads. Gateway does not reconstruct proof semantics,
+   infer Workbench browser proof, promote screenshot readiness, claim RFP/security evidence
+   completion, infer client-ready publication, contact clients, claim external execution, or
+   promote full product/demo readiness.
+13. RFC-0098 keeps Gateway as the DPM command-center composition boundary. `lotus-manage` remains
    the DPM operating-state, rebalance-wave, and proof-pack authority, `lotus-report` remains report
    materialization authority, `lotus-risk` and `lotus-performance` remain analytics authorities,
    and Workbench remains a renderer of Gateway truth.

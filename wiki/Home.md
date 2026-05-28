@@ -16,7 +16,7 @@
 - primary backend contract for `lotus-workbench`
 - active route families across foundation, workbench, platform capabilities, domain-product
   discovery, proposals, reviewed advisory narrative posture, advisory policy, advisor cockpit,
-  reporting, portfolio, and intake/lookups
+  bank-demo proof, reporting, portfolio, and intake/lookups
 - still replacing thin pass-through patterns with cleaner experience-API contracts
 
 ## Most important commands
