@@ -281,6 +281,17 @@
   Gateway does not reconstruct advisory policy, memo blockers, cockpit action or preparation semantics, tactical house-view membership,
   client-ready publication, external client communication, OMS/order/fill/settlement posture, or
   demo-readiness claims.
+- advisory copilot routes call `lotus-advise` `/advisory/copilot/*` through
+  `/api/v1/advisory-copilot/evidence-packets`,
+  `/api/v1/advisory-copilot/actions`, `/api/v1/advisory-copilot/actions/{run_id}`,
+  `/api/v1/advisory-copilot/actions/{run_id}/reviews`,
+  `/api/v1/advisory-copilot/supportability`, and
+  `/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`.
+  Gateway preserves Advise-owned evidence packets, action/run state, review audit, guardrail
+  posture, workflow-pack/model-risk lineage, supportability, and blocked client-ready posture.
+  Gateway does not call `lotus-ai` for advisory copilot behavior, generate prompts, rebuild
+  evidence packets, evaluate guardrails, mutate review state locally, infer client-ready
+  publication, or claim Gateway/Workbench canonical proof.
 - gateway calls `lotus-manage` only through versioned `/api/v1/*` paths for discretionary
   management run lookup, supportability summary, capability posture, RFC-0038 mandate
   command-center authority APIs, RFC-0039 construction alternative-set authority APIs, RFC-0040

@@ -179,6 +179,30 @@ Operational behavior:
 3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.
 
+## Advisory Copilot Gateway Routes
+
+Status: supported as Gateway route publication over `lotus-advise` RFC-0027 APIs. Workbench
+product surfaces, canonical proof, and data-product promotion remain gated until later RFC-0027
+slices prove them.
+
+Supported routes:
+
+1. `POST /api/v1/advisory-copilot/evidence-packets`
+2. `GET /api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}`
+3. `POST /api/v1/advisory-copilot/actions`
+4. `GET /api/v1/advisory-copilot/actions/{run_id}`
+5. `POST /api/v1/advisory-copilot/actions/{run_id}/reviews`
+6. `GET /api/v1/advisory-copilot/supportability`
+7. `GET /api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the evidence-packet, action, run, review, guardrail, lineage, and
+   supportability authority.
+2. Gateway forwards idempotency and correlation context but does not call `lotus-ai` directly.
+3. Gateway does not generate prompts, rebuild evidence packets, evaluate guardrails, mutate review
+   state locally, infer client-ready publication, or claim OMS/order/fill/settlement authority.
+
 ## DPM Command Center Construction Alternatives
 
 Status: implementation-backed in Gateway for RFC39-WTBD-001.

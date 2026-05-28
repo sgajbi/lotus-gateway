@@ -139,6 +139,22 @@ def test_gateway_exposes_supported_lotus_advise_advisor_cockpit_surface() -> Non
     assert expected - routes == set()
 
 
+def test_gateway_exposes_supported_lotus_advise_advisory_copilot_surface() -> None:
+    routes = _route_keys()
+    expected = {
+        ("POST", "/api/v1/advisory-copilot/evidence-packets"),
+        ("GET", "/api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}"),
+        ("POST", "/api/v1/advisory-copilot/actions"),
+        ("GET", "/api/v1/advisory-copilot/actions/{run_id}"),
+        ("POST", "/api/v1/advisory-copilot/actions/{run_id}/reviews"),
+        ("GET", "/api/v1/advisory-copilot/supportability"),
+        ("GET", "/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs"),
+    }
+
+    assert expected - routes == set()
+    assert ("POST", "/api/v1/advisory-copilot/prompt") not in routes
+
+
 def test_gateway_policy_report_package_openapi_stays_within_supported_boundary() -> None:
     operation = app.openapi()["paths"][
         "/api/v1/advisory-policy-evaluations/{evaluation_id}/report-packages"

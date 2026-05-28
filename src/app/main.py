@@ -11,6 +11,7 @@ from app.enterprise_readiness import (
 )
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
 from app.routers.advisor_cockpit import router as advisor_cockpit_router
+from app.routers.advisory_copilot import router as advisory_copilot_router
 from app.routers.advisory_policy import router as advisory_policy_router
 from app.routers.advisory_workspaces import router as advisory_workspaces_router
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
@@ -105,6 +106,15 @@ app = FastAPI(
                 "acknowledgement APIs backed by lotus-advise source truth."
             ),
         },
+        {
+            "name": "advisory-copilot",
+            "description": (
+                "Gateway-facing governed advisory copilot APIs backed by lotus-advise source "
+                "truth. Gateway preserves evidence, action, run, review, guardrail, lineage, and "
+                "supportability posture without calling lotus-ai or reconstructing advisory "
+                "semantics locally."
+            ),
+        },
     ],
 )
 setup_logging()
@@ -113,6 +123,7 @@ app.middleware("http")(correlation_middleware)
 app.middleware("http")(build_enterprise_audit_middleware("lotus-gateway"))
 Instrumentator().instrument(app).expose(app)
 app.include_router(advisor_cockpit_router)
+app.include_router(advisory_copilot_router)
 app.include_router(advisory_workspaces_router)
 app.include_router(advisory_policy_router)
 app.include_router(proposals_router)
