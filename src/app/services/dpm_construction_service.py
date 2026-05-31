@@ -5,7 +5,7 @@ from app.contracts.dpm_construction import (
     DpmConstructionGatewayResponse,
     DpmConstructionSupportability,
 )
-from app.services.upstream_client_protocols import DpmConstructionClient
+from app.services.dpm_client_protocols import DpmConstructionClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_upstream_error,
