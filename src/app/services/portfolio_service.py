@@ -4,9 +4,6 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import (
     PortfolioActivityBucketSummary,
@@ -64,6 +61,11 @@ from app.precision_policy import (
     quantize_quantity,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.upstream_client_protocols import (
+    PortfolioCoreClient,
+    PortfolioManageClient,
+    PortfolioPerformanceClient,
+)
 
 
 class PortfolioService:
@@ -114,9 +116,9 @@ class PortfolioService:
 
     def __init__(
         self,
-        lotus_core_query_client: LotusCoreQueryClient,
-        analytics_client: LotusAnalyticsClient | None = None,
-        dpm_client: DpmClient | None = None,
+        lotus_core_query_client: PortfolioCoreClient,
+        analytics_client: PortfolioPerformanceClient | None = None,
+        dpm_client: PortfolioManageClient | None = None,
         upstream_cache_ttl_seconds: float | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
