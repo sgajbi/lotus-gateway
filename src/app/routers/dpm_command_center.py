@@ -6,6 +6,7 @@ from app.contracts.dpm_command_center import (
     DpmCommandCenterResolveExceptionRequest,
     DpmExceptionSummaryGatewayResponse,
     DpmExceptionSummaryRequest,
+    DpmOutcomeReviewErrorDetail,
     DpmOutcomeReviewForwardRequest,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
@@ -18,10 +19,23 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.services.dpm_command_center_service import DpmCommandCenterService
 from app.services.dpm_service_factory import build_dpm_command_center_service
 
-router = APIRouter(prefix="/api/v1/dpm/command-center", tags=["DPM Command Center"])
+_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
+    error_model=DpmOutcomeReviewErrorDetail,
+    not_found_description="lotus-manage could not find the requested command-center resource.",
+    conflict_description="lotus-manage rejected the command-center request as conflicting.",
+    invalid_payload_description="lotus-manage rejected the command-center payload as invalid.",
+    unavailable_description="lotus-manage command-center authority is unavailable or degraded.",
+)
+
+router = APIRouter(
+    prefix="/api/v1/dpm/command-center",
+    tags=["DPM Command Center"],
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
 
 
 def _dpm_command_center_service() -> DpmCommandCenterService:
