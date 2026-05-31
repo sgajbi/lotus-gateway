@@ -8,6 +8,13 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _get_policy_evaluation(evaluation_id: str) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().get_policy_evaluation(
+        evaluation_id=evaluation_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/advisory-policy-evaluations/{evaluation_id}",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -17,7 +24,4 @@ router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 async def get_policy_evaluation(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().get_policy_evaluation(
-        evaluation_id=evaluation_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_policy_evaluation(evaluation_id)
