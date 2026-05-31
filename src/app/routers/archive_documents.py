@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Path, Query
@@ -14,6 +15,41 @@ from app.routers.archive_documents_common import (
 from app.services.gateway_service_provider import archive_document_service
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
+
+
+@dataclass(frozen=True)
+class ArchiveDocumentCallerHeaders:
+    actor_id: str | None
+    caller_application: str | None
+    tenant_id: str | None
+    region: str | None
+    booking_center_code: str | None
+    role: str | None
+
+    def as_archive_context(self) -> dict[str, str]:
+        return archive_caller_headers(
+            actor_id=self.actor_id,
+            caller_application=self.caller_application,
+            tenant_id=self.tenant_id,
+            region=self.region,
+            booking_center_code=self.booking_center_code,
+            role=self.role,
+        )
+
+
+async def _get_archived_document_metadata(
+    *,
+    document_id: str,
+    current: bool,
+    caller_headers: ArchiveDocumentCallerHeaders,
+) -> ArchivedDocumentMetadataResponse:
+    correlation_id = correlation_id_var.get()
+    return await archive_document_service().get_document_metadata(
+        document_id=document_id,
+        caller_headers=caller_headers.as_archive_context(),
+        correlation_id=correlation_id,
+        current=current,
+    )
 
 
 @router.get(
@@ -81,10 +117,10 @@ async def get_archived_document_metadata(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ArchivedDocumentMetadataResponse:
-    correlation_id = correlation_id_var.get()
-    return await archive_document_service().get_document_metadata(
+    return await _get_archived_document_metadata(
         document_id=document_id,
-        caller_headers=archive_caller_headers(
+        current=current,
+        caller_headers=ArchiveDocumentCallerHeaders(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -92,6 +128,4 @@ async def get_archived_document_metadata(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id,
-        current=current,
     )
