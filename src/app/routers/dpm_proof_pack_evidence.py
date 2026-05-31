@@ -62,28 +62,3 @@ async def get_proof_pack_report_input(
         proof_pack_id=proof_pack_id,
         correlation_id=correlation_id_var.get(),
     )
-
-
-@router.get(
-    "/{proof_pack_id}/ai-evidence-input",
-    response_model=DpmProofPackGatewayResponse,
-    summary="Get DPM proof-pack AI evidence input",
-    description=(
-        "What: returns manage-owned deterministic AI-evidence input for one RFC-0040 proof pack. "
-        "When: call this before asking lotus-ai for governed memo or narrative generation. How: "
-        "Gateway preserves source refs, hashes, section states, and reason codes from manage and "
-        "does not generate AI narrative itself."
-    ),
-    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
-)
-async def get_proof_pack_ai_evidence_input(
-    proof_pack_id: str = Path(
-        ...,
-        description="Manage-owned immutable proof-pack identifier.",
-        examples=["dpp_rr_001"],
-    ),
-) -> DpmProofPackGatewayResponse:
-    return await dpm_proof_pack_service().get_proof_pack_ai_evidence_input(
-        proof_pack_id=proof_pack_id,
-        correlation_id=correlation_id_var.get(),
-    )
