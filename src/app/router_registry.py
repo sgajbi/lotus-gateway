@@ -17,6 +17,9 @@ from app.routers.dpm_command_center_pm_quality import (
 )
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
+from app.routers.dpm_wave_campaign_definitions import (
+    router as dpm_wave_campaign_definitions_router,
+)
 from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
@@ -53,6 +56,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_command_center_pm_quality_router)
+    app.include_router(dpm_wave_campaign_definitions_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_proof_packs_router)
     app.include_router(dpm_waves_router)
