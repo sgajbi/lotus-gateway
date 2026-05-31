@@ -79,7 +79,9 @@ def _route_handler_dict_literals(path: Path) -> list[str]:
             continue
         if not _is_router_handler(node):
             continue
-        if any(isinstance(child, ast.Dict) for child in ast.walk(node)):
+        if any(
+            isinstance(child, ast.Dict) for statement in node.body for child in ast.walk(statement)
+        ):
             handlers.append(node.name)
     return handlers
 
@@ -106,9 +108,9 @@ def test_router_handlers_delegate_service_calls_to_private_helpers() -> None:
     assert offenders == {}
 
 
-def test_dpm_router_handlers_delegate_filter_construction_to_private_helpers() -> None:
+def test_router_handlers_delegate_filter_construction_to_private_helpers() -> None:
     offenders = {
-        path.name: _route_handler_dict_literals(path) for path in _ROUTER_ROOT.glob("dpm_*.py")
+        path.name: _route_handler_dict_literals(path) for path in _ROUTER_ROOT.glob("*.py")
     }
     offenders = {name: handlers for name, handlers in offenders.items() if handlers}
 
