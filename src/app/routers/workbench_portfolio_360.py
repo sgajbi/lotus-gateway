@@ -7,6 +7,20 @@ from app.services.workbench_service_provider import workbench_service
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 
+async def _get_portfolio_360(
+    *,
+    portfolio_id: str,
+    session_id: str | None,
+) -> WorkbenchPortfolio360Response:
+    service = workbench_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_portfolio_360(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        session_id=session_id,
+    )
+
+
 @router.get(
     "/{portfolio_id}/portfolio-360",
     response_model=WorkbenchPortfolio360Response,
@@ -29,10 +43,7 @@ async def get_portfolio_360(
         examples=["sess_1"],
     ),
 ) -> WorkbenchPortfolio360Response:
-    service = workbench_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_portfolio_360(
+    return await _get_portfolio_360(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
         session_id=session_id,
     )
