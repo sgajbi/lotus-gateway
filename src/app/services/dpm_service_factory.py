@@ -9,14 +9,28 @@ from app.services.dpm_proof_pack_service import DpmProofPackService
 from app.services.dpm_wave_service import DpmWaveService
 
 
-def dpm_service_signature() -> tuple[object, ...]:
+def manage_client_signature() -> tuple[object, ...]:
     return (
         settings.management_service_base_url,
-        settings.ai_service_base_url,
         settings.upstream_timeout_seconds,
+        settings.upstream_max_retries,
+        settings.upstream_retry_backoff_seconds,
+    )
+
+
+def lotus_ai_client_signature() -> tuple[object, ...]:
+    return (
+        settings.ai_service_base_url,
         settings.ai_service_timeout_seconds,
         settings.upstream_max_retries,
         settings.upstream_retry_backoff_seconds,
+    )
+
+
+def dpm_service_signature() -> tuple[object, ...]:
+    return (
+        *manage_client_signature(),
+        *lotus_ai_client_signature(),
     )
 
 
