@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Header, Path, Query, status
 
 from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
@@ -13,7 +13,6 @@ from app.contracts.reporting import (
     BATCH_STATUS_RESPONSE_EXAMPLE,
     BATCH_WORKER_RUN_REQUEST_EXAMPLE,
     BATCH_WORKER_RUN_RESPONSE_EXAMPLE,
-    REPORT_BATCH_ERROR_EXAMPLES,
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
     BatchControlResponse,
     BatchCreateRequest,
@@ -46,14 +45,17 @@ from app.routers.reporting_errors import (
 )
 from app.routers.reporting_links import (
     gateway_report_job_status_url,
-    rewrite_report_batch_status_url,
 )
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_batch_control_service import ReportingBatchControlService
 from app.services.reporting_batch_control_service_factory import (
     build_reporting_batch_control_service,
 )
-from app.services.reporting_client_factory import build_render_client, build_reporting_client
+from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecycleService
+from app.services.reporting_batch_lifecycle_service_factory import (
+    build_reporting_batch_lifecycle_service,
+)
+from app.services.reporting_client_factory import build_reporting_client
 from app.services.reporting_job_query_service import ReportingJobQueryService
 from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
 from app.services.reporting_job_submission_service import ReportingJobSubmissionService
@@ -62,7 +64,6 @@ from app.services.reporting_job_submission_service_factory import (
 )
 from app.services.reporting_portfolio_service import ReportingPortfolioService
 from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
-from app.services.reporting_supportability import attach_reporting_operator_supportability
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
@@ -191,6 +192,10 @@ def _reporting_job_query_service() -> ReportingJobQueryService:
 
 def _reporting_batch_control_service() -> ReportingBatchControlService:
     return build_reporting_batch_control_service()
+
+
+def _reporting_batch_lifecycle_service() -> ReportingBatchLifecycleService:
+    return build_reporting_batch_lifecycle_service()
 
 
 @router.get(
@@ -917,14 +922,11 @@ async def create_report_batch(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=REPORT_BATCH_ERROR_EXAMPLES["missing_idempotency_key"]["detail"],
-        )
-    status_code, payload = await build_reporting_client().create_report_batch(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_batch_lifecycle_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    return await service.create_batch(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -934,16 +936,8 @@ async def create_report_batch(
             role=role,
         ),
         correlation_id=correlation_id,
-    )
-    raise_report_batch_error(status_code, payload)
-    response_payload = await attach_reporting_operator_supportability(
-        rewrite_report_batch_status_url(payload),
-        reporting_client=build_reporting_client(),
-        render_client=build_render_client(),
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchHandleResponse.model_validate(response_payload)
 
 
 @batches_router.get(
@@ -983,7 +977,7 @@ async def get_report_batch_status(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchStatusResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await build_reporting_client().get_report_batch(
+    return await _reporting_batch_lifecycle_service().get_batch_status(
         batch_id=batch_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -994,16 +988,8 @@ async def get_report_batch_status(
             role=role,
         ),
         correlation_id=correlation_id,
-    )
-    raise_report_batch_error(status_code, payload)
-    response_payload = await attach_reporting_operator_supportability(
-        payload,
-        reporting_client=build_reporting_client(),
-        render_client=build_render_client(),
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchStatusResponse.model_validate(response_payload)
 
 
 async def _control_batch(
