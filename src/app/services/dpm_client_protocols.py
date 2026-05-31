@@ -604,4 +604,3 @@ class DpmWaveClient(Protocol):
         wave_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
-

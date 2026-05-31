@@ -142,4 +142,3 @@ class RiskWorkspaceClient(Protocol):
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
-

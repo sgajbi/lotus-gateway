@@ -567,6 +567,7 @@ class ProposalClient(Protocol):
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
+
 class AdvisorBriefAiClient(Protocol):
     async def execute_workflow_pack(
         self,
@@ -627,4 +628,3 @@ class AdvisorBriefAdviseClient(Protocol):
         tenant_id: str = "default",
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
-

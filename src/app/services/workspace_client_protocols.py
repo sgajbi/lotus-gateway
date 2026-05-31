@@ -439,4 +439,3 @@ class PerformanceWorkspaceCoreClient(Protocol):
         benchmark_status: str | None = "active",
         benchmark_type: str | None = "composite",
     ) -> tuple[int, dict[str, Any]]: ...
-

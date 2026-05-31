@@ -13,4 +13,3 @@ class LotusAiWorkflowClient(Protocol):
         task_request: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
-

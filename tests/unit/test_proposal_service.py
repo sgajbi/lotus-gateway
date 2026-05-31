@@ -127,9 +127,7 @@ class _FakeAdviseClient:
             "gate_decision": {"gate": "EXECUTION_READY", "recommended_next_step": "EXECUTE"},
         }
 
-    async def create_proposal_artifact(
-        self, body: dict, idempotency_key: str, correlation_id: str
-    ):
+    async def create_proposal_artifact(self, body: dict, idempotency_key: str, correlation_id: str):
         self.calls.append(
             (
                 "create_proposal_artifact",
@@ -276,9 +274,7 @@ class _FakeAdviseClient:
         )
         return 200, {"operation_correlation_id": operation_correlation_id, "status": "READY"}
 
-    async def get_proposal_operation_replay_evidence(
-        self, operation_id: str, correlation_id: str
-    ):
+    async def get_proposal_operation_replay_evidence(self, operation_id: str, correlation_id: str):
         self.calls.append(
             (
                 "get_proposal_operation_replay_evidence",
@@ -483,9 +479,7 @@ class _FakeAdviseClient:
         )
         return 200, {"proposal_id": proposal_id, "version_no": version_no, "narrative_id": "pn_1"}
 
-    async def get_proposal_narrative(
-        self, proposal_id: str, version_no: int, correlation_id: str
-    ):
+    async def get_proposal_narrative(self, proposal_id: str, version_no: int, correlation_id: str):
         self.calls.append(
             (
                 "get_proposal_narrative",
