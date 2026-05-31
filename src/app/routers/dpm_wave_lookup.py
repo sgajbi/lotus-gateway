@@ -13,10 +13,22 @@ router = APIRouter(
 
 async def _list_waves(
     *,
-    filters: dict[str, str | int | None],
+    state: str | None,
+    trigger_type: str | None,
+    as_of_date: str | None,
+    supportability_state: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmWaveGatewayResponse:
     return await dpm_wave_service().list_waves(
-        filters=filters,
+        filters={
+            "state": state,
+            "trigger_type": trigger_type,
+            "as_of_date": as_of_date,
+            "supportability_state": supportability_state,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -54,12 +66,10 @@ async def list_waves(
     offset: int = Query(default=0, ge=0, description="Zero-based wave-list offset."),
 ) -> DpmWaveGatewayResponse:
     return await _list_waves(
-        filters={
-            "state": state,
-            "trigger_type": trigger_type,
-            "as_of_date": as_of_date,
-            "supportability_state": supportability_state,
-            "limit": limit,
-            "offset": offset,
-        },
+        state=state,
+        trigger_type=trigger_type,
+        as_of_date=as_of_date,
+        supportability_state=supportability_state,
+        limit=limit,
+        offset=offset,
     )
