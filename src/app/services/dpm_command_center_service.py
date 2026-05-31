@@ -28,27 +28,6 @@ from app.services.upstream_envelope import (
     safe_upstream_detail,
 )
 
-_PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS = [
-    "rank_portfolio_managers",
-    "make_hr_decisions",
-    "make_compensation_decisions",
-    "enforce_conduct_action",
-    "approve_rebalance",
-    "contact_client",
-    "place_orders",
-    "invent_missing_evidence",
-]
-_PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS = [
-    "pm_ranking",
-    "hr_decision",
-    "compensation_decision",
-    "conduct_enforcement",
-    "client_message",
-    "trade_approval",
-    "execution_instruction",
-    "oms_acknowledgement",
-]
-
 
 class DpmCommandCenterService:
     def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
@@ -206,55 +185,28 @@ class DpmCommandCenterService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
-            "exception_summary_input": exception_summary_input,
-            "exception_summary_request": summary_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": [],
-                "blocked_actions": [],
-                "forbidden_actions": [
-                    "approve_rebalance",
-                    "contact_client",
-                    "invent_missing_evidence",
-                    "override_controls",
-                    "place_orders",
-                    "score_portfolio_manager",
-                ],
-                "requires_human_review": True,
-                "unsupported_claims": [
-                    "trade_approval",
-                    "order_instruction",
-                    "client_message",
-                    "portfolio_manager_scoring",
-                ],
-            },
-        }
+        task_payload = dpm_command_center_ai_context.exception_summary_task_payload(
+            exception_summary_input=exception_summary_input,
+            summary_request=summary_request,
+            supportability=supportability,
+        )
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_exception_summary.pack",
             version="v1",
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-exception-summary-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated DPM exception summary from manage-owned "
-                        f"monitoring exception {exception_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": dpm_command_center_ai_context.exception_summary_source_refs(
-                        exception_summary_input
-                    ),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated DPM exception summary from manage-owned "
+                    f"monitoring exception {exception_id}."
+                ),
+                payload=task_payload,
+                source_refs=dpm_command_center_ai_context.exception_summary_source_refs(
+                    exception_summary_input
+                ),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
@@ -499,21 +451,11 @@ class DpmCommandCenterService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
-            "ai_evidence_input": manage_payload,
-            "narrative_request": narrative_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": supportability.blocked_actions,
-                "requires_human_review": True,
-                "unsupported_claims": [
-                    "client_contact",
-                    "trade_approval",
-                    "portfolio_manager_scoring",
-                ],
-            },
-        }
+        task_payload = dpm_command_center_ai_context.outcome_review_narrative_task_payload(
+            ai_evidence_input=manage_payload,
+            narrative_request=narrative_request,
+            supportability=supportability,
+        )
         source_refs = dpm_command_center_ai_context.outcome_ai_source_refs(
             manage_payload, outcome_review_id
         )
@@ -523,23 +465,15 @@ class DpmCommandCenterService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-outcome-review-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated outcome-review narrative from bounded "
-                        f"AI evidence for {outcome_review_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": source_refs,
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated outcome-review narrative from bounded "
+                    f"AI evidence for {outcome_review_id}."
+                ),
+                payload=task_payload,
+                source_refs=source_refs,
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
@@ -921,19 +855,12 @@ class DpmCommandCenterService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload: dict[str, object] = {
-            "score_run": score_run,
-            "summary_request": summary_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "requires_human_review": True,
-                "forbidden_actions": _PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS,
-                "unsupported_claims": _PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS,
-            },
-        }
-        portfolio_memory_context = manage_payload.get("portfolio_memory_context")
-        if isinstance(portfolio_memory_context, dict):
-            task_payload["portfolio_memory_context"] = portfolio_memory_context
+        task_payload = dpm_command_center_ai_context.pm_quality_summary_task_payload(
+            manage_payload=manage_payload,
+            score_run=score_run,
+            summary_request=summary_request,
+            supportability=supportability,
+        )
 
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="pm_quality_summary.pack",
@@ -941,25 +868,15 @@ class DpmCommandCenterService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-pm-quality-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated PM operating quality summary from "
-                        f"Manage-owned score-run evidence for {score_run_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": dpm_command_center_ai_context.pm_quality_summary_source_refs(
-                        score_run
-                    ),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated PM operating quality summary from "
+                    f"Manage-owned score-run evidence for {score_run_id}."
+                ),
+                payload=task_payload,
+                source_refs=dpm_command_center_ai_context.pm_quality_summary_source_refs(score_run),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:

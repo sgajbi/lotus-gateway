@@ -723,7 +723,8 @@ Production-readiness controls:
    mandate readiness, outcome-review posture, portfolio-memory posture, and PM operating-quality
    posture can evolve without re-expanding the command-center service monolith,
 7. command-center AI handoff context builders are isolated in a dedicated tested boundary for
-   exception-summary inputs, outcome-review evidence refs, and PM operating-quality source refs,
+   exception-summary inputs, workflow-pack task payloads, outcome-review evidence refs, and PM
+   operating-quality source refs,
 8. manage evidence-read failures use the shared bounded upstream-detail extractor, including
    structured `code` plus `message` details from upstream governance checks,
 9. unit and contract tests pin product-safe manage errors, source-owned payload preservation,

@@ -1,10 +1,19 @@
+from app.contracts.dpm_command_center import (
+    DpmCommandCenterSupportability,
+    DpmOutcomeReviewSupportability,
+    DpmPmOperatingQualitySupportability,
+)
 from app.services.dpm_command_center_ai_context import (
     exception_summary_input_from_exception,
     exception_summary_source_refs,
+    exception_summary_task_payload,
     find_exception,
     outcome_ai_source_refs,
+    outcome_review_narrative_task_payload,
     pm_quality_score_run_from,
     pm_quality_summary_source_refs,
+    pm_quality_summary_task_payload,
+    workflow_pack_task_request,
 )
 
 
@@ -146,3 +155,94 @@ def test_exception_summary_source_refs_and_outcome_ai_refs_are_stable() -> None:
         "lotus-manage:outcome-review:or-1",
         "lotus-manage:outcome-ai-evidence:or-1",
     ]
+
+
+def test_ai_handoff_task_payloads_preserve_review_boundaries() -> None:
+    exception_payload = exception_summary_task_payload(
+        exception_summary_input={"exception_id": "me-1"},
+        summary_request={"requested_outputs": ["summary"], "audience": ["pm"]},
+        supportability=DpmCommandCenterSupportability(
+            state="READY",
+            data_completeness_state="READY",
+            partial_readiness_reasons=[],
+        ),
+    )
+    assert exception_payload["supportability"] == {
+        "source_state": "READY",
+        "reason_codes": [],
+        "blocked_actions": [],
+        "forbidden_actions": [
+            "approve_rebalance",
+            "contact_client",
+            "invent_missing_evidence",
+            "override_controls",
+            "place_orders",
+            "score_portfolio_manager",
+        ],
+        "requires_human_review": True,
+        "unsupported_claims": [
+            "trade_approval",
+            "order_instruction",
+            "client_message",
+            "portfolio_manager_scoring",
+        ],
+    }
+
+    narrative_payload = outcome_review_narrative_task_payload(
+        ai_evidence_input={"outcome_review_id": "or-1"},
+        narrative_request={"requested_outputs": ["pm_summary"], "audience": ["pm"]},
+        supportability=DpmOutcomeReviewSupportability(
+            state="BLOCKED",
+            reason_codes=["MISSING_EVIDENCE"],
+            blocked_actions=["release_report"],
+        ),
+    )
+    assert narrative_payload["supportability"] == {
+        "source_state": "BLOCKED",
+        "reason_codes": ["MISSING_EVIDENCE"],
+        "blocked_actions": ["release_report"],
+        "requires_human_review": True,
+        "unsupported_claims": [
+            "client_contact",
+            "trade_approval",
+            "portfolio_manager_scoring",
+        ],
+    }
+
+    pm_quality_payload = pm_quality_summary_task_payload(
+        manage_payload={"portfolio_memory_context": {"portfolio_id": "PB_SG_GLOBAL_BAL_001"}},
+        score_run={"score_run_id": "score-1"},
+        summary_request={"requested_outputs": ["summary"], "audience": ["cio"]},
+        supportability=DpmPmOperatingQualitySupportability(state="READY"),
+    )
+    assert pm_quality_payload["score_run"] == {"score_run_id": "score-1"}
+    assert pm_quality_payload["portfolio_memory_context"] == {
+        "portfolio_id": "PB_SG_GLOBAL_BAL_001"
+    }
+    assert pm_quality_payload["supportability"]["requires_human_review"] is True
+    assert "contact_client" in pm_quality_payload["supportability"]["forbidden_actions"]
+    assert "trade_approval" in pm_quality_payload["supportability"]["unsupported_claims"]
+
+
+def test_workflow_pack_task_request_uses_gateway_caller_and_source_refs() -> None:
+    task_request = workflow_pack_task_request(
+        correlation_id="corr-1",
+        summary="Generate bounded narrative.",
+        payload={"evidence": "bounded"},
+        source_refs=["lotus-manage:source:1"],
+    )
+
+    assert task_request == {
+        "task_id": "explain.v1",
+        "input_mode": "STRUCTURED_CONTEXT",
+        "caller": {
+            "caller_app": "lotus-gateway",
+            "correlation_id": "corr-1",
+        },
+        "context": {
+            "summary": "Generate bounded narrative.",
+            "payload": {"evidence": "bounded"},
+            "source_refs": ["lotus-manage:source:1"],
+        },
+        "expected_output_label": "EXPLANATION_ONLY",
+    }

@@ -5,7 +5,33 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
+from app.contracts.dpm_command_center import (
+    DpmCommandCenterSupportability,
+    DpmOutcomeReviewSupportability,
+    DpmPmOperatingQualitySupportability,
+)
 from app.services.dpm_command_center_supportability import safe_optional_str
+
+PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS = [
+    "rank_portfolio_managers",
+    "make_hr_decisions",
+    "make_compensation_decisions",
+    "enforce_conduct_action",
+    "approve_rebalance",
+    "contact_client",
+    "place_orders",
+    "invent_missing_evidence",
+]
+PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS = [
+    "pm_ranking",
+    "hr_decision",
+    "compensation_decision",
+    "conduct_enforcement",
+    "client_message",
+    "trade_approval",
+    "execution_instruction",
+    "oms_acknowledgement",
+]
 
 
 def pm_quality_score_run_from(payload: dict[str, Any]) -> dict[str, object] | None:
@@ -116,6 +142,107 @@ def outcome_ai_source_refs(payload: dict[str, Any], outcome_review_id: str) -> l
     if len(source_refs) == 1:
         source_refs.append(f"lotus-manage:outcome-ai-evidence:{outcome_review_id}")
     return source_refs
+
+
+def exception_summary_task_payload(
+    *,
+    exception_summary_input: dict[str, object],
+    summary_request: dict[str, object],
+    supportability: DpmCommandCenterSupportability,
+) -> dict[str, object]:
+    return {
+        "exception_summary_input": exception_summary_input,
+        "exception_summary_request": summary_request,
+        "supportability": {
+            "source_state": supportability.state,
+            "reason_codes": [],
+            "blocked_actions": [],
+            "forbidden_actions": [
+                "approve_rebalance",
+                "contact_client",
+                "invent_missing_evidence",
+                "override_controls",
+                "place_orders",
+                "score_portfolio_manager",
+            ],
+            "requires_human_review": True,
+            "unsupported_claims": [
+                "trade_approval",
+                "order_instruction",
+                "client_message",
+                "portfolio_manager_scoring",
+            ],
+        },
+    }
+
+
+def outcome_review_narrative_task_payload(
+    *,
+    ai_evidence_input: dict[str, Any],
+    narrative_request: dict[str, object],
+    supportability: DpmOutcomeReviewSupportability,
+) -> dict[str, object]:
+    return {
+        "ai_evidence_input": ai_evidence_input,
+        "narrative_request": narrative_request,
+        "supportability": {
+            "source_state": supportability.state,
+            "reason_codes": supportability.reason_codes,
+            "blocked_actions": supportability.blocked_actions,
+            "requires_human_review": True,
+            "unsupported_claims": [
+                "client_contact",
+                "trade_approval",
+                "portfolio_manager_scoring",
+            ],
+        },
+    }
+
+
+def pm_quality_summary_task_payload(
+    *,
+    manage_payload: dict[str, Any],
+    score_run: dict[str, object],
+    summary_request: dict[str, object],
+    supportability: DpmPmOperatingQualitySupportability,
+) -> dict[str, object]:
+    task_payload: dict[str, object] = {
+        "score_run": score_run,
+        "summary_request": summary_request,
+        "supportability": {
+            "source_state": supportability.state,
+            "requires_human_review": True,
+            "forbidden_actions": PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS,
+            "unsupported_claims": PM_QUALITY_SUMMARY_UNSUPPORTED_CLAIMS,
+        },
+    }
+    portfolio_memory_context = manage_payload.get("portfolio_memory_context")
+    if isinstance(portfolio_memory_context, dict):
+        task_payload["portfolio_memory_context"] = portfolio_memory_context
+    return task_payload
+
+
+def workflow_pack_task_request(
+    *,
+    correlation_id: str,
+    summary: str,
+    payload: dict[str, object],
+    source_refs: list[str],
+) -> dict[str, object]:
+    return {
+        "task_id": "explain.v1",
+        "input_mode": "STRUCTURED_CONTEXT",
+        "caller": {
+            "caller_app": "lotus-gateway",
+            "correlation_id": correlation_id,
+        },
+        "context": {
+            "summary": summary,
+            "payload": payload,
+            "source_refs": source_refs,
+        },
+        "expected_output_label": "EXPLANATION_ONLY",
+    }
 
 
 def _source_ref_label(value: object) -> str | None:
