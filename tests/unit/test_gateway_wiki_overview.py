@@ -26,4 +26,5 @@ def test_gateway_overview_wiki_is_audience_aware_and_implementation_backed() -> 
     assert "dedicated tested mapper boundary" in supported_features
     assert "AI handoff context builders" in supported_features
     assert "workflow-pack task payloads" in supported_features
-    assert "shared bounded upstream-detail extractor" in supported_features
+    assert "shared product-safe upstream error raiser" in supported_features
+    assert "bounded upstream-detail extractor" in supported_features

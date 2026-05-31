@@ -25,7 +25,6 @@ from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
-    safe_upstream_detail,
 )
 
 
@@ -143,18 +142,11 @@ class DpmCommandCenterService:
             },
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=manage_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=manage_status,
-                    error_code="MANAGE_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
-                    detail=safe_upstream_detail(
-                        manage_payload,
-                        default_detail="lotus-manage command-center request failed",
-                    ),
-                ).model_dump(),
-            )
+        _raise_manage_command_center_error(
+            manage_status,
+            manage_payload,
+            error_code="MANAGE_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
+        )
 
         exception = dpm_command_center_ai_context.find_exception(manage_payload, exception_id)
         if exception is None:
@@ -431,18 +423,11 @@ class DpmCommandCenterService:
             outcome_review_id=outcome_review_id,
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=manage_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=manage_status,
-                    error_code="MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
-                    detail=safe_upstream_detail(
-                        manage_payload,
-                        default_detail="lotus-manage command-center request failed",
-                    ),
-                ).model_dump(),
-            )
+        _raise_manage_command_center_error(
+            manage_status,
+            manage_payload,
+            error_code="MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
+        )
 
         supportability = dpm_command_center_supportability.outcome_review_supportability_from(
             manage_payload
@@ -820,18 +805,11 @@ class DpmCommandCenterService:
             score_run_id=score_run_id,
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=manage_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=manage_status,
-                    error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-                    detail=safe_upstream_detail(
-                        manage_payload,
-                        default_detail="lotus-manage command-center request failed",
-                    ),
-                ).model_dump(),
-            )
+        _raise_manage_command_center_error(
+            manage_status,
+            manage_payload,
+            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        )
 
         score_run = dpm_command_center_ai_context.pm_quality_score_run_from(manage_payload)
         if score_run is None:

@@ -725,8 +725,9 @@ Production-readiness controls:
 7. command-center AI handoff context builders are isolated in a dedicated tested boundary for
    exception-summary inputs, workflow-pack task payloads, outcome-review evidence refs, and PM
    operating-quality source refs,
-8. manage evidence-read failures use the shared bounded upstream-detail extractor, including
-   structured `code` plus `message` details from upstream governance checks,
+8. manage evidence-read failures use the shared product-safe upstream error raiser and shared
+   bounded upstream-detail extractor, including structured `code` plus `message` details from
+   upstream governance checks,
 9. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
