@@ -11,6 +11,24 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _request_proposal_memo_ai_commentary(
+    *,
+    request: ProposalMemoAiCommentaryRequest,
+    proposal_id: str,
+    version_no: int,
+    idempotency_key: str | None,
+) -> ProposalMemoAiCommentaryEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.request_proposal_memo_ai_commentary(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.model_dump(exclude_none=True),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions/{version_no}/memo/ai-commentary",
     response_model=ProposalMemoAiCommentaryEnvelopeResponse,
@@ -31,12 +49,9 @@ async def request_proposal_memo_ai_commentary(
         examples=["idem-memo-ai-commentary-1"],
     ),
 ) -> ProposalMemoAiCommentaryEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.request_proposal_memo_ai_commentary(
+    return await _request_proposal_memo_ai_commentary(
+        request=request,
         proposal_id=proposal_id,
         version_no=version_no,
-        body=request.model_dump(exclude_none=True),
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
