@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Header, Query
 
-from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.platform_capabilities import PlatformCapabilitiesResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.advise_client_factory import build_advise_client
+from app.services.dpm_service_factory import build_manage_client
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
 from app.services.reporting_client_factory import build_reporting_client
 
@@ -16,12 +16,7 @@ router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
 def _platform_capabilities_service() -> PlatformCapabilitiesService:
     return PlatformCapabilitiesService(
         advise_client=build_advise_client(),
-        manage_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        manage_client=build_manage_client(),
         lotus_core_query_client=LotusCoreQueryClient(
             base_url=settings.portfolio_data_query_base_url,
             control_plane_base_url=settings.portfolio_data_control_plane_base_url,

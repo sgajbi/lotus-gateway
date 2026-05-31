@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Path
 
-from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
@@ -9,6 +8,7 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.dpm_service_factory import build_manage_client
 from app.services.foundation_service import FoundationService
 from app.services.reporting_client_factory import build_reporting_client
 
@@ -30,12 +30,7 @@ def _foundation_service() -> FoundationService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        dpm_client=build_manage_client(),
         reporting_client=build_reporting_client(),
     )
 
