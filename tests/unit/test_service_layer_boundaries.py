@@ -47,3 +47,21 @@ def test_service_providers_do_not_return_direct_builder_calls() -> None:
             offenders[path.relative_to(_SERVICE_ROOT).as_posix()] = sorted(direct_builder_returns)
 
     assert offenders == {}
+
+
+def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> None:
+    offenders: dict[str, list[int]] = {}
+    for path in _SERVICE_ROOT.rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        inline_task_request_lines: list[int] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.keyword):
+                continue
+            if node.arg != "task_request":
+                continue
+            if isinstance(node.value, ast.Dict):
+                inline_task_request_lines.append(node.lineno)
+        if inline_task_request_lines:
+            offenders[path.relative_to(_SERVICE_ROOT).as_posix()] = inline_task_request_lines
+
+    assert offenders == {}
