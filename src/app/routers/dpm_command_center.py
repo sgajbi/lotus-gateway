@@ -12,6 +12,28 @@ router = APIRouter(
 )
 
 
+async def _get_command_center(
+    *,
+    portfolio_manager_id: str | None,
+    tenant_id: str | None,
+    as_of_date: str | None,
+    book_id: str | None,
+    health_state: str | None,
+    limit: int,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().get_command_center(
+        filters={
+            "portfolio_manager_id": portfolio_manager_id,
+            "tenant_id": tenant_id,
+            "as_of_date": as_of_date,
+            "book_id": book_id,
+            "health_state": health_state,
+            "limit": limit,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "",
     response_model=DpmCommandCenterGatewayResponse,
@@ -57,14 +79,11 @@ async def get_command_center(
         description="Maximum active exceptions to consider for attention buckets.",
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().get_command_center(
-        filters={
-            "portfolio_manager_id": portfolio_manager_id,
-            "tenant_id": tenant_id,
-            "as_of_date": as_of_date,
-            "book_id": book_id,
-            "health_state": health_state,
-            "limit": limit,
-        },
-        correlation_id=correlation_id_var.get(),
+    return await _get_command_center(
+        portfolio_manager_id=portfolio_manager_id,
+        tenant_id=tenant_id,
+        as_of_date=as_of_date,
+        book_id=book_id,
+        health_state=health_state,
+        limit=limit,
     )
