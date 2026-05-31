@@ -39,27 +39,3 @@ async def refresh_outcome_review_sources(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
-
-
-@router.get(
-    "/outcome-reviews/{outcome_review_id}/supportability",
-    response_model=DpmOutcomeReviewGatewayResponse,
-    summary="Get outcome review supportability",
-    description=(
-        "What: returns manage-published supportability for one outcome review. When: call this "
-        "to decide whether Workbench should enable report generation, AI evidence handoff, or "
-        "source-refresh actions. How: Gateway surfaces manage's state, reason codes, blocked "
-        "actions, and remediation owner without replacing manage policy."
-    ),
-)
-async def get_outcome_review_supportability(
-    outcome_review_id: str = Path(
-        ...,
-        description="Manage-owned outcome-review identifier.",
-        examples=["or_20260415_001"],
-    ),
-) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().get_outcome_review_supportability(
-        outcome_review_id=outcome_review_id,
-        correlation_id=correlation_id_var.get(),
-    )
