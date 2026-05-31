@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Path, Query
@@ -8,6 +9,37 @@ from app.routers.workbench_caller_context import require_workbench_caller_contex
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
+
+
+@dataclass(frozen=True)
+class PerformanceSummaryQuery:
+    period: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    benchmark_code: str | None
+    report_start_date: str | None
+    report_end_date: str | None
+
+
+async def _get_performance_summary(
+    *,
+    portfolio_id: str,
+    query: PerformanceSummaryQuery,
+) -> PerformanceWorkspaceSummaryResponse:
+    return await performance_workspace_service().get_performance_workspace_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        contribution_dimension=query.contribution_dimension,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
 
 
 @router.get(
@@ -88,17 +120,16 @@ async def get_performance_workspace_summary(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_workspace_summary(
+    return await _get_performance_summary(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        contribution_dimension=contribution_dimension,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
+        query=PerformanceSummaryQuery(
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
     )
