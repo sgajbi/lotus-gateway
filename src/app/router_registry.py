@@ -43,6 +43,9 @@ from app.routers.advisory_policy_evaluations import (
 from app.routers.advisory_policy_sign_off_decisions import (
     router as advisory_policy_sign_off_decisions_router,
 )
+from app.routers.advisory_policy_sign_off_package import (
+    router as advisory_policy_sign_off_package_router,
+)
 from app.routers.advisory_workspace_actions import (
     router as advisory_workspace_actions_router,
 )
@@ -370,6 +373,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_policy_evaluation_events_router)
     app.include_router(advisory_policy_evaluation_support_actions_router)
     app.include_router(advisory_policy_sign_off_decisions_router)
+    app.include_router(advisory_policy_sign_off_package_router)
     app.include_router(advisory_policy_ai_evidence_router)
     app.include_router(proposal_generation_router)
     app.include_router(proposal_create_router)
