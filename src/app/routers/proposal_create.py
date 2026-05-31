@@ -7,6 +7,20 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _create_proposal(
+    *,
+    request: ProposalCreateRequest,
+    idempotency_key: str,
+) -> ProposalCreateEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal(
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "",
     response_model=ProposalCreateEnvelopeResponse,
@@ -24,10 +38,7 @@ async def create_proposal(
         examples=["idem-create-1"],
     ),
 ) -> ProposalCreateEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.create_proposal(
-        body=request.body,
+    return await _create_proposal(
+        request=request,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
