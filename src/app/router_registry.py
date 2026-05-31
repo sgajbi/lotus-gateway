@@ -99,6 +99,9 @@ from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_command_center_exception_ai import (
     router as dpm_command_center_exception_ai_router,
 )
+from app.routers.dpm_command_center_exception_resolution import (
+    router as dpm_command_center_exception_resolution_router,
+)
 from app.routers.dpm_command_center_exceptions import (
     router as dpm_command_center_exceptions_router,
 )
@@ -531,6 +534,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_monitoring_commands_router)
     app.include_router(dpm_command_center_monitoring_detail_router)
     app.include_router(dpm_command_center_exceptions_router)
+    app.include_router(dpm_command_center_exception_resolution_router)
     app.include_router(dpm_command_center_exception_ai_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_command_center_outcome_review_detail_router)
