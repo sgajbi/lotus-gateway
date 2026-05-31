@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Query
 
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import (
     PortfolioActivitySummaryResponse,
@@ -22,6 +21,7 @@ from app.contracts.portfolio import (
 from app.middleware.correlation import correlation_id_var
 from app.services.advise_client_factory import build_advise_client
 from app.services.dpm_service_factory import build_manage_client
+from app.services.lotus_core_client_factory import build_lotus_core_query_client
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.portfolio_service import PortfolioService
 from app.services.workbench_service import WorkbenchService
@@ -29,13 +29,7 @@ from app.services.workbench_service import WorkbenchService
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 _PORTFOLIO_SERVICE = PortfolioService(
-    lotus_core_query_client=LotusCoreQueryClient(
-        base_url=settings.portfolio_data_query_base_url,
-        control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    ),
+    lotus_core_query_client=build_lotus_core_query_client(),
     analytics_client=LotusAnalyticsClient(
         base_url=settings.performance_analytics_base_url,
         timeout_seconds=settings.performance_analytics_timeout_seconds,
@@ -67,13 +61,7 @@ def _service_signature() -> tuple[object, ...]:
 def _build_performance_workspace_service() -> PerformanceWorkspaceService:
     return PerformanceWorkspaceService(
         workbench_service=WorkbenchService(
-            lotus_core_query_client=LotusCoreQueryClient(
-                base_url=settings.portfolio_data_query_base_url,
-                control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            ),
+            lotus_core_query_client=build_lotus_core_query_client(),
             analytics_client=LotusAnalyticsClient(
                 base_url=settings.performance_analytics_base_url,
                 timeout_seconds=settings.performance_analytics_timeout_seconds,
@@ -89,13 +77,7 @@ def _build_performance_workspace_service() -> PerformanceWorkspaceService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        lotus_core_query_client=build_lotus_core_query_client(),
     )
 
 

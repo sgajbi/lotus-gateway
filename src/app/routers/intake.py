@@ -1,11 +1,11 @@
 from fastapi import APIRouter, File, Form, Header, Query, UploadFile
 
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.intake import EnvelopeResponse, IntakeBundleRequest, LookupResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.intake_service import IntakeService
+from app.services.lotus_core_client_factory import build_lotus_core_query_client
 
 router = APIRouter(tags=["intake", "lookups"])
 
@@ -18,13 +18,7 @@ def _intake_service() -> IntakeService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        lotus_core_query_client=build_lotus_core_query_client(),
     )
 
 

@@ -1,24 +1,18 @@
 from fastapi import APIRouter, Header, HTTPException, Path, status
 
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.config import settings
 from app.contracts.source_products import (
     ExternalOrderExecutionAcknowledgementRequest,
     ExternalOrderExecutionAcknowledgementResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.lotus_core_client_factory import build_lotus_core_query_client
 
 router = APIRouter(prefix="/api/v1/source-products", tags=["Source Products"])
 
 
 def _source_product_core_client() -> LotusCoreQueryClient:
-    return LotusCoreQueryClient(
-        base_url=settings.portfolio_data_query_base_url,
-        control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+    return build_lotus_core_query_client()
 
 
 def _raise_core_error(*, upstream_status: int, payload: dict[str, object]) -> None:
