@@ -11,6 +11,18 @@ from app.services.reporting_service_provider import reporting_job_query_service
 controls_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
 
 
+async def _cancel_report_job(
+    *,
+    job_id: str,
+    caller_headers: dict[str, str],
+) -> ReportJobStatusResponse:
+    return await reporting_job_query_service().cancel_report_job(
+        job_id=job_id,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @controls_router.post(
     "/{job_id}/cancel",
     response_model=ReportJobStatusResponse,
@@ -42,8 +54,7 @@ async def cancel_report_job(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusResponse:
-    return await reporting_job_query_service().cancel_report_job(
+    return await _cancel_report_job(
         job_id=job_id,
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
     )
