@@ -349,6 +349,17 @@ Operational behavior:
    `AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR`, so Workbench can show review/supportability posture
    without falling back to browser prompt construction.
 
+Production-readiness controls:
+
+1. proof-pack generation remains idempotency-key governed and source-owned by `lotus-manage`,
+2. Gateway uses shared upstream-envelope utilities for JSON/report/AI-evidence payloads and
+   product-safe manage errors, reducing duplicated service behavior across DPM route families,
+3. AI PM memo execution is gated on manage-owned AI evidence input and uses `lotus-ai`
+   workflow-pack execution instead of local prompt construction,
+4. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
+   input preservation, missing-AI-client failure behavior, lotus-ai guardrail errors, and
+   product-safe manage error detail.
+
 ## DPM Portfolio-Memory Composition
 
 Status: implementation-backed in Gateway for the Gateway portion of RFC40-WTBD-010.
