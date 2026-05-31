@@ -52,23 +52,3 @@ async def resume_report_batch(
         action="resume",
         caller_headers=caller_headers,
     )
-
-
-@controls_router.post(
-    "/{batch_id}:cancel",
-    response_model=BatchControlResponse,
-    summary="Cancel unstarted report batch work",
-    description=(
-        "Cancel remaining batch work that has not created report jobs. Existing report jobs are "
-        "preserved for audit and downstream lifecycle reconciliation."
-    ),
-)
-async def cancel_report_batch(
-    batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    caller_headers: ReportingCallerContext,
-) -> BatchControlResponse:
-    return await control_report_batch(
-        batch_id=batch_id,
-        action="cancel",
-        caller_headers=caller_headers,
-    )
