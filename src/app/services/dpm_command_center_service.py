@@ -25,6 +25,10 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
     DpmPortfolioMemorySupportability,
 )
+from app.services.upstream_envelope import (
+    build_upstream_status_gateway_envelope,
+    raise_product_safe_upstream_error,
+)
 
 _PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS = [
     "rank_portfolio_managers",
@@ -1035,22 +1039,17 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmOutcomeReviewGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=upstream_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=upstream_status,
-                    error_code="MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(upstream_payload),
-                ).model_dump(),
-            )
-
-        return DpmOutcomeReviewGatewayResponse(
+        _raise_manage_command_center_error(
+            upstream_status,
+            upstream_payload,
+            error_code="MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
+        )
+        return build_upstream_status_gateway_envelope(
+            DpmOutcomeReviewGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _compose_pm_operating_quality_response(
@@ -1059,22 +1058,17 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmPmOperatingQualityGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=upstream_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=upstream_status,
-                    error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(upstream_payload),
-                ).model_dump(),
-            )
-
-        return DpmPmOperatingQualityGatewayResponse(
+        _raise_manage_command_center_error(
+            upstream_status,
+            upstream_payload,
+            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+        )
+        return build_upstream_status_gateway_envelope(
+            DpmPmOperatingQualityGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_pm_operating_quality_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _compose_command_center_response(
@@ -1083,22 +1077,17 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCommandCenterGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=upstream_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=upstream_status,
-                    error_code="MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(upstream_payload),
-                ).model_dump(),
-            )
-
-        return DpmCommandCenterGatewayResponse(
+        _raise_manage_command_center_error(
+            upstream_status,
+            upstream_payload,
+            error_code="MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
+        )
+        return build_upstream_status_gateway_envelope(
+            DpmCommandCenterGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_command_center_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _compose_portfolio_memory_response(
@@ -1107,23 +1096,33 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmPortfolioMemoryGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=upstream_status,
-                detail=DpmOutcomeReviewErrorDetail(
-                    upstream_status=upstream_status,
-                    error_code="MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(upstream_payload),
-                ).model_dump(),
-            )
-
-        return DpmPortfolioMemoryGatewayResponse(
+        _raise_manage_command_center_error(
+            upstream_status,
+            upstream_payload,
+            error_code="MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
+        )
+        return build_upstream_status_gateway_envelope(
+            DpmPortfolioMemoryGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_portfolio_memory_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
+
+
+def _raise_manage_command_center_error(
+    upstream_status: int,
+    payload: dict[str, Any],
+    *,
+    error_code: str,
+) -> None:
+    raise_product_safe_upstream_error(
+        upstream_status,
+        payload,
+        error_model=DpmOutcomeReviewErrorDetail,
+        error_code=error_code,
+        default_detail="lotus-manage command-center request failed",
+    )
 
 
 def _pm_operating_quality_supportability_from(

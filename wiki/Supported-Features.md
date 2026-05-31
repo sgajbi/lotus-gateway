@@ -694,6 +694,18 @@ Operational behavior:
 3. Workbench cockpit implementation and canonical UI proof remain separate owning-repository
    work under RFC38-WTBD-002.
 
+Production-readiness controls:
+
+1. Gateway uses shared upstream-envelope utilities for mandate command-center, outcome-review,
+   portfolio-memory, and PM operating-quality response envelopes while preserving each route
+   family's supportability summary and error code,
+2. monitoring, exception-resolution, mandate drill-down, outcome-review, portfolio-memory, and PM
+   operating-quality surfaces expose upstream status and correlation context for operator triage,
+3. command-center response composition remains payload-preserving; mandate health, outcome-review,
+   portfolio-memory, and PM-quality truth stay in `lotus-manage`,
+4. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+   supportability derivation, AI handoff boundaries, and no-local-authority claims.
+
 ## Portfolio-Level DPM Operations Posture
 
 Status: implementation-backed in Gateway for RFC36-WTBD-003.
