@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_pm_operating_quality_summary_invocation(
+    *,
+    summary_invocation_id: str,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().get_pm_operating_quality_summary_invocation(
+        summary_invocation_id=summary_invocation_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/summary-invocations/{summary_invocation_id}",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -34,7 +44,6 @@ async def get_pm_operating_quality_summary_invocation(
         examples=["pmq_summary_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().get_pm_operating_quality_summary_invocation(
+    return await _get_pm_operating_quality_summary_invocation(
         summary_invocation_id=summary_invocation_id,
-        correlation_id=correlation_id_var.get(),
     )

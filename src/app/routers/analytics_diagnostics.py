@@ -85,6 +85,35 @@ def _raise_for_unsafe_support_reference(support_reference: str) -> None:
     )
 
 
+async def _lookup_analytics_diagnostics(
+    *,
+    support_reference: str,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> AnalyticsDiagnosticsResponse:
+    _validate_diagnostics_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+    _raise_for_unauthorized_diagnostics_role(role)
+    _raise_for_unsafe_support_reference(support_reference)
+    response = resolve_support_reference(support_reference)
+    emit_gateway_protected_diagnostics_audit_log(
+        logger=logger,
+        status_code=status.HTTP_200_OK,
+        reason="lookup_succeeded",
+    )
+    return response
+
+
 @router.get(
     "/diagnostics/{support_reference}",
     response_model=AnalyticsDiagnosticsResponse,
@@ -121,7 +150,8 @@ async def lookup_analytics_diagnostics(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> AnalyticsDiagnosticsResponse:
-    _validate_diagnostics_caller_context(
+    return await _lookup_analytics_diagnostics(
+        support_reference=support_reference,
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
@@ -129,12 +159,3 @@ async def lookup_analytics_diagnostics(
         booking_center_code=booking_center_code,
         role=role,
     )
-    _raise_for_unauthorized_diagnostics_role(role)
-    _raise_for_unsafe_support_reference(support_reference)
-    response = resolve_support_reference(support_reference)
-    emit_gateway_protected_diagnostics_audit_log(
-        logger=logger,
-        status_code=status.HTTP_200_OK,
-        reason="lookup_succeeded",
-    )
-    return response

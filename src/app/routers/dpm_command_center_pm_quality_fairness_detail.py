@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_pm_operating_quality_fairness_analysis(
+    *,
+    fairness_analysis_id: str,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().get_pm_operating_quality_fairness_analysis(
+        fairness_analysis_id=fairness_analysis_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/fairness-analyses/{fairness_analysis_id}",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -34,7 +44,6 @@ async def get_pm_operating_quality_fairness_analysis(
         examples=["pmq_fair_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().get_pm_operating_quality_fairness_analysis(
+    return await _get_pm_operating_quality_fairness_analysis(
         fairness_analysis_id=fairness_analysis_id,
-        correlation_id=correlation_id_var.get(),
     )

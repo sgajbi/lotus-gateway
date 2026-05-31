@@ -17,6 +17,15 @@ router = APIRouter(
 )
 
 
+async def _preview_pm_operating_quality_fairness_analysis(
+    request: DpmPmOperatingQualityForwardRequest,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().preview_pm_operating_quality_fairness_analysis(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/pm-operating-quality/fairness-analyses/preview",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -35,7 +44,4 @@ router = APIRouter(
 async def preview_pm_operating_quality_fairness_analysis(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().preview_pm_operating_quality_fairness_analysis(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _preview_pm_operating_quality_fairness_analysis(request)

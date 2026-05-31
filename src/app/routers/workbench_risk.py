@@ -41,6 +41,45 @@ async def _get_risk_summary(
     )
 
 
+async def _get_workbench_risk_summary(
+    *,
+    portfolio_id: str,
+    period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    as_of_date: str | None,
+    report_start_date: str | None,
+    report_end_date: str | None,
+    reporting_currency: str,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> WorkbenchRiskSummaryResponse:
+    require_workbench_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+    return await _get_risk_summary(
+        portfolio_id=portfolio_id,
+        query=RiskSummaryQuery(
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+        ),
+    )
+
+
 @router.get(
     "/{portfolio_id}/risk/summary",
     response_model=WorkbenchRiskSummaryResponse,
@@ -104,23 +143,19 @@ async def get_workbench_risk_summary(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> WorkbenchRiskSummaryResponse:
-    require_workbench_caller_context(
+    return await _get_workbench_risk_summary(
+        portfolio_id=portfolio_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
         region=region,
         booking_center_code=booking_center_code,
         role=role,
-    )
-    return await _get_risk_summary(
-        portfolio_id=portfolio_id,
-        query=RiskSummaryQuery(
-            period=period,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            as_of_date=as_of_date,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-            reporting_currency=reporting_currency,
-        ),
     )

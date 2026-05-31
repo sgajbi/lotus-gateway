@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_workflow_automation(
+    *,
+    request: Request,
+) -> DpmCampaignWorkflowGatewayResponse:
+    return await dpm_wave_service().get_campaign_workflow_automation(
+        filters=campaign_workflow_query_params(request),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-workflow-automation",
     response_model=DpmCampaignWorkflowGatewayResponse,
@@ -30,7 +40,4 @@ router = APIRouter(
 async def get_campaign_workflow_automation(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().get_campaign_workflow_automation(
-        filters=campaign_workflow_query_params(request),
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_campaign_workflow_automation(request=request)

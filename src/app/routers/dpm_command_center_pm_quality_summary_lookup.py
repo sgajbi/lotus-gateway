@@ -14,6 +14,30 @@ router = APIRouter(
 )
 
 
+async def _list_pm_operating_quality_summary_invocations(
+    *,
+    score_run_id: str | None,
+    review_action_id: str | None,
+    policy_id: str | None,
+    as_of_date: str | None,
+    invocation_state: str | None,
+    limit: int,
+    offset: int,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().list_pm_operating_quality_summary_invocations(
+        filters={
+            "score_run_id": score_run_id,
+            "review_action_id": review_action_id,
+            "policy_id": policy_id,
+            "as_of_date": as_of_date,
+            "invocation_state": invocation_state,
+            "limit": limit,
+            "offset": offset,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/summary-invocations",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -41,15 +65,12 @@ async def list_pm_operating_quality_summary_invocations(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum invocations to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().list_pm_operating_quality_summary_invocations(
-        filters={
-            "score_run_id": score_run_id,
-            "review_action_id": review_action_id,
-            "policy_id": policy_id,
-            "as_of_date": as_of_date,
-            "invocation_state": invocation_state,
-            "limit": limit,
-            "offset": offset,
-        },
-        correlation_id=correlation_id_var.get(),
+    return await _list_pm_operating_quality_summary_invocations(
+        score_run_id=score_run_id,
+        review_action_id=review_action_id,
+        policy_id=policy_id,
+        as_of_date=as_of_date,
+        invocation_state=invocation_state,
+        limit=limit,
+        offset=offset,
     )

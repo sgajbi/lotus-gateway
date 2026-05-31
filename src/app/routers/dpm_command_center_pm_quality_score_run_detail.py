@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_pm_operating_quality_score_run(
+    *,
+    score_run_id: str,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().get_pm_operating_quality_score_run(
+        score_run_id=score_run_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/score-runs/{score_run_id}",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -32,7 +42,4 @@ async def get_pm_operating_quality_score_run(
         examples=["pmq_run_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().get_pm_operating_quality_score_run(
-        score_run_id=score_run_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_pm_operating_quality_score_run(score_run_id=score_run_id)
