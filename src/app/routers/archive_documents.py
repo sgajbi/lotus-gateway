@@ -11,18 +11,14 @@ from app.contracts.archive_documents import (
     ArchivedDocumentMetadataResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.archive_client_factory import build_archive_client
 from app.services.caller_context import caller_context_headers
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
 
 
 def _archive_client() -> ArchiveClient:
-    return ArchiveClient(
-        base_url=settings.archive_service_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+    return build_archive_client()
 
 
 def _archive_error_response(
