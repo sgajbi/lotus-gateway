@@ -456,6 +456,7 @@ from app.routers.workbench_performance_evidence import (
 from app.routers.workbench_performance_modules import (
     router as workbench_performance_modules_router,
 )
+from app.routers.workbench_portfolio_360 import router as workbench_portfolio_360_router
 from app.routers.workbench_risk import router as workbench_risk_router
 from app.routers.workbench_risk_attribution import (
     router as workbench_risk_attribution_router,
@@ -657,6 +658,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_preview_readiness_router)
     app.include_router(dpm_wave_campaign_readiness_router)
     app.include_router(workbench_router)
+    app.include_router(workbench_portfolio_360_router)
     app.include_router(workbench_analytics_router)
     app.include_router(workbench_performance_router)
     app.include_router(workbench_performance_details_router)
