@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_monitoring_run(
+    *,
+    monitoring_run_id: str,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().get_monitoring_run(
+        monitoring_run_id=monitoring_run_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/monitoring/runs/{monitoring_run_id}",
     response_model=DpmCommandCenterGatewayResponse,
@@ -31,7 +41,6 @@ async def get_monitoring_run(
         examples=["dmr_20260503_083000"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().get_monitoring_run(
+    return await _get_monitoring_run(
         monitoring_run_id=monitoring_run_id,
-        correlation_id=correlation_id_var.get(),
     )
