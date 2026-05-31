@@ -53,7 +53,7 @@ def _raise_upstream_error(*, status_code: int, payload: dict[str, object]) -> No
     }
     if status_code == status.HTTP_404_NOT_FOUND:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-    if status_code in {status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY}:
+    if status_code in {status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT}:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
     raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
 

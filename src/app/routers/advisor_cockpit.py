@@ -19,7 +19,7 @@ ADVISOR_COCKPIT_READ_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_404_NOT_FOUND: {
         "description": "Advisor cockpit action item was not found by lotus-advise."
     },
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
+    status.HTTP_422_UNPROCESSABLE_CONTENT: {
         "description": "lotus-advise rejected the cockpit request validation context."
     },
 }
