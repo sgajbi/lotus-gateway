@@ -8,19 +8,12 @@ from app.contracts.domain_products import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.domain_product_catalog_service import (
-    DomainProductCatalogService,
     DomainProductCatalogUnavailable,
     DomainProductNotFound,
 )
-from app.services.domain_product_catalog_service_factory import (
-    build_domain_product_catalog_service,
-)
+from app.services.gateway_service_provider import domain_product_catalog_service
 
 router = APIRouter(prefix="/api/v1/domain-products", tags=["domain-products"])
-
-
-def _domain_product_catalog_service() -> DomainProductCatalogService:
-    return build_domain_product_catalog_service()
 
 
 def _correlation_id(header_value: str | None) -> str:
@@ -52,7 +45,7 @@ async def get_domain_product_catalog(
     ),
 ) -> DomainProductCatalogResponse:
     try:
-        return await _domain_product_catalog_service().get_catalog(
+        return await domain_product_catalog_service().get_catalog(
             consumer_system=consumer_system,
             correlation_id=_correlation_id(x_correlation_id),
         )
@@ -91,7 +84,7 @@ async def get_domain_product_detail(
     ),
 ) -> DomainProductDetailResponse:
     try:
-        return await _domain_product_catalog_service().get_product(
+        return await domain_product_catalog_service().get_product(
             producer_repository=producer_repository,
             product_name=product_name,
             product_version=product_version,
@@ -135,7 +128,7 @@ async def get_domain_product_dependency_graph(
     ),
 ) -> DomainProductGraphResponse:
     try:
-        return await _domain_product_catalog_service().get_dependency_graph(
+        return await domain_product_catalog_service().get_dependency_graph(
             consumer_system=consumer_system,
             correlation_id=_correlation_id(x_correlation_id),
         )
@@ -171,7 +164,7 @@ async def get_domain_product_trust_certification(
     ),
 ) -> DomainProductTrustCertificationResponse:
     try:
-        return await _domain_product_catalog_service().get_trust_certification(
+        return await domain_product_catalog_service().get_trust_certification(
             consumer_system=consumer_system,
             correlation_id=_correlation_id(x_correlation_id),
         )

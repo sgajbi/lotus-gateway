@@ -2,14 +2,9 @@ from fastapi import APIRouter, File, Form, Header, Query, UploadFile
 
 from app.contracts.intake import EnvelopeResponse, IntakeBundleRequest, LookupResponse
 from app.middleware.correlation import correlation_id_var
-from app.services.intake_service import IntakeService
-from app.services.intake_service_factory import build_intake_service
+from app.services.gateway_service_provider import intake_service
 
 router = APIRouter(tags=["intake", "lookups"])
-
-
-def _intake_service() -> IntakeService:
-    return build_intake_service()
 
 
 @router.post(
@@ -35,7 +30,7 @@ async def ingest_portfolio_bundle(
         examples=["bundle-idem-1001"],
     ),
 ) -> EnvelopeResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.ingest_portfolio_bundle(
         body=request.body,
@@ -76,7 +71,7 @@ async def preview_upload(
         examples=[20],
     ),
 ) -> EnvelopeResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.preview_upload(
         entity_type=entity_type,
@@ -117,7 +112,7 @@ async def commit_upload(
         examples=[False],
     ),
 ) -> EnvelopeResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.commit_upload(
         entity_type=entity_type,
@@ -169,7 +164,7 @@ async def get_portfolio_lookups(
         examples=[100],
     ),
 ) -> LookupResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_lookups(
         correlation_id=correlation_id,
@@ -210,7 +205,7 @@ async def get_instrument_lookups(
         examples=["Apple"],
     ),
 ) -> LookupResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.get_instrument_lookups(
         limit=limit,
@@ -260,7 +255,7 @@ async def get_currency_lookups(
         examples=[50],
     ),
 ) -> LookupResponse:
-    service = _intake_service()
+    service = intake_service()
     correlation_id = correlation_id_var.get()
     return await service.get_currency_lookups(
         correlation_id=correlation_id,
