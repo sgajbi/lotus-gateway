@@ -16,10 +16,24 @@ router = APIRouter(
 
 async def _list_pm_operating_quality_review_actions(
     *,
-    filters: dict[str, str | int | None],
+    target_type: str | None,
+    target_id: str | None,
+    policy_id: str | None,
+    as_of_date: str | None,
+    action_state: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await dpm_command_center_service().list_pm_operating_quality_review_actions(
-        filters=filters,
+        filters={
+            "target_type": target_type,
+            "target_id": target_id,
+            "policy_id": policy_id,
+            "as_of_date": as_of_date,
+            "action_state": action_state,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -50,13 +64,11 @@ async def list_pm_operating_quality_review_actions(
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await _list_pm_operating_quality_review_actions(
-        filters={
-            "target_type": target_type,
-            "target_id": target_id,
-            "policy_id": policy_id,
-            "as_of_date": as_of_date,
-            "action_state": action_state,
-            "limit": limit,
-            "offset": offset,
-        },
+        target_type=target_type,
+        target_id=target_id,
+        policy_id=policy_id,
+        as_of_date=as_of_date,
+        action_state=action_state,
+        limit=limit,
+        offset=offset,
     )
