@@ -3,7 +3,6 @@ from fastapi import APIRouter, Query
 from app.contracts.proposals import (
     ProposalMemoLineageEnvelopeResponse,
     ProposalMemoProjectionEnvelopeResponse,
-    ProposalMemoReplayEvidenceEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.proposal_memo_common import PROPOSAL_ID_PATH, VERSION_NO_PATH
@@ -58,28 +57,5 @@ async def get_proposal_memo_lineage(
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_memo_lineage(
         proposal_id=proposal_id,
-        correlation_id=correlation_id,
-    )
-
-
-@router.get(
-    "/{proposal_id}/versions/{version_no}/memo/replay-evidence",
-    response_model=ProposalMemoReplayEvidenceEnvelopeResponse,
-    summary="Get Proposal Memo Replay Evidence",
-    description=(
-        "Returns memo replay evidence from lotus-advise so operations can inspect source hashes, "
-        "audit events, supportability, and blocked client-ready posture without local Gateway "
-        "interpretation."
-    ),
-)
-async def get_proposal_memo_replay_evidence(
-    proposal_id: str = PROPOSAL_ID_PATH,
-    version_no: int = VERSION_NO_PATH,
-) -> ProposalMemoReplayEvidenceEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_memo_replay_evidence(
-        proposal_id=proposal_id,
-        version_no=version_no,
         correlation_id=correlation_id,
     )
