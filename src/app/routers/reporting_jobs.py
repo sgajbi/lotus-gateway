@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path, Query
+from fastapi import APIRouter, Path, Query
 
 from app.contracts.reporting import (
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
@@ -10,7 +10,7 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_job_error_response
 from app.services.reporting_service_provider import reporting_job_query_service
 
@@ -52,6 +52,7 @@ jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
     },
 )
 async def list_report_jobs(
+    caller_headers: ReportingCallerContext,
     tenant_id_filter: Annotated[
         str | None,
         Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
@@ -107,12 +108,6 @@ async def list_report_jobs(
             description="Maximum number of report jobs returned by this bounded search.",
         ),
     ] = 25,
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobListResponse:
     filters = {
         "tenantId": tenant_id_filter,
@@ -130,14 +125,7 @@ async def list_report_jobs(
     filters = {key: value for key, value in filters.items() if value is not None}
     return await reporting_job_query_service().list_report_jobs(
         filters=filters,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -165,23 +153,11 @@ async def list_report_jobs(
 )
 async def get_report_job_status(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusResponse:
     return await reporting_job_query_service().get_report_job_status(
         job_id=job_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -209,23 +185,11 @@ async def get_report_job_status(
 )
 async def get_report_job_events(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusEventsResponse:
     return await reporting_job_query_service().get_report_job_events(
         job_id=job_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -253,23 +217,11 @@ async def get_report_job_events(
 )
 async def get_report_job_lineage(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportSnapshotLineageResponse:
     return await reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -303,22 +255,10 @@ async def get_report_job_lineage(
 )
 async def cancel_report_job(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusResponse:
     return await reporting_job_query_service().cancel_report_job(
         job_id=job_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
