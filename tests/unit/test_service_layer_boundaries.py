@@ -154,6 +154,12 @@ def test_narrowed_reporting_services_do_not_import_concrete_reporting_clients() 
     assert offenders == {}
 
 
+def test_narrowed_archive_services_do_not_import_concrete_archive_client() -> None:
+    path = _SERVICE_ROOT / "archive_document_service.py"
+
+    assert "app.clients.archive_client" not in _imported_modules(path)
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
