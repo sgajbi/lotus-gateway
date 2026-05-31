@@ -11,6 +11,18 @@ from app.services.reporting_service_provider import reporting_job_query_service
 router = APIRouter(prefix="/api/v1/reports/snapshots", tags=["Reports"])
 
 
+async def _get_report_snapshot(
+    *,
+    snapshot_id: str,
+    caller_headers: dict[str, str],
+) -> ReportInputSnapshotRecord:
+    return await reporting_job_query_service().get_report_snapshot(
+        snapshot_id=snapshot_id,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{snapshot_id}",
     response_model=ReportInputSnapshotRecord,
@@ -36,8 +48,7 @@ async def get_report_snapshot(
     snapshot_id: Annotated[str, Path(description="Opaque report snapshot identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> ReportInputSnapshotRecord:
-    return await reporting_job_query_service().get_report_snapshot(
+    return await _get_report_snapshot(
         snapshot_id=snapshot_id,
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
     )
