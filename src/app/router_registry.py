@@ -31,6 +31,7 @@ from app.routers.reporting_schedules import schedules_router as reporting_schedu
 from app.routers.reporting_snapshots import router as reporting_snapshots_router
 from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
+from app.routers.workbench_sandbox import router as workbench_sandbox_router
 
 
 def register_routers(app: FastAPI) -> None:
@@ -54,6 +55,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_proof_packs_router)
     app.include_router(dpm_waves_router)
     app.include_router(workbench_router)
+    app.include_router(workbench_sandbox_router)
     app.include_router(reporting_router)
     app.include_router(reporting_snapshots_router)
     app.include_router(reporting_jobs_router)
