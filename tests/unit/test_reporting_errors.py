@@ -2,10 +2,12 @@ import pytest
 from fastapi import HTTPException, status
 
 from app.routers.reporting_errors import (
-    raise_report_batch_error,
-    raise_report_job_error,
     report_batch_error_response,
     report_job_error_response,
+)
+from app.services.reporting_error_mapping import (
+    raise_report_batch_error,
+    raise_report_job_error,
 )
 
 

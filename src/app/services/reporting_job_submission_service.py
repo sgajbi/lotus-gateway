@@ -6,7 +6,7 @@ from app.contracts.reporting import (
     PortfolioReviewJobRequest,
     ReportJobHandleResponse,
 )
-from app.routers.reporting_errors import raise_report_job_error
+from app.services.reporting_error_mapping import raise_report_job_error
 
 
 class ReportingJobSubmissionService:

@@ -10,7 +10,7 @@ from app.contracts.reporting import (
     ReportJobStatusResponse,
     ReportSnapshotLineageResponse,
 )
-from app.routers.reporting_errors import raise_report_job_error
+from app.services.reporting_error_mapping import raise_report_job_error
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 

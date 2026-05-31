@@ -4,7 +4,7 @@ from app.contracts.reporting import (
     BatchSchedulerRunRequest,
     BatchSchedulerRunResponse,
 )
-from app.routers.reporting_errors import raise_report_batch_error
+from app.services.reporting_error_mapping import raise_report_batch_error
 
 
 class ReportingBatchSchedulerService:

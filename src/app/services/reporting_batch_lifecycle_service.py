@@ -8,8 +8,8 @@ from app.contracts.reporting import (
     BatchHandleResponse,
     BatchStatusResponse,
 )
-from app.routers.reporting_errors import raise_report_batch_error
 from app.routers.reporting_links import rewrite_report_batch_status_url
+from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_supportability import attach_reporting_operator_supportability
 
 
