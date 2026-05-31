@@ -9,8 +9,8 @@ from app.contracts.reporting import (
     ReportJobStatusResponse,
     ReportSnapshotLineageResponse,
 )
+from app.services.reporting_client_protocols import ReportingJobQueryClient
 from app.services.reporting_error_mapping import raise_report_job_error
-from app.services.upstream_client_protocols import ReportingJobQueryClient
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 

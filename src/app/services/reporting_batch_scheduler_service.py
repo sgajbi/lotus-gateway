@@ -3,8 +3,8 @@ from app.contracts.reporting import (
     BatchSchedulerRunRequest,
     BatchSchedulerRunResponse,
 )
+from app.services.reporting_client_protocols import ReportingBatchSchedulerClient
 from app.services.reporting_error_mapping import raise_report_batch_error
-from app.services.upstream_client_protocols import ReportingBatchSchedulerClient
 
 
 class ReportingBatchSchedulerService:

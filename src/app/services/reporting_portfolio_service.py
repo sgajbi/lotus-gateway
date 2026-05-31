@@ -9,7 +9,7 @@ from app.contracts.reporting import (
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
 )
-from app.services.upstream_client_protocols import ReportingPortfolioClient
+from app.services.reporting_client_protocols import ReportingPortfolioClient
 
 
 class ReportingPortfolioService:

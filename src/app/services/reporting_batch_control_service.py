@@ -6,13 +6,13 @@ from app.contracts.reporting import (
     BatchWorkerRunRequest,
     BatchWorkerRunResponse,
 )
+from app.services.reporting_client_protocols import ReportingBatchControlClient
 from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_links import rewrite_report_batch_status_url
 from app.services.reporting_supportability import (
     RenderMetadataClient,
     attach_reporting_operator_supportability,
 )
-from app.services.upstream_client_protocols import ReportingBatchControlClient
 
 
 class ReportingBatchControlService:

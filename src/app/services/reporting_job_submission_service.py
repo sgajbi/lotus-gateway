@@ -5,8 +5,8 @@ from app.contracts.reporting import (
     PortfolioReviewJobRequest,
     ReportJobHandleResponse,
 )
+from app.services.reporting_client_protocols import ReportingJobSubmissionClient
 from app.services.reporting_error_mapping import raise_report_job_error
-from app.services.upstream_client_protocols import ReportingJobSubmissionClient
 
 
 class ReportingJobSubmissionService:
