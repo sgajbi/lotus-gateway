@@ -11,6 +11,14 @@ router = APIRouter(
 )
 
 
+async def _create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().create_wave(
+        body=request.body,
+        idempotency_key=request.idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "",
     response_model=DpmWaveGatewayResponse,
@@ -24,8 +32,4 @@ router = APIRouter(
     responses=UPSTREAM_WAVE_ERROR_RESPONSES,
 )
 async def create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().create_wave(
-        body=request.body,
-        idempotency_key=request.idempotency_key,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _create_wave(request)
