@@ -55,7 +55,7 @@ async def test_bank_demo_proof_service_preserves_advise_owned_claim_posture() ->
             },
         ]
     }
-    service = BankDemoProofService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = BankDemoProofService(advise_client=advise_client)
 
     response = await service.get_supported_claim_register(correlation_id="corr-rfc0028-claims")
 
@@ -76,7 +76,7 @@ async def test_bank_demo_proof_service_forwards_sanitized_capture_request() -> N
         },
         "sanitized_runtime_summary": {"primary_portfolio_id": "PB_SG_GLOBAL_BAL_001"},
     }
-    service = BankDemoProofService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = BankDemoProofService(advise_client=advise_client)
 
     response = await service.build_proof_pack(
         body={"live_runtime_payload": {"parity": {}}, "runtime_posture": {"endpoints": []}},
@@ -108,7 +108,7 @@ async def test_bank_demo_proof_service_propagates_advise_material_drift_conflict
     advise_client.payload = {
         "detail": "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'"
     }
-    service = BankDemoProofService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = BankDemoProofService(advise_client=advise_client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.build_proof_pack(body={}, correlation_id="corr-rfc0028-proof")
