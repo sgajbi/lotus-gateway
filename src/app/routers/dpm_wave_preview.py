@@ -14,6 +14,13 @@ router = APIRouter(
 )
 
 
+async def _preview_wave(request: DpmWaveForwardRequest) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().preview_wave(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/preview",
     response_model=DpmWaveGatewayResponse,
@@ -27,7 +34,4 @@ router = APIRouter(
     responses=UPSTREAM_WAVE_ERROR_RESPONSES,
 )
 async def preview_wave(request: DpmWaveForwardRequest) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().preview_wave(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _preview_wave(request)
