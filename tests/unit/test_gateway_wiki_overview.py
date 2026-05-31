@@ -28,3 +28,4 @@ def test_gateway_overview_wiki_is_audience_aware_and_implementation_backed() -> 
     assert "workflow-pack task payloads" in supported_features
     assert "shared product-safe upstream error raiser" in supported_features
     assert "bounded upstream-detail extractor" in supported_features
+    assert "shared Gateway factory for manage and lotus-ai clients" in supported_features

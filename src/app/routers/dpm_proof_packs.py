@@ -2,9 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Path
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
-from app.config import settings
 from app.contracts.dpm_proof_packs import (
     DpmProofPackErrorDetail,
     DpmProofPackGatewayResponse,
@@ -15,6 +12,7 @@ from app.contracts.dpm_proof_packs import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.dpm_proof_pack_service import DpmProofPackService
+from app.services.dpm_service_factory import build_dpm_proof_pack_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/proof-packs",
@@ -41,20 +39,7 @@ _UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _dpm_proof_pack_service() -> DpmProofPackService:
-    return DpmProofPackService(
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_dpm_proof_pack_service()
 
 
 @router.post(

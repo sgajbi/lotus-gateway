@@ -2,8 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Path
 
-from app.clients.dpm_client import DpmClient
-from app.config import settings
 from app.contracts.dpm_construction import (
     DpmConstructionErrorDetail,
     DpmConstructionGatewayResponse,
@@ -12,6 +10,7 @@ from app.contracts.dpm_construction import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.dpm_construction_service import DpmConstructionService
+from app.services.dpm_service_factory import build_dpm_construction_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/construction",
@@ -34,14 +33,7 @@ _UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _dpm_construction_service() -> DpmConstructionService:
-    return DpmConstructionService(
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_dpm_construction_service()
 
 
 @router.post(

@@ -2,9 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Path, Query, Request
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
-from app.config import settings
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionForwardRequest,
     DpmCampaignDefinitionGatewayResponse,
@@ -22,6 +19,7 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.dpm_service_factory import build_dpm_wave_service
 from app.services.dpm_wave_service import DpmWaveService
 
 router = APIRouter(
@@ -49,20 +47,7 @@ _UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _dpm_wave_service() -> DpmWaveService:
-    return DpmWaveService(
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_dpm_wave_service()
 
 
 def _query_params(request: Request) -> dict[str, Any]:

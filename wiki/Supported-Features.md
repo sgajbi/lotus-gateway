@@ -728,7 +728,10 @@ Production-readiness controls:
 8. manage evidence-read failures use the shared product-safe upstream error raiser and shared
    bounded upstream-detail extractor, including structured `code` plus `message` details from
    upstream governance checks,
-9. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+9. DPM route services use a shared Gateway factory for manage and lotus-ai clients, keeping
+   timeout, retry, and service-identity wiring consistent across command-center, construction,
+   proof-pack, and wave route families,
+10. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture
