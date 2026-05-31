@@ -313,6 +313,7 @@ from app.routers.dpm_wave_lookup import router as dpm_wave_lookup_router
 from app.routers.dpm_wave_operations_handoff_ai import (
     router as dpm_wave_operations_handoff_ai_router,
 )
+from app.routers.dpm_wave_preview import router as dpm_wave_preview_router
 from app.routers.dpm_wave_report_input import router as dpm_wave_report_input_router
 from app.routers.dpm_wave_supportability import router as dpm_wave_supportability_router
 from app.routers.dpm_wave_workflow_actions import router as dpm_wave_workflow_actions_router
@@ -613,6 +614,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_proof_pack_report_input_router)
     app.include_router(dpm_proof_pack_ai_evidence_input_router)
     app.include_router(dpm_proof_pack_ai_router)
+    app.include_router(dpm_wave_preview_router)
     app.include_router(dpm_waves_router)
     app.include_router(dpm_wave_lookup_router)
     app.include_router(dpm_wave_detail_router)
