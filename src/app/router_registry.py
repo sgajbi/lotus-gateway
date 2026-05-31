@@ -380,6 +380,9 @@ from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_execution_status import router as proposal_execution_status_router
 from app.routers.proposal_execution_updates import router as proposal_execution_updates_router
 from app.routers.proposal_generation import router as proposal_generation_router
+from app.routers.proposal_idempotency_records import (
+    router as proposal_idempotency_records_router,
+)
 from app.routers.proposal_lineage import router as proposal_lineage_router
 from app.routers.proposal_memo_actions import router as proposal_memo_actions_router
 from app.routers.proposal_memo_ai_commentary import (
@@ -535,6 +538,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_operations_router)
     app.include_router(proposal_operation_lookups_router)
     app.include_router(proposal_operation_support_lookups_router)
+    app.include_router(proposal_idempotency_records_router)
     app.include_router(proposal_versions_router)
     app.include_router(proposal_version_async_router)
     app.include_router(proposal_version_commands_router)
