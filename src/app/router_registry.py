@@ -218,7 +218,6 @@ from app.routers.proposal_workflow_evidence import (
     router as proposal_workflow_evidence_router,
 )
 from app.routers.proposals import router as proposals_router
-from app.routers.reporting import router as reporting_router
 from app.routers.reporting_batch_controls import (
     controls_router as reporting_batch_controls_router,
 )
@@ -237,6 +236,9 @@ from app.routers.reporting_outcome_review_submissions import (
 from app.routers.reporting_portfolio_reviews import router as reporting_portfolio_reviews_router
 from app.routers.reporting_portfolio_snapshots import (
     router as reporting_portfolio_snapshots_router,
+)
+from app.routers.reporting_portfolio_summary import (
+    router as reporting_portfolio_summary_router,
 )
 from app.routers.reporting_schedules import schedules_router as reporting_schedules_router
 from app.routers.reporting_snapshots import router as reporting_snapshots_router
@@ -400,7 +402,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workbench_risk_drawdown_router)
     app.include_router(workbench_risk_rolling_router)
     app.include_router(workbench_sandbox_router)
-    app.include_router(reporting_router)
+    app.include_router(reporting_portfolio_summary_router)
     app.include_router(reporting_portfolio_reviews_router)
     app.include_router(reporting_portfolio_snapshots_router)
     app.include_router(reporting_job_submissions_router)
