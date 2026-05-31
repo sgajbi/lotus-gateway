@@ -3,13 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Header, status
 
 from app.contracts.reporting import (
-    PortfolioReviewJobRequest,
+    OutcomeReviewReportJobRequest,
     ReportJobHandleResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import reporting_context_headers
 from app.routers.reporting_errors import report_job_error_response
-from app.routers.reporting_examples import PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES
+from app.routers.reporting_examples import OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES
 from app.services.reporting_links import gateway_report_job_status_url
 from app.services.reporting_service_provider import reporting_job_submission_service
 
@@ -17,15 +17,15 @@ router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 
 
 @router.post(
-    "/portfolio-reviews",
+    "/outcome-reviews",
     response_model=ReportJobHandleResponse,
     status_code=status.HTTP_202_ACCEPTED,
-    summary="Submit portfolio review report job",
+    summary="Submit outcome-review report job",
     description=(
-        "Create a durable portfolio review report job through the governed gateway boundary. "
-        "Use this endpoint when Workbench or another product client needs asynchronous report "
-        "generation with idempotency and supportable status tracking. The response is a job "
-        "handle, not a rendered document."
+        "Create a durable post-trade outcome-review report job through the governed gateway "
+        "boundary. Use this endpoint when Workbench or another product client needs a rendered "
+        "outcome-review artifact from manage-owned report input without calling lotus-report "
+        "directly or recomputing outcome facts."
     ),
     responses={
         **report_job_error_response(
@@ -45,12 +45,12 @@ router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
         ),
     },
 )
-async def submit_portfolio_review_report_job(
+async def submit_outcome_review_report_job(
     request: Annotated[
-        PortfolioReviewJobRequest,
+        OutcomeReviewReportJobRequest,
         Body(
-            description="Portfolio review report job request.",
-            openapi_examples=PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES,
+            description="Outcome-review report job request.",
+            openapi_examples=OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES,
         ),
     ],
     idempotency_key: Annotated[
@@ -70,7 +70,7 @@ async def submit_portfolio_review_report_job(
     correlation_id = correlation_id_var.get()
     service = reporting_job_submission_service()
     required_idempotency_key = service.require_idempotency_key(idempotency_key)
-    response = await service.submit_portfolio_review_job(
+    response = await service.submit_outcome_review_report_job(
         request=request,
         idempotency_key=required_idempotency_key,
         caller_headers=reporting_context_headers(
