@@ -114,5 +114,3 @@ async def get_workbench_risk_summary(
         report_end_date=report_end_date,
         reporting_currency=reporting_currency,
     )
-
-

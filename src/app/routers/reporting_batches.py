@@ -148,5 +148,3 @@ async def get_report_batch_status(
         correlation_id=correlation_id,
         tenant_id=caller_headers.get("X-Tenant-Id"),
     )
-
-
