@@ -14,6 +14,20 @@ router = APIRouter(
 )
 
 
+async def _list_campaign_assignment_actions(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+    request: Request,
+) -> DpmCampaignWorkflowGatewayResponse:
+    return await dpm_wave_service().list_campaign_assignment_actions(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        filters=campaign_assignment_query_params(request),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions",
     response_model=DpmCampaignWorkflowGatewayResponse,
@@ -31,9 +45,8 @@ async def list_campaign_assignment_actions(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().list_campaign_assignment_actions(
+    return await _list_campaign_assignment_actions(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        filters=campaign_assignment_query_params(request),
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )
