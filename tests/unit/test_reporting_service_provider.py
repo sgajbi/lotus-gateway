@@ -70,3 +70,20 @@ def test_reporting_service_provider_rebuilds_when_reporting_routing_changes(monk
 
     assert first is not second
     assert second._reporting_client._base_url == "http://reporting-provider-b:8000"
+
+
+def test_reporting_batch_provider_rebuilds_when_render_routing_changes(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.reporting_client_factory.settings.render_service_base_url",
+        "http://render-provider-a:8000",
+    )
+    first = reporting_batch_control_service()
+
+    monkeypatch.setattr(
+        "app.services.reporting_client_factory.settings.render_service_base_url",
+        "http://render-provider-b:8000",
+    )
+    second = reporting_batch_control_service()
+
+    assert first is not second
+    assert second._render_client._base_url == "http://render-provider-b:8000"
