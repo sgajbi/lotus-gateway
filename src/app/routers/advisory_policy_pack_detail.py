@@ -7,6 +7,18 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _get_policy_pack_version(
+    *,
+    policy_pack_id: str,
+    policy_version: str,
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().get_policy_pack_version(
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -28,8 +40,7 @@ async def get_policy_pack_version(
         examples=["2026.05"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().get_policy_pack_version(
+    return await _get_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
-        correlation_id=correlation_id_var.get(),
     )
