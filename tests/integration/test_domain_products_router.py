@@ -191,7 +191,7 @@ class _FakeDomainProductService:
 
 def test_domain_product_catalog_router_preserves_consumer_and_correlation(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_catalog.domain_product_catalog_service",
         lambda: _FakeDomainProductService(),
     )
 
@@ -290,7 +290,7 @@ def test_domain_product_router_reports_platform_artifact_unavailable(monkeypatch
             raise DomainProductCatalogUnavailable("catalog artifact missing")
 
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_catalog.domain_product_catalog_service",
         lambda: _UnavailableService(),
     )
 
