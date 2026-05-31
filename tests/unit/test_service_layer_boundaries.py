@@ -132,6 +132,28 @@ def test_narrowed_advisory_services_do_not_import_concrete_advise_client() -> No
     assert offenders == []
 
 
+def test_narrowed_reporting_services_do_not_import_concrete_reporting_clients() -> None:
+    narrowed_services = {
+        "reporting_batch_control_service.py",
+        "reporting_batch_lifecycle_service.py",
+        "reporting_batch_scheduler_service.py",
+        "reporting_job_query_service.py",
+        "reporting_job_submission_service.py",
+        "reporting_portfolio_service.py",
+    }
+    concrete_client_modules = {
+        "app.clients.render_client",
+        "app.clients.reporting_client",
+    }
+    offenders = {
+        path.name: sorted(_imported_modules(path) & concrete_client_modules)
+        for path in (_SERVICE_ROOT / service_name for service_name in narrowed_services)
+    }
+    offenders = {name: imports for name, imports in offenders.items() if imports}
+
+    assert offenders == {}
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
