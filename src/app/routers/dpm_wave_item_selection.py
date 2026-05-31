@@ -11,6 +11,20 @@ router = APIRouter(
 )
 
 
+async def _select_wave_item(
+    *,
+    wave_id: str,
+    wave_item_id: str,
+    request: DpmWaveForwardRequest,
+) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().select_wave_item(
+        wave_id=wave_id,
+        wave_item_id=wave_item_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/items/{wave_item_id}/select",
     response_model=DpmWaveGatewayResponse,
@@ -28,9 +42,8 @@ async def select_wave_item(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
     wave_item_id: str = Path(..., description="Manage-owned rebalance-wave item identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().select_wave_item(
+    return await _select_wave_item(
         wave_id=wave_id,
         wave_item_id=wave_item_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )
