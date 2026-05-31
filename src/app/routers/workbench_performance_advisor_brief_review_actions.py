@@ -1,40 +1,31 @@
-import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Path, Query
+from fastapi import APIRouter, Header, Path, Query
 
-from app.contracts.advisor_brief import AdvisorBriefResponse
+from app.contracts.advisor_brief import (
+    AdvisorBriefResponse,
+    AdvisorBriefWorkflowPackRunReviewActionRequest,
+)
 from app.middleware.correlation import correlation_id_var
-from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
 from app.routers.workbench_performance_advisor_brief_common import (
     require_advisor_brief_caller_context,
 )
 from app.services.workbench_service_provider import advisor_brief_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
-logger = logging.getLogger("analytics_ui.gateway")
-
-ADVISOR_BRIEF_READ_OPERATION = "advisor_brief.summary"
 
 
-def _emit_advisor_brief_read_audit(*, status_code: int) -> None:
-    emit_gateway_analytics_read_audit_log(
-        logger=logger,
-        operation=ADVISOR_BRIEF_READ_OPERATION,
-        status_code=status_code,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/performance/advisor-brief",
+@router.post(
+    "/{portfolio_id}/performance/advisor-brief/review-actions",
     response_model=AdvisorBriefResponse,
-    summary="Get Performance Advisor Brief",
+    summary="Record Performance Advisor Brief Review Action",
     description=(
-        "Returns a source-grounded advisor brief assembled from the performance workspace "
-        "contract and narrated through lotus-ai with audit and evidence metadata preserved."
+        "Records a bounded workflow-pack review action for the advisor-brief run through the "
+        "gateway boundary and returns the refreshed advisor-brief posture."
     ),
 )
-async def get_performance_advisor_brief(
+async def post_performance_advisor_brief_review_action(
+    request: AdvisorBriefWorkflowPackRunReviewActionRequest,
     portfolio_id: str = Path(
         ...,
         description=(
@@ -105,21 +96,16 @@ async def get_performance_advisor_brief(
     )
     service = advisor_brief_service()
     correlation_id = correlation_id_var.get()
-    try:
-        response = await service.get_performance_advisor_brief(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            explicit_start_date=report_start_date,
-            explicit_end_date=report_end_date,
-        )
-    except HTTPException as exc:
-        _emit_advisor_brief_read_audit(status_code=exc.status_code)
-        raise
-    _emit_advisor_brief_read_audit(status_code=200)
-    return response
+    return await service.apply_performance_advisor_brief_review_action(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        request=request,
+        explicit_start_date=report_start_date,
+        explicit_end_date=report_end_date,
+    )
