@@ -7,8 +7,6 @@ from typing import Any, TypeAlias, cast
 
 from fastapi import HTTPException
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.performance_workspace import (
     AttributionLevelView,
@@ -57,6 +55,10 @@ from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
 )
+from app.services.upstream_client_protocols import (
+    PerformanceWorkspaceAnalyticsClient,
+    PerformanceWorkspaceCoreClient,
+)
 from app.services.workbench_service import WorkbenchService
 
 STANDARD_PERIOD_ANALYSES = (
@@ -85,8 +87,8 @@ class PerformanceWorkspaceService:
     def __init__(
         self,
         workbench_service: WorkbenchService,
-        analytics_client: LotusAnalyticsClient,
-        lotus_core_query_client: LotusCoreQueryClient,
+        analytics_client: PerformanceWorkspaceAnalyticsClient,
+        lotus_core_query_client: PerformanceWorkspaceCoreClient,
         upstream_cache_ttl_seconds: float | None = None,
     ):
         self._workbench_service = workbench_service

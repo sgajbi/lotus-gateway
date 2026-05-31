@@ -1274,3 +1274,120 @@ class WorkbenchAdviseClient(Protocol):
         idempotency_key: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class PerformanceWorkspaceAnalyticsClient(Protocol):
+    async def get_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_id: str | None,
+        reporting_currency: str | None,
+        segment: str,
+        correlation_id: str,
+        periods: list[dict[str, Any]] | None = None,
+        include_detail_blocks: bool = False,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_twr_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        metric_basis: str,
+        benchmark_id: str | None,
+        correlation_id: str,
+        analyses: list[dict[str, Any]] | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_mwr_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        window_start_date: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_contribution_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        report_start_date: str,
+        report_end_date: str,
+        period: str,
+        metric_basis: str,
+        dimension: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_attribution_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        report_start_date: str,
+        report_end_date: str,
+        period: str,
+        metric_basis: str,
+        benchmark_id: str | None,
+        dimension: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_execution(
+        self,
+        *,
+        calculation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_lineage(
+        self,
+        *,
+        calculation_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_lineage_artifact(
+        self,
+        *,
+        calculation_id: str,
+        artifact_name: str,
+        correlation_id: str,
+    ) -> tuple[int, bytes, str | None]: ...
+
+
+class PerformanceWorkspaceCoreClient(Protocol):
+    async def get_portfolio_analytics_reference(
+        self,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_benchmark_assignment(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        reporting_currency: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_benchmark_catalog(
+        self,
+        *,
+        as_of_date: str,
+        correlation_id: str,
+        benchmark_currency: str | None = None,
+        benchmark_status: str | None = "active",
+        benchmark_type: str | None = "composite",
+    ) -> tuple[int, dict[str, Any]]: ...
