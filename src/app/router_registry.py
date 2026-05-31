@@ -21,6 +21,7 @@ from app.routers.reporting import batches_router as reporting_batches_router
 from app.routers.reporting import router as reporting_router
 from app.routers.reporting import schedules_router as reporting_schedules_router
 from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
+from app.routers.reporting_snapshots import router as reporting_snapshots_router
 from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
 
@@ -44,6 +45,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_waves_router)
     app.include_router(workbench_router)
     app.include_router(reporting_router)
+    app.include_router(reporting_snapshots_router)
     app.include_router(reporting_jobs_router)
     app.include_router(reporting_batches_router)
     app.include_router(reporting_schedules_router)
