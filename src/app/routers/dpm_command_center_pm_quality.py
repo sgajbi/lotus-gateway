@@ -1,34 +1,21 @@
 from fastapi import APIRouter, Path, Query
 
 from app.contracts.dpm_command_center import (
-    DpmOutcomeReviewErrorDetail,
     DpmPmOperatingQualityForwardRequest,
     DpmPmOperatingQualityGatewayResponse,
     DpmPmOperatingQualitySummaryGatewayResponse,
     DpmPmOperatingQualitySummaryRequest,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.dpm_openapi import manage_upstream_error_responses
-from app.services.dpm_service_provider import dpm_command_center_service
-
-_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
-    error_model=DpmOutcomeReviewErrorDetail,
-    not_found_description=(
-        "lotus-manage could not find the requested PM operating quality resource."
-    ),
-    conflict_description="lotus-manage rejected the PM operating quality request as conflicting.",
-    invalid_payload_description=(
-        "lotus-manage rejected the PM operating quality payload as invalid."
-    ),
-    unavailable_description=(
-        "lotus-manage PM operating quality authority is unavailable or degraded."
-    ),
+from app.routers.dpm_command_center_pm_quality_common import (
+    UPSTREAM_PM_OPERATING_QUALITY_ERROR_RESPONSES,
 )
+from app.services.dpm_service_provider import dpm_command_center_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center",
     tags=["DPM Command Center"],
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PM_OPERATING_QUALITY_ERROR_RESPONSES,
 )
 
 
