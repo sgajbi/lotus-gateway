@@ -10,6 +10,21 @@ from app.services.gateway_service_provider import source_product_service
 router = APIRouter(prefix="/api/v1/source-products", tags=["Source Products"])
 
 
+async def _get_external_order_execution_acknowledgement(
+    *,
+    request: ExternalOrderExecutionAcknowledgementRequest,
+    portfolio_id: str,
+    x_correlation_id: str | None,
+) -> ExternalOrderExecutionAcknowledgementResponse:
+    correlation_id = x_correlation_id or correlation_id_var.get() or ""
+    payload = request.model_dump(exclude_none=True)
+    return await source_product_service().get_external_order_execution_acknowledgement(
+        portfolio_id=portfolio_id,
+        payload=payload,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/portfolios/{portfolio_id}/external-order-execution-acknowledgement",
     response_model=ExternalOrderExecutionAcknowledgementResponse,
@@ -35,10 +50,8 @@ async def get_external_order_execution_acknowledgement(
         description="Optional caller-supplied correlation identifier propagated to lotus-core.",
     ),
 ) -> ExternalOrderExecutionAcknowledgementResponse:
-    correlation_id = x_correlation_id or correlation_id_var.get() or ""
-    payload = request.model_dump(exclude_none=True)
-    return await source_product_service().get_external_order_execution_acknowledgement(
+    return await _get_external_order_execution_acknowledgement(
+        request=request,
         portfolio_id=portfolio_id,
-        payload=payload,
-        correlation_id=correlation_id,
+        x_correlation_id=x_correlation_id,
     )

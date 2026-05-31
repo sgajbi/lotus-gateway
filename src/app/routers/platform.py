@@ -7,6 +7,21 @@ from app.services.platform_capabilities_service_provider import platform_capabil
 router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
 
 
+async def _get_platform_capabilities(
+    *,
+    consumer_system: str,
+    tenant_id: str,
+    x_correlation_id: str | None,
+) -> PlatformCapabilitiesResponse:
+    service = platform_capabilities_service()
+    correlation_id = x_correlation_id or correlation_id_var.get() or ""
+    return await service.get_platform_capabilities(
+        consumer_system=consumer_system,
+        tenant_id=tenant_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/capabilities",
     response_model=PlatformCapabilitiesResponse,
@@ -52,10 +67,8 @@ async def get_platform_capabilities(
         ),
     ),
 ) -> PlatformCapabilitiesResponse:
-    service = platform_capabilities_service()
-    correlation_id = x_correlation_id or correlation_id_var.get() or ""
-    return await service.get_platform_capabilities(
+    return await _get_platform_capabilities(
         consumer_system=consumer_system,
         tenant_id=tenant_id,
-        correlation_id=correlation_id,
+        x_correlation_id=x_correlation_id,
     )

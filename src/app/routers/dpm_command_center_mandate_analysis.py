@@ -12,6 +12,16 @@ router = APIRouter(
 )
 
 
+async def _get_mandate_health(
+    *,
+    mandate_id: str,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().get_mandate_health(
+        mandate_id=mandate_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/mandates/{mandate_id}/health",
     response_model=DpmCommandCenterGatewayResponse,
@@ -29,7 +39,6 @@ async def get_mandate_health(
         examples=["MANDATE_PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().get_mandate_health(
+    return await _get_mandate_health(
         mandate_id=mandate_id,
-        correlation_id=correlation_id_var.get(),
     )

@@ -7,6 +7,12 @@ from app.services.gateway_service_provider import foundation_service
 router = APIRouter(prefix="/api/v1/foundation", tags=["foundation"])
 
 
+async def _get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
+    service = foundation_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_portfolio_catalog(correlation_id=correlation_id)
+
+
 @router.get(
     "/portfolios",
     response_model=FoundationPortfolioCatalogResponse,
@@ -20,6 +26,4 @@ router = APIRouter(prefix="/api/v1/foundation", tags=["foundation"])
     ),
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
-    service = foundation_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_portfolio_catalog(correlation_id=correlation_id)
+    return await _get_foundation_portfolios()

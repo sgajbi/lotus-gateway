@@ -7,6 +7,26 @@ from app.services.workbench_service_provider import workbench_service
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 
+async def _get_workbench_analytics(
+    *,
+    portfolio_id: str,
+    period: str,
+    group_by: str,
+    benchmark_code: str,
+    session_id: str | None,
+) -> WorkbenchAnalyticsResponse:
+    service = workbench_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_workbench_analytics(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        group_by=group_by,
+        benchmark_code=benchmark_code,
+        session_id=session_id,
+    )
+
+
 @router.get(
     "/{portfolio_id}/analytics",
     response_model=WorkbenchAnalyticsResponse,
@@ -46,11 +66,8 @@ async def get_workbench_analytics(
         examples=["sess_1"],
     ),
 ) -> WorkbenchAnalyticsResponse:
-    service = workbench_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_workbench_analytics(
+    return await _get_workbench_analytics(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
         period=period,
         group_by=group_by,
         benchmark_code=benchmark_code,

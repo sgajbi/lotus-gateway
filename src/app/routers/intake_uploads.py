@@ -7,6 +7,23 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/intake/uploads", tags=["intake"])
 
 
+async def _preview_upload(
+    *,
+    entity_type: str,
+    file: UploadFile,
+    sample_size: int,
+) -> EnvelopeResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.preview_upload(
+        entity_type=entity_type,
+        filename=file.filename or "upload.csv",
+        content=await file.read(),
+        sample_size=sample_size,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/preview",
     response_model=EnvelopeResponse,
@@ -39,12 +56,8 @@ async def preview_upload(
         examples=[20],
     ),
 ) -> EnvelopeResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.preview_upload(
+    return await _preview_upload(
         entity_type=entity_type,
-        filename=file.filename or "upload.csv",
-        content=await file.read(),
+        file=file,
         sample_size=sample_size,
-        correlation_id=correlation_id,
     )

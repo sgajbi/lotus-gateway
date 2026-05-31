@@ -14,6 +14,18 @@ router = APIRouter(
 )
 
 
+async def _list_monitoring_runs(
+    *,
+    status_filter: str | None,
+    limit: int,
+    cursor: str | None,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().list_monitoring_runs(
+        filters={"status_filter": status_filter, "limit": limit, "cursor": cursor},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/monitoring/runs",
     response_model=DpmCommandCenterGatewayResponse,
@@ -33,7 +45,8 @@ async def list_monitoring_runs(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum runs to return."),
     cursor: str | None = Query(default=None, description="Cursor from a previous page."),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().list_monitoring_runs(
-        filters={"status_filter": status_filter, "limit": limit, "cursor": cursor},
-        correlation_id=correlation_id_var.get(),
+    return await _list_monitoring_runs(
+        status_filter=status_filter,
+        limit=limit,
+        cursor=cursor,
     )

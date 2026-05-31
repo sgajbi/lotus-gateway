@@ -7,6 +7,22 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/lookups", tags=["lookups"])
 
 
+async def _get_instrument_lookups(
+    *,
+    limit: int,
+    product_type: str | None,
+    q: str | None,
+) -> LookupResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_instrument_lookups(
+        limit=limit,
+        correlation_id=correlation_id,
+        product_type=product_type,
+        q=q,
+    )
+
+
 @router.get(
     "/instruments",
     response_model=LookupResponse,
@@ -37,11 +53,8 @@ async def get_instrument_lookups(
         examples=["Apple"],
     ),
 ) -> LookupResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_instrument_lookups(
+    return await _get_instrument_lookups(
         limit=limit,
-        correlation_id=correlation_id,
         product_type=product_type,
         q=q,
     )

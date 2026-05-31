@@ -7,6 +7,18 @@ from app.services.workbench_service_provider import workbench_service
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 
+async def _get_workbench_overview(
+    *,
+    portfolio_id: str,
+) -> WorkbenchOverviewResponse:
+    service = workbench_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_workbench_overview(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{portfolio_id}/overview",
     response_model=WorkbenchOverviewResponse,
@@ -25,9 +37,6 @@ async def get_workbench_overview(
         examples=["PF_1001"],
     ),
 ) -> WorkbenchOverviewResponse:
-    service = workbench_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_workbench_overview(
+    return await _get_workbench_overview(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
     )

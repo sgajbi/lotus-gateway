@@ -17,6 +17,18 @@ router = APIRouter(
 )
 
 
+async def _resolve_monitoring_exception(
+    *,
+    request: DpmCommandCenterResolveExceptionRequest,
+    exception_id: str,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().resolve_monitoring_exception(
+        exception_id=exception_id,
+        body={"resolution_reason": request.resolution_reason},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/exceptions/{exception_id}/resolve",
     response_model=DpmCommandCenterGatewayResponse,
@@ -35,8 +47,7 @@ async def resolve_monitoring_exception(
         examples=["me_source_readiness_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().resolve_monitoring_exception(
+    return await _resolve_monitoring_exception(
+        request=request,
         exception_id=exception_id,
-        body={"resolution_reason": request.resolution_reason},
-        correlation_id=correlation_id_var.get(),
     )

@@ -7,6 +7,23 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/intake/uploads", tags=["intake"])
 
 
+async def _commit_upload(
+    *,
+    entity_type: str,
+    file: UploadFile,
+    allow_partial: bool,
+) -> EnvelopeResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.commit_upload(
+        entity_type=entity_type,
+        filename=file.filename or "upload.csv",
+        content=await file.read(),
+        allow_partial=allow_partial,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/commit",
     response_model=EnvelopeResponse,
@@ -37,12 +54,8 @@ async def commit_upload(
         examples=[False],
     ),
 ) -> EnvelopeResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.commit_upload(
+    return await _commit_upload(
         entity_type=entity_type,
-        filename=file.filename or "upload.csv",
-        content=await file.read(),
+        file=file,
         allow_partial=allow_partial,
-        correlation_id=correlation_id,
     )

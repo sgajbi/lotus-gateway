@@ -7,6 +7,20 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_narrative(
+    *,
+    proposal_id: str,
+    version_no: int,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/versions/{version_no}/narrative",
     response_model=ProposalEnvelopeResponse,
@@ -29,10 +43,7 @@ async def get_proposal_narrative(
         examples=[2],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_narrative(
+    return await _get_proposal_narrative(
         proposal_id=proposal_id,
         version_no=version_no,
-        correlation_id=correlation_id,
     )

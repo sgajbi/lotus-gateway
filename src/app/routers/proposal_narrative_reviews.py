@@ -10,6 +10,24 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _review_proposal_narrative(
+    *,
+    request: ProposalNarrativeReviewRequest,
+    proposal_id: str,
+    version_no: int,
+    idempotency_key: str | None,
+) -> ProposalNarrativeReviewEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.review_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.model_dump(exclude_none=True),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions/{version_no}/narrative/review",
     response_model=ProposalNarrativeReviewEnvelopeResponse,
@@ -40,12 +58,9 @@ async def review_proposal_narrative(
         examples=["proposal-narrative-review-idem-001"],
     ),
 ) -> ProposalNarrativeReviewEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.review_proposal_narrative(
+    return await _review_proposal_narrative(
+        request=request,
         proposal_id=proposal_id,
         version_no=version_no,
-        body=request.model_dump(exclude_none=True),
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )

@@ -7,6 +7,24 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/lookups", tags=["lookups"])
 
 
+async def _get_portfolio_lookups(
+    *,
+    cif_id: str | None,
+    booking_center: str | None,
+    q: str | None,
+    limit: int | None,
+) -> LookupResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_portfolio_lookups(
+        correlation_id=correlation_id,
+        cif_id=cif_id,
+        booking_center=booking_center,
+        q=q,
+        limit=limit,
+    )
+
+
 @router.get(
     "/portfolios",
     response_model=LookupResponse,
@@ -48,10 +66,7 @@ async def get_portfolio_lookups(
         examples=[100],
     ),
 ) -> LookupResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_portfolio_lookups(
-        correlation_id=correlation_id,
+    return await _get_portfolio_lookups(
         cif_id=cif_id,
         booking_center=booking_center,
         q=q,

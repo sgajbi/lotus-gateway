@@ -7,6 +7,30 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _list_proposals(
+    *,
+    portfolio_id: str | None,
+    state: str | None,
+    created_by: str | None,
+    created_from: str | None,
+    created_to: str | None,
+    limit: int,
+    cursor: str | None,
+) -> ProposalListEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    filters = {
+        "portfolio_id": portfolio_id,
+        "state": state,
+        "created_by": created_by,
+        "created_from": created_from,
+        "created_to": created_to,
+        "limit": limit,
+        "cursor": cursor,
+    }
+    return await service.list_proposals(filters=filters, correlation_id=correlation_id)
+
+
 @router.get(
     "",
     response_model=ProposalListEnvelopeResponse,
@@ -55,15 +79,12 @@ async def list_proposals(
         examples=["pp_00042"],
     ),
 ) -> ProposalListEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    filters = {
-        "portfolio_id": portfolio_id,
-        "state": state,
-        "created_by": created_by,
-        "created_from": created_from,
-        "created_to": created_to,
-        "limit": limit,
-        "cursor": cursor,
-    }
-    return await service.list_proposals(filters=filters, correlation_id=correlation_id)
+    return await _list_proposals(
+        portfolio_id=portfolio_id,
+        state=state,
+        created_by=created_by,
+        created_from=created_from,
+        created_to=created_to,
+        limit=limit,
+        cursor=cursor,
+    )

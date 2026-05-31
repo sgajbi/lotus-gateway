@@ -7,6 +7,22 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _record_execution_update(
+    *,
+    request: ProposalBodyRequest,
+    proposal_id: str,
+    idempotency_key: str | None,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.record_execution_update(
+        proposal_id=proposal_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/execution-updates",
     response_model=ProposalEnvelopeResponse,
@@ -30,11 +46,8 @@ async def record_execution_update(
         examples=["idem-execution-update-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.record_execution_update(
+    return await _record_execution_update(
+        request=request,
         proposal_id=proposal_id,
-        body=request.body,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )

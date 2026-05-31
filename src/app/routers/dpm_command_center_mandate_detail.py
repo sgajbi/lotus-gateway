@@ -12,6 +12,16 @@ router = APIRouter(
 )
 
 
+async def _get_mandate(
+    *,
+    mandate_id: str,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().get_mandate(
+        mandate_id=mandate_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/mandates/{mandate_id}",
     response_model=DpmCommandCenterGatewayResponse,
@@ -29,7 +39,6 @@ async def get_mandate(
         examples=["MANDATE_PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().get_mandate(
+    return await _get_mandate(
         mandate_id=mandate_id,
-        correlation_id=correlation_id_var.get(),
     )

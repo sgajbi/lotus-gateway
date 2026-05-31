@@ -10,6 +10,25 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _approve_risk(
+    *,
+    request: ProposalApprovalActionRequest,
+    proposal_id: str,
+    idempotency_key: str,
+) -> ProposalStateTransitionEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.approve_risk(
+        proposal_id=proposal_id,
+        actor_id=request.actor_id,
+        expected_state=request.expected_state,
+        details=request.details,
+        related_version_no=request.related_version_no,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/approve-risk",
     response_model=ProposalStateTransitionEnvelopeResponse,
@@ -29,14 +48,8 @@ async def approve_risk(
         examples=["idem-approve-risk-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.approve_risk(
+    return await _approve_risk(
+        request=request,
         proposal_id=proposal_id,
-        actor_id=request.actor_id,
-        expected_state=request.expected_state,
-        details=request.details,
-        related_version_no=request.related_version_no,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )

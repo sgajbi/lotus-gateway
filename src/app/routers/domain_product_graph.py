@@ -12,6 +12,17 @@ def _correlation_id(header_value: str | None) -> str:
     return header_value or correlation_id_var.get() or ""
 
 
+async def _get_domain_product_dependency_graph(
+    *,
+    consumer_system: str,
+    x_correlation_id: str | None,
+) -> DomainProductGraphResponse:
+    return await domain_product_catalog_service().get_dependency_graph(
+        consumer_system=consumer_system,
+        correlation_id=_correlation_id(x_correlation_id),
+    )
+
+
 @router.get(
     "/dependency-graph",
     response_model=DomainProductGraphResponse,
@@ -37,9 +48,9 @@ async def get_domain_product_dependency_graph(
     ),
 ) -> DomainProductGraphResponse:
     try:
-        return await domain_product_catalog_service().get_dependency_graph(
+        return await _get_domain_product_dependency_graph(
             consumer_system=consumer_system,
-            correlation_id=_correlation_id(x_correlation_id),
+            x_correlation_id=x_correlation_id,
         )
     except DomainProductCatalogUnavailable as exc:
         raise HTTPException(

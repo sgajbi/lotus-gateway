@@ -7,6 +7,24 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/lookups", tags=["lookups"])
 
 
+async def _get_currency_lookups(
+    *,
+    instrument_page_limit: int | None,
+    source: str | None,
+    q: str | None,
+    limit: int | None,
+) -> LookupResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_currency_lookups(
+        correlation_id=correlation_id,
+        instrument_page_limit=instrument_page_limit,
+        source=source,
+        q=q,
+        limit=limit,
+    )
+
+
 @router.get(
     "/currencies",
     response_model=LookupResponse,
@@ -47,10 +65,7 @@ async def get_currency_lookups(
         examples=[50],
     ),
 ) -> LookupResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_currency_lookups(
-        correlation_id=correlation_id,
+    return await _get_currency_lookups(
         instrument_page_limit=instrument_page_limit,
         source=source,
         q=q,

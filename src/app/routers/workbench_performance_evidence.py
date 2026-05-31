@@ -6,6 +6,21 @@ from app.services.workbench_service_provider import performance_workspace_servic
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 
+async def _get_performance_evidence_artifact(
+    *,
+    calculation_id: str,
+    artifact_name: str,
+) -> Response:
+    service = performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    content, content_type = await service.get_performance_evidence_artifact(
+        calculation_id=calculation_id,
+        artifact_name=artifact_name,
+        correlation_id=correlation_id,
+    )
+    return Response(content=content, media_type=content_type or "application/octet-stream")
+
+
 @router.get(
     "/{portfolio_id}/performance/evidence/artifacts/{calculation_id}/{artifact_name}",
     summary="Download Performance Evidence Artifact",
@@ -35,11 +50,7 @@ async def get_performance_evidence_artifact(
     ),
 ) -> Response:
     _ = portfolio_id
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    content, content_type = await service.get_performance_evidence_artifact(
+    return await _get_performance_evidence_artifact(
         calculation_id=calculation_id,
         artifact_name=artifact_name,
-        correlation_id=correlation_id,
     )
-    return Response(content=content, media_type=content_type or "application/octet-stream")

@@ -17,6 +17,16 @@ router = APIRouter(
 )
 
 
+async def _run_monitoring_once(
+    *,
+    request: DpmCommandCenterForwardRequest,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().run_monitoring_once(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/monitoring/run-once",
     response_model=DpmCommandCenterGatewayResponse,
@@ -31,7 +41,6 @@ router = APIRouter(
 async def run_monitoring_once(
     request: DpmCommandCenterForwardRequest,
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().run_monitoring_once(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+    return await _run_monitoring_once(
+        request=request,
     )
