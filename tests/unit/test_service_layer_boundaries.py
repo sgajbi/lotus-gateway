@@ -163,6 +163,12 @@ def test_narrowed_archive_services_do_not_import_concrete_archive_client() -> No
 def test_narrowed_performance_and_core_services_do_not_import_concrete_clients() -> None:
     narrowed_service_imports = {
         "composite_performance_service.py": {"app.clients.lotus_analytics_client"},
+        "foundation_service.py": {
+            "app.clients.dpm_client",
+            "app.clients.lotus_analytics_client",
+            "app.clients.lotus_core_query_client",
+            "app.clients.reporting_client",
+        },
         "intake_service.py": {
             "app.clients.lotus_core_ingestion_client",
             "app.clients.lotus_core_query_client",
