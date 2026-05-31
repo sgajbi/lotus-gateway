@@ -11,6 +11,18 @@ from app.services.advisory_service_provider import advisory_workspace_service
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
+async def _request_rationale(
+    *,
+    request: AdvisoryWorkspaceBodyRequest,
+    workspace_id: str,
+) -> AdvisoryWorkspaceEnvelopeResponse:
+    return await advisory_workspace_service().request_rationale(
+        workspace_id=workspace_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{workspace_id}/assistant/rationale",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
@@ -24,8 +36,7 @@ async def request_rationale(
     request: AdvisoryWorkspaceBodyRequest,
     workspace_id: str = WORKSPACE_ID_PATH,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().request_rationale(
+    return await _request_rationale(
+        request=request,
         workspace_id=workspace_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
     )
