@@ -11,6 +11,20 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _request_policy_ai_evidence(
+    *,
+    request: AdvisoryPolicyBodyRequest,
+    evaluation_id: str,
+    idempotency_key: str | None,
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().request_policy_ai_evidence(
+        evaluation_id=evaluation_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/advisory-policy-evaluations/{evaluation_id}/ai-evidence",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -30,9 +44,8 @@ async def request_policy_ai_evidence(
         examples=["idem-policy-ai-evidence-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().request_policy_ai_evidence(
+    return await _request_policy_ai_evidence(
+        request=request,
         evaluation_id=evaluation_id,
-        body=request.body,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id_var.get(),
     )
