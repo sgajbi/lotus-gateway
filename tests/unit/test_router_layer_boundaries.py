@@ -17,7 +17,11 @@ def _imported_modules(path: Path) -> set[str]:
 
 def _function_names(path: Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    return {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef)
+    }
 
 
 def _is_router_handler(node: ast.AsyncFunctionDef | ast.FunctionDef) -> bool:
