@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 
@@ -16,7 +16,6 @@ from app.contracts.reporting import (
     BATCH_WORKER_RUN_REQUEST_EXAMPLE,
     BATCH_WORKER_RUN_RESPONSE_EXAMPLE,
     REPORT_BATCH_ERROR_EXAMPLES,
-    REPORT_JOB_ERROR_EXAMPLES,
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
     BatchControlResponse,
     BatchCreateRequest,
@@ -35,7 +34,6 @@ from app.contracts.reporting import (
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
     ReportInputSnapshotRecord,
-    ReportJobErrorResponse,
     ReportJobHandleResponse,
     ReportJobListResponse,
     ReportJobStatusEventsResponse,
@@ -43,6 +41,12 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.reporting_errors import (
+    raise_report_batch_error,
+    raise_report_job_error,
+    report_batch_error_response,
+    report_job_error_response,
+)
 from app.routers.reporting_links import (
     gateway_report_job_status_url,
     rewrite_report_batch_status_url,
@@ -143,124 +147,6 @@ OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES = {
         },
     }
 }
-
-
-def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
-    detail = payload.get("detail") if isinstance(payload, dict) else None
-    error_code = detail.get("code") if isinstance(detail, dict) else None
-    message = detail.get("message") if isinstance(detail, dict) else "Report job unavailable."
-
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code == "missing_idempotency_key":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "missing_idempotency_key", "message": message},
-        )
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code in {
-        "missing_caller_context",
-        "invalid_report_job_filters",
-    }:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail,
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_job_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_job_not_found", "message": message},
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_snapshot_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_snapshot_not_found", "message": message},
-        )
-    if status_code == status.HTTP_409_CONFLICT:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": error_code or "report_job_conflict", "message": message},
-        )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "report_job_upstream_unavailable",
-                "message": "Report job service is unavailable.",
-            },
-        )
-
-
-def _job_error_response(
-    status_code: int,
-    *,
-    example_key: str,
-    description: str,
-) -> dict[int | str, dict[str, Any]]:
-    return {
-        status_code: {
-            "model": ReportJobErrorResponse,
-            "description": description,
-            "content": {
-                "application/json": {
-                    "example": REPORT_JOB_ERROR_EXAMPLES[example_key],
-                }
-            },
-        }
-    }
-
-
-def _raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
-    detail = payload.get("detail") if isinstance(payload, dict) else None
-    error_code = detail.get("code") if isinstance(detail, dict) else None
-    message = detail.get("message") if isinstance(detail, dict) else "Report batch unavailable."
-
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code in {
-        "missing_idempotency_key",
-        "missing_caller_context",
-        "empty_batch_selector",
-        "batch_size_exceeded",
-        "unsupported_batch_selector",
-        "invalid_batch_selector",
-    }:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_batch_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_batch_not_found", "message": message},
-        )
-    if status_code == status.HTTP_409_CONFLICT and error_code in {
-        "idempotency_conflict",
-        "batch_worker_run_failed",
-    }:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": error_code, "message": message},
-        )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "report_batch_upstream_unavailable",
-                "message": "Report batch service is unavailable.",
-            },
-        )
-
-
-def _batch_error_response(
-    status_code: int,
-    *,
-    example_key: str,
-    description: str,
-) -> dict[int | str, dict[str, Any]]:
-    return {
-        status_code: {
-            "model": ReportJobErrorResponse,
-            "description": description,
-            "content": {
-                "application/json": {
-                    "example": REPORT_BATCH_ERROR_EXAMPLES[example_key],
-                }
-            },
-        }
-    }
 
 
 def _context_headers(
@@ -463,17 +349,17 @@ async def get_reporting_review(
         "handle, not a rendered document."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency or required caller context is missing.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with a different request.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -525,7 +411,7 @@ async def submit_portfolio_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     response = ReportJobHandleResponse.model_validate(payload)
     return response.model_copy(
         update={"status_url": gateway_report_job_status_url(response.report_job_id)}
@@ -544,17 +430,17 @@ async def submit_portfolio_review_report_job(
         "directly or recomputing outcome facts."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency or required caller context is missing.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with a different request.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -606,7 +492,7 @@ async def submit_outcome_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     response = ReportJobHandleResponse.model_validate(payload)
     return response.model_copy(
         update={"status_url": gateway_report_job_status_url(response.report_job_id)}
@@ -635,12 +521,12 @@ async def submit_outcome_review_report_job(
         }
     },
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="invalid_report_job_filters",
             description="Returned when no supported job-search filter is supplied.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -736,7 +622,7 @@ async def list_report_jobs(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportJobListResponse.model_validate(payload)
 
 
@@ -749,12 +635,12 @@ async def list_report_jobs(
         "endpoint after submit or search when a caller needs current lifecycle state for one job."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -782,7 +668,7 @@ async def get_report_job_status(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportJobStatusResponse.model_validate(payload)
 
 
@@ -795,12 +681,12 @@ async def get_report_job_status(
         "Use this endpoint for operational support when current status alone is insufficient."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -828,7 +714,7 @@ async def get_report_job_events(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportJobStatusEventsResponse.model_validate(payload)
 
 
@@ -841,12 +727,12 @@ async def get_report_job_events(
         "dependency calls through the governed gateway boundary."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when snapshot lineage is unavailable for this report job.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -874,7 +760,7 @@ async def get_report_job_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportSnapshotLineageResponse.model_validate(payload)
 
 
@@ -888,17 +774,17 @@ async def get_report_job_lineage(
         "hold semantics are owned by later reporting RFCs."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="report_job_cannot_be_cancelled",
             description="Returned when the job has completed or was already cancelled.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -926,7 +812,7 @@ async def cancel_report_job(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportJobStatusResponse.model_validate(payload)
 
 
@@ -939,12 +825,12 @@ async def cancel_report_job(
         "governed gateway boundary."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when the requested snapshot identifier does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -972,7 +858,7 @@ async def get_report_snapshot(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportInputSnapshotRecord.model_validate(payload)
 
 
@@ -984,12 +870,12 @@ async def get_report_snapshot(
         "Return lineage evidence for an input snapshot and all upstream calls that formed it."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when snapshot lineage is unavailable for this snapshot.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1017,7 +903,7 @@ async def get_report_snapshot_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
+    raise_report_job_error(status_code, payload)
     return ReportSnapshotLineageResponse.model_validate(payload)
 
 
@@ -1057,17 +943,17 @@ async def get_report_snapshot_lineage(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency, caller context, or selector input is invalid.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with another batch request.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1112,7 +998,7 @@ async def create_report_batch(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         rewrite_report_batch_status_url(payload),
         reporting_client=build_reporting_client(),
@@ -1138,12 +1024,12 @@ async def create_report_batch(
         }
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             404,
             example_key="report_batch_not_found",
             description="Returned when the requested report batch does not exist.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1172,7 +1058,7 @@ async def get_report_batch_status(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         payload,
         reporting_client=build_reporting_client(),
@@ -1207,7 +1093,7 @@ async def _control_batch(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     return BatchControlResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
@@ -1369,7 +1255,7 @@ async def recover_expired_report_batch_leases(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     return BatchRecoveryResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
@@ -1392,17 +1278,17 @@ async def recover_expired_report_batch_leases(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             404,
             example_key="report_batch_not_found",
             description="Returned when the requested report batch does not exist.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="batch_worker_run_failed",
             description="Returned when durable batch or linked report-job state is inconsistent.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1437,7 +1323,7 @@ async def run_report_batch_once(
         correlation_id=correlation_id,
         payload=request.model_dump(exclude_none=True, mode="json"),
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         rewrite_report_batch_status_url(payload),
         reporting_client=build_reporting_client(),
@@ -1465,7 +1351,7 @@ async def run_report_batch_once(
         }
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1491,7 +1377,7 @@ async def list_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     return BatchScheduleListResponse.model_validate(payload)
 
 
@@ -1516,14 +1402,14 @@ async def list_report_batch_schedules(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="batch_scheduler_run_failed",
             description=(
                 "Returned when lotus-report cannot safely materialize configured schedules."
             ),
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1554,5 +1440,5 @@ async def run_due_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
+    raise_report_batch_error(status_code, payload)
     return BatchSchedulerRunResponse.model_validate(payload)
