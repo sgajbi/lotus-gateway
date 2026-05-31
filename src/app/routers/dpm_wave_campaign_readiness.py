@@ -13,6 +13,18 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_definition_lifecycle_events(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().get_campaign_definition_lifecycle_events(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/lifecycle-events",
     response_model=DpmCampaignDefinitionGatewayResponse,
@@ -30,8 +42,7 @@ async def get_campaign_definition_lifecycle_events(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().get_campaign_definition_lifecycle_events(
+    return await _get_campaign_definition_lifecycle_events(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        correlation_id=correlation_id_var.get(),
     )
