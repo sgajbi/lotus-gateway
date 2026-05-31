@@ -37,6 +37,49 @@ async def _apply_advisor_brief_review_action(
     )
 
 
+async def _post_performance_advisor_brief_review_action(
+    *,
+    portfolio_id: str,
+    request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+    period: str,
+    chart_frequency: str,
+    contribution_dimension: str,
+    attribution_dimension: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    report_start_date: str | None,
+    report_end_date: str | None,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> AdvisorBriefResponse:
+    require_advisor_brief_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+    return await _apply_advisor_brief_review_action(
+        portfolio_id=portfolio_id,
+        request=request,
+        query=AdvisorBriefQuery(
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
+    )
+
+
 @router.post(
     "/{portfolio_id}/performance/advisor-brief/review-actions",
     response_model=AdvisorBriefResponse,
@@ -108,25 +151,21 @@ async def post_performance_advisor_brief_review_action(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> AdvisorBriefResponse:
-    require_advisor_brief_caller_context(
+    return await _post_performance_advisor_brief_review_action(
+        portfolio_id=portfolio_id,
+        request=request,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
         region=region,
         booking_center_code=booking_center_code,
         role=role,
-    )
-    return await _apply_advisor_brief_review_action(
-        portfolio_id=portfolio_id,
-        request=request,
-        query=AdvisorBriefQuery(
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-        ),
     )
