@@ -627,6 +627,20 @@ Operational behavior:
 6. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
    are not claimed by this Gateway slice.
 
+Production-readiness controls:
+
+1. wave creation, campaign launch, lifecycle commands, assignment workflow writes, selection,
+   approval, staging, handoff, cancellation, PM memo, and operations handoff actions preserve
+   caller correlation context and required idempotency behavior where manage requires it,
+2. Gateway now uses shared upstream-envelope utilities for wave, campaign-definition, and campaign
+   workflow responses plus product-safe manage error detail, reducing behavior drift across DPM
+   construction, proof-pack, and wave route families,
+3. AI PM memo and operations-handoff summary execution is gated on manage-owned wave report input
+   and uses governed `lotus-ai` workflow-pack execution instead of local prompt construction,
+4. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
+   supportability derivation, invalid-transition error detail, report-input handoff evidence, AI
+   workflow-pack calls, and guardrail error behavior.
+
 ## DPM Mandate Command Center
 
 Status: implementation-backed in Gateway for RFC38-WTBD-001.

@@ -62,6 +62,23 @@ def build_upstream_status_gateway_envelope(
     )
 
 
+def build_upstream_status_payload_gateway_envelope(
+    response_model: type[EnvelopeT],
+    *,
+    correlation_id: str,
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+) -> EnvelopeT:
+    """Build a Gateway envelope that exposes upstream status and preserves payload data."""
+
+    return response_model(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        upstream_status=upstream_status,
+        data=upstream_payload,
+    )
+
+
 def raise_for_upstream_error(
     upstream_status: int,
     upstream_payload: dict[str, Any],
@@ -83,6 +100,11 @@ def safe_upstream_detail(payload: dict[str, Any], *, default_detail: str) -> str
     """Extract a bounded product-safe error summary from an upstream error payload."""
 
     detail = payload.get("detail") or payload.get("message") or payload.get("error")
+    if isinstance(detail, dict):
+        code = detail.get("code")
+        message = detail.get("message")
+        if code and message:
+            return f"{code}: {message}"
     if isinstance(detail, str):
         return detail
     if detail is not None:

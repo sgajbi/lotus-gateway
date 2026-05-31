@@ -7,9 +7,11 @@ from app.contracts.dpm_construction import (
     DpmConstructionGatewayResponse,
     DpmConstructionSupportability,
 )
+from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.services.upstream_envelope import (
     build_gateway_envelope,
     build_upstream_status_gateway_envelope,
+    build_upstream_status_payload_gateway_envelope,
     raise_for_upstream_error,
     raise_product_safe_upstream_error,
     safe_upstream_detail,
@@ -51,6 +53,25 @@ def test_build_upstream_status_gateway_envelope_preserves_supportability() -> No
     assert response.data == payload
 
 
+def test_build_upstream_status_payload_gateway_envelope_preserves_payload() -> None:
+    payload = {
+        "campaign_id": "campaign-holdings-202605",
+        "campaign_version": "2026.05",
+        "status": "ACTIVE",
+    }
+
+    response = build_upstream_status_payload_gateway_envelope(
+        DpmCampaignDefinitionGatewayResponse,
+        correlation_id="corr-campaign",
+        upstream_status=200,
+        upstream_payload=payload,
+    )
+
+    assert response.correlation_id == "corr-campaign"
+    assert response.upstream_status == 200
+    assert response.data == payload
+
+
 def test_raise_for_upstream_error_preserves_payload_by_default() -> None:
     payload = {"detail": {"reason": "material_review_blocked"}}
 
@@ -72,6 +93,18 @@ def test_raise_for_upstream_error_can_preserve_legacy_stringified_payload() -> N
 
 
 def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
+    assert (
+        safe_upstream_detail(
+            {
+                "detail": {
+                    "code": "DPM_WAVE_INVALID_TRANSITION",
+                    "message": "Wave dwv_001 cannot be approved from state DRAFT.",
+                }
+            },
+            default_detail="fallback",
+        )
+        == "DPM_WAVE_INVALID_TRANSITION: Wave dwv_001 cannot be approved from state DRAFT."
+    )
     assert safe_upstream_detail(
         {"detail": {"reason": "blocked"}},
         default_detail="fallback",

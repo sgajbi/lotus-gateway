@@ -19,3 +19,4 @@ def test_gateway_overview_wiki_is_audience_aware_and_implementation_backed() -> 
     assert "Production-readiness controls" in supported_features
     assert "shared upstream-envelope behavior" in supported_features
     assert "workflow-pack execution instead of local prompt construction" in supported_features
+    assert "workflow responses plus product-safe manage error detail" in supported_features
