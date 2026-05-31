@@ -12,26 +12,26 @@ router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
 @router.post(
-    "/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/activate",
+    "/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/validate",
     response_model=AdvisoryPolicyEnvelopeResponse,
-    summary="Activate Advisory Policy Pack Version",
+    summary="Validate Advisory Policy Pack Version",
     description=(
-        "Requests policy pack activation through lotus-advise. Activation posture remains "
-        "owned by Advise and is returned unchanged by Gateway."
+        "Requests source-owned policy pack validation through lotus-advise. Gateway forwards "
+        "the request body and idempotency key without recomputing rule readiness."
     ),
 )
-async def activate_policy_pack_version(
+async def validate_policy_pack_version(
     request: AdvisoryPolicyBodyRequest,
     policy_pack_id: str = Path(..., description="Policy pack identifier owned by lotus-advise."),
     policy_version: str = POLICY_VERSION_PATH,
     idempotency_key: str = Header(
         ...,
         alias="Idempotency-Key",
-        description="Required idempotency key for policy activation.",
-        examples=["idem-policy-activate-1"],
+        description="Required idempotency key for policy validation.",
+        examples=["idem-policy-validate-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().activate_policy_pack_version(
+    return await advisory_policy_service().validate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         body=request.body,
