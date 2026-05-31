@@ -722,7 +722,9 @@ Production-readiness controls:
 6. command-center supportability mapping is isolated in a dedicated tested mapper boundary so
    mandate readiness, outcome-review posture, portfolio-memory posture, and PM operating-quality
    posture can evolve without re-expanding the command-center service monolith,
-7. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+7. command-center AI handoff context builders are isolated in a dedicated tested boundary for
+   exception-summary inputs, outcome-review evidence refs, and PM operating-quality source refs,
+8. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture
