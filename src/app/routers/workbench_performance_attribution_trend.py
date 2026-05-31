@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Path, Query
 
 from app.contracts.performance_workspace import PerformanceAttributionTrendResponse
@@ -5,6 +7,36 @@ from app.middleware.correlation import correlation_id_var
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
+
+
+@dataclass(frozen=True)
+class PerformanceAttributionTrendQuery:
+    period: str
+    chart_frequency: str
+    attribution_dimension: str
+    detail_basis: str
+    benchmark_code: str | None
+    report_start_date: str | None
+    report_end_date: str | None
+
+
+async def _get_performance_attribution_trend(
+    portfolio_id: str,
+    query: PerformanceAttributionTrendQuery,
+) -> PerformanceAttributionTrendResponse:
+    service = performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_attribution_trend(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
 
 
 @router.get(
@@ -79,16 +111,15 @@ async def get_performance_attribution_trend(
         examples=["2026-03-27"],
     ),
 ) -> PerformanceAttributionTrendResponse:
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_attribution_trend(
+    return await _get_performance_attribution_trend(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
+        query=PerformanceAttributionTrendQuery(
+            period=period,
+            chart_frequency=chart_frequency,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
     )
