@@ -17,44 +17,12 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.performance_workspace_service import PerformanceWorkspaceService
-from app.services.portfolio_service import PortfolioService
-from app.services.portfolio_service_factory import (
-    build_portfolio_performance_workspace_service,
-    build_portfolio_service,
-    portfolio_service_signature,
+from app.services.portfolio_service_provider import (
+    portfolio_performance_workspace_service,
+    portfolio_service,
 )
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
-
-_PORTFOLIO_SERVICE = build_portfolio_service()
-
-_PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
-_PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-
-
-def _service_signature() -> tuple[object, ...]:
-    return portfolio_service_signature()
-
-
-def _build_performance_workspace_service() -> PerformanceWorkspaceService:
-    return build_portfolio_performance_workspace_service()
-
-
-def _portfolio_service() -> PortfolioService:
-    return _PORTFOLIO_SERVICE
-
-
-def _performance_workspace_service() -> PerformanceWorkspaceService:
-    global _PERFORMANCE_WORKSPACE_SERVICE, _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE
-    signature = _service_signature()
-    if (
-        _PERFORMANCE_WORKSPACE_SERVICE is None
-        or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
-    ):
-        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service()
-        _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
-    return _PERFORMANCE_WORKSPACE_SERVICE
 
 
 @router.get(
@@ -70,7 +38,7 @@ def _performance_workspace_service() -> PerformanceWorkspaceService:
     ),
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
-    return await _portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
+    return await portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
 
 
 @router.get(
@@ -104,7 +72,7 @@ async def get_portfolio_workspace(
         examples=["USD"],
     ),
 ) -> PortfolioWorkspaceResponse:
-    return await _portfolio_service().get_portfolio_workspace(
+    return await portfolio_service().get_portfolio_workspace(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -133,7 +101,7 @@ async def get_portfolio_readiness(
         examples=["2026-04-10"],
     ),
 ) -> PortfolioReadinessResponse:
-    return await _portfolio_service().get_portfolio_readiness(
+    return await portfolio_service().get_portfolio_readiness(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -166,7 +134,7 @@ async def get_portfolio_insights(
         examples=["2026-03-27"],
     ),
 ) -> PortfolioInsightsResponse:
-    return await _portfolio_service().get_portfolio_insights(
+    return await portfolio_service().get_portfolio_insights(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -198,7 +166,7 @@ async def get_portfolio_workflow(
         examples=["2026-03-27"],
     ),
 ) -> PortfolioWorkflowResponse:
-    return await _portfolio_service().get_portfolio_workflow(
+    return await portfolio_service().get_portfolio_workflow(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -245,7 +213,7 @@ async def get_portfolio_book(
         examples=["USD"],
     ),
 ) -> PortfolioBookResponse:
-    return await _portfolio_service().get_portfolio_book(
+    return await portfolio_service().get_portfolio_book(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -285,7 +253,7 @@ async def get_portfolio_liquidity(
         examples=["USD"],
     ),
 ) -> PortfolioLiquidityResponse:
-    return await _portfolio_service().get_portfolio_liquidity(
+    return await portfolio_service().get_portfolio_liquidity(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -329,7 +297,7 @@ async def get_portfolio_projected_cashflow(
         examples=[True],
     ),
 ) -> PortfolioProjectedCashflowResponse:
-    return await _portfolio_service().get_portfolio_projected_cashflow(
+    return await portfolio_service().get_portfolio_projected_cashflow(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -378,7 +346,7 @@ async def get_portfolio_allocations(
         examples=["direct_only", "full"],
     ),
 ) -> PortfolioAllocationResponse:
-    return await _portfolio_service().get_portfolio_allocations(
+    return await portfolio_service().get_portfolio_allocations(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -424,7 +392,7 @@ async def get_portfolio_positions(
         examples=["USD"],
     ),
 ) -> PortfolioPositionBookResponse:
-    return await _portfolio_service().get_portfolio_positions(
+    return await portfolio_service().get_portfolio_positions(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -479,7 +447,7 @@ async def get_portfolio_income_summary(
         examples=["USD"],
     ),
 ) -> PortfolioIncomeSummaryResponse:
-    return await _portfolio_service().get_income_summary(
+    return await portfolio_service().get_income_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -535,7 +503,7 @@ async def get_portfolio_activity_summary(
         examples=["USD"],
     ),
 ) -> PortfolioActivitySummaryResponse:
-    return await _portfolio_service().get_activity_summary(
+    return await portfolio_service().get_activity_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -648,7 +616,7 @@ async def get_portfolio_transactions(
         examples=["desc"],
     ),
 ) -> PortfolioTransactionLedgerResponse:
-    return await _portfolio_service().get_transaction_ledger(
+    return await portfolio_service().get_transaction_ledger(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
@@ -751,7 +719,7 @@ async def get_portfolio_performance_snapshot(
         },
     ),
 ) -> PortfolioPerformanceSnapshotResponse:
-    return await _performance_workspace_service().get_portfolio_performance_snapshot(
+    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         period=period,
