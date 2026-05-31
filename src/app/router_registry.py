@@ -324,6 +324,7 @@ from app.routers.dpm_wave_campaign_workflow_boards import (
 from app.routers.dpm_wave_cancellation import router as dpm_wave_cancellation_router
 from app.routers.dpm_wave_detail import router as dpm_wave_detail_router
 from app.routers.dpm_wave_evidence import router as dpm_wave_evidence_router
+from app.routers.dpm_wave_handoff import router as dpm_wave_handoff_router
 from app.routers.dpm_wave_item_selection import router as dpm_wave_item_selection_router
 from app.routers.dpm_wave_items import router as dpm_wave_items_router
 from app.routers.dpm_wave_lifecycle_actions import router as dpm_wave_lifecycle_actions_router
@@ -665,6 +666,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_lifecycle_actions_router)
     app.include_router(dpm_wave_cancellation_router)
     app.include_router(dpm_wave_workflow_actions_router)
+    app.include_router(dpm_wave_handoff_router)
     app.include_router(dpm_wave_evidence_router)
     app.include_router(dpm_wave_report_input_router)
     app.include_router(dpm_wave_supportability_router)
