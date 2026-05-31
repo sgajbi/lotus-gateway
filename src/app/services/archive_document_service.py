@@ -3,8 +3,8 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.archive_client import ArchiveClient
 from app.contracts.archive_documents import ArchivedDocumentMetadataResponse
+from app.services.upstream_client_protocols import ArchiveDocumentClient
 
 
 @dataclass(frozen=True)
@@ -18,7 +18,7 @@ class ArchiveDocumentService:
     def __init__(
         self,
         *,
-        archive_client: ArchiveClient,
+        archive_client: ArchiveDocumentClient,
         contract_version: str,
     ) -> None:
         self._archive_client = archive_client

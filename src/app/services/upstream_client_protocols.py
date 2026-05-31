@@ -808,3 +808,22 @@ class ReportingPortfolioClient(Protocol):
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class ArchiveDocumentClient(Protocol):
+    async def get_document_metadata(
+        self,
+        *,
+        document_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+        current: bool = False,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def download_document(
+        self,
+        *,
+        document_id: str,
+        caller_headers: dict[str, str],
+        correlation_id: str,
+    ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]: ...
