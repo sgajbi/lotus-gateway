@@ -45,6 +45,53 @@ async def _get_advisor_brief(
     )
 
 
+async def _get_performance_advisor_brief(
+    *,
+    portfolio_id: str,
+    period: str,
+    chart_frequency: str,
+    contribution_dimension: str,
+    attribution_dimension: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    report_start_date: str | None,
+    report_end_date: str | None,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> AdvisorBriefResponse:
+    require_advisor_brief_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+    try:
+        response = await _get_advisor_brief(
+            portfolio_id=portfolio_id,
+            query=AdvisorBriefQuery(
+                period=period,
+                chart_frequency=chart_frequency,
+                contribution_dimension=contribution_dimension,
+                attribution_dimension=attribution_dimension,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+            ),
+        )
+    except HTTPException as exc:
+        _emit_advisor_brief_read_audit(status_code=exc.status_code)
+        raise
+    _emit_advisor_brief_read_audit(status_code=200)
+    return response
+
+
 @router.get(
     "/{portfolio_id}/performance/advisor-brief",
     response_model=AdvisorBriefResponse,
@@ -115,7 +162,16 @@ async def get_performance_advisor_brief(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> AdvisorBriefResponse:
-    require_advisor_brief_caller_context(
+    return await _get_performance_advisor_brief(
+        portfolio_id=portfolio_id,
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
@@ -123,22 +179,3 @@ async def get_performance_advisor_brief(
         booking_center_code=booking_center_code,
         role=role,
     )
-    try:
-        response = await _get_advisor_brief(
-            portfolio_id=portfolio_id,
-            query=AdvisorBriefQuery(
-                period=period,
-                chart_frequency=chart_frequency,
-                contribution_dimension=contribution_dimension,
-                attribution_dimension=attribution_dimension,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-            ),
-        )
-    except HTTPException as exc:
-        _emit_advisor_brief_read_audit(status_code=exc.status_code)
-        raise
-    _emit_advisor_brief_read_audit(status_code=200)
-    return response
