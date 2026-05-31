@@ -1,0 +1,87 @@
+from fastapi import APIRouter, Header, Path, Query
+
+from app.contracts.advisory_policy import (
+    AdvisoryPolicyBodyRequest,
+    AdvisoryPolicyEnvelopeResponse,
+)
+from app.middleware.correlation import correlation_id_var
+from app.routers.advisory_policy_evaluation_common import POLICY_EVALUATION_PATH
+from app.services.advisory_service_provider import advisory_policy_service
+
+router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
+
+
+@router.post(
+    "/proposals/{proposal_id}/versions/{proposal_version_id}/policy-evaluations",
+    response_model=AdvisoryPolicyEnvelopeResponse,
+    summary="Create Advisory Policy Evaluation",
+    description=(
+        "Creates a source-owned suitability and best-interest policy evaluation through "
+        "lotus-advise. Gateway does not infer suitability, supportability, sign-off, or "
+        "client-ready readiness locally."
+    ),
+)
+async def create_policy_evaluation(
+    request: AdvisoryPolicyBodyRequest,
+    proposal_id: str = Path(..., description="Proposal identifier owned by lotus-advise."),
+    proposal_version_id: str = Path(
+        ...,
+        description="Proposal version identifier owned by lotus-advise.",
+    ),
+    idempotency_key: str = Header(
+        ...,
+        alias="Idempotency-Key",
+        description="Required idempotency key for policy evaluation creation.",
+        examples=["idem-policy-evaluation-1"],
+    ),
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().create_policy_evaluation(
+        proposal_id=proposal_id,
+        proposal_version_id=proposal_version_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.get(
+    "/advisory-policy-evaluations/review-queue",
+    response_model=AdvisoryPolicyEnvelopeResponse,
+    summary="List Advisory Policy Review Queue",
+    description=(
+        "Returns policy evaluation review-queue items from lotus-advise for advisor, "
+        "compliance, investment desk, operations, and supervisory workflows."
+    ),
+)
+async def get_policy_review_queue(
+    evaluation_status: str | None = Query(
+        default=None,
+        description="Optional policy evaluation status filter owned by lotus-advise.",
+        examples=["PENDING_REVIEW"],
+    ),
+    portfolio_id: str | None = Query(
+        default=None,
+        description="Optional portfolio identifier filter owned by lotus-advise.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    ),
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().get_policy_review_queue(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.get(
+    "/advisory-policy-evaluations/{evaluation_id}",
+    response_model=AdvisoryPolicyEnvelopeResponse,
+    summary="Get Advisory Policy Evaluation",
+    description="Returns a source-owned policy evaluation from lotus-advise.",
+)
+async def get_policy_evaluation(
+    evaluation_id: str = POLICY_EVALUATION_PATH,
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().get_policy_evaluation(
+        evaluation_id=evaluation_id,
+        correlation_id=correlation_id_var.get(),
+    )

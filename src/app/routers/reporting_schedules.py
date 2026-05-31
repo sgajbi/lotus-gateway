@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Header
+from fastapi import APIRouter, Body
 
 from app.contracts.reporting import (
     BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE,
@@ -11,7 +11,7 @@ from app.contracts.reporting import (
     BatchSchedulerRunResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_batch_error_response
 from app.services.reporting_service_provider import reporting_batch_scheduler_service
 
@@ -46,22 +46,10 @@ schedules_router = APIRouter(
     },
 )
 async def list_report_batch_schedules(
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchScheduleListResponse:
     return await reporting_batch_scheduler_service().list_schedules(
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -106,22 +94,10 @@ async def run_due_report_batch_schedules(
         BatchSchedulerRunRequest,
         Body(description="Bounded report batch scheduler-run request."),
     ],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchSchedulerRunResponse:
     return await reporting_batch_scheduler_service().run_due_schedules(
         request=request,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
