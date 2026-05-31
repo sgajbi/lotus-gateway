@@ -1,9 +1,7 @@
-from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 
-from app.config import settings
 from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
     BATCH_CREATE_REQUEST_EXAMPLE,
@@ -53,6 +51,8 @@ from app.routers.reporting_links import (
 )
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_client_factory import build_render_client, build_reporting_client
+from app.services.reporting_portfolio_service import ReportingPortfolioService
+from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
 from app.services.reporting_supportability import attach_reporting_operator_supportability
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
@@ -168,6 +168,10 @@ def _context_headers(
     )
 
 
+def _reporting_portfolio_service() -> ReportingPortfolioService:
+    return build_reporting_portfolio_service()
+
+
 @router.get(
     "/{portfolio_id}/snapshot",
     response_model=ReportingSnapshotResponse,
@@ -195,35 +199,11 @@ async def get_reporting_snapshot(
         ),
     ],
 ) -> ReportingSnapshotResponse:
-    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
-    status_code, payload = await client.get_portfolio_snapshot(
+    return await _reporting_portfolio_service().get_snapshot(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting snapshot unavailable: {payload}",
-        )
-
-    generated_at_raw = payload.get("generatedAt")
-    generated_at = datetime.now(UTC)
-    if isinstance(generated_at_raw, str):
-        try:
-            generated_at = datetime.fromisoformat(generated_at_raw.replace("Z", "+00:00"))
-        except ValueError:
-            generated_at = datetime.now(UTC)
-
-    return ReportingSnapshotResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        generatedAt=generated_at,
-        rows=payload.get("rows", []),
     )
 
 
@@ -257,27 +237,11 @@ async def get_reporting_summary(
         ),
     ],
 ) -> ReportingSummaryResponse:
-    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
-    request_payload = request.to_upstream_payload()
-    status_code, payload = await client.post_portfolio_summary(
+    return await _reporting_portfolio_service().get_summary(
         portfolio_id=portfolio_id,
-        payload=request_payload,
+        request=request,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting summary unavailable: {payload}",
-        )
-    as_of_date = request.as_of_date
-    return ReportingSummaryResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        data=payload,
     )
 
 
@@ -313,27 +277,11 @@ async def get_reporting_review(
         ),
     ],
 ) -> ReportingReviewResponse:
-    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
-    request_payload = request.to_upstream_payload()
-    status_code, payload = await client.post_portfolio_review(
+    return await _reporting_portfolio_service().get_review(
         portfolio_id=portfolio_id,
-        payload=request_payload,
+        request=request,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting review unavailable: {payload}",
-        )
-    as_of_date = request.as_of_date
-    return ReportingReviewResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        data=payload,
     )
 
 
