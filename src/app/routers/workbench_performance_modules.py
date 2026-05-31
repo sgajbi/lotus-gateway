@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Path, Query
 
 from app.contracts.performance_workspace import (
-    PerformanceAttributionTrendResponse,
     PerformanceHorizonComparisonResponse,
 )
 from app.middleware.correlation import correlation_id_var
@@ -83,93 +82,6 @@ async def get_performance_horizon_comparison(
         detail_basis=detail_basis,
         benchmark_code=benchmark_code,
         chart_frequency=chart_frequency,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/performance/attribution-trend",
-    response_model=PerformanceAttributionTrendResponse,
-    summary="Get Performance Attribution Trend",
-    description=(
-        "Returns benchmark-relative attribution effects over time for the selected period window "
-        "using a dedicated analytical module contract. Use this endpoint when the UI needs "
-        "time-bucketed allocation, selection, interaction, and total-effect context rather than "
-        "the full attribution detail table. This route is the strategic source for analytical "
-        "trend buckets in the performance analysis surface."
-    ),
-)
-async def get_performance_attribution_trend(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful performance attribution-trend module."
-        ),
-        examples=["PF_1001"],
-    ),
-    period: str = Query(
-        default="YTD",
-        description=(
-            "Requested attribution horizon. Use canonical values such as MTD, QTD, YTD, 1Y, or "
-            "EXPLICIT when paired with report dates."
-        ),
-        examples=["YTD"],
-    ),
-    chart_frequency: str = Query(
-        default="monthly",
-        description=(
-            "Requested bucket frequency for the trend chart. Unsupported values are normalized "
-            "and reported back in the response."
-        ),
-        examples=["monthly"],
-    ),
-    attribution_dimension: str = Query(
-        default="asset_class",
-        description=(
-            "Requested attribution dimension for the trend analysis, such as asset_class, "
-            "sector, country, or currency."
-        ),
-        examples=["asset_class"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Performance basis requested for the attribution trend effects.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description=(
-            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
-            "when available."
-        ),
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller wants an EXPLICIT attribution window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit end date when the caller wants an EXPLICIT attribution window."
-        ),
-        examples=["2026-03-27"],
-    ),
-) -> PerformanceAttributionTrendResponse:
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_attribution_trend(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
         explicit_start_date=report_start_date,
         explicit_end_date=report_end_date,
     )

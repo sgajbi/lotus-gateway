@@ -160,6 +160,9 @@ from app.routers.workbench_performance_advisor_brief import (
 from app.routers.workbench_performance_advisor_brief_review_actions import (
     router as workbench_performance_advisor_brief_review_actions_router,
 )
+from app.routers.workbench_performance_attribution_trend import (
+    router as workbench_performance_attribution_trend_router,
+)
 from app.routers.workbench_performance_details import (
     router as workbench_performance_details_router,
 )
@@ -259,6 +262,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workbench_performance_details_router)
     app.include_router(workbench_performance_advisor_brief_router)
     app.include_router(workbench_performance_advisor_brief_review_actions_router)
+    app.include_router(workbench_performance_attribution_trend_router)
     app.include_router(workbench_performance_evidence_router)
     app.include_router(workbench_performance_modules_router)
     app.include_router(workbench_risk_router)
