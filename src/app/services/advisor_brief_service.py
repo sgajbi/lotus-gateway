@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from fastapi import HTTPException, status
 
-from app.clients.advise_client import AdviseClient
-from app.clients.lotus_ai_client import LotusAiClient
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
     AdvisorBriefAdvisorySupportability,
@@ -35,20 +33,37 @@ from app.contracts.performance_workspace import (
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_money, quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
-from app.services.performance_workspace_service import PerformanceWorkspaceService
+from app.services.upstream_client_protocols import AdvisorBriefAdviseClient, AdvisorBriefAiClient
 
 _TASK_ID = "explain.v1"
 _EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"
 _ADVISOR_BRIEF_TASK_FLOW_LOOKUP_LIMIT = 100
 
 
+class AdvisorBriefPerformanceWorkspaceService(Protocol):
+    async def get_performance_workspace(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None = None,
+        explicit_end_date: str | None = None,
+    ) -> PerformanceWorkspaceResponse: ...
+
+
 class AdvisorBriefService:
     def __init__(
         self,
         *,
-        performance_workspace_service: PerformanceWorkspaceService,
-        lotus_ai_client: LotusAiClient,
-        advise_client: AdviseClient | None = None,
+        performance_workspace_service: AdvisorBriefPerformanceWorkspaceService,
+        lotus_ai_client: AdvisorBriefAiClient,
+        advise_client: AdvisorBriefAdviseClient | None = None,
         cache_ttl_seconds: float = 30.0,
     ):
         self._performance_workspace_service = performance_workspace_service
@@ -463,7 +478,7 @@ def _assert_advisor_brief_review_action_allowed(
 
 async def _load_advisory_supportability(
     *,
-    advise_client: AdviseClient | None,
+    advise_client: AdvisorBriefAdviseClient | None,
     correlation_id: str,
 ) -> AdvisorBriefAdvisorySupportability | None:
     if advise_client is None:
@@ -490,7 +505,7 @@ async def _load_advisory_supportability(
 
 async def _load_ai_surface_supportability(
     *,
-    lotus_ai_client: LotusAiClient,
+    lotus_ai_client: AdvisorBriefAiClient,
     correlation_id: str,
 ) -> AdvisorBriefAiSurfaceSupportability | None:
     runtime_status, runtime_payload = await lotus_ai_client.get_observability_runtime_status(
@@ -597,7 +612,7 @@ def _normalize_ai_surface_freshness_bucket(freshness: str) -> str:
 
 async def _load_advisor_brief_workflow_pack_run(
     *,
-    lotus_ai_client: LotusAiClient,
+    lotus_ai_client: AdvisorBriefAiClient,
     ai_audit: dict[str, Any],
     correlation_id: str,
 ) -> AdvisorBriefWorkflowPackRun | None:
@@ -665,7 +680,7 @@ def _resolve_advisor_brief_workflow_pack_run_id(*, ai_audit: dict[str, Any]) -> 
 
 async def _load_advisor_brief_workflow_pack_task_flow(
     *,
-    lotus_ai_client: LotusAiClient,
+    lotus_ai_client: AdvisorBriefAiClient,
     ai_audit: dict[str, Any],
     correlation_id: str,
 ) -> AdvisorBriefWorkflowPackTaskFlow | None:

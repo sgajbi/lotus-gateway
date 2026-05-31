@@ -1,7 +1,10 @@
 import pytest
 from fastapi import HTTPException
 
-from app.contracts.advisor_brief import AdvisorBriefWorkflowPackRunReviewActionRequest
+from app.contracts.advisor_brief import (
+    AdvisorBriefWorkflowPackRunReviewActionRequest,
+    AdvisorBriefWorkflowPackRunReviewActionType,
+)
 from app.contracts.performance_workspace import (
     AttributionLevelView,
     AttributionRowView,
@@ -1142,19 +1145,19 @@ async def test_advisor_brief_service_applies_review_action_and_returns_updated_r
     ("action_type", "expected_review_state", "expected_summary_note"),
     [
         (
-            "REVISE",
+            AdvisorBriefWorkflowPackRunReviewActionType.REVISE,
             "REVISED",
             "Run was revised in favor of a replacement advisor-brief run.",
         ),
         (
-            "SUPERSEDE",
+            AdvisorBriefWorkflowPackRunReviewActionType.SUPERSEDE,
             "SUPERSEDED",
             "Run was superseded by a replacement advisor-brief run.",
         ),
     ],
 )
 async def test_advisor_brief_service_preserves_replacement_lineage_for_review_transitions(
-    action_type: str,
+    action_type: AdvisorBriefWorkflowPackRunReviewActionType,
     expected_review_state: str,
     expected_summary_note: str,
 ):
@@ -1167,7 +1170,7 @@ async def test_advisor_brief_service_preserves_replacement_lineage_for_review_tr
 
     response = await service.apply_performance_advisor_brief_review_action(
         portfolio_id="PF_1001",
-        correlation_id=f"corr-{action_type.lower()}",
+        correlation_id=f"corr-{action_type.value.lower()}",
         period="YTD",
         chart_frequency="monthly",
         contribution_dimension="asset_class",
@@ -1177,7 +1180,7 @@ async def test_advisor_brief_service_preserves_replacement_lineage_for_review_tr
         request=AdvisorBriefWorkflowPackRunReviewActionRequest(
             action_type=action_type,
             reviewed_by="advisor_1",
-            reason=f"Advisor brief {action_type.lower()}d in favor of a replacement run.",
+            reason=f"Advisor brief {action_type.value.lower()}d in favor of a replacement run.",
             replacement_run_id="packrun_advisor_brief_req-2",
         ),
     )
