@@ -4,10 +4,6 @@ from typing import Any, cast
 
 from fastapi import HTTPException, status
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.foundation import (
     FoundationAllocationBucket,
@@ -26,15 +22,21 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.upstream_client_protocols import (
+    FoundationCoreClient,
+    FoundationManageClient,
+    FoundationPerformanceClient,
+    FoundationReportingClient,
+)
 
 
 class FoundationService:
     def __init__(
         self,
-        lotus_core_query_client: LotusCoreQueryClient,
-        analytics_client: LotusAnalyticsClient,
-        dpm_client: DpmClient,
-        reporting_client: ReportingClient,
+        lotus_core_query_client: FoundationCoreClient,
+        analytics_client: FoundationPerformanceClient,
+        dpm_client: FoundationManageClient,
+        reporting_client: FoundationReportingClient,
     ):
         self._lotus_core_query_client = lotus_core_query_client
         self._analytics_client = analytics_client
