@@ -39,6 +39,25 @@ def test_resolve_cached_service_reuses_matching_signature() -> None:
     assert created == []
 
 
+def test_resolve_cached_service_reuses_falsey_cached_service() -> None:
+    created: list[str] = []
+
+    def build_service() -> str:
+        created.append("built")
+        return "rebuilt-service"
+
+    service, signature = resolve_cached_service(
+        service="",
+        cached_signature=("route-a",),
+        current_signature=("route-a",),
+        build_service=build_service,
+    )
+
+    assert service == ""
+    assert signature == ("route-a",)
+    assert created == []
+
+
 def test_resolve_cached_service_rebuilds_when_signature_changes() -> None:
     created: list[str] = []
 
