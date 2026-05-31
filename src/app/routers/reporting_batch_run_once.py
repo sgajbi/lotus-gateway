@@ -16,6 +16,22 @@ from app.services.reporting_service_provider import reporting_batch_control_serv
 worker_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
 
 
+async def _run_report_batch_once(
+    *,
+    batch_id: str,
+    request: BatchWorkerRunRequest,
+    caller_headers: dict[str, str],
+) -> BatchWorkerRunResponse:
+    correlation_id = correlation_id_var.get()
+    return await reporting_batch_control_service().run_batch_once(
+        batch_id=batch_id,
+        request=request,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id,
+        tenant_id=caller_headers.get("X-Tenant-Id"),
+    )
+
+
 @worker_router.post(
     "/{batch_id}:run-once",
     response_model=BatchWorkerRunResponse,
@@ -60,11 +76,8 @@ async def run_report_batch_once(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchWorkerRunResponse:
-    correlation_id = correlation_id_var.get()
-    return await reporting_batch_control_service().run_batch_once(
+    return await _run_report_batch_once(
         batch_id=batch_id,
         request=request,
         caller_headers=caller_headers,
-        correlation_id=correlation_id,
-        tenant_id=caller_headers.get("X-Tenant-Id"),
     )
