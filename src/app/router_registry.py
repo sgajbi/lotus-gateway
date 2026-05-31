@@ -67,6 +67,9 @@ from app.routers.dpm_command_center_pm_quality_fairness import (
 from app.routers.dpm_command_center_pm_quality_policies import (
     router as dpm_command_center_pm_quality_policies_router,
 )
+from app.routers.dpm_command_center_pm_quality_review_action_lookup import (
+    router as dpm_command_center_pm_quality_review_action_lookup_router,
+)
 from app.routers.dpm_command_center_pm_quality_review_actions import (
     router as dpm_command_center_pm_quality_review_actions_router,
 )
@@ -245,6 +248,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_pm_quality_fairness_router)
     app.include_router(dpm_command_center_pm_quality_policies_router)
     app.include_router(dpm_command_center_pm_quality_review_actions_router)
+    app.include_router(dpm_command_center_pm_quality_review_action_lookup_router)
     app.include_router(dpm_command_center_pm_quality_summary_invocations_router)
     app.include_router(dpm_command_center_pm_quality_summary_lookup_router)
     app.include_router(dpm_command_center_portfolio_memory_router)
