@@ -16,10 +16,24 @@ router = APIRouter(
 
 async def _list_pm_operating_quality_summary_invocations(
     *,
-    filters: dict[str, str | int | None],
+    score_run_id: str | None,
+    review_action_id: str | None,
+    policy_id: str | None,
+    as_of_date: str | None,
+    invocation_state: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await dpm_command_center_service().list_pm_operating_quality_summary_invocations(
-        filters=filters,
+        filters={
+            "score_run_id": score_run_id,
+            "review_action_id": review_action_id,
+            "policy_id": policy_id,
+            "as_of_date": as_of_date,
+            "invocation_state": invocation_state,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -52,13 +66,11 @@ async def list_pm_operating_quality_summary_invocations(
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await _list_pm_operating_quality_summary_invocations(
-        filters={
-            "score_run_id": score_run_id,
-            "review_action_id": review_action_id,
-            "policy_id": policy_id,
-            "as_of_date": as_of_date,
-            "invocation_state": invocation_state,
-            "limit": limit,
-            "offset": offset,
-        },
+        score_run_id=score_run_id,
+        review_action_id=review_action_id,
+        policy_id=policy_id,
+        as_of_date=as_of_date,
+        invocation_state=invocation_state,
+        limit=limit,
+        offset=offset,
     )
