@@ -7,6 +7,12 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _list_policy_packs() -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().list_policy_packs(
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/advisory-policy-packs",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -17,6 +23,4 @@ router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
     ),
 )
 async def list_policy_packs() -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().list_policy_packs(
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _list_policy_packs()
