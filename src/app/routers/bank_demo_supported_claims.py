@@ -11,19 +11,20 @@ router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-p
 
 
 @router.get(
-    "/scenario-contract",
+    "/supported-claim-register",
     response_model=BankDemoProofEnvelopeResponse,
-    summary="Get RFC-0028 Demo Scenario Contract",
+    summary="Get RFC-0028 Supported-Claim Register",
     description=(
-        "Returns the source-owned RFC-0028 bank-demo scenario contract from lotus-advise. "
-        "Gateway preserves scenario ids, evidence requirements, Workbench panel requirements, "
-        "and unsupported boundaries without creating advisory proof truth locally."
+        "Returns the source-owned RFC-0028 supported-claim register from lotus-advise. Gateway "
+        "does not promote planned, unsupported, backend-only, screenshot, RFP, or client-ready "
+        "claims; it preserves Advise classifications and wording rules for Workbench and demo "
+        "automation."
     ),
     responses=BANK_DEMO_PROOF_RESPONSES,
 )
-async def get_bank_demo_scenario_contract(
+async def get_bank_demo_supported_claim_register(
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> BankDemoProofEnvelopeResponse:
-    return await bank_demo_proof_service().get_scenario_contract(
+    return await bank_demo_proof_service().get_supported_claim_register(
         correlation_id=bank_demo_correlation_id(x_correlation_id),
     )
