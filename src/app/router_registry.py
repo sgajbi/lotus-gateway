@@ -192,6 +192,9 @@ from app.routers.dpm_command_center_pm_quality_score_run_detail import (
 from app.routers.dpm_command_center_pm_quality_score_run_lookup import (
     router as dpm_command_center_pm_quality_score_run_lookup_router,
 )
+from app.routers.dpm_command_center_pm_quality_score_run_preview import (
+    router as dpm_command_center_pm_quality_score_run_preview_router,
+)
 from app.routers.dpm_command_center_pm_quality_summary_detail import (
     router as dpm_command_center_pm_quality_summary_detail_router,
 )
@@ -564,6 +567,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_wave_outcome_reviews_router)
     app.include_router(dpm_command_center_pm_quality_router)
     app.include_router(dpm_command_center_pm_quality_ai_router)
+    app.include_router(dpm_command_center_pm_quality_score_run_preview_router)
     app.include_router(dpm_command_center_pm_quality_fairness_preview_router)
     app.include_router(dpm_command_center_pm_quality_fairness_router)
     app.include_router(dpm_command_center_pm_quality_fairness_detail_router)
