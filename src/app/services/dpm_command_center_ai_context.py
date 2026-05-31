@@ -222,29 +222,6 @@ def pm_quality_summary_task_payload(
     return task_payload
 
 
-def workflow_pack_task_request(
-    *,
-    correlation_id: str,
-    summary: str,
-    payload: dict[str, object],
-    source_refs: list[str],
-) -> dict[str, object]:
-    return {
-        "task_id": "explain.v1",
-        "input_mode": "STRUCTURED_CONTEXT",
-        "caller": {
-            "caller_app": "lotus-gateway",
-            "correlation_id": correlation_id,
-        },
-        "context": {
-            "summary": summary,
-            "payload": payload,
-            "source_refs": source_refs,
-        },
-        "expected_output_label": "EXPLANATION_ONLY",
-    }
-
-
 def _source_ref_label(value: object) -> str | None:
     if isinstance(value, str):
         return value
