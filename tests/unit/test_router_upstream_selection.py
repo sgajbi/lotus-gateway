@@ -5,10 +5,8 @@ from app.routers.workbench import _workbench_service
 
 def test_proposals_router_targets_advisory_base_url(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.proposals.settings.decisioning_service_base_url", "http://advise:8000"
-    )
-    monkeypatch.setattr(
-        "app.routers.proposals.settings.management_service_base_url", "http://manage:8000"
+        "app.services.advise_client_factory.settings.decisioning_service_base_url",
+        "http://advise:8000",
     )
     service = _proposal_service()
     assert service._advise_client._base_url == "http://advise:8000"
@@ -44,7 +42,8 @@ def test_workbench_router_cache_signature_changes_on_manage_or_advise_url(monkey
 
 def test_platform_capabilities_keeps_manage_and_advise_clients_separate(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.platform.settings.decisioning_service_base_url", "http://advise:8000"
+        "app.services.advise_client_factory.settings.decisioning_service_base_url",
+        "http://advise:8000",
     )
     monkeypatch.setattr(
         "app.routers.platform.settings.management_service_base_url", "http://manage:8000"

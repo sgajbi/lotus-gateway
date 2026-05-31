@@ -1,9 +1,9 @@
-from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
+from app.services.advise_client_factory import build_advise_client
 from app.services.advisor_brief_service import AdvisorBriefService
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.risk_workspace_service import RiskWorkspaceService
@@ -51,12 +51,7 @@ def build_workbench_service() -> WorkbenchService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        advise_client=build_advise_client(),
     )
 
 
@@ -92,12 +87,7 @@ def build_advisor_brief_service(
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        advise_client=build_advise_client(),
         cache_ttl_seconds=settings.advisor_brief_cache_ttl_seconds,
     )
 

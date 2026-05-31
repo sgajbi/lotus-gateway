@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Query
 
-from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
@@ -22,6 +21,7 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.advise_client_factory import build_advise_client
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.portfolio_service import PortfolioService
 from app.services.workbench_service import WorkbenchService
@@ -91,12 +91,7 @@ def _build_performance_workspace_service() -> PerformanceWorkspaceService:
                 max_retries=settings.upstream_max_retries,
                 retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
             ),
-            advise_client=AdviseClient(
-                base_url=settings.decisioning_service_base_url,
-                timeout_seconds=settings.upstream_timeout_seconds,
-                max_retries=settings.upstream_max_retries,
-                retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-            ),
+            advise_client=build_advise_client(),
         ),
         analytics_client=LotusAnalyticsClient(
             base_url=settings.performance_analytics_base_url,

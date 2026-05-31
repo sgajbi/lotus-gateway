@@ -1,26 +1,18 @@
 from fastapi import APIRouter, Header, Path
 
-from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.advisory_workspaces import (
     AdvisoryWorkspaceBodyRequest,
     AdvisoryWorkspaceEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.advise_client_factory import build_advise_client
 from app.services.advisory_workspace_service import AdvisoryWorkspaceService
 
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
 def _advisory_workspace_service() -> AdvisoryWorkspaceService:
-    return AdvisoryWorkspaceService(
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
+    return AdvisoryWorkspaceService(advise_client=build_advise_client())
 
 
 @router.post(

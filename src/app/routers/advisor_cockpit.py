@@ -2,8 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Header, Path, Query, status
 
-from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitEnvelopeResponse,
@@ -11,6 +9,7 @@ from app.contracts.advisor_cockpit import (
     AdvisorCockpitOwnerRole,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.advise_client_factory import build_advise_client
 from app.services.advisor_cockpit_service import AdvisorCockpitService
 
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
@@ -32,14 +31,7 @@ ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _advisor_cockpit_service() -> AdvisorCockpitService:
-    return AdvisorCockpitService(
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
+    return AdvisorCockpitService(advise_client=build_advise_client())
 
 
 def _cockpit_params(
