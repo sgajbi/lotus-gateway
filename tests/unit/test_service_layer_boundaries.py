@@ -170,6 +170,12 @@ def test_advisor_brief_service_does_not_import_concrete_clients() -> None:
     assert imports & concrete_imports == set()
 
 
+def test_dpm_command_center_service_does_not_import_concrete_client() -> None:
+    imports = _imported_modules(_SERVICE_ROOT / "dpm_command_center_service.py")
+
+    assert "app.clients.dpm_client" not in imports
+
+
 def test_narrowed_performance_and_core_services_do_not_import_concrete_clients() -> None:
     narrowed_service_imports = {
         "composite_performance_service.py": {"app.clients.lotus_analytics_client"},
