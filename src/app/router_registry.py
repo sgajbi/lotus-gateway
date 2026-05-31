@@ -58,6 +58,9 @@ from app.routers.advisory_workspace_assistant import (
 from app.routers.advisory_workspace_compare import (
     router as advisory_workspace_compare_router,
 )
+from app.routers.advisory_workspace_draft_actions import (
+    router as advisory_workspace_draft_actions_router,
+)
 from app.routers.advisory_workspace_evaluate import (
     router as advisory_workspace_evaluate_router,
 )
@@ -411,6 +414,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(bank_demo_proof_packs_router)
     app.include_router(advisory_workspaces_router)
     app.include_router(advisory_workspace_actions_router)
+    app.include_router(advisory_workspace_draft_actions_router)
     app.include_router(advisory_workspace_evaluate_router)
     app.include_router(advisory_workspace_versions_router)
     app.include_router(advisory_workspace_resume_router)
