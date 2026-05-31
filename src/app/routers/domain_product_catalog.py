@@ -12,6 +12,17 @@ def _correlation_id(header_value: str | None) -> str:
     return header_value or correlation_id_var.get() or ""
 
 
+async def _get_domain_product_catalog(
+    *,
+    consumer_system: str,
+    x_correlation_id: str | None,
+) -> DomainProductCatalogResponse:
+    return await domain_product_catalog_service().get_catalog(
+        consumer_system=consumer_system,
+        correlation_id=_correlation_id(x_correlation_id),
+    )
+
+
 @router.get(
     "/catalog",
     response_model=DomainProductCatalogResponse,
@@ -37,9 +48,9 @@ async def get_domain_product_catalog(
     ),
 ) -> DomainProductCatalogResponse:
     try:
-        return await domain_product_catalog_service().get_catalog(
+        return await _get_domain_product_catalog(
             consumer_system=consumer_system,
-            correlation_id=_correlation_id(x_correlation_id),
+            x_correlation_id=x_correlation_id,
         )
     except DomainProductCatalogUnavailable as exc:
         raise HTTPException(
