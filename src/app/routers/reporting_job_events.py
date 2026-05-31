@@ -2,22 +2,22 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path
 
-from app.contracts.reporting import ReportJobStatusResponse
+from app.contracts.reporting import ReportJobStatusEventsResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_job_error_response
 from app.services.reporting_service_provider import reporting_job_query_service
 
-jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
+events_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
 
 
-@jobs_router.get(
-    "/{job_id}",
-    response_model=ReportJobStatusResponse,
-    summary="Get report job status",
+@events_router.get(
+    "/{job_id}/events",
+    response_model=ReportJobStatusEventsResponse,
+    summary="Get report job event history",
     description=(
-        "Return product-safe report job status and diagnostics from lotus-report. Use this "
-        "endpoint after submit or search when a caller needs current lifecycle state for one job."
+        "Return append-only report job lifecycle events through the governed gateway boundary. "
+        "Use this endpoint for operational support when current status alone is insufficient."
     ),
     responses={
         **report_job_error_response(
@@ -32,11 +32,11 @@ jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
         ),
     },
 )
-async def get_report_job_status(
+async def get_report_job_events(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
     caller_headers: ReportingCallerContext,
-) -> ReportJobStatusResponse:
-    return await reporting_job_query_service().get_report_job_status(
+) -> ReportJobStatusEventsResponse:
+    return await reporting_job_query_service().get_report_job_events(
         job_id=job_id,
         caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
