@@ -160,6 +160,20 @@ def test_narrowed_archive_services_do_not_import_concrete_archive_client() -> No
     assert "app.clients.archive_client" not in _imported_modules(path)
 
 
+def test_narrowed_performance_and_core_services_do_not_import_concrete_clients() -> None:
+    narrowed_service_imports = {
+        "composite_performance_service.py": "app.clients.lotus_analytics_client",
+        "source_product_execution_service.py": "app.clients.lotus_core_query_client",
+    }
+    offenders = {
+        service_name: concrete_import
+        for service_name, concrete_import in narrowed_service_imports.items()
+        if concrete_import in _imported_modules(_SERVICE_ROOT / service_name)
+    }
+
+    assert offenders == {}
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
