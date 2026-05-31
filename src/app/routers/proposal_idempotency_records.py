@@ -7,6 +7,18 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_idempotency_record(
+    *,
+    idempotency_key: str,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_idempotency_record(
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/idempotency/{idempotency_key}",
     response_model=ProposalEnvelopeResponse,
@@ -23,9 +35,6 @@ async def get_proposal_idempotency_record(
         examples=["idem-create-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_idempotency_record(
+    return await _get_proposal_idempotency_record(
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
