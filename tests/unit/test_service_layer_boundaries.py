@@ -2,6 +2,7 @@ import ast
 from pathlib import Path
 
 _SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+_TEST_ROOT = Path(__file__).parents[2] / "tests" / "unit"
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -80,5 +81,21 @@ def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> Non
                 inline_task_request_lines.append(node.lineno)
         if inline_task_request_lines:
             offenders[path.relative_to(_SERVICE_ROOT).as_posix()] = inline_task_request_lines
+
+    assert offenders == {}
+
+
+def test_non_dpm_service_tests_do_not_need_arg_type_suppressions() -> None:
+    allowed = {
+        "test_dpm_command_center_service.py",
+        "test_dpm_wave_service.py",
+    }
+    offenders: dict[str, int] = {}
+    for path in _TEST_ROOT.glob("test_*_service.py"):
+        if path.name in allowed:
+            continue
+        suppression_count = path.read_text(encoding="utf-8").count("# type: ignore[arg-type]")
+        if suppression_count:
+            offenders[path.name] = suppression_count
 
     assert offenders == {}
