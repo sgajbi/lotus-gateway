@@ -7,6 +7,20 @@ from app.services.gateway_service_provider import intake_service
 router = APIRouter(prefix="/api/v1/intake", tags=["intake"])
 
 
+async def _ingest_portfolio_bundle(
+    *,
+    request: IntakeBundleRequest,
+    idempotency_key: str | None,
+) -> EnvelopeResponse:
+    service = intake_service()
+    correlation_id = correlation_id_var.get()
+    return await service.ingest_portfolio_bundle(
+        body=request.body,
+        correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+    )
+
+
 @router.post(
     "/portfolio-bundle",
     response_model=EnvelopeResponse,
@@ -30,10 +44,7 @@ async def ingest_portfolio_bundle(
         examples=["bundle-idem-1001"],
     ),
 ) -> EnvelopeResponse:
-    service = intake_service()
-    correlation_id = correlation_id_var.get()
-    return await service.ingest_portfolio_bundle(
-        body=request.body,
-        correlation_id=correlation_id,
+    return await _ingest_portfolio_bundle(
+        request=request,
         idempotency_key=idempotency_key,
     )
