@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Path, Query
 
 from app.contracts.performance_workspace import (
@@ -7,6 +9,34 @@ from app.middleware.correlation import correlation_id_var
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
+
+
+@dataclass(frozen=True)
+class PerformanceHorizonComparisonQuery:
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    chart_frequency: str
+    report_start_date: str | None
+    report_end_date: str | None
+
+
+async def _get_performance_horizon_comparison(
+    portfolio_id: str,
+    query: PerformanceHorizonComparisonQuery,
+) -> PerformanceHorizonComparisonResponse:
+    service = performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_horizon_comparison(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        chart_frequency=query.chart_frequency,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
 
 
 @router.get(
@@ -73,15 +103,14 @@ async def get_performance_horizon_comparison(
         examples=["2026-03-27"],
     ),
 ) -> PerformanceHorizonComparisonResponse:
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_horizon_comparison(
+    return await _get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        chart_frequency=chart_frequency,
-        explicit_start_date=report_start_date,
-        explicit_end_date=report_end_date,
+        query=PerformanceHorizonComparisonQuery(
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            chart_frequency=chart_frequency,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+        ),
     )
