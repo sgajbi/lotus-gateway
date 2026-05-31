@@ -73,6 +73,9 @@ from app.routers.advisory_workspace_evaluate import (
 from app.routers.advisory_workspace_handoff import (
     router as advisory_workspace_handoff_router,
 )
+from app.routers.advisory_workspace_replay_evidence import (
+    router as advisory_workspace_replay_evidence_router,
+)
 from app.routers.advisory_workspace_resume import (
     router as advisory_workspace_resume_router,
 )
@@ -503,6 +506,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_workspace_resume_router)
     app.include_router(advisory_workspace_compare_router)
     app.include_router(advisory_workspace_version_lookups_router)
+    app.include_router(advisory_workspace_replay_evidence_router)
     app.include_router(advisory_workspace_assistant_router)
     app.include_router(advisory_workspace_handoff_router)
     app.include_router(advisory_policy_router)
