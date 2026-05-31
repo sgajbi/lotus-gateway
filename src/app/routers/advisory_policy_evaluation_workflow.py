@@ -9,15 +9,15 @@ router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
 @router.get(
-    "/advisory-policy-evaluations/{evaluation_id}/lineage",
+    "/advisory-policy-evaluations/{evaluation_id}/workflow",
     response_model=AdvisoryPolicyEnvelopeResponse,
-    summary="Get Advisory Policy Evaluation Lineage",
-    description="Returns source lineage for a policy evaluation from lotus-advise.",
+    summary="Get Advisory Policy Workflow",
+    description="Returns policy workflow posture from lotus-advise without Gateway-side inference.",
 )
-async def get_policy_evaluation_lineage(
+async def get_policy_evaluation_workflow(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().get_policy_evaluation_lineage(
+    return await advisory_policy_service().get_policy_evaluation_workflow(
         evaluation_id=evaluation_id,
         correlation_id=correlation_id_var.get(),
     )
