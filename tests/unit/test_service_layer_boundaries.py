@@ -121,6 +121,7 @@ def test_narrowed_advisory_services_do_not_import_concrete_advise_client() -> No
         "advisory_policy_service.py",
         "advisory_workspace_service.py",
         "bank_demo_proof_service.py",
+        "proposal_service.py",
     }
     offenders = sorted(
         path.name
