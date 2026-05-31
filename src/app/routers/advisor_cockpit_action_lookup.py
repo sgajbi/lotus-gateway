@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query
 
 from app.contracts.advisor_cockpit import (
     AdvisorCockpitEnvelopeResponse,
@@ -15,17 +15,21 @@ router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
 @router.get(
-    "/actions",
+    "/actions/{action_item_id}",
     response_model=AdvisorCockpitEnvelopeResponse,
-    summary="List Advisor Cockpit Actions",
+    summary="Get Advisor Cockpit Action",
     description=(
-        "Lists source-owned advisor cockpit action items from lotus-advise. Gateway preserves "
-        "Advise-owned action status, priority, owner role, reason codes, evidence refs, lineage "
-        "refs, and unsupported-capability posture without reconstructing advisory semantics."
+        "Returns one source-owned advisor cockpit action item from lotus-advise. Gateway does "
+        "not infer policy, memo, supportability, SLA, acknowledgement, or owner-role posture."
     ),
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
-async def list_advisor_cockpit_actions(
+async def get_advisor_cockpit_action(
+    action_item_id: str = Path(
+        ...,
+        description="Advisor cockpit action item identifier owned by lotus-advise.",
+        examples=["cockpit_action_policy_review_required_001"],
+    ),
     portfolio_id: str | None = Query(
         default=None,
         description="Optional portfolio identifier forwarded to lotus-advise.",
@@ -41,26 +45,9 @@ async def list_advisor_cockpit_actions(
         description="Caller role used by lotus-advise for source-owned cockpit projection.",
         examples=["ADVISOR"],
     ),
-    limit: int = Query(
-        default=25,
-        ge=1,
-        le=100,
-        description="Bounded cockpit action page size forwarded to lotus-advise.",
-        examples=[25],
-    ),
-    cursor: str | None = Query(
-        default=None,
-        description="Opaque action cursor returned by lotus-advise.",
-        examples=["cockpit_action_001"],
-    ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().list_actions(
-        params=cockpit_params(
-            portfolio_id=portfolio_id,
-            advisor_id=advisor_id,
-            role=role,
-            limit=limit,
-            cursor=cursor,
-        ),
+    return await advisor_cockpit_service().get_action(
+        action_item_id=action_item_id,
+        params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         correlation_id=correlation_id_var.get(),
     )

@@ -4,6 +4,9 @@ from app.routers.advisor_cockpit import router as advisor_cockpit_router
 from app.routers.advisor_cockpit_acknowledgements import (
     router as advisor_cockpit_acknowledgements_router,
 )
+from app.routers.advisor_cockpit_action_lookup import (
+    router as advisor_cockpit_action_lookup_router,
+)
 from app.routers.advisor_cockpit_house_view import (
     router as advisor_cockpit_house_view_router,
 )
@@ -296,6 +299,7 @@ from app.routers.workbench_sandbox import router as workbench_sandbox_router
 
 def register_routers(app: FastAPI) -> None:
     app.include_router(advisor_cockpit_router)
+    app.include_router(advisor_cockpit_action_lookup_router)
     app.include_router(advisor_cockpit_acknowledgements_router)
     app.include_router(advisor_cockpit_preparation_packets_router)
     app.include_router(advisor_cockpit_snapshot_router)
