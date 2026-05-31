@@ -10,29 +10,7 @@ from app.enterprise_readiness import (
     validate_enterprise_runtime_config,
 )
 from app.middleware.correlation import correlation_id_var, correlation_middleware, setup_logging
-from app.routers.advisor_cockpit import router as advisor_cockpit_router
-from app.routers.advisory_policy import router as advisory_policy_router
-from app.routers.advisory_workspaces import router as advisory_workspaces_router
-from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
-from app.routers.archive_documents import router as archive_documents_router
-from app.routers.bank_demo_proof import router as bank_demo_proof_router
-from app.routers.composite_performance import router as composite_performance_router
-from app.routers.domain_products import router as domain_products_router
-from app.routers.dpm_command_center import router as dpm_command_center_router
-from app.routers.dpm_construction import router as dpm_construction_router
-from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
-from app.routers.dpm_waves import router as dpm_waves_router
-from app.routers.foundation import router as foundation_router
-from app.routers.intake import router as intake_router
-from app.routers.platform import router as platform_router
-from app.routers.portfolio import router as portfolio_router
-from app.routers.proposals import router as proposals_router
-from app.routers.reporting import batches_router as reporting_batches_router
-from app.routers.reporting import jobs_router as reporting_jobs_router
-from app.routers.reporting import router as reporting_router
-from app.routers.reporting import schedules_router as reporting_schedules_router
-from app.routers.source_products import router as source_products_router
-from app.routers.workbench import router as workbench_router
+from app.router_registry import register_routers
 
 
 @asynccontextmanager
@@ -120,29 +98,7 @@ validate_enterprise_runtime_config()
 app.middleware("http")(correlation_middleware)
 app.middleware("http")(build_enterprise_audit_middleware("lotus-gateway"))
 Instrumentator().instrument(app).expose(app)
-app.include_router(advisor_cockpit_router)
-app.include_router(bank_demo_proof_router)
-app.include_router(advisory_workspaces_router)
-app.include_router(advisory_policy_router)
-app.include_router(proposals_router)
-app.include_router(platform_router)
-app.include_router(domain_products_router)
-app.include_router(source_products_router)
-app.include_router(intake_router)
-app.include_router(foundation_router)
-app.include_router(portfolio_router)
-app.include_router(composite_performance_router)
-app.include_router(dpm_command_center_router)
-app.include_router(dpm_construction_router)
-app.include_router(dpm_proof_packs_router)
-app.include_router(dpm_waves_router)
-app.include_router(workbench_router)
-app.include_router(reporting_router)
-app.include_router(reporting_jobs_router)
-app.include_router(reporting_batches_router)
-app.include_router(reporting_schedules_router)
-app.include_router(archive_documents_router)
-app.include_router(analytics_diagnostics_router)
+register_routers(app)
 
 
 @app.get("/health")
