@@ -14,6 +14,26 @@ from app.services.advisory_service_provider import advisor_cockpit_service
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
+async def _list_advisor_cockpit_preparation_packets(
+    *,
+    portfolio_id: str | None,
+    advisor_id: str | None,
+    role: AdvisorCockpitOwnerRole,
+    limit: int,
+    cursor: str | None,
+) -> AdvisorCockpitEnvelopeResponse:
+    return await advisor_cockpit_service().list_preparation_packets(
+        params=cockpit_params(
+            portfolio_id=portfolio_id,
+            advisor_id=advisor_id,
+            role=role,
+            limit=limit,
+            cursor=cursor,
+        ),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/preparation-packets",
     response_model=AdvisorCockpitEnvelopeResponse,
@@ -55,13 +75,10 @@ async def list_advisor_cockpit_preparation_packets(
         examples=["prep_packet_001"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().list_preparation_packets(
-        params=cockpit_params(
-            portfolio_id=portfolio_id,
-            advisor_id=advisor_id,
-            role=role,
-            limit=limit,
-            cursor=cursor,
-        ),
-        correlation_id=correlation_id_var.get(),
+    return await _list_advisor_cockpit_preparation_packets(
+        portfolio_id=portfolio_id,
+        advisor_id=advisor_id,
+        role=role,
+        limit=limit,
+        cursor=cursor,
     )
