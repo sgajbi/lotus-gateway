@@ -9,6 +9,9 @@ from app.routers.bank_demo_proof import router as bank_demo_proof_router
 from app.routers.composite_performance import router as composite_performance_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
+from app.routers.dpm_command_center_outcome_reviews import (
+    router as dpm_command_center_outcome_reviews_router,
+)
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
 from app.routers.dpm_waves import router as dpm_waves_router
@@ -40,6 +43,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(portfolio_router)
     app.include_router(composite_performance_router)
     app.include_router(dpm_command_center_router)
+    app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_proof_packs_router)
     app.include_router(dpm_waves_router)
