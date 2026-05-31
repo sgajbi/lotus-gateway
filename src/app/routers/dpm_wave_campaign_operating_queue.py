@@ -15,22 +15,22 @@ router = APIRouter(
 
 
 @router.get(
-    "/campaign-workflow-board",
+    "/campaign-operating-queue",
     response_model=DpmCampaignWorkflowGatewayResponse,
-    summary="Get DPM campaign workflow board",
+    summary="Get DPM campaign operating queue",
     description=(
-        "What: retrieves the manage-owned campaign workflow board. When: use this for read-only "
-        "campaign workflow posture across assignment and review lanes. How: Gateway forwards "
-        "query parameters unchanged and preserves Manage lane counts, task refs, supportability, "
-        "source refs, reason codes, content hashes, and operating boundaries without local SLA, "
-        "escalation, task-state, maker-checker, or external-workflow calculation."
+        "What: retrieves the manage-owned campaign operating queue for bounded workflow review. "
+        "When: use this for Workbench queue summaries and audit drill-down. How: Gateway forwards "
+        "query parameters unchanged and preserves Manage count/page metadata, supportability, "
+        "source refs, reason codes, hashes, and no-order/no-OMS/no-external-workflow boundaries "
+        "without calculating campaign readiness, assignment state, or workflow orchestration."
     ),
     responses=UPSTREAM_CAMPAIGN_WORKFLOW_ERROR_RESPONSES,
 )
-async def get_campaign_workflow_board(
+async def get_campaign_operating_queue(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().get_campaign_workflow_board(
+    return await dpm_wave_service().get_campaign_operating_queue(
         filters=campaign_workflow_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
