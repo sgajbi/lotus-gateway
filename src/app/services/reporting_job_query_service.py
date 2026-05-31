@@ -2,7 +2,6 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     ReportInputSnapshotRecord,
     ReportJobListResponse,
@@ -11,12 +10,13 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.services.reporting_error_mapping import raise_report_job_error
+from app.services.upstream_client_protocols import ReportingJobQueryClient
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 
 class ReportingJobQueryService:
-    def __init__(self, *, reporting_client: ReportingClient) -> None:
+    def __init__(self, *, reporting_client: ReportingJobQueryClient) -> None:
         self._reporting_client = reporting_client
 
     async def list_report_jobs(
