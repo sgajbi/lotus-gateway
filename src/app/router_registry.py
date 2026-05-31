@@ -114,6 +114,9 @@ from app.routers.dpm_command_center_exceptions import (
 from app.routers.dpm_command_center_mandate_analysis import (
     router as dpm_command_center_mandate_analysis_router,
 )
+from app.routers.dpm_command_center_mandate_detail import (
+    router as dpm_command_center_mandate_detail_router,
+)
 from app.routers.dpm_command_center_mandate_diff import (
     router as dpm_command_center_mandate_diff_router,
 )
@@ -582,6 +585,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(composite_performance_inspection_router)
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_mandates_router)
+    app.include_router(dpm_command_center_mandate_detail_router)
     app.include_router(dpm_command_center_mandate_analysis_router)
     app.include_router(dpm_command_center_mandate_diff_router)
     app.include_router(dpm_command_center_monitoring_router)
