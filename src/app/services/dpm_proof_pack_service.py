@@ -22,6 +22,20 @@ from app.services.upstream_envelope import (
     raise_product_safe_upstream_error,
 )
 
+_PROOF_PACK_PM_MEMO_BLOCKED_ACTIONS = [
+    "place_orders",
+    "approve_rebalance",
+    "override_controls",
+    "invent_missing_evidence",
+    "contact_client",
+]
+_PROOF_PACK_PM_MEMO_UNSUPPORTED_CLAIMS = [
+    "client_contact",
+    "trade_approval",
+    "portfolio_manager_scoring",
+    "execution_instruction",
+]
+
 
 class DpmProofPackService:
     def __init__(
@@ -124,24 +138,7 @@ class DpmProofPackService:
         task_payload: dict[str, object] = {
             "ai_evidence_input": manage_payload,
             "memo_request": memo_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": [
-                    "place_orders",
-                    "approve_rebalance",
-                    "override_controls",
-                    "invent_missing_evidence",
-                    "contact_client",
-                ],
-                "requires_human_review": True,
-                "unsupported_claims": [
-                    "client_contact",
-                    "trade_approval",
-                    "portfolio_manager_scoring",
-                    "execution_instruction",
-                ],
-            },
+            "supportability": _proof_pack_pm_memo_supportability_payload(supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_pm_memo.pack",
@@ -298,6 +295,18 @@ def _proof_pack_ai_source_refs(payload: dict[str, Any], proof_pack_id: str) -> l
     source_refs.append(f"lotus-manage:proof-pack-ai-evidence:{proof_pack_id}")
 
     return sorted(set(source_refs))
+
+
+def _proof_pack_pm_memo_supportability_payload(
+    supportability: DpmProofPackSupportability,
+) -> dict[str, object]:
+    return {
+        "source_state": supportability.state,
+        "reason_codes": supportability.reason_codes,
+        "blocked_actions": _PROOF_PACK_PM_MEMO_BLOCKED_ACTIONS,
+        "requires_human_review": True,
+        "unsupported_claims": _PROOF_PACK_PM_MEMO_UNSUPPORTED_CLAIMS,
+    }
 
 
 def _raise_manage_upstream_error(upstream_status: int, payload: dict[str, Any]) -> None:
