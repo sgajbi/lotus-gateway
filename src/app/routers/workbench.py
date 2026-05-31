@@ -3,12 +3,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, HTTPException, Path, Query, Response
 
-from app.clients.advise_client import AdviseClient
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.config import settings
 from app.contracts.advisor_brief import (
     AdvisorBriefResponse,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
@@ -41,6 +35,13 @@ from app.services.caller_context import caller_context_headers
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.risk_workspace_service import RiskWorkspaceService
 from app.services.workbench_service import WorkbenchService
+from app.services.workbench_service_factory import (
+    build_advisor_brief_service,
+    build_performance_workspace_service,
+    build_risk_workspace_service,
+    build_workbench_service,
+    workbench_service_signature,
+)
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 logger = logging.getLogger("analytics_ui.gateway")
@@ -90,145 +91,41 @@ def _emit_advisor_brief_read_audit(*, status_code: int) -> None:
     )
 
 
-def _service_signature() -> tuple[object, ...]:
-    return (
-        settings.portfolio_data_query_base_url,
-        settings.portfolio_data_control_plane_base_url,
-        settings.performance_analytics_base_url,
-        settings.risk_analytics_base_url,
-        settings.ai_service_base_url,
-        settings.management_service_base_url,
-        settings.decisioning_service_base_url,
-        settings.upstream_timeout_seconds,
-        settings.performance_analytics_timeout_seconds,
-        settings.ai_service_timeout_seconds,
-        settings.upstream_max_retries,
-        settings.upstream_retry_backoff_seconds,
-        settings.portfolio_upstream_cache_ttl_seconds,
-        settings.advisor_brief_cache_ttl_seconds,
-        settings.risk_bff_cache_ttl_seconds,
-    )
-
-
-def _build_workbench_service() -> WorkbenchService:
-    return WorkbenchService(
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
-
-
-def _build_performance_workspace_service(
-    workbench_service: WorkbenchService,
-) -> PerformanceWorkspaceService:
-    return PerformanceWorkspaceService(
-        workbench_service=workbench_service,
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
-
-
 def _workbench_service() -> WorkbenchService:
     global _WORKBENCH_SERVICE, _WORKBENCH_SERVICE_SIGNATURE
-    signature = _service_signature()
+    signature = workbench_service_signature()
     if _WORKBENCH_SERVICE is None or _WORKBENCH_SERVICE_SIGNATURE != signature:
-        _WORKBENCH_SERVICE = _build_workbench_service()
+        _WORKBENCH_SERVICE = build_workbench_service()
         _WORKBENCH_SERVICE_SIGNATURE = signature
     return _WORKBENCH_SERVICE
 
 
 def _performance_workspace_service() -> PerformanceWorkspaceService:
     global _PERFORMANCE_WORKSPACE_SERVICE, _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE
-    signature = _service_signature()
+    signature = workbench_service_signature()
     if (
         _PERFORMANCE_WORKSPACE_SERVICE is None
         or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
     ):
-        _PERFORMANCE_WORKSPACE_SERVICE = _build_performance_workspace_service(_workbench_service())
+        _PERFORMANCE_WORKSPACE_SERVICE = build_performance_workspace_service(_workbench_service())
         _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
     return _PERFORMANCE_WORKSPACE_SERVICE
 
 
-def _build_advisor_brief_service(
-    performance_workspace_service: PerformanceWorkspaceService,
-) -> AdvisorBriefService:
-    return AdvisorBriefService(
-        performance_workspace_service=performance_workspace_service,
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        cache_ttl_seconds=settings.advisor_brief_cache_ttl_seconds,
-    )
-
-
 def _advisor_brief_service() -> AdvisorBriefService:
     global _ADVISOR_BRIEF_SERVICE, _ADVISOR_BRIEF_SERVICE_SIGNATURE
-    signature = _service_signature()
+    signature = workbench_service_signature()
     if _ADVISOR_BRIEF_SERVICE is None or _ADVISOR_BRIEF_SERVICE_SIGNATURE != signature:
-        _ADVISOR_BRIEF_SERVICE = _build_advisor_brief_service(_performance_workspace_service())
+        _ADVISOR_BRIEF_SERVICE = build_advisor_brief_service(_performance_workspace_service())
         _ADVISOR_BRIEF_SERVICE_SIGNATURE = signature
     return _ADVISOR_BRIEF_SERVICE
 
 
-def _build_risk_workspace_service() -> RiskWorkspaceService:
-    return RiskWorkspaceService(
-        risk_client=LotusAnalyticsClient(
-            base_url=settings.risk_analytics_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        cache_ttl_seconds=settings.risk_bff_cache_ttl_seconds,
-    )
-
-
 def _risk_workspace_service() -> RiskWorkspaceService:
     global _RISK_WORKSPACE_SERVICE, _RISK_WORKSPACE_SERVICE_SIGNATURE
-    signature = _service_signature()
+    signature = workbench_service_signature()
     if _RISK_WORKSPACE_SERVICE is None or _RISK_WORKSPACE_SERVICE_SIGNATURE != signature:
-        _RISK_WORKSPACE_SERVICE = _build_risk_workspace_service()
+        _RISK_WORKSPACE_SERVICE = build_risk_workspace_service()
         _RISK_WORKSPACE_SERVICE_SIGNATURE = signature
     return _RISK_WORKSPACE_SERVICE
 

@@ -16,10 +16,12 @@ def test_proposals_router_targets_advisory_base_url(monkeypatch):
 
 def test_workbench_router_targets_manage_for_runs_and_advise_for_proposals(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.workbench.settings.decisioning_service_base_url", "http://advise:8000"
+        "app.services.workbench_service_factory.settings.decisioning_service_base_url",
+        "http://advise:8000",
     )
     monkeypatch.setattr(
-        "app.routers.workbench.settings.management_service_base_url", "http://manage:8000"
+        "app.services.workbench_service_factory.settings.management_service_base_url",
+        "http://manage:8000",
     )
     service = _workbench_service()
     assert service._dpm_client._base_url == "http://manage:8000"
@@ -28,10 +30,12 @@ def test_workbench_router_targets_manage_for_runs_and_advise_for_proposals(monke
 
 def test_workbench_router_cache_signature_changes_on_manage_or_advise_url(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.workbench.settings.decisioning_service_base_url", "http://advise:8000"
+        "app.services.workbench_service_factory.settings.decisioning_service_base_url",
+        "http://advise:8000",
     )
     monkeypatch.setattr(
-        "app.routers.workbench.settings.management_service_base_url", "http://manage:8000"
+        "app.services.workbench_service_factory.settings.management_service_base_url",
+        "http://manage:8000",
     )
     service = _workbench_service()
     assert service._dpm_client._base_url == "http://manage:8000"
