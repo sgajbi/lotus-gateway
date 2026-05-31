@@ -23,6 +23,18 @@ router = APIRouter(
 )
 
 
+async def _get_portfolio_memory(
+    *,
+    portfolio_id: str,
+    limit: int,
+) -> DpmPortfolioMemoryGatewayResponse:
+    return await dpm_command_center_service().get_portfolio_memory(
+        portfolio_id=portfolio_id,
+        filters={"limit": limit},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/memory",
     response_model=DpmPortfolioMemoryGatewayResponse,
@@ -52,8 +64,7 @@ async def get_portfolio_memory(
         examples=[100],
     ),
 ) -> DpmPortfolioMemoryGatewayResponse:
-    return await dpm_command_center_service().get_portfolio_memory(
+    return await _get_portfolio_memory(
         portfolio_id=portfolio_id,
-        filters={"limit": limit},
-        correlation_id=correlation_id_var.get(),
+        limit=limit,
     )

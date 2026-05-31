@@ -11,6 +11,18 @@ router = APIRouter(
 )
 
 
+async def _stage_wave(
+    *,
+    wave_id: str,
+    request: DpmWaveForwardRequest,
+) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().stage_wave(
+        wave_id=wave_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/stage",
     response_model=DpmWaveGatewayResponse,
@@ -26,8 +38,7 @@ async def stage_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().stage_wave(
+    return await _stage_wave(
         wave_id=wave_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )

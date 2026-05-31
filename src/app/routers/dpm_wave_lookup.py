@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+async def _list_waves(
+    *,
+    filters: dict[str, str | int | None],
+) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().list_waves(
+        filters=filters,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "",
     response_model=DpmWaveGatewayResponse,
@@ -43,7 +53,7 @@ async def list_waves(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum waves to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based wave-list offset."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().list_waves(
+    return await _list_waves(
         filters={
             "state": state,
             "trigger_type": trigger_type,
@@ -52,5 +62,4 @@ async def list_waves(
             "limit": limit,
             "offset": offset,
         },
-        correlation_id=correlation_id_var.get(),
     )

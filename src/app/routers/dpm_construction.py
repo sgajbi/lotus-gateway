@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+async def _get_construction_alternative_set(
+    *,
+    alternative_set_id: str,
+) -> DpmConstructionGatewayResponse:
+    return await dpm_construction_service().get_alternative_set(
+        alternative_set_id=alternative_set_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/alternative-sets/{alternative_set_id}",
     response_model=DpmConstructionGatewayResponse,
@@ -31,7 +41,6 @@ async def get_construction_alternative_set(
         examples=["cas_001"],
     ),
 ) -> DpmConstructionGatewayResponse:
-    return await dpm_construction_service().get_alternative_set(
+    return await _get_construction_alternative_set(
         alternative_set_id=alternative_set_id,
-        correlation_id=correlation_id_var.get(),
     )

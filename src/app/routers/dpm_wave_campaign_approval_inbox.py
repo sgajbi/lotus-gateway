@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_approval_inbox(
+    *,
+    request: Request,
+) -> DpmCampaignWorkflowGatewayResponse:
+    return await dpm_wave_service().get_campaign_approval_inbox(
+        filters=campaign_workflow_query_params(request),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-approval-inbox",
     response_model=DpmCampaignWorkflowGatewayResponse,
@@ -30,7 +40,4 @@ router = APIRouter(
 async def get_campaign_approval_inbox(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().get_campaign_approval_inbox(
-        filters=campaign_workflow_query_params(request),
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_campaign_approval_inbox(request=request)

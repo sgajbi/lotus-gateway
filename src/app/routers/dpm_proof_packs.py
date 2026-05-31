@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _generate_proof_pack(
+    request: DpmProofPackGenerateRequest,
+) -> DpmProofPackGatewayResponse:
+    return await dpm_proof_pack_service().generate_proof_pack(
+        body=request.body,
+        idempotency_key=request.idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "",
     response_model=DpmProofPackGatewayResponse,
@@ -31,8 +41,4 @@ router = APIRouter(
 async def generate_proof_pack(
     request: DpmProofPackGenerateRequest,
 ) -> DpmProofPackGatewayResponse:
-    return await dpm_proof_pack_service().generate_proof_pack(
-        body=request.body,
-        idempotency_key=request.idempotency_key,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _generate_proof_pack(request)

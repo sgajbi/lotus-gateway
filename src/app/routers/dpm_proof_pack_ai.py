@@ -14,6 +14,18 @@ router = APIRouter(
 )
 
 
+async def _request_proof_pack_pm_memo(
+    *,
+    proof_pack_id: str,
+    request: DpmProofPackMemoRequest,
+) -> DpmProofPackMemoGatewayResponse:
+    return await dpm_proof_pack_service().request_proof_pack_pm_memo(
+        proof_pack_id=proof_pack_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{proof_pack_id}/ai-pm-memo",
     response_model=DpmProofPackMemoGatewayResponse,
@@ -36,8 +48,7 @@ async def request_proof_pack_pm_memo(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackMemoGatewayResponse:
-    return await dpm_proof_pack_service().request_proof_pack_pm_memo(
+    return await _request_proof_pack_pm_memo(
         proof_pack_id=proof_pack_id,
         request=request,
-        correlation_id=correlation_id_var.get(),
     )

@@ -12,6 +12,21 @@ router = APIRouter(
 )
 
 
+async def _list_wave_outcome_reviews(
+    *,
+    wave_id: str,
+    state: str | None,
+    limit: int,
+    cursor: str | None,
+) -> DpmOutcomeReviewGatewayResponse:
+    filters = {"state": state, "limit": limit, "cursor": cursor}
+    return await dpm_command_center_service().list_wave_outcome_reviews(
+        wave_id=wave_id,
+        filters=filters,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/waves/{wave_id}/outcome-reviews",
     response_model=DpmOutcomeReviewGatewayResponse,
@@ -46,9 +61,9 @@ async def list_wave_outcome_reviews(
         examples=["wave_or_cursor_0100"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    filters = {"state": state, "limit": limit, "cursor": cursor}
-    return await dpm_command_center_service().list_wave_outcome_reviews(
+    return await _list_wave_outcome_reviews(
         wave_id=wave_id,
-        filters=filters,
-        correlation_id=correlation_id_var.get(),
+        state=state,
+        limit=limit,
+        cursor=cursor,
     )

@@ -11,6 +11,18 @@ router = APIRouter(
 )
 
 
+async def _source_check_wave(
+    *,
+    wave_id: str,
+    request: DpmWaveForwardRequest,
+) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().source_check_wave(
+        wave_id=wave_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/source-check",
     response_model=DpmWaveGatewayResponse,
@@ -27,8 +39,7 @@ async def source_check_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().source_check_wave(
+    return await _source_check_wave(
         wave_id=wave_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )

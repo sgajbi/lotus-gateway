@@ -11,6 +11,18 @@ router = APIRouter(
 )
 
 
+async def _handoff_wave(
+    *,
+    wave_id: str,
+    request: DpmWaveForwardRequest,
+) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().handoff_wave(
+        wave_id=wave_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/handoff",
     response_model=DpmWaveGatewayResponse,
@@ -27,8 +39,7 @@ async def handoff_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().handoff_wave(
+    return await _handoff_wave(
         wave_id=wave_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )

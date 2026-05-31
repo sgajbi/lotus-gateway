@@ -15,6 +15,18 @@ router = APIRouter(
 )
 
 
+async def _refresh_outcome_review_sources(
+    *,
+    request: DpmOutcomeReviewRefreshRequest,
+    outcome_review_id: str,
+) -> DpmOutcomeReviewGatewayResponse:
+    return await dpm_command_center_service().refresh_outcome_review_sources(
+        outcome_review_id=outcome_review_id,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/outcome-reviews/{outcome_review_id}/refresh-sources",
     response_model=DpmOutcomeReviewGatewayResponse,
@@ -34,8 +46,7 @@ async def refresh_outcome_review_sources(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().refresh_outcome_review_sources(
+    return await _refresh_outcome_review_sources(
+        request=request,
         outcome_review_id=outcome_review_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
     )

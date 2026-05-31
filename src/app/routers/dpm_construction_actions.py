@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _generate_construction_alternative_set(
+    request: DpmConstructionGenerateRequest,
+) -> DpmConstructionGatewayResponse:
+    return await dpm_construction_service().generate_alternative_set(
+        body=request.body,
+        idempotency_key=request.idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/alternative-sets/generate",
     response_model=DpmConstructionGatewayResponse,
@@ -30,8 +40,4 @@ router = APIRouter(
 async def generate_construction_alternative_set(
     request: DpmConstructionGenerateRequest,
 ) -> DpmConstructionGatewayResponse:
-    return await dpm_construction_service().generate_alternative_set(
-        body=request.body,
-        idempotency_key=request.idempotency_key,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _generate_construction_alternative_set(request)

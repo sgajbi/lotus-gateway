@@ -11,6 +11,13 @@ router = APIRouter(
 )
 
 
+async def _get_wave_items(*, wave_id: str) -> DpmWaveGatewayResponse:
+    return await dpm_wave_service().get_wave_items(
+        wave_id=wave_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{wave_id}/items",
     response_model=DpmWaveGatewayResponse,
@@ -26,7 +33,4 @@ router = APIRouter(
 async def get_wave_items(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().get_wave_items(
-        wave_id=wave_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_wave_items(wave_id=wave_id)

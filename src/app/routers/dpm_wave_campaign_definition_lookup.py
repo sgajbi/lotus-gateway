@@ -13,6 +13,16 @@ router = APIRouter(
 )
 
 
+async def _list_campaign_definitions(
+    *,
+    filters: dict[str, str | int | None],
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().list_campaign_definitions(
+        filters=filters,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions",
     response_model=DpmCampaignDefinitionGatewayResponse,
@@ -38,7 +48,7 @@ async def list_campaign_definitions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum definitions to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based definition-list offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().list_campaign_definitions(
+    return await _list_campaign_definitions(
         filters={
             "campaign_id": campaign_id,
             "campaign_status": campaign_status,
@@ -46,5 +56,4 @@ async def list_campaign_definitions(
             "limit": limit,
             "offset": offset,
         },
-        correlation_id=correlation_id_var.get(),
     )

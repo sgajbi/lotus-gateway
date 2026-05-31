@@ -16,6 +16,22 @@ router = APIRouter(
 )
 
 
+async def _transition_campaign_assignment_task(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+    task_ref: str,
+    request: DpmCampaignWorkflowForwardRequest,
+) -> DpmCampaignWorkflowGatewayResponse:
+    return await dpm_wave_service().transition_campaign_assignment_task(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        task_ref=task_ref,
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-tasks/{task_ref}/transitions",
     response_model=DpmCampaignWorkflowGatewayResponse,
@@ -35,10 +51,9 @@ async def transition_campaign_assignment_task(
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
     task_ref: str = Path(..., description="Manage-owned campaign assignment task reference."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().transition_campaign_assignment_task(
+    return await _transition_campaign_assignment_task(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         task_ref=task_ref,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+        request=request,
     )

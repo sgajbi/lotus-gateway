@@ -11,6 +11,26 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_definition_launch_package(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+    requested_as_of_date: str,
+    actor_id: str,
+    correlation_id: str | None,
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().get_campaign_definition_launch_package(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        filters={
+            "requested_as_of_date": requested_as_of_date,
+            "actor_id": actor_id,
+            "correlation_id": correlation_id,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-package",
     response_model=DpmCampaignDefinitionGatewayResponse,
@@ -43,13 +63,10 @@ async def get_campaign_definition_launch_package(
         description="Optional durable launch correlation id forwarded to Manage.",
     ),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().get_campaign_definition_launch_package(
+    return await _get_campaign_definition_launch_package(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        filters={
-            "requested_as_of_date": requested_as_of_date,
-            "actor_id": actor_id,
-            "correlation_id": correlation_id,
-        },
-        correlation_id=correlation_id_var.get(),
+        requested_as_of_date=requested_as_of_date,
+        actor_id=actor_id,
+        correlation_id=correlation_id,
     )

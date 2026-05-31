@@ -13,6 +13,21 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_definition_launch_history(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+    limit: int,
+    offset: int,
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().get_campaign_definition_launch_history(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        filters={"limit": limit, "offset": offset},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch-history",
     response_model=DpmCampaignDefinitionGatewayResponse,
@@ -34,9 +49,9 @@ async def get_campaign_definition_launch_history(
     limit: int = Query(50, ge=1, le=500, description="Maximum launch-history records to return."),
     offset: int = Query(0, ge=0, description="Zero-based launch-history record offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().get_campaign_definition_launch_history(
+    return await _get_campaign_definition_launch_history(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        filters={"limit": limit, "offset": offset},
-        correlation_id=correlation_id_var.get(),
+        limit=limit,
+        offset=offset,
     )

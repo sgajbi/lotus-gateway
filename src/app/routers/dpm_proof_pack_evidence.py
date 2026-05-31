@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+async def _get_proof_pack_markdown(
+    *,
+    proof_pack_id: str,
+) -> DpmProofPackMarkdownResponse:
+    return await dpm_proof_pack_service().get_proof_pack_markdown(
+        proof_pack_id=proof_pack_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{proof_pack_id}/summary.md",
     response_model=DpmProofPackMarkdownResponse,
@@ -30,7 +40,4 @@ async def get_proof_pack_markdown(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackMarkdownResponse:
-    return await dpm_proof_pack_service().get_proof_pack_markdown(
-        proof_pack_id=proof_pack_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_proof_pack_markdown(proof_pack_id=proof_pack_id)
