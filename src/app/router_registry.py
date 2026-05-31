@@ -92,6 +92,9 @@ from app.routers.dpm_command_center_mandates import (
 from app.routers.dpm_command_center_monitoring import (
     router as dpm_command_center_monitoring_router,
 )
+from app.routers.dpm_command_center_monitoring_detail import (
+    router as dpm_command_center_monitoring_detail_router,
+)
 from app.routers.dpm_command_center_outcome_review_detail import (
     router as dpm_command_center_outcome_review_detail_router,
 )
@@ -454,6 +457,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_mandates_router)
     app.include_router(dpm_command_center_mandate_analysis_router)
     app.include_router(dpm_command_center_monitoring_router)
+    app.include_router(dpm_command_center_monitoring_detail_router)
     app.include_router(dpm_command_center_exceptions_router)
     app.include_router(dpm_command_center_exception_ai_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
