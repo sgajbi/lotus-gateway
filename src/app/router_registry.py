@@ -129,6 +129,9 @@ from app.routers.dpm_command_center_monitoring_commands import (
 from app.routers.dpm_command_center_monitoring_detail import (
     router as dpm_command_center_monitoring_detail_router,
 )
+from app.routers.dpm_command_center_outcome_review_ai_evidence_input import (
+    router as dpm_command_center_outcome_review_ai_evidence_input_router,
+)
 from app.routers.dpm_command_center_outcome_review_detail import (
     router as dpm_command_center_outcome_review_detail_router,
 )
@@ -578,6 +581,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_outcome_review_detail_router)
     app.include_router(dpm_command_center_outcome_review_lookup_router)
     app.include_router(dpm_command_center_outcome_review_evidence_router)
+    app.include_router(dpm_command_center_outcome_review_ai_evidence_input_router)
     app.include_router(dpm_command_center_outcome_review_handoff_router)
     app.include_router(dpm_command_center_outcome_review_narratives_router)
     app.include_router(dpm_command_center_outcome_review_lookups_router)
