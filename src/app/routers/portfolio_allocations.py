@@ -7,6 +7,22 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolio_allocations(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+    reporting_currency: str | None,
+    look_through_mode: str,
+) -> PortfolioAllocationResponse:
+    return await portfolio_service().get_portfolio_allocations(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+        look_through_mode=look_through_mode,
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/allocations",
     response_model=PortfolioAllocationResponse,
@@ -47,9 +63,8 @@ async def get_portfolio_allocations(
         examples=["direct_only", "full"],
     ),
 ) -> PortfolioAllocationResponse:
-    return await portfolio_service().get_portfolio_allocations(
+    return await _get_portfolio_allocations(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
         look_through_mode=look_through_mode,
