@@ -1,12 +1,5 @@
 from typing import Any, Protocol
 
-from app.services.dpm_client_protocols import (
-    DpmCommandCenterClient as DpmCommandCenterClient,
-)
-from app.services.dpm_client_protocols import (
-    DpmWaveClient as DpmWaveClient,
-)
-
 
 class DpmConstructionClient(Protocol):
     async def generate_construction_alternative_set(

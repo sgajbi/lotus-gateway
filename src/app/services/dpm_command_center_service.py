@@ -18,11 +18,12 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
+from app.services.dpm_client_protocols import DpmCommandCenterClient
 from app.services.lotus_ai_workflow import (
     build_workflow_pack_task_request,
     require_lotus_ai_client,
 )
-from app.services.upstream_client_protocols import DpmCommandCenterClient, LotusAiWorkflowClient
+from app.services.upstream_client_protocols import LotusAiWorkflowClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
