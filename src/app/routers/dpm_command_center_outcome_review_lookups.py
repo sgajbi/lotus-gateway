@@ -12,6 +12,16 @@ router = APIRouter(
 )
 
 
+async def _get_run_outcome_review(
+    *,
+    rebalance_run_id: str,
+) -> DpmOutcomeReviewGatewayResponse:
+    return await dpm_command_center_service().get_run_outcome_review(
+        rebalance_run_id=rebalance_run_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/runs/{rebalance_run_id}/outcome-review",
     response_model=DpmOutcomeReviewGatewayResponse,
@@ -29,7 +39,6 @@ async def get_run_outcome_review(
         examples=["rr_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().get_run_outcome_review(
+    return await _get_run_outcome_review(
         rebalance_run_id=rebalance_run_id,
-        correlation_id=correlation_id_var.get(),
     )
