@@ -46,7 +46,8 @@ def test_platform_capabilities_keeps_manage_and_advise_clients_separate(monkeypa
         "http://advise:8000",
     )
     monkeypatch.setattr(
-        "app.routers.platform.settings.management_service_base_url", "http://manage:8000"
+        "app.services.platform_capabilities_service_factory.settings.management_service_base_url",
+        "http://manage:8000",
     )
     service = _platform_capabilities_service()
     assert service._advise_client._base_url == "http://advise:8000"
@@ -55,7 +56,8 @@ def test_platform_capabilities_keeps_manage_and_advise_clients_separate(monkeypa
 
 def test_platform_capabilities_uses_configured_source_timeout(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.platform.settings.platform_capabilities_source_timeout_seconds", 7.5
+        "app.services.platform_capabilities_service_factory.settings.platform_capabilities_source_timeout_seconds",
+        7.5,
     )
     service = _platform_capabilities_service()
     assert service._source_timeout_seconds == 7.5
