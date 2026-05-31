@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Header, status
@@ -10,38 +9,18 @@ from app.contracts.reporting import (
     BatchHandleResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerHeaderInputs
 from app.routers.reporting_errors import report_batch_error_response
 from app.services.reporting_service_provider import reporting_batch_lifecycle_service
 
 batches_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
 
 
-@dataclass(frozen=True)
-class ReportBatchCallerHeaders:
-    actor_id: str | None
-    caller_application: str | None
-    tenant_id: str | None
-    region: str | None
-    booking_center_code: str | None
-    role: str | None
-
-    def as_reporting_context(self) -> dict[str, str]:
-        return reporting_context_headers(
-            actor_id=self.actor_id,
-            caller_application=self.caller_application,
-            tenant_id=self.tenant_id,
-            region=self.region,
-            booking_center_code=self.booking_center_code,
-            role=self.role,
-        )
-
-
 async def _create_report_batch(
     *,
     request: BatchCreateRequest,
     idempotency_key: str | None,
-    caller_headers: ReportBatchCallerHeaders,
+    caller_headers: ReportingCallerHeaderInputs,
 ) -> BatchHandleResponse:
     correlation_id = correlation_id_var.get()
     service = reporting_batch_lifecycle_service()
@@ -49,7 +28,7 @@ async def _create_report_batch(
     return await service.create_batch(
         request=request,
         idempotency_key=required_idempotency_key,
-        caller_headers=caller_headers.as_reporting_context(),
+        caller_headers=caller_headers.as_headers(),
         correlation_id=correlation_id,
         tenant_id=caller_headers.tenant_id,
     )
@@ -130,7 +109,7 @@ async def create_report_batch(
     return await _create_report_batch(
         request=request,
         idempotency_key=idempotency_key,
-        caller_headers=ReportBatchCallerHeaders(
+        caller_headers=ReportingCallerHeaderInputs(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
