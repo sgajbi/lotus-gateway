@@ -5,7 +5,6 @@ from fastapi import APIRouter, Path
 from app.contracts.reporting import (
     ReportJobStatusEventsResponse,
     ReportJobStatusResponse,
-    ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import ReportingCallerContext
@@ -73,38 +72,6 @@ async def get_report_job_events(
     caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusEventsResponse:
     return await reporting_job_query_service().get_report_job_events(
-        job_id=job_id,
-        caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@jobs_router.get(
-    "/{job_id}/lineage",
-    response_model=ReportSnapshotLineageResponse,
-    summary="Get report snapshot lineage",
-    description=(
-        "Return lineage evidence for a report job's captured input snapshot and upstream "
-        "dependency calls through the governed gateway boundary."
-    ),
-    responses={
-        **report_job_error_response(
-            404,
-            example_key="report_snapshot_not_found",
-            description="Returned when snapshot lineage is unavailable for this report job.",
-        ),
-        **report_job_error_response(
-            502,
-            example_key="report_job_upstream_unavailable",
-            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
-        ),
-    },
-)
-async def get_report_job_lineage(
-    job_id: Annotated[str, Path(description="Opaque report job identifier.")],
-    caller_headers: ReportingCallerContext,
-) -> ReportSnapshotLineageResponse:
-    return await reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
         caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
