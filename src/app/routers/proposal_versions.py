@@ -7,6 +7,22 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_version(
+    *,
+    proposal_id: str,
+    version_no: int,
+    include_evidence: bool,
+) -> ProposalVersionEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_version(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        include_evidence=include_evidence,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/versions/{version_no}",
     response_model=ProposalVersionEnvelopeResponse,
@@ -32,11 +48,8 @@ async def get_proposal_version(
         examples=[True],
     ),
 ) -> ProposalVersionEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_version(
+    return await _get_proposal_version(
         proposal_id=proposal_id,
         version_no=version_no,
         include_evidence=include_evidence,
-        correlation_id=correlation_id,
     )

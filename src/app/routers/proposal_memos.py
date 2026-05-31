@@ -11,6 +11,24 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _create_proposal_memo(
+    *,
+    request: ProposalMemoCreateRequest,
+    proposal_id: str,
+    version_no: int,
+    idempotency_key: str,
+) -> ProposalMemoEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal_memo(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.model_dump(exclude_none=True),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions/{version_no}/memo",
     response_model=ProposalMemoEnvelopeResponse,
@@ -31,12 +49,9 @@ async def create_proposal_memo(
         examples=["idem-memo-create-1"],
     ),
 ) -> ProposalMemoEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.create_proposal_memo(
+    return await _create_proposal_memo(
+        request=request,
         proposal_id=proposal_id,
         version_no=version_no,
-        body=request.model_dump(exclude_none=True),
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )

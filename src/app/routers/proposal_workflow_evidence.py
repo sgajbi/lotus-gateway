@@ -7,6 +7,15 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_workflow_events(proposal_id: str) -> ProposalWorkflowEventsEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_workflow_events(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/workflow-events",
     response_model=ProposalWorkflowEventsEnvelopeResponse,
@@ -20,9 +29,4 @@ async def get_workflow_events(
         examples=["pp_1"],
     ),
 ) -> ProposalWorkflowEventsEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_workflow_events(
-        proposal_id=proposal_id,
-        correlation_id=correlation_id,
-    )
+    return await _get_workflow_events(proposal_id)

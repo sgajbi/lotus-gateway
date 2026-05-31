@@ -8,6 +8,20 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_memo_replay_evidence(
+    *,
+    proposal_id: str,
+    version_no: int,
+) -> ProposalMemoReplayEvidenceEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_memo_replay_evidence(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/versions/{version_no}/memo/replay-evidence",
     response_model=ProposalMemoReplayEvidenceEnvelopeResponse,
@@ -22,10 +36,7 @@ async def get_proposal_memo_replay_evidence(
     proposal_id: str = PROPOSAL_ID_PATH,
     version_no: int = VERSION_NO_PATH,
 ) -> ProposalMemoReplayEvidenceEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_memo_replay_evidence(
+    return await _get_proposal_memo_replay_evidence(
         proposal_id=proposal_id,
         version_no=version_no,
-        correlation_id=correlation_id,
     )

@@ -10,6 +10,20 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _create_report_request(
+    *,
+    request: ProposalReportRequest,
+    proposal_id: str,
+) -> ProposalReportRequestEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_report_request(
+        proposal_id=proposal_id,
+        body=request.model_dump(exclude_none=True),
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/report-requests",
     response_model=ProposalReportRequestEnvelopeResponse,
@@ -28,10 +42,7 @@ async def create_report_request(
         examples=["pp_1"],
     ),
 ) -> ProposalReportRequestEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.create_report_request(
+    return await _create_report_request(
+        request=request,
         proposal_id=proposal_id,
-        body=request.model_dump(exclude_none=True),
-        correlation_id=correlation_id,
     )

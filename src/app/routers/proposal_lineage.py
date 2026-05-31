@@ -7,6 +7,15 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_lineage(proposal_id: str) -> ProposalLineageEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_lineage(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/lineage",
     response_model=ProposalLineageEnvelopeResponse,
@@ -20,9 +29,4 @@ async def get_proposal_lineage(
         examples=["pp_1"],
     ),
 ) -> ProposalLineageEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_lineage(
-        proposal_id=proposal_id,
-        correlation_id=correlation_id,
-    )
+    return await _get_proposal_lineage(proposal_id)

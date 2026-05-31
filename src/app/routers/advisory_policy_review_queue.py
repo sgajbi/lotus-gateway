@@ -7,6 +7,18 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _get_policy_review_queue(
+    *,
+    evaluation_status: str | None,
+    portfolio_id: str | None,
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().get_policy_review_queue(
+        evaluation_status=evaluation_status,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/advisory-policy-evaluations/review-queue",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -28,8 +40,7 @@ async def get_policy_review_queue(
         examples=["PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().get_policy_review_queue(
+    return await _get_policy_review_queue(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
     )
