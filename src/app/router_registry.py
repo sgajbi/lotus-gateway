@@ -234,6 +234,7 @@ from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
 from app.routers.reporting_outcome_review_submissions import (
     router as reporting_outcome_review_submissions_router,
 )
+from app.routers.reporting_portfolio_reviews import router as reporting_portfolio_reviews_router
 from app.routers.reporting_portfolio_snapshots import (
     router as reporting_portfolio_snapshots_router,
 )
@@ -400,6 +401,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workbench_risk_rolling_router)
     app.include_router(workbench_sandbox_router)
     app.include_router(reporting_router)
+    app.include_router(reporting_portfolio_reviews_router)
     app.include_router(reporting_portfolio_snapshots_router)
     app.include_router(reporting_job_submissions_router)
     app.include_router(reporting_outcome_review_submissions_router)
