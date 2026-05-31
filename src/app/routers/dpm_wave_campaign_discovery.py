@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Any
+
 from fastapi import APIRouter, Query
 
 from app.contracts.dpm_waves import (
@@ -19,6 +22,37 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     invalid_payload_description="lotus-manage rejected the campaign discovery payload as invalid.",
     unavailable_description="lotus-manage campaign discovery authority is unavailable or degraded.",
 )
+
+
+@dataclass(frozen=True)
+class CampaignDiscoveryFilters:
+    campaign_id: str | None
+    campaign_status: str | None
+    as_of_date: str | None
+    active_on: str | None
+    include_expired: bool
+    limit: int
+    offset: int
+
+    def as_filters(self) -> dict[str, Any]:
+        return {
+            "campaign_id": self.campaign_id,
+            "campaign_status": self.campaign_status,
+            "as_of_date": self.as_of_date,
+            "active_on": self.active_on,
+            "include_expired": self.include_expired,
+            "limit": self.limit,
+            "offset": self.offset,
+        }
+
+
+async def _discover_campaigns(
+    filters: CampaignDiscoveryFilters,
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().discover_campaigns(
+        filters=filters.as_filters(),
+        correlation_id=correlation_id_var.get(),
+    )
 
 
 @router.get(
@@ -59,15 +93,14 @@ async def discover_campaigns(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum campaigns to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based campaign-discovery offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().discover_campaigns(
-        filters={
-            "campaign_id": campaign_id,
-            "campaign_status": campaign_status,
-            "as_of_date": as_of_date,
-            "active_on": active_on,
-            "include_expired": include_expired,
-            "limit": limit,
-            "offset": offset,
-        },
-        correlation_id=correlation_id_var.get(),
+    return await _discover_campaigns(
+        CampaignDiscoveryFilters(
+            campaign_id=campaign_id,
+            campaign_status=campaign_status,
+            as_of_date=as_of_date,
+            active_on=active_on,
+            include_expired=include_expired,
+            limit=limit,
+            offset=offset,
+        )
     )

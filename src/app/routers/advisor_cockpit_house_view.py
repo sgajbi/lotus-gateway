@@ -10,6 +10,15 @@ from app.services.advisory_service_provider import advisor_cockpit_service
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
+async def _evaluate_advisor_cockpit_house_view_cohort(
+    request: AdvisorCockpitHouseViewCohortRequest,
+) -> AdvisorCockpitEnvelopeResponse:
+    return await advisor_cockpit_service().evaluate_house_view_cohort(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/house-view-cohorts/evaluate",
     response_model=AdvisorCockpitEnvelopeResponse,
@@ -25,7 +34,4 @@ router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 async def evaluate_advisor_cockpit_house_view_cohort(
     request: AdvisorCockpitHouseViewCohortRequest,
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().evaluate_house_view_cohort(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _evaluate_advisor_cockpit_house_view_cohort(request)

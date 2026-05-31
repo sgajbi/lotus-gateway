@@ -7,6 +7,24 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolio_activity_summary(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+    start_date: str | None,
+    end_date: str | None,
+    reporting_currency: str | None,
+) -> PortfolioActivitySummaryResponse:
+    return await portfolio_service().get_activity_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        start_date=start_date,
+        end_date=end_date,
+        reporting_currency=reporting_currency,
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/activity-summary",
     response_model=PortfolioActivitySummaryResponse,
@@ -53,9 +71,8 @@ async def get_portfolio_activity_summary(
         examples=["USD"],
     ),
 ) -> PortfolioActivitySummaryResponse:
-    return await portfolio_service().get_activity_summary(
+    return await _get_portfolio_activity_summary(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         start_date=start_date,
         end_date=end_date,

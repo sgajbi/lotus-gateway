@@ -9,6 +9,19 @@ from app.services.reporting_service_provider import reporting_portfolio_service
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 
 
+async def _get_reporting_snapshot(
+    *,
+    portfolio_id: str,
+    as_of_date: str,
+) -> ReportingSnapshotResponse:
+    correlation_id = correlation_id_var.get()
+    return await reporting_portfolio_service().get_snapshot(
+        portfolio_id=portfolio_id,
+        as_of_date=as_of_date,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{portfolio_id}/snapshot",
     response_model=ReportingSnapshotResponse,
@@ -36,9 +49,7 @@ async def get_reporting_snapshot(
         ),
     ],
 ) -> ReportingSnapshotResponse:
-    correlation_id = correlation_id_var.get()
-    return await reporting_portfolio_service().get_snapshot(
+    return await _get_reporting_snapshot(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
-        correlation_id=correlation_id,
     )

@@ -14,6 +14,18 @@ from app.services.advisory_service_provider import advisor_cockpit_service
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
+async def _get_advisor_cockpit_snapshot(
+    *,
+    portfolio_id: str | None,
+    advisor_id: str | None,
+    role: AdvisorCockpitOwnerRole,
+) -> AdvisorCockpitEnvelopeResponse:
+    return await advisor_cockpit_service().get_snapshot(
+        params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/snapshot",
     response_model=AdvisorCockpitEnvelopeResponse,
@@ -42,7 +54,8 @@ async def get_advisor_cockpit_snapshot(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().get_snapshot(
-        params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
-        correlation_id=correlation_id_var.get(),
+    return await _get_advisor_cockpit_snapshot(
+        portfolio_id=portfolio_id,
+        advisor_id=advisor_id,
+        role=role,
     )

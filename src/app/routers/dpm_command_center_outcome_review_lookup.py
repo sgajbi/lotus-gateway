@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Any
+
 from fastapi import APIRouter, Query
 
 from app.contracts.dpm_command_center import DpmOutcomeReviewGatewayResponse
@@ -10,6 +13,43 @@ router = APIRouter(
     tags=["DPM Command Center"],
     responses=UPSTREAM_ERROR_RESPONSES,
 )
+
+
+@dataclass(frozen=True)
+class OutcomeReviewListFilters:
+    portfolio_id: str | None
+    rebalance_run_id: str | None
+    wave_id: str | None
+    state: str | None
+    source_system: str | None
+    source_type: str | None
+    limit: int
+    offset: int | None
+    source_scan_limit: int | None
+    cursor: str | None
+
+    def as_filters(self) -> dict[str, Any]:
+        return {
+            "portfolio_id": self.portfolio_id,
+            "rebalance_run_id": self.rebalance_run_id,
+            "wave_id": self.wave_id,
+            "state": self.state,
+            "source_system": self.source_system,
+            "source_type": self.source_type,
+            "limit": self.limit,
+            "offset": self.offset,
+            "source_scan_limit": self.source_scan_limit,
+            "cursor": self.cursor,
+        }
+
+
+async def _list_outcome_reviews(
+    filters: OutcomeReviewListFilters,
+) -> DpmOutcomeReviewGatewayResponse:
+    return await dpm_command_center_service().list_outcome_reviews(
+        filters=filters.as_filters(),
+        correlation_id=correlation_id_var.get(),
+    )
 
 
 @router.get(
@@ -80,19 +120,17 @@ async def list_outcome_reviews(
         examples=["or_cursor_0025"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    filters = {
-        "portfolio_id": portfolio_id,
-        "rebalance_run_id": rebalance_run_id,
-        "wave_id": wave_id,
-        "state": state,
-        "source_system": source_system,
-        "source_type": source_type,
-        "limit": limit,
-        "offset": offset,
-        "source_scan_limit": source_scan_limit,
-        "cursor": cursor,
-    }
-    return await dpm_command_center_service().list_outcome_reviews(
-        filters=filters,
-        correlation_id=correlation_id_var.get(),
+    return await _list_outcome_reviews(
+        OutcomeReviewListFilters(
+            portfolio_id=portfolio_id,
+            rebalance_run_id=rebalance_run_id,
+            wave_id=wave_id,
+            state=state,
+            source_system=source_system,
+            source_type=source_type,
+            limit=limit,
+            offset=offset,
+            source_scan_limit=source_scan_limit,
+            cursor=cursor,
+        )
     )

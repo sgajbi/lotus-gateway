@@ -11,6 +11,18 @@ from app.services.reporting_service_provider import reporting_job_query_service
 events_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
 
 
+async def _get_report_job_events(
+    *,
+    job_id: str,
+    caller_headers: dict[str, str],
+) -> ReportJobStatusEventsResponse:
+    return await reporting_job_query_service().get_report_job_events(
+        job_id=job_id,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @events_router.get(
     "/{job_id}/events",
     response_model=ReportJobStatusEventsResponse,
@@ -36,8 +48,7 @@ async def get_report_job_events(
     job_id: Annotated[str, Path(description="Opaque report job identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> ReportJobStatusEventsResponse:
-    return await reporting_job_query_service().get_report_job_events(
+    return await _get_report_job_events(
         job_id=job_id,
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
     )

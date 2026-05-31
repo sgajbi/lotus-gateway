@@ -11,6 +11,20 @@ from app.services.reporting_service_provider import reporting_batch_lifecycle_se
 status_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
 
 
+async def _get_report_batch_status(
+    *,
+    batch_id: str,
+    caller_headers: dict[str, str],
+) -> BatchStatusResponse:
+    correlation_id = correlation_id_var.get()
+    return await reporting_batch_lifecycle_service().get_batch_status(
+        batch_id=batch_id,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id,
+        tenant_id=caller_headers.get("X-Tenant-Id"),
+    )
+
+
 @status_router.get(
     "/{batch_id}",
     response_model=BatchStatusResponse,
@@ -42,10 +56,7 @@ async def get_report_batch_status(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchStatusResponse:
-    correlation_id = correlation_id_var.get()
-    return await reporting_batch_lifecycle_service().get_batch_status(
+    return await _get_report_batch_status(
         batch_id=batch_id,
         caller_headers=caller_headers,
-        correlation_id=correlation_id,
-        tenant_id=caller_headers.get("X-Tenant-Id"),
     )

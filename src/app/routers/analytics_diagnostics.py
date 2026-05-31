@@ -24,6 +24,67 @@ logger = logging.getLogger("analytics_ui.gateway")
 router = APIRouter(prefix="/api/v1/analytics-ui", tags=["Analytics Diagnostics"])
 
 
+def _validate_diagnostics_caller_context(
+    *,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> None:
+    try:
+        caller_context_headers(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        )
+    except HTTPException:
+        emit_gateway_protected_diagnostics_audit_log(
+            logger=logger,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            reason="missing_caller_context",
+        )
+        raise
+
+
+def _raise_for_unauthorized_diagnostics_role(role: str | None) -> None:
+    if is_authorized_operator_role(role):
+        return
+    emit_gateway_protected_diagnostics_audit_log(
+        logger=logger,
+        status_code=status.HTTP_403_FORBIDDEN,
+        reason="operator_role_required",
+    )
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "code": "operator_role_required",
+            "message": "Analytics diagnostics lookup requires an operator support role.",
+        },
+    )
+
+
+def _raise_for_unsafe_support_reference(support_reference: str) -> None:
+    if is_safe_support_reference(support_reference):
+        return
+    emit_gateway_protected_diagnostics_audit_log(
+        logger=logger,
+        status_code=status.HTTP_400_BAD_REQUEST,
+        reason="invalid_support_reference",
+    )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={
+            "code": "invalid_support_reference",
+            "message": "Support reference must be opaque and product-safe.",
+        },
+    )
+
+
 @router.get(
     "/diagnostics/{support_reference}",
     response_model=AnalyticsDiagnosticsResponse,
@@ -60,51 +121,16 @@ async def lookup_analytics_diagnostics(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> AnalyticsDiagnosticsResponse:
-    try:
-        caller_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        )
-    except HTTPException:
-        emit_gateway_protected_diagnostics_audit_log(
-            logger=logger,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            reason="missing_caller_context",
-        )
-        raise
-
-    if not is_authorized_operator_role(role):
-        emit_gateway_protected_diagnostics_audit_log(
-            logger=logger,
-            status_code=status.HTTP_403_FORBIDDEN,
-            reason="operator_role_required",
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "operator_role_required",
-                "message": "Analytics diagnostics lookup requires an operator support role.",
-            },
-        )
-
-    if not is_safe_support_reference(support_reference):
-        emit_gateway_protected_diagnostics_audit_log(
-            logger=logger,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            reason="invalid_support_reference",
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "invalid_support_reference",
-                "message": "Support reference must be opaque and product-safe.",
-            },
-        )
-
+    _validate_diagnostics_caller_context(
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
+    )
+    _raise_for_unauthorized_diagnostics_role(role)
+    _raise_for_unsafe_support_reference(support_reference)
     response = resolve_support_reference(support_reference)
     emit_gateway_protected_diagnostics_audit_log(
         logger=logger,

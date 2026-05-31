@@ -1,4 +1,5 @@
-from typing import Annotated
+from dataclasses import dataclass
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Query
 
@@ -12,6 +13,49 @@ from app.routers.reporting_errors import report_job_error_response
 from app.services.reporting_service_provider import reporting_job_query_service
 
 search_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
+
+
+@dataclass(frozen=True)
+class ReportJobSearchFilters:
+    tenant_id: str | None
+    region: str | None
+    status: str | None
+    report_type: str | None
+    portfolio_id: str | None
+    as_of_date: str | None
+    idempotency_key: str | None
+    correlation_id: str | None
+    created_from: str | None
+    created_to: str | None
+    limit: int
+
+    def as_query_params(self) -> dict[str, Any]:
+        filters: dict[str, Any] = {
+            "tenantId": self.tenant_id,
+            "region": self.region,
+            "status": self.status,
+            "reportType": self.report_type,
+            "portfolioId": self.portfolio_id,
+            "asOfDate": self.as_of_date,
+            "idempotencyKey": self.idempotency_key,
+            "correlationId": self.correlation_id,
+            "createdFrom": self.created_from,
+            "createdTo": self.created_to,
+            "limit": self.limit,
+        }
+        return {key: value for key, value in filters.items() if value is not None}
+
+
+async def _list_report_jobs(
+    *,
+    caller_headers: dict[str, str],
+    filters: ReportJobSearchFilters,
+) -> ReportJobListResponse:
+    return await reporting_job_query_service().list_report_jobs(
+        filters=filters.as_query_params(),
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
 
 
 @search_router.get(
@@ -106,22 +150,19 @@ async def list_report_jobs(
         ),
     ] = 25,
 ) -> ReportJobListResponse:
-    filters = {
-        "tenantId": tenant_id_filter,
-        "region": region_filter,
-        "status": status_filter,
-        "reportType": report_type_filter,
-        "portfolioId": portfolio_id_filter,
-        "asOfDate": as_of_date_filter,
-        "idempotencyKey": idempotency_key_filter,
-        "correlationId": correlation_id_filter,
-        "createdFrom": created_from,
-        "createdTo": created_to,
-        "limit": limit,
-    }
-    filters = {key: value for key, value in filters.items() if value is not None}
-    return await reporting_job_query_service().list_report_jobs(
-        filters=filters,
+    return await _list_report_jobs(
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
+        filters=ReportJobSearchFilters(
+            tenant_id=tenant_id_filter,
+            region=region_filter,
+            status=status_filter,
+            report_type=report_type_filter,
+            portfolio_id=portfolio_id_filter,
+            as_of_date=as_of_date_filter,
+            idempotency_key=idempotency_key_filter,
+            correlation_id=correlation_id_filter,
+            created_from=created_from,
+            created_to=created_to,
+            limit=limit,
+        ),
     )

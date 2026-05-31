@@ -7,13 +7,33 @@ from app.contracts.reporting import (
     ReportJobHandleResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerHeaderInputs
 from app.routers.reporting_errors import report_job_error_response
 from app.routers.reporting_examples import PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES
 from app.services.reporting_links import gateway_report_job_status_url
 from app.services.reporting_service_provider import reporting_job_submission_service
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
+
+
+async def _submit_portfolio_review_report_job(
+    *,
+    request: PortfolioReviewJobRequest,
+    idempotency_key: str | None,
+    caller_headers: ReportingCallerHeaderInputs,
+) -> ReportJobHandleResponse:
+    correlation_id = correlation_id_var.get()
+    service = reporting_job_submission_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    response = await service.submit_portfolio_review_job(
+        request=request,
+        idempotency_key=required_idempotency_key,
+        caller_headers=caller_headers.as_headers(),
+        correlation_id=correlation_id,
+    )
+    return response.model_copy(
+        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
+    )
 
 
 @router.post(
@@ -67,13 +87,10 @@ async def submit_portfolio_review_report_job(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
-    correlation_id = correlation_id_var.get()
-    service = reporting_job_submission_service()
-    required_idempotency_key = service.require_idempotency_key(idempotency_key)
-    response = await service.submit_portfolio_review_job(
+    return await _submit_portfolio_review_report_job(
         request=request,
-        idempotency_key=required_idempotency_key,
-        caller_headers=reporting_context_headers(
+        idempotency_key=idempotency_key,
+        caller_headers=ReportingCallerHeaderInputs(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -81,8 +98,4 @@ async def submit_portfolio_review_report_job(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id,
-    )
-    return response.model_copy(
-        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
     )

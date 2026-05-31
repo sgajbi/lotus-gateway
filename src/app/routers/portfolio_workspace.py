@@ -7,6 +7,20 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolio_workspace(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+    reporting_currency: str | None,
+) -> PortfolioWorkspaceResponse:
+    return await portfolio_service().get_portfolio_workspace(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        reporting_currency=reporting_currency,
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/workspace",
     response_model=PortfolioWorkspaceResponse,
@@ -38,9 +52,8 @@ async def get_portfolio_workspace(
         examples=["USD"],
     ),
 ) -> PortfolioWorkspaceResponse:
-    return await portfolio_service().get_portfolio_workspace(
+    return await _get_portfolio_workspace(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         reporting_currency=reporting_currency,
     )

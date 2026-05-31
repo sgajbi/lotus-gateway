@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, Header
@@ -22,6 +23,26 @@ def reporting_context_headers(
         booking_center_code=booking_center_code,
         role=role,
     )
+
+
+@dataclass(frozen=True)
+class ReportingCallerHeaderInputs:
+    actor_id: str | None
+    caller_application: str | None
+    tenant_id: str | None
+    region: str | None
+    booking_center_code: str | None
+    role: str | None
+
+    def as_headers(self) -> dict[str, str]:
+        return reporting_context_headers(
+            actor_id=self.actor_id,
+            caller_application=self.caller_application,
+            tenant_id=self.tenant_id,
+            region=self.region,
+            booking_center_code=self.booking_center_code,
+            role=self.role,
+        )
 
 
 def reporting_context_dependency(

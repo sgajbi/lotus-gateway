@@ -7,6 +7,22 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolio_projected_cashflow(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+    horizon_days: int,
+    include_projected: bool,
+) -> PortfolioProjectedCashflowResponse:
+    return await portfolio_service().get_portfolio_projected_cashflow(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+        horizon_days=horizon_days,
+        include_projected=include_projected,
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/projected-cashflow",
     response_model=PortfolioProjectedCashflowResponse,
@@ -43,9 +59,8 @@ async def get_portfolio_projected_cashflow(
         examples=[True],
     ),
 ) -> PortfolioProjectedCashflowResponse:
-    return await portfolio_service().get_portfolio_projected_cashflow(
+    return await _get_portfolio_projected_cashflow(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
         horizon_days=horizon_days,
         include_projected=include_projected,

@@ -7,6 +7,10 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolios() -> PortfolioCatalogResponse:
+    return await portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
+
+
 @router.get(
     "/portfolios",
     response_model=PortfolioCatalogResponse,
@@ -20,4 +24,4 @@ router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
     ),
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
-    return await portfolio_service().get_portfolio_catalog(correlation_id=correlation_id_var.get())
+    return await _get_portfolios()

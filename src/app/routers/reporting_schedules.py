@@ -15,6 +15,15 @@ schedules_router = APIRouter(
 )
 
 
+async def _list_report_batch_schedules(
+    caller_headers: dict[str, str],
+) -> BatchScheduleListResponse:
+    return await reporting_batch_scheduler_service().list_schedules(
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @schedules_router.get(
     "",
     response_model=BatchScheduleListResponse,
@@ -42,7 +51,4 @@ schedules_router = APIRouter(
 async def list_report_batch_schedules(
     caller_headers: ReportingCallerContext,
 ) -> BatchScheduleListResponse:
-    return await reporting_batch_scheduler_service().list_schedules(
-        caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _list_report_batch_schedules(caller_headers=caller_headers)
