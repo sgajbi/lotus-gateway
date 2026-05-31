@@ -53,6 +53,53 @@ class _FakeAdviseClient:
         )
         return self.status, self.payload
 
+    async def get_advisor_cockpit_action(
+        self,
+        *,
+        action_item_id: str,
+        params: dict[str, object],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, object]]:
+        self.calls.append(
+            (
+                "get_advisor_cockpit_action",
+                {
+                    "action_item_id": action_item_id,
+                    "params": params,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return self.status, self.payload
+
+    async def get_advisor_cockpit_snapshot(
+        self,
+        *,
+        params: dict[str, object],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, object]]:
+        self.calls.append(
+            (
+                "get_advisor_cockpit_snapshot",
+                {"params": params, "correlation_id": correlation_id},
+            )
+        )
+        return self.status, self.payload
+
+    async def get_advisor_cockpit_supportability(
+        self,
+        *,
+        params: dict[str, object],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, object]]:
+        self.calls.append(
+            (
+                "get_advisor_cockpit_supportability",
+                {"params": params, "correlation_id": correlation_id},
+            )
+        )
+        return self.status, self.payload
+
     async def acknowledge_advisor_cockpit_action(
         self,
         *,
@@ -94,7 +141,7 @@ class _FakeAdviseClient:
 @pytest.mark.asyncio
 async def test_advisor_cockpit_service_preserves_advise_owned_action_posture() -> None:
     advise_client = _FakeAdviseClient()
-    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = AdvisorCockpitService(advise_client=advise_client)
 
     response = await service.list_actions(
         params={
@@ -142,7 +189,7 @@ async def test_advisor_cockpit_service_preserves_advise_owned_preparation_packet
             "client_ready_publication": "BLOCKED",
         },
     }
-    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = AdvisorCockpitService(advise_client=advise_client)
 
     response = await service.list_preparation_packets(
         params={
@@ -181,7 +228,7 @@ async def test_advisor_cockpit_service_preserves_house_view_cohort_product() -> 
         "affected_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
         "supportability": {"state": "READY"},
     }
-    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = AdvisorCockpitService(advise_client=advise_client)
     body = {
         "tactical_view": {"tactical_view_id": "thv_2026_05_asia_duration"},
         "candidate_portfolios": [{"portfolio_id": "PB_SG_GLOBAL_BAL_001"}],
@@ -206,7 +253,7 @@ async def test_advisor_cockpit_service_propagates_acknowledgement_conflict() -> 
     advise_client = _FakeAdviseClient()
     advise_client.status = 409
     advise_client.payload = {"detail": "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT"}
-    service = AdvisorCockpitService(advise_client=advise_client)  # type: ignore[arg-type]
+    service = AdvisorCockpitService(advise_client=advise_client)
 
     with pytest.raises(HTTPException) as exc:
         await service.acknowledge_action(

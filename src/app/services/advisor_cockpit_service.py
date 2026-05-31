@@ -1,12 +1,12 @@
 from typing import Any
 
-from app.clients.advise_client import AdviseClient
 from app.contracts.advisor_cockpit import AdvisorCockpitEnvelopeResponse
+from app.services.upstream_client_protocols import AdvisorCockpitClient
 from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 
 class AdvisorCockpitService:
-    def __init__(self, advise_client: AdviseClient):
+    def __init__(self, advise_client: AdvisorCockpitClient):
         self._advise_client = advise_client
 
     async def list_actions(
