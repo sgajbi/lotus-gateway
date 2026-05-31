@@ -6,25 +6,10 @@ from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
     BatchControlResponse,
 )
-from app.middleware.correlation import correlation_id_var
+from app.routers.reporting_batch_control_common import control_report_batch
 from app.routers.reporting_context import ReportingCallerContext
-from app.services.reporting_service_provider import reporting_batch_control_service
 
 controls_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
-
-
-async def _control_batch(
-    *,
-    batch_id: str,
-    action: str,
-    caller_headers: dict[str, str],
-) -> BatchControlResponse:
-    return await reporting_batch_control_service().control_batch(
-        batch_id=batch_id,
-        action=action,
-        caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
-    )
 
 
 @controls_router.post(
@@ -45,7 +30,7 @@ async def pause_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
-    return await _control_batch(
+    return await control_report_batch(
         batch_id=batch_id,
         action="pause",
         caller_headers=caller_headers,
@@ -62,7 +47,7 @@ async def resume_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
-    return await _control_batch(
+    return await control_report_batch(
         batch_id=batch_id,
         action="resume",
         caller_headers=caller_headers,
@@ -82,7 +67,7 @@ async def cancel_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
-    return await _control_batch(
+    return await control_report_batch(
         batch_id=batch_id,
         action="cancel",
         caller_headers=caller_headers,
@@ -102,7 +87,7 @@ async def retry_failed_report_batch_items(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
-    return await _control_batch(
+    return await control_report_batch(
         batch_id=batch_id,
         action="retry-failed",
         caller_headers=caller_headers,
