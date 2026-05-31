@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import status
 
 from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
@@ -17,6 +16,7 @@ from app.contracts.dpm_waves import (
     DpmWaveSupportability,
 )
 from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.upstream_client_protocols import LotusAiWorkflowClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
@@ -47,7 +47,11 @@ _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS = [
 
 
 class DpmWaveService:
-    def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
+    def __init__(
+        self,
+        dpm_client: DpmClient,
+        lotus_ai_client: LotusAiWorkflowClient | None = None,
+    ):
         self._dpm_client = dpm_client
         self._lotus_ai_client = lotus_ai_client
 

@@ -1568,7 +1568,7 @@ async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_
     )
     service = DpmCommandCenterService(
         dpm_client=dpm_client,  # type: ignore[arg-type]
-        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,
     )
 
     response = await service.request_pm_operating_quality_summary(
@@ -1624,7 +1624,7 @@ async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> N
     ai_client = _FakeLotusAiClient((422, {"detail": "pm ranking output blocked"}))
     service = DpmCommandCenterService(
         dpm_client=dpm_client,  # type: ignore[arg-type]
-        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,
     )
 
     with pytest.raises(HTTPException) as exc_info:
