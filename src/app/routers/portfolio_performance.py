@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Query
 
 from app.contracts.portfolio import PortfolioPerformanceSnapshotResponse
@@ -5,6 +7,33 @@ from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
+
+
+@dataclass(frozen=True)
+class PortfolioPerformanceSnapshotQuery:
+    period: str
+    chart_frequency: str
+    detail_basis: str
+    benchmark_code: str | None
+    explicit_start_date: str | None
+    explicit_end_date: str | None
+
+
+async def _get_portfolio_performance_snapshot(
+    *,
+    portfolio_id: str,
+    query: PortfolioPerformanceSnapshotQuery,
+) -> PortfolioPerformanceSnapshotResponse:
+    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.explicit_start_date,
+        explicit_end_date=query.explicit_end_date,
+    )
 
 
 @router.get(
@@ -87,13 +116,14 @@ async def get_portfolio_performance_snapshot(
         },
     ),
 ) -> PortfolioPerformanceSnapshotResponse:
-    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
+    return await _get_portfolio_performance_snapshot(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=period,
-        chart_frequency=chart_frequency,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=explicit_start_date,
-        explicit_end_date=explicit_end_date,
+        query=PortfolioPerformanceSnapshotQuery(
+            period=period,
+            chart_frequency=chart_frequency,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        ),
     )
