@@ -186,6 +186,9 @@ from app.routers.dpm_wave_campaign_assignment_views import (
 from app.routers.dpm_wave_campaign_assignments import (
     router as dpm_wave_campaign_assignments_router,
 )
+from app.routers.dpm_wave_campaign_definition_detail import (
+    router as dpm_wave_campaign_definition_detail_router,
+)
 from app.routers.dpm_wave_campaign_definition_lookup import (
     router as dpm_wave_campaign_definition_lookup_router,
 )
@@ -463,6 +466,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_portfolio_memory_search_router)
     app.include_router(dpm_wave_campaign_definitions_router)
     app.include_router(dpm_wave_campaign_definition_lookup_router)
+    app.include_router(dpm_wave_campaign_definition_detail_router)
     app.include_router(dpm_wave_campaign_discovery_router)
     app.include_router(dpm_wave_campaign_workflow_boards_router)
     app.include_router(dpm_wave_campaign_assignment_views_router)
