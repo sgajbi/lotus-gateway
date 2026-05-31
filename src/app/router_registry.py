@@ -183,6 +183,7 @@ from app.routers.portfolio import router as portfolio_router
 from app.routers.portfolio_activity import router as portfolio_activity_router
 from app.routers.portfolio_allocations import router as portfolio_allocations_router
 from app.routers.portfolio_book import router as portfolio_book_router
+from app.routers.portfolio_income_summary import router as portfolio_income_summary_router
 from app.routers.portfolio_liquidity import router as portfolio_liquidity_router
 from app.routers.portfolio_performance import router as portfolio_performance_router
 from app.routers.portfolio_positions import router as portfolio_positions_router
@@ -312,6 +313,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(foundation_router)
     app.include_router(portfolio_router)
     app.include_router(portfolio_workspace_router)
+    app.include_router(portfolio_income_summary_router)
     app.include_router(portfolio_activity_router)
     app.include_router(portfolio_transactions_router)
     app.include_router(portfolio_book_router)

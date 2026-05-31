@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.contracts.portfolio import PortfolioActivitySummaryResponse
+from app.contracts.portfolio import PortfolioIncomeSummaryResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 
@@ -8,20 +8,20 @@ router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
 @router.get(
-    "/portfolios/{portfolio_id}/activity-summary",
-    response_model=PortfolioActivitySummaryResponse,
-    summary="Get portfolio activity summary",
+    "/portfolios/{portfolio_id}/income-summary",
+    response_model=PortfolioIncomeSummaryResponse,
+    summary="Get portfolio income summary",
     description=(
-        "Returns portfolio flow buckets for the requested reporting window and year-to-date. "
-        "Use this endpoint for inflow, outflow, fee, and tax analysis when the UI needs "
-        "reporting-currency-aware activity totals aligned to the selected portfolio window. "
-        "Gateway derives these buckets from the strategic lotus-core transaction ledger rather "
-        "than the deprecated activity-summary reporting route. The response keeps requested-window "
-        "and year-to-date bucket totals aligned to one reporting currency. When `end_date` is "
+        "Returns portfolio income totals for the requested reporting window and year-to-date. "
+        "Use this endpoint for dividend and interest analysis when the UI needs "
+        "reporting-currency-aware gross, tax, deduction, and net income totals by income type. "
+        "Gateway derives these totals from the strategic lotus-core transaction ledger rather "
+        "than the deprecated income-summary reporting route. The response keeps requested-window "
+        "and year-to-date income cuts aligned to one reporting currency. When `end_date` is "
         "omitted, gateway uses `as_of_date` when provided or the current business date fallback."
     ),
 )
-async def get_portfolio_activity_summary(
+async def get_portfolio_income_summary(
     portfolio_id: str,
     as_of_date: str | None = Query(
         default=None,
@@ -49,11 +49,11 @@ async def get_portfolio_activity_summary(
     ),
     reporting_currency: str | None = Query(
         default=None,
-        description="Optional reporting currency used to restate portfolio activity totals.",
+        description="Optional reporting currency used to restate portfolio income totals.",
         examples=["USD"],
     ),
-) -> PortfolioActivitySummaryResponse:
-    return await portfolio_service().get_activity_summary(
+) -> PortfolioIncomeSummaryResponse:
+    return await portfolio_service().get_income_summary(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
