@@ -11,6 +11,16 @@ router = APIRouter(
 )
 
 
+async def _get_proof_pack_report_input(
+    *,
+    proof_pack_id: str,
+) -> DpmProofPackGatewayResponse:
+    return await dpm_proof_pack_service().get_proof_pack_report_input(
+        proof_pack_id=proof_pack_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{proof_pack_id}/report-input",
     response_model=DpmProofPackGatewayResponse,
@@ -30,7 +40,4 @@ async def get_proof_pack_report_input(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackGatewayResponse:
-    return await dpm_proof_pack_service().get_proof_pack_report_input(
-        proof_pack_id=proof_pack_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_proof_pack_report_input(proof_pack_id=proof_pack_id)
