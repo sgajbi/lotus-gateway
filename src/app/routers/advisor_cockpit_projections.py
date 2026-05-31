@@ -1,13 +1,11 @@
-from fastapi import APIRouter, Header, Path, Query
+from fastapi import APIRouter, Query
 
 from app.contracts.advisor_cockpit import (
-    AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitEnvelopeResponse,
     AdvisorCockpitOwnerRole,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.advisor_cockpit_common import (
-    ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
     ADVISOR_COCKPIT_READ_RESPONSES,
     cockpit_params,
 )
@@ -17,17 +15,18 @@ router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
 @router.get(
-    "/actions",
+    "/preparation-packets",
     response_model=AdvisorCockpitEnvelopeResponse,
-    summary="List Advisor Cockpit Actions",
+    summary="List Advisor Cockpit Preparation Packets",
     description=(
-        "Lists source-owned advisor cockpit action items from lotus-advise. Gateway preserves "
-        "Advise-owned action status, priority, owner role, reason codes, evidence refs, lineage "
-        "refs, and unsupported-capability posture without reconstructing advisory semantics."
+        "Lists source-owned advisor cockpit preparation packets from lotus-advise. Gateway "
+        "preserves meeting agenda, proposal context, memo evidence, policy posture, follow-up "
+        "posture, lineage refs, and supportability exactly as supplied by Advise without "
+        "reconstructing preparation semantics."
     ),
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
-async def list_advisor_cockpit_actions(
+async def list_advisor_cockpit_preparation_packets(
     portfolio_id: str | None = Query(
         default=None,
         description="Optional portfolio identifier forwarded to lotus-advise.",
@@ -47,16 +46,16 @@ async def list_advisor_cockpit_actions(
         default=25,
         ge=1,
         le=100,
-        description="Bounded cockpit action page size forwarded to lotus-advise.",
+        description="Bounded preparation packet page size forwarded to lotus-advise.",
         examples=[25],
     ),
     cursor: str | None = Query(
         default=None,
-        description="Opaque action cursor returned by lotus-advise.",
-        examples=["cockpit_action_001"],
+        description="Opaque preparation packet cursor returned by lotus-advise.",
+        examples=["prep_packet_001"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().list_actions(
+    return await advisor_cockpit_service().list_preparation_packets(
         params=cockpit_params(
             portfolio_id=portfolio_id,
             advisor_id=advisor_id,
@@ -69,21 +68,17 @@ async def list_advisor_cockpit_actions(
 
 
 @router.get(
-    "/actions/{action_item_id}",
+    "/snapshot",
     response_model=AdvisorCockpitEnvelopeResponse,
-    summary="Get Advisor Cockpit Action",
+    summary="Get Advisor Cockpit Snapshot",
     description=(
-        "Returns one source-owned advisor cockpit action item from lotus-advise. Gateway does "
-        "not infer policy, memo, supportability, SLA, acknowledgement, or owner-role posture."
+        "Returns the source-owned advisor cockpit operating snapshot from lotus-advise. Gateway "
+        "preserves supportability, blocked client-ready posture, and unsupported capability "
+        "boundaries without local aggregation."
     ),
     responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
-async def get_advisor_cockpit_action(
-    action_item_id: str = Path(
-        ...,
-        description="Advisor cockpit action item identifier owned by lotus-advise.",
-        examples=["cockpit_action_policy_review_required_001"],
-    ),
+async def get_advisor_cockpit_snapshot(
     portfolio_id: str | None = Query(
         default=None,
         description="Optional portfolio identifier forwarded to lotus-advise.",
@@ -100,37 +95,24 @@ async def get_advisor_cockpit_action(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().get_action(
-        action_item_id=action_item_id,
+    return await advisor_cockpit_service().get_snapshot(
         params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         correlation_id=correlation_id_var.get(),
     )
 
 
-@router.post(
-    "/actions/{action_item_id}/acknowledgements",
+@router.get(
+    "/supportability",
     response_model=AdvisorCockpitEnvelopeResponse,
-    summary="Acknowledge Advisor Cockpit Action",
+    summary="Get Advisor Cockpit Supportability",
     description=(
-        "Records an idempotent acknowledgement through lotus-advise. Gateway forwards the "
-        "observed action version and idempotency key, and does not clear blocking policy, memo, "
-        "supportability, owner-role, or client-ready posture locally."
+        "Returns source-owned advisor cockpit supportability from lotus-advise. Gateway preserves "
+        "downstream Gateway, Workbench, data-product, client-ready publication, and external "
+        "communication boundaries exactly as supplied by Advise."
     ),
-    responses=ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES,
+    responses=ADVISOR_COCKPIT_READ_RESPONSES,
 )
-async def acknowledge_advisor_cockpit_action(
-    request: AdvisorCockpitAcknowledgeRequest,
-    action_item_id: str = Path(
-        ...,
-        description="Advisor cockpit action item identifier owned by lotus-advise.",
-        examples=["cockpit_action_policy_review_required_001"],
-    ),
-    idempotency_key: str = Header(
-        ...,
-        alias="Idempotency-Key",
-        description="Required idempotency key for replay-safe cockpit acknowledgements.",
-        examples=["idem-cockpit-ack-001"],
-    ),
+async def get_advisor_cockpit_supportability(
     portfolio_id: str | None = Query(
         default=None,
         description="Optional portfolio identifier forwarded to lotus-advise.",
@@ -147,10 +129,7 @@ async def acknowledge_advisor_cockpit_action(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().acknowledge_action(
-        action_item_id=action_item_id,
-        body=request.model_dump(exclude_none=True),
+    return await advisor_cockpit_service().get_supportability(
         params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
-        idempotency_key=idempotency_key,
         correlation_id=correlation_id_var.get(),
     )

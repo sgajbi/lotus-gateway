@@ -1,6 +1,12 @@
 from fastapi import FastAPI
 
 from app.routers.advisor_cockpit import router as advisor_cockpit_router
+from app.routers.advisor_cockpit_house_view import (
+    router as advisor_cockpit_house_view_router,
+)
+from app.routers.advisor_cockpit_projections import (
+    router as advisor_cockpit_projections_router,
+)
 from app.routers.advisory_policy import router as advisory_policy_router
 from app.routers.advisory_policy_evaluations import (
     router as advisory_policy_evaluations_router,
@@ -127,6 +133,8 @@ from app.routers.workbench_sandbox import router as workbench_sandbox_router
 
 def register_routers(app: FastAPI) -> None:
     app.include_router(advisor_cockpit_router)
+    app.include_router(advisor_cockpit_projections_router)
+    app.include_router(advisor_cockpit_house_view_router)
     app.include_router(bank_demo_proof_router)
     app.include_router(advisory_workspaces_router)
     app.include_router(advisory_policy_router)
