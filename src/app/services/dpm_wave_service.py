@@ -15,7 +15,10 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
     DpmWaveSupportability,
 )
-from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.lotus_ai_workflow import (
+    build_workflow_pack_task_request,
+    require_lotus_ai_client,
+)
 from app.services.upstream_client_protocols import LotusAiWorkflowClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
@@ -698,7 +701,7 @@ class DpmWaveService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
+        task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "memo_request": memo_request,
             "supportability": {
@@ -716,23 +719,15 @@ class DpmWaveService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-wave-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated DPM wave PM memo from manage-owned report input "
-                        f"for {wave_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": _wave_report_source_refs(manage_payload, wave_id),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=build_workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated DPM wave PM memo from manage-owned report input "
+                    f"for {wave_id}."
+                ),
+                payload=task_payload,
+                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
@@ -775,7 +770,7 @@ class DpmWaveService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
+        task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "handoff_summary_request": handoff_summary_request,
             "supportability": {
@@ -793,23 +788,15 @@ class DpmWaveService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-operations-handoff-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated DPM operations handoff summary from "
-                        f"manage-owned handoff evidence for {wave_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": _wave_report_source_refs(manage_payload, wave_id),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=build_workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated DPM operations handoff summary from "
+                    f"manage-owned handoff evidence for {wave_id}."
+                ),
+                payload=task_payload,
+                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
