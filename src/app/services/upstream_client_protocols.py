@@ -85,6 +85,19 @@ class BankDemoProofClient(Protocol):
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
 
+    async def get_bank_demo_supported_claim_register(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def build_bank_demo_proof_pack(
+        self,
+        *,
+        body: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
 
 class AdvisorCockpitClient(Protocol):
     async def list_advisor_cockpit_actions(
@@ -263,18 +276,5 @@ class AdvisoryPolicyClient(Protocol):
         evaluation_id: str,
         body: dict[str, Any],
         idempotency_key: str | None,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def get_bank_demo_supported_claim_register(
-        self,
-        *,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]: ...
-
-    async def build_bank_demo_proof_pack(
-        self,
-        *,
-        body: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
