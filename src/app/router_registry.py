@@ -407,6 +407,9 @@ from app.routers.proposal_narrative_reviews import (
     router as proposal_narrative_reviews_router,
 )
 from app.routers.proposal_narratives import router as proposal_narratives_router
+from app.routers.proposal_operation_correlation import (
+    router as proposal_operation_correlation_router,
+)
 from app.routers.proposal_operation_lookups import router as proposal_operation_lookups_router
 from app.routers.proposal_operation_support_lookups import (
     router as proposal_operation_support_lookups_router,
@@ -563,6 +566,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_execution_router)
     app.include_router(proposal_execution_updates_router)
     app.include_router(proposal_execution_status_router)
+    app.include_router(proposal_operation_correlation_router)
     app.include_router(proposal_memos_router)
     app.include_router(proposal_memo_detail_router)
     app.include_router(proposal_memo_evidence_router)
