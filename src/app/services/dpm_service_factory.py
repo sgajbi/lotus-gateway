@@ -9,6 +9,17 @@ from app.services.dpm_proof_pack_service import DpmProofPackService
 from app.services.dpm_wave_service import DpmWaveService
 
 
+def dpm_service_signature() -> tuple[object, ...]:
+    return (
+        settings.management_service_base_url,
+        settings.ai_service_base_url,
+        settings.upstream_timeout_seconds,
+        settings.ai_service_timeout_seconds,
+        settings.upstream_max_retries,
+        settings.upstream_retry_backoff_seconds,
+    )
+
+
 def build_manage_client() -> DpmClient:
     return DpmClient(
         base_url=settings.management_service_base_url,
