@@ -1,12 +1,12 @@
 from typing import Any
 
-from app.clients.advise_client import AdviseClient
 from app.contracts.advisory_policy import AdvisoryPolicyEnvelopeResponse
+from app.services.upstream_client_protocols import AdvisoryPolicyClient
 from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 
 class AdvisoryPolicyService:
-    def __init__(self, advise_client: AdviseClient):
+    def __init__(self, advise_client: AdvisoryPolicyClient):
         self._advise_client = advise_client
 
     async def list_policy_packs(self, correlation_id: str) -> AdvisoryPolicyEnvelopeResponse:
