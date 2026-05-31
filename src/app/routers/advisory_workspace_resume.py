@@ -12,16 +12,18 @@ router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspa
 
 
 @router.post(
-    "/{workspace_id}/save",
+    "/{workspace_id}/resume",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Save Advisory Workspace Version",
-    description="Saves the current advisory workspace draft version in lotus-advise.",
+    summary="Resume Saved Advisory Workspace Version",
+    description=(
+        "Restores a saved advisory workspace version into the editable draft through lotus-advise."
+    ),
 )
-async def save_workspace(
+async def resume_workspace(
     request: AdvisoryWorkspaceBodyRequest,
     workspace_id: str = WORKSPACE_ID_PATH,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().save_workspace(
+    return await advisory_workspace_service().resume_workspace(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
