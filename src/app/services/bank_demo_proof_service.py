@@ -1,10 +1,8 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
+from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 
 class BankDemoProofService:
@@ -52,10 +50,10 @@ class BankDemoProofService:
         correlation_id: str,
         upstream_payload: dict[str, Any],
     ) -> BankDemoProofEnvelopeResponse:
-        return BankDemoProofEnvelopeResponse(
-            correlationId=correlation_id,
-            contractVersion=settings.contract_version,
-            data=upstream_payload,
+        return build_gateway_envelope(
+            BankDemoProofEnvelopeResponse,
+            correlation_id=correlation_id,
+            upstream_payload=upstream_payload,
         )
 
     def _raise_for_upstream_error(
@@ -63,5 +61,4 @@ class BankDemoProofService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(status_code=upstream_status, detail=upstream_payload)
+        raise_for_upstream_error(upstream_status, upstream_payload)

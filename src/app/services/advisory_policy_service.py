@@ -1,10 +1,8 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.advisory_policy import AdvisoryPolicyEnvelopeResponse
+from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 
 class AdvisoryPolicyService:
@@ -260,10 +258,10 @@ class AdvisoryPolicyService:
         correlation_id: str,
         upstream_payload: dict[str, Any],
     ) -> AdvisoryPolicyEnvelopeResponse:
-        return AdvisoryPolicyEnvelopeResponse(
+        return build_gateway_envelope(
+            AdvisoryPolicyEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _raise_for_upstream_error(
@@ -271,8 +269,4 @@ class AdvisoryPolicyService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            detail: str | dict[str, Any] = upstream_payload
-            if not isinstance(detail, str):
-                detail = str(detail)
-            raise HTTPException(status_code=upstream_status, detail=detail)
+        raise_for_upstream_error(upstream_status, upstream_payload, stringify_payload=True)
