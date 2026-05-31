@@ -14,6 +14,18 @@ router = APIRouter(
 )
 
 
+async def _request_wave_pm_memo(
+    *,
+    wave_id: str,
+    request: DpmWaveMemoRequest,
+) -> DpmWaveMemoGatewayResponse:
+    return await dpm_wave_service().request_wave_pm_memo(
+        wave_id=wave_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/ai-pm-memo",
     response_model=DpmWaveMemoGatewayResponse,
@@ -36,8 +48,7 @@ async def request_wave_pm_memo(
         examples=["dwv_001"],
     ),
 ) -> DpmWaveMemoGatewayResponse:
-    return await dpm_wave_service().request_wave_pm_memo(
+    return await _request_wave_pm_memo(
         wave_id=wave_id,
         request=request,
-        correlation_id=correlation_id_var.get(),
     )
