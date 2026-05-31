@@ -30,7 +30,7 @@ def _is_router_handler(node: ast.AsyncFunctionDef | ast.FunctionDef) -> bool:
     )
 
 
-def _direct_dpm_service_calls(path: Path) -> list[str]:
+def _direct_service_calls(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     calls: list[str] = []
     for node in tree.body:
@@ -46,11 +46,7 @@ def _direct_dpm_service_calls(path: Path) -> list[str]:
             if not isinstance(child.func.value, ast.Call):
                 continue
             service_factory = child.func.value.func
-            if (
-                isinstance(service_factory, ast.Name)
-                and service_factory.id.startswith("dpm_")
-                and service_factory.id.endswith("_service")
-            ):
+            if isinstance(service_factory, ast.Name) and service_factory.id.endswith("_service"):
                 calls.append(f"{node.name}:{service_factory.id}.{child.func.attr}")
     return calls
 
@@ -70,10 +66,8 @@ def test_routers_do_not_import_service_factories_or_clients() -> None:
     assert offenders == {}
 
 
-def test_dpm_router_handlers_delegate_service_calls_to_private_helpers() -> None:
-    offenders = {
-        path.name: _direct_dpm_service_calls(path) for path in _ROUTER_ROOT.glob("dpm_*.py")
-    }
+def test_router_handlers_delegate_service_calls_to_private_helpers() -> None:
+    offenders = {path.name: _direct_service_calls(path) for path in _ROUTER_ROOT.glob("*.py")}
     offenders = {name: calls for name, calls in offenders.items() if calls}
 
     assert offenders == {}
