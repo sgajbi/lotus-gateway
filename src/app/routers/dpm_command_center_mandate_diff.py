@@ -12,6 +12,19 @@ router = APIRouter(
 )
 
 
+async def _get_mandate_diff(
+    *,
+    mandate_id: str,
+    from_version: str | None,
+    to_version: str | None,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().get_mandate_diff(
+        mandate_id=mandate_id,
+        filters={"from_version": from_version, "to_version": to_version},
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/mandates/{mandate_id}/diff",
     response_model=DpmCommandCenterGatewayResponse,
@@ -39,8 +52,8 @@ async def get_mandate_diff(
         examples=["3"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().get_mandate_diff(
+    return await _get_mandate_diff(
         mandate_id=mandate_id,
-        filters={"from_version": from_version, "to_version": to_version},
-        correlation_id=correlation_id_var.get(),
+        from_version=from_version,
+        to_version=to_version,
     )
