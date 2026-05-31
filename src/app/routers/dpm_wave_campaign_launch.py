@@ -2,24 +2,14 @@ from fastapi import APIRouter, Path, Query
 
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
-    DpmCampaignDefinitionLaunchRequest,
-    DpmWaveErrorDetail,
-    DpmWaveGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.dpm_openapi import manage_upstream_error_responses
+from app.routers.dpm_wave_campaign_launch_common import UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_wave_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/waves",
     tags=["DPM Command Center"],
-)
-_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
-    error_model=DpmWaveErrorDetail,
-    not_found_description="lotus-manage could not find the requested campaign launch resource.",
-    conflict_description="lotus-manage rejected the campaign launch request as conflicting.",
-    invalid_payload_description="lotus-manage rejected the campaign launch payload as invalid.",
-    unavailable_description="lotus-manage campaign launch authority is unavailable or degraded.",
 )
 
 
@@ -36,7 +26,7 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
         "readiness, idempotency, maker-checker, trade approval, routing, fills, settlement, or "
         "OMS execution."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES,
 )
 async def get_campaign_definition_launch_history(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
@@ -64,7 +54,7 @@ async def get_campaign_definition_launch_history(
         "recomputing campaign membership, readiness, maker-checker, staging, trade approval, or "
         "OMS execution."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_CAMPAIGN_LAUNCH_ERROR_RESPONSES,
 )
 async def get_campaign_definition_launch_package(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
@@ -92,32 +82,5 @@ async def get_campaign_definition_launch_package(
             "actor_id": actor_id,
             "correlation_id": correlation_id,
         },
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.post(
-    "/campaign-definitions/{campaign_id}/versions/{campaign_version}/launch",
-    response_model=DpmWaveGatewayResponse,
-    summary="Launch DPM campaign-definition wave",
-    description=(
-        "What: asks lotus-manage to launch one ready BulkReviewCampaignDefinition:v1 into a "
-        "durable bulk-review campaign wave. When: call only after Manage launch-package readiness "
-        "is READY. How: Gateway forwards the payload unchanged and preserves Manage wave truth, "
-        "reason codes, launch history, and idempotent replay posture without recomputing campaign "
-        "membership or readiness, running maker-checker workflow, approving trades, staging "
-        "orders, discovering global portfolios, or claiming OMS execution."
-    ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
-)
-async def launch_campaign_definition(
-    request: DpmCampaignDefinitionLaunchRequest,
-    campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
-    campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
-) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().launch_campaign_definition(
-        campaign_id=campaign_id,
-        campaign_version=campaign_version,
-        body=request.body,
         correlation_id=correlation_id_var.get(),
     )
