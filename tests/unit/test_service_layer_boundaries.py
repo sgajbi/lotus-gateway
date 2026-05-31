@@ -49,6 +49,23 @@ def test_service_providers_do_not_return_direct_builder_calls() -> None:
     assert offenders == {}
 
 
+def test_service_providers_use_shared_cache_helper() -> None:
+    offenders: list[str] = []
+    for path in _SERVICE_ROOT.glob("*_service_provider.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        helper_calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "resolve_cached_service"
+        ]
+        if not helper_calls:
+            offenders.append(path.relative_to(_SERVICE_ROOT).as_posix())
+
+    assert offenders == []
+
+
 def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> None:
     offenders: dict[str, list[int]] = {}
     for path in _SERVICE_ROOT.rglob("*.py"):
