@@ -8,6 +8,18 @@ from app.services.advisory_service_provider import advisory_workspace_service
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
+async def _get_saved_version_replay_evidence(
+    *,
+    workspace_id: str,
+    workspace_version_id: str,
+) -> AdvisoryWorkspaceEnvelopeResponse:
+    return await advisory_workspace_service().get_saved_version_replay_evidence(
+        workspace_id=workspace_id,
+        workspace_version_id=workspace_version_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
@@ -25,8 +37,7 @@ async def get_saved_version_replay_evidence(
         examples=["awv_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().get_saved_version_replay_evidence(
+    return await _get_saved_version_replay_evidence(
         workspace_id=workspace_id,
         workspace_version_id=workspace_version_id,
-        correlation_id=correlation_id_var.get(),
     )
