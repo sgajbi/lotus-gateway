@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.config import settings
 from app.contracts.intake import EnvelopeResponse, LookupResponse
-from app.services.upstream_client_protocols import IntakeIngestionClient, IntakeLookupClient
+from app.services.domain_client_protocols import IntakeIngestionClient, IntakeLookupClient
 
 
 class IntakeService:

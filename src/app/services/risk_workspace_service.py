@@ -50,11 +50,11 @@ from app.contracts.risk_workspace import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.domain_client_protocols import RiskWorkspaceClient
 from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
 )
-from app.services.upstream_client_protocols import RiskWorkspaceClient
 
 _SUMMARY_METRICS = [
     "VOLATILITY",

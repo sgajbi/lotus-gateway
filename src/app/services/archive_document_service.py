@@ -4,7 +4,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.contracts.archive_documents import ArchivedDocumentMetadataResponse
-from app.services.upstream_client_protocols import ArchiveDocumentClient
+from app.services.domain_client_protocols import ArchiveDocumentClient
 
 
 @dataclass(frozen=True)

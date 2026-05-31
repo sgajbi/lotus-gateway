@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 
 from app.contracts.composite_performance import CompositePerformanceGatewayResponse
 from app.services.caller_context import caller_context_headers
-from app.services.upstream_client_protocols import CompositePerformanceClient
+from app.services.domain_client_protocols import CompositePerformanceClient
 
 
 class CompositePerformanceService:

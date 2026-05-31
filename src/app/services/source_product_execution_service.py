@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.contracts.source_products import ExternalOrderExecutionAcknowledgementResponse
-from app.services.upstream_client_protocols import SourceProductExecutionClient
+from app.services.domain_client_protocols import SourceProductExecutionClient
 
 
 class SourceProductExecutionService:
