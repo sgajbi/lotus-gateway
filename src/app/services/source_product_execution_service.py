@@ -2,12 +2,12 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.contracts.source_products import ExternalOrderExecutionAcknowledgementResponse
+from app.services.upstream_client_protocols import SourceProductExecutionClient
 
 
 class SourceProductExecutionService:
-    def __init__(self, lotus_core_query_client: LotusCoreQueryClient) -> None:
+    def __init__(self, lotus_core_query_client: SourceProductExecutionClient) -> None:
         self._lotus_core_query_client = lotus_core_query_client
 
     async def get_external_order_execution_acknowledgement(

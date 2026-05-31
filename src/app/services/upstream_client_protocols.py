@@ -843,3 +843,13 @@ class CompositePerformanceClient(Protocol):
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class SourceProductExecutionClient(Protocol):
+    async def get_external_order_execution_acknowledgement(
+        self,
+        *,
+        portfolio_id: str,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
