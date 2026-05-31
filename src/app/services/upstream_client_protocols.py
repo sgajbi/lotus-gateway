@@ -1176,3 +1176,101 @@ class PortfolioManageClient(Protocol):
         *,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class WorkbenchCoreClient(Protocol):
+    async def get_portfolio_analytics_reference(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        consumer_system: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def create_simulation_session(
+        self,
+        *,
+        portfolio_id: str,
+        created_by: str | None,
+        ttl_hours: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def add_simulation_changes(
+        self,
+        *,
+        session_id: str,
+        changes: list[dict[str, Any]],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_portfolio(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_core_snapshot(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        sections: list[str],
+        consumer_system: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_projected_positions(
+        self,
+        *,
+        session_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_projected_summary(
+        self,
+        *,
+        session_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class WorkbenchPerformanceClient(Protocol):
+    async def get_twr_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        metric_basis: str,
+        benchmark_id: str | None,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class WorkbenchManageClient(Protocol):
+    async def list_runs(
+        self,
+        *,
+        params: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_supportability_summary(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class WorkbenchAdviseClient(Protocol):
+    async def simulate_proposal(
+        self,
+        *,
+        body: dict[str, Any],
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
