@@ -32,26 +32,3 @@ async def approve_wave(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
-
-
-@router.post(
-    "/{wave_id}/cancel",
-    response_model=DpmWaveGatewayResponse,
-    summary="Cancel DPM rebalance wave",
-    description=(
-        "What: forwards a manage-owned cancellation command for an eligible rebalance wave. "
-        "When: call this before external execution exists. How: Gateway preserves manage "
-        "cancellation diagnostics and does not cancel external orders because RFC-0041 handoff is "
-        "internal readiness evidence only."
-    ),
-    responses=UPSTREAM_WAVE_ACTION_ERROR_RESPONSES,
-)
-async def cancel_wave(
-    request: DpmWaveForwardRequest,
-    wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
-) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().cancel_wave(
-        wave_id=wave_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )

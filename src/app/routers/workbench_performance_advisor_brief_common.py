@@ -1,4 +1,18 @@
+from dataclasses import dataclass
+
 from app.routers.workbench_caller_context import require_workbench_caller_context
+
+
+@dataclass(frozen=True)
+class AdvisorBriefQuery:
+    period: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    benchmark_code: str | None
+    report_start_date: str | None
+    report_end_date: str | None
 
 
 def require_advisor_brief_caller_context(

@@ -18,28 +18,6 @@ router = APIRouter(
 
 
 @router.post(
-    "/pm-operating-quality/score-runs/preview",
-    response_model=DpmPmOperatingQualityGatewayResponse,
-    summary="Preview PM operating quality score run",
-    description=(
-        "What: previews a manage-owned PM operating quality score run from bank policy, "
-        "source-backed evidence, optional outcome-review ids, and optional Core PM-book scope. "
-        "When: call this from supervisory control or operations support views before persisting "
-        "a score run. How: Gateway forwards the payload unchanged and preserves Manage "
-        "supportability, governance evidence, decomposed indicators, source refs, and forbidden "
-        "uses without calculating scores or ranking PMs."
-    ),
-)
-async def preview_pm_operating_quality_score_run(
-    request: DpmPmOperatingQualityForwardRequest,
-) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().preview_pm_operating_quality_score_run(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.post(
     "/pm-operating-quality/score-runs",
     response_model=DpmPmOperatingQualityGatewayResponse,
     summary="Create PM operating quality score run",

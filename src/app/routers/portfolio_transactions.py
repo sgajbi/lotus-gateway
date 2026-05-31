@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Query
 
 from app.contracts.portfolio import PortfolioTransactionLedgerResponse
@@ -5,6 +7,55 @@ from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
+
+
+@dataclass(frozen=True)
+class PortfolioTransactionLedgerFilters:
+    as_of_date: str | None
+    include_projected: bool
+    transaction_type: str | None
+    security_id: str | None
+    instrument_id: str | None
+    component_type: str | None
+    linked_transaction_group_id: str | None
+    fx_contract_id: str | None
+    swap_event_id: str | None
+    near_leg_group_id: str | None
+    far_leg_group_id: str | None
+    sort_by: str
+    sort_order: str
+    start_date: str | None
+    end_date: str | None
+    skip: int
+    limit: int
+
+
+async def _get_transaction_ledger(
+    *,
+    portfolio_id: str,
+    filters: PortfolioTransactionLedgerFilters,
+) -> PortfolioTransactionLedgerResponse:
+    return await portfolio_service().get_transaction_ledger(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=filters.as_of_date,
+        include_projected=filters.include_projected,
+        transaction_type=filters.transaction_type,
+        security_id=filters.security_id,
+        instrument_id=filters.instrument_id,
+        component_type=filters.component_type,
+        linked_transaction_group_id=filters.linked_transaction_group_id,
+        fx_contract_id=filters.fx_contract_id,
+        swap_event_id=filters.swap_event_id,
+        near_leg_group_id=filters.near_leg_group_id,
+        far_leg_group_id=filters.far_leg_group_id,
+        sort_by=filters.sort_by,
+        sort_order=filters.sort_order,
+        start_date=filters.start_date,
+        end_date=filters.end_date,
+        skip=filters.skip,
+        limit=filters.limit,
+    )
 
 
 @router.get(
@@ -110,9 +161,7 @@ async def get_portfolio_transactions(
         examples=["desc"],
     ),
 ) -> PortfolioTransactionLedgerResponse:
-    return await portfolio_service().get_transaction_ledger(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
+    filters = PortfolioTransactionLedgerFilters(
         as_of_date=as_of_date,
         include_projected=include_projected,
         transaction_type=transaction_type,
@@ -130,4 +179,8 @@ async def get_portfolio_transactions(
         end_date=end_date,
         skip=skip,
         limit=limit,
+    )
+    return await _get_transaction_ledger(
+        portfolio_id=portfolio_id,
+        filters=filters,
     )

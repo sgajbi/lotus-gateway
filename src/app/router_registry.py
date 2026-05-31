@@ -43,11 +43,20 @@ from app.routers.advisory_policy_evaluation_workflow import (
 from app.routers.advisory_policy_evaluations import (
     router as advisory_policy_evaluations_router,
 )
+from app.routers.advisory_policy_pack_detail import (
+    router as advisory_policy_pack_detail_router,
+)
+from app.routers.advisory_policy_review_queue import (
+    router as advisory_policy_review_queue_router,
+)
 from app.routers.advisory_policy_sign_off_decisions import (
     router as advisory_policy_sign_off_decisions_router,
 )
 from app.routers.advisory_policy_sign_off_package import (
     router as advisory_policy_sign_off_package_router,
+)
+from app.routers.advisory_policy_validation import (
+    router as advisory_policy_validation_router,
 )
 from app.routers.advisory_workspace_actions import (
     router as advisory_workspace_actions_router,
@@ -66,6 +75,12 @@ from app.routers.advisory_workspace_evaluate import (
 )
 from app.routers.advisory_workspace_handoff import (
     router as advisory_workspace_handoff_router,
+)
+from app.routers.advisory_workspace_rationale_reviews import (
+    router as advisory_workspace_rationale_reviews_router,
+)
+from app.routers.advisory_workspace_replay_evidence import (
+    router as advisory_workspace_replay_evidence_router,
 )
 from app.routers.advisory_workspace_resume import (
     router as advisory_workspace_resume_router,
@@ -99,11 +114,20 @@ from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_command_center_exception_ai import (
     router as dpm_command_center_exception_ai_router,
 )
+from app.routers.dpm_command_center_exception_resolution import (
+    router as dpm_command_center_exception_resolution_router,
+)
 from app.routers.dpm_command_center_exceptions import (
     router as dpm_command_center_exceptions_router,
 )
 from app.routers.dpm_command_center_mandate_analysis import (
     router as dpm_command_center_mandate_analysis_router,
+)
+from app.routers.dpm_command_center_mandate_detail import (
+    router as dpm_command_center_mandate_detail_router,
+)
+from app.routers.dpm_command_center_mandate_diff import (
+    router as dpm_command_center_mandate_diff_router,
 )
 from app.routers.dpm_command_center_mandates import (
     router as dpm_command_center_mandates_router,
@@ -116,6 +140,9 @@ from app.routers.dpm_command_center_monitoring_commands import (
 )
 from app.routers.dpm_command_center_monitoring_detail import (
     router as dpm_command_center_monitoring_detail_router,
+)
+from app.routers.dpm_command_center_outcome_review_ai_evidence_input import (
+    router as dpm_command_center_outcome_review_ai_evidence_input_router,
 )
 from app.routers.dpm_command_center_outcome_review_detail import (
     router as dpm_command_center_outcome_review_detail_router,
@@ -135,6 +162,12 @@ from app.routers.dpm_command_center_outcome_review_lookups import (
 from app.routers.dpm_command_center_outcome_review_narratives import (
     router as dpm_command_center_outcome_review_narratives_router,
 )
+from app.routers.dpm_command_center_outcome_review_preview import (
+    router as dpm_command_center_outcome_review_preview_router,
+)
+from app.routers.dpm_command_center_outcome_review_supportability import (
+    router as dpm_command_center_outcome_review_supportability_router,
+)
 from app.routers.dpm_command_center_outcome_reviews import (
     router as dpm_command_center_outcome_reviews_router,
 )
@@ -153,11 +186,17 @@ from app.routers.dpm_command_center_pm_quality_fairness_detail import (
 from app.routers.dpm_command_center_pm_quality_fairness_lookup import (
     router as dpm_command_center_pm_quality_fairness_lookup_router,
 )
+from app.routers.dpm_command_center_pm_quality_fairness_preview import (
+    router as dpm_command_center_pm_quality_fairness_preview_router,
+)
 from app.routers.dpm_command_center_pm_quality_policies import (
     router as dpm_command_center_pm_quality_policies_router,
 )
 from app.routers.dpm_command_center_pm_quality_policy_actions import (
     router as dpm_command_center_pm_quality_policy_actions_router,
+)
+from app.routers.dpm_command_center_pm_quality_policy_detail import (
+    router as dpm_command_center_pm_quality_policy_detail_router,
 )
 from app.routers.dpm_command_center_pm_quality_review_action_detail import (
     router as dpm_command_center_pm_quality_review_action_detail_router,
@@ -165,14 +204,26 @@ from app.routers.dpm_command_center_pm_quality_review_action_detail import (
 from app.routers.dpm_command_center_pm_quality_review_action_lookup import (
     router as dpm_command_center_pm_quality_review_action_lookup_router,
 )
+from app.routers.dpm_command_center_pm_quality_review_action_preview import (
+    router as dpm_command_center_pm_quality_review_action_preview_router,
+)
 from app.routers.dpm_command_center_pm_quality_review_actions import (
     router as dpm_command_center_pm_quality_review_actions_router,
+)
+from app.routers.dpm_command_center_pm_quality_score_run_detail import (
+    router as dpm_command_center_pm_quality_score_run_detail_router,
 )
 from app.routers.dpm_command_center_pm_quality_score_run_lookup import (
     router as dpm_command_center_pm_quality_score_run_lookup_router,
 )
+from app.routers.dpm_command_center_pm_quality_score_run_preview import (
+    router as dpm_command_center_pm_quality_score_run_preview_router,
+)
 from app.routers.dpm_command_center_pm_quality_summary_detail import (
     router as dpm_command_center_pm_quality_summary_detail_router,
+)
+from app.routers.dpm_command_center_pm_quality_summary_invocation_preview import (
+    router as dpm_command_center_pm_quality_summary_invocation_preview_router,
 )
 from app.routers.dpm_command_center_pm_quality_summary_invocations import (
     router as dpm_command_center_pm_quality_summary_invocations_router,
@@ -191,10 +242,12 @@ from app.routers.dpm_command_center_wave_outcome_reviews import (
 )
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_construction_actions import router as dpm_construction_actions_router
+from app.routers.dpm_construction_selection import router as dpm_construction_selection_router
 from app.routers.dpm_proof_pack_ai import router as dpm_proof_pack_ai_router
 from app.routers.dpm_proof_pack_ai_evidence_input import (
     router as dpm_proof_pack_ai_evidence_input_router,
 )
+from app.routers.dpm_proof_pack_detail import router as dpm_proof_pack_detail_router
 from app.routers.dpm_proof_pack_evidence import router as dpm_proof_pack_evidence_router
 from app.routers.dpm_proof_pack_report_input import (
     router as dpm_proof_pack_report_input_router,
@@ -211,8 +264,14 @@ from app.routers.dpm_wave_campaign_approval_inbox import (
 from app.routers.dpm_wave_campaign_approvals import (
     router as dpm_wave_campaign_approvals_router,
 )
+from app.routers.dpm_wave_campaign_assignment_action_commands import (
+    router as dpm_wave_campaign_assignment_action_commands_router,
+)
 from app.routers.dpm_wave_campaign_assignment_task_actions import (
     router as dpm_wave_campaign_assignment_task_actions_router,
+)
+from app.routers.dpm_wave_campaign_assignment_task_transitions import (
+    router as dpm_wave_campaign_assignment_task_transitions_router,
 )
 from app.routers.dpm_wave_campaign_assignment_tasks import (
     router as dpm_wave_campaign_assignment_tasks_router,
@@ -271,19 +330,25 @@ from app.routers.dpm_wave_campaign_workflow_automation import (
 from app.routers.dpm_wave_campaign_workflow_boards import (
     router as dpm_wave_campaign_workflow_boards_router,
 )
+from app.routers.dpm_wave_cancellation import router as dpm_wave_cancellation_router
 from app.routers.dpm_wave_detail import router as dpm_wave_detail_router
 from app.routers.dpm_wave_evidence import router as dpm_wave_evidence_router
+from app.routers.dpm_wave_handoff import router as dpm_wave_handoff_router
+from app.routers.dpm_wave_item_selection import router as dpm_wave_item_selection_router
 from app.routers.dpm_wave_items import router as dpm_wave_items_router
 from app.routers.dpm_wave_lifecycle_actions import router as dpm_wave_lifecycle_actions_router
 from app.routers.dpm_wave_lookup import router as dpm_wave_lookup_router
 from app.routers.dpm_wave_operations_handoff_ai import (
     router as dpm_wave_operations_handoff_ai_router,
 )
+from app.routers.dpm_wave_preview import router as dpm_wave_preview_router
 from app.routers.dpm_wave_report_input import router as dpm_wave_report_input_router
+from app.routers.dpm_wave_simulation import router as dpm_wave_simulation_router
 from app.routers.dpm_wave_supportability import router as dpm_wave_supportability_router
 from app.routers.dpm_wave_workflow_actions import router as dpm_wave_workflow_actions_router
 from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
+from app.routers.foundation_workspace import router as foundation_workspace_router
 from app.routers.intake import router as intake_router
 from app.routers.intake_upload_commits import router as intake_upload_commits_router
 from app.routers.intake_uploads import router as intake_uploads_router
@@ -308,18 +373,25 @@ from app.routers.portfolio_transactions import router as portfolio_transactions_
 from app.routers.portfolio_workflow import router as portfolio_workflow_router
 from app.routers.portfolio_workspace import router as portfolio_workspace_router
 from app.routers.proposal_approvals import router as proposal_approvals_router
+from app.routers.proposal_artifact import router as proposal_artifact_router
 from app.routers.proposal_client_consent import router as proposal_client_consent_router
 from app.routers.proposal_create import router as proposal_create_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
+from app.routers.proposal_delivery_events import router as proposal_delivery_events_router
 from app.routers.proposal_detail import router as proposal_detail_router
 from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_execution_status import router as proposal_execution_status_router
+from app.routers.proposal_execution_updates import router as proposal_execution_updates_router
 from app.routers.proposal_generation import router as proposal_generation_router
+from app.routers.proposal_idempotency_records import (
+    router as proposal_idempotency_records_router,
+)
 from app.routers.proposal_lineage import router as proposal_lineage_router
 from app.routers.proposal_memo_actions import router as proposal_memo_actions_router
 from app.routers.proposal_memo_ai_commentary import (
     router as proposal_memo_ai_commentary_router,
 )
+from app.routers.proposal_memo_detail import router as proposal_memo_detail_router
 from app.routers.proposal_memo_evidence import router as proposal_memo_evidence_router
 from app.routers.proposal_memo_lineage import router as proposal_memo_lineage_router
 from app.routers.proposal_memo_replay_evidence import (
@@ -335,13 +407,21 @@ from app.routers.proposal_narrative_reviews import (
     router as proposal_narrative_reviews_router,
 )
 from app.routers.proposal_narratives import router as proposal_narratives_router
+from app.routers.proposal_operation_correlation import (
+    router as proposal_operation_correlation_router,
+)
 from app.routers.proposal_operation_lookups import router as proposal_operation_lookups_router
 from app.routers.proposal_operation_support_lookups import (
     router as proposal_operation_support_lookups_router,
 )
 from app.routers.proposal_operations import router as proposal_operations_router
 from app.routers.proposal_report_requests import router as proposal_report_requests_router
+from app.routers.proposal_risk_approval import router as proposal_risk_approval_router
+from app.routers.proposal_version_async import router as proposal_version_async_router
 from app.routers.proposal_version_commands import router as proposal_version_commands_router
+from app.routers.proposal_version_replay_evidence import (
+    router as proposal_version_replay_evidence_router,
+)
 from app.routers.proposal_versions import router as proposal_versions_router
 from app.routers.proposal_workflow import router as proposal_workflow_router
 from app.routers.proposal_workflow_decisions import router as proposal_workflow_decisions_router
@@ -405,6 +485,7 @@ from app.routers.workbench_performance_evidence import (
 from app.routers.workbench_performance_modules import (
     router as workbench_performance_modules_router,
 )
+from app.routers.workbench_portfolio_360 import router as workbench_portfolio_360_router
 from app.routers.workbench_risk import router as workbench_risk_router
 from app.routers.workbench_risk_attribution import (
     router as workbench_risk_attribution_router,
@@ -415,6 +496,7 @@ from app.routers.workbench_risk_concentration import (
 from app.routers.workbench_risk_drawdown import router as workbench_risk_drawdown_router
 from app.routers.workbench_risk_rolling import router as workbench_risk_rolling_router
 from app.routers.workbench_sandbox import router as workbench_sandbox_router
+from app.routers.workbench_sandbox_changes import router as workbench_sandbox_changes_router
 
 
 def register_routers(app: FastAPI) -> None:
@@ -436,11 +518,15 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_workspace_resume_router)
     app.include_router(advisory_workspace_compare_router)
     app.include_router(advisory_workspace_version_lookups_router)
+    app.include_router(advisory_workspace_replay_evidence_router)
     app.include_router(advisory_workspace_assistant_router)
+    app.include_router(advisory_workspace_rationale_reviews_router)
     app.include_router(advisory_workspace_handoff_router)
     app.include_router(advisory_policy_router)
+    app.include_router(advisory_policy_pack_detail_router)
     app.include_router(advisory_policy_actions_router)
     app.include_router(advisory_policy_evaluations_router)
+    app.include_router(advisory_policy_review_queue_router)
     app.include_router(advisory_policy_evaluation_detail_router)
     app.include_router(advisory_policy_evaluation_evidence_router)
     app.include_router(advisory_policy_evaluation_workflow_router)
@@ -450,17 +536,23 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_policy_sign_off_decisions_router)
     app.include_router(advisory_policy_sign_off_package_router)
     app.include_router(advisory_policy_ai_evidence_router)
+    app.include_router(advisory_policy_validation_router)
     app.include_router(proposal_generation_router)
+    app.include_router(proposal_artifact_router)
     app.include_router(proposal_create_router)
     app.include_router(proposals_router)
     app.include_router(proposal_detail_router)
     app.include_router(proposal_operations_router)
     app.include_router(proposal_operation_lookups_router)
     app.include_router(proposal_operation_support_lookups_router)
+    app.include_router(proposal_idempotency_records_router)
     app.include_router(proposal_versions_router)
+    app.include_router(proposal_version_async_router)
     app.include_router(proposal_version_commands_router)
+    app.include_router(proposal_version_replay_evidence_router)
     app.include_router(proposal_workflow_router)
     app.include_router(proposal_workflow_decisions_router)
+    app.include_router(proposal_risk_approval_router)
     app.include_router(proposal_approvals_router)
     app.include_router(proposal_lineage_router)
     app.include_router(proposal_client_consent_router)
@@ -469,10 +561,14 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_narrative_reviews_router)
     app.include_router(proposal_narratives_router)
     app.include_router(proposal_delivery_router)
+    app.include_router(proposal_delivery_events_router)
     app.include_router(proposal_report_requests_router)
     app.include_router(proposal_execution_router)
+    app.include_router(proposal_execution_updates_router)
     app.include_router(proposal_execution_status_router)
+    app.include_router(proposal_operation_correlation_router)
     app.include_router(proposal_memos_router)
+    app.include_router(proposal_memo_detail_router)
     app.include_router(proposal_memo_evidence_router)
     app.include_router(proposal_memo_lineage_router)
     app.include_router(proposal_memo_replay_evidence_router)
@@ -493,6 +589,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(lookup_instrument_catalog_router)
     app.include_router(lookup_portfolio_catalog_router)
     app.include_router(foundation_router)
+    app.include_router(foundation_workspace_router)
     app.include_router(portfolio_router)
     app.include_router(portfolio_workspace_router)
     app.include_router(portfolio_readiness_router)
@@ -511,31 +608,43 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(composite_performance_inspection_router)
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_mandates_router)
+    app.include_router(dpm_command_center_mandate_detail_router)
     app.include_router(dpm_command_center_mandate_analysis_router)
+    app.include_router(dpm_command_center_mandate_diff_router)
     app.include_router(dpm_command_center_monitoring_router)
     app.include_router(dpm_command_center_monitoring_commands_router)
     app.include_router(dpm_command_center_monitoring_detail_router)
     app.include_router(dpm_command_center_exceptions_router)
+    app.include_router(dpm_command_center_exception_resolution_router)
     app.include_router(dpm_command_center_exception_ai_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
+    app.include_router(dpm_command_center_outcome_review_preview_router)
     app.include_router(dpm_command_center_outcome_review_detail_router)
     app.include_router(dpm_command_center_outcome_review_lookup_router)
     app.include_router(dpm_command_center_outcome_review_evidence_router)
+    app.include_router(dpm_command_center_outcome_review_ai_evidence_input_router)
     app.include_router(dpm_command_center_outcome_review_handoff_router)
     app.include_router(dpm_command_center_outcome_review_narratives_router)
     app.include_router(dpm_command_center_outcome_review_lookups_router)
+    app.include_router(dpm_command_center_outcome_review_supportability_router)
     app.include_router(dpm_command_center_wave_outcome_reviews_router)
     app.include_router(dpm_command_center_pm_quality_router)
     app.include_router(dpm_command_center_pm_quality_ai_router)
+    app.include_router(dpm_command_center_pm_quality_score_run_preview_router)
+    app.include_router(dpm_command_center_pm_quality_fairness_preview_router)
     app.include_router(dpm_command_center_pm_quality_fairness_router)
     app.include_router(dpm_command_center_pm_quality_fairness_detail_router)
     app.include_router(dpm_command_center_pm_quality_fairness_lookup_router)
+    app.include_router(dpm_command_center_pm_quality_policy_detail_router)
     app.include_router(dpm_command_center_pm_quality_policies_router)
     app.include_router(dpm_command_center_pm_quality_policy_actions_router)
+    app.include_router(dpm_command_center_pm_quality_review_action_preview_router)
     app.include_router(dpm_command_center_pm_quality_review_actions_router)
     app.include_router(dpm_command_center_pm_quality_review_action_detail_router)
     app.include_router(dpm_command_center_pm_quality_review_action_lookup_router)
+    app.include_router(dpm_command_center_pm_quality_score_run_detail_router)
     app.include_router(dpm_command_center_pm_quality_score_run_lookup_router)
+    app.include_router(dpm_command_center_pm_quality_summary_invocation_preview_router)
     app.include_router(dpm_command_center_pm_quality_summary_invocations_router)
     app.include_router(dpm_command_center_pm_quality_summary_detail_router)
     app.include_router(dpm_command_center_pm_quality_summary_lookup_router)
@@ -551,26 +660,35 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_workflow_automation_router)
     app.include_router(dpm_wave_campaign_approval_inbox_router)
     app.include_router(dpm_wave_campaign_approvals_router)
+    app.include_router(dpm_wave_campaign_assignment_action_commands_router)
     app.include_router(dpm_wave_campaign_approval_commands_router)
     app.include_router(dpm_wave_campaign_assignments_router)
     app.include_router(dpm_wave_campaign_assignment_tasks_router)
     app.include_router(dpm_wave_campaign_assignment_task_actions_router)
+    app.include_router(dpm_wave_campaign_assignment_task_transitions_router)
     app.include_router(dpm_wave_campaign_workflow_router)
     app.include_router(dpm_wave_campaign_maker_checker_commands_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_construction_actions_router)
+    app.include_router(dpm_construction_selection_router)
     app.include_router(dpm_proof_packs_router)
+    app.include_router(dpm_proof_pack_detail_router)
     app.include_router(dpm_proof_pack_evidence_router)
     app.include_router(dpm_proof_pack_report_input_router)
     app.include_router(dpm_proof_pack_ai_evidence_input_router)
     app.include_router(dpm_proof_pack_ai_router)
+    app.include_router(dpm_wave_preview_router)
     app.include_router(dpm_waves_router)
     app.include_router(dpm_wave_lookup_router)
     app.include_router(dpm_wave_detail_router)
     app.include_router(dpm_wave_items_router)
+    app.include_router(dpm_wave_item_selection_router)
     app.include_router(dpm_wave_actions_router)
+    app.include_router(dpm_wave_simulation_router)
     app.include_router(dpm_wave_lifecycle_actions_router)
+    app.include_router(dpm_wave_cancellation_router)
     app.include_router(dpm_wave_workflow_actions_router)
+    app.include_router(dpm_wave_handoff_router)
     app.include_router(dpm_wave_evidence_router)
     app.include_router(dpm_wave_report_input_router)
     app.include_router(dpm_wave_supportability_router)
@@ -584,6 +702,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_preview_readiness_router)
     app.include_router(dpm_wave_campaign_readiness_router)
     app.include_router(workbench_router)
+    app.include_router(workbench_portfolio_360_router)
     app.include_router(workbench_analytics_router)
     app.include_router(workbench_performance_router)
     app.include_router(workbench_performance_details_router)
@@ -598,6 +717,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workbench_risk_drawdown_router)
     app.include_router(workbench_risk_rolling_router)
     app.include_router(workbench_sandbox_router)
+    app.include_router(workbench_sandbox_changes_router)
     app.include_router(reporting_portfolio_summary_router)
     app.include_router(reporting_portfolio_reviews_router)
     app.include_router(reporting_portfolio_snapshots_router)
