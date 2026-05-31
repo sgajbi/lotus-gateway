@@ -326,6 +326,7 @@ from app.routers.dpm_wave_operations_handoff_ai import (
 )
 from app.routers.dpm_wave_preview import router as dpm_wave_preview_router
 from app.routers.dpm_wave_report_input import router as dpm_wave_report_input_router
+from app.routers.dpm_wave_simulation import router as dpm_wave_simulation_router
 from app.routers.dpm_wave_supportability import router as dpm_wave_supportability_router
 from app.routers.dpm_wave_workflow_actions import router as dpm_wave_workflow_actions_router
 from app.routers.dpm_waves import router as dpm_waves_router
@@ -649,6 +650,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_items_router)
     app.include_router(dpm_wave_item_selection_router)
     app.include_router(dpm_wave_actions_router)
+    app.include_router(dpm_wave_simulation_router)
     app.include_router(dpm_wave_lifecycle_actions_router)
     app.include_router(dpm_wave_workflow_actions_router)
     app.include_router(dpm_wave_evidence_router)
