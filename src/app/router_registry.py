@@ -24,6 +24,9 @@ from app.routers.advisory_policy_evaluation_support_actions import (
 from app.routers.advisory_policy_evaluations import (
     router as advisory_policy_evaluations_router,
 )
+from app.routers.advisory_workspace_actions import (
+    router as advisory_workspace_actions_router,
+)
 from app.routers.advisory_workspace_assistant import (
     router as advisory_workspace_assistant_router,
 )
@@ -262,6 +265,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisor_cockpit_house_view_router)
     app.include_router(bank_demo_proof_router)
     app.include_router(advisory_workspaces_router)
+    app.include_router(advisory_workspace_actions_router)
     app.include_router(advisory_workspace_versions_router)
     app.include_router(advisory_workspace_version_lookups_router)
     app.include_router(advisory_workspace_assistant_router)
