@@ -27,3 +27,23 @@ def test_service_layer_does_not_depend_on_router_modules() -> None:
     offenders = {name: imports for name, imports in offenders.items() if imports}
 
     assert offenders == {}
+
+
+def test_service_providers_do_not_return_direct_builder_calls() -> None:
+    offenders: dict[str, list[str]] = {}
+    for path in _SERVICE_ROOT.glob("*_service_provider.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        direct_builder_returns: list[str] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Return):
+                continue
+            if not isinstance(node.value, ast.Call):
+                continue
+            if not isinstance(node.value.func, ast.Name):
+                continue
+            if node.value.func.id.startswith("build_"):
+                direct_builder_returns.append(node.value.func.id)
+        if direct_builder_returns:
+            offenders[path.relative_to(_SERVICE_ROOT).as_posix()] = sorted(direct_builder_returns)
+
+    assert offenders == {}
