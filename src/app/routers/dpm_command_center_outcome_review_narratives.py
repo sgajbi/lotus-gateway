@@ -15,6 +15,18 @@ router = APIRouter(
 )
 
 
+async def _request_outcome_review_ai_narrative(
+    *,
+    request: DpmOutcomeReviewNarrativeRequest,
+    outcome_review_id: str,
+) -> DpmOutcomeReviewNarrativeGatewayResponse:
+    return await dpm_command_center_service().request_outcome_review_ai_narrative(
+        outcome_review_id=outcome_review_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/outcome-reviews/{outcome_review_id}/ai-narrative",
     response_model=DpmOutcomeReviewNarrativeGatewayResponse,
@@ -36,8 +48,7 @@ async def request_outcome_review_ai_narrative(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewNarrativeGatewayResponse:
-    return await dpm_command_center_service().request_outcome_review_ai_narrative(
-        outcome_review_id=outcome_review_id,
+    return await _request_outcome_review_ai_narrative(
         request=request,
-        correlation_id=correlation_id_var.get(),
+        outcome_review_id=outcome_review_id,
     )
