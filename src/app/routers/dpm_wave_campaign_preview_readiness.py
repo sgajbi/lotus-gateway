@@ -13,6 +13,24 @@ router = APIRouter(
 )
 
 
+async def _get_campaign_definition_preview_readiness(
+    *,
+    campaign_id: str,
+    campaign_version: str,
+    requested_as_of_date: str,
+    actor_id: str,
+) -> DpmCampaignDefinitionGatewayResponse:
+    return await dpm_wave_service().get_campaign_definition_preview_readiness(
+        campaign_id=campaign_id,
+        campaign_version=campaign_version,
+        filters={
+            "requested_as_of_date": requested_as_of_date,
+            "actor_id": actor_id,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/preview-readiness",
     response_model=DpmCampaignDefinitionGatewayResponse,
@@ -41,12 +59,9 @@ async def get_campaign_definition_preview_readiness(
         examples=["pm_sg_1"],
     ),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().get_campaign_definition_preview_readiness(
+    return await _get_campaign_definition_preview_readiness(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
-        filters={
-            "requested_as_of_date": requested_as_of_date,
-            "actor_id": actor_id,
-        },
-        correlation_id=correlation_id_var.get(),
+        requested_as_of_date=requested_as_of_date,
+        actor_id=actor_id,
     )
