@@ -368,6 +368,7 @@ from app.routers.proposal_artifact import router as proposal_artifact_router
 from app.routers.proposal_client_consent import router as proposal_client_consent_router
 from app.routers.proposal_create import router as proposal_create_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
+from app.routers.proposal_delivery_events import router as proposal_delivery_events_router
 from app.routers.proposal_detail import router as proposal_detail_router
 from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_execution_status import router as proposal_execution_status_router
@@ -541,6 +542,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_narrative_reviews_router)
     app.include_router(proposal_narratives_router)
     app.include_router(proposal_delivery_router)
+    app.include_router(proposal_delivery_events_router)
     app.include_router(proposal_report_requests_router)
     app.include_router(proposal_execution_router)
     app.include_router(proposal_execution_updates_router)
