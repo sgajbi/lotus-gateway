@@ -18,6 +18,9 @@ from app.routers.dpm_command_center_pm_quality import (
 from app.routers.dpm_command_center_pm_quality_fairness import (
     router as dpm_command_center_pm_quality_fairness_router,
 )
+from app.routers.dpm_command_center_pm_quality_review_actions import (
+    router as dpm_command_center_pm_quality_review_actions_router,
+)
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
 from app.routers.dpm_wave_campaign_definitions import (
@@ -79,6 +82,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_command_center_pm_quality_router)
     app.include_router(dpm_command_center_pm_quality_fairness_router)
+    app.include_router(dpm_command_center_pm_quality_review_actions_router)
     app.include_router(dpm_wave_campaign_definitions_router)
     app.include_router(dpm_wave_campaign_workflow_router)
     app.include_router(dpm_construction_router)
