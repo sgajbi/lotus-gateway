@@ -239,6 +239,7 @@ from app.routers.portfolio_workspace import router as portfolio_workspace_router
 from app.routers.proposal_client_consent import router as proposal_client_consent_router
 from app.routers.proposal_create import router as proposal_create_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
+from app.routers.proposal_detail import router as proposal_detail_router
 from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_execution_status import router as proposal_execution_status_router
 from app.routers.proposal_generation import router as proposal_generation_router
@@ -354,6 +355,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_generation_router)
     app.include_router(proposal_create_router)
     app.include_router(proposals_router)
+    app.include_router(proposal_detail_router)
     app.include_router(proposal_operations_router)
     app.include_router(proposal_operation_lookups_router)
     app.include_router(proposal_operation_support_lookups_router)
