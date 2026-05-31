@@ -164,7 +164,8 @@ Boundary rules:
 8. service modules must depend on typed protocol surfaces instead of concrete upstream client
    classes; only client factory modules under `src/app/services/*_client_factory.py` should import
    `app.clients.*` constructors. Domain-specific protocol modules such as
-   `dpm_client_protocols.py` and `reporting_client_protocols.py` own broad protocol families, and
+   `dpm_client_protocols.py`, `reporting_client_protocols.py`, `advisory_client_protocols.py`,
+   and `workspace_client_protocols.py` own broad protocol families, and
    `tests/unit/test_service_layer_boundaries.py` enforces the factory-only concrete-client rule.
 
 ## Repo-Native Commands

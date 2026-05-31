@@ -68,5 +68,5 @@
     RFP/security, external communication, OMS, order, fill, or settlement readiness
 11. service modules depend on typed protocol surfaces rather than concrete upstream client classes.
     Only client factory modules construct `app.clients.*` clients; domain-specific protocol modules
-    own broad DPM and reporting protocol families, and boundary tests enforce this factory-only
-    construction rule.
+    own broad DPM, reporting, advisory, and workspace/composition protocol families, and boundary
+    tests enforce this factory-only construction rule.
