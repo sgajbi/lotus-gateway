@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Header
+from fastapi import APIRouter
 
 from app.contracts.advisory_workspaces import (
     AdvisoryWorkspaceBodyRequest,
@@ -76,32 +76,5 @@ async def evaluate_workspace(
 ) -> AdvisoryWorkspaceEnvelopeResponse:
     return await advisory_workspace_service().evaluate_workspace(
         workspace_id=workspace_id,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.post(
-    "/{workspace_id}/handoff",
-    response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Handoff Advisory Workspace to Proposal Lifecycle",
-    description=(
-        "Persists the evaluated workspace draft into the lotus-advise proposal lifecycle. "
-        "Gateway forwards the request and does not synthesize proposal evidence locally."
-    ),
-)
-async def handoff_workspace(
-    request: AdvisoryWorkspaceBodyRequest,
-    workspace_id: str = WORKSPACE_ID_PATH,
-    idempotency_key: str | None = Header(
-        default=None,
-        alias="Idempotency-Key",
-        description="Optional idempotency key for workspace-to-proposal handoff.",
-        examples=["idem-workspace-handoff-1"],
-    ),
-) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().handoff_workspace(
-        workspace_id=workspace_id,
-        body=request.body,
-        idempotency_key=idempotency_key,
         correlation_id=correlation_id_var.get(),
     )
