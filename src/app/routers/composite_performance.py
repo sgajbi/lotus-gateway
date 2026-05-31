@@ -3,25 +3,20 @@ from typing import Annotated
 from fastapi import APIRouter, Header, HTTPException, status
 
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.config import settings
 from app.contracts.composite_performance import (
     CompositePerformanceGatewayResponse,
     CompositePerformanceInspectionRequest,
     CompositePerformanceTwrRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.analytics_client_factory import build_performance_analytics_client
 from app.services.caller_context import caller_context_headers
 
 router = APIRouter(prefix="/api/v1/performance/composites", tags=["Composite Performance"])
 
 
 def _analytics_client() -> LotusAnalyticsClient:
-    return LotusAnalyticsClient(
-        base_url=settings.performance_analytics_base_url,
-        timeout_seconds=settings.performance_analytics_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+    return build_performance_analytics_client()
 
 
 def _required_caller_context(

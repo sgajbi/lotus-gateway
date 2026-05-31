@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Path
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.config import settings
 from app.contracts.foundation import (
     FoundationPortfolioCatalogResponse,
     FoundationWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.analytics_client_factory import build_performance_analytics_client
 from app.services.dpm_service_factory import build_manage_client
 from app.services.foundation_service import FoundationService
 from app.services.lotus_core_client_factory import build_lotus_core_query_client
@@ -18,12 +17,7 @@ router = APIRouter(prefix="/api/v1/foundation", tags=["foundation"])
 def _foundation_service() -> FoundationService:
     return FoundationService(
         lotus_core_query_client=build_lotus_core_query_client(),
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        analytics_client=build_performance_analytics_client(),
         dpm_client=build_manage_client(),
         reporting_client=build_reporting_client(),
     )
