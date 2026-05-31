@@ -1,4 +1,4 @@
-from app.services.advise_client_factory import build_advise_client
+from app.services.advise_client_factory import advise_client_signature, build_advise_client
 
 
 def test_advise_client_factory_builds_configured_lotus_advise_client(monkeypatch) -> None:
@@ -25,3 +25,4 @@ def test_advise_client_factory_builds_configured_lotus_advise_client(monkeypatch
     assert client._timeout == 6.5
     assert client._max_retries == 4
     assert client._retry_backoff_seconds == 0.75
+    assert advise_client_signature() == ("http://advise:8000/", 6.5, 4, 0.75)
