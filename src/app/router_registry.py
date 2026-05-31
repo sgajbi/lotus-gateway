@@ -40,6 +40,9 @@ from app.routers.dpm_wave_ai import router as dpm_wave_ai_router
 from app.routers.dpm_wave_campaign_approvals import (
     router as dpm_wave_campaign_approvals_router,
 )
+from app.routers.dpm_wave_campaign_assignments import (
+    router as dpm_wave_campaign_assignments_router,
+)
 from app.routers.dpm_wave_campaign_definitions import (
     router as dpm_wave_campaign_definitions_router,
 )
@@ -133,6 +136,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_discovery_router)
     app.include_router(dpm_wave_campaign_workflow_boards_router)
     app.include_router(dpm_wave_campaign_approvals_router)
+    app.include_router(dpm_wave_campaign_assignments_router)
     app.include_router(dpm_wave_campaign_workflow_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_proof_packs_router)
