@@ -28,6 +28,7 @@ from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.platform import router as platform_router
 from app.routers.portfolio import router as portfolio_router
+from app.routers.portfolio_activity import router as portfolio_activity_router
 from app.routers.portfolio_performance import router as portfolio_performance_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
 from app.routers.proposal_memos import router as proposal_memos_router
@@ -66,6 +67,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(intake_router)
     app.include_router(foundation_router)
     app.include_router(portfolio_router)
+    app.include_router(portfolio_activity_router)
     app.include_router(portfolio_performance_router)
     app.include_router(composite_performance_router)
     app.include_router(dpm_command_center_router)
