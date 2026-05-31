@@ -88,6 +88,9 @@ from app.routers.bank_demo_supported_claims import (
     router as bank_demo_supported_claims_router,
 )
 from app.routers.composite_performance import router as composite_performance_router
+from app.routers.composite_performance_inspection import (
+    router as composite_performance_inspection_router,
+)
 from app.routers.domain_product_catalog import router as domain_product_catalog_router
 from app.routers.domain_product_detail import router as domain_product_detail_router
 from app.routers.domain_product_graph import router as domain_product_graph_router
@@ -488,6 +491,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(portfolio_performance_router)
     app.include_router(portfolio_workflow_router)
     app.include_router(composite_performance_router)
+    app.include_router(composite_performance_inspection_router)
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_mandates_router)
     app.include_router(dpm_command_center_mandate_analysis_router)

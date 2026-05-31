@@ -4,7 +4,7 @@ from fastapi import APIRouter, Header
 
 from app.contracts.composite_performance import (
     CompositePerformanceGatewayResponse,
-    CompositePerformanceTwrRequest,
+    CompositePerformanceInspectionRequest,
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.composite_performance_common import composite_caller_context
@@ -14,18 +14,18 @@ router = APIRouter(prefix="/api/v1/performance/composites", tags=["Composite Per
 
 
 @router.post(
-    "/twr",
+    "/inspect",
     response_model=CompositePerformanceGatewayResponse,
-    summary="Calculate Persisted Composite TWR",
+    summary="Inspect Composite Performance Evidence",
     description=(
-        "Calculates an asset-weighted composite time-weighted return through lotus-performance "
-        "from persisted member-return facts. Gateway is only the governed experience boundary: "
-        "it propagates caller context and correlation, preserves the source-owned payload, and "
-        "does not calculate returns, member weights, dispersion, lineage, or restatement truth."
+        "Runs lotus-performance composite inspection for support, audit, and methodology evidence. "
+        "The response carries source-owned findings, evidence summaries, and classified artifacts "
+        "such as member inputs, period weights, composite returns, lineage manifest, and support "
+        "brief content. Gateway preserves the artifact payloads and does not generate audit truth."
     ),
 )
-async def calculate_composite_twr(
-    request: CompositePerformanceTwrRequest,
+async def inspect_composite_performance(
+    request: CompositePerformanceInspectionRequest,
     actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
     caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
     tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
@@ -34,7 +34,7 @@ async def calculate_composite_twr(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
     correlation_id = correlation_id_var.get()
-    return await composite_performance_service().calculate_twr(
+    return await composite_performance_service().inspect(
         payload=request.model_dump(exclude_none=True),
         correlation_id=correlation_id,
         caller_context=composite_caller_context(
