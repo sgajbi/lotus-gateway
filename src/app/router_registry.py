@@ -203,6 +203,7 @@ from app.routers.portfolio_readiness import router as portfolio_readiness_router
 from app.routers.portfolio_transactions import router as portfolio_transactions_router
 from app.routers.portfolio_workflow import router as portfolio_workflow_router
 from app.routers.portfolio_workspace import router as portfolio_workspace_router
+from app.routers.proposal_client_consent import router as proposal_client_consent_router
 from app.routers.proposal_create import router as proposal_create_router
 from app.routers.proposal_delivery import router as proposal_delivery_router
 from app.routers.proposal_execution import router as proposal_execution_router
@@ -323,6 +324,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_version_commands_router)
     app.include_router(proposal_workflow_router)
     app.include_router(proposal_workflow_decisions_router)
+    app.include_router(proposal_client_consent_router)
     app.include_router(proposal_workflow_evidence_router)
     app.include_router(proposal_narrative_actions_router)
     app.include_router(proposal_narratives_router)
