@@ -43,6 +43,9 @@ from app.routers.advisory_policy_evaluation_workflow import (
 from app.routers.advisory_policy_evaluations import (
     router as advisory_policy_evaluations_router,
 )
+from app.routers.advisory_policy_pack_detail import (
+    router as advisory_policy_pack_detail_router,
+)
 from app.routers.advisory_policy_review_queue import (
     router as advisory_policy_review_queue_router,
 )
@@ -517,6 +520,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_workspace_rationale_reviews_router)
     app.include_router(advisory_workspace_handoff_router)
     app.include_router(advisory_policy_router)
+    app.include_router(advisory_policy_pack_detail_router)
     app.include_router(advisory_policy_actions_router)
     app.include_router(advisory_policy_evaluations_router)
     app.include_router(advisory_policy_review_queue_router)
