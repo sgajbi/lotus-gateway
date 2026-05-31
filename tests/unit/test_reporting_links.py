@@ -1,4 +1,4 @@
-from app.routers.reporting_links import (
+from app.services.reporting_links import (
     gateway_report_batch_status_url,
     gateway_report_job_status_url,
     rewrite_report_batch_status_url,

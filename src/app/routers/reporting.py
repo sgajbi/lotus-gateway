@@ -48,9 +48,6 @@ from app.routers.reporting_examples import (
     REVIEW_REQUEST_EXAMPLES,
     SUMMARY_REQUEST_EXAMPLES,
 )
-from app.routers.reporting_links import (
-    gateway_report_job_status_url,
-)
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_batch_control_service import ReportingBatchControlService
 from app.services.reporting_batch_control_service_factory import (
@@ -70,6 +67,7 @@ from app.services.reporting_job_submission_service import ReportingJobSubmission
 from app.services.reporting_job_submission_service_factory import (
     build_reporting_job_submission_service,
 )
+from app.services.reporting_links import gateway_report_job_status_url
 from app.services.reporting_portfolio_service import ReportingPortfolioService
 from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
 
