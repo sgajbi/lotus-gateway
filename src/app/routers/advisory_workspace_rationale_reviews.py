@@ -12,19 +12,19 @@ router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspa
 
 
 @router.post(
-    "/{workspace_id}/assistant/rationale",
+    "/{workspace_id}/assistant/rationale/review-actions",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Request Advisory Workspace Rationale",
+    summary="Review Advisory Workspace Rationale Run",
     description=(
-        "Requests an evidence-grounded workspace rationale through lotus-advise and its "
-        "Lotus AI seam. Gateway does not generate advisory rationale or prompts locally."
+        "Applies a bounded review action to the Lotus AI rationale run through lotus-advise, "
+        "preserving run-ledger and replacement-lineage posture without Gateway rewriting."
     ),
 )
-async def request_rationale(
+async def review_rationale(
     request: AdvisoryWorkspaceBodyRequest,
     workspace_id: str = WORKSPACE_ID_PATH,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().request_rationale(
+    return await advisory_workspace_service().review_rationale(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
