@@ -51,6 +51,10 @@ from app.routers.reporting_links import (
 )
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_client_factory import build_render_client, build_reporting_client
+from app.services.reporting_job_submission_service import ReportingJobSubmissionService
+from app.services.reporting_job_submission_service_factory import (
+    build_reporting_job_submission_service,
+)
 from app.services.reporting_portfolio_service import ReportingPortfolioService
 from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
 from app.services.reporting_supportability import attach_reporting_operator_supportability
@@ -170,6 +174,10 @@ def _context_headers(
 
 def _reporting_portfolio_service() -> ReportingPortfolioService:
     return build_reporting_portfolio_service()
+
+
+def _reporting_job_submission_service() -> ReportingJobSubmissionService:
+    return build_reporting_job_submission_service()
 
 
 @router.get(
@@ -337,18 +345,11 @@ async def submit_portfolio_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "missing_idempotency_key",
-                "message": "Idempotency-Key is required.",
-            },
-        )
-
-    status_code, payload = await build_reporting_client().submit_portfolio_review_job(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_job_submission_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    response = await service.submit_portfolio_review_job(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -359,8 +360,6 @@ async def submit_portfolio_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    raise_report_job_error(status_code, payload)
-    response = ReportJobHandleResponse.model_validate(payload)
     return response.model_copy(
         update={"status_url": gateway_report_job_status_url(response.report_job_id)}
     )
@@ -418,18 +417,11 @@ async def submit_outcome_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "missing_idempotency_key",
-                "message": "Idempotency-Key is required.",
-            },
-        )
-
-    status_code, payload = await build_reporting_client().submit_outcome_review_report_job(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_job_submission_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    response = await service.submit_outcome_review_report_job(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -440,8 +432,6 @@ async def submit_outcome_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    raise_report_job_error(status_code, payload)
-    response = ReportJobHandleResponse.model_validate(payload)
     return response.model_copy(
         update={"status_url": gateway_report_job_status_url(response.report_job_id)}
     )
