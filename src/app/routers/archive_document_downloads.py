@@ -1,11 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path, Query
+from fastapi import APIRouter, Header, Path, Response
 
-from app.contracts.archive_documents import (
-    ARCHIVE_DOCUMENT_EXAMPLE,
-    ArchivedDocumentMetadataResponse,
-)
 from app.middleware.correlation import correlation_id_var
 from app.routers.archive_documents_common import (
     archive_caller_headers,
@@ -17,23 +13,23 @@ router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
 
 
 @router.get(
-    "/{document_id}",
-    response_model=ArchivedDocumentMetadataResponse,
-    summary="Get archived document metadata",
+    "/{document_id}/download",
+    summary="Download archived document",
     description=(
-        "Return product-safe archived document metadata through the gateway boundary. Use this "
-        "endpoint when Workbench or support tooling needs document identity, lifecycle summary, "
-        "retention summary, and a gateway-controlled download link without exposing archive "
-        "storage internals."
+        "Download an archived document binary through the gateway boundary. Use this endpoint "
+        "only after metadata retrieval has returned a gateway-controlled download URL. The "
+        "gateway preserves content type and integrity headers while keeping archive storage "
+        "locations hidden."
     ),
-    openapi_extra={
-        "responses": {
-            "200": {
-                "content": {"application/json": {"example": ARCHIVE_DOCUMENT_EXAMPLE}},
-            }
-        }
-    },
     responses={
+        200: {
+            "description": "Archived document binary.",
+            "content": {
+                "application/pdf": {
+                    "schema": {"type": "string", "format": "binary"},
+                }
+            },
+        },
         **archive_error_response(
             400,
             example_key="missing_caller_context",
@@ -51,12 +47,12 @@ router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
         ),
         **archive_error_response(
             502,
-            example_key="archive_upstream_unavailable",
-            description="Returned when lotus-archive is unavailable or returns an unsafe failure.",
+            example_key="document_download_failed",
+            description="Returned when the archived binary is unavailable or fails validation.",
         ),
     },
 )
-async def get_archived_document_metadata(
+async def download_archived_document(
     document_id: Annotated[
         str,
         Path(
@@ -64,25 +60,14 @@ async def get_archived_document_metadata(
             examples=["doc_7d5f1f1e4d0d4d0f9b7f1a2a6b8c9d10"],
         ),
     ],
-    current: Annotated[
-        bool,
-        Query(
-            description=(
-                "When true, resolve the current document after supersession, correction, or "
-                "reissue history."
-            ),
-            examples=[False],
-        ),
-    ] = False,
     actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
     caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
     tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
     region: Annotated[str | None, Header(alias="X-Region")] = None,
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
-) -> ArchivedDocumentMetadataResponse:
-    correlation_id = correlation_id_var.get()
-    return await archive_document_service().get_document_metadata(
+) -> Response:
+    download = await archive_document_service().download_document(
         document_id=document_id,
         caller_headers=archive_caller_headers(
             actor_id=actor_id,
@@ -92,6 +77,11 @@ async def get_archived_document_metadata(
             booking_center_code=booking_center_code,
             role=role,
         ),
-        correlation_id=correlation_id,
-        current=current,
+        correlation_id=correlation_id_var.get(),
+    )
+
+    return Response(
+        content=download.content,
+        media_type=download.media_type,
+        headers=download.headers,
     )

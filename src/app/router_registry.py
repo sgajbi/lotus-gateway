@@ -25,6 +25,9 @@ from app.routers.advisory_workspace_versions import (
 )
 from app.routers.advisory_workspaces import router as advisory_workspaces_router
 from app.routers.analytics_diagnostics import router as analytics_diagnostics_router
+from app.routers.archive_document_downloads import (
+    router as archive_document_downloads_router,
+)
 from app.routers.archive_documents import router as archive_documents_router
 from app.routers.bank_demo_proof import router as bank_demo_proof_router
 from app.routers.composite_performance import router as composite_performance_router
@@ -266,4 +269,5 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_batch_worker_router)
     app.include_router(reporting_schedules_router)
     app.include_router(archive_documents_router)
+    app.include_router(archive_document_downloads_router)
     app.include_router(analytics_diagnostics_router)
