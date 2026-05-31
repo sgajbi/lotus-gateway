@@ -160,7 +160,12 @@ Boundary rules:
 4. gateway must not become the authority for portfolio source data, performance analytics, risk analytics, advisory workflow, management workflow, reporting, or AI outputs,
 5. REST/OpenAPI remains the canonical integration contract; gRPC is not justified for current gateway upstream calls,
 6. canonical service identity is part of the operational contract,
-7. domain-product discovery must preserve platform artifact provenance, approved consumers, trust metadata, dependency posture, and certified trust posture without duplicating platform validation logic inside gateway.
+7. domain-product discovery must preserve platform artifact provenance, approved consumers, trust metadata, dependency posture, and certified trust posture without duplicating platform validation logic inside gateway,
+8. service modules must depend on typed protocol surfaces instead of concrete upstream client
+   classes; only client factory modules under `src/app/services/*_client_factory.py` should import
+   `app.clients.*` constructors. Domain-specific protocol modules such as
+   `dpm_client_protocols.py` and `reporting_client_protocols.py` own broad protocol families, and
+   `tests/unit/test_service_layer_boundaries.py` enforces the factory-only concrete-client rule.
 
 ## Repo-Native Commands
 
