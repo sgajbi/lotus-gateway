@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Any
+
 from fastapi import APIRouter, Query
 
 from app.contracts.dpm_command_center import (
@@ -21,6 +24,39 @@ router = APIRouter(
     tags=["DPM Command Center"],
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
+
+
+@dataclass(frozen=True)
+class PortfolioMemorySearchFilters:
+    portfolio_ids: list[str] | None
+    event_type: str | None
+    supportability_state: str | None
+    source_system: str | None
+    source_type: str | None
+    limit: int
+    offset: int
+    source_scan_limit: int | None
+
+    def as_filters(self) -> dict[str, Any]:
+        return {
+            "portfolio_ids": self.portfolio_ids,
+            "event_type": self.event_type,
+            "supportability_state": self.supportability_state,
+            "source_system": self.source_system,
+            "source_type": self.source_type,
+            "limit": self.limit,
+            "offset": self.offset,
+            "source_scan_limit": self.source_scan_limit,
+        }
+
+
+async def _search_portfolio_memory(
+    filters: PortfolioMemorySearchFilters,
+) -> DpmPortfolioMemoryGatewayResponse:
+    return await dpm_command_center_service().search_portfolio_memory(
+        filters=filters.as_filters(),
+        correlation_id=correlation_id_var.get(),
+    )
 
 
 @router.get(
@@ -84,16 +120,15 @@ async def search_portfolio_memory(
         examples=[250],
     ),
 ) -> DpmPortfolioMemoryGatewayResponse:
-    return await dpm_command_center_service().search_portfolio_memory(
-        filters={
-            "portfolio_ids": portfolio_ids,
-            "event_type": event_type,
-            "supportability_state": supportability_state,
-            "source_system": source_system,
-            "source_type": source_type,
-            "limit": limit,
-            "offset": offset,
-            "source_scan_limit": source_scan_limit,
-        },
-        correlation_id=correlation_id_var.get(),
+    return await _search_portfolio_memory(
+        PortfolioMemorySearchFilters(
+            portfolio_ids=portfolio_ids,
+            event_type=event_type,
+            supportability_state=supportability_state,
+            source_system=source_system,
+            source_type=source_type,
+            limit=limit,
+            offset=offset,
+            source_scan_limit=source_scan_limit,
+        )
     )
