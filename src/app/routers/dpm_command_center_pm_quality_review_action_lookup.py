@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _list_pm_operating_quality_review_actions(
+    *,
+    filters: dict[str, str | int | None],
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().list_pm_operating_quality_review_actions(
+        filters=filters,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/review-actions",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -39,7 +49,7 @@ async def list_pm_operating_quality_review_actions(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum review actions to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().list_pm_operating_quality_review_actions(
+    return await _list_pm_operating_quality_review_actions(
         filters={
             "target_type": target_type,
             "target_id": target_id,
@@ -49,5 +59,4 @@ async def list_pm_operating_quality_review_actions(
             "limit": limit,
             "offset": offset,
         },
-        correlation_id=correlation_id_var.get(),
     )
