@@ -44,3 +44,32 @@ def test_gateway_service_provider_wires_smaller_route_services(monkeypatch) -> N
         intake_service()._lotus_core_ingestion_client._base_url
         == "http://core-ingestion-provider:8000"
     )
+
+
+def test_gateway_service_provider_reuses_services_for_unchanged_signature(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.archive_client_factory.settings.archive_service_base_url",
+        "http://archive-provider-cache:8000",
+    )
+
+    first = archive_document_service()
+    second = archive_document_service()
+
+    assert first is second
+
+
+def test_gateway_service_provider_rebuilds_when_core_query_routing_changes(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.services.lotus_core_client_factory.settings.portfolio_data_query_base_url",
+        "http://core-query-provider-a:8001",
+    )
+    first = source_product_service()
+
+    monkeypatch.setattr(
+        "app.services.lotus_core_client_factory.settings.portfolio_data_query_base_url",
+        "http://core-query-provider-b:8001",
+    )
+    second = source_product_service()
+
+    assert first is not second
+    assert second._lotus_core_query_client._query_base_url == "http://core-query-provider-b:8001"
