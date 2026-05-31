@@ -445,6 +445,7 @@ from app.routers.workbench_risk_concentration import (
 from app.routers.workbench_risk_drawdown import router as workbench_risk_drawdown_router
 from app.routers.workbench_risk_rolling import router as workbench_risk_rolling_router
 from app.routers.workbench_sandbox import router as workbench_sandbox_router
+from app.routers.workbench_sandbox_changes import router as workbench_sandbox_changes_router
 
 
 def register_routers(app: FastAPI) -> None:
@@ -638,6 +639,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workbench_risk_drawdown_router)
     app.include_router(workbench_risk_rolling_router)
     app.include_router(workbench_sandbox_router)
+    app.include_router(workbench_sandbox_changes_router)
     app.include_router(reporting_portfolio_summary_router)
     app.include_router(reporting_portfolio_reviews_router)
     app.include_router(reporting_portfolio_snapshots_router)
