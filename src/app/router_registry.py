@@ -216,6 +216,9 @@ from app.routers.dpm_wave_campaign_preview_readiness import (
 from app.routers.dpm_wave_campaign_readiness import (
     router as dpm_wave_campaign_readiness_router,
 )
+from app.routers.dpm_wave_campaign_supersede import (
+    router as dpm_wave_campaign_supersede_router,
+)
 from app.routers.dpm_wave_campaign_workflow import (
     router as dpm_wave_campaign_workflow_router,
 )
@@ -491,6 +494,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_launch_package_router)
     app.include_router(dpm_wave_campaign_launch_actions_router)
     app.include_router(dpm_wave_campaign_lifecycle_router)
+    app.include_router(dpm_wave_campaign_supersede_router)
     app.include_router(dpm_wave_campaign_preview_readiness_router)
     app.include_router(dpm_wave_campaign_readiness_router)
     app.include_router(workbench_router)
