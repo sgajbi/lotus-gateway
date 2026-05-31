@@ -117,7 +117,6 @@ def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> Non
 def test_non_dpm_service_tests_do_not_need_arg_type_suppressions() -> None:
     allowed = {
         "test_dpm_command_center_service.py",
-        "test_dpm_wave_service.py",
     }
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
