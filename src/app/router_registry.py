@@ -71,6 +71,7 @@ from app.routers.archive_document_downloads import (
 )
 from app.routers.archive_documents import router as archive_documents_router
 from app.routers.bank_demo_proof import router as bank_demo_proof_router
+from app.routers.bank_demo_proof_packs import router as bank_demo_proof_packs_router
 from app.routers.composite_performance import router as composite_performance_router
 from app.routers.domain_product_catalog import router as domain_product_catalog_router
 from app.routers.domain_product_detail import router as domain_product_detail_router
@@ -388,6 +389,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisor_cockpit_supportability_router)
     app.include_router(advisor_cockpit_house_view_router)
     app.include_router(bank_demo_proof_router)
+    app.include_router(bank_demo_proof_packs_router)
     app.include_router(advisory_workspaces_router)
     app.include_router(advisory_workspace_actions_router)
     app.include_router(advisory_workspace_versions_router)
