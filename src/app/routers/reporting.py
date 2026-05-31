@@ -38,6 +38,7 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.reporting_context import reporting_context_headers
 from app.routers.reporting_errors import (
     report_batch_error_response,
     report_job_error_response,
@@ -48,7 +49,6 @@ from app.routers.reporting_examples import (
     REVIEW_REQUEST_EXAMPLES,
     SUMMARY_REQUEST_EXAMPLES,
 )
-from app.services.caller_context import caller_context_headers
 from app.services.reporting_links import gateway_report_job_status_url
 from app.services.reporting_service_provider import (
     reporting_batch_control_service,
@@ -66,25 +66,6 @@ schedules_router = APIRouter(
     prefix="/api/v1/report-batch-schedules",
     tags=["Report Batch Schedules"],
 )
-
-
-def _context_headers(
-    *,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
-) -> dict[str, str]:
-    return caller_context_headers(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
 
 
 @router.get(
@@ -257,7 +238,7 @@ async def submit_portfolio_review_report_job(
     response = await service.submit_portfolio_review_job(
         request=request,
         idempotency_key=required_idempotency_key,
-        caller_headers=caller_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -329,7 +310,7 @@ async def submit_outcome_review_report_job(
     response = await service.submit_outcome_review_report_job(
         request=request,
         idempotency_key=required_idempotency_key,
-        caller_headers=caller_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -457,7 +438,7 @@ async def list_report_jobs(
     filters = {key: value for key, value in filters.items() if value is not None}
     return await reporting_job_query_service().list_report_jobs(
         filters=filters,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -501,7 +482,7 @@ async def get_report_job_status(
 ) -> ReportJobStatusResponse:
     return await reporting_job_query_service().get_report_job_status(
         job_id=job_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -545,7 +526,7 @@ async def get_report_job_events(
 ) -> ReportJobStatusEventsResponse:
     return await reporting_job_query_service().get_report_job_events(
         job_id=job_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -589,7 +570,7 @@ async def get_report_job_lineage(
 ) -> ReportSnapshotLineageResponse:
     return await reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -639,7 +620,7 @@ async def cancel_report_job(
 ) -> ReportJobStatusResponse:
     return await reporting_job_query_service().cancel_report_job(
         job_id=job_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -683,7 +664,7 @@ async def get_report_snapshot(
 ) -> ReportInputSnapshotRecord:
     return await reporting_job_query_service().get_report_snapshot(
         snapshot_id=snapshot_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -726,7 +707,7 @@ async def get_report_snapshot_lineage(
 ) -> ReportSnapshotLineageResponse:
     return await reporting_job_query_service().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -816,7 +797,7 @@ async def create_report_batch(
     return await service.create_batch(
         request=request,
         idempotency_key=required_idempotency_key,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -868,7 +849,7 @@ async def get_report_batch_status(
     correlation_id = correlation_id_var.get()
     return await reporting_batch_lifecycle_service().get_batch_status(
         batch_id=batch_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -895,7 +876,7 @@ async def _control_batch(
     return await reporting_batch_control_service().control_batch(
         batch_id=batch_id,
         action=action,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1054,7 +1035,7 @@ async def recover_expired_report_batch_leases(
 ) -> BatchRecoveryResponse:
     return await reporting_batch_control_service().recover_expired_leases(
         batch_id=batch_id,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1119,7 +1100,7 @@ async def run_report_batch_once(
     return await reporting_batch_control_service().run_batch_once(
         batch_id=batch_id,
         request=request,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1165,7 +1146,7 @@ async def list_report_batch_schedules(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchScheduleListResponse:
     return await reporting_batch_scheduler_service().list_schedules(
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1226,7 +1207,7 @@ async def run_due_report_batch_schedules(
 ) -> BatchSchedulerRunResponse:
     return await reporting_batch_scheduler_service().run_due_schedules(
         request=request,
-        caller_headers=_context_headers(
+        caller_headers=reporting_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
