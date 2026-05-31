@@ -19,6 +19,18 @@ schedule_runs_router = APIRouter(
 )
 
 
+async def _run_due_report_batch_schedules(
+    *,
+    request: BatchSchedulerRunRequest,
+    caller_headers: dict[str, str],
+) -> BatchSchedulerRunResponse:
+    return await reporting_batch_scheduler_service().run_due_schedules(
+        request=request,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @schedule_runs_router.post(
     ":run-due",
     response_model=BatchSchedulerRunResponse,
@@ -61,8 +73,7 @@ async def run_due_report_batch_schedules(
     ],
     caller_headers: ReportingCallerContext,
 ) -> BatchSchedulerRunResponse:
-    return await reporting_batch_scheduler_service().run_due_schedules(
+    return await _run_due_report_batch_schedules(
         request=request,
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
     )
