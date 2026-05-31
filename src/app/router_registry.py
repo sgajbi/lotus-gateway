@@ -330,6 +330,7 @@ from app.routers.dpm_wave_supportability import router as dpm_wave_supportabilit
 from app.routers.dpm_wave_workflow_actions import router as dpm_wave_workflow_actions_router
 from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
+from app.routers.foundation_workspace import router as foundation_workspace_router
 from app.routers.intake import router as intake_router
 from app.routers.intake_upload_commits import router as intake_upload_commits_router
 from app.routers.intake_uploads import router as intake_uploads_router
@@ -555,6 +556,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(lookup_instrument_catalog_router)
     app.include_router(lookup_portfolio_catalog_router)
     app.include_router(foundation_router)
+    app.include_router(foundation_workspace_router)
     app.include_router(portfolio_router)
     app.include_router(portfolio_workspace_router)
     app.include_router(portfolio_readiness_router)
