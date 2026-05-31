@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Header, Path, Query
 
-from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.advisory_policy import (
     AdvisoryPolicyBodyRequest,
     AdvisoryPolicyEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.advisory_policy_service import AdvisoryPolicyService
+from app.services.advisory_service_factory import build_advisory_policy_service
 
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 POLICY_VERSION_PATH = Path(
@@ -21,14 +20,7 @@ POLICY_EVALUATION_PATH = Path(
 
 
 def _advisory_policy_service() -> AdvisoryPolicyService:
-    return AdvisoryPolicyService(
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
+    return build_advisory_policy_service()
 
 
 @router.get(

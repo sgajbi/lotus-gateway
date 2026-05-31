@@ -1,11 +1,7 @@
-from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 
-from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Header, Path, Query, status
 
-from app.clients.render_client import RenderClient
-from app.clients.reporting_client import ReportingClient
-from app.config import settings
 from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
     BATCH_CREATE_REQUEST_EXAMPLE,
@@ -17,8 +13,6 @@ from app.contracts.reporting import (
     BATCH_STATUS_RESPONSE_EXAMPLE,
     BATCH_WORKER_RUN_REQUEST_EXAMPLE,
     BATCH_WORKER_RUN_RESPONSE_EXAMPLE,
-    REPORT_BATCH_ERROR_EXAMPLES,
-    REPORT_JOB_ERROR_EXAMPLES,
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
     BatchControlResponse,
     BatchCreateRequest,
@@ -37,7 +31,6 @@ from app.contracts.reporting import (
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
     ReportInputSnapshotRecord,
-    ReportJobErrorResponse,
     ReportJobHandleResponse,
     ReportJobListResponse,
     ReportJobStatusEventsResponse,
@@ -45,7 +38,38 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.reporting_errors import (
+    report_batch_error_response,
+    report_job_error_response,
+)
+from app.routers.reporting_examples import (
+    OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES,
+    PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES,
+    REVIEW_REQUEST_EXAMPLES,
+    SUMMARY_REQUEST_EXAMPLES,
+)
 from app.services.caller_context import caller_context_headers
+from app.services.reporting_batch_control_service import ReportingBatchControlService
+from app.services.reporting_batch_control_service_factory import (
+    build_reporting_batch_control_service,
+)
+from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecycleService
+from app.services.reporting_batch_lifecycle_service_factory import (
+    build_reporting_batch_lifecycle_service,
+)
+from app.services.reporting_batch_scheduler_service import ReportingBatchSchedulerService
+from app.services.reporting_batch_scheduler_service_factory import (
+    build_reporting_batch_scheduler_service,
+)
+from app.services.reporting_job_query_service import ReportingJobQueryService
+from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
+from app.services.reporting_job_submission_service import ReportingJobSubmissionService
+from app.services.reporting_job_submission_service_factory import (
+    build_reporting_job_submission_service,
+)
+from app.services.reporting_links import gateway_report_job_status_url
+from app.services.reporting_portfolio_service import ReportingPortfolioService
+from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
@@ -54,388 +78,6 @@ schedules_router = APIRouter(
     prefix="/api/v1/report-batch-schedules",
     tags=["Report Batch Schedules"],
 )
-
-SUMMARY_REQUEST_EXAMPLES = {
-    "wealthSummary": {
-        "summary": "Wealth summary in portfolio base currency",
-        "description": "Resolve wealth and allocation sections for one reporting date.",
-        "value": {
-            "asOfDate": "2026-02-24",
-            "sections": ["WEALTH", "ALLOCATION"],
-            "allocationDimensions": ["asset_class", "currency"],
-        },
-    }
-}
-
-REVIEW_REQUEST_EXAMPLES = {
-    "frontOfficeReview": {
-        "summary": "Front-office review payload in USD",
-        "description": (
-            "Resolve a review payload with holdings, transactions, performance, and risk."
-        ),
-        "value": {
-            "asOfDate": "2026-02-24",
-            "reportingCurrency": "USD",
-            "sections": [
-                "OVERVIEW",
-                "ALLOCATION",
-                "INCOME_AND_ACTIVITY",
-                "HOLDINGS",
-                "TRANSACTIONS",
-                "PERFORMANCE",
-                "RISK_ANALYTICS",
-            ],
-            "allocationDimensions": ["asset_class"],
-            "lookThroughMode": "full",
-            "benchmarkCode": "BMK_PB_GLOBAL_BALANCED_60_40",
-        },
-    }
-}
-
-PORTFOLIO_REVIEW_JOB_REQUEST_EXAMPLES = {
-    "portfolioReviewJob": {
-        "summary": "Portfolio review job request",
-        "description": "Create a durable job handle for asynchronous portfolio review generation.",
-        "value": {
-            "portfolio_scope": {"portfolio_ids": ["PB_SG_GLOBAL_BAL_001"]},
-            "as_of_date": "2026-04-22",
-            "requested_output_formats": ["json"],
-            "reporting_currency": "USD",
-            "options": {
-                "sections": ["OVERVIEW", "PERFORMANCE", "RISK_ANALYTICS"],
-                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
-            },
-        },
-    }
-}
-
-OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES = {
-    "outcomeReviewReportJob": {
-        "summary": "Outcome-review report job request",
-        "description": (
-            "Create a durable report job from manage-owned DpmOutcomeReportInput evidence."
-        ),
-        "value": {
-            "outcome_report_input": {
-                "contract_version": "1.0",
-                "outcome_review_id": "dor_001",
-                "outcome_review_content_hash": "sha256:outcome-review",
-                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
-                "proof_pack_id": "dpp_001",
-                "review_window": {"start_date": "2026-04-22", "end_date": "2026-04-23"},
-                "report_title": "Post-Trade Outcome Review - PB_SG_GLOBAL_BAL_001",
-                "state": "READY",
-                "overall_outcome": "Execution outcome aligned with pre-trade proof.",
-                "dimensions": [],
-                "source_lineage": [],
-                "source_hashes": {"realized": "sha256:realized"},
-                "section_hashes": {"proof_pack": "sha256:proof-pack"},
-                "redaction_policy": "NO_RAW_PAYLOADS",
-                "content_hash": "sha256:report-input",
-            },
-            "requested_output_formats": ["pdf"],
-            "reporting_currency": "USD",
-            "options": {"retention_policy_id": "generated-report-standard"},
-        },
-    }
-}
-
-
-def _reporting_client() -> ReportingClient:
-    return ReportingClient(
-        base_url=settings.reporting_aggregation_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
-
-
-def _render_client() -> RenderClient:
-    return RenderClient(
-        base_url=settings.render_service_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
-
-
-def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
-    detail = payload.get("detail") if isinstance(payload, dict) else None
-    error_code = detail.get("code") if isinstance(detail, dict) else None
-    message = detail.get("message") if isinstance(detail, dict) else "Report job unavailable."
-
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code == "missing_idempotency_key":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "missing_idempotency_key", "message": message},
-        )
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code in {
-        "missing_caller_context",
-        "invalid_report_job_filters",
-    }:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=detail,
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_job_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_job_not_found", "message": message},
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_snapshot_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_snapshot_not_found", "message": message},
-        )
-    if status_code == status.HTTP_409_CONFLICT:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": error_code or "report_job_conflict", "message": message},
-        )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "report_job_upstream_unavailable",
-                "message": "Report job service is unavailable.",
-            },
-        )
-
-
-def _job_error_response(
-    status_code: int,
-    *,
-    example_key: str,
-    description: str,
-) -> dict[int | str, dict[str, Any]]:
-    return {
-        status_code: {
-            "model": ReportJobErrorResponse,
-            "description": description,
-            "content": {
-                "application/json": {
-                    "example": REPORT_JOB_ERROR_EXAMPLES[example_key],
-                }
-            },
-        }
-    }
-
-
-def _gateway_status_url(job_id: str) -> str:
-    return f"/api/v1/report-jobs/{job_id}"
-
-
-def _gateway_batch_status_url(batch_id: str) -> str:
-    return f"/api/v1/report-batches/{batch_id}"
-
-
-def _rewrite_batch_status_url(payload: dict[str, Any]) -> dict[str, Any]:
-    batch_id = payload.get("batch_id")
-    if isinstance(batch_id, str) and batch_id:
-        return {**payload, "status_url": _gateway_batch_status_url(batch_id)}
-    return payload
-
-
-def _fallback_evidence_surface_supportability(reason: str) -> dict[str, Any]:
-    return {
-        "feature_key": "report.observability.evidence_surface_supportability",
-        "state": "partial",
-        "reason": reason,
-        "freshness_bucket": "unknown",
-        "evidence_feature_count": 0,
-        "ready_evidence_feature_count": 0,
-        "degraded_evidence_feature_count": 0,
-        "workflow_count": 0,
-        "ready_workflow_count": 0,
-    }
-
-
-def _fallback_render_supportability(reason: str) -> dict[str, Any]:
-    return {
-        "feature_key": "render.observability.render_supportability",
-        "state": "partial",
-        "reason": reason,
-        "freshness_bucket": "unknown",
-        "deterministic_output_supported": False,
-        "render_store_ready": False,
-        "template_registry_ready": False,
-        "default_output_format": None,
-        "supported_output_formats": [],
-    }
-
-
-def _normalize_render_supportability(payload: dict[str, Any]) -> dict[str, Any]:
-    raw_supportability = payload.get("supportability")
-    if not isinstance(raw_supportability, dict):
-        return _fallback_render_supportability("render_supportability_missing")
-
-    supported_output_formats: list[str] = []
-    raw_supported_output_formats = raw_supportability.get("supportedOutputFormats")
-    if not isinstance(raw_supported_output_formats, list):
-        raw_supported_output_formats = raw_supportability.get("supported_output_formats")
-    if isinstance(raw_supported_output_formats, list):
-        supported_output_formats = [str(item) for item in raw_supported_output_formats]
-
-    return {
-        **_fallback_render_supportability("render_supportability_unknown"),
-        "feature_key": str(
-            raw_supportability.get("featureKey")
-            or raw_supportability.get("feature_key")
-            or "render.observability.render_supportability"
-        ),
-        "state": str(raw_supportability.get("state") or "partial"),
-        "reason": str(raw_supportability.get("reason") or "render_supportability_unknown"),
-        "freshness_bucket": str(
-            raw_supportability.get("freshnessBucket")
-            or raw_supportability.get("freshness_bucket")
-            or "unknown"
-        ),
-        "deterministic_output_supported": bool(
-            raw_supportability.get("deterministicOutputSupported")
-            or raw_supportability.get("deterministic_output_supported")
-        ),
-        "render_store_ready": bool(
-            raw_supportability.get("renderStoreReady")
-            or raw_supportability.get("render_store_ready")
-        ),
-        "template_registry_ready": bool(
-            raw_supportability.get("templateRegistryReady")
-            or raw_supportability.get("template_registry_ready")
-        ),
-        "default_output_format": raw_supportability.get("defaultOutputFormat")
-        or raw_supportability.get("default_output_format"),
-        "supported_output_formats": supported_output_formats,
-    }
-
-
-def _normalize_evidence_surface_supportability(payload: dict[str, Any]) -> dict[str, Any]:
-    raw_supportability = payload.get("supportability")
-    if not isinstance(raw_supportability, dict):
-        return _fallback_evidence_surface_supportability("evidence_surface_supportability_missing")
-
-    return {
-        **_fallback_evidence_surface_supportability("evidence_surface_supportability_unknown"),
-        **raw_supportability,
-        "feature_key": "report.observability.evidence_surface_supportability",
-    }
-
-
-async def _get_evidence_surface_supportability(
-    *,
-    correlation_id: str,
-    consumer_system: str,
-    tenant_id: str | None,
-) -> dict[str, Any]:
-    status_code, payload = await _reporting_client().get_capabilities(
-        consumer_system=consumer_system,
-        tenant_id=tenant_id or "default",
-        correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        return _fallback_evidence_surface_supportability(
-            "evidence_surface_supportability_unavailable"
-        )
-    return _normalize_evidence_surface_supportability(payload)
-
-
-async def _attach_evidence_surface_supportability(
-    payload: dict[str, Any],
-    *,
-    correlation_id: str,
-    tenant_id: str | None,
-) -> dict[str, Any]:
-    try:
-        supportability = await _get_evidence_surface_supportability(
-            correlation_id=correlation_id,
-            consumer_system="lotus-gateway",
-            tenant_id=tenant_id,
-        )
-    except Exception:
-        supportability = _fallback_evidence_surface_supportability(
-            "evidence_surface_supportability_exception"
-        )
-    return {**payload, "supportability": supportability}
-
-
-async def _get_render_supportability(*, correlation_id: str) -> dict[str, Any]:
-    status_code, payload = await _render_client().get_metadata(correlation_id=correlation_id)
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        return _fallback_render_supportability("render_supportability_unavailable")
-    return _normalize_render_supportability(payload)
-
-
-async def _attach_reporting_operator_supportability(
-    payload: dict[str, Any],
-    *,
-    correlation_id: str,
-    tenant_id: str | None,
-) -> dict[str, Any]:
-    with_evidence = await _attach_evidence_surface_supportability(
-        payload,
-        correlation_id=correlation_id,
-        tenant_id=tenant_id,
-    )
-    try:
-        render_supportability = await _get_render_supportability(correlation_id=correlation_id)
-    except Exception:
-        render_supportability = _fallback_render_supportability("render_supportability_exception")
-    return {**with_evidence, "render_supportability": render_supportability}
-
-
-def _raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
-    detail = payload.get("detail") if isinstance(payload, dict) else None
-    error_code = detail.get("code") if isinstance(detail, dict) else None
-    message = detail.get("message") if isinstance(detail, dict) else "Report batch unavailable."
-
-    if status_code == status.HTTP_400_BAD_REQUEST and error_code in {
-        "missing_idempotency_key",
-        "missing_caller_context",
-        "empty_batch_selector",
-        "batch_size_exceeded",
-        "unsupported_batch_selector",
-        "invalid_batch_selector",
-    }:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "report_batch_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "report_batch_not_found", "message": message},
-        )
-    if status_code == status.HTTP_409_CONFLICT and error_code in {
-        "idempotency_conflict",
-        "batch_worker_run_failed",
-    }:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": error_code, "message": message},
-        )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "report_batch_upstream_unavailable",
-                "message": "Report batch service is unavailable.",
-            },
-        )
-
-
-def _batch_error_response(
-    status_code: int,
-    *,
-    example_key: str,
-    description: str,
-) -> dict[int | str, dict[str, Any]]:
-    return {
-        status_code: {
-            "model": ReportJobErrorResponse,
-            "description": description,
-            "content": {
-                "application/json": {
-                    "example": REPORT_BATCH_ERROR_EXAMPLES[example_key],
-                }
-            },
-        }
-    }
 
 
 def _context_headers(
@@ -455,6 +97,30 @@ def _context_headers(
         booking_center_code=booking_center_code,
         role=role,
     )
+
+
+def _reporting_portfolio_service() -> ReportingPortfolioService:
+    return build_reporting_portfolio_service()
+
+
+def _reporting_job_submission_service() -> ReportingJobSubmissionService:
+    return build_reporting_job_submission_service()
+
+
+def _reporting_job_query_service() -> ReportingJobQueryService:
+    return build_reporting_job_query_service()
+
+
+def _reporting_batch_control_service() -> ReportingBatchControlService:
+    return build_reporting_batch_control_service()
+
+
+def _reporting_batch_lifecycle_service() -> ReportingBatchLifecycleService:
+    return build_reporting_batch_lifecycle_service()
+
+
+def _reporting_batch_scheduler_service() -> ReportingBatchSchedulerService:
+    return build_reporting_batch_scheduler_service()
 
 
 @router.get(
@@ -484,35 +150,11 @@ async def get_reporting_snapshot(
         ),
     ],
 ) -> ReportingSnapshotResponse:
-    client = _reporting_client()
     correlation_id = correlation_id_var.get()
-    status_code, payload = await client.get_portfolio_snapshot(
+    return await _reporting_portfolio_service().get_snapshot(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting snapshot unavailable: {payload}",
-        )
-
-    generated_at_raw = payload.get("generatedAt")
-    generated_at = datetime.now(UTC)
-    if isinstance(generated_at_raw, str):
-        try:
-            generated_at = datetime.fromisoformat(generated_at_raw.replace("Z", "+00:00"))
-        except ValueError:
-            generated_at = datetime.now(UTC)
-
-    return ReportingSnapshotResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        generatedAt=generated_at,
-        rows=payload.get("rows", []),
     )
 
 
@@ -546,27 +188,11 @@ async def get_reporting_summary(
         ),
     ],
 ) -> ReportingSummaryResponse:
-    client = _reporting_client()
     correlation_id = correlation_id_var.get()
-    request_payload = request.to_upstream_payload()
-    status_code, payload = await client.post_portfolio_summary(
+    return await _reporting_portfolio_service().get_summary(
         portfolio_id=portfolio_id,
-        payload=request_payload,
+        request=request,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting summary unavailable: {payload}",
-        )
-    as_of_date = request.as_of_date
-    return ReportingSummaryResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        data=payload,
     )
 
 
@@ -602,27 +228,11 @@ async def get_reporting_review(
         ),
     ],
 ) -> ReportingReviewResponse:
-    client = _reporting_client()
     correlation_id = correlation_id_var.get()
-    request_payload = request.to_upstream_payload()
-    status_code, payload = await client.post_portfolio_review(
+    return await _reporting_portfolio_service().get_review(
         portfolio_id=portfolio_id,
-        payload=request_payload,
+        request=request,
         correlation_id=correlation_id,
-    )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Reporting review unavailable: {payload}",
-        )
-    as_of_date = request.as_of_date
-    return ReportingReviewResponse(
-        correlationId=correlation_id,
-        contractVersion=settings.contract_version,
-        sourceService="lotus-report",
-        portfolioId=portfolio_id,
-        asOfDate=as_of_date,
-        data=payload,
     )
 
 
@@ -638,17 +248,17 @@ async def get_reporting_review(
         "handle, not a rendered document."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency or required caller context is missing.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with a different request.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -678,18 +288,11 @@ async def submit_portfolio_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "missing_idempotency_key",
-                "message": "Idempotency-Key is required.",
-            },
-        )
-
-    status_code, payload = await _reporting_client().submit_portfolio_review_job(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_job_submission_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    response = await service.submit_portfolio_review_job(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -700,9 +303,9 @@ async def submit_portfolio_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_job_error(status_code, payload)
-    response = ReportJobHandleResponse.model_validate(payload)
-    return response.model_copy(update={"status_url": _gateway_status_url(response.report_job_id)})
+    return response.model_copy(
+        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
+    )
 
 
 @router.post(
@@ -717,17 +320,17 @@ async def submit_portfolio_review_report_job(
         "directly or recomputing outcome facts."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency or required caller context is missing.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with a different request.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -757,18 +360,11 @@ async def submit_outcome_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "missing_idempotency_key",
-                "message": "Idempotency-Key is required.",
-            },
-        )
-
-    status_code, payload = await _reporting_client().submit_outcome_review_report_job(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_job_submission_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    response = await service.submit_outcome_review_report_job(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -779,9 +375,9 @@ async def submit_outcome_review_report_job(
         ),
         correlation_id=correlation_id,
     )
-    _raise_report_job_error(status_code, payload)
-    response = ReportJobHandleResponse.model_validate(payload)
-    return response.model_copy(update={"status_url": _gateway_status_url(response.report_job_id)})
+    return response.model_copy(
+        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
+    )
 
 
 @jobs_router.get(
@@ -806,12 +402,12 @@ async def submit_outcome_review_report_job(
         }
     },
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             400,
             example_key="invalid_report_job_filters",
             description="Returned when no supported job-search filter is supplied.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -895,9 +491,9 @@ async def list_report_jobs(
         "limit": limit,
     }
     filters = {key: value for key, value in filters.items() if value is not None}
-    status_code, payload = await _reporting_client().list_report_jobs(
+    return await _reporting_job_query_service().list_report_jobs(
         filters=filters,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -907,8 +503,6 @@ async def list_report_jobs(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportJobListResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -920,12 +514,12 @@ async def list_report_jobs(
         "endpoint after submit or search when a caller needs current lifecycle state for one job."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -941,9 +535,9 @@ async def get_report_job_status(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await _reporting_client().get_report_job(
+    return await _reporting_job_query_service().get_report_job_status(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -953,8 +547,6 @@ async def get_report_job_status(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportJobStatusResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -966,12 +558,12 @@ async def get_report_job_status(
         "Use this endpoint for operational support when current status alone is insufficient."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -987,9 +579,9 @@ async def get_report_job_events(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusEventsResponse:
-    status_code, payload = await _reporting_client().get_report_job_events(
+    return await _reporting_job_query_service().get_report_job_events(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -999,8 +591,6 @@ async def get_report_job_events(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportJobStatusEventsResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -1012,12 +602,12 @@ async def get_report_job_events(
         "dependency calls through the governed gateway boundary."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when snapshot lineage is unavailable for this report job.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1033,9 +623,9 @@ async def get_report_job_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await _reporting_client().get_report_job_lineage(
+    return await _reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1045,8 +635,6 @@ async def get_report_job_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportSnapshotLineageResponse.model_validate(payload)
 
 
 @jobs_router.post(
@@ -1059,17 +647,17 @@ async def get_report_job_lineage(
         "hold semantics are owned by later reporting RFCs."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_job_not_found",
             description="Returned when the requested report job does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             409,
             example_key="report_job_cannot_be_cancelled",
             description="Returned when the job has completed or was already cancelled.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1085,9 +673,9 @@ async def cancel_report_job(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await _reporting_client().cancel_report_job(
+    return await _reporting_job_query_service().cancel_report_job(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1097,8 +685,6 @@ async def cancel_report_job(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportJobStatusResponse.model_validate(payload)
 
 
 @router.get(
@@ -1110,12 +696,12 @@ async def cancel_report_job(
         "governed gateway boundary."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when the requested snapshot identifier does not exist.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1131,9 +717,9 @@ async def get_report_snapshot(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportInputSnapshotRecord:
-    status_code, payload = await _reporting_client().get_report_snapshot(
+    return await _reporting_job_query_service().get_report_snapshot(
         snapshot_id=snapshot_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1143,8 +729,6 @@ async def get_report_snapshot(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportInputSnapshotRecord.model_validate(payload)
 
 
 @router.get(
@@ -1155,12 +739,12 @@ async def get_report_snapshot(
         "Return lineage evidence for an input snapshot and all upstream calls that formed it."
     ),
     responses={
-        **_job_error_response(
+        **report_job_error_response(
             404,
             example_key="report_snapshot_not_found",
             description="Returned when snapshot lineage is unavailable for this snapshot.",
         ),
-        **_job_error_response(
+        **report_job_error_response(
             502,
             example_key="report_job_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1176,9 +760,9 @@ async def get_report_snapshot_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await _reporting_client().get_report_snapshot_lineage(
+    return await _reporting_job_query_service().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -1188,8 +772,6 @@ async def get_report_snapshot_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_job_error(status_code, payload)
-    return ReportSnapshotLineageResponse.model_validate(payload)
 
 
 @batches_router.post(
@@ -1228,17 +810,17 @@ async def get_report_snapshot_lineage(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             400,
             example_key="missing_idempotency_key",
             description="Returned when idempotency, caller context, or selector input is invalid.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="idempotency_conflict",
             description="Returned when the idempotency key conflicts with another batch request.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1265,14 +847,11 @@ async def create_report_batch(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchHandleResponse:
     correlation_id = correlation_id_var.get()
-    if not idempotency_key:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=REPORT_BATCH_ERROR_EXAMPLES["missing_idempotency_key"]["detail"],
-        )
-    status_code, payload = await _reporting_client().create_report_batch(
-        payload=request.model_dump(exclude_none=True, mode="json"),
-        idempotency_key=idempotency_key,
+    service = _reporting_batch_lifecycle_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    return await service.create_batch(
+        request=request,
+        idempotency_key=required_idempotency_key,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1282,14 +861,8 @@ async def create_report_batch(
             role=role,
         ),
         correlation_id=correlation_id,
-    )
-    _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_reporting_operator_supportability(
-        _rewrite_batch_status_url(payload),
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchHandleResponse.model_validate(response_payload)
 
 
 @batches_router.get(
@@ -1307,12 +880,12 @@ async def create_report_batch(
         }
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             404,
             example_key="report_batch_not_found",
             description="Returned when the requested report batch does not exist.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1329,7 +902,7 @@ async def get_report_batch_status(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchStatusResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await _reporting_client().get_report_batch(
+    return await _reporting_batch_lifecycle_service().get_batch_status(
         batch_id=batch_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -1340,14 +913,8 @@ async def get_report_batch_status(
             role=role,
         ),
         correlation_id=correlation_id,
-    )
-    _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_reporting_operator_supportability(
-        payload,
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchStatusResponse.model_validate(response_payload)
 
 
 async def _control_batch(
@@ -1361,7 +928,7 @@ async def _control_batch(
     booking_center_code: str | None,
     role: str | None,
 ) -> BatchControlResponse:
-    status_code, payload = await _reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().control_batch(
         batch_id=batch_id,
         action=action,
         caller_headers=_context_headers(
@@ -1374,8 +941,6 @@ async def _control_batch(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
-    return BatchControlResponse.model_validate(_rewrite_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1523,9 +1088,8 @@ async def recover_expired_report_batch_leases(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchRecoveryResponse:
-    status_code, payload = await _reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().recover_expired_leases(
         batch_id=batch_id,
-        action="recover-expired-leases",
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1536,8 +1100,6 @@ async def recover_expired_report_batch_leases(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
-    return BatchRecoveryResponse.model_validate(_rewrite_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1559,17 +1121,17 @@ async def recover_expired_report_batch_leases(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             404,
             example_key="report_batch_not_found",
             description="Returned when the requested report batch does not exist.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="batch_worker_run_failed",
             description="Returned when durable batch or linked report-job state is inconsistent.",
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1590,9 +1152,9 @@ async def run_report_batch_once(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchWorkerRunResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await _reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().run_batch_once(
         batch_id=batch_id,
-        action="run-once",
+        request=request,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1602,15 +1164,8 @@ async def run_report_batch_once(
             role=role,
         ),
         correlation_id=correlation_id,
-        payload=request.model_dump(exclude_none=True, mode="json"),
-    )
-    _raise_report_batch_error(status_code, payload)
-    response_payload = await _attach_reporting_operator_supportability(
-        _rewrite_batch_status_url(payload),
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchWorkerRunResponse.model_validate(response_payload)
 
 
 @schedules_router.get(
@@ -1630,7 +1185,7 @@ async def run_report_batch_once(
         }
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1645,7 +1200,7 @@ async def list_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchScheduleListResponse:
-    status_code, payload = await _reporting_client().list_report_batch_schedules(
+    return await _reporting_batch_scheduler_service().list_schedules(
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1656,8 +1211,6 @@ async def list_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
-    return BatchScheduleListResponse.model_validate(payload)
 
 
 @schedules_router.post(
@@ -1681,14 +1234,14 @@ async def list_report_batch_schedules(
         },
     },
     responses={
-        **_batch_error_response(
+        **report_batch_error_response(
             409,
             example_key="batch_scheduler_run_failed",
             description=(
                 "Returned when lotus-report cannot safely materialize configured schedules."
             ),
         ),
-        **_batch_error_response(
+        **report_batch_error_response(
             502,
             example_key="report_batch_upstream_unavailable",
             description="Returned when lotus-report is unavailable or returns an unsafe failure.",
@@ -1707,8 +1260,8 @@ async def run_due_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchSchedulerRunResponse:
-    status_code, payload = await _reporting_client().run_due_report_batch_schedules(
-        payload=request.model_dump(exclude_none=True, mode="json"),
+    return await _reporting_batch_scheduler_service().run_due_schedules(
+        request=request,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1719,5 +1272,3 @@ async def run_due_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_report_batch_error(status_code, payload)
-    return BatchSchedulerRunResponse.model_validate(payload)

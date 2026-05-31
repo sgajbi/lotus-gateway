@@ -273,7 +273,19 @@ Operational behavior:
 1. degraded or rejected manage states are surfaced as product supportability, not hidden as generic
    success,
 2. manage upstream errors are returned using product-safe Gateway error detail,
-3. OpenAPI documents What/When/How guidance and request/response examples for each route.
+3. response-envelope construction and product-safe upstream error shaping are shared service
+   utilities, which keeps construction behavior consistent with other upstream-backed Gateway
+   surfaces and reduces route-family drift,
+4. OpenAPI documents What/When/How guidance and request/response examples for each route.
+
+Production-readiness controls:
+
+1. generation and selection remain idempotency-key governed,
+2. Gateway exposes the upstream status and manage-owned supportability state for operator triage,
+3. no order execution, trade approval, client communication, or source-readiness inference is
+   performed in Gateway,
+4. unit tests pin payload preservation, supportability derivation, product-safe error detail, and
+   shared upstream-envelope behavior.
 
 ## DPM Proof-Pack Evidence Composition
 
@@ -336,6 +348,23 @@ Operational behavior:
 4. lotus-ai guardrail rejections are preserved as product-safe Gateway error detail with
    `AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR`, so Workbench can show review/supportability posture
    without falling back to browser prompt construction.
+
+Production-readiness controls:
+
+1. proof-pack generation remains idempotency-key governed and source-owned by `lotus-manage`,
+2. Gateway uses shared upstream-envelope utilities for JSON/report/AI-evidence payloads and
+   product-safe manage errors, reducing duplicated service behavior across DPM route families,
+3. AI PM memo execution is gated on manage-owned AI evidence input and uses `lotus-ai`
+   workflow-pack execution instead of local prompt construction,
+4. lotus-ai guardrail or workflow execution failures use the shared product-safe upstream error
+   helper, preserving source service, upstream status, error code, and bounded detail without
+   exposing prompts or model output,
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard,
+   returning a consistent product-safe unavailable posture before any local prompt or fallback path
+   can be attempted,
+6. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
+   input preservation, missing-AI-client failure behavior, lotus-ai guardrail errors, and
+   product-safe manage error detail.
 
 ## DPM Portfolio-Memory Composition
 
@@ -604,6 +633,25 @@ Operational behavior:
 6. Workbench wave command-center UI, browser proof, and demo screenshots remain RFC41-WTBD-006 and
    are not claimed by this Gateway slice.
 
+Production-readiness controls:
+
+1. wave creation, campaign launch, lifecycle commands, assignment workflow writes, selection,
+   approval, staging, handoff, cancellation, PM memo, and operations handoff actions preserve
+   caller correlation context and required idempotency behavior where manage requires it,
+2. Gateway now uses shared upstream-envelope utilities for wave, campaign-definition, and campaign
+   workflow responses plus product-safe manage error detail, reducing behavior drift across DPM
+   construction, proof-pack, and wave route families,
+3. AI PM memo and operations-handoff summary execution is gated on manage-owned wave report input
+   and uses governed `lotus-ai` workflow-pack execution instead of local prompt construction,
+4. lotus-ai PM memo and operations-handoff failures use the shared product-safe upstream error
+   helper, preserving workflow-pack authority and supportability boundaries without exposing raw
+   AI payload internals,
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard before
+   PM memo or operations handoff execution begins,
+6. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
+   supportability derivation, invalid-transition error detail, report-input handoff evidence, AI
+   workflow-pack calls, and guardrail error behavior.
+
 ## DPM Mandate Command Center
 
 Status: implementation-backed in Gateway for RFC38-WTBD-001.
@@ -656,6 +704,40 @@ Operational behavior:
 2. manage upstream errors are returned using product-safe Gateway error detail,
 3. Workbench cockpit implementation and canonical UI proof remain separate owning-repository
    work under RFC38-WTBD-002.
+
+Production-readiness controls:
+
+1. Gateway uses shared upstream-envelope utilities for mandate command-center, outcome-review,
+   portfolio-memory, and PM operating-quality response envelopes while preserving each route
+   family's supportability summary and error code,
+2. monitoring, exception-resolution, mandate drill-down, outcome-review, portfolio-memory, and PM
+   operating-quality surfaces expose upstream status and correlation context for operator triage,
+3. command-center response composition remains payload-preserving; mandate health, outcome-review,
+   portfolio-memory, and PM-quality truth stay in `lotus-manage`,
+4. exception-summary, outcome-review narrative, and PM operating-quality summary failures from
+   `lotus-ai` use the shared product-safe upstream error helper so downstream UIs and operators see
+   consistent source service, upstream status, and error-code posture,
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard across
+   command-center AI handoffs, keeping degraded configuration posture consistent for operators,
+6. command-center supportability mapping is isolated in a dedicated tested mapper boundary so
+   mandate readiness, outcome-review posture, portfolio-memory posture, and PM operating-quality
+   posture can evolve without re-expanding the command-center service monolith,
+7. command-center AI handoff context builders are isolated in a dedicated tested boundary for
+   exception-summary inputs, workflow-pack task payloads, outcome-review evidence refs, and PM
+   operating-quality source refs,
+8. manage evidence-read failures use the shared product-safe upstream error raiser and shared
+   bounded upstream-detail extractor, including structured `code` plus `message` details from
+   upstream governance checks,
+9. DPM route services use a shared Gateway factory for manage and lotus-ai clients, keeping
+   timeout, retry, and service-identity wiring consistent across command-center, construction,
+   proof-pack, and wave route families,
+10. DPM OpenAPI upstream-error response maps use a shared helper so command-center, construction,
+   proof-pack, and wave conflict, validation, not-found, and degraded-authority documentation stays
+   consistent across route families,
+11. repeated DPM workflow query parameters use a shared router helper, preserving multi-select
+   filters for Manage without route-local parsing logic,
+12. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+   supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture
 

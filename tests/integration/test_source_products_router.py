@@ -61,11 +61,32 @@ class _FakeCoreSourceProductClient:
         }
 
 
+class _FakeSourceProductService:
+    def __init__(self, core_client: _FakeCoreSourceProductClient) -> None:
+        self._core_client = core_client
+
+    async def get_external_order_execution_acknowledgement(
+        self,
+        *,
+        portfolio_id: str,
+        payload: dict[str, object],
+        correlation_id: str,
+    ) -> object:
+        from app.contracts.source_products import ExternalOrderExecutionAcknowledgementResponse
+
+        _, upstream_payload = await self._core_client.get_external_order_execution_acknowledgement(
+            portfolio_id=portfolio_id,
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+        return ExternalOrderExecutionAcknowledgementResponse.model_validate(upstream_payload)
+
+
 def test_source_product_router_preserves_core_execution_acknowledgement_payload(monkeypatch):
     fake_client = _FakeCoreSourceProductClient()
     monkeypatch.setattr(
-        "app.routers.source_products._source_product_core_client",
-        lambda: fake_client,
+        "app.routers.source_products._source_product_service",
+        lambda: _FakeSourceProductService(fake_client),
     )
     client = TestClient(app)
 
@@ -126,13 +147,22 @@ def test_source_product_router_preserves_core_execution_acknowledgement_payload(
 def test_source_product_router_maps_core_validation_error_without_local_execution_truth(
     monkeypatch,
 ):
-    class _ValidationErrorClient:
+    class _ValidationErrorService:
         async def get_external_order_execution_acknowledgement(self, **_: object):
-            return 422, {"detail": "invalid as_of_date"}
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "source_service": "lotus-core",
+                    "upstream_status": 422,
+                    "error": {"detail": "invalid as_of_date"},
+                },
+            )
 
     monkeypatch.setattr(
-        "app.routers.source_products._source_product_core_client",
-        lambda: _ValidationErrorClient(),
+        "app.routers.source_products._source_product_service",
+        lambda: _ValidationErrorService(),
     )
     client = TestClient(app)
 

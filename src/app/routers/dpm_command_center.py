@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Path, Query
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
-from app.config import settings
 from app.contracts.dpm_command_center import (
     DpmCommandCenterForwardRequest,
     DpmCommandCenterGatewayResponse,
     DpmCommandCenterResolveExceptionRequest,
     DpmExceptionSummaryGatewayResponse,
     DpmExceptionSummaryRequest,
+    DpmOutcomeReviewErrorDetail,
     DpmOutcomeReviewForwardRequest,
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
@@ -21,26 +19,27 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.services.dpm_command_center_service import DpmCommandCenterService
+from app.services.dpm_service_factory import build_dpm_command_center_service
 
-router = APIRouter(prefix="/api/v1/dpm/command-center", tags=["DPM Command Center"])
+_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
+    error_model=DpmOutcomeReviewErrorDetail,
+    not_found_description="lotus-manage could not find the requested command-center resource.",
+    conflict_description="lotus-manage rejected the command-center request as conflicting.",
+    invalid_payload_description="lotus-manage rejected the command-center payload as invalid.",
+    unavailable_description="lotus-manage command-center authority is unavailable or degraded.",
+)
+
+router = APIRouter(
+    prefix="/api/v1/dpm/command-center",
+    tags=["DPM Command Center"],
+    responses=_UPSTREAM_ERROR_RESPONSES,
+)
 
 
 def _dpm_command_center_service() -> DpmCommandCenterService:
-    return DpmCommandCenterService(
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_dpm_command_center_service()
 
 
 @router.get(

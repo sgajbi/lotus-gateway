@@ -1,10 +1,5 @@
-from typing import Any
-
 from fastapi import APIRouter, Path
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
-from app.config import settings
 from app.contracts.dpm_proof_packs import (
     DpmProofPackErrorDetail,
     DpmProofPackGatewayResponse,
@@ -14,47 +9,25 @@ from app.contracts.dpm_proof_packs import (
     DpmProofPackMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.services.dpm_proof_pack_service import DpmProofPackService
+from app.services.dpm_service_factory import build_dpm_proof_pack_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/proof-packs",
     tags=["DPM Command Center"],
 )
-_UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
-    404: {
-        "model": DpmProofPackErrorDetail,
-        "description": "lotus-manage could not find the requested proof pack or source.",
-    },
-    409: {
-        "model": DpmProofPackErrorDetail,
-        "description": "lotus-manage rejected the proof-pack request as conflicting.",
-    },
-    422: {
-        "model": DpmProofPackErrorDetail,
-        "description": "lotus-manage rejected the proof-pack payload as invalid.",
-    },
-    503: {
-        "model": DpmProofPackErrorDetail,
-        "description": "lotus-manage proof-pack authority is unavailable or degraded.",
-    },
-}
+_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
+    error_model=DpmProofPackErrorDetail,
+    not_found_description="lotus-manage could not find the requested proof pack or source.",
+    conflict_description="lotus-manage rejected the proof-pack request as conflicting.",
+    invalid_payload_description="lotus-manage rejected the proof-pack payload as invalid.",
+    unavailable_description="lotus-manage proof-pack authority is unavailable or degraded.",
+)
 
 
 def _dpm_proof_pack_service() -> DpmProofPackService:
-    return DpmProofPackService(
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_dpm_proof_pack_service()
 
 
 @router.post(

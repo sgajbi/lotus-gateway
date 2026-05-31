@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -12,6 +12,12 @@ from app.contracts.dpm_proof_packs import (
     DpmProofPackMemoGatewayResponse,
     DpmProofPackMemoRequest,
     DpmProofPackSupportability,
+)
+from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.upstream_envelope import (
+    build_upstream_status_gateway_envelope,
+    raise_product_safe_service_error,
+    raise_product_safe_upstream_error,
 )
 
 
@@ -58,7 +64,7 @@ class DpmProofPackService:
             correlation_id=correlation_id,
         )
         if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise _upstream_error(upstream_status, error_payload)
+            _raise_manage_upstream_error(upstream_status, error_payload)
         return DpmProofPackMarkdownResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -95,18 +101,14 @@ class DpmProofPackService:
         request: DpmProofPackMemoRequest,
         correlation_id: str,
     ) -> DpmProofPackMemoGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
         )
         if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise _upstream_error(manage_status, manage_payload)
+            _raise_manage_upstream_error(manage_status, manage_payload)
 
         supportability = _supportability_from(manage_payload)
         memo_request: dict[str, object] = {
@@ -135,7 +137,7 @@ class DpmProofPackService:
                 ],
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_pm_memo.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -161,14 +163,12 @@ class DpmProofPackService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
+                default_detail="lotus-ai proof-pack PM memo request failed",
             )
 
         return DpmProofPackMemoGatewayResponse(
@@ -188,15 +188,13 @@ class DpmProofPackService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmProofPackGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise _upstream_error(upstream_status, upstream_payload)
-
-        return DpmProofPackGatewayResponse(
+        _raise_manage_upstream_error(upstream_status, upstream_payload)
+        return build_upstream_status_gateway_envelope(
+            DpmProofPackGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
 
@@ -304,21 +302,11 @@ def _proof_pack_ai_source_refs(payload: dict[str, Any], proof_pack_id: str) -> l
     return sorted(set(source_refs))
 
 
-def _safe_upstream_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail") or payload.get("message") or payload.get("error")
-    if isinstance(detail, str):
-        return detail
-    if detail is not None:
-        return str(detail)
-    return "lotus-manage proof-pack request failed"
-
-
-def _upstream_error(upstream_status: int, payload: dict[str, Any]) -> HTTPException:
-    return HTTPException(
-        status_code=upstream_status,
-        detail=DpmProofPackErrorDetail(
-            upstream_status=upstream_status,
-            error_code="MANAGE_PROOF_PACK_UPSTREAM_ERROR",
-            detail=_safe_upstream_detail(payload),
-        ).model_dump(),
+def _raise_manage_upstream_error(upstream_status: int, payload: dict[str, Any]) -> None:
+    raise_product_safe_upstream_error(
+        upstream_status,
+        payload,
+        error_model=DpmProofPackErrorDetail,
+        error_code="MANAGE_PROOF_PACK_UPSTREAM_ERROR",
+        default_detail="lotus-manage proof-pack request failed",
     )

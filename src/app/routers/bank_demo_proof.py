@@ -2,10 +2,9 @@ from typing import Any
 
 from fastapi import APIRouter, Body, Header, status
 
-from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
+from app.services.advisory_service_factory import build_bank_demo_proof_service
 from app.services.bank_demo_proof_service import BankDemoProofService
 
 router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-proof"])
@@ -22,14 +21,7 @@ BANK_DEMO_PROOF_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _bank_demo_proof_service() -> BankDemoProofService:
-    return BankDemoProofService(
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
+    return build_bank_demo_proof_service()
 
 
 def _correlation_id(x_correlation_id: str | None) -> str:

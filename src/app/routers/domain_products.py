@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
-from app.config import settings
 from app.contracts.domain_products import (
     DomainProductCatalogResponse,
     DomainProductDetailResponse,
@@ -13,16 +12,15 @@ from app.services.domain_product_catalog_service import (
     DomainProductCatalogUnavailable,
     DomainProductNotFound,
 )
+from app.services.domain_product_catalog_service_factory import (
+    build_domain_product_catalog_service,
+)
 
 router = APIRouter(prefix="/api/v1/domain-products", tags=["domain-products"])
 
 
 def _domain_product_catalog_service() -> DomainProductCatalogService:
-    return DomainProductCatalogService(
-        catalog_path=settings.domain_product_catalog_path,
-        dependency_graph_path=settings.domain_product_dependency_graph_path,
-        live_trust_certification_path=settings.domain_product_live_trust_certification_path,
-    )
+    return build_domain_product_catalog_service()
 
 
 def _correlation_id(header_value: str | None) -> str:

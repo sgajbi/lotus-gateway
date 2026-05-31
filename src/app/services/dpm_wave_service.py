@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -15,6 +15,13 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoGatewayResponse,
     DpmWaveMemoRequest,
     DpmWaveSupportability,
+)
+from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.upstream_envelope import (
+    build_upstream_status_gateway_envelope,
+    build_upstream_status_payload_gateway_envelope,
+    raise_product_safe_service_error,
+    raise_product_safe_upstream_error,
 )
 
 _WAVE_PM_MEMO_BLOCKED_ACTIONS = [
@@ -673,18 +680,14 @@ class DpmWaveService:
         request: DpmWaveMemoRequest,
         correlation_id: str,
     ) -> DpmWaveMemoGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
         )
         if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise self._upstream_error(manage_status, manage_payload)
+            _raise_manage_wave_upstream_error(manage_status, manage_payload)
 
         supportability = _supportability_from(manage_payload)
         memo_request: dict[str, object] = {
@@ -703,7 +706,7 @@ class DpmWaveService:
                 "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -729,14 +732,12 @@ class DpmWaveService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
+                default_detail="lotus-ai wave PM memo request failed",
             )
 
         return DpmWaveMemoGatewayResponse(
@@ -756,18 +757,14 @@ class DpmWaveService:
         request: DpmOperationsHandoffSummaryRequest,
         correlation_id: str,
     ) -> DpmOperationsHandoffSummaryGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
         )
         if manage_status >= status.HTTP_400_BAD_REQUEST:
-            raise self._upstream_error(manage_status, manage_payload)
+            _raise_manage_wave_upstream_error(manage_status, manage_payload)
 
         supportability = _supportability_from(manage_payload)
         handoff_summary_request: dict[str, object] = {
@@ -786,7 +783,7 @@ class DpmWaveService:
                 "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -812,14 +809,12 @@ class DpmWaveService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
+                default_detail="lotus-ai operations handoff summary request failed",
             )
 
         return DpmOperationsHandoffSummaryGatewayResponse(
@@ -839,15 +834,13 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmWaveGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise self._upstream_error(upstream_status, upstream_payload)
-
-        return DpmWaveGatewayResponse(
+        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
+        return build_upstream_status_gateway_envelope(
+            DpmWaveGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _compose_campaign_definition_response(
@@ -856,14 +849,12 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise self._upstream_error(upstream_status, upstream_payload)
-
-        return DpmCampaignDefinitionGatewayResponse(
+        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
+        return build_upstream_status_payload_gateway_envelope(
+            DpmCampaignDefinitionGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _compose_campaign_workflow_response(
@@ -872,28 +863,12 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCampaignWorkflowGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise self._upstream_error(upstream_status, upstream_payload)
-
-        return DpmCampaignWorkflowGatewayResponse(
+        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
+        return build_upstream_status_payload_gateway_envelope(
+            DpmCampaignWorkflowGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
-            data=upstream_payload,
-        )
-
-    def _upstream_error(
-        self,
-        upstream_status: int,
-        upstream_payload: dict[str, Any],
-    ) -> HTTPException:
-        return HTTPException(
-            status_code=upstream_status,
-            detail=DpmWaveErrorDetail(
-                upstream_status=upstream_status,
-                error_code="MANAGE_WAVE_UPSTREAM_ERROR",
-                detail=_safe_upstream_detail(upstream_payload),
-            ).model_dump(),
+            upstream_payload=upstream_payload,
         )
 
 
@@ -987,15 +962,11 @@ def _source_ref_token(value: object) -> str:
     return token.removeprefix("report-input:")
 
 
-def _safe_upstream_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail") or payload.get("message") or payload.get("error")
-    if isinstance(detail, dict):
-        code = detail.get("code")
-        message = detail.get("message")
-        if code and message:
-            return f"{code}: {message}"
-    if isinstance(detail, str):
-        return detail
-    if detail is not None:
-        return str(detail)
-    return "lotus-manage rebalance-wave request failed"
+def _raise_manage_wave_upstream_error(upstream_status: int, payload: dict[str, Any]) -> None:
+    raise_product_safe_upstream_error(
+        upstream_status,
+        payload,
+        error_model=DpmWaveErrorDetail,
+        error_code="MANAGE_WAVE_UPSTREAM_ERROR",
+        default_detail="lotus-manage rebalance-wave request failed",
+    )

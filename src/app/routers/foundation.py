@@ -1,48 +1,18 @@
 from fastapi import APIRouter, Path
 
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.clients.reporting_client import ReportingClient
-from app.config import settings
 from app.contracts.foundation import (
     FoundationPortfolioCatalogResponse,
     FoundationWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.foundation_service import FoundationService
+from app.services.foundation_service_factory import build_foundation_service
 
 router = APIRouter(prefix="/api/v1/foundation", tags=["foundation"])
 
 
 def _foundation_service() -> FoundationService:
-    return FoundationService(
-        lotus_core_query_client=LotusCoreQueryClient(
-            base_url=settings.portfolio_data_query_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            control_plane_base_url=settings.portfolio_data_control_plane_base_url,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        analytics_client=LotusAnalyticsClient(
-            base_url=settings.performance_analytics_base_url,
-            timeout_seconds=settings.performance_analytics_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        dpm_client=DpmClient(
-            base_url=settings.management_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-        reporting_client=ReportingClient(
-            base_url=settings.reporting_aggregation_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
-    )
+    return build_foundation_service()
 
 
 @router.get(

@@ -1,30 +1,26 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Header
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.config import settings
 from app.contracts.composite_performance import (
     CompositePerformanceGatewayResponse,
     CompositePerformanceInspectionRequest,
     CompositePerformanceTwrRequest,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.caller_context import caller_context_headers
+from app.services.composite_performance_service import CompositePerformanceService
+from app.services.composite_performance_service_factory import (
+    build_composite_performance_service,
+)
 
 router = APIRouter(prefix="/api/v1/performance/composites", tags=["Composite Performance"])
 
 
-def _analytics_client() -> LotusAnalyticsClient:
-    return LotusAnalyticsClient(
-        base_url=settings.performance_analytics_base_url,
-        timeout_seconds=settings.performance_analytics_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+def _composite_performance_service() -> CompositePerformanceService:
+    return build_composite_performance_service()
 
 
-def _required_caller_context(
+def _caller_context(
     *,
     actor_id: str | None,
     caller_application: str | None,
@@ -32,30 +28,15 @@ def _required_caller_context(
     region: str | None,
     booking_center_code: str | None,
     role: str | None,
-) -> dict[str, str]:
-    return caller_context_headers(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
-
-
-def _raise_upstream_error(*, status_code: int, payload: dict[str, object]) -> None:
-    if status_code < 400:
-        return
-    detail = {
-        "source_service": "lotus-performance",
-        "upstream_status": status_code,
-        "error": payload,
+) -> dict[str, str | None]:
+    return {
+        "actor_id": actor_id,
+        "caller_application": caller_application,
+        "tenant_id": tenant_id,
+        "region": region,
+        "booking_center_code": booking_center_code,
+        "role": role,
     }
-    if status_code == status.HTTP_404_NOT_FOUND:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-    if status_code in {status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-    raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
 
 
 @router.post(
@@ -78,25 +59,18 @@ async def calculate_composite_twr(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
-    _required_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
     correlation_id = correlation_id_var.get()
-    payload = request.model_dump(exclude_none=True)
-    upstream_status, upstream_payload = await _analytics_client().post_composite_twr(
-        payload=payload,
+    return await _composite_performance_service().calculate_twr(
+        payload=request.model_dump(exclude_none=True),
         correlation_id=correlation_id,
-    )
-    _raise_upstream_error(status_code=upstream_status, payload=upstream_payload)
-    return CompositePerformanceGatewayResponse(
-        correlation_id=correlation_id,
-        upstream_status=upstream_status,
-        data=upstream_payload,
+        caller_context=_caller_context(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
     )
 
 
@@ -120,23 +94,16 @@ async def inspect_composite_performance(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
-    _required_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
     correlation_id = correlation_id_var.get()
-    payload = request.model_dump(exclude_none=True)
-    upstream_status, upstream_payload = await _analytics_client().post_composite_inspection(
-        payload=payload,
+    return await _composite_performance_service().inspect(
+        payload=request.model_dump(exclude_none=True),
         correlation_id=correlation_id,
-    )
-    _raise_upstream_error(status_code=upstream_status, payload=upstream_payload)
-    return CompositePerformanceGatewayResponse(
-        correlation_id=correlation_id,
-        upstream_status=upstream_status,
-        data=upstream_payload,
+        caller_context=_caller_context(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
     )

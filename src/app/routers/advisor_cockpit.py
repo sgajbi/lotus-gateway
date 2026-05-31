@@ -2,8 +2,6 @@ from typing import Any
 
 from fastapi import APIRouter, Header, Path, Query, status
 
-from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.advisor_cockpit import (
     AdvisorCockpitAcknowledgeRequest,
     AdvisorCockpitEnvelopeResponse,
@@ -12,6 +10,7 @@ from app.contracts.advisor_cockpit import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.services.advisor_cockpit_service import AdvisorCockpitService
+from app.services.advisory_service_factory import build_advisor_cockpit_service
 
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
@@ -19,7 +18,7 @@ ADVISOR_COCKPIT_READ_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_404_NOT_FOUND: {
         "description": "Advisor cockpit action item was not found by lotus-advise."
     },
-    status.HTTP_422_UNPROCESSABLE_ENTITY: {
+    status.HTTP_422_UNPROCESSABLE_CONTENT: {
         "description": "lotus-advise rejected the cockpit request validation context."
     },
 }
@@ -32,14 +31,7 @@ ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _advisor_cockpit_service() -> AdvisorCockpitService:
-    return AdvisorCockpitService(
-        advise_client=AdviseClient(
-            base_url=settings.decisioning_service_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        )
-    )
+    return build_advisor_cockpit_service()
 
 
 def _cockpit_params(

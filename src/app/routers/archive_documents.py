@@ -1,9 +1,7 @@
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Header, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, Header, Path, Query, Response
 
-from app.clients.archive_client import ArchiveClient
-from app.config import settings
 from app.contracts.archive_documents import (
     ARCHIVE_DOCUMENT_ERROR_EXAMPLES,
     ARCHIVE_DOCUMENT_EXAMPLE,
@@ -11,18 +9,15 @@ from app.contracts.archive_documents import (
     ArchivedDocumentMetadataResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.services.archive_document_service import ArchiveDocumentService
+from app.services.archive_document_service_factory import build_archive_document_service
 from app.services.caller_context import caller_context_headers
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
 
 
-def _archive_client() -> ArchiveClient:
-    return ArchiveClient(
-        base_url=settings.archive_service_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
+def _archive_document_service() -> ArchiveDocumentService:
+    return build_archive_document_service()
 
 
 def _archive_error_response(
@@ -42,68 +37,6 @@ def _archive_error_response(
             },
         }
     }
-
-
-def _archive_error_code(payload: dict[str, Any]) -> str | None:
-    error = payload.get("error")
-    if isinstance(error, dict):
-        code = error.get("code")
-        return str(code) if code else None
-    detail = payload.get("detail")
-    if isinstance(detail, dict):
-        code = detail.get("code")
-        return str(code) if code else None
-    return None
-
-
-def _raise_archive_error(status_code: int, payload: dict[str, Any], *, downloading: bool) -> None:
-    error_code = _archive_error_code(payload)
-
-    if status_code == status.HTTP_403_FORBIDDEN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "document_access_unauthorized",
-                "message": "Caller is not authorized to access this archived document.",
-            },
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "document_not_found":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "archived_document_not_found",
-                "message": "Archived document was not found.",
-            },
-        )
-    if status_code == status.HTTP_404_NOT_FOUND and error_code == "document_binary_missing":
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "document_download_failed",
-                "message": "Archived document download is unavailable.",
-            },
-        )
-    if status_code == status.HTTP_409_CONFLICT and error_code == "document_checksum_mismatch":
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={
-                "code": "document_download_failed",
-                "message": "Archived document failed integrity verification.",
-            },
-        )
-    if status_code >= status.HTTP_400_BAD_REQUEST:
-        fallback_code = (
-            "document_download_failed" if downloading else "archive_upstream_unavailable"
-        )
-        fallback_message = (
-            "Archived document download is unavailable."
-            if downloading
-            else "Archived document service is unavailable."
-        )
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={"code": fallback_code, "message": fallback_message},
-        )
 
 
 @router.get(
@@ -172,7 +105,7 @@ async def get_archived_document_metadata(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ArchivedDocumentMetadataResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await _archive_client().get_document_metadata(
+    return await _archive_document_service().get_document_metadata(
         document_id=document_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -184,12 +117,6 @@ async def get_archived_document_metadata(
         ),
         correlation_id=correlation_id,
         current=current,
-    )
-    _raise_archive_error(status_code, payload, downloading=False)
-    return ArchivedDocumentMetadataResponse.from_archive_payload(
-        payload,
-        correlation_id=correlation_id,
-        contract_version=settings.contract_version,
     )
 
 
@@ -248,12 +175,7 @@ async def download_archived_document(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> Response:
-    (
-        status_code,
-        content,
-        response_headers,
-        error_payload,
-    ) = await _archive_client().download_document(
+    download = await _archive_document_service().download_document(
         document_id=document_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -265,19 +187,9 @@ async def download_archived_document(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    _raise_archive_error(status_code, error_payload, downloading=True)
-
-    headers = {}
-    for header in (
-        "content-disposition",
-        "x-document-checksum-algorithm",
-        "x-document-checksum",
-    ):
-        if value := response_headers.get(header):
-            headers[header] = value
 
     return Response(
-        content=content,
-        media_type=response_headers.get("content-type", "application/octet-stream"),
-        headers=headers,
+        content=download.content,
+        media_type=download.media_type,
+        headers=download.headers,
     )

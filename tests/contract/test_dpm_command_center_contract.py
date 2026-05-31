@@ -489,6 +489,9 @@ def test_dpm_command_center_openapi_contract_registered() -> None:
         assert "What:" in operation["description"]
         assert "When:" in operation["description"]
         assert "How:" in operation["description"]
+        assert operation["responses"]["409"]["description"]
+        assert operation["responses"]["422"]["description"]
+        assert operation["responses"]["503"]["description"]
 
 
 def test_dpm_command_center_openapi_models_are_described() -> None:
