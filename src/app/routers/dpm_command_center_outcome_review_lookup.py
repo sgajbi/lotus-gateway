@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Query
 
 from app.contracts.dpm_command_center import DpmOutcomeReviewGatewayResponse
 from app.middleware.correlation import correlation_id_var
@@ -94,29 +94,5 @@ async def list_outcome_reviews(
     }
     return await dpm_command_center_service().list_outcome_reviews(
         filters=filters,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/outcome-reviews/{outcome_review_id}",
-    response_model=DpmOutcomeReviewGatewayResponse,
-    summary="Get outcome review",
-    description=(
-        "What: returns one authoritative manage outcome review. When: call this for DPM "
-        "detail, evidence inspection, and downstream report or AI handoff readiness checks. "
-        "How: Gateway retrieves the manage review by id and preserves the manage payload "
-        "without recalculating expected or realized outcomes."
-    ),
-)
-async def get_outcome_review(
-    outcome_review_id: str = Path(
-        ...,
-        description="Manage-owned outcome-review identifier.",
-        examples=["or_20260415_001"],
-    ),
-) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().get_outcome_review(
-        outcome_review_id=outcome_review_id,
         correlation_id=correlation_id_var.get(),
     )
