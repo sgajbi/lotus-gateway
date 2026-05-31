@@ -160,6 +160,16 @@ def test_narrowed_archive_services_do_not_import_concrete_archive_client() -> No
     assert "app.clients.archive_client" not in _imported_modules(path)
 
 
+def test_advisor_brief_service_does_not_import_concrete_clients() -> None:
+    concrete_imports = {
+        "app.clients.advise_client",
+        "app.clients.lotus_ai_client",
+    }
+    imports = _imported_modules(_SERVICE_ROOT / "advisor_brief_service.py")
+
+    assert imports & concrete_imports == set()
+
+
 def test_narrowed_performance_and_core_services_do_not_import_concrete_clients() -> None:
     narrowed_service_imports = {
         "composite_performance_service.py": {"app.clients.lotus_analytics_client"},
