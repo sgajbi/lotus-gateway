@@ -951,3 +951,31 @@ class RiskWorkspaceClient(Protocol):
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class PlatformCapabilitiesSourceClient(Protocol):
+    async def get_capabilities(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class PlatformCapabilitiesCoreClient(PlatformCapabilitiesSourceClient, Protocol):
+    async def get_effective_policy(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class PlatformCapabilitiesRiskClient(Protocol):
+    async def get_capabilities(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
