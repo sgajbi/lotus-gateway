@@ -10,6 +10,14 @@ from app.services.advisory_service_provider import bank_demo_proof_service
 router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-proof"])
 
 
+async def _get_bank_demo_scenario_contract(
+    x_correlation_id: str | None,
+) -> BankDemoProofEnvelopeResponse:
+    return await bank_demo_proof_service().get_scenario_contract(
+        correlation_id=bank_demo_correlation_id(x_correlation_id),
+    )
+
+
 @router.get(
     "/scenario-contract",
     response_model=BankDemoProofEnvelopeResponse,
@@ -24,6 +32,4 @@ router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-p
 async def get_bank_demo_scenario_contract(
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> BankDemoProofEnvelopeResponse:
-    return await bank_demo_proof_service().get_scenario_contract(
-        correlation_id=bank_demo_correlation_id(x_correlation_id),
-    )
+    return await _get_bank_demo_scenario_contract(x_correlation_id)
