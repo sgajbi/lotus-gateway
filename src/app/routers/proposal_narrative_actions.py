@@ -10,6 +10,22 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _regenerate_proposal_narrative(
+    *,
+    request: ProposalBodyRequest,
+    proposal_id: str,
+    version_no: int,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.regenerate_proposal_narrative(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.body,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions/{version_no}/narrative/regenerate",
     response_model=ProposalEnvelopeResponse,
@@ -33,11 +49,8 @@ async def regenerate_proposal_narrative(
         examples=[2],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.regenerate_proposal_narrative(
+    return await _regenerate_proposal_narrative(
+        request=request,
         proposal_id=proposal_id,
         version_no=version_no,
-        body=request.body,
-        correlation_id=correlation_id,
     )
