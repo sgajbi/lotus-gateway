@@ -12,6 +12,15 @@ from app.routers.dpm_command_center import router as dpm_command_center_router
 from app.routers.dpm_command_center_monitoring import (
     router as dpm_command_center_monitoring_router,
 )
+from app.routers.dpm_command_center_outcome_review_evidence import (
+    router as dpm_command_center_outcome_review_evidence_router,
+)
+from app.routers.dpm_command_center_outcome_review_lookups import (
+    router as dpm_command_center_outcome_review_lookups_router,
+)
+from app.routers.dpm_command_center_outcome_review_narratives import (
+    router as dpm_command_center_outcome_review_narratives_router,
+)
 from app.routers.dpm_command_center_outcome_reviews import (
     router as dpm_command_center_outcome_reviews_router,
 )
@@ -138,6 +147,9 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_monitoring_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
+    app.include_router(dpm_command_center_outcome_review_evidence_router)
+    app.include_router(dpm_command_center_outcome_review_narratives_router)
+    app.include_router(dpm_command_center_outcome_review_lookups_router)
     app.include_router(dpm_command_center_pm_quality_router)
     app.include_router(dpm_command_center_pm_quality_fairness_router)
     app.include_router(dpm_command_center_pm_quality_policies_router)
