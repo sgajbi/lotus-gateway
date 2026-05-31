@@ -11,6 +11,22 @@ from app.services.advisory_service_provider import advisory_policy_service
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
+async def _validate_policy_pack_version(
+    *,
+    request: AdvisoryPolicyBodyRequest,
+    policy_pack_id: str,
+    policy_version: str,
+    idempotency_key: str,
+) -> AdvisoryPolicyEnvelopeResponse:
+    return await advisory_policy_service().validate_policy_pack_version(
+        policy_pack_id=policy_pack_id,
+        policy_version=policy_version,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/advisory-policy-packs/{policy_pack_id}/versions/{policy_version}/validate",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -31,10 +47,9 @@ async def validate_policy_pack_version(
         examples=["idem-policy-validate-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().validate_policy_pack_version(
+    return await _validate_policy_pack_version(
+        request=request,
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
-        body=request.body,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id_var.get(),
     )
