@@ -7,6 +7,20 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _create_proposal_artifact(
+    *,
+    request: ProposalBodyRequest,
+    idempotency_key: str,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.create_proposal_artifact(
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/artifact",
     response_model=ProposalEnvelopeResponse,
@@ -25,10 +39,7 @@ async def create_proposal_artifact(
         examples=["idem-artifact-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.create_proposal_artifact(
-        body=request.body,
+    return await _create_proposal_artifact(
+        request=request,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
