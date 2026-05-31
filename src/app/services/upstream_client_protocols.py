@@ -853,3 +853,64 @@ class SourceProductExecutionClient(Protocol):
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class IntakeIngestionClient(Protocol):
+    async def ingest_portfolio_bundle(
+        self,
+        *,
+        body: dict[str, Any],
+        correlation_id: str,
+        idempotency_key: str | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def preview_upload(
+        self,
+        *,
+        entity_type: str,
+        filename: str,
+        content: bytes,
+        sample_size: int,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def commit_upload(
+        self,
+        *,
+        entity_type: str,
+        filename: str,
+        content: bytes,
+        allow_partial: bool,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+
+class IntakeLookupClient(Protocol):
+    async def get_portfolio_lookups(
+        self,
+        *,
+        correlation_id: str,
+        cif_id: str | None = None,
+        booking_center: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_instrument_lookups(
+        self,
+        *,
+        limit: int,
+        correlation_id: str,
+        product_type: str | None = None,
+        q: str | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def get_currency_lookups(
+        self,
+        *,
+        correlation_id: str,
+        instrument_page_limit: int | None = None,
+        source: str | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+    ) -> tuple[int, dict[str, Any]]: ...
