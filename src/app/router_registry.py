@@ -189,6 +189,9 @@ from app.routers.dpm_wave_campaign_launch_package import (
 from app.routers.dpm_wave_campaign_lifecycle import (
     router as dpm_wave_campaign_lifecycle_router,
 )
+from app.routers.dpm_wave_campaign_maker_checker_commands import (
+    router as dpm_wave_campaign_maker_checker_commands_router,
+)
 from app.routers.dpm_wave_campaign_preview_readiness import (
     router as dpm_wave_campaign_preview_readiness_router,
 )
@@ -427,6 +430,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_assignment_tasks_router)
     app.include_router(dpm_wave_campaign_assignment_task_actions_router)
     app.include_router(dpm_wave_campaign_workflow_router)
+    app.include_router(dpm_wave_campaign_maker_checker_commands_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_construction_actions_router)
     app.include_router(dpm_proof_packs_router)
