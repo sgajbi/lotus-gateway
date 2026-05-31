@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Path, Query
@@ -9,32 +8,12 @@ from app.contracts.archive_documents import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.archive_documents_common import (
-    archive_caller_headers,
+    ArchiveDocumentCallerHeaders,
     archive_error_response,
 )
 from app.services.gateway_service_provider import archive_document_service
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
-
-
-@dataclass(frozen=True)
-class ArchiveDocumentCallerHeaders:
-    actor_id: str | None
-    caller_application: str | None
-    tenant_id: str | None
-    region: str | None
-    booking_center_code: str | None
-    role: str | None
-
-    def as_archive_context(self) -> dict[str, str]:
-        return archive_caller_headers(
-            actor_id=self.actor_id,
-            caller_application=self.caller_application,
-            tenant_id=self.tenant_id,
-            region=self.region,
-            booking_center_code=self.booking_center_code,
-            role=self.role,
-        )
 
 
 async def _get_archived_document_metadata(
