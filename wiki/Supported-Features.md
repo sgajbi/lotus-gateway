@@ -359,7 +359,10 @@ Production-readiness controls:
 4. lotus-ai guardrail or workflow execution failures use the shared product-safe upstream error
    helper, preserving source service, upstream status, error code, and bounded detail without
    exposing prompts or model output,
-5. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard,
+   returning a consistent product-safe unavailable posture before any local prompt or fallback path
+   can be attempted,
+6. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
    input preservation, missing-AI-client failure behavior, lotus-ai guardrail errors, and
    product-safe manage error detail.
 
@@ -643,7 +646,9 @@ Production-readiness controls:
 4. lotus-ai PM memo and operations-handoff failures use the shared product-safe upstream error
    helper, preserving workflow-pack authority and supportability boundaries without exposing raw
    AI payload internals,
-5. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard before
+   PM memo or operations handoff execution begins,
+6. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
    supportability derivation, invalid-transition error detail, report-input handoff evidence, AI
    workflow-pack calls, and guardrail error behavior.
 
@@ -712,7 +717,9 @@ Production-readiness controls:
 4. exception-summary, outcome-review narrative, and PM operating-quality summary failures from
    `lotus-ai` use the shared product-safe upstream error helper so downstream UIs and operators see
    consistent source service, upstream status, and error-code posture,
-5. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard across
+   command-center AI handoffs, keeping degraded configuration posture consistent for operators,
+6. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture

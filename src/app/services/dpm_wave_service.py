@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import HTTPException, status
+from fastapi import status
 
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_ai_client import LotusAiClient
@@ -16,6 +16,7 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
     DpmWaveSupportability,
 )
+from app.services.lotus_ai_workflow import require_lotus_ai_client
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
@@ -679,11 +680,7 @@ class DpmWaveService:
         request: DpmWaveMemoRequest,
         correlation_id: str,
     ) -> DpmWaveMemoGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
@@ -709,7 +706,7 @@ class DpmWaveService:
                 "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -760,11 +757,7 @@ class DpmWaveService:
         request: DpmOperationsHandoffSummaryRequest,
         correlation_id: str,
     ) -> DpmOperationsHandoffSummaryGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
             wave_id=wave_id,
@@ -790,7 +783,7 @@ class DpmWaveService:
                 "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
             version="v1",
             environment="DEVELOPMENT",

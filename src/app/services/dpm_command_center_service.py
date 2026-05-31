@@ -25,6 +25,7 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
     DpmPortfolioMemorySupportability,
 )
+from app.services.lotus_ai_workflow import require_lotus_ai_client
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
@@ -156,11 +157,7 @@ class DpmCommandCenterService:
         request: DpmExceptionSummaryRequest,
         correlation_id: str,
     ) -> DpmExceptionSummaryGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.list_monitoring_exceptions(
             params={
@@ -230,7 +227,7 @@ class DpmCommandCenterService:
                 ],
             },
         }
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_exception_summary.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -471,11 +468,7 @@ class DpmCommandCenterService:
         request: DpmOutcomeReviewNarrativeRequest,
         correlation_id: str,
     ) -> DpmOutcomeReviewNarrativeGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_outcome_review_ai_evidence_input(
             outcome_review_id=outcome_review_id,
@@ -512,7 +505,7 @@ class DpmCommandCenterService:
             },
         }
         source_refs = _outcome_ai_source_refs(manage_payload, outcome_review_id)
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="outcome_review_narrative.pack",
             version="v1",
             environment="DEVELOPMENT",
@@ -875,11 +868,7 @@ class DpmCommandCenterService:
         request: DpmPmOperatingQualitySummaryRequest,
         correlation_id: str,
     ) -> DpmPmOperatingQualitySummaryGatewayResponse:
-        if self._lotus_ai_client is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="lotus-ai workflow-pack execution is not configured for Gateway.",
-            )
+        lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
 
         manage_status, manage_payload = await self._dpm_client.get_pm_operating_quality_score_run(
             score_run_id=score_run_id,
@@ -929,7 +918,7 @@ class DpmCommandCenterService:
         if isinstance(portfolio_memory_context, dict):
             task_payload["portfolio_memory_context"] = portfolio_memory_context
 
-        ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="pm_quality_summary.pack",
             version="v1",
             environment="DEVELOPMENT",
