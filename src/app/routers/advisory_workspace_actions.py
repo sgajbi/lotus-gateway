@@ -10,6 +10,15 @@ from app.services.advisory_service_provider import advisory_workspace_service
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
+async def _create_workspace(
+    request: AdvisoryWorkspaceBodyRequest,
+) -> AdvisoryWorkspaceEnvelopeResponse:
+    return await advisory_workspace_service().create_workspace(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
@@ -23,7 +32,4 @@ router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspa
 async def create_workspace(
     request: AdvisoryWorkspaceBodyRequest,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().create_workspace(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _create_workspace(request)
