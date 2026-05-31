@@ -7,6 +7,18 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_delivery_events(
+    *,
+    proposal_id: str,
+) -> ProposalDeliveryEventsEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_delivery_events(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/delivery-events",
     response_model=ProposalDeliveryEventsEnvelopeResponse,
@@ -23,9 +35,6 @@ async def get_delivery_events(
         examples=["pp_1"],
     ),
 ) -> ProposalDeliveryEventsEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_delivery_events(
+    return await _get_delivery_events(
         proposal_id=proposal_id,
-        correlation_id=correlation_id,
     )
