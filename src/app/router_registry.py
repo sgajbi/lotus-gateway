@@ -150,6 +150,9 @@ from app.routers.dpm_command_center_outcome_review_lookups import (
 from app.routers.dpm_command_center_outcome_review_narratives import (
     router as dpm_command_center_outcome_review_narratives_router,
 )
+from app.routers.dpm_command_center_outcome_review_preview import (
+    router as dpm_command_center_outcome_review_preview_router,
+)
 from app.routers.dpm_command_center_outcome_review_supportability import (
     router as dpm_command_center_outcome_review_supportability_router,
 )
@@ -585,6 +588,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_exception_resolution_router)
     app.include_router(dpm_command_center_exception_ai_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
+    app.include_router(dpm_command_center_outcome_review_preview_router)
     app.include_router(dpm_command_center_outcome_review_detail_router)
     app.include_router(dpm_command_center_outcome_review_lookup_router)
     app.include_router(dpm_command_center_outcome_review_evidence_router)

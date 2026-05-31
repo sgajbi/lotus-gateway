@@ -16,20 +16,21 @@ router = APIRouter(
 
 
 @router.post(
-    "/outcome-reviews",
+    "/outcome-reviews/preview",
     response_model=DpmOutcomeReviewGatewayResponse,
-    summary="Create outcome review",
+    summary="Preview outcome review",
     description=(
-        "What: creates a persisted post-trade outcome review in lotus-manage. When: call this "
-        "after execution evidence is available and a DPM or operations workflow needs an "
-        "immutable review object. How: Gateway forwards the create payload unchanged and "
-        "preserves manage-owned identifiers, state, hashes, lineage, and supportability."
+        "What: previews a post-trade expected-versus-realized outcome review through the "
+        "lotus-manage RFC-0042 authority. When: call this before creating a persisted review "
+        "to confirm source readiness, supportability, lineage, and expected review contents. "
+        "How: Gateway forwards the request unchanged to manage and returns a BFF envelope with "
+        "manage-published supportability; Gateway does not calculate outcome dimensions."
     ),
 )
-async def create_outcome_review(
+async def preview_outcome_review(
     request: DpmOutcomeReviewForwardRequest,
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().create_outcome_review(
+    return await dpm_command_center_service().preview_outcome_review(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
