@@ -215,6 +215,7 @@ from app.routers.dpm_command_center_wave_outcome_reviews import (
 )
 from app.routers.dpm_construction import router as dpm_construction_router
 from app.routers.dpm_construction_actions import router as dpm_construction_actions_router
+from app.routers.dpm_construction_selection import router as dpm_construction_selection_router
 from app.routers.dpm_proof_pack_ai import router as dpm_proof_pack_ai_router
 from app.routers.dpm_proof_pack_ai_evidence_input import (
     router as dpm_proof_pack_ai_evidence_input_router,
@@ -602,6 +603,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_maker_checker_commands_router)
     app.include_router(dpm_construction_router)
     app.include_router(dpm_construction_actions_router)
+    app.include_router(dpm_construction_selection_router)
     app.include_router(dpm_proof_packs_router)
     app.include_router(dpm_proof_pack_evidence_router)
     app.include_router(dpm_proof_pack_report_input_router)
