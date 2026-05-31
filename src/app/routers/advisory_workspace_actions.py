@@ -48,18 +48,3 @@ async def apply_draft_action(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
-
-
-@router.post(
-    "/{workspace_id}/evaluate",
-    response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Evaluate Advisory Workspace",
-    description="Re-evaluates the current advisory workspace draft through lotus-advise.",
-)
-async def evaluate_workspace(
-    workspace_id: str = WORKSPACE_ID_PATH,
-) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().evaluate_workspace(
-        workspace_id=workspace_id,
-        correlation_id=correlation_id_var.get(),
-    )
