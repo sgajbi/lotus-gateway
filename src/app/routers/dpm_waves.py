@@ -126,5 +126,3 @@ async def get_wave(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
-
-

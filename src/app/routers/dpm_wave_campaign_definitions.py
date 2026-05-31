@@ -109,4 +109,3 @@ async def get_campaign_definition(
         campaign_version=campaign_version,
         correlation_id=correlation_id_var.get(),
     )
-
