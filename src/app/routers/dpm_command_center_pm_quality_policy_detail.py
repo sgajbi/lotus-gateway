@@ -14,6 +14,18 @@ router = APIRouter(
 )
 
 
+async def _get_pm_operating_quality_policy(
+    *,
+    policy_id: str,
+    policy_version: str,
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().get_pm_operating_quality_policy(
+        policy_id=policy_id,
+        policy_version=policy_version,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/policies/{policy_id}/versions/{policy_version}",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -36,8 +48,7 @@ async def get_pm_operating_quality_policy(
         examples=["2026.05"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().get_pm_operating_quality_policy(
+    return await _get_pm_operating_quality_policy(
         policy_id=policy_id,
         policy_version=policy_version,
-        correlation_id=correlation_id_var.get(),
     )
