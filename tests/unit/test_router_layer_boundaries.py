@@ -86,6 +86,19 @@ def _route_handler_dict_literals(path: Path) -> list[str]:
     return handlers
 
 
+def _multi_statement_route_handlers(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    handlers: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef):
+            continue
+        if not _is_router_handler(node):
+            continue
+        if len(node.body) != 1:
+            handlers.append(node.name)
+    return handlers
+
+
 def test_routers_do_not_import_service_factories_or_clients() -> None:
     offenders = {
         path.name: sorted(
@@ -97,6 +110,15 @@ def test_routers_do_not_import_service_factories_or_clients() -> None:
         for path in _ROUTER_ROOT.glob("*.py")
     }
     offenders = {name: imports for name, imports in offenders.items() if imports}
+
+    assert offenders == {}
+
+
+def test_router_handlers_are_single_statement_delegators() -> None:
+    offenders = {
+        path.name: _multi_statement_route_handlers(path) for path in _ROUTER_ROOT.glob("*.py")
+    }
+    offenders = {name: handlers for name, handlers in offenders.items() if handlers}
 
     assert offenders == {}
 
