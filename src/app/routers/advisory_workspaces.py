@@ -5,14 +5,9 @@ from app.contracts.advisory_workspaces import (
     AdvisoryWorkspaceEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advisory_service_factory import build_advisory_workspace_service
-from app.services.advisory_workspace_service import AdvisoryWorkspaceService
+from app.services.advisory_service_provider import advisory_workspace_service
 
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
-
-
-def _advisory_workspace_service() -> AdvisoryWorkspaceService:
-    return build_advisory_workspace_service()
 
 
 @router.post(
@@ -28,7 +23,7 @@ def _advisory_workspace_service() -> AdvisoryWorkspaceService:
 async def create_workspace(
     request: AdvisoryWorkspaceBodyRequest,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().create_workspace(
+    return await advisory_workspace_service().create_workspace(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -47,7 +42,7 @@ async def get_workspace(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().get_workspace(
+    return await advisory_workspace_service().get_workspace(
         workspace_id=workspace_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -70,7 +65,7 @@ async def apply_draft_action(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().apply_draft_action(
+    return await advisory_workspace_service().apply_draft_action(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -90,7 +85,7 @@ async def evaluate_workspace(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().evaluate_workspace(
+    return await advisory_workspace_service().evaluate_workspace(
         workspace_id=workspace_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -110,7 +105,7 @@ async def save_workspace(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().save_workspace(
+    return await advisory_workspace_service().save_workspace(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -133,7 +128,7 @@ async def list_saved_versions(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().list_saved_versions(
+    return await advisory_workspace_service().list_saved_versions(
         workspace_id=workspace_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -160,7 +155,7 @@ async def get_saved_version_replay_evidence(
         examples=["awv_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().get_saved_version_replay_evidence(
+    return await advisory_workspace_service().get_saved_version_replay_evidence(
         workspace_id=workspace_id,
         workspace_version_id=workspace_version_id,
         correlation_id=correlation_id_var.get(),
@@ -183,7 +178,7 @@ async def resume_workspace(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().resume_workspace(
+    return await advisory_workspace_service().resume_workspace(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -207,7 +202,7 @@ async def compare_workspace(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().compare_workspace(
+    return await advisory_workspace_service().compare_workspace(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -231,7 +226,7 @@ async def request_rationale(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().request_rationale(
+    return await advisory_workspace_service().request_rationale(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -255,7 +250,7 @@ async def review_rationale(
         examples=["aws_001"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().review_rationale(
+    return await advisory_workspace_service().review_rationale(
         workspace_id=workspace_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -285,7 +280,7 @@ async def handoff_workspace(
         examples=["idem-workspace-handoff-1"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await _advisory_workspace_service().handoff_workspace(
+    return await advisory_workspace_service().handoff_workspace(
         workspace_id=workspace_id,
         body=request.body,
         idempotency_key=idempotency_key,

@@ -8,16 +8,9 @@ from app.contracts.composite_performance import (
     CompositePerformanceTwrRequest,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.composite_performance_service import CompositePerformanceService
-from app.services.composite_performance_service_factory import (
-    build_composite_performance_service,
-)
+from app.services.gateway_service_provider import composite_performance_service
 
 router = APIRouter(prefix="/api/v1/performance/composites", tags=["Composite Performance"])
-
-
-def _composite_performance_service() -> CompositePerformanceService:
-    return build_composite_performance_service()
 
 
 def _caller_context(
@@ -60,7 +53,7 @@ async def calculate_composite_twr(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
     correlation_id = correlation_id_var.get()
-    return await _composite_performance_service().calculate_twr(
+    return await composite_performance_service().calculate_twr(
         payload=request.model_dump(exclude_none=True),
         correlation_id=correlation_id,
         caller_context=_caller_context(
@@ -95,7 +88,7 @@ async def inspect_composite_performance(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
     correlation_id = correlation_id_var.get()
-    return await _composite_performance_service().inspect(
+    return await composite_performance_service().inspect(
         payload=request.model_dump(exclude_none=True),
         correlation_id=correlation_id,
         caller_context=_caller_context(

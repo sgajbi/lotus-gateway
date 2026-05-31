@@ -9,8 +9,7 @@ from app.contracts.advisor_cockpit import (
     AdvisorCockpitOwnerRole,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advisor_cockpit_service import AdvisorCockpitService
-from app.services.advisory_service_factory import build_advisor_cockpit_service
+from app.services.advisory_service_provider import advisor_cockpit_service
 
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
@@ -28,10 +27,6 @@ ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES: dict[int | str, dict[str, Any]] = {
         "description": "lotus-advise rejected a conflicting acknowledgement idempotency key."
     },
 }
-
-
-def _advisor_cockpit_service() -> AdvisorCockpitService:
-    return build_advisor_cockpit_service()
 
 
 def _cockpit_params(
@@ -92,7 +87,7 @@ async def list_advisor_cockpit_actions(
         examples=["cockpit_action_001"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().list_actions(
+    return await advisor_cockpit_service().list_actions(
         params=_cockpit_params(
             portfolio_id=portfolio_id,
             advisor_id=advisor_id,
@@ -145,7 +140,7 @@ async def list_advisor_cockpit_preparation_packets(
         examples=["prep_packet_001"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().list_preparation_packets(
+    return await advisor_cockpit_service().list_preparation_packets(
         params=_cockpit_params(
             portfolio_id=portfolio_id,
             advisor_id=advisor_id,
@@ -189,7 +184,7 @@ async def get_advisor_cockpit_action(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().get_action(
+    return await advisor_cockpit_service().get_action(
         action_item_id=action_item_id,
         params=_cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         correlation_id=correlation_id_var.get(),
@@ -224,7 +219,7 @@ async def get_advisor_cockpit_snapshot(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().get_snapshot(
+    return await advisor_cockpit_service().get_snapshot(
         params=_cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         correlation_id=correlation_id_var.get(),
     )
@@ -258,7 +253,7 @@ async def get_advisor_cockpit_supportability(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().get_supportability(
+    return await advisor_cockpit_service().get_supportability(
         params=_cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         correlation_id=correlation_id_var.get(),
     )
@@ -304,7 +299,7 @@ async def acknowledge_advisor_cockpit_action(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().acknowledge_action(
+    return await advisor_cockpit_service().acknowledge_action(
         action_item_id=action_item_id,
         body=request.model_dump(exclude_none=True),
         params=_cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
@@ -328,7 +323,7 @@ async def acknowledge_advisor_cockpit_action(
 async def evaluate_advisor_cockpit_house_view_cohort(
     request: AdvisorCockpitHouseViewCohortRequest,
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await _advisor_cockpit_service().evaluate_house_view_cohort(
+    return await advisor_cockpit_service().evaluate_house_view_cohort(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )

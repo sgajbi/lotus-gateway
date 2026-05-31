@@ -10,8 +10,7 @@ from app.contracts.dpm_proof_packs import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
-from app.services.dpm_proof_pack_service import DpmProofPackService
-from app.services.dpm_service_factory import build_dpm_proof_pack_service
+from app.services.dpm_service_provider import dpm_proof_pack_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/proof-packs",
@@ -24,10 +23,6 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     invalid_payload_description="lotus-manage rejected the proof-pack payload as invalid.",
     unavailable_description="lotus-manage proof-pack authority is unavailable or degraded.",
 )
-
-
-def _dpm_proof_pack_service() -> DpmProofPackService:
-    return build_dpm_proof_pack_service()
 
 
 @router.post(
@@ -47,7 +42,7 @@ def _dpm_proof_pack_service() -> DpmProofPackService:
 async def generate_proof_pack(
     request: DpmProofPackGenerateRequest,
 ) -> DpmProofPackGatewayResponse:
-    return await _dpm_proof_pack_service().generate_proof_pack(
+    return await dpm_proof_pack_service().generate_proof_pack(
         body=request.body,
         idempotency_key=request.idempotency_key,
         correlation_id=correlation_id_var.get(),
@@ -75,7 +70,7 @@ async def get_proof_pack(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackGatewayResponse:
-    return await _dpm_proof_pack_service().get_proof_pack(
+    return await dpm_proof_pack_service().get_proof_pack(
         proof_pack_id=proof_pack_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -100,7 +95,7 @@ async def get_proof_pack_markdown(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackMarkdownResponse:
-    return await _dpm_proof_pack_service().get_proof_pack_markdown(
+    return await dpm_proof_pack_service().get_proof_pack_markdown(
         proof_pack_id=proof_pack_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -125,7 +120,7 @@ async def get_proof_pack_report_input(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackGatewayResponse:
-    return await _dpm_proof_pack_service().get_proof_pack_report_input(
+    return await dpm_proof_pack_service().get_proof_pack_report_input(
         proof_pack_id=proof_pack_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -150,7 +145,7 @@ async def get_proof_pack_ai_evidence_input(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackGatewayResponse:
-    return await _dpm_proof_pack_service().get_proof_pack_ai_evidence_input(
+    return await dpm_proof_pack_service().get_proof_pack_ai_evidence_input(
         proof_pack_id=proof_pack_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -178,7 +173,7 @@ async def request_proof_pack_pm_memo(
         examples=["dpp_rr_001"],
     ),
 ) -> DpmProofPackMemoGatewayResponse:
-    return await _dpm_proof_pack_service().request_proof_pack_pm_memo(
+    return await dpm_proof_pack_service().request_proof_pack_pm_memo(
         proof_pack_id=proof_pack_id,
         request=request,
         correlation_id=correlation_id_var.get(),

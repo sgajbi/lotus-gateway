@@ -5,8 +5,7 @@ from app.contracts.advisory_policy import (
     AdvisoryPolicyEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advisory_policy_service import AdvisoryPolicyService
-from app.services.advisory_service_factory import build_advisory_policy_service
+from app.services.advisory_service_provider import advisory_policy_service
 
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 POLICY_VERSION_PATH = Path(
@@ -19,10 +18,6 @@ POLICY_EVALUATION_PATH = Path(
 )
 
 
-def _advisory_policy_service() -> AdvisoryPolicyService:
-    return build_advisory_policy_service()
-
-
 @router.get(
     "/advisory-policy-packs",
     response_model=AdvisoryPolicyEnvelopeResponse,
@@ -33,7 +28,7 @@ def _advisory_policy_service() -> AdvisoryPolicyService:
     ),
 )
 async def list_policy_packs() -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().list_policy_packs(
+    return await advisory_policy_service().list_policy_packs(
         correlation_id=correlation_id_var.get(),
     )
 
@@ -59,7 +54,7 @@ async def get_policy_pack_version(
         examples=["2026.05"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_pack_version(
+    return await advisory_policy_service().get_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         correlation_id=correlation_id_var.get(),
@@ -86,7 +81,7 @@ async def validate_policy_pack_version(
         examples=["idem-policy-validate-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().validate_policy_pack_version(
+    return await advisory_policy_service().validate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         body=request.body,
@@ -115,7 +110,7 @@ async def activate_policy_pack_version(
         examples=["idem-policy-activate-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().activate_policy_pack_version(
+    return await advisory_policy_service().activate_policy_pack_version(
         policy_pack_id=policy_pack_id,
         policy_version=policy_version,
         body=request.body,
@@ -148,7 +143,7 @@ async def create_policy_evaluation(
         examples=["idem-policy-evaluation-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().create_policy_evaluation(
+    return await advisory_policy_service().create_policy_evaluation(
         proposal_id=proposal_id,
         proposal_version_id=proposal_version_id,
         body=request.body,
@@ -178,7 +173,7 @@ async def get_policy_review_queue(
         examples=["PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_review_queue(
+    return await advisory_policy_service().get_policy_review_queue(
         evaluation_status=evaluation_status,
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
@@ -194,7 +189,7 @@ async def get_policy_review_queue(
 async def get_policy_evaluation(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_evaluation(
+    return await advisory_policy_service().get_policy_evaluation(
         evaluation_id=evaluation_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -213,7 +208,7 @@ async def replay_policy_evaluation(
     request: AdvisoryPolicyBodyRequest,
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().replay_policy_evaluation(
+    return await advisory_policy_service().replay_policy_evaluation(
         evaluation_id=evaluation_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -239,7 +234,7 @@ async def record_policy_evaluation_event(
         examples=["idem-policy-event-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().record_policy_evaluation_event(
+    return await advisory_policy_service().record_policy_evaluation_event(
         evaluation_id=evaluation_id,
         body=request.body,
         idempotency_key=idempotency_key,
@@ -256,7 +251,7 @@ async def record_policy_evaluation_event(
 async def get_policy_evaluation_lineage(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_evaluation_lineage(
+    return await advisory_policy_service().get_policy_evaluation_lineage(
         evaluation_id=evaluation_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -274,7 +269,7 @@ async def get_policy_evaluation_lineage(
 async def get_policy_sign_off_package(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_sign_off_package(
+    return await advisory_policy_service().get_policy_sign_off_package(
         evaluation_id=evaluation_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -289,7 +284,7 @@ async def get_policy_sign_off_package(
 async def get_policy_evaluation_workflow(
     evaluation_id: str = POLICY_EVALUATION_PATH,
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().get_policy_evaluation_workflow(
+    return await advisory_policy_service().get_policy_evaluation_workflow(
         evaluation_id=evaluation_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -314,7 +309,7 @@ async def record_policy_sign_off_decision(
         examples=["idem-policy-signoff-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().record_policy_sign_off_decision(
+    return await advisory_policy_service().record_policy_sign_off_decision(
         evaluation_id=evaluation_id,
         body=request.body,
         idempotency_key=idempotency_key,
@@ -341,7 +336,7 @@ async def request_policy_report_package(
         examples=["idem-policy-report-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().request_policy_report_package(
+    return await advisory_policy_service().request_policy_report_package(
         evaluation_id=evaluation_id,
         body=request.body,
         idempotency_key=idempotency_key,
@@ -368,7 +363,7 @@ async def request_policy_ai_evidence(
         examples=["idem-policy-ai-evidence-1"],
     ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await _advisory_policy_service().request_policy_ai_evidence(
+    return await advisory_policy_service().request_policy_ai_evidence(
         evaluation_id=evaluation_id,
         body=request.body,
         idempotency_key=idempotency_key,

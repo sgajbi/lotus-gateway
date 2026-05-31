@@ -5,14 +5,9 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.foundation_service import FoundationService
-from app.services.foundation_service_factory import build_foundation_service
+from app.services.gateway_service_provider import foundation_service
 
 router = APIRouter(prefix="/api/v1/foundation", tags=["foundation"])
-
-
-def _foundation_service() -> FoundationService:
-    return build_foundation_service()
 
 
 @router.get(
@@ -28,7 +23,7 @@ def _foundation_service() -> FoundationService:
     ),
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
-    service = _foundation_service()
+    service = foundation_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_catalog(correlation_id=correlation_id)
 
@@ -54,7 +49,7 @@ async def get_foundation_workspace(
         examples=["PF_1001"],
     ),
 ) -> FoundationWorkspaceResponse:
-    service = _foundation_service()
+    service = foundation_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_workspace(
         portfolio_id=portfolio_id,

@@ -15,14 +15,14 @@ def _imported_modules(path: Path) -> set[str]:
     return imports
 
 
-def test_reporting_services_do_not_depend_on_router_modules() -> None:
+def test_service_layer_does_not_depend_on_router_modules() -> None:
     offenders = {
-        path.name: sorted(
+        path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
             module
             for module in _imported_modules(path)
             if module == "app.routers" or module.startswith("app.routers.")
         )
-        for path in _SERVICE_ROOT.glob("reporting*_service.py")
+        for path in _SERVICE_ROOT.rglob("*.py")
     }
     offenders = {name: imports for name, imports in offenders.items() if imports}
 

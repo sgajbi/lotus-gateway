@@ -9,15 +9,10 @@ from app.contracts.archive_documents import (
     ArchivedDocumentMetadataResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.archive_document_service import ArchiveDocumentService
-from app.services.archive_document_service_factory import build_archive_document_service
 from app.services.caller_context import caller_context_headers
+from app.services.gateway_service_provider import archive_document_service
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Archived Documents"])
-
-
-def _archive_document_service() -> ArchiveDocumentService:
-    return build_archive_document_service()
 
 
 def _archive_error_response(
@@ -105,7 +100,7 @@ async def get_archived_document_metadata(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ArchivedDocumentMetadataResponse:
     correlation_id = correlation_id_var.get()
-    return await _archive_document_service().get_document_metadata(
+    return await archive_document_service().get_document_metadata(
         document_id=document_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -175,7 +170,7 @@ async def download_archived_document(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> Response:
-    download = await _archive_document_service().download_document(
+    download = await archive_document_service().download_document(
         document_id=document_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
