@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: I001
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -22,12 +22,10 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.precision_policy import quantize_money, quantize_performance
-from app.services.workspace_client_protocols import (
-    FoundationCoreClient,
-    FoundationManageClient,
-    FoundationPerformanceClient,
-    FoundationReportingClient,
-)
+from app.services.workspace_client_protocols import FoundationCoreClient
+from app.services.workspace_client_protocols import FoundationManageClient
+from app.services.workspace_client_protocols import FoundationPerformanceClient
+from app.services.workspace_client_protocols import FoundationReportingClient
 
 
 class FoundationService:
