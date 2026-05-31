@@ -85,7 +85,7 @@ class _FakeSourceProductService:
 def test_source_product_router_preserves_core_execution_acknowledgement_payload(monkeypatch):
     fake_client = _FakeCoreSourceProductClient()
     monkeypatch.setattr(
-        "app.routers.source_products._source_product_service",
+        "app.routers.source_products.source_product_service",
         lambda: _FakeSourceProductService(fake_client),
     )
     client = TestClient(app)
@@ -161,7 +161,7 @@ def test_source_product_router_maps_core_validation_error_without_local_executio
             )
 
     monkeypatch.setattr(
-        "app.routers.source_products._source_product_service",
+        "app.routers.source_products.source_product_service",
         lambda: _ValidationErrorService(),
     )
     client = TestClient(app)
