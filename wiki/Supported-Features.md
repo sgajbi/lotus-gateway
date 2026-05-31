@@ -356,7 +356,10 @@ Production-readiness controls:
    product-safe manage errors, reducing duplicated service behavior across DPM route families,
 3. AI PM memo execution is gated on manage-owned AI evidence input and uses `lotus-ai`
    workflow-pack execution instead of local prompt construction,
-4. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
+4. lotus-ai guardrail or workflow execution failures use the shared product-safe upstream error
+   helper, preserving source service, upstream status, error code, and bounded detail without
+   exposing prompts or model output,
+5. tests pin payload preservation, section-state supportability, deterministic Markdown, handoff
    input preservation, missing-AI-client failure behavior, lotus-ai guardrail errors, and
    product-safe manage error detail.
 
@@ -637,7 +640,10 @@ Production-readiness controls:
    construction, proof-pack, and wave route families,
 3. AI PM memo and operations-handoff summary execution is gated on manage-owned wave report input
    and uses governed `lotus-ai` workflow-pack execution instead of local prompt construction,
-4. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
+4. lotus-ai PM memo and operations-handoff failures use the shared product-safe upstream error
+   helper, preserving workflow-pack authority and supportability boundaries without exposing raw
+   AI payload internals,
+5. unit and contract tests pin manage payload preservation, campaign lifecycle payloads,
    supportability derivation, invalid-transition error detail, report-input handoff evidence, AI
    workflow-pack calls, and guardrail error behavior.
 
@@ -703,7 +709,10 @@ Production-readiness controls:
    operating-quality surfaces expose upstream status and correlation context for operator triage,
 3. command-center response composition remains payload-preserving; mandate health, outcome-review,
    portfolio-memory, and PM-quality truth stay in `lotus-manage`,
-4. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+4. exception-summary, outcome-review narrative, and PM operating-quality summary failures from
+   `lotus-ai` use the shared product-safe upstream error helper so downstream UIs and operators see
+   consistent source service, upstream status, and error-code posture,
+5. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture

@@ -15,8 +15,8 @@ from app.contracts.dpm_proof_packs import (
 )
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
+    raise_product_safe_service_error,
     raise_product_safe_upstream_error,
-    safe_upstream_detail,
 )
 
 
@@ -166,17 +166,12 @@ class DpmProofPackService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
-                    "detail": safe_upstream_detail(
-                        ai_payload,
-                        default_detail="lotus-ai proof-pack PM memo request failed",
-                    ),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
+                default_detail="lotus-ai proof-pack PM memo request failed",
             )
 
         return DpmProofPackMemoGatewayResponse(

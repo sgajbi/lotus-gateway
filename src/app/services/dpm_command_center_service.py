@@ -27,6 +27,7 @@ from app.contracts.dpm_command_center import (
 )
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
+    raise_product_safe_service_error,
     raise_product_safe_upstream_error,
 )
 
@@ -255,14 +256,12 @@ class DpmCommandCenterService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
+                default_detail="lotus-ai exception summary request failed",
             )
 
         return DpmExceptionSummaryGatewayResponse(
@@ -539,14 +538,12 @@ class DpmCommandCenterService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR",
+                default_detail="lotus-ai outcome-review narrative request failed",
             )
 
         return DpmOutcomeReviewNarrativeGatewayResponse(
@@ -958,14 +955,12 @@ class DpmCommandCenterService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
-                    "detail": _safe_upstream_detail(ai_payload),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
+                default_detail="lotus-ai PM operating quality summary request failed",
             )
 
         return DpmPmOperatingQualitySummaryGatewayResponse(

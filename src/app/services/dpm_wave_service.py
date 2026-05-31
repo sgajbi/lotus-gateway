@@ -19,8 +19,8 @@ from app.contracts.dpm_waves import (
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
+    raise_product_safe_service_error,
     raise_product_safe_upstream_error,
-    safe_upstream_detail,
 )
 
 _WAVE_PM_MEMO_BLOCKED_ACTIONS = [
@@ -735,17 +735,12 @@ class DpmWaveService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
-                    "detail": safe_upstream_detail(
-                        ai_payload,
-                        default_detail="lotus-ai wave PM memo request failed",
-                    ),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
+                default_detail="lotus-ai wave PM memo request failed",
             )
 
         return DpmWaveMemoGatewayResponse(
@@ -821,17 +816,12 @@ class DpmWaveService:
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=ai_status,
-                detail={
-                    "source_service": "lotus-ai",
-                    "upstream_status": ai_status,
-                    "error_code": "AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
-                    "detail": safe_upstream_detail(
-                        ai_payload,
-                        default_detail="lotus-ai operations handoff summary request failed",
-                    ),
-                },
+            raise_product_safe_service_error(
+                ai_status,
+                ai_payload,
+                source_service="lotus-ai",
+                error_code="AI_OPERATIONS_HANDOFF_SUMMARY_UPSTREAM_ERROR",
+                default_detail="lotus-ai operations handoff summary request failed",
             )
 
         return DpmOperationsHandoffSummaryGatewayResponse(
