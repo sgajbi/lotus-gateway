@@ -11,6 +11,24 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _record_proposal_memo_report_package_event(
+    *,
+    request: ProposalBodyRequest,
+    proposal_id: str,
+    version_no: int,
+    idempotency_key: str | None,
+) -> ProposalEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.record_proposal_memo_report_package_event(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/versions/{version_no}/memo/report-package-events",
     response_model=ProposalEnvelopeResponse,
@@ -31,12 +49,9 @@ async def record_proposal_memo_report_package_event(
         examples=["idem-memo-report-package-event-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.record_proposal_memo_report_package_event(
+    return await _record_proposal_memo_report_package_event(
+        request=request,
         proposal_id=proposal_id,
         version_no=version_no,
-        body=request.body,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
