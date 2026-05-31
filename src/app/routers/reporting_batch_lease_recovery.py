@@ -10,6 +10,18 @@ from app.services.reporting_service_provider import reporting_batch_control_serv
 recovery_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
 
 
+async def _recover_expired_report_batch_leases(
+    *,
+    batch_id: str,
+    caller_headers: dict[str, str],
+) -> BatchRecoveryResponse:
+    return await reporting_batch_control_service().recover_expired_leases(
+        batch_id=batch_id,
+        caller_headers=caller_headers,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @recovery_router.post(
     "/{batch_id}:recover-expired-leases",
     response_model=BatchRecoveryResponse,
@@ -28,8 +40,7 @@ async def recover_expired_report_batch_leases(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
     caller_headers: ReportingCallerContext,
 ) -> BatchRecoveryResponse:
-    return await reporting_batch_control_service().recover_expired_leases(
+    return await _recover_expired_report_batch_leases(
         batch_id=batch_id,
         caller_headers=caller_headers,
-        correlation_id=correlation_id_var.get(),
     )
