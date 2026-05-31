@@ -704,14 +704,7 @@ class DpmWaveService:
         task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "memo_request": memo_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "requires_human_review": True,
-                "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
-            },
+            "supportability": _wave_pm_memo_supportability_payload(supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
@@ -773,14 +766,7 @@ class DpmWaveService:
         task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "handoff_summary_request": handoff_summary_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "requires_human_review": True,
-                "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
-            },
+            "supportability": _operations_handoff_supportability_payload(supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
@@ -951,6 +937,32 @@ def _wave_report_source_refs(payload: dict[str, Any], wave_id: str) -> list[str]
 def _source_ref_token(value: object) -> str:
     token = str(value)
     return token.removeprefix("report-input:")
+
+
+def _wave_pm_memo_supportability_payload(
+    supportability: DpmWaveSupportability,
+) -> dict[str, object]:
+    return {
+        "source_state": supportability.state,
+        "reason_codes": supportability.reason_codes,
+        "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "requires_human_review": True,
+        "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
+    }
+
+
+def _operations_handoff_supportability_payload(
+    supportability: DpmWaveSupportability,
+) -> dict[str, object]:
+    return {
+        "source_state": supportability.state,
+        "reason_codes": supportability.reason_codes,
+        "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "requires_human_review": True,
+        "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
+    }
 
 
 def _raise_manage_wave_upstream_error(upstream_status: int, payload: dict[str, Any]) -> None:
