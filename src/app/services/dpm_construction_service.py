@@ -1,13 +1,14 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.clients.dpm_client import DpmClient
-from app.config import settings
 from app.contracts.dpm_construction import (
     DpmConstructionErrorDetail,
     DpmConstructionGatewayResponse,
     DpmConstructionSupportability,
+)
+from app.services.upstream_envelope import (
+    build_upstream_status_gateway_envelope,
+    raise_product_safe_upstream_error,
 )
 
 
@@ -61,22 +62,19 @@ class DpmConstructionService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmConstructionGatewayResponse:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=upstream_status,
-                detail=DpmConstructionErrorDetail(
-                    upstream_status=upstream_status,
-                    error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(upstream_payload),
-                ).model_dump(),
-            )
-
-        return DpmConstructionGatewayResponse(
+        raise_product_safe_upstream_error(
+            upstream_status,
+            upstream_payload,
+            error_model=DpmConstructionErrorDetail,
+            error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
+            default_detail="lotus-manage construction request failed",
+        )
+        return build_upstream_status_gateway_envelope(
+            DpmConstructionGatewayResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
 
@@ -148,12 +146,3 @@ def _list_of_strings(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item) for item in value]
-
-
-def _safe_upstream_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail") or payload.get("message") or payload.get("error")
-    if isinstance(detail, str):
-        return detail
-    if detail is not None:
-        return str(detail)
-    return "lotus-manage construction request failed"

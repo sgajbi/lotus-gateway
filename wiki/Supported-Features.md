@@ -273,7 +273,19 @@ Operational behavior:
 1. degraded or rejected manage states are surfaced as product supportability, not hidden as generic
    success,
 2. manage upstream errors are returned using product-safe Gateway error detail,
-3. OpenAPI documents What/When/How guidance and request/response examples for each route.
+3. response-envelope construction and product-safe upstream error shaping are shared service
+   utilities, which keeps construction behavior consistent with other upstream-backed Gateway
+   surfaces and reduces route-family drift,
+4. OpenAPI documents What/When/How guidance and request/response examples for each route.
+
+Production-readiness controls:
+
+1. generation and selection remain idempotency-key governed,
+2. Gateway exposes the upstream status and manage-owned supportability state for operator triage,
+3. no order execution, trade approval, client communication, or source-readiness inference is
+   performed in Gateway,
+4. unit tests pin payload preservation, supportability derivation, product-safe error detail, and
+   shared upstream-envelope behavior.
 
 ## DPM Proof-Pack Evidence Composition
 
