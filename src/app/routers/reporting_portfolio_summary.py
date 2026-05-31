@@ -15,6 +15,19 @@ from app.services.reporting_service_provider import (
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 
 
+async def _get_reporting_summary(
+    *,
+    portfolio_id: str,
+    request: ReportingPortfolioRequest,
+) -> ReportingSummaryResponse:
+    correlation_id = correlation_id_var.get()
+    return await reporting_portfolio_service().get_summary(
+        portfolio_id=portfolio_id,
+        request=request,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{portfolio_id}/summary",
     response_model=ReportingSummaryResponse,
@@ -45,9 +58,7 @@ async def get_reporting_summary(
         ),
     ],
 ) -> ReportingSummaryResponse:
-    correlation_id = correlation_id_var.get()
-    return await reporting_portfolio_service().get_summary(
+    return await _get_reporting_summary(
         portfolio_id=portfolio_id,
         request=request,
-        correlation_id=correlation_id,
     )
