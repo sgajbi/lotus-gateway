@@ -10,6 +10,26 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _submit_proposal(
+    *,
+    request: ProposalSubmitRequest,
+    proposal_id: str,
+    idempotency_key: str,
+) -> ProposalStateTransitionEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.submit_proposal(
+        proposal_id=proposal_id,
+        actor_id=request.actor_id,
+        expected_state=request.expected_state,
+        review_type=request.review_type,
+        reason=request.reason,
+        related_version_no=request.related_version_no,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id,
+    )
+
+
 @router.post(
     "/{proposal_id}/submit",
     response_model=ProposalStateTransitionEnvelopeResponse,
@@ -29,15 +49,8 @@ async def submit_proposal(
         examples=["idem-submit-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.submit_proposal(
+    return await _submit_proposal(
+        request=request,
         proposal_id=proposal_id,
-        actor_id=request.actor_id,
-        expected_state=request.expected_state,
-        review_type=request.review_type,
-        reason=request.reason,
-        related_version_no=request.related_version_no,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id,
     )
