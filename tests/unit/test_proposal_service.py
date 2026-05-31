@@ -127,6 +127,166 @@ class _FakeAdviseClient:
             "gate_decision": {"gate": "EXECUTION_READY", "recommended_next_step": "EXECUTE"},
         }
 
+    async def create_proposal_artifact(
+        self, body: dict, idempotency_key: str, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "create_proposal_artifact",
+                {
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"artifact_id": "artifact_1", "status": "READY"}
+
+    async def create_proposal(self, body: dict, idempotency_key: str, correlation_id: str):
+        self.calls.append(
+            (
+                "create_proposal",
+                {
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {
+                "proposal_id": "pp_1",
+                "portfolio_id": "PF_1001",
+                "current_state": "DRAFT",
+                "current_version_no": 1,
+            },
+            "version": {
+                "proposal_version_id": "ppv_1",
+                "proposal_id": "pp_1",
+                "version_no": 1,
+                "status_at_creation": "READY",
+                "proposal_result": {"proposal_run_id": "pr_1", "status": "READY"},
+                "artifact": {"artifact_id": "artifact_1"},
+                "evidence_bundle": {},
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_1",
+                "proposal_id": "pp_1",
+                "event_type": "CREATED",
+                "from_state": None,
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:00:00+00:00",
+                "reason": {},
+            },
+        }
+
+    async def create_proposal_version(
+        self, proposal_id: str, body: dict, idempotency_key: str, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "create_proposal_version",
+                {
+                    "proposal_id": proposal_id,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal": {
+                "proposal_id": proposal_id,
+                "portfolio_id": "PF_1001",
+                "current_state": "DRAFT",
+                "current_version_no": 2,
+            },
+            "version": {
+                "proposal_version_id": "ppv_2",
+                "proposal_id": proposal_id,
+                "version_no": 2,
+                "status_at_creation": "READY",
+                "proposal_result": {"proposal_run_id": "pr_2", "status": "READY"},
+                "artifact": {"artifact_id": "artifact_2"},
+                "evidence_bundle": {},
+            },
+            "latest_workflow_event": {
+                "event_id": "pwe_2",
+                "proposal_id": proposal_id,
+                "event_type": "NEW_VERSION_CREATED",
+                "from_state": "DRAFT",
+                "to_state": "DRAFT",
+                "actor_id": "advisor_1",
+                "occurred_at": "2026-02-19T12:06:00+00:00",
+                "reason": {},
+                "related_version_no": 2,
+            },
+        }
+
+    async def create_proposal_async(self, body: dict, idempotency_key: str, correlation_id: str):
+        self.calls.append(
+            (
+                "create_proposal_async",
+                {
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 202, {"operation_id": "op_create_1", "status": "ACCEPTED"}
+
+    async def create_proposal_version_async(
+        self, proposal_id: str, body: dict, idempotency_key: str, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "create_proposal_version_async",
+                {
+                    "proposal_id": proposal_id,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 202, {"operation_id": "op_version_1", "status": "ACCEPTED"}
+
+    async def get_proposal_operation(self, operation_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_proposal_operation",
+                {"operation_id": operation_id, "correlation_id": correlation_id},
+            )
+        )
+        return 200, {"operation_id": operation_id, "status": "READY"}
+
+    async def get_proposal_operation_by_correlation(
+        self, operation_correlation_id: str, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "get_proposal_operation_by_correlation",
+                {
+                    "operation_correlation_id": operation_correlation_id,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"operation_correlation_id": operation_correlation_id, "status": "READY"}
+
+    async def get_proposal_operation_replay_evidence(
+        self, operation_id: str, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "get_proposal_operation_replay_evidence",
+                {"operation_id": operation_id, "correlation_id": correlation_id},
+            )
+        )
+        return 200, {"operation_id": operation_id, "request_hash": "sha256:operation"}
+
     async def transition_proposal(
         self, proposal_id: str, body: dict, idempotency_key: str, correlation_id: str
     ):
@@ -279,6 +439,65 @@ class _FakeAdviseClient:
             ],
         }
 
+    async def get_proposal_version_replay_evidence(
+        self, proposal_id: str, version_no: int, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "get_proposal_version_replay_evidence",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {
+            "proposal_id": proposal_id,
+            "version_no": version_no,
+            "replay_hash": "sha256:v",
+        }
+
+    async def get_proposal_idempotency_record(self, idempotency_key: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_proposal_idempotency_record",
+                {"idempotency_key": idempotency_key, "correlation_id": correlation_id},
+            )
+        )
+        return 200, {"idempotency_key": idempotency_key, "status": "RECORDED"}
+
+    async def regenerate_proposal_narrative(
+        self, proposal_id: str, version_no: int, body: dict, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "regenerate_proposal_narrative",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "version_no": version_no, "narrative_id": "pn_1"}
+
+    async def get_proposal_narrative(
+        self, proposal_id: str, version_no: int, correlation_id: str
+    ):
+        self.calls.append(
+            (
+                "get_proposal_narrative",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "version_no": version_no, "narrative_id": "pn_1"}
+
     async def review_proposal_narrative(
         self,
         proposal_id: str,
@@ -329,6 +548,26 @@ class _FakeAdviseClient:
             "source_refs": [{"source_system": "lotus-advise", "source_id": "proposal_artifact"}],
             "input_hashes": {"artifact_hash": "sha256:artifact-1"},
         }
+
+    async def create_execution_handoff(
+        self,
+        proposal_id: str,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "create_execution_handoff",
+                {
+                    "proposal_id": proposal_id,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "handoff_state": "READY"}
 
     async def create_report_request(
         self,
@@ -412,6 +651,35 @@ class _FakeAdviseClient:
             "events": [{"event_type": "REPORT_REQUESTED", "to_state": "DRAFT"}],
             "explanation": {"filter": "DELIVERY_ONLY"},
         }
+
+    async def get_execution_status(self, proposal_id: str, correlation_id: str):
+        self.calls.append(
+            (
+                "get_execution_status",
+                {"proposal_id": proposal_id, "correlation_id": correlation_id},
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "execution_state": "READY"}
+
+    async def record_execution_update(
+        self,
+        proposal_id: str,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "record_execution_update",
+                {
+                    "proposal_id": proposal_id,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "execution_update_state": "RECORDED"}
 
     async def create_proposal_memo(
         self,
@@ -513,6 +781,28 @@ class _FakeAdviseClient:
             "review_event": {"action": body["action"], "reviewed_by": body["reviewed_by"]},
             "review_posture": {"advisor_use": "APPROVED_FOR_ADVISOR_USE"},
         }
+
+    async def record_proposal_memo_report_package_event(
+        self,
+        proposal_id: str,
+        version_no: int,
+        body: dict,
+        idempotency_key: str | None,
+        correlation_id: str,
+    ):
+        self.calls.append(
+            (
+                "record_proposal_memo_report_package_event",
+                {
+                    "proposal_id": proposal_id,
+                    "version_no": version_no,
+                    "body": body,
+                    "idempotency_key": idempotency_key,
+                    "correlation_id": correlation_id,
+                },
+            )
+        )
+        return 200, {"proposal_id": proposal_id, "report_package_event": body}
 
     async def request_proposal_memo_report_package(
         self,
@@ -630,6 +920,8 @@ async def test_simulate_proposal_wraps_typed_simulation_payload() -> None:
 
     assert result.data.proposal_run_id == "pr_1"
     assert result.data.status == "READY"
+    assert result.data.gate_decision is not None
+    assert result.data.lineage is not None
     assert result.data.gate_decision["gate"] == "CLIENT_CONSENT_REQUIRED"
     assert result.data.lineage["idempotency_key"] == "idem-simulate-1"
     _, payload = client.calls[0]
@@ -676,6 +968,7 @@ async def test_approve_compliance_maps_approval_payload() -> None:
     )
 
     assert result.data.current_state == "AWAITING_CLIENT_CONSENT"
+    assert result.data.approval is not None
     assert result.data.approval.approval_type == "COMPLIANCE"
     assert result.data.latest_workflow_event.event_type == "COMPLIANCE_APPROVED"
     _, payload = client.calls[0]
@@ -809,6 +1102,8 @@ async def test_get_proposal_and_version_wrap_typed_envelopes() -> None:
 
     assert detail.data.proposal.proposal_id == "pp_1"
     assert detail.data.current_version.version_no == 2
+    assert detail.data.last_gate_decision is not None
+    assert version.data.gate_decision is not None
     assert detail.data.last_gate_decision["gate"] == "CLIENT_CONSENT_REQUIRED"
     assert version.data.proposal_id == "pp_1"
     assert version.data.gate_decision["gate"] == "EXECUTION_READY"
@@ -893,6 +1188,7 @@ async def test_get_proposal_lineage_wraps_envelope() -> None:
 
     lineage = await service.get_proposal_lineage(proposal_id="pp_1", correlation_id="corr_3")
 
+    assert lineage.data.proposal is not None
     assert lineage.data.proposal.proposal_id == "pp_1"
     assert lineage.data.proposal_id == "pp_1"
     assert lineage.data.versions[0].version_no == 1
