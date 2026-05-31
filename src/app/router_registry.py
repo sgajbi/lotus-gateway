@@ -18,9 +18,9 @@ from app.routers.platform import router as platform_router
 from app.routers.portfolio import router as portfolio_router
 from app.routers.proposals import router as proposals_router
 from app.routers.reporting import batches_router as reporting_batches_router
-from app.routers.reporting import jobs_router as reporting_jobs_router
 from app.routers.reporting import router as reporting_router
 from app.routers.reporting import schedules_router as reporting_schedules_router
+from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
 from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
 
