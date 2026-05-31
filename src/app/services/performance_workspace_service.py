@@ -55,11 +55,11 @@ from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
 )
-from app.services.upstream_client_protocols import (
+from app.services.workbench_service import WorkbenchService
+from app.services.workspace_client_protocols import (
     PerformanceWorkspaceAnalyticsClient,
     PerformanceWorkspaceCoreClient,
 )
-from app.services.workbench_service import WorkbenchService
 
 STANDARD_PERIOD_ANALYSES = (
     {"period": "MTD", "frequencies": ["daily", "monthly", "quarterly", "yearly"]},

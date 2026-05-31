@@ -31,7 +31,7 @@ from app.precision_policy import (
     quantize_performance,
     quantize_quantity,
 )
-from app.services.upstream_client_protocols import (
+from app.services.workspace_client_protocols import (
     WorkbenchAdviseClient,
     WorkbenchCoreClient,
     WorkbenchManageClient,

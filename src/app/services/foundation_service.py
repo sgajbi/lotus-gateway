@@ -22,7 +22,7 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.precision_policy import quantize_money, quantize_performance
-from app.services.upstream_client_protocols import (
+from app.services.workspace_client_protocols import (
     FoundationCoreClient,
     FoundationManageClient,
     FoundationPerformanceClient,

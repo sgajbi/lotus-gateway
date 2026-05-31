@@ -15,7 +15,7 @@ from app.contracts.platform_capabilities import (
     PlatformShellBootstrap,
     PlatformShellWorkspaceDescriptor,
 )
-from app.services.upstream_client_protocols import (
+from app.services.workspace_client_protocols import (
     PlatformCapabilitiesCoreClient,
     PlatformCapabilitiesRiskClient,
     PlatformCapabilitiesSourceClient,

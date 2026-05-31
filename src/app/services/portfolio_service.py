@@ -61,7 +61,7 @@ from app.precision_policy import (
     quantize_quantity,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
-from app.services.upstream_client_protocols import (
+from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
     PortfolioPerformanceClient,
