@@ -20,6 +20,7 @@ from app.contracts.dpm_waves import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
+from app.routers.query_params import query_params_with_repeated_values
 from app.services.dpm_service_factory import build_dpm_wave_service
 from app.services.dpm_wave_service import DpmWaveService
 
@@ -41,16 +42,7 @@ def _dpm_wave_service() -> DpmWaveService:
 
 
 def _query_params(request: Request) -> dict[str, Any]:
-    params: dict[str, Any] = {}
-    for key, value in request.query_params.multi_items():
-        existing = params.get(key)
-        if existing is None:
-            params[key] = value
-        elif isinstance(existing, list):
-            existing.append(value)
-        else:
-            params[key] = [existing, value]
-    return params
+    return query_params_with_repeated_values(request.query_params)
 
 
 @router.post(

@@ -734,7 +734,9 @@ Production-readiness controls:
 10. DPM OpenAPI upstream-error response maps use a shared helper so command-center, construction,
    proof-pack, and wave conflict, validation, not-found, and degraded-authority documentation stays
    consistent across route families,
-11. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+11. repeated DPM workflow query parameters use a shared router helper, preserving multi-select
+   filters for Manage without route-local parsing logic,
+12. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture
