@@ -1,9 +1,6 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.clients.advise_client import AdviseClient
-from app.config import settings
 from app.contracts.proposals import (
     ProposalApprovalsData,
     ProposalApprovalsEnvelopeResponse,
@@ -35,6 +32,11 @@ from app.contracts.proposals import (
     ProposalVersionEnvelopeResponse,
     ProposalWorkflowEventsData,
     ProposalWorkflowEventsEnvelopeResponse,
+)
+from app.services.upstream_envelope import (
+    build_gateway_envelope,
+    build_typed_gateway_envelope,
+    raise_for_upstream_error,
 )
 
 
@@ -74,16 +76,12 @@ class ProposalService:
             correlation_id=correlation_id,
         )
 
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            detail: str | dict[str, Any] = upstream_payload
-            if not isinstance(detail, str):
-                detail = str(detail)
-            raise HTTPException(status_code=upstream_status, detail=detail)
-
-        return ProposalSimulateResponse(
+        self._raise_for_upstream_error(upstream_status, upstream_payload)
+        return build_typed_gateway_envelope(
+            ProposalSimulateResponse,
+            ProposalSimulationData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalSimulationData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def create_proposal_artifact(
@@ -112,10 +110,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalCreateEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalCreateEnvelopeResponse,
+            ProposalCreateData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalCreateData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def list_proposals(
@@ -128,10 +127,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalListEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalListEnvelopeResponse,
+            ProposalListData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalListData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal(
@@ -146,10 +146,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalDetailEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalDetailEnvelopeResponse,
+            ProposalDetailData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalDetailData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_version(
@@ -166,10 +167,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalVersionEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalVersionEnvelopeResponse,
+            ProposalVersionData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalVersionData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def create_proposal_version(
@@ -186,10 +188,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalCreateEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalCreateEnvelopeResponse,
+            ProposalCreateData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalCreateData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def create_proposal_async(
@@ -296,10 +299,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalStateTransitionEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalStateTransitionEnvelopeResponse,
+            ProposalStateTransitionData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalStateTransitionData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def approve_risk(
@@ -375,14 +379,13 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalWorkflowEventsEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalWorkflowEventsEnvelopeResponse,
+            ProposalWorkflowEventsData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalWorkflowEventsData.model_validate(
-                _normalize_proposal_context_payload(
-                    upstream_payload,
-                    proposal_id=proposal_id,
-                )
+            upstream_payload=_normalize_proposal_context_payload(
+                upstream_payload,
+                proposal_id=proposal_id,
             ),
         )
 
@@ -396,14 +399,13 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalApprovalsEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalApprovalsEnvelopeResponse,
+            ProposalApprovalsData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalApprovalsData.model_validate(
-                _normalize_proposal_context_payload(
-                    upstream_payload,
-                    proposal_id=proposal_id,
-                )
+            upstream_payload=_normalize_proposal_context_payload(
+                upstream_payload,
+                proposal_id=proposal_id,
             ),
         )
 
@@ -417,10 +419,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalLineageEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalLineageEnvelopeResponse,
+            ProposalLineageData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalLineageData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_version_replay_evidence(
@@ -501,10 +504,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalNarrativeReviewEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalNarrativeReviewEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def create_report_request(
@@ -519,10 +522,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalReportRequestEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalReportRequestEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def create_execution_handoff(
@@ -551,10 +554,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalDeliverySummaryEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalDeliverySummaryEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_delivery_events(
@@ -567,10 +570,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalDeliveryEventsEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalDeliveryEventsEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_execution_status(
@@ -617,10 +620,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_memo(
@@ -635,10 +638,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_memo_projection(
@@ -655,10 +658,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoProjectionEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoProjectionEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def review_proposal_memo(
@@ -677,10 +680,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoReviewEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoReviewEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def record_proposal_memo_report_package_event(
@@ -723,10 +726,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoReportPackageEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoReportPackageEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def request_proposal_memo_ai_commentary(
@@ -748,10 +751,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoAiCommentaryEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoAiCommentaryEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_memo_lineage(
@@ -764,10 +767,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoLineageEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoLineageEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def get_proposal_memo_replay_evidence(
@@ -785,10 +788,10 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalMemoReplayEvidenceEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalMemoReplayEvidenceEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     async def _record_approval(
@@ -819,10 +822,11 @@ class ProposalService:
             correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return ProposalStateTransitionEnvelopeResponse(
+        return build_typed_gateway_envelope(
+            ProposalStateTransitionEnvelopeResponse,
+            ProposalStateTransitionData,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=ProposalStateTransitionData.model_validate(upstream_payload),
+            upstream_payload=upstream_payload,
         )
 
     def _opaque_envelope(
@@ -830,10 +834,10 @@ class ProposalService:
         correlation_id: str,
         upstream_payload: dict[str, Any],
     ) -> ProposalEnvelopeResponse:
-        return ProposalEnvelopeResponse(
+        return build_gateway_envelope(
+            ProposalEnvelopeResponse,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            data=upstream_payload,
+            upstream_payload=upstream_payload,
         )
 
     def _raise_for_upstream_error(
@@ -841,8 +845,4 @@ class ProposalService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            detail: str | dict[str, Any] = upstream_payload
-            if not isinstance(detail, str):
-                detail = str(detail)
-            raise HTTPException(status_code=upstream_status, detail=detail)
+        raise_for_upstream_error(upstream_status, upstream_payload, stringify_payload=True)

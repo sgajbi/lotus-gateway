@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.config import settings
 
 EnvelopeT = TypeVar("EnvelopeT", bound=BaseModel)
+PayloadT = TypeVar("PayloadT", bound=BaseModel)
 
 
 def build_gateway_envelope(
@@ -22,6 +23,22 @@ def build_gateway_envelope(
         correlation_id=correlation_id,
         contract_version=settings.contract_version,
         data=upstream_payload,
+    )
+
+
+def build_typed_gateway_envelope(
+    response_model: type[EnvelopeT],
+    payload_model: type[PayloadT],
+    *,
+    correlation_id: str,
+    upstream_payload: dict[str, Any],
+) -> EnvelopeT:
+    """Build a Gateway envelope after validating a typed upstream payload projection."""
+
+    return response_model(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        data=payload_model.model_validate(upstream_payload),
     )
 
 
