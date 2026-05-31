@@ -45,23 +45,3 @@ async def resume_workspace(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
-
-
-@router.post(
-    "/{workspace_id}/compare",
-    response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Compare Advisory Workspace Draft",
-    description=(
-        "Compares the current workspace draft against a saved version through lotus-advise. "
-        "Gateway preserves the returned comparison evidence unchanged."
-    ),
-)
-async def compare_workspace(
-    request: AdvisoryWorkspaceBodyRequest,
-    workspace_id: str = WORKSPACE_ID_PATH,
-) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().compare_workspace(
-        workspace_id=workspace_id,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
