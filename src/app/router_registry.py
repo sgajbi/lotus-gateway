@@ -157,6 +157,7 @@ from app.routers.proposal_execution import router as proposal_execution_router
 from app.routers.proposal_generation import router as proposal_generation_router
 from app.routers.proposal_memo_actions import router as proposal_memo_actions_router
 from app.routers.proposal_memo_evidence import router as proposal_memo_evidence_router
+from app.routers.proposal_memo_reporting import router as proposal_memo_reporting_router
 from app.routers.proposal_memos import router as proposal_memos_router
 from app.routers.proposal_narratives import router as proposal_narratives_router
 from app.routers.proposal_operations import router as proposal_operations_router
@@ -239,6 +240,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_memos_router)
     app.include_router(proposal_memo_evidence_router)
     app.include_router(proposal_memo_actions_router)
+    app.include_router(proposal_memo_reporting_router)
     app.include_router(platform_router)
     app.include_router(domain_products_router)
     app.include_router(domain_product_trust_router)
