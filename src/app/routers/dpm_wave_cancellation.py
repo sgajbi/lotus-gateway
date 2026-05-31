@@ -12,22 +12,22 @@ router = APIRouter(
 
 
 @router.post(
-    "/{wave_id}/approve",
+    "/{wave_id}/cancel",
     response_model=DpmWaveGatewayResponse,
-    summary="Approve DPM rebalance wave",
+    summary="Cancel DPM rebalance wave",
     description=(
-        "What: forwards PM/CIO approval evidence for eligible manage wave items. When: call this "
-        "after selected items and proof-pack posture have been reviewed. How: Gateway preserves "
-        "manage approval state and exceptions without approving blocked, degraded, or unselected "
-        "items locally."
+        "What: forwards a manage-owned cancellation command for an eligible rebalance wave. "
+        "When: call this before external execution exists. How: Gateway preserves manage "
+        "cancellation diagnostics and does not cancel external orders because RFC-0041 handoff is "
+        "internal readiness evidence only."
     ),
     responses=UPSTREAM_WAVE_ACTION_ERROR_RESPONSES,
 )
-async def approve_wave(
+async def cancel_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().approve_wave(
+    return await dpm_wave_service().cancel_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
