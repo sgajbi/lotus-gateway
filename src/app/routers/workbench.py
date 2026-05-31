@@ -30,31 +30,17 @@ from app.contracts.workbench import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
-from app.services.advisor_brief_service import AdvisorBriefService
 from app.services.caller_context import caller_context_headers
-from app.services.performance_workspace_service import PerformanceWorkspaceService
-from app.services.risk_workspace_service import RiskWorkspaceService
-from app.services.workbench_service import WorkbenchService
-from app.services.workbench_service_factory import (
-    build_advisor_brief_service,
-    build_performance_workspace_service,
-    build_risk_workspace_service,
-    build_workbench_service,
-    workbench_service_signature,
+from app.services.workbench_service_provider import (
+    advisor_brief_service,
+    performance_workspace_service,
+    risk_workspace_service,
+    workbench_service,
 )
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 logger = logging.getLogger("analytics_ui.gateway")
 
-
-_WORKBENCH_SERVICE: WorkbenchService | None = None
-_WORKBENCH_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-_PERFORMANCE_WORKSPACE_SERVICE: PerformanceWorkspaceService | None = None
-_PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-_ADVISOR_BRIEF_SERVICE: AdvisorBriefService | None = None
-_ADVISOR_BRIEF_SERVICE_SIGNATURE: tuple[object, ...] | None = None
-_RISK_WORKSPACE_SERVICE: RiskWorkspaceService | None = None
-_RISK_WORKSPACE_SERVICE_SIGNATURE: tuple[object, ...] | None = None
 
 RISK_PERIOD_QUERY_DESCRIPTION = (
     "Canonical risk horizon. Use platform-governed values such as MTD, QTD, YTD, 1Y, 3Y, 5Y, "
@@ -91,45 +77,6 @@ def _emit_advisor_brief_read_audit(*, status_code: int) -> None:
     )
 
 
-def _workbench_service() -> WorkbenchService:
-    global _WORKBENCH_SERVICE, _WORKBENCH_SERVICE_SIGNATURE
-    signature = workbench_service_signature()
-    if _WORKBENCH_SERVICE is None or _WORKBENCH_SERVICE_SIGNATURE != signature:
-        _WORKBENCH_SERVICE = build_workbench_service()
-        _WORKBENCH_SERVICE_SIGNATURE = signature
-    return _WORKBENCH_SERVICE
-
-
-def _performance_workspace_service() -> PerformanceWorkspaceService:
-    global _PERFORMANCE_WORKSPACE_SERVICE, _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE
-    signature = workbench_service_signature()
-    if (
-        _PERFORMANCE_WORKSPACE_SERVICE is None
-        or _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE != signature
-    ):
-        _PERFORMANCE_WORKSPACE_SERVICE = build_performance_workspace_service(_workbench_service())
-        _PERFORMANCE_WORKSPACE_SERVICE_SIGNATURE = signature
-    return _PERFORMANCE_WORKSPACE_SERVICE
-
-
-def _advisor_brief_service() -> AdvisorBriefService:
-    global _ADVISOR_BRIEF_SERVICE, _ADVISOR_BRIEF_SERVICE_SIGNATURE
-    signature = workbench_service_signature()
-    if _ADVISOR_BRIEF_SERVICE is None or _ADVISOR_BRIEF_SERVICE_SIGNATURE != signature:
-        _ADVISOR_BRIEF_SERVICE = build_advisor_brief_service(_performance_workspace_service())
-        _ADVISOR_BRIEF_SERVICE_SIGNATURE = signature
-    return _ADVISOR_BRIEF_SERVICE
-
-
-def _risk_workspace_service() -> RiskWorkspaceService:
-    global _RISK_WORKSPACE_SERVICE, _RISK_WORKSPACE_SERVICE_SIGNATURE
-    signature = workbench_service_signature()
-    if _RISK_WORKSPACE_SERVICE is None or _RISK_WORKSPACE_SERVICE_SIGNATURE != signature:
-        _RISK_WORKSPACE_SERVICE = build_risk_workspace_service()
-        _RISK_WORKSPACE_SERVICE_SIGNATURE = signature
-    return _RISK_WORKSPACE_SERVICE
-
-
 @router.get(
     "/{portfolio_id}/overview",
     response_model=WorkbenchOverviewResponse,
@@ -148,7 +95,7 @@ async def get_workbench_overview(
         examples=["PF_1001"],
     ),
 ) -> WorkbenchOverviewResponse:
-    service = _workbench_service()
+    service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_overview(
         portfolio_id=portfolio_id,
@@ -178,7 +125,7 @@ async def get_portfolio_360(
         examples=["sess_1"],
     ),
 ) -> WorkbenchPortfolio360Response:
-    service = _workbench_service()
+    service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_portfolio_360(
         portfolio_id=portfolio_id,
@@ -226,7 +173,7 @@ async def get_workbench_analytics(
         examples=["sess_1"],
     ),
 ) -> WorkbenchAnalyticsResponse:
-    service = _workbench_service()
+    service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workbench_analytics(
         portfolio_id=portfolio_id,
@@ -309,7 +256,7 @@ async def get_workbench_risk_summary(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = _risk_workspace_service()
+    service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_summary(
         portfolio_id=portfolio_id,
@@ -377,7 +324,7 @@ async def get_workbench_risk_concentration(
         examples=["USD"],
     ),
 ) -> WorkbenchRiskConcentrationResponse:
-    service = _risk_workspace_service()
+    service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_concentration(
         portfolio_id=portfolio_id,
@@ -453,7 +400,7 @@ async def get_workbench_risk_drawdown(
         examples=[True],
     ),
 ) -> WorkbenchRiskDrawdownResponse:
-    service = _risk_workspace_service()
+    service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_drawdown(
         portfolio_id=portfolio_id,
@@ -536,7 +483,7 @@ async def get_workbench_risk_rolling(
         examples=[True],
     ),
 ) -> WorkbenchRiskRollingResponse:
-    service = _risk_workspace_service()
+    service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_rolling(
         portfolio_id=portfolio_id,
@@ -626,7 +573,7 @@ async def get_workbench_risk_attribution(
         examples=["SECTOR"],
     ),
 ) -> WorkbenchRiskAttributionResponse:
-    service = _risk_workspace_service()
+    service = risk_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_attribution(
         portfolio_id=portfolio_id,
@@ -721,7 +668,7 @@ async def get_performance_workspace_summary(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = _performance_workspace_service()
+    service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_workspace_summary(
         portfolio_id=portfolio_id,
@@ -798,7 +745,7 @@ async def get_performance_workspace_details(
         examples=["2026-03-27"],
     ),
 ) -> PerformanceWorkspaceDetailsResponse:
-    service = _performance_workspace_service()
+    service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_workspace_details(
         portfolio_id=portfolio_id,
@@ -843,7 +790,7 @@ async def get_performance_evidence_artifact(
     ),
 ) -> Response:
     _ = portfolio_id
-    service = _performance_workspace_service()
+    service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     content, content_type = await service.get_performance_evidence_artifact(
         calculation_id=calculation_id,
@@ -917,7 +864,7 @@ async def get_performance_horizon_comparison(
         examples=["2026-03-27"],
     ),
 ) -> PerformanceHorizonComparisonResponse:
-    service = _performance_workspace_service()
+    service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
@@ -1003,7 +950,7 @@ async def get_performance_attribution_trend(
         examples=["2026-03-27"],
     ),
 ) -> PerformanceAttributionTrendResponse:
-    service = _performance_workspace_service()
+    service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     return await service.get_performance_attribution_trend(
         portfolio_id=portfolio_id,
@@ -1096,7 +1043,7 @@ async def get_performance_advisor_brief(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = _advisor_brief_service()
+    service = advisor_brief_service()
     correlation_id = correlation_id_var.get()
     try:
         response = await service.get_performance_advisor_brief(
@@ -1197,7 +1144,7 @@ async def post_performance_advisor_brief_review_action(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = _advisor_brief_service()
+    service = advisor_brief_service()
     correlation_id = correlation_id_var.get()
     return await service.apply_performance_advisor_brief_review_action(
         portfolio_id=portfolio_id,
@@ -1232,7 +1179,7 @@ async def create_sandbox_session(
         examples=["PF_1001"],
     ),
 ) -> WorkbenchSandboxStateResponse:
-    service = _workbench_service()
+    service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.create_sandbox_session(
         portfolio_id=portfolio_id,
@@ -1265,7 +1212,7 @@ async def apply_sandbox_changes(
         examples=["sess_1"],
     ),
 ) -> WorkbenchSandboxStateResponse:
-    service = _workbench_service()
+    service = workbench_service()
     correlation_id = correlation_id_var.get()
     return await service.apply_sandbox_changes(
         portfolio_id=portfolio_id,
