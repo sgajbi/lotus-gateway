@@ -4,29 +4,10 @@ from fastapi import APIRouter, Header, Path, Query
 
 from app.contracts.performance_workspace import PerformanceWorkspaceSummaryResponse
 from app.middleware.correlation import correlation_id_var
-from app.services.caller_context import caller_context_headers
+from app.routers.workbench_caller_context import require_workbench_caller_context
 from app.services.workbench_service_provider import performance_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
-
-
-def _required_caller_context(
-    *,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
-) -> dict[str, str]:
-    return caller_context_headers(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
 
 
 @router.get(
@@ -99,7 +80,7 @@ async def get_performance_workspace_summary(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> PerformanceWorkspaceSummaryResponse:
-    _required_caller_context(
+    require_workbench_caller_context(
         actor_id=actor_id,
         caller_application=caller_application,
         tenant_id=tenant_id,
