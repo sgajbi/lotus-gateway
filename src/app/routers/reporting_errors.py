@@ -5,10 +5,6 @@ from app.contracts.reporting import (
     REPORT_JOB_ERROR_EXAMPLES,
     ReportJobErrorResponse,
 )
-from app.services.reporting_error_mapping import (
-    raise_report_batch_error,
-    raise_report_job_error,
-)
 
 
 def report_job_error_response(

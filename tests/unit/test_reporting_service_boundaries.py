@@ -1,7 +1,6 @@
 import ast
 from pathlib import Path
 
-
 _SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
 
 
