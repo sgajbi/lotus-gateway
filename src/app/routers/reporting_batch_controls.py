@@ -1,13 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path
+from fastapi import APIRouter, Path
 
 from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
     BatchControlResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerContext
 from app.services.reporting_service_provider import reporting_batch_control_service
 
 controls_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
@@ -17,24 +17,12 @@ async def _control_batch(
     *,
     batch_id: str,
     action: str,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
+    caller_headers: dict[str, str],
 ) -> BatchControlResponse:
     return await reporting_batch_control_service().control_batch(
         batch_id=batch_id,
         action=action,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -55,22 +43,12 @@ async def _control_batch(
 )
 async def pause_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
     return await _control_batch(
         batch_id=batch_id,
         action="pause",
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+        caller_headers=caller_headers,
     )
 
 
@@ -82,22 +60,12 @@ async def pause_report_batch(
 )
 async def resume_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
     return await _control_batch(
         batch_id=batch_id,
         action="resume",
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+        caller_headers=caller_headers,
     )
 
 
@@ -112,22 +80,12 @@ async def resume_report_batch(
 )
 async def cancel_report_batch(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
     return await _control_batch(
         batch_id=batch_id,
         action="cancel",
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+        caller_headers=caller_headers,
     )
 
 
@@ -142,21 +100,10 @@ async def cancel_report_batch(
 )
 async def retry_failed_report_batch_items(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchControlResponse:
     return await _control_batch(
         batch_id=batch_id,
         action="retry-failed",
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+        caller_headers=caller_headers,
     )
-

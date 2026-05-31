@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Header, Path
+from fastapi import APIRouter, Body, Path
 
 from app.contracts.reporting import (
     BATCH_RECOVERY_RESPONSE_EXAMPLE,
@@ -11,7 +11,7 @@ from app.contracts.reporting import (
     BatchWorkerRunResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_batch_error_response
 from app.services.reporting_service_provider import reporting_batch_control_service
 
@@ -34,23 +34,11 @@ worker_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches
 )
 async def recover_expired_report_batch_leases(
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchRecoveryResponse:
     return await reporting_batch_control_service().recover_expired_leases(
         batch_id=batch_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -97,25 +85,13 @@ async def run_report_batch_once(
         Body(description="Bounded report batch worker-run request."),
     ],
     batch_id: Annotated[str, Path(description="Opaque durable report batch identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> BatchWorkerRunResponse:
     correlation_id = correlation_id_var.get()
     return await reporting_batch_control_service().run_batch_once(
         batch_id=batch_id,
         request=request,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id,
-        tenant_id=tenant_id,
+        tenant_id=caller_headers.get("X-Tenant-Id"),
     )

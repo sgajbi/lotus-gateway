@@ -1,13 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path
+from fastapi import APIRouter, Path
 
 from app.contracts.reporting import (
     ReportInputSnapshotRecord,
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.reporting_context import reporting_context_headers
+from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_job_error_response
 from app.services.reporting_service_provider import reporting_job_query_service
 
@@ -37,23 +37,11 @@ router = APIRouter(prefix="/api/v1/reports/snapshots", tags=["Reports"])
 )
 async def get_report_snapshot(
     snapshot_id: Annotated[str, Path(description="Opaque report snapshot identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportInputSnapshotRecord:
     return await reporting_job_query_service().get_report_snapshot(
         snapshot_id=snapshot_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
 
@@ -80,22 +68,10 @@ async def get_report_snapshot(
 )
 async def get_report_snapshot_lineage(
     snapshot_id: Annotated[str, Path(description="Opaque report snapshot identifier.")],
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    caller_headers: ReportingCallerContext,
 ) -> ReportSnapshotLineageResponse:
     return await reporting_job_query_service().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
-        caller_headers=reporting_context_headers(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+        caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
     )
