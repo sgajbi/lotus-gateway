@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import status
 
 from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_waves import (
     DpmCampaignDefinitionGatewayResponse,
@@ -16,7 +15,11 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
     DpmWaveSupportability,
 )
-from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.lotus_ai_workflow import (
+    build_workflow_pack_task_request,
+    require_lotus_ai_client,
+)
+from app.services.upstream_client_protocols import LotusAiWorkflowClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
@@ -47,7 +50,11 @@ _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS = [
 
 
 class DpmWaveService:
-    def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
+    def __init__(
+        self,
+        dpm_client: DpmClient,
+        lotus_ai_client: LotusAiWorkflowClient | None = None,
+    ):
         self._dpm_client = dpm_client
         self._lotus_ai_client = lotus_ai_client
 
@@ -694,17 +701,10 @@ class DpmWaveService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
+        task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "memo_request": memo_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "requires_human_review": True,
-                "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
-            },
+            "supportability": _wave_pm_memo_supportability_payload(supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
@@ -712,23 +712,15 @@ class DpmWaveService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-wave-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated DPM wave PM memo from manage-owned report input "
-                        f"for {wave_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": _wave_report_source_refs(manage_payload, wave_id),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=build_workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated DPM wave PM memo from manage-owned report input "
+                    f"for {wave_id}."
+                ),
+                payload=task_payload,
+                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
@@ -771,17 +763,10 @@ class DpmWaveService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = {
+        task_payload: dict[str, object] = {
             "wave_report_input": manage_payload,
             "handoff_summary_request": handoff_summary_request,
-            "supportability": {
-                "source_state": supportability.state,
-                "reason_codes": supportability.reason_codes,
-                "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
-                "requires_human_review": True,
-                "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
-            },
+            "supportability": _operations_handoff_supportability_payload(supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
@@ -789,23 +774,15 @@ class DpmWaveService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-operations-handoff-ai-evidence",
-            task_request={
-                "task_id": "explain.v1",
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        "Generate review-gated DPM operations handoff summary from "
-                        f"manage-owned handoff evidence for {wave_id}."
-                    ),
-                    "payload": task_payload,
-                    "source_refs": _wave_report_source_refs(manage_payload, wave_id),
-                },
-                "expected_output_label": "EXPLANATION_ONLY",
-            },
+            task_request=build_workflow_pack_task_request(
+                correlation_id=correlation_id,
+                summary=(
+                    "Generate review-gated DPM operations handoff summary from "
+                    f"manage-owned handoff evidence for {wave_id}."
+                ),
+                payload=task_payload,
+                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+            ),
             correlation_id=correlation_id,
         )
         if ai_status >= status.HTTP_400_BAD_REQUEST:
@@ -960,6 +937,32 @@ def _wave_report_source_refs(payload: dict[str, Any], wave_id: str) -> list[str]
 def _source_ref_token(value: object) -> str:
     token = str(value)
     return token.removeprefix("report-input:")
+
+
+def _wave_pm_memo_supportability_payload(
+    supportability: DpmWaveSupportability,
+) -> dict[str, object]:
+    return {
+        "source_state": supportability.state,
+        "reason_codes": supportability.reason_codes,
+        "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "requires_human_review": True,
+        "unsupported_claims": _WAVE_PM_MEMO_UNSUPPORTED_CLAIMS,
+    }
+
+
+def _operations_handoff_supportability_payload(
+    supportability: DpmWaveSupportability,
+) -> dict[str, object]:
+    return {
+        "source_state": supportability.state,
+        "reason_codes": supportability.reason_codes,
+        "blocked_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "forbidden_actions": _WAVE_PM_MEMO_BLOCKED_ACTIONS,
+        "requires_human_review": True,
+        "unsupported_claims": _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS,
+    }
 
 
 def _raise_manage_wave_upstream_error(upstream_status: int, payload: dict[str, Any]) -> None:

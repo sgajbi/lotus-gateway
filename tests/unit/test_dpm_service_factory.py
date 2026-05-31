@@ -5,6 +5,8 @@ from app.services.dpm_service_factory import (
     build_dpm_wave_service,
     build_lotus_ai_client,
     build_manage_client,
+    lotus_ai_client_signature,
+    manage_client_signature,
 )
 
 
@@ -45,6 +47,8 @@ def test_dpm_service_factory_builds_governed_manage_and_ai_clients(monkeypatch) 
     assert ai_client._timeout == 55.0
     assert ai_client._max_retries == 4
     assert ai_client._retry_backoff_seconds == 0.75
+    assert manage_client_signature() == ("http://manage:8000", 6.5, 4, 0.75)
+    assert lotus_ai_client_signature() == ("http://ai:8000", 55.0, 4, 0.75)
 
 
 def test_dpm_service_factory_wires_all_dpm_route_services(monkeypatch) -> None:

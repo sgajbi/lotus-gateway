@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from app.clients.dpm_client import DpmClient
-from app.clients.lotus_ai_client import LotusAiClient
 from app.config import settings
 from app.contracts.dpm_command_center import (
     DpmCommandCenterGatewayResponse,
@@ -20,7 +19,11 @@ from app.contracts.dpm_command_center import (
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
-from app.services.lotus_ai_workflow import require_lotus_ai_client
+from app.services.lotus_ai_workflow import (
+    build_workflow_pack_task_request,
+    require_lotus_ai_client,
+)
+from app.services.upstream_client_protocols import LotusAiWorkflowClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
@@ -29,7 +32,11 @@ from app.services.upstream_envelope import (
 
 
 class DpmCommandCenterService:
-    def __init__(self, dpm_client: DpmClient, lotus_ai_client: LotusAiClient | None = None):
+    def __init__(
+        self,
+        dpm_client: DpmClient,
+        lotus_ai_client: LotusAiWorkflowClient | None = None,
+    ):
         self._dpm_client = dpm_client
         self._lotus_ai_client = lotus_ai_client
 
@@ -188,7 +195,7 @@ class DpmCommandCenterService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-exception-summary-ai-evidence",
-            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+            task_request=build_workflow_pack_task_request(
                 correlation_id=correlation_id,
                 summary=(
                     "Generate review-gated DPM exception summary from manage-owned "
@@ -450,7 +457,7 @@ class DpmCommandCenterService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-outcome-review-ai-evidence",
-            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+            task_request=build_workflow_pack_task_request(
                 correlation_id=correlation_id,
                 summary=(
                     "Generate review-gated outcome-review narrative from bounded "
@@ -846,7 +853,7 @@ class DpmCommandCenterService:
             environment="DEVELOPMENT",
             caller_identity_class="INTERNAL_SERVICE",
             workflow_surface="dpm-pm-quality-ai-evidence",
-            task_request=dpm_command_center_ai_context.workflow_pack_task_request(
+            task_request=build_workflow_pack_task_request(
                 correlation_id=correlation_id,
                 summary=(
                     "Generate review-gated PM operating quality summary from "

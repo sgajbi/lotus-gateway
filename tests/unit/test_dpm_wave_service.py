@@ -953,7 +953,7 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
         dpm_client=dpm_client,  # type: ignore[arg-type]
-        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,
     )
 
     response = await service.request_wave_pm_memo(
@@ -1041,7 +1041,7 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
         dpm_client=dpm_client,  # type: ignore[arg-type]
-        lotus_ai_client=ai_client,  # type: ignore[arg-type]
+        lotus_ai_client=ai_client,
     )
 
     response = await service.request_operations_handoff_summary(

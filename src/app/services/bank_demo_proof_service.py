@@ -1,12 +1,12 @@
 from typing import Any
 
-from app.clients.advise_client import AdviseClient
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
+from app.services.upstream_client_protocols import BankDemoProofClient
 from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 
 class BankDemoProofService:
-    def __init__(self, advise_client: AdviseClient):
+    def __init__(self, advise_client: BankDemoProofClient):
         self._advise_client = advise_client
 
     async def get_scenario_contract(self, *, correlation_id: str) -> BankDemoProofEnvelopeResponse:

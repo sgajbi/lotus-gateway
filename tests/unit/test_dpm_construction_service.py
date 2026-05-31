@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 from fastapi import HTTPException
 
@@ -56,7 +58,7 @@ class _FakeDpmClient:
 async def test_dpm_construction_preserves_manage_alternative_set_payload() -> None:
     manage_payload = _construction_alternative_set()
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmConstructionService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmConstructionService(dpm_client=client)
 
     response = await service.generate_alternative_set(
         body={"input_mode": "stateless", "methods": ["REGIME_STRESS_AWARE"]},
@@ -77,9 +79,10 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
         "REGIME_SCENARIO_PACK_READY",
         "TARGET_METHOD_COMPARISON_AVAILABLE",
     ]
-    currency_context = response.data["alternatives"][0]["diagnostics"]["authority_context"][
-        "currency_overlay_context"
-    ]
+    alternatives = cast(list[dict[str, Any]], response.data["alternatives"])
+    diagnostics = cast(dict[str, Any], alternatives[0]["diagnostics"])
+    authority_context = cast(dict[str, Any], diagnostics["authority_context"])
+    currency_context = cast(dict[str, Any], authority_context["currency_overlay_context"])
     assert currency_context["external_hedge_policy_source_product_name"] == ("ExternalHedgePolicy")
     assert currency_context["external_hedge_policy_source_product_version"] == "v1"
     assert currency_context["external_hedge_policy_source_id"] == ("sha256:external-hedge-policy")
@@ -106,9 +109,10 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
     ]
     assert "hedge_policy_approval" in currency_context["blocked_capabilities"]
     assert "eligible_instrument_selection" in currency_context["blocked_capabilities"]
-    acknowledgement_context = response.data["alternatives"][0]["diagnostics"]["authority_context"][
-        "execution_acknowledgement_context"
-    ]
+    acknowledgement_context = cast(
+        dict[str, Any],
+        authority_context["execution_acknowledgement_context"],
+    )
     assert acknowledgement_context["source_product_name"] == (
         "ExternalOrderExecutionAcknowledgement"
     )
@@ -143,7 +147,7 @@ async def test_dpm_construction_preserves_manage_alternative_set_payload() -> No
 async def test_dpm_construction_retrieves_manage_alternative_set_without_mutation() -> None:
     manage_payload = _construction_alternative_set()
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmConstructionService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmConstructionService(dpm_client=client)
 
     response = await service.get_alternative_set(
         alternative_set_id="cas_1",
@@ -175,7 +179,7 @@ async def test_dpm_construction_selection_preserves_manage_decision() -> None:
             },
         )
     )
-    service = DpmConstructionService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmConstructionService(dpm_client=client)
 
     response = await service.select_alternative(
         alternative_set_id="cas_1",
@@ -207,7 +211,7 @@ async def test_dpm_construction_selection_preserves_manage_decision() -> None:
 @pytest.mark.asyncio
 async def test_dpm_construction_forwards_manage_errors_as_product_safe_detail() -> None:
     client = _FakeDpmClient((409, {"detail": "CONSTRUCTION_IDEMPOTENCY_KEY_CONFLICT"}))
-    service = DpmConstructionService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmConstructionService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.generate_alternative_set(
@@ -225,7 +229,7 @@ async def test_dpm_construction_forwards_manage_errors_as_product_safe_detail() 
     }
 
 
-def _construction_alternative_set() -> dict[str, object]:
+def _construction_alternative_set() -> dict[str, Any]:
     return {
         "alternative_set_id": "cas_1",
         "portfolio_id": "PB_SG_GLOBAL_BAL_001",

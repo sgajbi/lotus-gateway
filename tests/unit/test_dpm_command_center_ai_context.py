@@ -13,7 +13,6 @@ from app.services.dpm_command_center_ai_context import (
     pm_quality_score_run_from,
     pm_quality_summary_source_refs,
     pm_quality_summary_task_payload,
-    workflow_pack_task_request,
 )
 
 
@@ -222,27 +221,3 @@ def test_ai_handoff_task_payloads_preserve_review_boundaries() -> None:
     assert pm_quality_payload["supportability"]["requires_human_review"] is True
     assert "contact_client" in pm_quality_payload["supportability"]["forbidden_actions"]
     assert "trade_approval" in pm_quality_payload["supportability"]["unsupported_claims"]
-
-
-def test_workflow_pack_task_request_uses_gateway_caller_and_source_refs() -> None:
-    task_request = workflow_pack_task_request(
-        correlation_id="corr-1",
-        summary="Generate bounded narrative.",
-        payload={"evidence": "bounded"},
-        source_refs=["lotus-manage:source:1"],
-    )
-
-    assert task_request == {
-        "task_id": "explain.v1",
-        "input_mode": "STRUCTURED_CONTEXT",
-        "caller": {
-            "caller_app": "lotus-gateway",
-            "correlation_id": "corr-1",
-        },
-        "context": {
-            "summary": "Generate bounded narrative.",
-            "payload": {"evidence": "bounded"},
-            "source_refs": ["lotus-manage:source:1"],
-        },
-        "expected_output_label": "EXPLANATION_ONLY",
-    }
