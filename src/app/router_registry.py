@@ -231,6 +231,9 @@ from app.routers.dpm_wave_campaign_supersede import (
 from app.routers.dpm_wave_campaign_workflow import (
     router as dpm_wave_campaign_workflow_router,
 )
+from app.routers.dpm_wave_campaign_workflow_automation import (
+    router as dpm_wave_campaign_workflow_automation_router,
+)
 from app.routers.dpm_wave_campaign_workflow_boards import (
     router as dpm_wave_campaign_workflow_boards_router,
 )
@@ -477,6 +480,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_workflow_boards_router)
     app.include_router(dpm_wave_campaign_operating_queue_router)
     app.include_router(dpm_wave_campaign_assignment_views_router)
+    app.include_router(dpm_wave_campaign_workflow_automation_router)
     app.include_router(dpm_wave_campaign_approval_inbox_router)
     app.include_router(dpm_wave_campaign_approvals_router)
     app.include_router(dpm_wave_campaign_approval_commands_router)
