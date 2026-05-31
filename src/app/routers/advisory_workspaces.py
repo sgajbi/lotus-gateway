@@ -8,6 +8,13 @@ from app.services.advisory_service_provider import advisory_workspace_service
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
+async def _get_workspace(workspace_id: str) -> AdvisoryWorkspaceEnvelopeResponse:
+    return await advisory_workspace_service().get_workspace(
+        workspace_id=workspace_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/{workspace_id}",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
@@ -17,7 +24,4 @@ router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspa
 async def get_workspace(
     workspace_id: str = WORKSPACE_ID_PATH,
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().get_workspace(
-        workspace_id=workspace_id,
-        correlation_id=correlation_id_var.get(),
-    )
+    return await _get_workspace(workspace_id)
