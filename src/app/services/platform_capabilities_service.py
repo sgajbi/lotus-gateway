@@ -2,11 +2,6 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, cast
 
-from app.clients.advise_client import AdviseClient
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.clients.reporting_client import ReportingClient
 from app.contracts.platform_capabilities import (
     CapabilitySourceError,
     PlatformBootstrapCaching,
@@ -19,6 +14,11 @@ from app.contracts.platform_capabilities import (
     PlatformCapabilitiesResponse,
     PlatformShellBootstrap,
     PlatformShellWorkspaceDescriptor,
+)
+from app.services.workspace_client_protocols import (
+    PlatformCapabilitiesCoreClient,
+    PlatformCapabilitiesRiskClient,
+    PlatformCapabilitiesSourceClient,
 )
 
 
@@ -43,15 +43,15 @@ class PlatformCapabilitiesService:
 
     def __init__(
         self,
-        lotus_core_query_client: LotusCoreQueryClient,
-        analytics_client: LotusAnalyticsClient,
-        reporting_client: ReportingClient,
+        lotus_core_query_client: PlatformCapabilitiesCoreClient,
+        analytics_client: PlatformCapabilitiesSourceClient,
+        reporting_client: PlatformCapabilitiesSourceClient,
         contract_version: str,
         source_timeout_seconds: float = 1.0,
-        risk_client: LotusAnalyticsClient | None = None,
-        advise_client: AdviseClient | None = None,
-        manage_client: DpmClient | None = None,
-        dpm_client: Any | None = None,
+        risk_client: PlatformCapabilitiesRiskClient | None = None,
+        advise_client: PlatformCapabilitiesSourceClient | None = None,
+        manage_client: PlatformCapabilitiesSourceClient | None = None,
+        dpm_client: PlatformCapabilitiesSourceClient | None = None,
     ):
         if advise_client is None:
             if dpm_client is None:

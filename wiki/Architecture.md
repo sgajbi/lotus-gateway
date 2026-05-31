@@ -66,3 +66,7 @@
     proof-pack truth stay in `lotus-advise`; gateway publishes the product-facing route family and
     preserves Advise-owned posture without inferring client-ready, screenshot, Workbench browser,
     RFP/security, external communication, OMS, order, fill, or settlement readiness
+11. service modules depend on typed protocol surfaces rather than concrete upstream client classes.
+    Only client factory modules construct `app.clients.*` clients; protocol modules own broad AI,
+    DPM, reporting, advisory, workspace/composition, and domain-support protocol families, and
+    boundary tests enforce this factory-only construction rule.

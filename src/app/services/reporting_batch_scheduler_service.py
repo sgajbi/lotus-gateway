@@ -1,14 +1,14 @@
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     BatchScheduleListResponse,
     BatchSchedulerRunRequest,
     BatchSchedulerRunResponse,
 )
+from app.services.reporting_client_protocols import ReportingBatchSchedulerClient
 from app.services.reporting_error_mapping import raise_report_batch_error
 
 
 class ReportingBatchSchedulerService:
-    def __init__(self, *, reporting_client: ReportingClient) -> None:
+    def __init__(self, *, reporting_client: ReportingBatchSchedulerClient) -> None:
         self._reporting_client = reporting_client
 
     async def list_schedules(

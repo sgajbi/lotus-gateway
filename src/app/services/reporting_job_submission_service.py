@@ -1,16 +1,16 @@
 from fastapi import HTTPException, status
 
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     OutcomeReviewReportJobRequest,
     PortfolioReviewJobRequest,
     ReportJobHandleResponse,
 )
+from app.services.reporting_client_protocols import ReportingJobSubmissionClient
 from app.services.reporting_error_mapping import raise_report_job_error
 
 
 class ReportingJobSubmissionService:
-    def __init__(self, *, reporting_client: ReportingClient) -> None:
+    def __init__(self, *, reporting_client: ReportingJobSubmissionClient) -> None:
         self._reporting_client = reporting_client
 
     async def submit_portfolio_review_job(

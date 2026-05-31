@@ -203,6 +203,8 @@ async def test_reporting_batch_control_service_runs_batch_once_with_supportabili
 
     assert response.batch_id == "rbch_1"
     assert response.status_url == "/api/v1/report-batches/rbch_1"
+    assert response.supportability is not None
+    assert response.render_supportability is not None
     assert response.supportability.state == "ready"
     assert response.render_supportability.state == "ready"
     assert reporting_client.calls[0]["action"] == "run-once"

@@ -177,6 +177,7 @@ async def test_reporting_job_submission_service_requires_idempotency_key() -> No
         service.require_idempotency_key(None)
 
     assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value.detail, dict)
     assert exc_info.value.detail["code"] == "missing_idempotency_key"
 
 

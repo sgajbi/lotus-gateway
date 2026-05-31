@@ -1,6 +1,5 @@
 from typing import Any
 
-from app.clients.advise_client import AdviseClient
 from app.contracts.proposals import (
     ProposalApprovalsData,
     ProposalApprovalsEnvelopeResponse,
@@ -33,6 +32,7 @@ from app.contracts.proposals import (
     ProposalWorkflowEventsData,
     ProposalWorkflowEventsEnvelopeResponse,
 )
+from app.services.advisory_client_protocols import ProposalClient
 from app.services.upstream_envelope import (
     build_gateway_envelope,
     build_typed_gateway_envelope,
@@ -61,7 +61,7 @@ def _normalize_proposal_context_payload(
 
 
 class ProposalService:
-    def __init__(self, advise_client: AdviseClient):
+    def __init__(self, advise_client: ProposalClient):
         self._advise_client = advise_client
 
     async def simulate_proposal(

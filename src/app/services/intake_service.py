@@ -3,17 +3,16 @@ from typing import Any
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 
-from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.intake import EnvelopeResponse, LookupResponse
+from app.services.domain_client_protocols import IntakeIngestionClient, IntakeLookupClient
 
 
 class IntakeService:
     def __init__(
         self,
-        lotus_core_ingestion_client: LotusCoreIngestionClient,
-        lotus_core_query_client: LotusCoreQueryClient,
+        lotus_core_ingestion_client: IntakeIngestionClient,
+        lotus_core_query_client: IntakeLookupClient,
     ):
         self._lotus_core_ingestion_client = lotus_core_ingestion_client
         self._lotus_core_query_client = lotus_core_query_client

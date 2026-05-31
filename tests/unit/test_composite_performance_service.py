@@ -93,6 +93,7 @@ async def test_composite_performance_service_requires_governed_caller_context() 
         )
 
     assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value.detail, dict)
     assert exc_info.value.detail["code"] == "missing_caller_context"
 
 
@@ -113,5 +114,6 @@ async def test_composite_performance_service_maps_upstream_validation_error() ->
         )
 
     assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value.detail, dict)
     assert exc_info.value.detail["source_service"] == "lotus-performance"
     assert exc_info.value.detail["upstream_status"] == 422

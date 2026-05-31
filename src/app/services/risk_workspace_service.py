@@ -3,7 +3,6 @@ from typing import Any, cast
 
 from fastapi import status
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.config import settings
 from app.contracts.risk_workspace import (
     RiskModuleState,
@@ -51,6 +50,7 @@ from app.contracts.risk_workspace import (
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.domain_client_protocols import RiskWorkspaceClient
 from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
@@ -117,7 +117,7 @@ _DEFAULT_REPORTING_CURRENCY = "USD"
 class RiskWorkspaceService:
     def __init__(
         self,
-        risk_client: LotusAnalyticsClient,
+        risk_client: RiskWorkspaceClient,
         *,
         cache_ttl_seconds: float | None = None,
     ) -> None:

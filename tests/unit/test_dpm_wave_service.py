@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from fastapi import HTTPException
 
@@ -8,7 +10,14 @@ from app.services.dpm_wave_service import DpmWaveService
 class _FakeDpmClient:
     def __init__(self, result: tuple[int, dict]):
         self.result = result
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[dict[str, Any]] = []
+
+    def __getattr__(self, name: str) -> Any:
+        async def _missing(*args: Any, **kwargs: Any) -> tuple[int, dict]:
+            _ = args, kwargs
+            raise AssertionError(f"Unexpected DPM wave fake call: {name}")
+
+        return _missing
 
     async def create_wave(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         self.calls.append(
@@ -239,7 +248,7 @@ class _FakeDpmClient:
 class _FakeLotusAiClient:
     def __init__(self, result: tuple[int, dict]):
         self.result = result
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[dict[str, Any]] = []
 
     async def execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         self.calls.append(kwargs)
@@ -272,7 +281,7 @@ async def test_dpm_wave_service_preserves_manage_wave_truth_and_supportability()
         },
     }
     client = _FakeDpmClient((201, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.create_wave(
         body={"trigger_type": "EXPLICIT_PORTFOLIO_LIST"},
@@ -310,7 +319,7 @@ async def test_dpm_wave_service_preserves_campaign_definition_payloads() -> None
         "content_hash": "sha256:campaign-definition",
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.put_campaign_definition(
         campaign_id="campaign-holdings-202605",
@@ -353,7 +362,7 @@ async def test_dpm_wave_service_preserves_campaign_lifecycle_events() -> None:
         ],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_campaign_definition_lifecycle_events(
         campaign_id="campaign-holdings-202605",
@@ -402,7 +411,7 @@ async def test_dpm_wave_service_preserves_campaign_preview_readiness_payload() -
         ],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_campaign_definition_preview_readiness(
         campaign_id="campaign-holdings-202605",
@@ -458,7 +467,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_history_payload() -> N
         ],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_campaign_definition_launch_history(
         campaign_id="campaign-holdings-202605",
@@ -502,7 +511,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_package_payload() -> N
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_campaign_definition_launch_package(
         campaign_id="campaign-holdings-202605",
@@ -553,7 +562,7 @@ async def test_dpm_wave_service_preserves_campaign_launch_wave_truth() -> None:
         "correlation_id": "corr-campaign-launch",
     }
     client = _FakeDpmClient((201, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.launch_campaign_definition(
         campaign_id="campaign-holdings-202605",
@@ -601,7 +610,7 @@ async def test_dpm_wave_service_preserves_campaign_retire_lifecycle_truth() -> N
         "correlation_id": "corr-campaign-retire",
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.retire_campaign_definition(
         campaign_id="campaign-holdings-202605",
@@ -655,7 +664,7 @@ async def test_dpm_wave_service_preserves_campaign_supersede_lifecycle_truth() -
         "correlation_id": "corr-campaign-supersede",
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.supersede_campaign_definition(
         campaign_id="campaign-holdings-202605",
@@ -700,7 +709,7 @@ async def test_dpm_wave_service_preserves_campaign_discovery_payload() -> None:
         "count": 1,
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.discover_campaigns(
         filters={
@@ -757,7 +766,7 @@ async def test_dpm_wave_service_preserves_campaign_workflow_queue_payload() -> N
         ],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_campaign_operating_queue(
         filters={"campaign_status": "ACTIVE", "limit": 25, "offset": 0},
@@ -805,7 +814,7 @@ async def test_dpm_wave_service_preserves_campaign_assignment_task_transition_pa
         "reason_code": "campaign_assignment_task_transition_recorded",
     }
     client = _FakeDpmClient((201, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.transition_campaign_assignment_task(
         campaign_id="campaign-holdings-202605",
@@ -847,7 +856,7 @@ async def test_dpm_wave_service_forwards_simulation_without_local_reconstruction
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.simulate_wave(
         wave_id="dwv_001",
@@ -882,7 +891,7 @@ async def test_dpm_wave_service_manage_errors_are_product_safe() -> None:
             },
         )
     )
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_wave_supportability(
@@ -914,7 +923,7 @@ async def test_dpm_wave_service_exposes_manage_report_input_without_rebuilding()
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmWaveService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmWaveService(dpm_client=client)
 
     response = await service.get_wave_report_input(
         wave_id="dwv_001",
@@ -952,7 +961,7 @@ async def test_dpm_wave_pm_memo_uses_manage_report_input_and_lotus_ai_pack() -> 
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
-        dpm_client=dpm_client,  # type: ignore[arg-type]
+        dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
 
@@ -1010,7 +1019,7 @@ async def test_dpm_wave_pm_memo_ai_errors_are_product_safe() -> None:
         )
     )
     service = DpmWaveService(
-        dpm_client=dpm_client,  # type: ignore[arg-type]
+        dpm_client=dpm_client,
         lotus_ai_client=_FakeLotusAiClient((503, {"detail": "workflow pack unavailable"})),
     )
 
@@ -1040,7 +1049,7 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
     service = DpmWaveService(
-        dpm_client=dpm_client,  # type: ignore[arg-type]
+        dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
 
@@ -1096,7 +1105,7 @@ async def test_dpm_operations_handoff_summary_uses_manage_handoff_evidence_and_l
 @pytest.mark.asyncio
 async def test_dpm_operations_handoff_summary_ai_errors_are_product_safe() -> None:
     service = DpmWaveService(
-        dpm_client=_FakeDpmClient((200, _wave_report_input_with_handoff())),  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient((200, _wave_report_input_with_handoff())),
         lotus_ai_client=_FakeLotusAiClient(
             (
                 422,

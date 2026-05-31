@@ -1,7 +1,7 @@
 from typing import Any
 
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
-from app.services.upstream_client_protocols import BankDemoProofClient
+from app.services.advisory_client_protocols import BankDemoProofClient
 from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
 
 

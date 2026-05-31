@@ -1,4 +1,4 @@
-import asyncio
+import asyncio  # noqa: I001
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -6,10 +6,6 @@ from typing import Any, cast
 
 from fastapi import HTTPException, status
 
-from app.clients.advise_client import AdviseClient
-from app.clients.dpm_client import DpmClient
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
-from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.contracts.portfolio import PortfolioRebalanceSupportabilitySummary
 from app.contracts.workbench import (
@@ -35,20 +31,24 @@ from app.precision_policy import (
     quantize_performance,
     quantize_quantity,
 )
+from app.services.workspace_client_protocols import WorkbenchAdviseClient
+from app.services.workspace_client_protocols import WorkbenchCoreClient
+from app.services.workspace_client_protocols import WorkbenchManageClient
+from app.services.workspace_client_protocols import WorkbenchPerformanceClient
 
 
 class WorkbenchService:
     def __init__(
         self,
-        lotus_core_query_client: LotusCoreQueryClient,
-        analytics_client: LotusAnalyticsClient,
-        dpm_client: DpmClient,
-        advise_client: AdviseClient | None = None,
+        lotus_core_query_client: WorkbenchCoreClient,
+        analytics_client: WorkbenchPerformanceClient,
+        dpm_client: WorkbenchManageClient,
+        advise_client: WorkbenchAdviseClient | None = None,
     ):
         self._lotus_core_query_client = lotus_core_query_client
         self._analytics_client = analytics_client
         self._dpm_client = dpm_client
-        self._advise_client = cast(AdviseClient, advise_client or dpm_client)
+        self._advise_client = advise_client or cast(WorkbenchAdviseClient, dpm_client)
 
     async def get_workbench_overview(
         self,

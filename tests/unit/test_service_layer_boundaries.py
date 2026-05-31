@@ -30,6 +30,21 @@ def _imported_modules(path: Path) -> set[str]:
     return imports
 
 
+def test_only_service_factories_import_concrete_clients() -> None:
+    offenders = {
+        path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
+            module
+            for module in _imported_modules(path)
+            if module == "app.clients" or module.startswith("app.clients.")
+        )
+        for path in _SERVICE_ROOT.rglob("*.py")
+        if path.name not in _CLIENT_FACTORY_FILES
+    }
+    offenders = {name: imports for name, imports in offenders.items() if imports}
+
+    assert offenders == {}
+
+
 def test_service_layer_does_not_depend_on_router_modules() -> None:
     offenders = {
         path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
@@ -99,15 +114,9 @@ def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> Non
     assert offenders == {}
 
 
-def test_non_dpm_service_tests_do_not_need_arg_type_suppressions() -> None:
-    allowed = {
-        "test_dpm_command_center_service.py",
-        "test_dpm_wave_service.py",
-    }
+def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
-        if path.name in allowed:
-            continue
         suppression_count = path.read_text(encoding="utf-8").count("# type: ignore[arg-type]")
         if suppression_count:
             offenders[path.name] = suppression_count

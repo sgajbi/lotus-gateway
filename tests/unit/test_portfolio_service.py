@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from fastapi import HTTPException
 
@@ -191,7 +193,7 @@ class _StubLotusCoreQueryClient:
         }
 
     async def get_portfolio_transactions(self, portfolio_id: str, correlation_id: str, **kwargs):
-        transactions = [
+        transactions: list[dict[str, Any]] = [
             {
                 "transaction_id": "TX_1",
                 "transaction_date": "2026-03-27T09:30:00Z",
@@ -305,8 +307,8 @@ class _StubLotusCoreQueryClient:
                 "currency": "USD",
             },
         ]
-        start_date = kwargs.get("start_date")
-        end_date = kwargs.get("end_date")
+        start_date = str(kwargs["start_date"]) if kwargs.get("start_date") is not None else None
+        end_date = str(kwargs["end_date"]) if kwargs.get("end_date") is not None else None
         security_id = kwargs.get("security_id")
         instrument_id = kwargs.get("instrument_id")
         transaction_type = kwargs.get("transaction_type")
@@ -327,7 +329,7 @@ class _StubLotusCoreQueryClient:
             filtered = [item for item in filtered if item["transaction_type"] == transaction_type]
         filtered = sorted(
             filtered,
-            key=lambda item: item["transaction_date"],
+            key=lambda item: str(item["transaction_date"]),
             reverse=sort_order != "asc",
         )
 

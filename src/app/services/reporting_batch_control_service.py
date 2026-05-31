@@ -1,24 +1,26 @@
 from typing import Any
 
-from app.clients.render_client import RenderClient
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     BatchControlResponse,
     BatchRecoveryResponse,
     BatchWorkerRunRequest,
     BatchWorkerRunResponse,
 )
+from app.services.reporting_client_protocols import ReportingBatchControlClient
 from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_links import rewrite_report_batch_status_url
-from app.services.reporting_supportability import attach_reporting_operator_supportability
+from app.services.reporting_supportability import (
+    RenderMetadataClient,
+    attach_reporting_operator_supportability,
+)
 
 
 class ReportingBatchControlService:
     def __init__(
         self,
         *,
-        reporting_client: ReportingClient,
-        render_client: RenderClient,
+        reporting_client: ReportingBatchControlClient,
+        render_client: RenderMetadataClient,
     ) -> None:
         self._reporting_client = reporting_client
         self._render_client = render_client

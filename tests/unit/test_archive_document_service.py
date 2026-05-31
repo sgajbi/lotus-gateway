@@ -251,6 +251,7 @@ async def test_archive_document_service_maps_archive_errors_without_leaking_payl
             )
 
     assert exc_info.value.status_code == gateway_status
+    assert isinstance(exc_info.value.detail, dict)
     assert exc_info.value.detail["code"] == code
     assert "archive.internal" not in str(exc_info.value.detail)
     assert "unsafe binary" not in str(exc_info.value.detail)

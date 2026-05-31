@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 from fastapi import HTTPException
 
@@ -12,7 +14,14 @@ from app.services.dpm_command_center_service import DpmCommandCenterService
 class _FakeDpmClient:
     def __init__(self, result: tuple[int, dict]):
         self.result = result
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[dict[str, Any]] = []
+
+    def __getattr__(self, name: str) -> Any:
+        async def _missing(*args: Any, **kwargs: Any) -> tuple[int, dict]:
+            _ = args, kwargs
+            raise AssertionError(f"Unexpected DPM command center fake call: {name}")
+
+        return _missing
 
     async def create_outcome_review(self, body, correlation_id):  # noqa: ANN001
         self.calls.append({"method": "create", "body": body, "correlation_id": correlation_id})
@@ -315,7 +324,7 @@ class _FakeDpmClient:
 class _FakeLotusAiClient:
     def __init__(self, result: tuple[int, dict]):
         self.result = result
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[dict[str, Any]] = []
 
     async def execute_workflow_pack(self, **kwargs):  # noqa: ANN003
         self.calls.append(kwargs)
@@ -337,7 +346,7 @@ async def test_dpm_command_center_summary_preserves_manage_health_and_supportabi
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_command_center(
         filters={
@@ -379,7 +388,7 @@ async def test_dpm_command_center_monitoring_run_forwards_body_without_book_disc
         "mandate_results": [{"mandate_id": "MANDATE_PB_SG_GLOBAL_BAL_001"}],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.run_monitoring_once(
         body={
@@ -424,7 +433,7 @@ async def test_dpm_command_center_mandate_health_preserves_manage_dimensions() -
         "recommended_action": "SIMULATE_REBALANCE",
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_mandate_health(
         mandate_id="MANDATE_PB_SG_GLOBAL_BAL_001",
@@ -465,7 +474,7 @@ async def test_dpm_command_center_mandate_supportability_uses_manage_field_gaps(
         "field_gap_codes": ["CLIENT_INCOME_NEED_PROFILE_NOT_YET_SOURCED"],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_mandate_by_portfolio(
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -507,7 +516,7 @@ async def test_dpm_portfolio_memory_preserves_manage_timeline_and_supportability
         ],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_portfolio_memory(
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -580,7 +589,7 @@ async def test_dpm_portfolio_memory_search_preserves_source_facets_and_boundarie
         "reason_codes": ["PERSISTED_LINEAGE_SEARCH_ONLY"],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.search_portfolio_memory(
         filters={
@@ -684,7 +693,7 @@ async def test_dpm_portfolio_memory_preserves_campaign_assignment_transition_eve
         "events": [transition_event],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_portfolio_memory(
         portfolio_id="PB_SG_GLOBAL_BAL_001",
@@ -716,7 +725,7 @@ async def test_dpm_portfolio_memory_preserves_campaign_assignment_transition_eve
 @pytest.mark.asyncio
 async def test_dpm_portfolio_memory_manage_errors_are_product_safe() -> None:
     client = _FakeDpmClient((404, {"detail": "portfolio memory not found"}))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_portfolio_memory(
@@ -737,7 +746,7 @@ async def test_dpm_portfolio_memory_manage_errors_are_product_safe() -> None:
 @pytest.mark.asyncio
 async def test_dpm_command_center_manage_errors_are_product_safe() -> None:
     client = _FakeDpmClient((422, {"detail": "invalid health_state"}))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_command_center(
@@ -769,7 +778,7 @@ async def test_dpm_command_center_preserves_manage_payload_and_supportability() 
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.create_outcome_review(
         body={"rebalance_run_id": "rr_1"},
@@ -827,7 +836,7 @@ async def test_dpm_outcome_review_list_preserves_source_lineage_facets() -> None
         },
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.list_outcome_reviews(
         filters={
@@ -871,7 +880,7 @@ async def test_dpm_command_center_supportability_endpoint_handles_flat_payload()
             },
         )
     )
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.get_outcome_review_supportability(
         outcome_review_id="or_1",
@@ -899,7 +908,7 @@ async def test_dpm_command_center_preserves_manage_supportability_states(state: 
             },
         )
     )
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.create_outcome_review(
         body={"rebalance_run_id": "rr_1"},
@@ -915,7 +924,7 @@ async def test_dpm_command_center_preserves_manage_supportability_states(state: 
 @pytest.mark.asyncio
 async def test_dpm_command_center_forwards_manage_errors_as_product_safe_detail() -> None:
     client = _FakeDpmClient((409, {"detail": "execution evidence incomplete"}))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.create_outcome_review(
@@ -954,7 +963,7 @@ async def test_dpm_pm_operating_quality_preview_preserves_manage_score_run() -> 
         }
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.preview_pm_operating_quality_score_run(
         body={"pm_id": "PM_SG_DPM_001", "policy_id": "pmq_sg_dpm"},
@@ -988,7 +997,7 @@ async def test_dpm_pm_operating_quality_policy_routes_preserve_manage_policy() -
         "reason_codes": ["POLICY_APPROVED"],
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     response = await service.put_pm_operating_quality_policy(
         policy_id="pmq_sg_dpm",
@@ -1067,7 +1076,7 @@ async def test_dpm_pm_operating_quality_fairness_preview_preserves_manage_analys
         }
     }
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     body = {
         "policy_id": "pmq_sg_dpm",
@@ -1145,7 +1154,7 @@ async def test_dpm_pm_operating_quality_fairness_lifecycle_preserves_manage_payl
         }
     }
     create_client = _FakeDpmClient((201, create_payload))
-    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    create_service = DpmCommandCenterService(dpm_client=create_client)
     body = {
         "policy_id": "pmq_sg_dpm",
         "policy_version": "2026.05",
@@ -1182,7 +1191,7 @@ async def test_dpm_pm_operating_quality_fairness_lifecycle_preserves_manage_payl
         ],
     }
     list_client = _FakeDpmClient((200, list_payload))
-    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+    list_service = DpmCommandCenterService(dpm_client=list_client)
 
     listed = await list_service.list_pm_operating_quality_fairness_analyses(
         filters={"policy_id": "pmq_sg_dpm", "limit": 50, "offset": 0},
@@ -1202,7 +1211,7 @@ async def test_dpm_pm_operating_quality_fairness_lifecycle_preserves_manage_payl
     ]
 
     get_client = _FakeDpmClient((200, create_payload))
-    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+    get_service = DpmCommandCenterService(dpm_client=get_client)
 
     fetched = await get_service.get_pm_operating_quality_fairness_analysis(
         fairness_analysis_id="pmq_fair_001",
@@ -1279,7 +1288,7 @@ async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage
         "source_refs": [],
     }
     preview_client = _FakeDpmClient((200, action_payload))
-    preview_service = DpmCommandCenterService(dpm_client=preview_client)  # type: ignore[arg-type]
+    preview_service = DpmCommandCenterService(dpm_client=preview_client)
 
     previewed = await preview_service.preview_pm_operating_quality_review_action(
         body=body,
@@ -1298,7 +1307,7 @@ async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage
     ]
 
     create_client = _FakeDpmClient((201, action_payload))
-    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    create_service = DpmCommandCenterService(dpm_client=create_client)
     created = await create_service.create_pm_operating_quality_review_action(
         body=body,
         correlation_id="corr-pmq-review-create",
@@ -1324,7 +1333,7 @@ async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage
         "offset": 0,
     }
     list_client = _FakeDpmClient((200, list_payload))
-    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+    list_service = DpmCommandCenterService(dpm_client=list_client)
     listed = await list_service.list_pm_operating_quality_review_actions(
         filters={"target_type": "SCORE_RUN", "action_state": "REVIEW_REQUIRED", "limit": 50},
         correlation_id="corr-pmq-review-list",
@@ -1342,7 +1351,7 @@ async def test_dpm_pm_operating_quality_review_action_lifecycle_preserves_manage
     ]
 
     get_client = _FakeDpmClient((200, action_payload))
-    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+    get_service = DpmCommandCenterService(dpm_client=get_client)
     fetched = await get_service.get_pm_operating_quality_review_action(
         review_action_id="pmq_review_001",
         correlation_id="corr-pmq-review-get",
@@ -1415,7 +1424,7 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
         "source_refs": [],
     }
     preview_client = _FakeDpmClient((200, invocation_payload))
-    preview_service = DpmCommandCenterService(dpm_client=preview_client)  # type: ignore[arg-type]
+    preview_service = DpmCommandCenterService(dpm_client=preview_client)
 
     previewed = await preview_service.preview_pm_operating_quality_summary_invocation(
         body=body,
@@ -1435,7 +1444,7 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
     ]
 
     create_client = _FakeDpmClient((201, invocation_payload))
-    create_service = DpmCommandCenterService(dpm_client=create_client)  # type: ignore[arg-type]
+    create_service = DpmCommandCenterService(dpm_client=create_client)
     created = await create_service.create_pm_operating_quality_summary_invocation(
         body=body,
         correlation_id="corr-pmq-summary-create",
@@ -1459,7 +1468,7 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
         "offset": 0,
     }
     list_client = _FakeDpmClient((200, list_payload))
-    list_service = DpmCommandCenterService(dpm_client=list_client)  # type: ignore[arg-type]
+    list_service = DpmCommandCenterService(dpm_client=list_client)
     listed = await list_service.list_pm_operating_quality_summary_invocations(
         filters={
             "score_run_id": "pmq_run_001",
@@ -1485,7 +1494,7 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
     ]
 
     get_client = _FakeDpmClient((200, invocation_payload))
-    get_service = DpmCommandCenterService(dpm_client=get_client)  # type: ignore[arg-type]
+    get_service = DpmCommandCenterService(dpm_client=get_client)
     fetched = await get_service.get_pm_operating_quality_summary_invocation(
         summary_invocation_id="pmq_summary_001",
         correlation_id="corr-pmq-summary-get",
@@ -1505,7 +1514,7 @@ async def test_dpm_pm_operating_quality_summary_invocation_lifecycle_preserves_p
 @pytest.mark.asyncio
 async def test_dpm_pm_operating_quality_manage_errors_are_product_safe() -> None:
     client = _FakeDpmClient((422, {"detail": "PM_QUALITY_GOVERNANCE_APPROVAL_REQUIRED"}))
-    service = DpmCommandCenterService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmCommandCenterService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.create_pm_operating_quality_score_run(
@@ -1567,7 +1576,7 @@ async def test_dpm_pm_operating_quality_summary_uses_manage_score_run_and_lotus_
         )
     )
     service = DpmCommandCenterService(
-        dpm_client=dpm_client,  # type: ignore[arg-type]
+        dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
 
@@ -1623,7 +1632,7 @@ async def test_dpm_pm_operating_quality_summary_preserves_lotus_ai_errors() -> N
     dpm_client = _FakeDpmClient((200, {"score_run": _pm_quality_score_run()}))
     ai_client = _FakeLotusAiClient((422, {"detail": "pm ranking output blocked"}))
     service = DpmCommandCenterService(
-        dpm_client=dpm_client,  # type: ignore[arg-type]
+        dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
 
@@ -1682,7 +1691,7 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
             },
         )
     )
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
@@ -1732,7 +1741,7 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
 
 @pytest.mark.asyncio
 async def test_dpm_command_center_ai_narrative_uses_shared_manage_error_detail() -> None:
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient(
             (
                 422,
@@ -1768,7 +1777,7 @@ async def test_dpm_command_center_ai_narrative_uses_shared_manage_error_detail()
 
 @pytest.mark.asyncio
 async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() -> None:
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient((200, _outcome_ai_evidence())),
         lotus_ai_client=_FakeLotusAiClient(
             (
@@ -1793,10 +1802,11 @@ async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() 
             correlation_id="corr-ai-narrative-blocked",
         )
 
+    detail = cast(dict[str, Any], exc_info.value.detail)
     assert exc_info.value.status_code == 422
-    assert exc_info.value.detail["source_service"] == "lotus-ai"
-    assert exc_info.value.detail["error_code"] == "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR"
-    assert "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED" in exc_info.value.detail["detail"]
+    assert detail["source_service"] == "lotus-ai"
+    assert detail["error_code"] == "AI_OUTCOME_REVIEW_NARRATIVE_UPSTREAM_ERROR"
+    assert "OUTCOME_REVIEW_NARRATIVE_GUARDRAIL_BLOCKED" in detail["detail"]
 
 
 @pytest.mark.asyncio
@@ -1823,7 +1833,7 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
             },
         )
     )
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
@@ -1885,7 +1895,7 @@ async def test_dpm_command_center_requests_exception_summary_from_manage_excepti
 
 @pytest.mark.asyncio
 async def test_dpm_command_center_exception_summary_preserves_ai_guardrail_failure() -> None:
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient((200, _exception_page())),
         lotus_ai_client=_FakeLotusAiClient(
             (
@@ -1910,15 +1920,16 @@ async def test_dpm_command_center_exception_summary_preserves_ai_guardrail_failu
             correlation_id="corr-exception-summary-blocked",
         )
 
+    detail = cast(dict[str, Any], exc_info.value.detail)
     assert exc_info.value.status_code == 422
-    assert exc_info.value.detail["source_service"] == "lotus-ai"
-    assert exc_info.value.detail["error_code"] == "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR"
-    assert "DPM_EXCEPTION_SUMMARY_GUARDRAIL_BLOCKED" in exc_info.value.detail["detail"]
+    assert detail["source_service"] == "lotus-ai"
+    assert detail["error_code"] == "AI_EXCEPTION_SUMMARY_UPSTREAM_ERROR"
+    assert "DPM_EXCEPTION_SUMMARY_GUARDRAIL_BLOCKED" in detail["detail"]
 
 
 @pytest.mark.asyncio
 async def test_dpm_command_center_exception_summary_missing_exception_is_product_safe() -> None:
-    service = DpmCommandCenterService(  # type: ignore[arg-type]
+    service = DpmCommandCenterService(
         dpm_client=_FakeDpmClient((200, _exception_page())),
         lotus_ai_client=_FakeLotusAiClient((200, {})),
     )
@@ -1930,10 +1941,11 @@ async def test_dpm_command_center_exception_summary_missing_exception_is_product
             correlation_id="corr-exception-summary-missing",
         )
 
+    detail = cast(dict[str, Any], exc_info.value.detail)
     assert exc_info.value.status_code == 404
-    assert exc_info.value.detail["source_service"] == "lotus-manage"
-    assert exc_info.value.detail["error_code"] == "MANAGE_MONITORING_EXCEPTION_NOT_FOUND"
-    assert "missing_exception" in exc_info.value.detail["detail"]
+    assert detail["source_service"] == "lotus-manage"
+    assert detail["error_code"] == "MANAGE_MONITORING_EXCEPTION_NOT_FOUND"
+    assert "missing_exception" in detail["detail"]
 
 
 def _outcome_ai_evidence() -> dict[str, object]:
