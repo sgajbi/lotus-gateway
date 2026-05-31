@@ -81,6 +81,9 @@ from app.routers.proposal_versions import router as proposal_versions_router
 from app.routers.proposal_workflow import router as proposal_workflow_router
 from app.routers.proposals import router as proposals_router
 from app.routers.reporting import router as reporting_router
+from app.routers.reporting_batch_controls import (
+    controls_router as reporting_batch_controls_router,
+)
 from app.routers.reporting_batches import batches_router as reporting_batches_router
 from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
 from app.routers.reporting_schedules import schedules_router as reporting_schedules_router
@@ -158,6 +161,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_snapshots_router)
     app.include_router(reporting_jobs_router)
     app.include_router(reporting_batches_router)
+    app.include_router(reporting_batch_controls_router)
     app.include_router(reporting_schedules_router)
     app.include_router(archive_documents_router)
     app.include_router(analytics_diagnostics_router)
