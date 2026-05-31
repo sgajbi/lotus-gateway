@@ -49,27 +49,15 @@ from app.routers.reporting_examples import (
     SUMMARY_REQUEST_EXAMPLES,
 )
 from app.services.caller_context import caller_context_headers
-from app.services.reporting_batch_control_service import ReportingBatchControlService
-from app.services.reporting_batch_control_service_factory import (
-    build_reporting_batch_control_service,
-)
-from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecycleService
-from app.services.reporting_batch_lifecycle_service_factory import (
-    build_reporting_batch_lifecycle_service,
-)
-from app.services.reporting_batch_scheduler_service import ReportingBatchSchedulerService
-from app.services.reporting_batch_scheduler_service_factory import (
-    build_reporting_batch_scheduler_service,
-)
-from app.services.reporting_job_query_service import ReportingJobQueryService
-from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
-from app.services.reporting_job_submission_service import ReportingJobSubmissionService
-from app.services.reporting_job_submission_service_factory import (
-    build_reporting_job_submission_service,
-)
 from app.services.reporting_links import gateway_report_job_status_url
-from app.services.reporting_portfolio_service import ReportingPortfolioService
-from app.services.reporting_portfolio_service_factory import build_reporting_portfolio_service
+from app.services.reporting_service_provider import (
+    reporting_batch_control_service,
+    reporting_batch_lifecycle_service,
+    reporting_batch_scheduler_service,
+    reporting_job_query_service,
+    reporting_job_submission_service,
+    reporting_portfolio_service,
+)
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
 jobs_router = APIRouter(prefix="/api/v1/report-jobs", tags=["Report Jobs"])
@@ -97,30 +85,6 @@ def _context_headers(
         booking_center_code=booking_center_code,
         role=role,
     )
-
-
-def _reporting_portfolio_service() -> ReportingPortfolioService:
-    return build_reporting_portfolio_service()
-
-
-def _reporting_job_submission_service() -> ReportingJobSubmissionService:
-    return build_reporting_job_submission_service()
-
-
-def _reporting_job_query_service() -> ReportingJobQueryService:
-    return build_reporting_job_query_service()
-
-
-def _reporting_batch_control_service() -> ReportingBatchControlService:
-    return build_reporting_batch_control_service()
-
-
-def _reporting_batch_lifecycle_service() -> ReportingBatchLifecycleService:
-    return build_reporting_batch_lifecycle_service()
-
-
-def _reporting_batch_scheduler_service() -> ReportingBatchSchedulerService:
-    return build_reporting_batch_scheduler_service()
 
 
 @router.get(
@@ -151,7 +115,7 @@ async def get_reporting_snapshot(
     ],
 ) -> ReportingSnapshotResponse:
     correlation_id = correlation_id_var.get()
-    return await _reporting_portfolio_service().get_snapshot(
+    return await reporting_portfolio_service().get_snapshot(
         portfolio_id=portfolio_id,
         as_of_date=as_of_date,
         correlation_id=correlation_id,
@@ -189,7 +153,7 @@ async def get_reporting_summary(
     ],
 ) -> ReportingSummaryResponse:
     correlation_id = correlation_id_var.get()
-    return await _reporting_portfolio_service().get_summary(
+    return await reporting_portfolio_service().get_summary(
         portfolio_id=portfolio_id,
         request=request,
         correlation_id=correlation_id,
@@ -229,7 +193,7 @@ async def get_reporting_review(
     ],
 ) -> ReportingReviewResponse:
     correlation_id = correlation_id_var.get()
-    return await _reporting_portfolio_service().get_review(
+    return await reporting_portfolio_service().get_review(
         portfolio_id=portfolio_id,
         request=request,
         correlation_id=correlation_id,
@@ -288,7 +252,7 @@ async def submit_portfolio_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    service = _reporting_job_submission_service()
+    service = reporting_job_submission_service()
     required_idempotency_key = service.require_idempotency_key(idempotency_key)
     response = await service.submit_portfolio_review_job(
         request=request,
@@ -360,7 +324,7 @@ async def submit_outcome_review_report_job(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobHandleResponse:
     correlation_id = correlation_id_var.get()
-    service = _reporting_job_submission_service()
+    service = reporting_job_submission_service()
     required_idempotency_key = service.require_idempotency_key(idempotency_key)
     response = await service.submit_outcome_review_report_job(
         request=request,
@@ -491,7 +455,7 @@ async def list_report_jobs(
         "limit": limit,
     }
     filters = {key: value for key, value in filters.items() if value is not None}
-    return await _reporting_job_query_service().list_report_jobs(
+    return await reporting_job_query_service().list_report_jobs(
         filters=filters,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -535,7 +499,7 @@ async def get_report_job_status(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    return await _reporting_job_query_service().get_report_job_status(
+    return await reporting_job_query_service().get_report_job_status(
         job_id=job_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -579,7 +543,7 @@ async def get_report_job_events(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusEventsResponse:
-    return await _reporting_job_query_service().get_report_job_events(
+    return await reporting_job_query_service().get_report_job_events(
         job_id=job_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -623,7 +587,7 @@ async def get_report_job_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    return await _reporting_job_query_service().get_report_job_lineage(
+    return await reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -673,7 +637,7 @@ async def cancel_report_job(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    return await _reporting_job_query_service().cancel_report_job(
+    return await reporting_job_query_service().cancel_report_job(
         job_id=job_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -717,7 +681,7 @@ async def get_report_snapshot(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportInputSnapshotRecord:
-    return await _reporting_job_query_service().get_report_snapshot(
+    return await reporting_job_query_service().get_report_snapshot(
         snapshot_id=snapshot_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -760,7 +724,7 @@ async def get_report_snapshot_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    return await _reporting_job_query_service().get_report_snapshot_lineage(
+    return await reporting_job_query_service().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -847,7 +811,7 @@ async def create_report_batch(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchHandleResponse:
     correlation_id = correlation_id_var.get()
-    service = _reporting_batch_lifecycle_service()
+    service = reporting_batch_lifecycle_service()
     required_idempotency_key = service.require_idempotency_key(idempotency_key)
     return await service.create_batch(
         request=request,
@@ -902,7 +866,7 @@ async def get_report_batch_status(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchStatusResponse:
     correlation_id = correlation_id_var.get()
-    return await _reporting_batch_lifecycle_service().get_batch_status(
+    return await reporting_batch_lifecycle_service().get_batch_status(
         batch_id=batch_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -928,7 +892,7 @@ async def _control_batch(
     booking_center_code: str | None,
     role: str | None,
 ) -> BatchControlResponse:
-    return await _reporting_batch_control_service().control_batch(
+    return await reporting_batch_control_service().control_batch(
         batch_id=batch_id,
         action=action,
         caller_headers=_context_headers(
@@ -1088,7 +1052,7 @@ async def recover_expired_report_batch_leases(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchRecoveryResponse:
-    return await _reporting_batch_control_service().recover_expired_leases(
+    return await reporting_batch_control_service().recover_expired_leases(
         batch_id=batch_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -1152,7 +1116,7 @@ async def run_report_batch_once(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchWorkerRunResponse:
     correlation_id = correlation_id_var.get()
-    return await _reporting_batch_control_service().run_batch_once(
+    return await reporting_batch_control_service().run_batch_once(
         batch_id=batch_id,
         request=request,
         caller_headers=_context_headers(
@@ -1200,7 +1164,7 @@ async def list_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchScheduleListResponse:
-    return await _reporting_batch_scheduler_service().list_schedules(
+    return await reporting_batch_scheduler_service().list_schedules(
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1260,7 +1224,7 @@ async def run_due_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchSchedulerRunResponse:
-    return await _reporting_batch_scheduler_service().run_due_schedules(
+    return await reporting_batch_scheduler_service().run_due_schedules(
         request=request,
         caller_headers=_context_headers(
             actor_id=actor_id,
