@@ -250,7 +250,7 @@ from app.routers.reporting_portfolio_summary import (
 )
 from app.routers.reporting_schedules import schedules_router as reporting_schedules_router
 from app.routers.reporting_snapshot_lineage import router as reporting_snapshot_lineage_router
-from app.routers.reporting_snapshots import router as reporting_snapshots_router
+from app.routers.reporting_snapshot_records import router as reporting_snapshot_records_router
 from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
 from app.routers.workbench_analytics import router as workbench_analytics_router
@@ -422,7 +422,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_portfolio_snapshots_router)
     app.include_router(reporting_job_submissions_router)
     app.include_router(reporting_outcome_review_submissions_router)
-    app.include_router(reporting_snapshots_router)
+    app.include_router(reporting_snapshot_records_router)
     app.include_router(reporting_snapshot_lineage_router)
     app.include_router(reporting_job_search_router)
     app.include_router(reporting_jobs_router)
