@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.contracts.dpm_command_center import (
-    DpmCommandCenterForwardRequest,
-    DpmCommandCenterGatewayResponse,
-)
+from app.contracts.dpm_command_center import DpmCommandCenterGatewayResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_command_center_monitoring_common import (
     UPSTREAM_COMMAND_CENTER_ERROR_RESPONSES,
@@ -15,26 +12,6 @@ router = APIRouter(
     tags=["DPM Command Center"],
     responses=UPSTREAM_COMMAND_CENTER_ERROR_RESPONSES,
 )
-
-
-@router.post(
-    "/monitoring/run-once",
-    response_model=DpmCommandCenterGatewayResponse,
-    summary="Run DPM mandate monitoring once",
-    description=(
-        "What: asks lotus-manage to evaluate a bounded set of refreshed mandate digital twins. "
-        "When: call this from an entitled Workbench command-center action or operator workflow. "
-        "How: Gateway forwards the request unchanged and returns manage's monitoring run state, "
-        "health results, exceptions, and lineage without discovering books or calculating health."
-    ),
-)
-async def run_monitoring_once(
-    request: DpmCommandCenterForwardRequest,
-) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().run_monitoring_once(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
 
 
 @router.get(
