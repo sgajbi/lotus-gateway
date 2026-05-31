@@ -7,6 +7,18 @@ from app.services.portfolio_service_provider import portfolio_service
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 
+async def _get_portfolio_readiness(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+) -> PortfolioReadinessResponse:
+    return await portfolio_service().get_portfolio_readiness(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        as_of_date=as_of_date,
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/readiness",
     response_model=PortfolioReadinessResponse,
@@ -28,8 +40,7 @@ async def get_portfolio_readiness(
         examples=["2026-04-10"],
     ),
 ) -> PortfolioReadinessResponse:
-    return await portfolio_service().get_portfolio_readiness(
+    return await _get_portfolio_readiness(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
         as_of_date=as_of_date,
     )
