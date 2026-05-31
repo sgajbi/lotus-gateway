@@ -14,6 +14,18 @@ router = APIRouter(
 )
 
 
+async def _request_operations_handoff_summary(
+    *,
+    wave_id: str,
+    request: DpmOperationsHandoffSummaryRequest,
+) -> DpmOperationsHandoffSummaryGatewayResponse:
+    return await dpm_wave_service().request_operations_handoff_summary(
+        wave_id=wave_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{wave_id}/operations-handoff-summary",
     response_model=DpmOperationsHandoffSummaryGatewayResponse,
@@ -37,8 +49,7 @@ async def request_operations_handoff_summary(
         examples=["dwv_001"],
     ),
 ) -> DpmOperationsHandoffSummaryGatewayResponse:
-    return await dpm_wave_service().request_operations_handoff_summary(
+    return await _request_operations_handoff_summary(
         wave_id=wave_id,
         request=request,
-        correlation_id=correlation_id_var.get(),
     )
