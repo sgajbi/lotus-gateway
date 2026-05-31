@@ -17,6 +17,18 @@ router = APIRouter(
 )
 
 
+async def _request_exception_summary(
+    *,
+    request: DpmExceptionSummaryRequest,
+    exception_id: str,
+) -> DpmExceptionSummaryGatewayResponse:
+    return await dpm_command_center_service().request_exception_summary(
+        exception_id=exception_id,
+        request=request,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/exceptions/{exception_id}/ai-summary",
     response_model=DpmExceptionSummaryGatewayResponse,
@@ -39,8 +51,7 @@ async def request_exception_summary(
         examples=["me_source_readiness_001"],
     ),
 ) -> DpmExceptionSummaryGatewayResponse:
-    return await dpm_command_center_service().request_exception_summary(
-        exception_id=exception_id,
+    return await _request_exception_summary(
         request=request,
-        correlation_id=correlation_id_var.get(),
+        exception_id=exception_id,
     )
