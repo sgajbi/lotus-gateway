@@ -49,6 +49,10 @@ from app.routers.reporting_links import (
     rewrite_report_batch_status_url,
 )
 from app.services.caller_context import caller_context_headers
+from app.services.reporting_batch_control_service import ReportingBatchControlService
+from app.services.reporting_batch_control_service_factory import (
+    build_reporting_batch_control_service,
+)
 from app.services.reporting_client_factory import build_render_client, build_reporting_client
 from app.services.reporting_job_query_service import ReportingJobQueryService
 from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
@@ -183,6 +187,10 @@ def _reporting_job_submission_service() -> ReportingJobSubmissionService:
 
 def _reporting_job_query_service() -> ReportingJobQueryService:
     return build_reporting_job_query_service()
+
+
+def _reporting_batch_control_service() -> ReportingBatchControlService:
+    return build_reporting_batch_control_service()
 
 
 @router.get(
@@ -1009,7 +1017,7 @@ async def _control_batch(
     booking_center_code: str | None,
     role: str | None,
 ) -> BatchControlResponse:
-    status_code, payload = await build_reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().control_batch(
         batch_id=batch_id,
         action=action,
         caller_headers=_context_headers(
@@ -1022,8 +1030,6 @@ async def _control_batch(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_batch_error(status_code, payload)
-    return BatchControlResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1171,9 +1177,8 @@ async def recover_expired_report_batch_leases(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchRecoveryResponse:
-    status_code, payload = await build_reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().recover_expired_leases(
         batch_id=batch_id,
-        action="recover-expired-leases",
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1184,8 +1189,6 @@ async def recover_expired_report_batch_leases(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_batch_error(status_code, payload)
-    return BatchRecoveryResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1238,9 +1241,9 @@ async def run_report_batch_once(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchWorkerRunResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await build_reporting_client().control_report_batch(
+    return await _reporting_batch_control_service().run_batch_once(
         batch_id=batch_id,
-        action="run-once",
+        request=request,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1250,17 +1253,8 @@ async def run_report_batch_once(
             role=role,
         ),
         correlation_id=correlation_id,
-        payload=request.model_dump(exclude_none=True, mode="json"),
-    )
-    raise_report_batch_error(status_code, payload)
-    response_payload = await attach_reporting_operator_supportability(
-        rewrite_report_batch_status_url(payload),
-        reporting_client=build_reporting_client(),
-        render_client=build_render_client(),
-        correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
-    return BatchWorkerRunResponse.model_validate(response_payload)
 
 
 @schedules_router.get(
