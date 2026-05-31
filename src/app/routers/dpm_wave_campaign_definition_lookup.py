@@ -15,10 +15,20 @@ router = APIRouter(
 
 async def _list_campaign_definitions(
     *,
-    filters: dict[str, str | int | None],
+    campaign_id: str | None,
+    campaign_status: str | None,
+    as_of_date: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await dpm_wave_service().list_campaign_definitions(
-        filters=filters,
+        filters={
+            "campaign_id": campaign_id,
+            "campaign_status": campaign_status,
+            "as_of_date": as_of_date,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -49,11 +59,9 @@ async def list_campaign_definitions(
     offset: int = Query(default=0, ge=0, description="Zero-based definition-list offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
     return await _list_campaign_definitions(
-        filters={
-            "campaign_id": campaign_id,
-            "campaign_status": campaign_status,
-            "as_of_date": as_of_date,
-            "limit": limit,
-            "offset": offset,
-        },
+        campaign_id=campaign_id,
+        campaign_status=campaign_status,
+        as_of_date=as_of_date,
+        limit=limit,
+        offset=offset,
     )
