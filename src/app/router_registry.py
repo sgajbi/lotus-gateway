@@ -229,6 +229,7 @@ from app.routers.dpm_proof_pack_ai import router as dpm_proof_pack_ai_router
 from app.routers.dpm_proof_pack_ai_evidence_input import (
     router as dpm_proof_pack_ai_evidence_input_router,
 )
+from app.routers.dpm_proof_pack_detail import router as dpm_proof_pack_detail_router
 from app.routers.dpm_proof_pack_evidence import router as dpm_proof_pack_evidence_router
 from app.routers.dpm_proof_pack_report_input import (
     router as dpm_proof_pack_report_input_router,
@@ -622,6 +623,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_construction_actions_router)
     app.include_router(dpm_construction_selection_router)
     app.include_router(dpm_proof_packs_router)
+    app.include_router(dpm_proof_pack_detail_router)
     app.include_router(dpm_proof_pack_evidence_router)
     app.include_router(dpm_proof_pack_report_input_router)
     app.include_router(dpm_proof_pack_ai_evidence_input_router)
