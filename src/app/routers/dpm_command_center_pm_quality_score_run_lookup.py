@@ -16,10 +16,24 @@ router = APIRouter(
 
 async def _list_pm_operating_quality_score_runs(
     *,
-    filters: dict[str, str | int | None],
+    pm_id: str | None,
+    book_id: str | None,
+    policy_id: str | None,
+    as_of_date: str | None,
+    state: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await dpm_command_center_service().list_pm_operating_quality_score_runs(
-        filters=filters,
+        filters={
+            "pm_id": pm_id,
+            "book_id": book_id,
+            "policy_id": policy_id,
+            "as_of_date": as_of_date,
+            "state": state,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -45,13 +59,11 @@ async def list_pm_operating_quality_score_runs(
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await _list_pm_operating_quality_score_runs(
-        filters={
-            "pm_id": pm_id,
-            "book_id": book_id,
-            "policy_id": policy_id,
-            "as_of_date": as_of_date,
-            "state": state,
-            "limit": limit,
-            "offset": offset,
-        },
+        pm_id=pm_id,
+        book_id=book_id,
+        policy_id=policy_id,
+        as_of_date=as_of_date,
+        state=state,
+        limit=limit,
+        offset=offset,
     )
