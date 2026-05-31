@@ -1,27 +1,17 @@
 from fastapi import APIRouter, Path
 
 from app.contracts.dpm_proof_packs import (
-    DpmProofPackErrorDetail,
     DpmProofPackGatewayResponse,
     DpmProofPackGenerateRequest,
     DpmProofPackMarkdownResponse,
-    DpmProofPackMemoGatewayResponse,
-    DpmProofPackMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
-from app.routers.dpm_openapi import manage_upstream_error_responses
+from app.routers.dpm_proof_pack_common import UPSTREAM_PROOF_PACK_ERROR_RESPONSES
 from app.services.dpm_service_provider import dpm_proof_pack_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/proof-packs",
     tags=["DPM Command Center"],
-)
-_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
-    error_model=DpmProofPackErrorDetail,
-    not_found_description="lotus-manage could not find the requested proof pack or source.",
-    conflict_description="lotus-manage rejected the proof-pack request as conflicting.",
-    invalid_payload_description="lotus-manage rejected the proof-pack payload as invalid.",
-    unavailable_description="lotus-manage proof-pack authority is unavailable or degraded.",
 )
 
 
@@ -37,7 +27,7 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
         "returned proof_pack_id, section states, reason codes, hashes, source refs, report refs, "
         "and AI refs without rebuilding proof-pack evidence."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
 )
 async def generate_proof_pack(
     request: DpmProofPackGenerateRequest,
@@ -61,7 +51,7 @@ async def generate_proof_pack(
         "section states, reason codes, hashes, source lineage, report refs, and AI refs without "
         "recalculation."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
 )
 async def get_proof_pack(
     proof_pack_id: str = Path(
@@ -86,7 +76,7 @@ async def get_proof_pack(
         "Gateway preserves the manage Markdown text in an envelope for Workbench and does not "
         "summarize, render, or regenerate proof-pack content."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
 )
 async def get_proof_pack_markdown(
     proof_pack_id: str = Path(
@@ -111,7 +101,7 @@ async def get_proof_pack_markdown(
         "Gateway preserves the report-input payload and exposes only experience-layer posture; "
         "lotus-report remains the report materialization authority."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
 )
 async def get_proof_pack_report_input(
     proof_pack_id: str = Path(
@@ -136,7 +126,7 @@ async def get_proof_pack_report_input(
         "Gateway preserves source refs, hashes, section states, and reason codes from manage and "
         "does not generate AI narrative itself."
     ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
+    responses=UPSTREAM_PROOF_PACK_ERROR_RESPONSES,
 )
 async def get_proof_pack_ai_evidence_input(
     proof_pack_id: str = Path(
@@ -147,34 +137,5 @@ async def get_proof_pack_ai_evidence_input(
 ) -> DpmProofPackGatewayResponse:
     return await dpm_proof_pack_service().get_proof_pack_ai_evidence_input(
         proof_pack_id=proof_pack_id,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.post(
-    "/{proof_pack_id}/ai-pm-memo",
-    response_model=DpmProofPackMemoGatewayResponse,
-    summary="Request proof-pack AI PM memo",
-    description=(
-        "What: requests a governed lotus-ai PM memo workflow-pack run from manage-owned "
-        "DPM proof-pack AI evidence. When: call this only after manage supportability shows AI "
-        "evidence is available and the user needs review-gated PM/control support text. How: "
-        "Gateway first reads manage's DpmProofPackAiEvidenceInput, then executes lotus-ai "
-        "dpm_pm_memo.pack@v1 as lotus-gateway; Gateway does not generate narrative, score PMs, "
-        "approve trades, contact clients, place orders, or invent evidence."
-    ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
-)
-async def request_proof_pack_pm_memo(
-    request: DpmProofPackMemoRequest,
-    proof_pack_id: str = Path(
-        ...,
-        description="Manage-owned immutable proof-pack identifier for the bounded AI handoff.",
-        examples=["dpp_rr_001"],
-    ),
-) -> DpmProofPackMemoGatewayResponse:
-    return await dpm_proof_pack_service().request_proof_pack_pm_memo(
-        proof_pack_id=proof_pack_id,
-        request=request,
         correlation_id=correlation_id_var.get(),
     )
