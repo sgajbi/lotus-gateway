@@ -14,6 +14,26 @@ router = APIRouter(
 )
 
 
+async def _list_monitoring_exceptions(
+    *,
+    mandate_id: str | None,
+    portfolio_id: str | None,
+    state: str | None,
+    limit: int,
+    cursor: str | None,
+) -> DpmCommandCenterGatewayResponse:
+    return await dpm_command_center_service().list_monitoring_exceptions(
+        filters={
+            "mandate_id": mandate_id,
+            "portfolio_id": portfolio_id,
+            "state": state,
+            "limit": limit,
+            "cursor": cursor,
+        },
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/exceptions",
     response_model=DpmCommandCenterGatewayResponse,
@@ -35,13 +55,10 @@ async def list_monitoring_exceptions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum exceptions to return."),
     cursor: str | None = Query(default=None, description="Cursor from a previous page."),
 ) -> DpmCommandCenterGatewayResponse:
-    return await dpm_command_center_service().list_monitoring_exceptions(
-        filters={
-            "mandate_id": mandate_id,
-            "portfolio_id": portfolio_id,
-            "state": state,
-            "limit": limit,
-            "cursor": cursor,
-        },
-        correlation_id=correlation_id_var.get(),
+    return await _list_monitoring_exceptions(
+        mandate_id=mandate_id,
+        portfolio_id=portfolio_id,
+        state=state,
+        limit=limit,
+        cursor=cursor,
     )
