@@ -30,57 +30,6 @@ def _query_params(request: Request) -> dict[str, Any]:
 
 
 @router.get(
-    "/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions",
-    response_model=DpmCampaignWorkflowGatewayResponse,
-    summary="List DPM campaign approval decisions",
-    description=(
-        "What: lists manage-owned campaign approval-decision evidence. When: use this for "
-        "read-only approval audit review. How: Gateway forwards query parameters unchanged and "
-        "preserves Manage pagination, source refs, reason codes, supportability, hashes, and "
-        "operating boundaries without inferring approval state, approving trades, placing orders, "
-        "or claiming OMS execution."
-    ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
-)
-async def list_campaign_approval_decisions(
-    request: Request,
-    campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
-    campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
-) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().list_campaign_approval_decisions(
-        campaign_id=campaign_id,
-        campaign_version=campaign_version,
-        filters=_query_params(request),
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.post(
-    "/campaign-definitions/{campaign_id}/versions/{campaign_version}/approval-decisions",
-    response_model=DpmCampaignWorkflowGatewayResponse,
-    summary="Record DPM campaign approval decision",
-    description=(
-        "What: forwards campaign approval-decision evidence to lotus-manage. When: call only for "
-        "a Gateway-backed explicit command UX. How: Gateway forwards the body unchanged and "
-        "preserves Manage reason codes, source refs, hashes, and operating boundaries without "
-        "approving trades, creating orders, contacting clients, or claiming OMS execution."
-    ),
-    responses=_UPSTREAM_ERROR_RESPONSES,
-)
-async def create_campaign_approval_decision(
-    request: DpmCampaignWorkflowForwardRequest,
-    campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
-    campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
-) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().create_campaign_approval_decision(
-        campaign_id=campaign_id,
-        campaign_version=campaign_version,
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
     "/campaign-definitions/{campaign_id}/versions/{campaign_version}/assignment-actions",
     response_model=DpmCampaignWorkflowGatewayResponse,
     summary="List DPM campaign assignment actions",
