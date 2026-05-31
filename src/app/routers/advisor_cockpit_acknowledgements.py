@@ -15,6 +15,24 @@ from app.services.advisory_service_provider import advisor_cockpit_service
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
 
+async def _acknowledge_advisor_cockpit_action(
+    *,
+    request: AdvisorCockpitAcknowledgeRequest,
+    action_item_id: str,
+    idempotency_key: str,
+    portfolio_id: str | None,
+    advisor_id: str | None,
+    role: AdvisorCockpitOwnerRole,
+) -> AdvisorCockpitEnvelopeResponse:
+    return await advisor_cockpit_service().acknowledge_action(
+        action_item_id=action_item_id,
+        body=request.model_dump(exclude_none=True),
+        params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/actions/{action_item_id}/acknowledgements",
     response_model=AdvisorCockpitEnvelopeResponse,
@@ -55,10 +73,11 @@ async def acknowledge_advisor_cockpit_action(
         examples=["ADVISOR"],
     ),
 ) -> AdvisorCockpitEnvelopeResponse:
-    return await advisor_cockpit_service().acknowledge_action(
+    return await _acknowledge_advisor_cockpit_action(
+        request=request,
         action_item_id=action_item_id,
-        body=request.model_dump(exclude_none=True),
-        params=cockpit_params(portfolio_id=portfolio_id, advisor_id=advisor_id, role=role),
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id_var.get(),
+        portfolio_id=portfolio_id,
+        advisor_id=advisor_id,
+        role=role,
     )
