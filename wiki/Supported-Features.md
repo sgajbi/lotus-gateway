@@ -719,7 +719,10 @@ Production-readiness controls:
    consistent source service, upstream status, and error-code posture,
 5. missing lotus-ai workflow-pack configuration is handled through the shared Gateway guard across
    command-center AI handoffs, keeping degraded configuration posture consistent for operators,
-6. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
+6. command-center supportability mapping is isolated in a dedicated tested mapper boundary so
+   mandate readiness, outcome-review posture, portfolio-memory posture, and PM operating-quality
+   posture can evolve without re-expanding the command-center service monolith,
+7. unit and contract tests pin product-safe manage errors, source-owned payload preservation,
    supportability derivation, AI handoff boundaries, and no-local-authority claims.
 
 ## Portfolio-Level DPM Operations Posture

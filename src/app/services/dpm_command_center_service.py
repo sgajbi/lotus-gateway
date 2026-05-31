@@ -17,14 +17,12 @@ from app.contracts.dpm_command_center import (
     DpmOutcomeReviewGatewayResponse,
     DpmOutcomeReviewNarrativeGatewayResponse,
     DpmOutcomeReviewNarrativeRequest,
-    DpmOutcomeReviewSupportability,
     DpmPmOperatingQualityGatewayResponse,
     DpmPmOperatingQualitySummaryGatewayResponse,
     DpmPmOperatingQualitySummaryRequest,
-    DpmPmOperatingQualitySupportability,
     DpmPortfolioMemoryGatewayResponse,
-    DpmPortfolioMemorySupportability,
 )
+from app.services import dpm_command_center_supportability
 from app.services.lotus_ai_workflow import require_lotus_ai_client
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
@@ -197,7 +195,9 @@ class DpmCommandCenterService:
             state="READY",
             data_completeness_state="READY",
             partial_readiness_reasons=[],
-            source_run_id=_safe_optional_str(exception.get("monitoring_run_id")),
+            source_run_id=dpm_command_center_supportability.safe_optional_str(
+                exception.get("monitoring_run_id")
+            ),
         )
         summary_request: dict[str, object] = {
             "requested_outputs": request.requested_outputs,
@@ -484,7 +484,9 @@ class DpmCommandCenterService:
                 ).model_dump(),
             )
 
-        supportability = _supportability_from(manage_payload)
+        supportability = dpm_command_center_supportability.outcome_review_supportability_from(
+            manage_payload
+        )
         narrative_request: dict[str, object] = {
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
@@ -899,7 +901,9 @@ class DpmCommandCenterService:
                 },
             )
 
-        supportability = _pm_operating_quality_supportability_from(manage_payload)
+        supportability = dpm_command_center_supportability.pm_operating_quality_supportability_from(
+            manage_payload
+        )
         summary_request: dict[str, object] = {
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
@@ -1032,7 +1036,9 @@ class DpmCommandCenterService:
             DpmOutcomeReviewGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_supportability_from(upstream_payload),
+            supportability=dpm_command_center_supportability.outcome_review_supportability_from(
+                upstream_payload
+            ),
             upstream_payload=upstream_payload,
         )
 
@@ -1051,7 +1057,11 @@ class DpmCommandCenterService:
             DpmPmOperatingQualityGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_pm_operating_quality_supportability_from(upstream_payload),
+            supportability=(
+                dpm_command_center_supportability.pm_operating_quality_supportability_from(
+                    upstream_payload
+                )
+            ),
             upstream_payload=upstream_payload,
         )
 
@@ -1070,7 +1080,9 @@ class DpmCommandCenterService:
             DpmCommandCenterGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_command_center_supportability_from(upstream_payload),
+            supportability=dpm_command_center_supportability.command_center_supportability_from(
+                upstream_payload
+            ),
             upstream_payload=upstream_payload,
         )
 
@@ -1089,7 +1101,9 @@ class DpmCommandCenterService:
             DpmPortfolioMemoryGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_portfolio_memory_supportability_from(upstream_payload),
+            supportability=dpm_command_center_supportability.portfolio_memory_supportability_from(
+                upstream_payload
+            ),
             upstream_payload=upstream_payload,
         )
 
@@ -1106,91 +1120,6 @@ def _raise_manage_command_center_error(
         error_model=DpmOutcomeReviewErrorDetail,
         error_code=error_code,
         default_detail="lotus-manage command-center request failed",
-    )
-
-
-def _pm_operating_quality_supportability_from(
-    payload: dict[str, Any],
-) -> DpmPmOperatingQualitySupportability:
-    score_run = payload.get("score_run")
-    fairness_analysis = payload.get("fairness_analysis")
-    review_action = payload.get("review_action")
-    summary_invocation = payload.get("summary_invocation")
-    policy = payload
-    if isinstance(summary_invocation, dict):
-        supportability_source = summary_invocation
-        policy = summary_invocation
-    elif isinstance(review_action, dict):
-        supportability_source = review_action
-        policy = review_action
-    elif isinstance(fairness_analysis, dict):
-        supportability_source = fairness_analysis
-        policy = fairness_analysis
-    elif isinstance(score_run, dict):
-        supportability_source = score_run
-        policy = score_run
-    elif isinstance(payload.get("review_actions"), list):
-        review_actions = payload.get("review_actions")
-        first_action = (
-            review_actions[0] if review_actions and isinstance(review_actions[0], dict) else {}
-        )
-        supportability_source = first_action if isinstance(first_action, dict) else payload
-        policy = supportability_source
-    elif isinstance(payload.get("summary_invocations"), list):
-        summary_invocations = payload.get("summary_invocations")
-        first_invocation = (
-            summary_invocations[0]
-            if summary_invocations and isinstance(summary_invocations[0], dict)
-            else {}
-        )
-        supportability_source = first_invocation if isinstance(first_invocation, dict) else payload
-        policy = supportability_source
-    elif isinstance(payload.get("fairness_analyses"), list):
-        fairness_analyses = payload.get("fairness_analyses")
-        first_analysis = (
-            fairness_analyses[0]
-            if fairness_analyses and isinstance(fairness_analyses[0], dict)
-            else {}
-        )
-        supportability_source = first_analysis if isinstance(first_analysis, dict) else payload
-        policy = supportability_source
-    elif isinstance(payload.get("score_runs"), list):
-        score_runs = payload.get("score_runs")
-        first_run = score_runs[0] if score_runs and isinstance(score_runs[0], dict) else {}
-        supportability_source = first_run if isinstance(first_run, dict) else payload
-    elif isinstance(payload.get("policies"), list):
-        policies = payload.get("policies")
-        first_policy = policies[0] if policies and isinstance(policies[0], dict) else {}
-        supportability_source = first_policy if isinstance(first_policy, dict) else payload
-        policy = supportability_source
-    else:
-        supportability_source = payload
-
-    state = (
-        supportability_source.get("state")
-        or supportability_source.get("action_state")
-        or supportability_source.get("supportability_state")
-        or supportability_source.get("supportabilityState")
-        or ("EMPTY" if _safe_int(payload.get("count")) == 0 else None)
-        or "UNKNOWN"
-    )
-    return DpmPmOperatingQualitySupportability(
-        state=str(state),
-        reason_codes=_list_of_strings(supportability_source.get("reason_codes") or []),
-        blocked_actions=_list_of_strings(
-            supportability_source.get("blocked_actions")
-            or supportability_source.get("blockedActions")
-            or []
-        ),
-        policy_id=_safe_optional_str(policy.get("policy_id")),
-        policy_version=_safe_optional_str(policy.get("policy_version")),
-        score_run_id=_safe_optional_str(supportability_source.get("score_run_id")),
-        fairness_analysis_id=_safe_optional_str(supportability_source.get("fairness_analysis_id")),
-        review_action_id=_safe_optional_str(supportability_source.get("review_action_id")),
-        summary_invocation_id=_safe_optional_str(
-            supportability_source.get("summary_invocation_id")
-        ),
-        count=_safe_int(payload.get("count")) if "count" in payload else None,
     )
 
 
@@ -1212,11 +1141,15 @@ def _pm_quality_summary_source_refs(score_run: dict[str, object]) -> list[str]:
             if ref is not None:
                 refs.append(ref)
 
-    score_run_id = _safe_optional_str(score_run.get("score_run_id"))
+    score_run_id = dpm_command_center_supportability.safe_optional_str(
+        score_run.get("score_run_id")
+    )
     if score_run_id is not None:
         refs.append(f"lotus-manage:pm-quality-score-run:{score_run_id}")
-    policy_id = _safe_optional_str(score_run.get("policy_id"))
-    policy_version = _safe_optional_str(score_run.get("policy_version"))
+    policy_id = dpm_command_center_supportability.safe_optional_str(score_run.get("policy_id"))
+    policy_version = dpm_command_center_supportability.safe_optional_str(
+        score_run.get("policy_version")
+    )
     if policy_id is not None and policy_version is not None:
         refs.append(f"lotus-manage:pm-quality-policy:{policy_id}:{policy_version}")
 
@@ -1234,168 +1167,6 @@ def _source_ref_label(value: object) -> str | None:
     if source_type is None or source_id is None:
         return None
     return f"{source_system}:{source_type}:{source_id}"
-
-
-def _supportability_from(payload: dict[str, Any]) -> DpmOutcomeReviewSupportability:
-    raw = payload.get("supportability")
-    supportability = raw if isinstance(raw, dict) else payload
-    reason_codes = _list_of_strings(
-        supportability.get("reason_codes")
-        or supportability.get("reasonCodes")
-        or supportability.get("reasons")
-        or []
-    )
-    blocked_actions = _list_of_strings(
-        supportability.get("blocked_actions") or supportability.get("blockedActions") or []
-    )
-    state = (
-        supportability.get("state")
-        or supportability.get("supportability_state")
-        or supportability.get("supportabilityState")
-        or "UNKNOWN"
-    )
-    remediation_owner = supportability.get("remediation_owner") or supportability.get(
-        "remediationOwner"
-    )
-
-    return DpmOutcomeReviewSupportability(
-        state=str(state),
-        reason_codes=reason_codes,
-        blocked_actions=blocked_actions,
-        remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
-        applied_filters=_dict_of_objects(payload.get("applied_filters")),
-        source_owner_counts=_dict_of_ints(payload.get("source_owner_counts")),
-        source_type_counts=_dict_of_ints(payload.get("source_type_counts")),
-        support_boundary=_dict_of_objects(payload.get("support_boundary")),
-    )
-
-
-def _command_center_supportability_from(payload: dict[str, Any]) -> DpmCommandCenterSupportability:
-    raw = payload.get("supportability")
-    supportability = raw if isinstance(raw, dict) else {}
-    mandate_supportability = _mandate_payload_supportability(payload)
-    if mandate_supportability is not None and not supportability:
-        return mandate_supportability
-    data_completeness_state = supportability.get("data_completeness_state") or supportability.get(
-        "dataCompletenessState"
-    )
-    state = (
-        supportability.get("state")
-        or supportability.get("supportability_state")
-        or supportability.get("supportabilityState")
-        or data_completeness_state
-        or payload.get("command_center_state")
-        or payload.get("state")
-        or "UNKNOWN"
-    )
-    source_run_id = (
-        supportability.get("source_run_id")
-        or supportability.get("sourceRunId")
-        or payload.get("monitoring_run_id")
-    )
-    remediation_owner = supportability.get("remediation_owner") or supportability.get(
-        "remediationOwner"
-    )
-    partial_reasons = _list_of_strings(
-        supportability.get("partial_readiness_reasons")
-        or supportability.get("partialReadinessReasons")
-        or supportability.get("reason_codes")
-        or supportability.get("reasonCodes")
-        or []
-    )
-
-    return DpmCommandCenterSupportability(
-        state=str(state),
-        data_completeness_state=(
-            str(data_completeness_state) if data_completeness_state is not None else None
-        ),
-        partial_readiness_reasons=partial_reasons,
-        source_run_id=str(source_run_id) if source_run_id is not None else None,
-        remediation_owner=str(remediation_owner) if remediation_owner is not None else None,
-    )
-
-
-def _mandate_payload_supportability(
-    payload: dict[str, Any],
-) -> DpmCommandCenterSupportability | None:
-    if "mandate_id" not in payload or "portfolio_id" not in payload:
-        return None
-    field_gap_codes = _list_of_strings(payload.get("field_gap_codes") or [])
-    source_lineage = payload.get("source_lineage")
-    has_source_lineage = isinstance(source_lineage, list) and bool(source_lineage)
-    state = "PARTIAL" if field_gap_codes else "READY"
-    if not has_source_lineage:
-        state = "PARTIAL"
-        field_gap_codes = [*field_gap_codes, "SOURCE_LINEAGE_NOT_PUBLISHED"]
-    return DpmCommandCenterSupportability(
-        state=state,
-        data_completeness_state=state,
-        partial_readiness_reasons=field_gap_codes,
-        source_run_id=_safe_optional_str(payload.get("mandate_version")),
-        remediation_owner="Portfolio Operations" if field_gap_codes else None,
-    )
-
-
-def _portfolio_memory_supportability_from(
-    payload: dict[str, Any],
-) -> DpmPortfolioMemorySupportability:
-    state = (
-        payload.get("supportability_state")
-        or payload.get("supportabilityState")
-        or payload.get("state")
-        or "UNKNOWN"
-    )
-    event_count = payload.get("event_count") or payload.get("eventCount") or 0
-    return DpmPortfolioMemorySupportability(
-        state=str(state),
-        event_count=_safe_int(event_count),
-        event_type_counts=_dict_of_ints(payload.get("event_type_counts")),
-        source_systems=_list_of_strings(payload.get("source_systems") or []),
-        source_system_counts=_dict_of_ints(payload.get("source_system_counts")),
-        source_type_counts=_dict_of_ints(payload.get("source_type_counts")),
-        reason_codes=_list_of_strings(payload.get("reason_codes") or []),
-        content_hash=_safe_optional_str(payload.get("content_hash")),
-    )
-
-
-def _list_of_strings(value: object) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item) for item in value]
-
-
-def _dict_of_ints(value: object) -> dict[str, int]:
-    if not isinstance(value, dict):
-        return {}
-    counts: dict[str, int] = {}
-    for key, count in value.items():
-        counts[str(key)] = _safe_int(count)
-    return counts
-
-
-def _dict_of_objects(value: object) -> dict[str, object]:
-    if not isinstance(value, dict):
-        return {}
-    return {str(key): item for key, item in value.items()}
-
-
-def _safe_int(value: object) -> int:
-    if isinstance(value, bool):
-        return 0
-    if isinstance(value, int):
-        return max(value, 0)
-    if isinstance(value, str):
-        try:
-            return max(int(value), 0)
-        except ValueError:
-            return 0
-    return 0
-
-
-def _safe_optional_str(value: object) -> str | None:
-    if value is None:
-        return None
-    return str(value)
 
 
 def _find_exception(payload: dict[str, Any], exception_id: str) -> dict[str, Any] | None:
@@ -1426,12 +1197,18 @@ def _exception_summary_input_from_exception(exception: dict[str, Any]) -> dict[s
     bounded_exception = {
         "exception_id": exception_id,
         "portfolio_id": portfolio_id,
-        "mandate_id": _safe_optional_str(exception.get("mandate_id")) or "",
+        "mandate_id": dpm_command_center_supportability.safe_optional_str(
+            exception.get("mandate_id")
+        )
+        or "",
         "severity": str(exception.get("severity") or "UNKNOWN"),
         "state": str(exception.get("state") or "UNKNOWN"),
         "reason_code": str(exception.get("reason_code") or "UNKNOWN"),
         "recommended_action": str(exception.get("recommended_action") or "REVIEW_WITH_PM"),
-        "detected_at": _safe_optional_str(exception.get("detected_at")) or "",
+        "detected_at": dpm_command_center_supportability.safe_optional_str(
+            exception.get("detected_at")
+        )
+        or "",
         "source_refs": source_refs,
     }
     evidence_ref = {
@@ -1444,7 +1221,10 @@ def _exception_summary_input_from_exception(exception: dict[str, Any]) -> dict[s
         "contract_version": "1.0",
         "portfolio_id": portfolio_id,
         "mandate_id": bounded_exception["mandate_id"],
-        "as_of_date": _safe_optional_str(exception.get("as_of_date")) or "",
+        "as_of_date": dpm_command_center_supportability.safe_optional_str(
+            exception.get("as_of_date")
+        )
+        or "",
         "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "exception_count": 1,
         "exceptions": [bounded_exception],
@@ -1480,7 +1260,9 @@ def _bounded_exception_source_refs(
                             "source_system": str(source_system),
                             "source_type": str(source_type),
                             "source_id": str(source_id),
-                            "content_hash": _safe_optional_str(item.get("content_hash"))
+                            "content_hash": dpm_command_center_supportability.safe_optional_str(
+                                item.get("content_hash")
+                            )
                             or content_hash,
                         }
                     )
