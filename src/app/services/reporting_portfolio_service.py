@@ -3,20 +3,20 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     ReportingPortfolioRequest,
     ReportingReviewResponse,
     ReportingSnapshotResponse,
     ReportingSummaryResponse,
 )
+from app.services.upstream_client_protocols import ReportingPortfolioClient
 
 
 class ReportingPortfolioService:
     def __init__(
         self,
         *,
-        reporting_client: ReportingClient,
+        reporting_client: ReportingPortfolioClient,
         contract_version: str,
     ) -> None:
         self._reporting_client = reporting_client

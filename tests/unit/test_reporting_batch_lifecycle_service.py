@@ -195,6 +195,8 @@ async def test_reporting_batch_lifecycle_service_creates_batch_with_supportabili
 
     assert response.batch_id == "rbch_1"
     assert response.status_url == "/api/v1/report-batches/rbch_1"
+    assert response.supportability is not None
+    assert response.render_supportability is not None
     assert response.supportability.state == "ready"
     assert response.render_supportability.state == "ready"
     assert reporting_client.create_calls == [
@@ -229,6 +231,8 @@ async def test_reporting_batch_lifecycle_service_gets_batch_status_with_supporta
 
     assert response.batch_id == "rbch_1"
     assert response.items[0].portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert response.supportability is not None
+    assert response.render_supportability is not None
     assert response.supportability.state == "ready"
     assert response.render_supportability.state == "ready"
     assert reporting_client.status_calls == [
@@ -247,6 +251,7 @@ def test_reporting_batch_lifecycle_service_requires_idempotency_key() -> None:
         service.require_idempotency_key(None)
 
     assert exc_info.value.status_code == 400
+    assert isinstance(exc_info.value.detail, dict)
     assert exc_info.value.detail["code"] == "missing_idempotency_key"
 
 

@@ -1,7 +1,5 @@
 from fastapi import HTTPException, status
 
-from app.clients.render_client import RenderClient
-from app.clients.reporting_client import ReportingClient
 from app.contracts.reporting import (
     REPORT_BATCH_ERROR_EXAMPLES,
     BatchCreateRequest,
@@ -10,15 +8,19 @@ from app.contracts.reporting import (
 )
 from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_links import rewrite_report_batch_status_url
-from app.services.reporting_supportability import attach_reporting_operator_supportability
+from app.services.reporting_supportability import (
+    RenderMetadataClient,
+    attach_reporting_operator_supportability,
+)
+from app.services.upstream_client_protocols import ReportingBatchLifecycleClient
 
 
 class ReportingBatchLifecycleService:
     def __init__(
         self,
         *,
-        reporting_client: ReportingClient,
-        render_client: RenderClient,
+        reporting_client: ReportingBatchLifecycleClient,
+        render_client: RenderMetadataClient,
     ) -> None:
         self._reporting_client = reporting_client
         self._render_client = render_client
