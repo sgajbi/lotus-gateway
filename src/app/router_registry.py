@@ -121,6 +121,7 @@ from app.routers.reporting_batch_controls import (
 )
 from app.routers.reporting_batch_worker import worker_router as reporting_batch_worker_router
 from app.routers.reporting_batches import batches_router as reporting_batches_router
+from app.routers.reporting_job_search import search_router as reporting_job_search_router
 from app.routers.reporting_job_submissions import router as reporting_job_submissions_router
 from app.routers.reporting_jobs import jobs_router as reporting_jobs_router
 from app.routers.reporting_schedules import schedules_router as reporting_schedules_router
@@ -224,6 +225,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_router)
     app.include_router(reporting_job_submissions_router)
     app.include_router(reporting_snapshots_router)
+    app.include_router(reporting_job_search_router)
     app.include_router(reporting_jobs_router)
     app.include_router(reporting_batches_router)
     app.include_router(reporting_batch_controls_router)
