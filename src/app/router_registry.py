@@ -284,6 +284,9 @@ from app.routers.reporting_portfolio_snapshots import (
 from app.routers.reporting_portfolio_summary import (
     router as reporting_portfolio_summary_router,
 )
+from app.routers.reporting_schedule_runs import (
+    schedule_runs_router as reporting_schedule_runs_router,
+)
 from app.routers.reporting_schedules import schedules_router as reporting_schedules_router
 from app.routers.reporting_snapshot_lineage import router as reporting_snapshot_lineage_router
 from app.routers.reporting_snapshot_records import router as reporting_snapshot_records_router
@@ -486,6 +489,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_batch_lease_recovery_router)
     app.include_router(reporting_batch_run_once_router)
     app.include_router(reporting_schedules_router)
+    app.include_router(reporting_schedule_runs_router)
     app.include_router(archive_documents_router)
     app.include_router(archive_document_downloads_router)
     app.include_router(analytics_diagnostics_router)
