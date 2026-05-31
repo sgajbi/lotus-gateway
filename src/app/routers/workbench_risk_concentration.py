@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import APIRouter, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskConcentrationResponse
@@ -6,6 +8,35 @@ from app.routers.workbench_risk_common import RISK_PERIOD_QUERY_DESCRIPTION
 from app.services.workbench_service_provider import risk_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
+
+
+@dataclass(frozen=True)
+class RiskConcentrationQuery:
+    period: str
+    benchmark_code: str | None
+    as_of_date: str | None
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str
+
+
+async def _get_risk_concentration(
+    *,
+    portfolio_id: str,
+    query: RiskConcentrationQuery,
+) -> WorkbenchRiskConcentrationResponse:
+    service = risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_concentration(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        as_of_date=query.as_of_date,
+        report_start_date=query.report_start_date,
+        report_end_date=query.report_end_date,
+        reporting_currency=query.reporting_currency,
+        benchmark_code=query.benchmark_code,
+    )
 
 
 @router.get(
@@ -61,15 +92,14 @@ async def get_workbench_risk_concentration(
         examples=["USD"],
     ),
 ) -> WorkbenchRiskConcentrationResponse:
-    service = risk_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_concentration(
+    return await _get_risk_concentration(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-        benchmark_code=benchmark_code,
+        query=RiskConcentrationQuery(
+            period=period,
+            benchmark_code=benchmark_code,
+            as_of_date=as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+        ),
     )
