@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Header, status
@@ -14,6 +15,44 @@ from app.routers.reporting_errors import report_batch_error_response
 from app.services.reporting_service_provider import reporting_batch_lifecycle_service
 
 batches_router = APIRouter(prefix="/api/v1/report-batches", tags=["Report Batches"])
+
+
+@dataclass(frozen=True)
+class ReportBatchCallerHeaders:
+    actor_id: str | None
+    caller_application: str | None
+    tenant_id: str | None
+    region: str | None
+    booking_center_code: str | None
+    role: str | None
+
+    def as_reporting_context(self) -> dict[str, str]:
+        return reporting_context_headers(
+            actor_id=self.actor_id,
+            caller_application=self.caller_application,
+            tenant_id=self.tenant_id,
+            region=self.region,
+            booking_center_code=self.booking_center_code,
+            role=self.role,
+        )
+
+
+async def _create_report_batch(
+    *,
+    request: BatchCreateRequest,
+    idempotency_key: str | None,
+    caller_headers: ReportBatchCallerHeaders,
+) -> BatchHandleResponse:
+    correlation_id = correlation_id_var.get()
+    service = reporting_batch_lifecycle_service()
+    required_idempotency_key = service.require_idempotency_key(idempotency_key)
+    return await service.create_batch(
+        request=request,
+        idempotency_key=required_idempotency_key,
+        caller_headers=caller_headers.as_reporting_context(),
+        correlation_id=correlation_id,
+        tenant_id=caller_headers.tenant_id,
+    )
 
 
 @batches_router.post(
@@ -88,21 +127,15 @@ async def create_report_batch(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchHandleResponse:
-    correlation_id = correlation_id_var.get()
-    service = reporting_batch_lifecycle_service()
-    required_idempotency_key = service.require_idempotency_key(idempotency_key)
-    caller_headers = reporting_context_headers(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
-    return await service.create_batch(
+    return await _create_report_batch(
         request=request,
-        idempotency_key=required_idempotency_key,
-        caller_headers=caller_headers,
-        correlation_id=correlation_id,
-        tenant_id=tenant_id,
+        idempotency_key=idempotency_key,
+        caller_headers=ReportBatchCallerHeaders(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
     )
