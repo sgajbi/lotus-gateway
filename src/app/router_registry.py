@@ -31,6 +31,7 @@ from app.routers.portfolio import router as portfolio_router
 from app.routers.proposal_memos import router as proposal_memos_router
 from app.routers.proposal_operations import router as proposal_operations_router
 from app.routers.proposal_versions import router as proposal_versions_router
+from app.routers.proposal_workflow import router as proposal_workflow_router
 from app.routers.proposals import router as proposals_router
 from app.routers.reporting import router as reporting_router
 from app.routers.reporting_batches import batches_router as reporting_batches_router
@@ -52,6 +53,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposals_router)
     app.include_router(proposal_operations_router)
     app.include_router(proposal_versions_router)
+    app.include_router(proposal_workflow_router)
     app.include_router(proposal_memos_router)
     app.include_router(platform_router)
     app.include_router(domain_products_router)
