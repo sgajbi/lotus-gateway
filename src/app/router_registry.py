@@ -58,6 +58,9 @@ from app.routers.reporting_snapshots import router as reporting_snapshots_router
 from app.routers.source_products import router as source_products_router
 from app.routers.workbench import router as workbench_router
 from app.routers.workbench_performance import router as workbench_performance_router
+from app.routers.workbench_performance_advisor_brief import (
+    router as workbench_performance_advisor_brief_router,
+)
 from app.routers.workbench_risk import router as workbench_risk_router
 from app.routers.workbench_sandbox import router as workbench_sandbox_router
 
@@ -98,6 +101,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_waves_router)
     app.include_router(workbench_router)
     app.include_router(workbench_performance_router)
+    app.include_router(workbench_performance_advisor_brief_router)
     app.include_router(workbench_risk_router)
     app.include_router(workbench_sandbox_router)
     app.include_router(reporting_router)
