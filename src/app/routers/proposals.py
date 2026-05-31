@@ -36,14 +36,9 @@ from app.contracts.proposals import (
     ProposalWorkflowEventsEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advisory_service_factory import build_proposal_service
-from app.services.proposal_service import ProposalService
+from app.services.advisory_service_provider import proposal_service
 
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
-
-
-def _proposal_service() -> ProposalService:
-    return build_proposal_service()
 
 
 @router.post(
@@ -63,7 +58,7 @@ async def simulate_proposal(
         examples=["idem-simulate-1"],
     ),
 ) -> ProposalSimulateResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.simulate_proposal(
         body=request.body,
@@ -90,7 +85,7 @@ async def create_proposal_artifact(
         examples=["idem-artifact-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_artifact(
         body=request.body,
@@ -116,7 +111,7 @@ async def create_proposal(
         examples=["idem-create-1"],
     ),
 ) -> ProposalCreateEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal(
         body=request.body,
@@ -173,7 +168,7 @@ async def list_proposals(
         examples=["pp_00042"],
     ),
 ) -> ProposalListEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     filters = {
         "portfolio_id": portfolio_id,
@@ -204,7 +199,7 @@ async def create_proposal_async(
         examples=["idem-proposal-async-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_async(
         body=request.body,
@@ -226,7 +221,7 @@ async def get_proposal_operation(
         examples=["apo_001"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_operation(
         operation_id=operation_id,
@@ -247,7 +242,7 @@ async def get_proposal_operation_by_correlation(
         examples=["corr-operation-001"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_operation_by_correlation(
         operation_correlation_id=operation_correlation_id,
@@ -270,7 +265,7 @@ async def get_proposal_operation_replay_evidence(
         examples=["apo_001"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_operation_replay_evidence(
         operation_id=operation_id,
@@ -294,7 +289,7 @@ async def get_proposal_idempotency_record(
         examples=["idem-create-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_idempotency_record(
         idempotency_key=idempotency_key,
@@ -320,7 +315,7 @@ async def get_proposal(
         examples=[True],
     ),
 ) -> ProposalDetailEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal(
         proposal_id=proposal_id,
@@ -354,7 +349,7 @@ async def get_proposal_version(
         examples=[True],
     ),
 ) -> ProposalVersionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_version(
         proposal_id=proposal_id,
@@ -384,7 +379,7 @@ async def get_proposal_version_replay_evidence(
         examples=[2],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_version_replay_evidence(
         proposal_id=proposal_id,
@@ -412,7 +407,7 @@ async def create_proposal_version(
         examples=["idem-version-2"],
     ),
 ) -> ProposalCreateEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_version(
         proposal_id=proposal_id,
@@ -444,7 +439,7 @@ async def create_proposal_version_async(
         examples=["idem-version-async-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_version_async(
         proposal_id=proposal_id,
@@ -473,7 +468,7 @@ async def submit_proposal(
         examples=["idem-submit-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.submit_proposal(
         proposal_id=proposal_id,
@@ -506,7 +501,7 @@ async def approve_risk(
         examples=["idem-approve-risk-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.approve_risk(
         proposal_id=proposal_id,
@@ -538,7 +533,7 @@ async def approve_compliance(
         examples=["idem-approve-compliance-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.approve_compliance(
         proposal_id=proposal_id,
@@ -570,7 +565,7 @@ async def record_client_consent(
         examples=["idem-client-consent-1"],
     ),
 ) -> ProposalStateTransitionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.record_client_consent(
         proposal_id=proposal_id,
@@ -596,7 +591,7 @@ async def get_workflow_events(
         examples=["pp_1"],
     ),
 ) -> ProposalWorkflowEventsEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_workflow_events(
         proposal_id=proposal_id,
@@ -617,7 +612,7 @@ async def get_approvals(
         examples=["pp_1"],
     ),
 ) -> ProposalApprovalsEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_approvals(
         proposal_id=proposal_id,
@@ -638,7 +633,7 @@ async def get_proposal_lineage(
         examples=["pp_1"],
     ),
 ) -> ProposalLineageEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_lineage(
         proposal_id=proposal_id,
@@ -669,7 +664,7 @@ async def regenerate_proposal_narrative(
         examples=[2],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.regenerate_proposal_narrative(
         proposal_id=proposal_id,
@@ -701,7 +696,7 @@ async def get_proposal_narrative(
         examples=[2],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_narrative(
         proposal_id=proposal_id,
@@ -740,7 +735,7 @@ async def review_proposal_narrative(
         examples=["proposal-narrative-review-idem-001"],
     ),
 ) -> ProposalNarrativeReviewEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.review_proposal_narrative(
         proposal_id=proposal_id,
@@ -769,7 +764,7 @@ async def create_report_request(
         examples=["pp_1"],
     ),
 ) -> ProposalReportRequestEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_report_request(
         proposal_id=proposal_id,
@@ -801,7 +796,7 @@ async def create_execution_handoff(
         examples=["idem-execution-handoff-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_execution_handoff(
         proposal_id=proposal_id,
@@ -828,7 +823,7 @@ async def get_delivery_summary(
         examples=["pp_1"],
     ),
 ) -> ProposalDeliverySummaryEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_delivery_summary(
         proposal_id=proposal_id,
@@ -852,7 +847,7 @@ async def get_delivery_events(
         examples=["pp_1"],
     ),
 ) -> ProposalDeliveryEventsEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_delivery_events(
         proposal_id=proposal_id,
@@ -876,7 +871,7 @@ async def get_execution_status(
         examples=["pp_1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_execution_status(
         proposal_id=proposal_id,
@@ -907,7 +902,7 @@ async def record_execution_update(
         examples=["idem-execution-update-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.record_execution_update(
         proposal_id=proposal_id,
@@ -945,7 +940,7 @@ async def create_proposal_memo(
         examples=["idem-memo-create-1"],
     ),
 ) -> ProposalMemoEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.create_proposal_memo(
         proposal_id=proposal_id,
@@ -977,7 +972,7 @@ async def get_proposal_memo(
         examples=[2],
     ),
 ) -> ProposalMemoEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_memo(
         proposal_id=proposal_id,
@@ -1013,7 +1008,7 @@ async def get_proposal_memo_projection(
         examples=["COMPLIANCE"],
     ),
 ) -> ProposalMemoProjectionEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_memo_projection(
         proposal_id=proposal_id,
@@ -1052,7 +1047,7 @@ async def review_proposal_memo(
         examples=["idem-memo-review-1"],
     ),
 ) -> ProposalMemoReviewEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.review_proposal_memo(
         proposal_id=proposal_id,
@@ -1091,7 +1086,7 @@ async def record_proposal_memo_report_package_event(
         examples=["idem-memo-report-package-event-1"],
     ),
 ) -> ProposalEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.record_proposal_memo_report_package_event(
         proposal_id=proposal_id,
@@ -1131,7 +1126,7 @@ async def request_proposal_memo_report_package(
         examples=["idem-memo-report-package-1"],
     ),
 ) -> ProposalMemoReportPackageEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.request_proposal_memo_report_package(
         proposal_id=proposal_id,
@@ -1170,7 +1165,7 @@ async def request_proposal_memo_ai_commentary(
         examples=["idem-memo-ai-commentary-1"],
     ),
 ) -> ProposalMemoAiCommentaryEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.request_proposal_memo_ai_commentary(
         proposal_id=proposal_id,
@@ -1198,7 +1193,7 @@ async def get_proposal_memo_lineage(
         examples=["pp_1"],
     ),
 ) -> ProposalMemoLineageEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_memo_lineage(
         proposal_id=proposal_id,
@@ -1228,7 +1223,7 @@ async def get_proposal_memo_replay_evidence(
         examples=[2],
     ),
 ) -> ProposalMemoReplayEvidenceEnvelopeResponse:
-    service = _proposal_service()
+    service = proposal_service()
     correlation_id = correlation_id_var.get()
     return await service.get_proposal_memo_replay_evidence(
         proposal_id=proposal_id,

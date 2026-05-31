@@ -4,8 +4,7 @@ from fastapi import APIRouter, Body, Header, status
 
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
-from app.services.advisory_service_factory import build_bank_demo_proof_service
-from app.services.bank_demo_proof_service import BankDemoProofService
+from app.services.advisory_service_provider import bank_demo_proof_service
 
 router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-proof"])
 
@@ -18,10 +17,6 @@ BANK_DEMO_PROOF_RESPONSES: dict[int | str, dict[str, Any]] = {
     },
     422: {"description": "lotus-advise rejected the proof contract request shape."},
 }
-
-
-def _bank_demo_proof_service() -> BankDemoProofService:
-    return build_bank_demo_proof_service()
 
 
 def _correlation_id(x_correlation_id: str | None) -> str:
@@ -42,7 +37,7 @@ def _correlation_id(x_correlation_id: str | None) -> str:
 async def get_bank_demo_scenario_contract(
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> BankDemoProofEnvelopeResponse:
-    return await _bank_demo_proof_service().get_scenario_contract(
+    return await bank_demo_proof_service().get_scenario_contract(
         correlation_id=_correlation_id(x_correlation_id),
     )
 
@@ -62,7 +57,7 @@ async def get_bank_demo_scenario_contract(
 async def get_bank_demo_supported_claim_register(
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> BankDemoProofEnvelopeResponse:
-    return await _bank_demo_proof_service().get_supported_claim_register(
+    return await bank_demo_proof_service().get_supported_claim_register(
         correlation_id=_correlation_id(x_correlation_id),
     )
 
@@ -88,7 +83,7 @@ async def build_bank_demo_proof_pack(
     ),
     x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> BankDemoProofEnvelopeResponse:
-    return await _bank_demo_proof_service().build_proof_pack(
+    return await bank_demo_proof_service().build_proof_pack(
         body=body,
         correlation_id=_correlation_id(x_correlation_id),
     )
