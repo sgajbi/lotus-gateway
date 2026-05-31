@@ -93,6 +93,7 @@ def raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
     if status_code == status.HTTP_409_CONFLICT and error_code in {
         "idempotency_conflict",
         "batch_worker_run_failed",
+        "batch_scheduler_run_failed",
     }:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

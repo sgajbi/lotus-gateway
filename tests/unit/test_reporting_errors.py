@@ -61,6 +61,25 @@ def test_raise_report_batch_error_maps_unknown_upstream_error_to_safe_gateway_er
     }
 
 
+def test_raise_report_batch_error_preserves_scheduler_run_conflict() -> None:
+    with pytest.raises(HTTPException) as exc:
+        raise_report_batch_error(
+            status.HTTP_409_CONFLICT,
+            {
+                "detail": {
+                    "code": "batch_scheduler_run_failed",
+                    "message": "Scheduler pass could not materialize configured schedules.",
+                }
+            },
+        )
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.detail == {
+        "code": "batch_scheduler_run_failed",
+        "message": "Scheduler pass could not materialize configured schedules.",
+    }
+
+
 def test_report_job_error_response_uses_governed_example() -> None:
     response = report_job_error_response(
         status.HTTP_404_NOT_FOUND,

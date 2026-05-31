@@ -39,7 +39,6 @@ from app.contracts.reporting import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_errors import (
-    raise_report_batch_error,
     report_batch_error_response,
     report_job_error_response,
 )
@@ -55,7 +54,10 @@ from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecyc
 from app.services.reporting_batch_lifecycle_service_factory import (
     build_reporting_batch_lifecycle_service,
 )
-from app.services.reporting_client_factory import build_reporting_client
+from app.services.reporting_batch_scheduler_service import ReportingBatchSchedulerService
+from app.services.reporting_batch_scheduler_service_factory import (
+    build_reporting_batch_scheduler_service,
+)
 from app.services.reporting_job_query_service import ReportingJobQueryService
 from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
 from app.services.reporting_job_submission_service import ReportingJobSubmissionService
@@ -196,6 +198,10 @@ def _reporting_batch_control_service() -> ReportingBatchControlService:
 
 def _reporting_batch_lifecycle_service() -> ReportingBatchLifecycleService:
     return build_reporting_batch_lifecycle_service()
+
+
+def _reporting_batch_scheduler_service() -> ReportingBatchSchedulerService:
+    return build_reporting_batch_scheduler_service()
 
 
 @router.get(
@@ -1275,7 +1281,7 @@ async def list_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchScheduleListResponse:
-    status_code, payload = await build_reporting_client().list_report_batch_schedules(
+    return await _reporting_batch_scheduler_service().list_schedules(
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1286,8 +1292,6 @@ async def list_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_batch_error(status_code, payload)
-    return BatchScheduleListResponse.model_validate(payload)
 
 
 @schedules_router.post(
@@ -1337,8 +1341,8 @@ async def run_due_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchSchedulerRunResponse:
-    status_code, payload = await build_reporting_client().run_due_report_batch_schedules(
-        payload=request.model_dump(exclude_none=True, mode="json"),
+    return await _reporting_batch_scheduler_service().run_due_schedules(
+        request=request,
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1349,5 +1353,3 @@ async def run_due_report_batch_schedules(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_batch_error(status_code, payload)
-    return BatchSchedulerRunResponse.model_validate(payload)
