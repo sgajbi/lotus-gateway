@@ -162,13 +162,17 @@ def test_narrowed_archive_services_do_not_import_concrete_archive_client() -> No
 
 def test_narrowed_performance_and_core_services_do_not_import_concrete_clients() -> None:
     narrowed_service_imports = {
-        "composite_performance_service.py": "app.clients.lotus_analytics_client",
-        "source_product_execution_service.py": "app.clients.lotus_core_query_client",
+        "composite_performance_service.py": {"app.clients.lotus_analytics_client"},
+        "intake_service.py": {
+            "app.clients.lotus_core_ingestion_client",
+            "app.clients.lotus_core_query_client",
+        },
+        "source_product_execution_service.py": {"app.clients.lotus_core_query_client"},
     }
     offenders = {
-        service_name: concrete_import
-        for service_name, concrete_import in narrowed_service_imports.items()
-        if concrete_import in _imported_modules(_SERVICE_ROOT / service_name)
+        service_name: sorted(concrete_imports & _imported_modules(_SERVICE_ROOT / service_name))
+        for service_name, concrete_imports in narrowed_service_imports.items()
+        if concrete_imports & _imported_modules(_SERVICE_ROOT / service_name)
     }
 
     assert offenders == {}
