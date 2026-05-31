@@ -14,6 +14,16 @@ router = APIRouter(
 )
 
 
+async def _list_pm_operating_quality_policies(
+    *,
+    filters: dict[str, str | int | bool | None],
+) -> DpmPmOperatingQualityGatewayResponse:
+    return await dpm_command_center_service().list_pm_operating_quality_policies(
+        filters=filters,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/pm-operating-quality/policies",
     response_model=DpmPmOperatingQualityGatewayResponse,
@@ -31,7 +41,7 @@ async def list_pm_operating_quality_policies(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum policies to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await dpm_command_center_service().list_pm_operating_quality_policies(
+    return await _list_pm_operating_quality_policies(
         filters={
             "policy_id": policy_id,
             "enabled": enabled,
@@ -39,5 +49,4 @@ async def list_pm_operating_quality_policies(
             "limit": limit,
             "offset": offset,
         },
-        correlation_id=correlation_id_var.get(),
     )
