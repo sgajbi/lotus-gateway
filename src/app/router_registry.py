@@ -282,6 +282,7 @@ from app.routers.dpm_wave_workflow_actions import router as dpm_wave_workflow_ac
 from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
+from app.routers.intake_upload_commits import router as intake_upload_commits_router
 from app.routers.intake_uploads import router as intake_uploads_router
 from app.routers.lookup_currency_catalog import router as lookup_currency_catalog_router
 from app.routers.lookup_instrument_catalog import router as lookup_instrument_catalog_router
@@ -472,6 +473,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(source_products_router)
     app.include_router(intake_router)
     app.include_router(intake_uploads_router)
+    app.include_router(intake_upload_commits_router)
     app.include_router(lookup_currency_catalog_router)
     app.include_router(lookup_instrument_catalog_router)
     app.include_router(lookup_portfolio_catalog_router)

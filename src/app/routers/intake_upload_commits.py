@@ -8,17 +8,17 @@ router = APIRouter(prefix="/api/v1/intake/uploads", tags=["intake"])
 
 
 @router.post(
-    "/preview",
+    "/commit",
     response_model=EnvelopeResponse,
-    summary="Preview lotus-core Upload",
+    summary="Commit lotus-core Upload",
     description=(
-        "Validates a CSV upload through lotus-core without publishing records. Use this before "
-        "commit to inspect normalized sample rows and row-level validation errors. Gateway "
-        "accepts camelCase form aliases for UI callers and maps them to lotus-core's canonical "
-        "snake_case multipart contract (`entity_type`, `file`, `sample_size`)."
+        "Validates and commits a CSV upload through lotus-core. Use this only after preview "
+        "results are acceptable. Gateway accepts camelCase form aliases for UI callers and maps "
+        "them to lotus-core's canonical snake_case multipart contract (`entity_type`, `file`, "
+        "`allow_partial`)."
     ),
 )
-async def preview_upload(
+async def commit_upload(
     entity_type: str = Form(
         ...,
         alias="entityType",
@@ -27,24 +27,22 @@ async def preview_upload(
     ),
     file: UploadFile = File(
         ...,
-        description="CSV file uploaded for preview validation.",
+        description="CSV file uploaded for commit after preview validation.",
         examples=["transactions.csv"],
     ),
-    sample_size: int = Form(
-        20,
-        alias="sampleSize",
-        ge=1,
-        le=100,
-        description="Maximum number of normalized sample rows returned from lotus-core preview.",
-        examples=[20],
+    allow_partial: bool = Form(
+        False,
+        alias="allowPartial",
+        description="Whether lotus-core may publish valid rows when some rows fail validation.",
+        examples=[False],
     ),
 ) -> EnvelopeResponse:
     service = intake_service()
     correlation_id = correlation_id_var.get()
-    return await service.preview_upload(
+    return await service.commit_upload(
         entity_type=entity_type,
         filename=file.filename or "upload.csv",
         content=await file.read(),
-        sample_size=sample_size,
+        allow_partial=allow_partial,
         correlation_id=correlation_id,
     )
