@@ -1,5 +1,5 @@
-from app.routers.platform import _platform_capabilities_service
-from app.routers.proposals import _proposal_service
+from app.services.advisory_service_provider import proposal_service
+from app.services.platform_capabilities_service_provider import platform_capabilities_service
 from app.services.workbench_service_provider import workbench_service
 
 
@@ -8,7 +8,7 @@ def test_proposals_router_targets_advisory_base_url(monkeypatch):
         "app.services.advise_client_factory.settings.decisioning_service_base_url",
         "http://advise:8000",
     )
-    service = _proposal_service()
+    service = proposal_service()
     assert service._advise_client._base_url == "http://advise:8000"
 
 
@@ -49,7 +49,7 @@ def test_platform_capabilities_keeps_manage_and_advise_clients_separate(monkeypa
         "app.services.platform_capabilities_service_factory.settings.management_service_base_url",
         "http://manage:8000",
     )
-    service = _platform_capabilities_service()
+    service = platform_capabilities_service()
     assert service._advise_client._base_url == "http://advise:8000"
     assert service._manage_client._base_url == "http://manage:8000"
 
@@ -59,5 +59,5 @@ def test_platform_capabilities_uses_configured_source_timeout(monkeypatch):
         "app.services.platform_capabilities_service_factory.settings.platform_capabilities_source_timeout_seconds",
         7.5,
     )
-    service = _platform_capabilities_service()
+    service = platform_capabilities_service()
     assert service._source_timeout_seconds == 7.5
