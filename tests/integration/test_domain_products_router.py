@@ -211,7 +211,7 @@ def test_domain_product_catalog_router_preserves_consumer_and_correlation(monkey
 
 def test_domain_product_detail_router_returns_full_identity_lookup(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_detail.domain_product_catalog_service",
         lambda: _FakeDomainProductService(),
     )
 
@@ -231,7 +231,7 @@ def test_domain_product_detail_router_returns_full_identity_lookup(monkeypatch):
 
 def test_domain_product_detail_router_does_not_fabricate_unknown_products(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_detail.domain_product_catalog_service",
         lambda: _FakeDomainProductService(),
     )
 

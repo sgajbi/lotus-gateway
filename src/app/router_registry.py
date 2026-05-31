@@ -51,6 +51,7 @@ from app.routers.archive_document_downloads import (
 from app.routers.archive_documents import router as archive_documents_router
 from app.routers.bank_demo_proof import router as bank_demo_proof_router
 from app.routers.composite_performance import router as composite_performance_router
+from app.routers.domain_product_detail import router as domain_product_detail_router
 from app.routers.domain_product_graph import router as domain_product_graph_router
 from app.routers.domain_product_trust import router as domain_product_trust_router
 from app.routers.domain_products import router as domain_products_router
@@ -326,6 +327,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(proposal_memo_reporting_router)
     app.include_router(platform_router)
     app.include_router(domain_products_router)
+    app.include_router(domain_product_detail_router)
     app.include_router(domain_product_graph_router)
     app.include_router(domain_product_trust_router)
     app.include_router(source_products_router)
