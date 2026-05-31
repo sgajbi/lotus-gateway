@@ -71,6 +71,19 @@ def _direct_correlation_access(path: Path) -> list[str]:
     return handlers
 
 
+def _route_handler_dict_literals(path: Path) -> list[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    handlers: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, ast.AsyncFunctionDef | ast.FunctionDef):
+            continue
+        if not _is_router_handler(node):
+            continue
+        if any(isinstance(child, ast.Dict) for child in ast.walk(node)):
+            handlers.append(node.name)
+    return handlers
+
+
 def test_routers_do_not_import_service_factories_or_clients() -> None:
     offenders = {
         path.name: sorted(
@@ -89,6 +102,15 @@ def test_routers_do_not_import_service_factories_or_clients() -> None:
 def test_router_handlers_delegate_service_calls_to_private_helpers() -> None:
     offenders = {path.name: _direct_service_calls(path) for path in _ROUTER_ROOT.glob("*.py")}
     offenders = {name: calls for name, calls in offenders.items() if calls}
+
+    assert offenders == {}
+
+
+def test_dpm_router_handlers_delegate_filter_construction_to_private_helpers() -> None:
+    offenders = {
+        path.name: _route_handler_dict_literals(path) for path in _ROUTER_ROOT.glob("dpm_*.py")
+    }
+    offenders = {name: handlers for name, handlers in offenders.items() if handlers}
 
     assert offenders == {}
 
