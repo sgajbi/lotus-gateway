@@ -114,6 +114,7 @@ from app.routers.dpm_command_center_portfolio_memory import (
     router as dpm_command_center_portfolio_memory_router,
 )
 from app.routers.dpm_construction import router as dpm_construction_router
+from app.routers.dpm_construction_actions import router as dpm_construction_actions_router
 from app.routers.dpm_proof_pack_ai import router as dpm_proof_pack_ai_router
 from app.routers.dpm_proof_pack_evidence import router as dpm_proof_pack_evidence_router
 from app.routers.dpm_proof_packs import router as dpm_proof_packs_router
@@ -330,6 +331,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_wave_campaign_assignment_tasks_router)
     app.include_router(dpm_wave_campaign_workflow_router)
     app.include_router(dpm_construction_router)
+    app.include_router(dpm_construction_actions_router)
     app.include_router(dpm_proof_packs_router)
     app.include_router(dpm_proof_pack_evidence_router)
     app.include_router(dpm_proof_pack_ai_router)
