@@ -1,4 +1,9 @@
-from app.services.reporting_client_factory import build_render_client, build_reporting_client
+from app.services.reporting_client_factory import (
+    build_render_client,
+    build_reporting_client,
+    render_client_signature,
+    reporting_client_signature,
+)
 
 
 def test_reporting_client_factory_builds_governed_reporting_client(monkeypatch) -> None:
@@ -25,6 +30,7 @@ def test_reporting_client_factory_builds_governed_reporting_client(monkeypatch) 
     assert client._timeout == 7.5
     assert client._max_retries == 5
     assert client._retry_backoff_seconds == 0.65
+    assert reporting_client_signature() == ("http://report:8000/", 7.5, 5, 0.65)
 
 
 def test_reporting_client_factory_builds_governed_render_client(monkeypatch) -> None:
@@ -51,3 +57,4 @@ def test_reporting_client_factory_builds_governed_render_client(monkeypatch) -> 
     assert client._timeout == 8.5
     assert client._max_retries == 6
     assert client._retry_backoff_seconds == 0.8
+    assert render_client_signature() == ("http://render:8000/", 8.5, 6, 0.8)
