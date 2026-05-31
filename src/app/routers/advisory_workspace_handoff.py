@@ -11,6 +11,20 @@ from app.services.advisory_service_provider import advisory_workspace_service
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
+async def _handoff_workspace(
+    *,
+    request: AdvisoryWorkspaceBodyRequest,
+    workspace_id: str,
+    idempotency_key: str | None,
+) -> AdvisoryWorkspaceEnvelopeResponse:
+    return await advisory_workspace_service().handoff_workspace(
+        workspace_id=workspace_id,
+        body=request.body,
+        idempotency_key=idempotency_key,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/{workspace_id}/handoff",
     response_model=AdvisoryWorkspaceEnvelopeResponse,
@@ -30,9 +44,8 @@ async def handoff_workspace(
         examples=["idem-workspace-handoff-1"],
     ),
 ) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().handoff_workspace(
+    return await _handoff_workspace(
+        request=request,
         workspace_id=workspace_id,
-        body=request.body,
         idempotency_key=idempotency_key,
-        correlation_id=correlation_id_var.get(),
     )
