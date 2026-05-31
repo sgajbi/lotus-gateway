@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Path
+from fastapi import APIRouter
 
 from app.contracts.advisory_workspaces import (
     AdvisoryWorkspaceBodyRequest,
@@ -24,48 +24,6 @@ async def save_workspace(
     return await advisory_workspace_service().save_workspace(
         workspace_id=workspace_id,
         body=request.body,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/{workspace_id}/saved-versions",
-    response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="List Saved Advisory Workspace Versions",
-    description=(
-        "Returns saved advisory workspace versions from lotus-advise for resume, compare, "
-        "and support evidence workflows. Gateway does not reconstruct workspace history locally."
-    ),
-)
-async def list_saved_versions(
-    workspace_id: str = WORKSPACE_ID_PATH,
-) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().list_saved_versions(
-        workspace_id=workspace_id,
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/{workspace_id}/saved-versions/{workspace_version_id}/replay-evidence",
-    response_model=AdvisoryWorkspaceEnvelopeResponse,
-    summary="Get Saved Advisory Workspace Replay Evidence",
-    description=(
-        "Returns replay evidence for a saved advisory workspace version from lotus-advise, "
-        "preserving source hashes and lifecycle continuity without Gateway-side inference."
-    ),
-)
-async def get_saved_version_replay_evidence(
-    workspace_id: str = WORKSPACE_ID_PATH,
-    workspace_version_id: str = Path(
-        ...,
-        description="Saved advisory workspace version identifier returned by lotus-advise.",
-        examples=["awv_001"],
-    ),
-) -> AdvisoryWorkspaceEnvelopeResponse:
-    return await advisory_workspace_service().get_saved_version_replay_evidence(
-        workspace_id=workspace_id,
-        workspace_version_id=workspace_version_id,
         correlation_id=correlation_id_var.get(),
     )
 
