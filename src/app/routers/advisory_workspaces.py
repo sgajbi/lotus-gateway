@@ -5,14 +5,14 @@ from app.contracts.advisory_workspaces import (
     AdvisoryWorkspaceEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advise_client_factory import build_advise_client
+from app.services.advisory_service_factory import build_advisory_workspace_service
 from app.services.advisory_workspace_service import AdvisoryWorkspaceService
 
 router = APIRouter(prefix="/api/v1/advisory-workspaces", tags=["advisory-workspaces"])
 
 
 def _advisory_workspace_service() -> AdvisoryWorkspaceService:
-    return AdvisoryWorkspaceService(advise_client=build_advise_client())
+    return build_advisory_workspace_service()
 
 
 @router.post(

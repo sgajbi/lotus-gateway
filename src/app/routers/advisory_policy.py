@@ -5,8 +5,8 @@ from app.contracts.advisory_policy import (
     AdvisoryPolicyEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advise_client_factory import build_advise_client
 from app.services.advisory_policy_service import AdvisoryPolicyService
+from app.services.advisory_service_factory import build_advisory_policy_service
 
 router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 POLICY_VERSION_PATH = Path(
@@ -20,7 +20,7 @@ POLICY_EVALUATION_PATH = Path(
 
 
 def _advisory_policy_service() -> AdvisoryPolicyService:
-    return AdvisoryPolicyService(advise_client=build_advise_client())
+    return build_advisory_policy_service()
 
 
 @router.get(

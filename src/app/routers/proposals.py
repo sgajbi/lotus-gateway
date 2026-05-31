@@ -36,14 +36,14 @@ from app.contracts.proposals import (
     ProposalWorkflowEventsEnvelopeResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advise_client_factory import build_advise_client
+from app.services.advisory_service_factory import build_proposal_service
 from app.services.proposal_service import ProposalService
 
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
 def _proposal_service() -> ProposalService:
-    return ProposalService(advise_client=build_advise_client())
+    return build_proposal_service()
 
 
 @router.post(

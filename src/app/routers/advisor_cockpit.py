@@ -9,8 +9,8 @@ from app.contracts.advisor_cockpit import (
     AdvisorCockpitOwnerRole,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.advise_client_factory import build_advise_client
 from app.services.advisor_cockpit_service import AdvisorCockpitService
+from app.services.advisory_service_factory import build_advisor_cockpit_service
 
 router = APIRouter(prefix="/api/v1/advisor-cockpit", tags=["advisor-cockpit"])
 
@@ -31,7 +31,7 @@ ADVISOR_COCKPIT_ACKNOWLEDGEMENT_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _advisor_cockpit_service() -> AdvisorCockpitService:
-    return AdvisorCockpitService(advise_client=build_advise_client())
+    return build_advisor_cockpit_service()
 
 
 def _cockpit_params(

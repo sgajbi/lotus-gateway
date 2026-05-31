@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Header, status
 
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
-from app.services.advise_client_factory import build_advise_client
+from app.services.advisory_service_factory import build_bank_demo_proof_service
 from app.services.bank_demo_proof_service import BankDemoProofService
 
 router = APIRouter(prefix="/api/v1/advisory/bank-demo-proof", tags=["bank-demo-proof"])
@@ -21,7 +21,7 @@ BANK_DEMO_PROOF_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def _bank_demo_proof_service() -> BankDemoProofService:
-    return BankDemoProofService(advise_client=build_advise_client())
+    return build_bank_demo_proof_service()
 
 
 def _correlation_id(x_correlation_id: str | None) -> str:
