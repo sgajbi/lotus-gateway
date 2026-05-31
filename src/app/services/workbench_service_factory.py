@@ -1,10 +1,9 @@
-from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
 from app.config import settings
 from app.services.advise_client_factory import build_advise_client
 from app.services.advisor_brief_service import AdvisorBriefService
-from app.services.dpm_service_factory import build_manage_client
+from app.services.dpm_service_factory import build_lotus_ai_client, build_manage_client
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 from app.services.risk_workspace_service import RiskWorkspaceService
 from app.services.workbench_service import WorkbenchService
@@ -76,12 +75,7 @@ def build_advisor_brief_service(
 ) -> AdvisorBriefService:
     return AdvisorBriefService(
         performance_workspace_service=performance_workspace_service,
-        lotus_ai_client=LotusAiClient(
-            base_url=settings.ai_service_base_url,
-            timeout_seconds=settings.ai_service_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        lotus_ai_client=build_lotus_ai_client(),
         advise_client=build_advise_client(),
         cache_ttl_seconds=settings.advisor_brief_cache_ttl_seconds,
     )
