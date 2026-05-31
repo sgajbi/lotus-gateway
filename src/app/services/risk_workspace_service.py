@@ -3,7 +3,6 @@ from typing import Any, cast
 
 from fastapi import status
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.config import settings
 from app.contracts.risk_workspace import (
     RiskModuleState,
@@ -55,6 +54,7 @@ from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
 )
+from app.services.upstream_client_protocols import RiskWorkspaceClient
 
 _SUMMARY_METRICS = [
     "VOLATILITY",
@@ -117,7 +117,7 @@ _DEFAULT_REPORTING_CURRENCY = "USD"
 class RiskWorkspaceService:
     def __init__(
         self,
-        risk_client: LotusAnalyticsClient,
+        risk_client: RiskWorkspaceClient,
         *,
         cache_ttl_seconds: float | None = None,
     ) -> None:

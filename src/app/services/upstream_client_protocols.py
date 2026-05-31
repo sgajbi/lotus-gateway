@@ -914,3 +914,40 @@ class IntakeLookupClient(Protocol):
         q: str | None = None,
         limit: int | None = None,
     ) -> tuple[int, dict[str, Any]]: ...
+
+
+class RiskWorkspaceClient(Protocol):
+    async def post_risk_calculate(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def post_risk_concentration(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def post_risk_drawdown(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def post_risk_rolling_metrics(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def post_risk_historical_attribution(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
