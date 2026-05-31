@@ -247,7 +247,7 @@ def test_domain_product_detail_router_does_not_fabricate_unknown_products(monkey
 
 def test_domain_product_graph_router_exposes_dependency_relationships(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_graph.domain_product_catalog_service",
         lambda: _FakeDomainProductService(),
     )
 
