@@ -8,7 +8,6 @@ from app.contracts.portfolio import (
     PortfolioIncomeSummaryResponse,
     PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
-    PortfolioPerformanceSnapshotResponse,
     PortfolioPositionBookResponse,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
@@ -17,10 +16,7 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceResponse,
 )
 from app.middleware.correlation import correlation_id_var
-from app.services.portfolio_service_provider import (
-    portfolio_performance_workspace_service,
-    portfolio_service,
-)
+from app.services.portfolio_service_provider import portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
@@ -639,93 +635,3 @@ async def get_portfolio_transactions(
     )
 
 
-@router.get(
-    "/portfolios/{portfolio_id}/performance-snapshot",
-    response_model=PortfolioPerformanceSnapshotResponse,
-    summary="Get portfolio performance snapshot",
-    description=(
-        "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
-        "Use this endpoint when the UI needs the current period return, benchmark comparison, "
-        "compact sparkline, and explicit unavailable-state semantics without loading the full "
-        "performance workspace. The response keeps warnings and partial failures explicit so "
-        "downstream clients can render degraded or unavailable states without rebuilding "
-        "snapshot logic locally."
-    ),
-)
-async def get_portfolio_performance_snapshot(
-    portfolio_id: str,
-    period: str = Query(
-        default="YTD",
-        description=(
-            "Requested performance horizon. Use canonical values such as MTD, QTD, YTD, 1Y, 3Y, "
-            "5Y, or EXPLICIT."
-        ),
-        examples=["YTD"],
-        openapi_examples={"standard": {"summary": "Year to date", "value": "YTD"}},
-    ),
-    chart_frequency: str = Query(
-        default="monthly",
-        description=(
-            "Requested sparkline aggregation frequency for the compact return trend. "
-            "Unsupported values are normalized to the nearest supported workspace frequency "
-            "instead of failing the request."
-        ),
-        examples=["monthly"],
-        openapi_examples={"monthly": {"summary": "Monthly sparkline", "value": "monthly"}},
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description=(
-            "Performance basis requested for the snapshot return metrics. Use NET for the "
-            "advisor-facing post-fee view or GROSS when the cockpit needs pre-fee return context."
-        ),
-        examples=["NET"],
-        openapi_examples={"net": {"summary": "Net of fees", "value": "NET"}},
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description=(
-            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
-            "when available."
-        ),
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-        openapi_examples={
-            "balanced": {
-                "summary": "Balanced benchmark override",
-                "value": "BMK_PB_GLOBAL_BALANCED_60_40",
-            }
-        },
-    ),
-    explicit_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when requesting an EXPLICIT window or overriding the "
-            "canonical period boundary for the resolved snapshot horizon."
-        ),
-        examples=["2026-01-01"],
-        openapi_examples={
-            "quarter_start": {"summary": "Explicit quarter start", "value": "2026-01-01"}
-        },
-    ),
-    explicit_end_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit end date when requesting an EXPLICIT window or overriding the "
-            "resolved analytics reference end date for the snapshot horizon."
-        ),
-        examples=["2026-03-27"],
-        openapi_examples={
-            "quarter_end": {"summary": "Explicit quarter end", "value": "2026-03-27"}
-        },
-    ),
-) -> PortfolioPerformanceSnapshotResponse:
-    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=period,
-        chart_frequency=chart_frequency,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        explicit_start_date=explicit_start_date,
-        explicit_end_date=explicit_end_date,
-    )
