@@ -2,13 +2,13 @@ from typing import Any
 
 from fastapi import HTTPException, status
 
-from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.contracts.composite_performance import CompositePerformanceGatewayResponse
 from app.services.caller_context import caller_context_headers
+from app.services.upstream_client_protocols import CompositePerformanceClient
 
 
 class CompositePerformanceService:
-    def __init__(self, analytics_client: LotusAnalyticsClient):
+    def __init__(self, analytics_client: CompositePerformanceClient):
         self._analytics_client = analytics_client
 
     async def calculate_twr(

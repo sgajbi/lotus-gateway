@@ -827,3 +827,19 @@ class ArchiveDocumentClient(Protocol):
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]: ...
+
+
+class CompositePerformanceClient(Protocol):
+    async def post_composite_twr(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
+
+    async def post_composite_inspection(
+        self,
+        *,
+        payload: dict[str, Any],
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]: ...
