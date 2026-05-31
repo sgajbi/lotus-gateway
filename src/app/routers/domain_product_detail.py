@@ -15,6 +15,23 @@ def _correlation_id(header_value: str | None) -> str:
     return header_value or correlation_id_var.get() or ""
 
 
+async def _get_domain_product_detail(
+    *,
+    producer_repository: str,
+    product_name: str,
+    product_version: str,
+    consumer_system: str,
+    x_correlation_id: str | None,
+) -> DomainProductDetailResponse:
+    return await domain_product_catalog_service().get_product(
+        producer_repository=producer_repository,
+        product_name=product_name,
+        product_version=product_version,
+        consumer_system=consumer_system,
+        correlation_id=_correlation_id(x_correlation_id),
+    )
+
+
 @router.get(
     "/products/{producer_repository}/{product_name}/{product_version}",
     response_model=DomainProductDetailResponse,
@@ -43,12 +60,12 @@ async def get_domain_product_detail(
     ),
 ) -> DomainProductDetailResponse:
     try:
-        return await domain_product_catalog_service().get_product(
+        return await _get_domain_product_detail(
             producer_repository=producer_repository,
             product_name=product_name,
             product_version=product_version,
             consumer_system=consumer_system,
-            correlation_id=_correlation_id(x_correlation_id),
+            x_correlation_id=x_correlation_id,
         )
     except DomainProductNotFound as exc:
         raise HTTPException(
