@@ -3,19 +3,13 @@ from fastapi import APIRouter, File, Form, Header, Query, UploadFile
 from app.contracts.intake import EnvelopeResponse, IntakeBundleRequest, LookupResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.intake_service import IntakeService
-from app.services.lotus_core_client_factory import (
-    build_lotus_core_ingestion_client,
-    build_lotus_core_query_client,
-)
+from app.services.intake_service_factory import build_intake_service
 
 router = APIRouter(tags=["intake", "lookups"])
 
 
 def _intake_service() -> IntakeService:
-    return IntakeService(
-        lotus_core_ingestion_client=build_lotus_core_ingestion_client(),
-        lotus_core_query_client=build_lotus_core_query_client(),
-    )
+    return build_intake_service()
 
 
 @router.post(
