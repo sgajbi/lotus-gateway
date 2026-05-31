@@ -1,22 +1,15 @@
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Query
 
-from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse, DpmWaveErrorDetail
+from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.dpm_openapi import manage_upstream_error_responses
+from app.routers.dpm_wave_campaign_definition_common import (
+    UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES,
+)
 from app.services.dpm_service_provider import dpm_wave_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/waves",
     tags=["DPM Command Center"],
-)
-UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES = manage_upstream_error_responses(
-    error_model=DpmWaveErrorDetail,
-    not_found_description="lotus-manage could not find the requested campaign definition.",
-    conflict_description="lotus-manage rejected the campaign-definition request as conflicting.",
-    invalid_payload_description="lotus-manage rejected the campaign-definition payload as invalid.",
-    unavailable_description=(
-        "lotus-manage campaign-definition authority is unavailable or degraded."
-    ),
 )
 
 
@@ -53,28 +46,5 @@ async def list_campaign_definitions(
             "limit": limit,
             "offset": offset,
         },
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/campaign-definitions/{campaign_id}/versions/{campaign_version}",
-    response_model=DpmCampaignDefinitionGatewayResponse,
-    summary="Get DPM bulk-review campaign definition",
-    description=(
-        "What: retrieves one immutable manage-owned BulkReviewCampaignDefinition:v1 definition. "
-        "When: use this for campaign drill-down or before creating a campaign-backed wave. How: "
-        "Gateway preserves the manage payload without recalculating candidate facts, governance, "
-        "content hashes, or membership."
-    ),
-    responses=UPSTREAM_CAMPAIGN_DEFINITION_LOOKUP_ERROR_RESPONSES,
-)
-async def get_campaign_definition(
-    campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
-    campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
-) -> DpmCampaignDefinitionGatewayResponse:
-    return await dpm_wave_service().get_campaign_definition(
-        campaign_id=campaign_id,
-        campaign_version=campaign_version,
         correlation_id=correlation_id_var.get(),
     )

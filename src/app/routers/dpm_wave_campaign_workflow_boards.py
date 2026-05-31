@@ -15,50 +15,6 @@ router = APIRouter(
 
 
 @router.get(
-    "/campaign-operating-queue",
-    response_model=DpmCampaignWorkflowGatewayResponse,
-    summary="Get DPM campaign operating queue",
-    description=(
-        "What: retrieves the manage-owned campaign operating queue for bounded workflow review. "
-        "When: use this for Workbench queue summaries and audit drill-down. How: Gateway forwards "
-        "query parameters unchanged and preserves Manage count/page metadata, supportability, "
-        "source refs, reason codes, hashes, and no-order/no-OMS/no-external-workflow boundaries "
-        "without calculating campaign readiness, assignment state, or workflow orchestration."
-    ),
-    responses=UPSTREAM_CAMPAIGN_WORKFLOW_ERROR_RESPONSES,
-)
-async def get_campaign_operating_queue(
-    request: Request,
-) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().get_campaign_operating_queue(
-        filters=campaign_workflow_query_params(request),
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/campaign-approval-inbox",
-    response_model=DpmCampaignWorkflowGatewayResponse,
-    summary="Get DPM campaign approval inbox",
-    description=(
-        "What: retrieves the manage-owned campaign approval inbox for evidence review. When: use "
-        "this for Workbench approval posture summaries. How: Gateway forwards query parameters "
-        "unchanged and preserves Manage approval evidence, supportability, source refs, reason "
-        "codes, operating boundaries, and hashes without approving trades, inferring approval "
-        "state, creating orders, contacting clients, or claiming OMS execution."
-    ),
-    responses=UPSTREAM_CAMPAIGN_WORKFLOW_ERROR_RESPONSES,
-)
-async def get_campaign_approval_inbox(
-    request: Request,
-) -> DpmCampaignWorkflowGatewayResponse:
-    return await dpm_wave_service().get_campaign_approval_inbox(
-        filters=campaign_workflow_query_params(request),
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
     "/campaign-workflow-board",
     response_model=DpmCampaignWorkflowGatewayResponse,
     summary="Get DPM campaign workflow board",

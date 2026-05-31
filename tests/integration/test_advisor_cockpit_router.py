@@ -33,6 +33,20 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
             },
         }
 
+    async def _fake_get_action(self, action_item_id, params, correlation_id):  # noqa: ANN001
+        _ = self
+        captured["get_action"] = {
+            "action_item_id": action_item_id,
+            "params": params,
+            "correlation_id": correlation_id,
+        }
+        return 200, {
+            "action_item_id": action_item_id,
+            "status": "PENDING_REVIEW",
+            "priority": "HIGH",
+            "owner_role": "ADVISOR",
+        }
+
     async def _fake_preparation_packets(self, params, correlation_id):  # noqa: ANN001
         _ = self
         captured["preparation_packets"] = {"params": params, "correlation_id": correlation_id}
@@ -101,6 +115,10 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         _fake_snapshot,
     )
     monkeypatch.setattr(
+        "app.clients.advise_client.AdviseClient.get_advisor_cockpit_action",
+        _fake_get_action,
+    )
+    monkeypatch.setattr(
         "app.clients.advise_client.AdviseClient.list_advisor_cockpit_preparation_packets",
         _fake_preparation_packets,
     )
@@ -132,6 +150,15 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         "/api/v1/advisor-cockpit/snapshot",
         params={"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
         headers={"X-Correlation-Id": "corr-cockpit-snapshot"},
+    )
+    action_response = client.get(
+        "/api/v1/advisor-cockpit/actions/cockpit_action_001",
+        params={
+            "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+            "advisor_id": "advisor_sg_001",
+            "role": "ADVISOR",
+        },
+        headers={"X-Correlation-Id": "corr-cockpit-get-action"},
     )
     preparation_packets_response = client.get(
         "/api/v1/advisor-cockpit/preparation-packets",
@@ -174,11 +201,13 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
 
     assert list_response.status_code == 200
     assert snapshot_response.status_code == 200
+    assert action_response.status_code == 200
     assert preparation_packets_response.status_code == 200
     assert supportability_response.status_code == 200
     assert acknowledgement_response.status_code == 200
     assert house_view_response.status_code == 200
     assert list_response.json()["data"]["items"][0]["status"] == "PENDING_REVIEW"
+    assert action_response.json()["data"]["action_item_id"] == "cockpit_action_001"
     assert snapshot_response.json()["data"]["supportability"]["client_ready_publication"] == (
         "BLOCKED"
     )
@@ -201,6 +230,15 @@ def test_advisor_cockpit_routes_forward_to_advise_without_rewriting(monkeypatch)
         "snapshot": {
             "params": {"portfolio_id": "PB_SG_GLOBAL_BAL_001", "role": "ADVISOR"},
             "correlation_id": "corr-cockpit-snapshot",
+        },
+        "get_action": {
+            "action_item_id": "cockpit_action_001",
+            "params": {
+                "portfolio_id": "PB_SG_GLOBAL_BAL_001",
+                "advisor_id": "advisor_sg_001",
+                "role": "ADVISOR",
+            },
+            "correlation_id": "corr-cockpit-get-action",
         },
         "preparation_packets": {
             "params": {
