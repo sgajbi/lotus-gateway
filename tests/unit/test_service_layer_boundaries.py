@@ -115,6 +115,22 @@ def test_non_dpm_service_tests_do_not_need_arg_type_suppressions() -> None:
     assert offenders == {}
 
 
+def test_narrowed_advisory_services_do_not_import_concrete_advise_client() -> None:
+    narrowed_services = {
+        "advisor_cockpit_service.py",
+        "advisory_policy_service.py",
+        "advisory_workspace_service.py",
+        "bank_demo_proof_service.py",
+    }
+    offenders = sorted(
+        path.name
+        for path in (_SERVICE_ROOT / service_name for service_name in narrowed_services)
+        if "app.clients.advise_client" in _imported_modules(path)
+    )
+
+    assert offenders == []
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
