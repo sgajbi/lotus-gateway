@@ -8,9 +8,11 @@ router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
 async def _get_performance_evidence_artifact(
     *,
+    portfolio_id: str,
     calculation_id: str,
     artifact_name: str,
 ) -> Response:
+    _ = portfolio_id
     service = performance_workspace_service()
     correlation_id = correlation_id_var.get()
     content, content_type = await service.get_performance_evidence_artifact(
@@ -49,8 +51,8 @@ async def get_performance_evidence_artifact(
         examples=["request.json"],
     ),
 ) -> Response:
-    _ = portfolio_id
     return await _get_performance_evidence_artifact(
+        portfolio_id=portfolio_id,
         calculation_id=calculation_id,
         artifact_name=artifact_name,
     )
