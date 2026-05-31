@@ -7,6 +7,7 @@ from app.contracts.advisor_brief import AdvisorBriefResponse
 from app.middleware.correlation import correlation_id_var
 from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
 from app.routers.workbench_performance_advisor_brief_common import (
+    AdvisorBriefQuery,
     require_advisor_brief_caller_context,
 )
 from app.services.workbench_service_provider import advisor_brief_service
@@ -22,6 +23,25 @@ def _emit_advisor_brief_read_audit(*, status_code: int) -> None:
         logger=logger,
         operation=ADVISOR_BRIEF_READ_OPERATION,
         status_code=status_code,
+    )
+
+
+async def _get_advisor_brief(
+    *,
+    portfolio_id: str,
+    query: AdvisorBriefQuery,
+) -> AdvisorBriefResponse:
+    return await advisor_brief_service().get_performance_advisor_brief(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        contribution_dimension=query.contribution_dimension,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
     )
 
 
@@ -103,20 +123,19 @@ async def get_performance_advisor_brief(
         booking_center_code=booking_center_code,
         role=role,
     )
-    service = advisor_brief_service()
-    correlation_id = correlation_id_var.get()
     try:
-        response = await service.get_performance_advisor_brief(
+        response = await _get_advisor_brief(
             portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            explicit_start_date=report_start_date,
-            explicit_end_date=report_end_date,
+            query=AdvisorBriefQuery(
+                period=period,
+                chart_frequency=chart_frequency,
+                contribution_dimension=contribution_dimension,
+                attribution_dimension=attribution_dimension,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+            ),
         )
     except HTTPException as exc:
         _emit_advisor_brief_read_audit(status_code=exc.status_code)
