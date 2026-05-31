@@ -180,9 +180,9 @@ from app.routers.dpm_waves import router as dpm_waves_router
 from app.routers.foundation import router as foundation_router
 from app.routers.intake import router as intake_router
 from app.routers.intake_uploads import router as intake_uploads_router
-from app.routers.lookup_catalogs import router as lookup_catalogs_router
 from app.routers.lookup_currency_catalog import router as lookup_currency_catalog_router
 from app.routers.lookup_instrument_catalog import router as lookup_instrument_catalog_router
+from app.routers.lookup_portfolio_catalog import router as lookup_portfolio_catalog_router
 from app.routers.platform import router as platform_router
 from app.routers.portfolio import router as portfolio_router
 from app.routers.portfolio_activity import router as portfolio_activity_router
@@ -323,9 +323,9 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(source_products_router)
     app.include_router(intake_router)
     app.include_router(intake_uploads_router)
-    app.include_router(lookup_catalogs_router)
     app.include_router(lookup_currency_catalog_router)
     app.include_router(lookup_instrument_catalog_router)
+    app.include_router(lookup_portfolio_catalog_router)
     app.include_router(foundation_router)
     app.include_router(portfolio_router)
     app.include_router(portfolio_workspace_router)
