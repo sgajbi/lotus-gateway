@@ -47,6 +47,9 @@ from app.routers.composite_performance import router as composite_performance_ro
 from app.routers.domain_product_trust import router as domain_product_trust_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
+from app.routers.dpm_command_center_exception_ai import (
+    router as dpm_command_center_exception_ai_router,
+)
 from app.routers.dpm_command_center_exceptions import (
     router as dpm_command_center_exceptions_router,
 )
@@ -299,6 +302,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(dpm_command_center_mandate_analysis_router)
     app.include_router(dpm_command_center_monitoring_router)
     app.include_router(dpm_command_center_exceptions_router)
+    app.include_router(dpm_command_center_exception_ai_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_command_center_outcome_review_lookup_router)
     app.include_router(dpm_command_center_outcome_review_evidence_router)
