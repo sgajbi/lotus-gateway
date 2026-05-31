@@ -1731,6 +1731,42 @@ async def test_dpm_command_center_requests_ai_narrative_from_manage_evidence_onl
 
 
 @pytest.mark.asyncio
+async def test_dpm_command_center_ai_narrative_uses_shared_manage_error_detail() -> None:
+    service = DpmCommandCenterService(  # type: ignore[arg-type]
+        dpm_client=_FakeDpmClient(
+            (
+                422,
+                {
+                    "detail": {
+                        "code": "OUTCOME_EVIDENCE_NOT_READY",
+                        "message": "Outcome-review evidence is still being refreshed.",
+                    }
+                },
+            )
+        ),
+        lotus_ai_client=_FakeLotusAiClient((200, {})),
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.request_outcome_review_ai_narrative(
+            outcome_review_id="or_1",
+            request=DpmOutcomeReviewNarrativeRequest(
+                requested_outputs=["pm_summary"],
+                audience=["pm"],
+            ),
+            correlation_id="corr-ai-narrative-manage-error",
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == {
+        "source_service": "lotus-manage",
+        "upstream_status": 422,
+        "error_code": "MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
+        "detail": ("OUTCOME_EVIDENCE_NOT_READY: Outcome-review evidence is still being refreshed."),
+    }
+
+
+@pytest.mark.asyncio
 async def test_dpm_command_center_ai_narrative_preserves_ai_guardrail_failure() -> None:
     service = DpmCommandCenterService(  # type: ignore[arg-type]
         dpm_client=_FakeDpmClient((200, _outcome_ai_evidence())),

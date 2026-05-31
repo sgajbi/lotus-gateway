@@ -25,6 +25,7 @@ from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
+    safe_upstream_detail,
 )
 
 _PM_QUALITY_SUMMARY_FORBIDDEN_ACTIONS = [
@@ -169,7 +170,10 @@ class DpmCommandCenterService:
                 detail=DpmOutcomeReviewErrorDetail(
                     upstream_status=manage_status,
                     error_code="MANAGE_EXCEPTION_SUMMARY_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(manage_payload),
+                    detail=safe_upstream_detail(
+                        manage_payload,
+                        default_detail="lotus-manage command-center request failed",
+                    ),
                 ).model_dump(),
             )
 
@@ -481,7 +485,10 @@ class DpmCommandCenterService:
                 detail=DpmOutcomeReviewErrorDetail(
                     upstream_status=manage_status,
                     error_code="MANAGE_OUTCOME_REVIEW_AI_EVIDENCE_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(manage_payload),
+                    detail=safe_upstream_detail(
+                        manage_payload,
+                        default_detail="lotus-manage command-center request failed",
+                    ),
                 ).model_dump(),
             )
 
@@ -885,7 +892,10 @@ class DpmCommandCenterService:
                 detail=DpmOutcomeReviewErrorDetail(
                     upstream_status=manage_status,
                     error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-                    detail=_safe_upstream_detail(manage_payload),
+                    detail=safe_upstream_detail(
+                        manage_payload,
+                        default_detail="lotus-manage command-center request failed",
+                    ),
                 ).model_dump(),
             )
 
@@ -1126,12 +1136,3 @@ def _raise_manage_command_center_error(
         error_code=error_code,
         default_detail="lotus-manage command-center request failed",
     )
-
-
-def _safe_upstream_detail(payload: dict[str, Any]) -> str:
-    detail = payload.get("detail") or payload.get("message") or payload.get("error")
-    if isinstance(detail, str):
-        return detail
-    if detail is not None:
-        return str(detail)
-    return "lotus-manage outcome-review request failed"
