@@ -58,6 +58,51 @@ async def _get_transaction_ledger(
     )
 
 
+async def _get_portfolio_transactions(
+    *,
+    portfolio_id: str,
+    as_of_date: str | None,
+    include_projected: bool,
+    transaction_type: str | None,
+    security_id: str | None,
+    instrument_id: str | None,
+    component_type: str | None,
+    linked_transaction_group_id: str | None,
+    fx_contract_id: str | None,
+    swap_event_id: str | None,
+    near_leg_group_id: str | None,
+    far_leg_group_id: str | None,
+    sort_by: str,
+    sort_order: str,
+    start_date: str | None,
+    end_date: str | None,
+    skip: int,
+    limit: int,
+) -> PortfolioTransactionLedgerResponse:
+    return await _get_transaction_ledger(
+        portfolio_id=portfolio_id,
+        filters=PortfolioTransactionLedgerFilters(
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            transaction_type=transaction_type,
+            security_id=security_id,
+            instrument_id=instrument_id,
+            component_type=component_type,
+            linked_transaction_group_id=linked_transaction_group_id,
+            fx_contract_id=fx_contract_id,
+            swap_event_id=swap_event_id,
+            near_leg_group_id=near_leg_group_id,
+            far_leg_group_id=far_leg_group_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_date=start_date,
+            end_date=end_date,
+            skip=skip,
+            limit=limit,
+        ),
+    )
+
+
 @router.get(
     "/portfolios/{portfolio_id}/transactions",
     response_model=PortfolioTransactionLedgerResponse,
@@ -161,7 +206,8 @@ async def get_portfolio_transactions(
         examples=["desc"],
     ),
 ) -> PortfolioTransactionLedgerResponse:
-    filters = PortfolioTransactionLedgerFilters(
+    return await _get_portfolio_transactions(
+        portfolio_id=portfolio_id,
         as_of_date=as_of_date,
         include_projected=include_projected,
         transaction_type=transaction_type,
@@ -179,8 +225,4 @@ async def get_portfolio_transactions(
         end_date=end_date,
         skip=skip,
         limit=limit,
-    )
-    return await _get_transaction_ledger(
-        portfolio_id=portfolio_id,
-        filters=filters,
     )
