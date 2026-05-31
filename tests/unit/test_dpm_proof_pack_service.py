@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import pytest
 from fastapi import HTTPException
 
@@ -76,7 +78,7 @@ class _FakeLotusAiClient:
 async def test_dpm_proof_pack_generation_preserves_manage_payload() -> None:
     manage_payload = _proof_pack_generate_payload()
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmProofPackService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmProofPackService(dpm_client=client)
 
     response = await service.generate_proof_pack(
         body={"source_type": "REBALANCE_RUN", "rebalance_run_id": "rr_001"},
@@ -117,7 +119,7 @@ async def test_dpm_proof_pack_generation_preserves_manage_payload() -> None:
 async def test_dpm_proof_pack_lookup_does_not_reconstruct_sections_or_hashes() -> None:
     manage_payload = _proof_pack_lookup_payload()
     client = _FakeDpmClient((200, manage_payload))
-    service = DpmProofPackService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmProofPackService(dpm_client=client)
 
     response = await service.get_proof_pack(
         proof_pack_id="dpp_rr_001",
@@ -127,7 +129,8 @@ async def test_dpm_proof_pack_lookup_does_not_reconstruct_sections_or_hashes() -
     assert response.data == manage_payload
     assert response.supportability.state == "DEGRADED"
     assert response.supportability.section_state_counts == {"READY": 1, "DEGRADED": 1}
-    assert response.data["proof_pack"]["source_hashes"] == {
+    proof_pack = cast(dict[str, Any], response.data["proof_pack"])
+    assert proof_pack["source_hashes"] == {
         "mandate": "sha256:mandate",
         "rebalance_run": "sha256:run",
     }
@@ -143,7 +146,7 @@ async def test_dpm_proof_pack_lookup_does_not_reconstruct_sections_or_hashes() -
 @pytest.mark.asyncio
 async def test_dpm_proof_pack_markdown_preserves_manage_text() -> None:
     client = _FakeDpmClient((200, "# DPM proof pack\n\n- Status: READY\n", {}))
-    service = DpmProofPackService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmProofPackService(dpm_client=client)
 
     response = await service.get_proof_pack_markdown(
         proof_pack_id="dpp_rr_001",
@@ -175,13 +178,13 @@ async def test_dpm_proof_pack_handoff_inputs_preserve_manage_payloads() -> None:
         "reason_codes": ["AI_EVIDENCE_INPUT_READY"],
     }
 
-    report_response = await DpmProofPackService(  # type: ignore[arg-type]
+    report_response = await DpmProofPackService(
         dpm_client=_FakeDpmClient((200, report_payload))
     ).get_proof_pack_report_input(
         proof_pack_id="dpp_rr_001",
         correlation_id="corr-report-input-1",
     )
-    ai_response = await DpmProofPackService(  # type: ignore[arg-type]
+    ai_response = await DpmProofPackService(
         dpm_client=_FakeDpmClient((200, ai_payload))
     ).get_proof_pack_ai_evidence_input(
         proof_pack_id="dpp_rr_001",
@@ -233,7 +236,7 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
     }
     dpm_client = _FakeDpmClient((200, manage_payload))
     ai_client = _FakeLotusAiClient((200, ai_payload))
-    service = DpmProofPackService(  # type: ignore[arg-type]
+    service = DpmProofPackService(
         dpm_client=dpm_client,
         lotus_ai_client=ai_client,
     )
@@ -257,24 +260,28 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
         "requested_outputs": ["pm_memo", "evidence_gaps"],
         "audience": ["portfolio_manager"],
     }
-    assert response.data["workflow_pack_run"]["workflow_authority_owner"] == "lotus-manage"
+    workflow_pack_run = cast(dict[str, Any], response.data["workflow_pack_run"])
+    assert workflow_pack_run["workflow_authority_owner"] == "lotus-manage"
     [ai_call] = ai_client.calls
     assert ai_call["pack_id"] == "dpm_pm_memo.pack"
     assert ai_call["version"] == "v1"
     assert ai_call["workflow_surface"] == "dpm-proof-pack-ai-evidence"
     assert ai_call["correlation_id"] == "corr-proof-pack-memo-1"
-    task_request = ai_call["task_request"]
+    task_request = cast(dict[str, Any], ai_call["task_request"])
+    task_context = cast(dict[str, Any], task_request["context"])
+    task_payload = cast(dict[str, Any], task_context["payload"])
     assert task_request["task_id"] == "explain.v1"
-    assert task_request["context"]["payload"]["ai_evidence_input"] == manage_payload
-    assert task_request["context"]["payload"]["memo_request"] == response.memo_request
-    assert task_request["context"]["payload"]["supportability"]["blocked_actions"] == [
+    assert task_payload["ai_evidence_input"] == manage_payload
+    assert task_payload["memo_request"] == response.memo_request
+    supportability = cast(dict[str, Any], task_payload["supportability"])
+    assert supportability["blocked_actions"] == [
         "place_orders",
         "approve_rebalance",
         "override_controls",
         "invent_missing_evidence",
         "contact_client",
     ]
-    assert task_request["context"]["source_refs"] == [
+    assert task_context["source_refs"] == [
         "lotus-manage:proof-pack-ai-evidence:ai-evidence:dpp_rr_001",
         "lotus-manage:proof-pack-ai-evidence:dpp_rr_001",
         "lotus-manage:proof-pack:dpp_rr_001",
@@ -283,7 +290,7 @@ async def test_dpm_proof_pack_pm_memo_executes_lotus_ai_with_manage_evidence() -
 
 @pytest.mark.asyncio
 async def test_dpm_proof_pack_pm_memo_requires_lotus_ai_client() -> None:
-    service = DpmProofPackService(dpm_client=_FakeDpmClient((200, {})))  # type: ignore[arg-type]
+    service = DpmProofPackService(dpm_client=_FakeDpmClient((200, {})))
 
     with pytest.raises(HTTPException) as exc_info:
         await service.request_proof_pack_pm_memo(
@@ -300,7 +307,7 @@ async def test_dpm_proof_pack_pm_memo_requires_lotus_ai_client() -> None:
 
 @pytest.mark.asyncio
 async def test_dpm_proof_pack_pm_memo_preserves_lotus_ai_error() -> None:
-    service = DpmProofPackService(  # type: ignore[arg-type]
+    service = DpmProofPackService(
         dpm_client=_FakeDpmClient((200, {"proof_pack_id": "dpp_rr_001"})),
         lotus_ai_client=_FakeLotusAiClient(
             (422, {"detail": "PROOF_PACK_PM_MEMO_GUARDRAIL_BLOCKED: missing content_hash"})
@@ -326,7 +333,7 @@ async def test_dpm_proof_pack_pm_memo_preserves_lotus_ai_error() -> None:
 @pytest.mark.asyncio
 async def test_dpm_proof_pack_forwards_manage_errors_as_product_safe_detail() -> None:
     client = _FakeDpmClient((503, {"detail": "upstream communication failure: TimeoutException"}))
-    service = DpmProofPackService(dpm_client=client)  # type: ignore[arg-type]
+    service = DpmProofPackService(dpm_client=client)
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_proof_pack(
@@ -343,7 +350,7 @@ async def test_dpm_proof_pack_forwards_manage_errors_as_product_safe_detail() ->
     }
 
 
-def _proof_pack_generate_payload() -> dict[str, object]:
+def _proof_pack_generate_payload() -> dict[str, Any]:
     return {
         "proof_pack": {
             "proof_pack_id": "dpp_rr_001",
@@ -369,7 +376,7 @@ def _proof_pack_generate_payload() -> dict[str, object]:
     }
 
 
-def _proof_pack_lookup_payload() -> dict[str, object]:
+def _proof_pack_lookup_payload() -> dict[str, Any]:
     return {
         "proof_pack": {
             "proof_pack_id": "dpp_rr_001",

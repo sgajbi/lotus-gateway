@@ -2,12 +2,12 @@
 
 from fastapi import HTTPException, status
 
-from app.clients.lotus_ai_client import LotusAiClient
+from app.services.upstream_client_protocols import LotusAiWorkflowClient
 
 LOTUS_AI_NOT_CONFIGURED_DETAIL = "lotus-ai workflow-pack execution is not configured for Gateway."
 
 
-def require_lotus_ai_client(client: LotusAiClient | None) -> LotusAiClient:
+def require_lotus_ai_client(client: LotusAiWorkflowClient | None) -> LotusAiWorkflowClient:
     """Return a configured lotus-ai client or raise the standard Gateway service error."""
 
     if client is None:

@@ -1,11 +1,11 @@
 from typing import Any
 
-from app.clients.dpm_client import DpmClient
 from app.contracts.dpm_construction import (
     DpmConstructionErrorDetail,
     DpmConstructionGatewayResponse,
     DpmConstructionSupportability,
 )
+from app.services.upstream_client_protocols import DpmConstructionClient
 from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     raise_product_safe_upstream_error,
@@ -13,7 +13,7 @@ from app.services.upstream_envelope import (
 
 
 class DpmConstructionService:
-    def __init__(self, dpm_client: DpmClient):
+    def __init__(self, dpm_client: DpmConstructionClient):
         self._dpm_client = dpm_client
 
     async def generate_alternative_set(
