@@ -179,6 +179,19 @@ def test_narrowed_performance_and_core_services_do_not_import_concrete_clients()
     assert offenders == {}
 
 
+def test_platform_capabilities_service_does_not_import_concrete_clients() -> None:
+    concrete_imports = {
+        "app.clients.advise_client",
+        "app.clients.dpm_client",
+        "app.clients.lotus_analytics_client",
+        "app.clients.lotus_core_query_client",
+        "app.clients.reporting_client",
+    }
+    imports = _imported_modules(_SERVICE_ROOT / "platform_capabilities_service.py")
+
+    assert imports & concrete_imports == set()
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):
