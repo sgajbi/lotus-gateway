@@ -41,7 +41,6 @@ from app.contracts.reporting import (
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_errors import (
     raise_report_batch_error,
-    raise_report_job_error,
     report_batch_error_response,
     report_job_error_response,
 )
@@ -51,6 +50,8 @@ from app.routers.reporting_links import (
 )
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_client_factory import build_render_client, build_reporting_client
+from app.services.reporting_job_query_service import ReportingJobQueryService
+from app.services.reporting_job_query_service_factory import build_reporting_job_query_service
 from app.services.reporting_job_submission_service import ReportingJobSubmissionService
 from app.services.reporting_job_submission_service_factory import (
     build_reporting_job_submission_service,
@@ -178,6 +179,10 @@ def _reporting_portfolio_service() -> ReportingPortfolioService:
 
 def _reporting_job_submission_service() -> ReportingJobSubmissionService:
     return build_reporting_job_submission_service()
+
+
+def _reporting_job_query_service() -> ReportingJobQueryService:
+    return build_reporting_job_query_service()
 
 
 @router.get(
@@ -548,9 +553,9 @@ async def list_report_jobs(
         "limit": limit,
     }
     filters = {key: value for key, value in filters.items() if value is not None}
-    status_code, payload = await build_reporting_client().list_report_jobs(
+    return await _reporting_job_query_service().list_report_jobs(
         filters=filters,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -560,8 +565,6 @@ async def list_report_jobs(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportJobListResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -594,9 +597,9 @@ async def get_report_job_status(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await build_reporting_client().get_report_job(
+    return await _reporting_job_query_service().get_report_job_status(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -606,8 +609,6 @@ async def get_report_job_status(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportJobStatusResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -640,9 +641,9 @@ async def get_report_job_events(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusEventsResponse:
-    status_code, payload = await build_reporting_client().get_report_job_events(
+    return await _reporting_job_query_service().get_report_job_events(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -652,8 +653,6 @@ async def get_report_job_events(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportJobStatusEventsResponse.model_validate(payload)
 
 
 @jobs_router.get(
@@ -686,9 +685,9 @@ async def get_report_job_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await build_reporting_client().get_report_job_lineage(
+    return await _reporting_job_query_service().get_report_job_lineage(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -698,8 +697,6 @@ async def get_report_job_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportSnapshotLineageResponse.model_validate(payload)
 
 
 @jobs_router.post(
@@ -738,9 +735,9 @@ async def cancel_report_job(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await build_reporting_client().cancel_report_job(
+    return await _reporting_job_query_service().cancel_report_job(
         job_id=job_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -750,8 +747,6 @@ async def cancel_report_job(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportJobStatusResponse.model_validate(payload)
 
 
 @router.get(
@@ -784,9 +779,9 @@ async def get_report_snapshot(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportInputSnapshotRecord:
-    status_code, payload = await build_reporting_client().get_report_snapshot(
+    return await _reporting_job_query_service().get_report_snapshot(
         snapshot_id=snapshot_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -796,8 +791,6 @@ async def get_report_snapshot(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportInputSnapshotRecord.model_validate(payload)
 
 
 @router.get(
@@ -829,9 +822,9 @@ async def get_report_snapshot_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await build_reporting_client().get_report_snapshot_lineage(
+    return await _reporting_job_query_service().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
-        caller_headers=caller_context_headers(
+        caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
             tenant_id=tenant_id,
@@ -841,8 +834,6 @@ async def get_report_snapshot_lineage(
         ),
         correlation_id=correlation_id_var.get(),
     )
-    raise_report_job_error(status_code, payload)
-    return ReportSnapshotLineageResponse.model_validate(payload)
 
 
 @batches_router.post(
