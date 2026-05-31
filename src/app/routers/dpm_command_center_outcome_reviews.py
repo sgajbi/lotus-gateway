@@ -15,6 +15,16 @@ router = APIRouter(
 )
 
 
+async def _create_outcome_review(
+    *,
+    request: DpmOutcomeReviewForwardRequest,
+) -> DpmOutcomeReviewGatewayResponse:
+    return await dpm_command_center_service().create_outcome_review(
+        body=request.body,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.post(
     "/outcome-reviews",
     response_model=DpmOutcomeReviewGatewayResponse,
@@ -29,7 +39,6 @@ router = APIRouter(
 async def create_outcome_review(
     request: DpmOutcomeReviewForwardRequest,
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().create_outcome_review(
-        body=request.body,
-        correlation_id=correlation_id_var.get(),
+    return await _create_outcome_review(
+        request=request,
     )
