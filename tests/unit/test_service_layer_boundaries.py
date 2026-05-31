@@ -180,6 +180,12 @@ def test_narrowed_performance_and_core_services_do_not_import_concrete_clients()
         },
         "risk_workspace_service.py": {"app.clients.lotus_analytics_client"},
         "source_product_execution_service.py": {"app.clients.lotus_core_query_client"},
+        "workbench_service.py": {
+            "app.clients.advise_client",
+            "app.clients.dpm_client",
+            "app.clients.lotus_analytics_client",
+            "app.clients.lotus_core_query_client",
+        },
     }
     offenders = {
         service_name: sorted(concrete_imports & _imported_modules(_SERVICE_ROOT / service_name))
