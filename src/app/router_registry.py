@@ -22,6 +22,9 @@ from app.routers.advisory_policy_actions import router as advisory_policy_action
 from app.routers.advisory_policy_evaluation_actions import (
     router as advisory_policy_evaluation_actions_router,
 )
+from app.routers.advisory_policy_evaluation_detail import (
+    router as advisory_policy_evaluation_detail_router,
+)
 from app.routers.advisory_policy_evaluation_evidence import (
     router as advisory_policy_evaluation_evidence_router,
 )
@@ -352,6 +355,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(advisory_policy_router)
     app.include_router(advisory_policy_actions_router)
     app.include_router(advisory_policy_evaluations_router)
+    app.include_router(advisory_policy_evaluation_detail_router)
     app.include_router(advisory_policy_evaluation_evidence_router)
     app.include_router(advisory_policy_evaluation_actions_router)
     app.include_router(advisory_policy_evaluation_support_actions_router)
