@@ -19,6 +19,7 @@ from app.contracts.dpm_waves import (
     DpmWaveMemoRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.services.dpm_service_factory import build_dpm_wave_service
 from app.services.dpm_wave_service import DpmWaveService
 
@@ -26,24 +27,13 @@ router = APIRouter(
     prefix="/api/v1/dpm/command-center/waves",
     tags=["DPM Command Center"],
 )
-_UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
-    404: {
-        "model": DpmWaveErrorDetail,
-        "description": "lotus-manage could not find the requested rebalance wave.",
-    },
-    409: {
-        "model": DpmWaveErrorDetail,
-        "description": "lotus-manage rejected the rebalance-wave request as conflicting.",
-    },
-    422: {
-        "model": DpmWaveErrorDetail,
-        "description": "lotus-manage rejected the rebalance-wave payload as invalid.",
-    },
-    503: {
-        "model": DpmWaveErrorDetail,
-        "description": "lotus-manage rebalance-wave authority is unavailable or degraded.",
-    },
-}
+_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
+    error_model=DpmWaveErrorDetail,
+    not_found_description="lotus-manage could not find the requested rebalance wave.",
+    conflict_description="lotus-manage rejected the rebalance-wave request as conflicting.",
+    invalid_payload_description="lotus-manage rejected the rebalance-wave payload as invalid.",
+    unavailable_description="lotus-manage rebalance-wave authority is unavailable or degraded.",
+)
 
 
 def _dpm_wave_service() -> DpmWaveService:

@@ -29,3 +29,4 @@ def test_gateway_overview_wiki_is_audience_aware_and_implementation_backed() -> 
     assert "shared product-safe upstream error raiser" in supported_features
     assert "bounded upstream-detail extractor" in supported_features
     assert "shared Gateway factory for manage and lotus-ai clients" in supported_features
+    assert "DPM OpenAPI upstream-error response maps use a shared helper" in supported_features

@@ -1,5 +1,3 @@
-from typing import Any
-
 from fastapi import APIRouter, Path
 
 from app.contracts.dpm_construction import (
@@ -9,6 +7,7 @@ from app.contracts.dpm_construction import (
     DpmConstructionSelectionRequest,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.services.dpm_construction_service import DpmConstructionService
 from app.services.dpm_service_factory import build_dpm_construction_service
 
@@ -16,20 +15,12 @@ router = APIRouter(
     prefix="/api/v1/dpm/command-center/construction",
     tags=["DPM Command Center"],
 )
-_UPSTREAM_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
-    409: {
-        "model": DpmConstructionErrorDetail,
-        "description": "lotus-manage rejected the construction request.",
-    },
-    422: {
-        "model": DpmConstructionErrorDetail,
-        "description": "lotus-manage rejected the construction payload as invalid.",
-    },
-    503: {
-        "model": DpmConstructionErrorDetail,
-        "description": "lotus-manage construction authority is unavailable or degraded.",
-    },
-}
+_UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
+    error_model=DpmConstructionErrorDetail,
+    conflict_description="lotus-manage rejected the construction request.",
+    invalid_payload_description="lotus-manage rejected the construction payload as invalid.",
+    unavailable_description="lotus-manage construction authority is unavailable or degraded.",
+)
 
 
 def _dpm_construction_service() -> DpmConstructionService:
