@@ -8,8 +8,7 @@ from app.contracts.dpm_construction import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
-from app.services.dpm_construction_service import DpmConstructionService
-from app.services.dpm_service_factory import build_dpm_construction_service
+from app.services.dpm_service_provider import dpm_construction_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/construction",
@@ -21,10 +20,6 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     invalid_payload_description="lotus-manage rejected the construction payload as invalid.",
     unavailable_description="lotus-manage construction authority is unavailable or degraded.",
 )
-
-
-def _dpm_construction_service() -> DpmConstructionService:
-    return build_dpm_construction_service()
 
 
 @router.post(
@@ -43,7 +38,7 @@ def _dpm_construction_service() -> DpmConstructionService:
 async def generate_construction_alternative_set(
     request: DpmConstructionGenerateRequest,
 ) -> DpmConstructionGatewayResponse:
-    return await _dpm_construction_service().generate_alternative_set(
+    return await dpm_construction_service().generate_alternative_set(
         body=request.body,
         idempotency_key=request.idempotency_key,
         correlation_id=correlation_id_var.get(),
@@ -70,7 +65,7 @@ async def get_construction_alternative_set(
         examples=["cas_001"],
     ),
 ) -> DpmConstructionGatewayResponse:
-    return await _dpm_construction_service().get_alternative_set(
+    return await dpm_construction_service().get_alternative_set(
         alternative_set_id=alternative_set_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -97,7 +92,7 @@ async def select_construction_alternative(
         examples=["cas_001"],
     ),
 ) -> DpmConstructionGatewayResponse:
-    return await _dpm_construction_service().select_alternative(
+    return await dpm_construction_service().select_alternative(
         alternative_set_id=alternative_set_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),

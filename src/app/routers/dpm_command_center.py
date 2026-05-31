@@ -20,8 +20,7 @@ from app.contracts.dpm_command_center import (
 )
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
-from app.services.dpm_command_center_service import DpmCommandCenterService
-from app.services.dpm_service_factory import build_dpm_command_center_service
+from app.services.dpm_service_provider import dpm_command_center_service
 
 _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     error_model=DpmOutcomeReviewErrorDetail,
@@ -36,10 +35,6 @@ router = APIRouter(
     tags=["DPM Command Center"],
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
-
-
-def _dpm_command_center_service() -> DpmCommandCenterService:
-    return build_dpm_command_center_service()
 
 
 @router.get(
@@ -87,7 +82,7 @@ async def get_command_center(
         description="Maximum active exceptions to consider for attention buckets.",
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_command_center(
+    return await dpm_command_center_service().get_command_center(
         filters={
             "portfolio_manager_id": portfolio_manager_id,
             "tenant_id": tenant_id,
@@ -114,7 +109,7 @@ async def get_command_center(
 async def run_monitoring_once(
     request: DpmCommandCenterForwardRequest,
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().run_monitoring_once(
+    return await dpm_command_center_service().run_monitoring_once(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -139,7 +134,7 @@ async def list_monitoring_runs(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum runs to return."),
     cursor: str | None = Query(default=None, description="Cursor from a previous page."),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().list_monitoring_runs(
+    return await dpm_command_center_service().list_monitoring_runs(
         filters={"status_filter": status_filter, "limit": limit, "cursor": cursor},
         correlation_id=correlation_id_var.get(),
     )
@@ -162,7 +157,7 @@ async def get_monitoring_run(
         examples=["dmr_20260503_083000"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_monitoring_run(
+    return await dpm_command_center_service().get_monitoring_run(
         monitoring_run_id=monitoring_run_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -189,7 +184,7 @@ async def list_monitoring_exceptions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum exceptions to return."),
     cursor: str | None = Query(default=None, description="Cursor from a previous page."),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().list_monitoring_exceptions(
+    return await dpm_command_center_service().list_monitoring_exceptions(
         filters={
             "mandate_id": mandate_id,
             "portfolio_id": portfolio_id,
@@ -219,7 +214,7 @@ async def resolve_monitoring_exception(
         examples=["me_source_readiness_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().resolve_monitoring_exception(
+    return await dpm_command_center_service().resolve_monitoring_exception(
         exception_id=exception_id,
         body={"resolution_reason": request.resolution_reason},
         correlation_id=correlation_id_var.get(),
@@ -248,7 +243,7 @@ async def request_exception_summary(
         examples=["me_source_readiness_001"],
     ),
 ) -> DpmExceptionSummaryGatewayResponse:
-    return await _dpm_command_center_service().request_exception_summary(
+    return await dpm_command_center_service().request_exception_summary(
         exception_id=exception_id,
         request=request,
         correlation_id=correlation_id_var.get(),
@@ -272,7 +267,7 @@ async def get_mandate_by_portfolio(
         examples=["PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_mandate_by_portfolio(
+    return await dpm_command_center_service().get_mandate_by_portfolio(
         portfolio_id=portfolio_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -295,7 +290,7 @@ async def get_mandate(
         examples=["MANDATE_PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_mandate(
+    return await dpm_command_center_service().get_mandate(
         mandate_id=mandate_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -318,7 +313,7 @@ async def get_mandate_health(
         examples=["MANDATE_PB_SG_GLOBAL_BAL_001"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_mandate_health(
+    return await dpm_command_center_service().get_mandate_health(
         mandate_id=mandate_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -351,7 +346,7 @@ async def get_mandate_diff(
         examples=["3"],
     ),
 ) -> DpmCommandCenterGatewayResponse:
-    return await _dpm_command_center_service().get_mandate_diff(
+    return await dpm_command_center_service().get_mandate_diff(
         mandate_id=mandate_id,
         filters={"from_version": from_version, "to_version": to_version},
         correlation_id=correlation_id_var.get(),
@@ -387,7 +382,7 @@ async def get_portfolio_memory(
         examples=[100],
     ),
 ) -> DpmPortfolioMemoryGatewayResponse:
-    return await _dpm_command_center_service().get_portfolio_memory(
+    return await dpm_command_center_service().get_portfolio_memory(
         portfolio_id=portfolio_id,
         filters={"limit": limit},
         correlation_id=correlation_id_var.get(),
@@ -455,7 +450,7 @@ async def search_portfolio_memory(
         examples=[250],
     ),
 ) -> DpmPortfolioMemoryGatewayResponse:
-    return await _dpm_command_center_service().search_portfolio_memory(
+    return await dpm_command_center_service().search_portfolio_memory(
         filters={
             "portfolio_ids": portfolio_ids,
             "event_type": event_type,
@@ -486,7 +481,7 @@ async def search_portfolio_memory(
 async def preview_pm_operating_quality_score_run(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().preview_pm_operating_quality_score_run(
+    return await dpm_command_center_service().preview_pm_operating_quality_score_run(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -507,7 +502,7 @@ async def preview_pm_operating_quality_score_run(
 async def create_pm_operating_quality_score_run(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().create_pm_operating_quality_score_run(
+    return await dpm_command_center_service().create_pm_operating_quality_score_run(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -531,7 +526,7 @@ async def create_pm_operating_quality_score_run(
 async def preview_pm_operating_quality_fairness_analysis(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().preview_pm_operating_quality_fairness_analysis(
+    return await dpm_command_center_service().preview_pm_operating_quality_fairness_analysis(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -555,7 +550,7 @@ async def preview_pm_operating_quality_fairness_analysis(
 async def create_pm_operating_quality_fairness_analysis(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().create_pm_operating_quality_fairness_analysis(
+    return await dpm_command_center_service().create_pm_operating_quality_fairness_analysis(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -582,7 +577,7 @@ async def list_pm_operating_quality_fairness_analyses(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum analyses to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().list_pm_operating_quality_fairness_analyses(
+    return await dpm_command_center_service().list_pm_operating_quality_fairness_analyses(
         filters={
             "policy_id": policy_id,
             "policy_version": policy_version,
@@ -615,7 +610,7 @@ async def get_pm_operating_quality_fairness_analysis(
         examples=["pmq_fair_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().get_pm_operating_quality_fairness_analysis(
+    return await dpm_command_center_service().get_pm_operating_quality_fairness_analysis(
         fairness_analysis_id=fairness_analysis_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -639,7 +634,7 @@ async def get_pm_operating_quality_fairness_analysis(
 async def preview_pm_operating_quality_review_action(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().preview_pm_operating_quality_review_action(
+    return await dpm_command_center_service().preview_pm_operating_quality_review_action(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -661,7 +656,7 @@ async def preview_pm_operating_quality_review_action(
 async def create_pm_operating_quality_review_action(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().create_pm_operating_quality_review_action(
+    return await dpm_command_center_service().create_pm_operating_quality_review_action(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -692,7 +687,7 @@ async def list_pm_operating_quality_review_actions(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum review actions to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().list_pm_operating_quality_review_actions(
+    return await dpm_command_center_service().list_pm_operating_quality_review_actions(
         filters={
             "target_type": target_type,
             "target_id": target_id,
@@ -727,7 +722,7 @@ async def get_pm_operating_quality_review_action(
         examples=["pmq_review_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().get_pm_operating_quality_review_action(
+    return await dpm_command_center_service().get_pm_operating_quality_review_action(
         review_action_id=review_action_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -751,7 +746,7 @@ async def get_pm_operating_quality_review_action(
 async def preview_pm_operating_quality_summary_invocation(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().preview_pm_operating_quality_summary_invocation(
+    return await dpm_command_center_service().preview_pm_operating_quality_summary_invocation(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -774,7 +769,7 @@ async def preview_pm_operating_quality_summary_invocation(
 async def create_pm_operating_quality_summary_invocation(
     request: DpmPmOperatingQualityForwardRequest,
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().create_pm_operating_quality_summary_invocation(
+    return await dpm_command_center_service().create_pm_operating_quality_summary_invocation(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -807,7 +802,7 @@ async def list_pm_operating_quality_summary_invocations(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum invocations to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().list_pm_operating_quality_summary_invocations(
+    return await dpm_command_center_service().list_pm_operating_quality_summary_invocations(
         filters={
             "score_run_id": score_run_id,
             "review_action_id": review_action_id,
@@ -841,7 +836,7 @@ async def get_pm_operating_quality_summary_invocation(
         examples=["pmq_summary_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().get_pm_operating_quality_summary_invocation(
+    return await dpm_command_center_service().get_pm_operating_quality_summary_invocation(
         summary_invocation_id=summary_invocation_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -867,7 +862,7 @@ async def list_pm_operating_quality_score_runs(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum score runs to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().list_pm_operating_quality_score_runs(
+    return await dpm_command_center_service().list_pm_operating_quality_score_runs(
         filters={
             "pm_id": pm_id,
             "book_id": book_id,
@@ -899,7 +894,7 @@ async def get_pm_operating_quality_score_run(
         examples=["pmq_run_001"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().get_pm_operating_quality_score_run(
+    return await dpm_command_center_service().get_pm_operating_quality_score_run(
         score_run_id=score_run_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -929,7 +924,7 @@ async def request_pm_operating_quality_summary(
         examples=["pmq_run_001"],
     ),
 ) -> DpmPmOperatingQualitySummaryGatewayResponse:
-    return await _dpm_command_center_service().request_pm_operating_quality_summary(
+    return await dpm_command_center_service().request_pm_operating_quality_summary(
         score_run_id=score_run_id,
         request=request,
         correlation_id=correlation_id_var.get(),
@@ -960,7 +955,7 @@ async def put_pm_operating_quality_policy(
         examples=["2026.05"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().put_pm_operating_quality_policy(
+    return await dpm_command_center_service().put_pm_operating_quality_policy(
         policy_id=policy_id,
         policy_version=policy_version,
         body=request.body,
@@ -985,7 +980,7 @@ async def list_pm_operating_quality_policies(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum policies to return."),
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().list_pm_operating_quality_policies(
+    return await dpm_command_center_service().list_pm_operating_quality_policies(
         filters={
             "policy_id": policy_id,
             "enabled": enabled,
@@ -1019,7 +1014,7 @@ async def get_pm_operating_quality_policy(
         examples=["2026.05"],
     ),
 ) -> DpmPmOperatingQualityGatewayResponse:
-    return await _dpm_command_center_service().get_pm_operating_quality_policy(
+    return await dpm_command_center_service().get_pm_operating_quality_policy(
         policy_id=policy_id,
         policy_version=policy_version,
         correlation_id=correlation_id_var.get(),
@@ -1041,7 +1036,7 @@ async def get_pm_operating_quality_policy(
 async def preview_outcome_review(
     request: DpmOutcomeReviewForwardRequest,
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().preview_outcome_review(
+    return await dpm_command_center_service().preview_outcome_review(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -1061,7 +1056,7 @@ async def preview_outcome_review(
 async def create_outcome_review(
     request: DpmOutcomeReviewForwardRequest,
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().create_outcome_review(
+    return await dpm_command_center_service().create_outcome_review(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -1147,7 +1142,7 @@ async def list_outcome_reviews(
         "source_scan_limit": source_scan_limit,
         "cursor": cursor,
     }
-    return await _dpm_command_center_service().list_outcome_reviews(
+    return await dpm_command_center_service().list_outcome_reviews(
         filters=filters,
         correlation_id=correlation_id_var.get(),
     )
@@ -1171,7 +1166,7 @@ async def get_outcome_review(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().get_outcome_review(
+    return await dpm_command_center_service().get_outcome_review(
         outcome_review_id=outcome_review_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1196,7 +1191,7 @@ async def refresh_outcome_review_sources(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().refresh_outcome_review_sources(
+    return await dpm_command_center_service().refresh_outcome_review_sources(
         outcome_review_id=outcome_review_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -1221,7 +1216,7 @@ async def get_outcome_review_supportability(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().get_outcome_review_supportability(
+    return await dpm_command_center_service().get_outcome_review_supportability(
         outcome_review_id=outcome_review_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1245,7 +1240,7 @@ async def get_outcome_review_report_input(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().get_outcome_review_report_input(
+    return await dpm_command_center_service().get_outcome_review_report_input(
         outcome_review_id=outcome_review_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1269,7 +1264,7 @@ async def get_outcome_review_ai_evidence_input(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().get_outcome_review_ai_evidence_input(
+    return await dpm_command_center_service().get_outcome_review_ai_evidence_input(
         outcome_review_id=outcome_review_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1296,7 +1291,7 @@ async def request_outcome_review_ai_narrative(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewNarrativeGatewayResponse:
-    return await _dpm_command_center_service().request_outcome_review_ai_narrative(
+    return await dpm_command_center_service().request_outcome_review_ai_narrative(
         outcome_review_id=outcome_review_id,
         request=request,
         correlation_id=correlation_id_var.get(),
@@ -1320,7 +1315,7 @@ async def get_run_outcome_review(
         examples=["rr_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _dpm_command_center_service().get_run_outcome_review(
+    return await dpm_command_center_service().get_run_outcome_review(
         rebalance_run_id=rebalance_run_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1361,7 +1356,7 @@ async def list_wave_outcome_reviews(
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
     filters = {"state": state, "limit": limit, "cursor": cursor}
-    return await _dpm_command_center_service().list_wave_outcome_reviews(
+    return await dpm_command_center_service().list_wave_outcome_reviews(
         wave_id=wave_id,
         filters=filters,
         correlation_id=correlation_id_var.get(),

@@ -21,8 +21,7 @@ from app.contracts.dpm_waves import (
 from app.middleware.correlation import correlation_id_var
 from app.routers.dpm_openapi import manage_upstream_error_responses
 from app.routers.query_params import query_params_with_repeated_values
-from app.services.dpm_service_factory import build_dpm_wave_service
-from app.services.dpm_wave_service import DpmWaveService
+from app.services.dpm_service_provider import dpm_wave_service
 
 router = APIRouter(
     prefix="/api/v1/dpm/command-center/waves",
@@ -35,10 +34,6 @@ _UPSTREAM_ERROR_RESPONSES = manage_upstream_error_responses(
     invalid_payload_description="lotus-manage rejected the rebalance-wave payload as invalid.",
     unavailable_description="lotus-manage rebalance-wave authority is unavailable or degraded.",
 )
-
-
-def _dpm_wave_service() -> DpmWaveService:
-    return build_dpm_wave_service()
 
 
 def _query_params(request: Request) -> dict[str, Any]:
@@ -58,7 +53,7 @@ def _query_params(request: Request) -> dict[str, Any]:
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
 async def preview_wave(request: DpmWaveForwardRequest) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().preview_wave(
+    return await dpm_wave_service().preview_wave(
         body=request.body,
         correlation_id=correlation_id_var.get(),
     )
@@ -77,7 +72,7 @@ async def preview_wave(request: DpmWaveForwardRequest) -> DpmWaveGatewayResponse
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
 async def create_wave(request: DpmWaveCreateRequest) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().create_wave(
+    return await dpm_wave_service().create_wave(
         body=request.body,
         idempotency_key=request.idempotency_key,
         correlation_id=correlation_id_var.get(),
@@ -116,7 +111,7 @@ async def list_waves(
     limit: int = Query(default=50, ge=1, le=100, description="Maximum waves to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based wave-list offset."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().list_waves(
+    return await dpm_wave_service().list_waves(
         filters={
             "state": state,
             "trigger_type": trigger_type,
@@ -148,7 +143,7 @@ async def put_campaign_definition(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().put_campaign_definition(
+    return await dpm_wave_service().put_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -181,7 +176,7 @@ async def list_campaign_definitions(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum definitions to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based definition-list offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().list_campaign_definitions(
+    return await dpm_wave_service().list_campaign_definitions(
         filters={
             "campaign_id": campaign_id,
             "campaign_status": campaign_status,
@@ -209,7 +204,7 @@ async def get_campaign_definition(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().get_campaign_definition(
+    return await dpm_wave_service().get_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         correlation_id=correlation_id_var.get(),
@@ -233,7 +228,7 @@ async def get_campaign_definition_lifecycle_events(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().get_campaign_definition_lifecycle_events(
+    return await dpm_wave_service().get_campaign_definition_lifecycle_events(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         correlation_id=correlation_id_var.get(),
@@ -268,7 +263,7 @@ async def get_campaign_definition_preview_readiness(
         examples=["pm_sg_1"],
     ),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().get_campaign_definition_preview_readiness(
+    return await dpm_wave_service().get_campaign_definition_preview_readiness(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters={
@@ -300,7 +295,7 @@ async def get_campaign_definition_launch_history(
     limit: int = Query(50, ge=1, le=500, description="Maximum launch-history records to return."),
     offset: int = Query(0, ge=0, description="Zero-based launch-history record offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().get_campaign_definition_launch_history(
+    return await dpm_wave_service().get_campaign_definition_launch_history(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters={"limit": limit, "offset": offset},
@@ -340,7 +335,7 @@ async def get_campaign_definition_launch_package(
         description="Optional durable launch correlation id forwarded to Manage.",
     ),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().get_campaign_definition_launch_package(
+    return await dpm_wave_service().get_campaign_definition_launch_package(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters={
@@ -371,7 +366,7 @@ async def launch_campaign_definition(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().launch_campaign_definition(
+    return await dpm_wave_service().launch_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -399,7 +394,7 @@ async def retire_campaign_definition(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().retire_campaign_definition(
+    return await dpm_wave_service().retire_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -427,7 +422,7 @@ async def supersede_campaign_definition(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().supersede_campaign_definition(
+    return await dpm_wave_service().supersede_campaign_definition(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -473,7 +468,7 @@ async def discover_campaigns(
     limit: int = Query(default=50, ge=1, le=200, description="Maximum campaigns to return."),
     offset: int = Query(default=0, ge=0, description="Zero-based campaign-discovery offset."),
 ) -> DpmCampaignDefinitionGatewayResponse:
-    return await _dpm_wave_service().discover_campaigns(
+    return await dpm_wave_service().discover_campaigns(
         filters={
             "campaign_id": campaign_id,
             "campaign_status": campaign_status,
@@ -503,7 +498,7 @@ async def discover_campaigns(
 async def get_campaign_operating_queue(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().get_campaign_operating_queue(
+    return await dpm_wave_service().get_campaign_operating_queue(
         filters=_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
@@ -525,7 +520,7 @@ async def get_campaign_operating_queue(
 async def get_campaign_approval_inbox(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().get_campaign_approval_inbox(
+    return await dpm_wave_service().get_campaign_approval_inbox(
         filters=_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
@@ -547,7 +542,7 @@ async def get_campaign_approval_inbox(
 async def get_campaign_workflow_board(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().get_campaign_workflow_board(
+    return await dpm_wave_service().get_campaign_workflow_board(
         filters=_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
@@ -569,7 +564,7 @@ async def get_campaign_workflow_board(
 async def get_campaign_assignment_plan(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().get_campaign_assignment_plan(
+    return await dpm_wave_service().get_campaign_assignment_plan(
         filters=_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
@@ -591,7 +586,7 @@ async def get_campaign_assignment_plan(
 async def get_campaign_workflow_automation(
     request: Request,
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().get_campaign_workflow_automation(
+    return await dpm_wave_service().get_campaign_workflow_automation(
         filters=_query_params(request),
         correlation_id=correlation_id_var.get(),
     )
@@ -615,7 +610,7 @@ async def list_campaign_approval_decisions(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().list_campaign_approval_decisions(
+    return await dpm_wave_service().list_campaign_approval_decisions(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters=_query_params(request),
@@ -640,7 +635,7 @@ async def create_campaign_approval_decision(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().create_campaign_approval_decision(
+    return await dpm_wave_service().create_campaign_approval_decision(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -665,7 +660,7 @@ async def list_campaign_assignment_actions(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().list_campaign_assignment_actions(
+    return await dpm_wave_service().list_campaign_assignment_actions(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters=_query_params(request),
@@ -690,7 +685,7 @@ async def create_campaign_assignment_action(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().create_campaign_assignment_action(
+    return await dpm_wave_service().create_campaign_assignment_action(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -716,7 +711,7 @@ async def list_campaign_assignment_tasks(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().list_campaign_assignment_tasks(
+    return await dpm_wave_service().list_campaign_assignment_tasks(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters=_query_params(request),
@@ -741,7 +736,7 @@ async def create_campaign_assignment_task(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().create_campaign_assignment_task(
+    return await dpm_wave_service().create_campaign_assignment_task(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -768,7 +763,7 @@ async def transition_campaign_assignment_task(
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
     task_ref: str = Path(..., description="Manage-owned campaign assignment task reference."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().transition_campaign_assignment_task(
+    return await dpm_wave_service().transition_campaign_assignment_task(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         task_ref=task_ref,
@@ -794,7 +789,7 @@ async def list_campaign_maker_checker_controls(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().list_campaign_maker_checker_controls(
+    return await dpm_wave_service().list_campaign_maker_checker_controls(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         filters=_query_params(request),
@@ -819,7 +814,7 @@ async def create_campaign_maker_checker_control(
     campaign_id: str = Path(..., description="Manage-owned campaign definition identifier."),
     campaign_version: str = Path(..., description="Manage-owned campaign definition version."),
 ) -> DpmCampaignWorkflowGatewayResponse:
-    return await _dpm_wave_service().create_campaign_maker_checker_control(
+    return await dpm_wave_service().create_campaign_maker_checker_control(
         campaign_id=campaign_id,
         campaign_version=campaign_version,
         body=request.body,
@@ -842,7 +837,7 @@ async def create_campaign_maker_checker_control(
 async def get_wave(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().get_wave(
+    return await dpm_wave_service().get_wave(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -863,7 +858,7 @@ async def get_wave(
 async def get_wave_items(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().get_wave_items(
+    return await dpm_wave_service().get_wave_items(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -885,7 +880,7 @@ async def source_check_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().source_check_wave(
+    return await dpm_wave_service().source_check_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -908,7 +903,7 @@ async def simulate_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().simulate_wave(
+    return await dpm_wave_service().simulate_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -932,7 +927,7 @@ async def select_wave_item(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
     wave_item_id: str = Path(..., description="Manage-owned rebalance-wave item identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().select_wave_item(
+    return await dpm_wave_service().select_wave_item(
         wave_id=wave_id,
         wave_item_id=wave_item_id,
         body=request.body,
@@ -956,7 +951,7 @@ async def approve_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().approve_wave(
+    return await dpm_wave_service().approve_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -978,7 +973,7 @@ async def stage_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().stage_wave(
+    return await dpm_wave_service().stage_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -1001,7 +996,7 @@ async def handoff_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().handoff_wave(
+    return await dpm_wave_service().handoff_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -1024,7 +1019,7 @@ async def cancel_wave(
     request: DpmWaveForwardRequest,
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().cancel_wave(
+    return await dpm_wave_service().cancel_wave(
         wave_id=wave_id,
         body=request.body,
         correlation_id=correlation_id_var.get(),
@@ -1046,7 +1041,7 @@ async def cancel_wave(
 async def get_wave_proof_pack_posture(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().get_wave_proof_pack_posture(
+    return await dpm_wave_service().get_wave_proof_pack_posture(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1067,7 +1062,7 @@ async def get_wave_proof_pack_posture(
 async def get_wave_supportability(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().get_wave_supportability(
+    return await dpm_wave_service().get_wave_supportability(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1089,7 +1084,7 @@ async def get_wave_supportability(
 async def get_wave_report_input(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await _dpm_wave_service().get_wave_report_input(
+    return await dpm_wave_service().get_wave_report_input(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
@@ -1117,7 +1112,7 @@ async def request_wave_pm_memo(
         examples=["dwv_001"],
     ),
 ) -> DpmWaveMemoGatewayResponse:
-    return await _dpm_wave_service().request_wave_pm_memo(
+    return await dpm_wave_service().request_wave_pm_memo(
         wave_id=wave_id,
         request=request,
         correlation_id=correlation_id_var.get(),
@@ -1147,7 +1142,7 @@ async def request_operations_handoff_summary(
         examples=["dwv_001"],
     ),
 ) -> DpmOperationsHandoffSummaryGatewayResponse:
-    return await _dpm_wave_service().request_operations_handoff_summary(
+    return await dpm_wave_service().request_operations_handoff_summary(
         wave_id=wave_id,
         request=request,
         correlation_id=correlation_id_var.get(),
