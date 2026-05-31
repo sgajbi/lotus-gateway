@@ -13,6 +13,31 @@ from app.services.gateway_service_provider import composite_performance_service
 router = APIRouter(prefix="/api/v1/performance/composites", tags=["Composite Performance"])
 
 
+async def _calculate_composite_twr(
+    *,
+    request: CompositePerformanceTwrRequest,
+    actor_id: str | None,
+    caller_application: str | None,
+    tenant_id: str | None,
+    region: str | None,
+    booking_center_code: str | None,
+    role: str | None,
+) -> CompositePerformanceGatewayResponse:
+    correlation_id = correlation_id_var.get()
+    return await composite_performance_service().calculate_twr(
+        payload=request.model_dump(exclude_none=True),
+        correlation_id=correlation_id,
+        caller_context=composite_caller_context(
+            actor_id=actor_id,
+            caller_application=caller_application,
+            tenant_id=tenant_id,
+            region=region,
+            booking_center_code=booking_center_code,
+            role=role,
+        ),
+    )
+
+
 @router.post(
     "/twr",
     response_model=CompositePerformanceGatewayResponse,
@@ -33,16 +58,12 @@ async def calculate_composite_twr(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> CompositePerformanceGatewayResponse:
-    correlation_id = correlation_id_var.get()
-    return await composite_performance_service().calculate_twr(
-        payload=request.model_dump(exclude_none=True),
-        correlation_id=correlation_id,
-        caller_context=composite_caller_context(
-            actor_id=actor_id,
-            caller_application=caller_application,
-            tenant_id=tenant_id,
-            region=region,
-            booking_center_code=booking_center_code,
-            role=role,
-        ),
+    return await _calculate_composite_twr(
+        request=request,
+        actor_id=actor_id,
+        caller_application=caller_application,
+        tenant_id=tenant_id,
+        region=region,
+        booking_center_code=booking_center_code,
+        role=role,
     )
