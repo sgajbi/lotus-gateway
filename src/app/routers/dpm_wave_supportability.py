@@ -12,21 +12,21 @@ router = APIRouter(
 
 
 @router.get(
-    "/{wave_id}/proof-pack",
+    "/{wave_id}/supportability",
     response_model=DpmWaveGatewayResponse,
-    summary="Get DPM wave proof-pack posture",
+    summary="Get DPM wave supportability",
     description=(
-        "What: returns manage-owned RFC-0040 proof-pack refs and internal handoff posture for "
-        "one wave. When: call this for Workbench evidence drawers or operations readiness. How: "
-        "Gateway preserves item-level proof_pack_id refs, degraded proof-pack posture, handoff "
-        "refs, and no-external-execution flags without rebuilding proof packs."
+        "What: returns product-safe manage supportability diagnostics for one rebalance wave. "
+        "When: call this to decide which Workbench actions are enabled and where operations must "
+        "remediate source or proof gaps. How: Gateway preserves state, reason codes, issue refs, "
+        "source owners, and remediation routes without exposing raw request bodies or trace data."
     ),
     responses=UPSTREAM_WAVE_EVIDENCE_ERROR_RESPONSES,
 )
-async def get_wave_proof_pack_posture(
+async def get_wave_supportability(
     wave_id: str = Path(..., description="Manage-owned rebalance-wave identifier."),
 ) -> DpmWaveGatewayResponse:
-    return await dpm_wave_service().get_wave_proof_pack_posture(
+    return await dpm_wave_service().get_wave_supportability(
         wave_id=wave_id,
         correlation_id=correlation_id_var.get(),
     )
