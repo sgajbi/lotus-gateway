@@ -263,7 +263,7 @@ def test_domain_product_graph_router_exposes_dependency_relationships(monkeypatc
 
 def test_domain_product_trust_router_exposes_certified_platform_posture(monkeypatch):
     monkeypatch.setattr(
-        "app.routers.domain_products.domain_product_catalog_service",
+        "app.routers.domain_product_trust.domain_product_catalog_service",
         lambda: _FakeDomainProductService(),
     )
 
