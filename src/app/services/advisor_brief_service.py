@@ -32,8 +32,8 @@ from app.contracts.performance_workspace import (
 )
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.advisory_client_protocols import AdvisorBriefAdviseClient, AdvisorBriefAiClient
 from app.services.async_ttl_cache import AsyncTtlCache
-from app.services.upstream_client_protocols import AdvisorBriefAdviseClient, AdvisorBriefAiClient
 
 _TASK_ID = "explain.v1"
 _EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"

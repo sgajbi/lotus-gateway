@@ -32,7 +32,7 @@ from app.contracts.proposals import (
     ProposalWorkflowEventsData,
     ProposalWorkflowEventsEnvelopeResponse,
 )
-from app.services.upstream_client_protocols import ProposalClient
+from app.services.advisory_client_protocols import ProposalClient
 from app.services.upstream_envelope import (
     build_gateway_envelope,
     build_typed_gateway_envelope,
