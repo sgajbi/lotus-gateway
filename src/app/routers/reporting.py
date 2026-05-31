@@ -45,6 +45,10 @@ from app.contracts.reporting import (
     ReportSnapshotLineageResponse,
 )
 from app.middleware.correlation import correlation_id_var
+from app.routers.reporting_links import (
+    gateway_report_job_status_url,
+    rewrite_report_batch_status_url,
+)
 from app.services.caller_context import caller_context_headers
 from app.services.reporting_supportability import attach_reporting_operator_supportability
 
@@ -220,21 +224,6 @@ def _job_error_response(
             },
         }
     }
-
-
-def _gateway_status_url(job_id: str) -> str:
-    return f"/api/v1/report-jobs/{job_id}"
-
-
-def _gateway_batch_status_url(batch_id: str) -> str:
-    return f"/api/v1/report-batches/{batch_id}"
-
-
-def _rewrite_batch_status_url(payload: dict[str, Any]) -> dict[str, Any]:
-    batch_id = payload.get("batch_id")
-    if isinstance(batch_id, str) and batch_id:
-        return {**payload, "status_url": _gateway_batch_status_url(batch_id)}
-    return payload
 
 
 def _raise_report_batch_error(status_code: int, payload: dict[str, Any]) -> None:
@@ -557,7 +546,9 @@ async def submit_portfolio_review_report_job(
     )
     _raise_report_job_error(status_code, payload)
     response = ReportJobHandleResponse.model_validate(payload)
-    return response.model_copy(update={"status_url": _gateway_status_url(response.report_job_id)})
+    return response.model_copy(
+        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
+    )
 
 
 @router.post(
@@ -636,7 +627,9 @@ async def submit_outcome_review_report_job(
     )
     _raise_report_job_error(status_code, payload)
     response = ReportJobHandleResponse.model_validate(payload)
-    return response.model_copy(update={"status_url": _gateway_status_url(response.report_job_id)})
+    return response.model_copy(
+        update={"status_url": gateway_report_job_status_url(response.report_job_id)}
+    )
 
 
 @jobs_router.get(
@@ -1140,7 +1133,7 @@ async def create_report_batch(
     )
     _raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
-        _rewrite_batch_status_url(payload),
+        rewrite_report_batch_status_url(payload),
         reporting_client=_reporting_client(),
         render_client=_render_client(),
         correlation_id=correlation_id,
@@ -1234,7 +1227,7 @@ async def _control_batch(
         correlation_id=correlation_id_var.get(),
     )
     _raise_report_batch_error(status_code, payload)
-    return BatchControlResponse.model_validate(_rewrite_batch_status_url(payload))
+    return BatchControlResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1396,7 +1389,7 @@ async def recover_expired_report_batch_leases(
         correlation_id=correlation_id_var.get(),
     )
     _raise_report_batch_error(status_code, payload)
-    return BatchRecoveryResponse.model_validate(_rewrite_batch_status_url(payload))
+    return BatchRecoveryResponse.model_validate(rewrite_report_batch_status_url(payload))
 
 
 @batches_router.post(
@@ -1465,7 +1458,7 @@ async def run_report_batch_once(
     )
     _raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
-        _rewrite_batch_status_url(payload),
+        rewrite_report_batch_status_url(payload),
         reporting_client=_reporting_client(),
         render_client=_render_client(),
         correlation_id=correlation_id,
