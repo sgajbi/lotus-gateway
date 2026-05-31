@@ -232,6 +232,7 @@ from app.routers.reporting_batch_controls import (
 from app.routers.reporting_batch_lease_recovery import (
     recovery_router as reporting_batch_lease_recovery_router,
 )
+from app.routers.reporting_batch_retry import retry_router as reporting_batch_retry_router
 from app.routers.reporting_batch_run_once import (
     worker_router as reporting_batch_run_once_router,
 )
@@ -437,6 +438,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reporting_batches_router)
     app.include_router(reporting_batch_status_router)
     app.include_router(reporting_batch_controls_router)
+    app.include_router(reporting_batch_retry_router)
     app.include_router(reporting_batch_lease_recovery_router)
     app.include_router(reporting_batch_run_once_router)
     app.include_router(reporting_schedules_router)
