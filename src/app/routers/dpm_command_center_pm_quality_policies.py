@@ -16,10 +16,20 @@ router = APIRouter(
 
 async def _list_pm_operating_quality_policies(
     *,
-    filters: dict[str, str | int | bool | None],
+    policy_id: str | None,
+    enabled: bool | None,
+    as_of_date: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await dpm_command_center_service().list_pm_operating_quality_policies(
-        filters=filters,
+        filters={
+            "policy_id": policy_id,
+            "enabled": enabled,
+            "as_of_date": as_of_date,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -42,11 +52,9 @@ async def list_pm_operating_quality_policies(
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await _list_pm_operating_quality_policies(
-        filters={
-            "policy_id": policy_id,
-            "enabled": enabled,
-            "as_of_date": as_of_date,
-            "limit": limit,
-            "offset": offset,
-        },
+        policy_id=policy_id,
+        enabled=enabled,
+        as_of_date=as_of_date,
+        limit=limit,
+        offset=offset,
     )
