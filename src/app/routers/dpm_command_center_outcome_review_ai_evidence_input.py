@@ -12,6 +12,16 @@ router = APIRouter(
 )
 
 
+async def _get_outcome_review_ai_evidence_input(
+    *,
+    outcome_review_id: str,
+) -> DpmOutcomeReviewGatewayResponse:
+    return await dpm_command_center_service().get_outcome_review_ai_evidence_input(
+        outcome_review_id=outcome_review_id,
+        correlation_id=correlation_id_var.get(),
+    )
+
+
 @router.get(
     "/outcome-reviews/{outcome_review_id}/ai-evidence-input",
     response_model=DpmOutcomeReviewGatewayResponse,
@@ -30,7 +40,6 @@ async def get_outcome_review_ai_evidence_input(
         examples=["or_20260415_001"],
     ),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await dpm_command_center_service().get_outcome_review_ai_evidence_input(
+    return await _get_outcome_review_ai_evidence_input(
         outcome_review_id=outcome_review_id,
-        correlation_id=correlation_id_var.get(),
     )
