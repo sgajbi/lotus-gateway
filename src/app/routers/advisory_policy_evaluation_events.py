@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
 from app.contracts.advisory_policy import (
     AdvisoryPolicyBodyRequest,
@@ -12,20 +12,27 @@ router = APIRouter(prefix="/api/v1", tags=["advisory-policy"])
 
 
 @router.post(
-    "/advisory-policy-evaluations/{evaluation_id}/replay",
+    "/advisory-policy-evaluations/{evaluation_id}/events",
     response_model=AdvisoryPolicyEnvelopeResponse,
-    summary="Replay Advisory Policy Evaluation",
+    summary="Record Advisory Policy Evaluation Event",
     description=(
-        "Requests policy evaluation replay through lotus-advise and preserves replay evidence "
-        "unchanged for support and supervisory review."
+        "Records a source-owned policy evaluation event through lotus-advise. Gateway does "
+        "not mutate lifecycle state locally."
     ),
 )
-async def replay_policy_evaluation(
+async def record_policy_evaluation_event(
     request: AdvisoryPolicyBodyRequest,
     evaluation_id: str = POLICY_EVALUATION_PATH,
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        description="Optional idempotency key for policy evaluation events.",
+        examples=["idem-policy-event-1"],
+    ),
 ) -> AdvisoryPolicyEnvelopeResponse:
-    return await advisory_policy_service().replay_policy_evaluation(
+    return await advisory_policy_service().record_policy_evaluation_event(
         evaluation_id=evaluation_id,
         body=request.body,
+        idempotency_key=idempotency_key,
         correlation_id=correlation_id_var.get(),
     )
