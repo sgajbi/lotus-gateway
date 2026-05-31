@@ -4,11 +4,11 @@ from app.clients.advise_client import AdviseClient
 from app.clients.dpm_client import DpmClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
-from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.platform_capabilities import PlatformCapabilitiesResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.platform_capabilities_service import PlatformCapabilitiesService
+from app.services.reporting_client_factory import build_reporting_client
 
 router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
 
@@ -46,12 +46,7 @@ def _platform_capabilities_service() -> PlatformCapabilitiesService:
             max_retries=settings.upstream_max_retries,
             retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
         ),
-        reporting_client=ReportingClient(
-            base_url=settings.reporting_aggregation_base_url,
-            timeout_seconds=settings.upstream_timeout_seconds,
-            max_retries=settings.upstream_max_retries,
-            retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-        ),
+        reporting_client=build_reporting_client(),
         contract_version=settings.contract_version,
         source_timeout_seconds=settings.platform_capabilities_source_timeout_seconds,
     )

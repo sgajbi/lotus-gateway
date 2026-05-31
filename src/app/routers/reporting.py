@@ -3,8 +3,6 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, Header, HTTPException, Path, Query, status
 
-from app.clients.render_client import RenderClient
-from app.clients.reporting_client import ReportingClient
 from app.config import settings
 from app.contracts.reporting import (
     BATCH_CONTROL_RESPONSE_EXAMPLE,
@@ -50,6 +48,7 @@ from app.routers.reporting_links import (
     rewrite_report_batch_status_url,
 )
 from app.services.caller_context import caller_context_headers
+from app.services.reporting_client_factory import build_render_client, build_reporting_client
 from app.services.reporting_supportability import attach_reporting_operator_supportability
 
 router = APIRouter(prefix="/api/v1/reports", tags=["Reports"])
@@ -144,24 +143,6 @@ OUTCOME_REVIEW_REPORT_JOB_REQUEST_EXAMPLES = {
         },
     }
 }
-
-
-def _reporting_client() -> ReportingClient:
-    return ReportingClient(
-        base_url=settings.reporting_aggregation_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
-
-
-def _render_client() -> RenderClient:
-    return RenderClient(
-        base_url=settings.render_service_base_url,
-        timeout_seconds=settings.upstream_timeout_seconds,
-        max_retries=settings.upstream_max_retries,
-        retry_backoff_seconds=settings.upstream_retry_backoff_seconds,
-    )
 
 
 def _raise_report_job_error(status_code: int, payload: dict[str, Any]) -> None:
@@ -328,7 +309,7 @@ async def get_reporting_snapshot(
         ),
     ],
 ) -> ReportingSnapshotResponse:
-    client = _reporting_client()
+    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
     status_code, payload = await client.get_portfolio_snapshot(
         portfolio_id=portfolio_id,
@@ -390,7 +371,7 @@ async def get_reporting_summary(
         ),
     ],
 ) -> ReportingSummaryResponse:
-    client = _reporting_client()
+    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
     request_payload = request.to_upstream_payload()
     status_code, payload = await client.post_portfolio_summary(
@@ -446,7 +427,7 @@ async def get_reporting_review(
         ),
     ],
 ) -> ReportingReviewResponse:
-    client = _reporting_client()
+    client = build_reporting_client()
     correlation_id = correlation_id_var.get()
     request_payload = request.to_upstream_payload()
     status_code, payload = await client.post_portfolio_review(
@@ -531,7 +512,7 @@ async def submit_portfolio_review_report_job(
             },
         )
 
-    status_code, payload = await _reporting_client().submit_portfolio_review_job(
+    status_code, payload = await build_reporting_client().submit_portfolio_review_job(
         payload=request.model_dump(exclude_none=True, mode="json"),
         idempotency_key=idempotency_key,
         caller_headers=caller_context_headers(
@@ -612,7 +593,7 @@ async def submit_outcome_review_report_job(
             },
         )
 
-    status_code, payload = await _reporting_client().submit_outcome_review_report_job(
+    status_code, payload = await build_reporting_client().submit_outcome_review_report_job(
         payload=request.model_dump(exclude_none=True, mode="json"),
         idempotency_key=idempotency_key,
         caller_headers=caller_context_headers(
@@ -743,7 +724,7 @@ async def list_report_jobs(
         "limit": limit,
     }
     filters = {key: value for key, value in filters.items() if value is not None}
-    status_code, payload = await _reporting_client().list_report_jobs(
+    status_code, payload = await build_reporting_client().list_report_jobs(
         filters=filters,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -789,7 +770,7 @@ async def get_report_job_status(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await _reporting_client().get_report_job(
+    status_code, payload = await build_reporting_client().get_report_job(
         job_id=job_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -835,7 +816,7 @@ async def get_report_job_events(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusEventsResponse:
-    status_code, payload = await _reporting_client().get_report_job_events(
+    status_code, payload = await build_reporting_client().get_report_job_events(
         job_id=job_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -881,7 +862,7 @@ async def get_report_job_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await _reporting_client().get_report_job_lineage(
+    status_code, payload = await build_reporting_client().get_report_job_lineage(
         job_id=job_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -933,7 +914,7 @@ async def cancel_report_job(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportJobStatusResponse:
-    status_code, payload = await _reporting_client().cancel_report_job(
+    status_code, payload = await build_reporting_client().cancel_report_job(
         job_id=job_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -979,7 +960,7 @@ async def get_report_snapshot(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportInputSnapshotRecord:
-    status_code, payload = await _reporting_client().get_report_snapshot(
+    status_code, payload = await build_reporting_client().get_report_snapshot(
         snapshot_id=snapshot_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -1024,7 +1005,7 @@ async def get_report_snapshot_lineage(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> ReportSnapshotLineageResponse:
-    status_code, payload = await _reporting_client().get_report_snapshot_lineage(
+    status_code, payload = await build_reporting_client().get_report_snapshot_lineage(
         snapshot_id=snapshot_id,
         caller_headers=caller_context_headers(
             actor_id=actor_id,
@@ -1118,7 +1099,7 @@ async def create_report_batch(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=REPORT_BATCH_ERROR_EXAMPLES["missing_idempotency_key"]["detail"],
         )
-    status_code, payload = await _reporting_client().create_report_batch(
+    status_code, payload = await build_reporting_client().create_report_batch(
         payload=request.model_dump(exclude_none=True, mode="json"),
         idempotency_key=idempotency_key,
         caller_headers=_context_headers(
@@ -1134,8 +1115,8 @@ async def create_report_batch(
     _raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         rewrite_report_batch_status_url(payload),
-        reporting_client=_reporting_client(),
-        render_client=_render_client(),
+        reporting_client=build_reporting_client(),
+        render_client=build_render_client(),
         correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
@@ -1179,7 +1160,7 @@ async def get_report_batch_status(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchStatusResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await _reporting_client().get_report_batch(
+    status_code, payload = await build_reporting_client().get_report_batch(
         batch_id=batch_id,
         caller_headers=_context_headers(
             actor_id=actor_id,
@@ -1194,8 +1175,8 @@ async def get_report_batch_status(
     _raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         payload,
-        reporting_client=_reporting_client(),
-        render_client=_render_client(),
+        reporting_client=build_reporting_client(),
+        render_client=build_render_client(),
         correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
@@ -1213,7 +1194,7 @@ async def _control_batch(
     booking_center_code: str | None,
     role: str | None,
 ) -> BatchControlResponse:
-    status_code, payload = await _reporting_client().control_report_batch(
+    status_code, payload = await build_reporting_client().control_report_batch(
         batch_id=batch_id,
         action=action,
         caller_headers=_context_headers(
@@ -1375,7 +1356,7 @@ async def recover_expired_report_batch_leases(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchRecoveryResponse:
-    status_code, payload = await _reporting_client().control_report_batch(
+    status_code, payload = await build_reporting_client().control_report_batch(
         batch_id=batch_id,
         action="recover-expired-leases",
         caller_headers=_context_headers(
@@ -1442,7 +1423,7 @@ async def run_report_batch_once(
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchWorkerRunResponse:
     correlation_id = correlation_id_var.get()
-    status_code, payload = await _reporting_client().control_report_batch(
+    status_code, payload = await build_reporting_client().control_report_batch(
         batch_id=batch_id,
         action="run-once",
         caller_headers=_context_headers(
@@ -1459,8 +1440,8 @@ async def run_report_batch_once(
     _raise_report_batch_error(status_code, payload)
     response_payload = await attach_reporting_operator_supportability(
         rewrite_report_batch_status_url(payload),
-        reporting_client=_reporting_client(),
-        render_client=_render_client(),
+        reporting_client=build_reporting_client(),
+        render_client=build_render_client(),
         correlation_id=correlation_id,
         tenant_id=tenant_id,
     )
@@ -1499,7 +1480,7 @@ async def list_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchScheduleListResponse:
-    status_code, payload = await _reporting_client().list_report_batch_schedules(
+    status_code, payload = await build_reporting_client().list_report_batch_schedules(
         caller_headers=_context_headers(
             actor_id=actor_id,
             caller_application=caller_application,
@@ -1561,7 +1542,7 @@ async def run_due_report_batch_schedules(
     booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
     role: Annotated[str | None, Header(alias="X-Role")] = None,
 ) -> BatchSchedulerRunResponse:
-    status_code, payload = await _reporting_client().run_due_report_batch_schedules(
+    status_code, payload = await build_reporting_client().run_due_report_batch_schedules(
         payload=request.model_dump(exclude_none=True, mode="json"),
         caller_headers=_context_headers(
             actor_id=actor_id,
