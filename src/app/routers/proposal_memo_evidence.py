@@ -8,6 +8,22 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_memo_projection(
+    *,
+    proposal_id: str,
+    version_no: int,
+    audience: str | None,
+) -> ProposalMemoProjectionEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_memo_projection(
+        proposal_id=proposal_id,
+        version_no=version_no,
+        audience=audience,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/versions/{version_no}/memo/projection",
     response_model=ProposalMemoProjectionEnvelopeResponse,
@@ -27,11 +43,8 @@ async def get_proposal_memo_projection(
         examples=["COMPLIANCE"],
     ),
 ) -> ProposalMemoProjectionEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_memo_projection(
+    return await _get_proposal_memo_projection(
         proposal_id=proposal_id,
         version_no=version_no,
         audience=audience,
-        correlation_id=correlation_id,
     )
