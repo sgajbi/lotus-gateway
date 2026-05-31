@@ -8,6 +8,18 @@ from app.services.advisory_service_provider import proposal_service
 router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 
 
+async def _get_proposal_memo_lineage(
+    *,
+    proposal_id: str,
+) -> ProposalMemoLineageEnvelopeResponse:
+    service = proposal_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_proposal_memo_lineage(
+        proposal_id=proposal_id,
+        correlation_id=correlation_id,
+    )
+
+
 @router.get(
     "/{proposal_id}/memos/lineage",
     response_model=ProposalMemoLineageEnvelopeResponse,
@@ -21,9 +33,6 @@ router = APIRouter(prefix="/api/v1/proposals", tags=["proposals"])
 async def get_proposal_memo_lineage(
     proposal_id: str = PROPOSAL_ID_PATH,
 ) -> ProposalMemoLineageEnvelopeResponse:
-    service = proposal_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_proposal_memo_lineage(
+    return await _get_proposal_memo_lineage(
         proposal_id=proposal_id,
-        correlation_id=correlation_id,
     )
