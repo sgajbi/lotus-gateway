@@ -9,6 +9,9 @@ from app.routers.bank_demo_proof import router as bank_demo_proof_router
 from app.routers.composite_performance import router as composite_performance_router
 from app.routers.domain_products import router as domain_products_router
 from app.routers.dpm_command_center import router as dpm_command_center_router
+from app.routers.dpm_command_center_monitoring import (
+    router as dpm_command_center_monitoring_router,
+)
 from app.routers.dpm_command_center_outcome_reviews import (
     router as dpm_command_center_outcome_reviews_router,
 )
@@ -97,6 +100,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(portfolio_performance_router)
     app.include_router(composite_performance_router)
     app.include_router(dpm_command_center_router)
+    app.include_router(dpm_command_center_monitoring_router)
     app.include_router(dpm_command_center_outcome_reviews_router)
     app.include_router(dpm_command_center_pm_quality_router)
     app.include_router(dpm_command_center_pm_quality_fairness_router)
