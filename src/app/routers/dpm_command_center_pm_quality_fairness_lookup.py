@@ -16,10 +16,22 @@ router = APIRouter(
 
 async def _list_pm_operating_quality_fairness_analyses(
     *,
-    filters: dict[str, str | int | None],
+    policy_id: str | None,
+    policy_version: str | None,
+    as_of_date: str | None,
+    state: str | None,
+    limit: int,
+    offset: int,
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await dpm_command_center_service().list_pm_operating_quality_fairness_analyses(
-        filters=filters,
+        filters={
+            "policy_id": policy_id,
+            "policy_version": policy_version,
+            "as_of_date": as_of_date,
+            "state": state,
+            "limit": limit,
+            "offset": offset,
+        },
         correlation_id=correlation_id_var.get(),
     )
 
@@ -46,12 +58,10 @@ async def list_pm_operating_quality_fairness_analyses(
     offset: int = Query(default=0, ge=0, description="Rows to skip."),
 ) -> DpmPmOperatingQualityGatewayResponse:
     return await _list_pm_operating_quality_fairness_analyses(
-        filters={
-            "policy_id": policy_id,
-            "policy_version": policy_version,
-            "as_of_date": as_of_date,
-            "state": state,
-            "limit": limit,
-            "offset": offset,
-        },
+        policy_id=policy_id,
+        policy_version=policy_version,
+        as_of_date=as_of_date,
+        state=state,
+        limit=limit,
+        offset=offset,
     )
