@@ -54,6 +54,22 @@ class LotusCoreQueryClient:
             headers=build_upstream_headers(correlation_id),
         )
 
+    async def _post_query_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="POST",
+            url=f"{self._query_base_url}{path}",
+            json_body=payload,
+            headers=build_upstream_headers(correlation_id),
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,
@@ -263,8 +279,6 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/assets-under-management/query"
-        headers = build_upstream_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -277,15 +291,11 @@ class LotusCoreQueryClient:
             payload["as_of_date"] = as_of_date
         if reporting_currency is not None:
             payload["reporting_currency"] = reporting_currency
-        return await self._request(
+        return await self._post_query_resource(
             operation="core.reporting.assets-under-management.query",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/reporting/assets-under-management/query",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def query_asset_allocation(
@@ -300,8 +310,6 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
         look_through_mode: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/asset-allocation/query"
-        headers = build_upstream_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -316,15 +324,11 @@ class LotusCoreQueryClient:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
-        return await self._request(
+        return await self._post_query_resource(
             operation="core.reporting.asset-allocation.query",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/reporting/asset-allocation/query",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_core_snapshot(
