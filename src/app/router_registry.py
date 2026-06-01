@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
 from app.routers.advisor_cockpit import router as advisor_cockpit_router
 from app.routers.advisor_cockpit_acknowledgements import (
@@ -499,14 +499,22 @@ from app.routers.workbench_sandbox import router as workbench_sandbox_router
 from app.routers.workbench_sandbox_changes import router as workbench_sandbox_changes_router
 
 
+def _include_routers(app: FastAPI, *routers: APIRouter) -> None:
+    for router in routers:
+        app.include_router(router)
+
+
 def register_routers(app: FastAPI) -> None:
-    app.include_router(advisor_cockpit_router)
-    app.include_router(advisor_cockpit_action_lookup_router)
-    app.include_router(advisor_cockpit_acknowledgements_router)
-    app.include_router(advisor_cockpit_preparation_packets_router)
-    app.include_router(advisor_cockpit_snapshot_router)
-    app.include_router(advisor_cockpit_supportability_router)
-    app.include_router(advisor_cockpit_house_view_router)
+    _include_routers(
+        app,
+        advisor_cockpit_router,
+        advisor_cockpit_action_lookup_router,
+        advisor_cockpit_acknowledgements_router,
+        advisor_cockpit_preparation_packets_router,
+        advisor_cockpit_snapshot_router,
+        advisor_cockpit_supportability_router,
+        advisor_cockpit_house_view_router,
+    )
     app.include_router(bank_demo_proof_router)
     app.include_router(bank_demo_supported_claims_router)
     app.include_router(bank_demo_proof_packs_router)
