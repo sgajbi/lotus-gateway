@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -30,7 +30,7 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/capabilities"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.integration.capabilities",
             method="GET",
@@ -50,7 +50,7 @@ class LotusCoreQueryClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/policy/effective"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.integration.policy.effective",
             method="GET",
@@ -67,7 +67,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.portfolios.list",
             method="GET",
@@ -84,7 +84,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.portfolios.get",
             method="GET",
@@ -104,7 +104,7 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
@@ -146,7 +146,7 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {
             "limit": limit,
             "skip": skip,
@@ -201,7 +201,7 @@ class LotusCoreQueryClient:
         include_projected: bool = True,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/cashflow-projection"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {
             "horizon_days": horizon_days,
             "include_projected": str(include_projected).lower(),
@@ -228,7 +228,7 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/portfolios/{portfolio_id}/cash-balances"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
@@ -256,7 +256,7 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/reporting/assets-under-management/query"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -293,7 +293,7 @@ class LotusCoreQueryClient:
         look_through_mode: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/reporting/asset-allocation/query"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -328,7 +328,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "sections": sections,
@@ -356,7 +356,7 @@ class LotusCoreQueryClient:
             f"{self._control_plane_base_url}/integration/portfolios/"
             f"{portfolio_id}/analytics/reference"
         )
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "consumer_system": consumer_system,
@@ -384,7 +384,7 @@ class LotusCoreQueryClient:
             f"{self._control_plane_base_url}/integration/portfolios/"
             f"{portfolio_id}/benchmark-assignment"
         )
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "reporting_currency": reporting_currency,
@@ -411,7 +411,7 @@ class LotusCoreQueryClient:
             f"{self._control_plane_base_url}/integration/portfolios/"
             f"{portfolio_id}/external-order-execution-acknowledgement"
         )
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.integration.portfolios.external-order-execution-acknowledgement.get",
             method="POST",
@@ -429,7 +429,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/overview"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.support.portfolios.overview.get",
             method="GET",
@@ -448,7 +448,7 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/readiness"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
@@ -473,7 +473,7 @@ class LotusCoreQueryClient:
         benchmark_type: str | None = "composite",
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/integration/benchmarks/catalog"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload: dict[str, Any] = {
             "as_of_date": as_of_date,
         }
@@ -500,7 +500,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}/instruments"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         params = {"skip": 0, "limit": limit}
         return await self._request(
             operation="core.instruments.list",
@@ -583,7 +583,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._query_base_url}{path}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation=f"core{path.replace('/', '.')}.get",
             method="GET",
@@ -603,7 +603,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {
             "portfolio_id": portfolio_id,
             "created_by": created_by,
@@ -627,7 +627,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/changes"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {"changes": changes}
         return await self._request(
             operation="core.simulation-sessions.changes.add",
@@ -646,7 +646,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.simulation-sessions.projected-positions.get",
             method="GET",
@@ -663,7 +663,7 @@ class LotusCoreQueryClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="core.simulation-sessions.projected-summary.get",
             method="GET",
