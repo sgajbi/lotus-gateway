@@ -12,24 +12,14 @@ from app.services.performance_workspace_controls import (
 
 
 def test_resolve_report_start_date_uses_canonical_period_boundaries() -> None:
-    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(
-        2026, 3, 1
-    )
-    assert resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(
-        2026, 4, 1
-    )
-    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(
-        2026, 1, 1
-    )
-    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(
-        2025, 4, 1
-    )
+    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="MTD") == date(2026, 3, 1)
+    assert resolve_report_start_date(as_of_date=date(2026, 5, 24), period="QTD") == date(2026, 4, 1)
+    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="YTD") == date(2026, 1, 1)
+    assert resolve_report_start_date(as_of_date=date(2026, 3, 31), period="1Y") == date(2025, 4, 1)
 
 
 def test_resolve_report_start_date_handles_leap_day_anniversaries() -> None:
-    assert resolve_report_start_date(as_of_date=date(2024, 2, 29), period="1Y") == date(
-        2023, 3, 1
-    )
+    assert resolve_report_start_date(as_of_date=date(2024, 2, 29), period="1Y") == date(2023, 3, 1)
 
 
 def test_resolve_requested_window_swaps_reversed_explicit_dates() -> None:
@@ -62,10 +52,13 @@ def test_workspace_control_normalizers_append_warnings_for_unsupported_values() 
         warnings=warnings,
         warning_code="DIMENSION_NORMALIZED",
     ) == ("asset_class", False)
-    assert normalize_attribution_trend_frequency(
-        chart_frequency="weekly",
-        warnings=warnings,
-    ) == "monthly"
+    assert (
+        normalize_attribution_trend_frequency(
+            chart_frequency="weekly",
+            warnings=warnings,
+        )
+        == "monthly"
+    )
 
     assert warnings == [
         "FREQUENCY_NORMALIZED",
