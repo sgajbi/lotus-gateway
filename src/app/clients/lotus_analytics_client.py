@@ -248,8 +248,6 @@ class LotusAnalyticsClient:
         period: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/performance/twr"
-        headers = build_upstream_headers(correlation_id)
         payload = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
@@ -259,26 +257,11 @@ class LotusAnalyticsClient:
             "analyses": [{"period": period, "frequencies": ["daily", "monthly"]}],
             "stateful_input": {},
         }
-        status_code, response_payload = await request_with_retry(
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
-            retry_timeout_exceptions=False,
+        return await self._post_analytics_request(
+            path="/performance/twr",
+            payload=payload,
+            correlation_id=correlation_id,
         )
-        if status_code == 202 and isinstance(response_payload, dict):
-            result_path = response_payload.get("result_path") or response_payload.get("resultPath")
-            if isinstance(result_path, str) and result_path:
-                return await self._poll_async_result(
-                    result_path=result_path,
-                    correlation_id=correlation_id,
-                    service="lotus-performance",
-                    operation="performance.twr",
-                )
-        return status_code, response_payload
 
     async def get_twr_analytics(
         self,
