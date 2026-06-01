@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workbench_service import WorkbenchService
 
 
@@ -261,44 +262,39 @@ def test_parse_performance_snapshot_falls_back_to_first_period_key():
     ],
 )
 def test_parse_dpm_snapshot_handles_exception_and_invalid_result_shape(result, warning):
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_dpm_snapshot(result, partial_failures, warnings)
+    parsed = parse_rebalance_snapshot(result, partial_failures, warnings)
     assert parsed is None
     assert warning in warnings
     assert len(partial_failures) == 1
 
 
 def test_parse_dpm_snapshot_handles_invalid_payload_type():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_dpm_snapshot((200, "bad-payload"), partial_failures, warnings)
+    parsed = parse_rebalance_snapshot((200, "bad-payload"), partial_failures, warnings)
     assert parsed is None
     assert partial_failures[0].error_code == "INVALID_UPSTREAM_PAYLOAD"
 
 
 def test_parse_dpm_snapshot_handles_http_error():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_dpm_snapshot((500, {"detail": "dpm down"}), partial_failures, warnings)
+    parsed = parse_rebalance_snapshot((500, {"detail": "dpm down"}), partial_failures, warnings)
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_500"
 
 
 def test_parse_dpm_snapshot_with_no_items_returns_not_available():
-    service, _, _, _ = _build_service()
-    parsed = service._parse_dpm_snapshot((200, {"items": []}), [], [])
+    parsed = parse_rebalance_snapshot((200, {"items": []}), [], [])
     assert parsed is not None
     assert parsed.status == "NOT_AVAILABLE"
 
 
 def test_parse_dpm_snapshot_with_datetime_created_at_converts_to_utc():
-    service, _, _, _ = _build_service()
     created = datetime(2026, 2, 24, 10, 15, tzinfo=UTC)
-    parsed = service._parse_dpm_snapshot(
+    parsed = parse_rebalance_snapshot(
         (200, {"items": [{"status": "READY", "created_at": created, "rebalance_run_id": "rr-1"}]}),
         [],
         [],
@@ -310,8 +306,7 @@ def test_parse_dpm_snapshot_with_datetime_created_at_converts_to_utc():
 
 
 def test_parse_dpm_snapshot_uses_live_shape_supportability_summary():
-    service, _, _, _ = _build_service()
-    parsed = service._parse_dpm_snapshot(
+    parsed = parse_rebalance_snapshot(
         (
             200,
             {
@@ -349,6 +344,67 @@ def test_parse_dpm_snapshot_uses_live_shape_supportability_summary():
     assert parsed.supportability.state == "ready"
     assert parsed.supportability.freshness_bucket == "current"
     assert parsed.supportability.run_count == 82
+
+
+def test_parse_dpm_snapshot_records_supportability_summary_failure():
+    partial_failures = []
+    warnings = []
+    parsed = parse_rebalance_snapshot(
+        (200, {"items": [{"status": "READY"}]}),
+        partial_failures,
+        warnings,
+        supportability_result=(503, {"detail": "summary unavailable"}),
+    )
+    assert parsed is not None
+    assert parsed.supportability is None
+    assert warnings == ["MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE"]
+    assert partial_failures[0].error_code == "SUPPORTABILITY_HTTP_503"
+
+
+def test_parse_dpm_snapshot_merges_supportability_counts_from_summary_root():
+    parsed = parse_rebalance_snapshot(
+        (200, {"items": [{"status": "READY"}]}),
+        [],
+        [],
+        supportability_result=(
+            200,
+            {
+                "run_count": 3,
+                "operation_count": 2,
+                "workflow_decision_count": 1,
+                "supportability": {"state": "ready"},
+            },
+        ),
+    )
+    assert parsed is not None
+    assert parsed.supportability is not None
+    assert parsed.supportability.run_count == 3
+    assert parsed.supportability.operation_count == 2
+    assert parsed.supportability.workflow_decision_count == 1
+
+
+def test_parse_dpm_snapshot_preserves_recent_run_error_and_workflow_state():
+    parsed = parse_rebalance_snapshot(
+        (
+            200,
+            {
+                "items": [
+                    {
+                        "status": "FAILED",
+                        "rebalance_run_id": "rr-1",
+                        "created_at": "2026-02-24T00:00:00Z",
+                        "error": {"code": "SOURCE_GAP"},
+                        "workflow_decision_state": "NEEDS_REVIEW",
+                    }
+                ]
+            },
+        ),
+        [],
+        [],
+    )
+    assert parsed is not None
+    assert parsed.recent_runs[0].error_code == "SOURCE_GAP"
+    assert parsed.recent_runs[0].workflow_state == "NEEDS_REVIEW"
 
 
 @pytest.mark.parametrize(
@@ -665,15 +721,13 @@ def test_parse_performance_snapshot_none_period_key_returns_none():
 
 
 def test_parse_dpm_snapshot_non_dict_latest_returns_not_available():
-    service, _, _, _ = _build_service()
-    result = service._parse_dpm_snapshot((200, {"items": ["bad"]}), [], [])
+    result = parse_rebalance_snapshot((200, {"items": ["bad"]}), [], [])
     assert result is not None
     assert result.status == "NOT_AVAILABLE"
 
 
 def test_parse_dpm_snapshot_without_created_at_keeps_last_run_null():
-    service, _, _, _ = _build_service()
-    result = service._parse_dpm_snapshot((200, {"items": [{"status": "READY"}]}), [], [])
+    result = parse_rebalance_snapshot((200, {"items": [{"status": "READY"}]}), [], [])
     assert result is not None
     assert result.last_run_at_utc is None
 
