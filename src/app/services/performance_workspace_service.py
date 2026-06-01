@@ -101,6 +101,10 @@ from app.services.performance_workspace_projection import (
     project_workspace_summary,
     snapshot_point_as_of_date,
 )
+from app.services.performance_workspace_returns import (
+    build_workspace_comparative_summary,
+    extract_twr_workspace_block,
+)
 from app.services.workbench_service import WorkbenchService
 from app.services.workspace_client_protocols import (
     PerformanceWorkspaceAnalyticsClient,
@@ -1308,19 +1312,19 @@ class PerformanceWorkspaceService:
 
         benchmark_block = period_payload.get("benchmark", {})
         active_block = period_payload.get("active", {})
-        net_block = self._extract_twr_workspace_block(period_payload, "net")
-        gross_block = self._extract_twr_workspace_block(period_payload, "gross")
+        net_block = extract_twr_workspace_block(period_payload, "net")
+        gross_block = extract_twr_workspace_block(period_payload, "gross")
         money_weighted_return = self._build_workspace_mwr_summary(period_payload)
         contribution = self._build_workspace_contribution(period_payload)
         attribution = self._build_workspace_attribution(period_payload)
 
-        net_summary = self._build_workspace_comparative_summary(
+        net_summary = build_workspace_comparative_summary(
             metric_basis="NET",
             portfolio_block=net_block,
             benchmark_block=benchmark_block,
             active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
         )
-        gross_summary = self._build_workspace_comparative_summary(
+        gross_summary = build_workspace_comparative_summary(
             metric_basis="GROSS",
             portfolio_block=gross_block,
             benchmark_block=benchmark_block,
@@ -1419,8 +1423,8 @@ class PerformanceWorkspaceService:
                 continue
             benchmark_block = period_payload.get("benchmark", {})
             active_block = period_payload.get("active", {})
-            net_block = self._extract_twr_workspace_block(period_payload, "net")
-            gross_block = self._extract_twr_workspace_block(period_payload, "gross")
+            net_block = extract_twr_workspace_block(period_payload, "net")
+            gross_block = extract_twr_workspace_block(period_payload, "gross")
             net_summary_payload = (
                 net_block.get("summary", {}) if isinstance(net_block, dict) else {}
             )
@@ -1430,7 +1434,7 @@ class PerformanceWorkspaceService:
                 if isinstance(net_summary_payload, dict)
                 else {}
             )
-            comparative = self._build_workspace_comparative_summary(
+            comparative = build_workspace_comparative_summary(
                 metric_basis=detail_basis.upper(),
                 portfolio_block=net_block,
                 benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
@@ -1528,67 +1532,6 @@ class PerformanceWorkspaceService:
             if resolved_benchmark_code is None:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
-
-    def _extract_twr_workspace_block(
-        self, period_payload: dict[str, Any], basis: str
-    ) -> dict[str, Any]:
-        portfolio_twr = period_payload.get("portfolio_twr", {})
-        if not isinstance(portfolio_twr, dict):
-            return {}
-        block = portfolio_twr.get(basis.lower(), {})
-        return block if isinstance(block, dict) else {}
-
-    def _build_workspace_comparative_summary(
-        self,
-        *,
-        metric_basis: str,
-        portfolio_block: dict[str, Any],
-        benchmark_block: dict[str, Any],
-        active_basis_block: Any,
-    ) -> PerformanceComparativeSummary:
-        active_payload = active_basis_block if isinstance(active_basis_block, dict) else {}
-        economics = (
-            portfolio_block.get("summary", {}).get("economics", {})
-            if isinstance(portfolio_block.get("summary"), dict)
-            else {}
-        )
-        return PerformanceComparativeSummary(
-            metric_basis=metric_basis,
-            portfolio_return_pct=extract_return(
-                portfolio_block, "summary", "period_return", "base"
-            ),
-            benchmark_return_pct=extract_return(
-                benchmark_block, "summary", "period_return", "base"
-            ),
-            active_return_pct=extract_return(active_payload, "period_return", "base"),
-            annualized_return_pct=extract_return(
-                portfolio_block, "summary", "annualized_return", "base"
-            ),
-            benchmark_id=safe_str(benchmark_block.get("benchmark_id")),
-            benchmark_return_source=safe_str(benchmark_block.get("return_source")),
-            benchmark_input_mode=safe_str(benchmark_block.get("input_mode")),
-            begin_market_value=quantize_optional(economics.get("begin_market_value"))
-            if isinstance(economics, dict)
-            else None,
-            end_market_value=quantize_optional(economics.get("end_market_value"))
-            if isinstance(economics, dict)
-            else None,
-            beginning_cash_flow=quantize_optional(economics.get("beginning_cash_flow"))
-            if isinstance(economics, dict)
-            else None,
-            ending_cash_flow=quantize_optional(economics.get("ending_cash_flow"))
-            if isinstance(economics, dict)
-            else None,
-            flow_adjusted_end_market_value=quantize_optional(
-                economics.get("flow_adjusted_end_market_value")
-            )
-            if isinstance(economics, dict)
-            else None,
-            net_cash_flow=quantize_optional(economics.get("net_cash_flow"))
-            if isinstance(economics, dict)
-            else None,
-            fees=quantize_optional(economics.get("fees")) if isinstance(economics, dict) else None,
-        )
 
     def _build_workspace_chart_points(
         self,
