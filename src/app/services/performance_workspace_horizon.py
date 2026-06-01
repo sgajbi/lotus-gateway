@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from datetime import date
 from typing import Any, TypeAlias, cast
 
@@ -142,7 +143,7 @@ async def fetch_standard_horizon_workspace_summary(
 
 def merge_standard_horizon_results(
     *,
-    gathered_results: list[UpstreamResult | BaseException],
+    gathered_results: Sequence[UpstreamResult | BaseException],
     month_start: str,
     quarter_start: str,
     report_end_date: str,
