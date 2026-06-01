@@ -622,22 +622,28 @@ def register_routers(app: FastAPI) -> None:
         foundation_router,
         foundation_workspace_router,
     )
-    app.include_router(portfolio_router)
-    app.include_router(portfolio_workspace_router)
-    app.include_router(portfolio_readiness_router)
-    app.include_router(portfolio_insights_router)
-    app.include_router(portfolio_income_summary_router)
-    app.include_router(portfolio_activity_router)
-    app.include_router(portfolio_transactions_router)
-    app.include_router(portfolio_book_router)
-    app.include_router(portfolio_liquidity_router)
-    app.include_router(portfolio_projected_cashflow_router)
-    app.include_router(portfolio_allocations_router)
-    app.include_router(portfolio_positions_router)
-    app.include_router(portfolio_performance_router)
-    app.include_router(portfolio_workflow_router)
-    app.include_router(composite_performance_router)
-    app.include_router(composite_performance_inspection_router)
+    _include_routers(
+        app,
+        portfolio_router,
+        portfolio_workspace_router,
+        portfolio_readiness_router,
+        portfolio_insights_router,
+        portfolio_income_summary_router,
+        portfolio_activity_router,
+        portfolio_transactions_router,
+        portfolio_book_router,
+        portfolio_liquidity_router,
+        portfolio_projected_cashflow_router,
+        portfolio_allocations_router,
+        portfolio_positions_router,
+        portfolio_performance_router,
+        portfolio_workflow_router,
+    )
+    _include_routers(
+        app,
+        composite_performance_router,
+        composite_performance_inspection_router,
+    )
     app.include_router(dpm_command_center_router)
     app.include_router(dpm_command_center_mandates_router)
     app.include_router(dpm_command_center_mandate_detail_router)
