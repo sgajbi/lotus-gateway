@@ -103,9 +103,7 @@ def test_snapshot_point_as_of_date_prefers_period_end_then_start_then_label():
         == "2026-03-01"
     )
     assert (
-        snapshot_point_as_of_date(
-            PerformanceChartPoint(label="Fallback", frequency="monthly")
-        )
+        snapshot_point_as_of_date(PerformanceChartPoint(label="Fallback", frequency="monthly"))
         == "Fallback"
     )
 
