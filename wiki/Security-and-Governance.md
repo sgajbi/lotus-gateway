@@ -21,6 +21,8 @@
 
 - OpenAPI contract proof is active
 - migration smoke, monetary-float guard, and security audit remain active
+- monetary-float approvals are matched in a line-shift tolerant way, so routine formatting changes
+  do not force import-order suppressions or approval churn
 - Docker parity matters because this is a live integration boundary
 - gateway must not smuggle domain logic out of authoritative upstream services
 

@@ -1,6 +1,8 @@
 import argparse
 import json
 import re
+from collections import defaultdict
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -21,6 +23,33 @@ IGNORE_DIRS = {"tests", "venv", "docs", "rfcs", "output", "build", "dist", "__py
 IGNORE_DIR_PREFIXES = (".venv",)
 
 FLOAT_ANNOTATION = re.compile(r"\bfloat\b")
+
+
+def _split_finding(finding: str) -> tuple[str, int, str] | None:
+    try:
+        path, line_no, source = finding.split(":", maxsplit=2)
+    except ValueError:
+        return None
+    if not line_no.isdecimal():
+        return None
+    return path, int(line_no), source.strip()
+
+
+def stable_finding_keys(findings: Iterable[str]) -> dict[str, str]:
+    grouped: dict[tuple[str, str], list[tuple[int, str]]] = defaultdict(list)
+    keys: dict[str, str] = {}
+    for finding in set(findings):
+        parsed = _split_finding(finding)
+        if parsed is None:
+            keys[finding] = finding
+            continue
+        path, line_no, source = parsed
+        grouped[(path, source)].append((line_no, finding))
+
+    for (path, source), occurrences in grouped.items():
+        for occurrence, (_, finding) in enumerate(sorted(occurrences), start=1):
+            keys[finding] = f"{path}:{source}:occurrence={occurrence}"
+    return keys
 
 
 def is_candidate(path: Path) -> bool:
@@ -100,14 +129,32 @@ def load_allowlist(path: Path) -> tuple[dict[str, dict], list[str], list[str]]:
     return entries, errors, stale
 
 
+def find_unapproved_findings(findings: list[str], allowlist_entries: dict[str, dict]) -> list[str]:
+    allowlisted_keys = set(stable_finding_keys(allowlist_entries).values())
+    finding_keys = stable_finding_keys(findings)
+    return sorted(
+        finding
+        for finding in set(findings)
+        if finding not in allowlist_entries and finding_keys[finding] not in allowlisted_keys
+    )
+
+
 def write_allowlist(
     path: Path, findings: list[str], existing_entries: dict[str, dict], review_by: str
 ) -> None:
     generated_at = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    existing_by_stable_key = {
+        key: existing_entries[finding]
+        for finding, key in stable_finding_keys(existing_entries).items()
+    }
+    refreshed_finding_keys = stable_finding_keys(findings)
     allowlist_entries: list[dict] = []
     for finding in sorted(set(findings)):
-        if finding in existing_entries:
-            allowlist_entries.append(existing_entries[finding])
+        existing = existing_entries.get(finding) or existing_by_stable_key.get(
+            refreshed_finding_keys[finding]
+        )
+        if existing:
+            allowlist_entries.append({**existing, "finding": finding})
             continue
         allowlist_entries.append(
             {
@@ -168,7 +215,7 @@ def main() -> int:
         print(f"\nUpdate {allowlist_path} with refreshed review dates and remediation status.")
         return 1
 
-    unexpected = sorted(set(findings) - set(allowlist_entries))
+    unexpected = find_unapproved_findings(findings, allowlist_entries)
 
     if unexpected:
         print("Unauthorized monetary float usage detected:")
