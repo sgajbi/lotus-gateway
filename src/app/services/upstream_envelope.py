@@ -108,6 +108,33 @@ def build_upstream_status_payload_gateway_envelope(
     )
 
 
+def build_product_safe_upstream_status_payload_gateway_envelope(
+    response_model: type[EnvelopeT],
+    *,
+    correlation_id: str,
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    error_model: type[ErrorDetailT],
+    error_code: str,
+    default_detail: str,
+) -> EnvelopeT:
+    """Raise product-safe upstream errors, otherwise build a payload-only envelope."""
+
+    raise_product_safe_upstream_error(
+        upstream_status,
+        upstream_payload,
+        error_model=error_model,
+        error_code=error_code,
+        default_detail=default_detail,
+    )
+    return build_upstream_status_payload_gateway_envelope(
+        response_model,
+        correlation_id=correlation_id,
+        upstream_status=upstream_status,
+        upstream_payload=upstream_payload,
+    )
+
+
 def raise_for_upstream_error(
     upstream_status: int,
     upstream_payload: dict[str, Any],
