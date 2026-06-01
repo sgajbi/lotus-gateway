@@ -96,9 +96,59 @@ def normalize_evidence_surface_supportability(payload: dict[str, Any]) -> dict[s
 
     return {
         **fallback_evidence_surface_supportability("evidence_surface_supportability_unknown"),
-        **raw_supportability,
         "feature_key": "report.observability.evidence_surface_supportability",
+        "state": str(raw_supportability.get("state") or "partial"),
+        "reason": str(
+            raw_supportability.get("reason") or "evidence_surface_supportability_unknown"
+        ),
+        "freshness_bucket": str(
+            raw_supportability.get("freshnessBucket")
+            or raw_supportability.get("freshness_bucket")
+            or "unknown"
+        ),
+        "evidence_feature_count": _non_negative_int(
+            _alias_value(raw_supportability, "evidenceFeatureCount", "evidence_feature_count")
+        ),
+        "ready_evidence_feature_count": _non_negative_int(
+            _alias_value(
+                raw_supportability,
+                "readyEvidenceFeatureCount",
+                "ready_evidence_feature_count",
+            )
+        ),
+        "degraded_evidence_feature_count": _non_negative_int(
+            _alias_value(
+                raw_supportability,
+                "degradedEvidenceFeatureCount",
+                "degraded_evidence_feature_count",
+            )
+        ),
+        "workflow_count": _non_negative_int(
+            _alias_value(raw_supportability, "workflowCount", "workflow_count")
+        ),
+        "ready_workflow_count": _non_negative_int(
+            _alias_value(raw_supportability, "readyWorkflowCount", "ready_workflow_count")
+        ),
     }
+
+
+def _alias_value(payload: dict[str, Any], camel_case_key: str, snake_case_key: str) -> Any:
+    if camel_case_key in payload:
+        return payload[camel_case_key]
+    return payload.get(snake_case_key)
+
+
+def _non_negative_int(value: Any) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return max(value, 0)
+    if isinstance(value, str):
+        try:
+            return max(int(value), 0)
+        except ValueError:
+            return 0
+    return 0
 
 
 async def get_evidence_surface_supportability(
