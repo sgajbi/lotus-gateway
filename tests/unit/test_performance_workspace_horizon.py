@@ -88,9 +88,7 @@ async def test_fetch_workspace_horizon_dependencies_calls_explicit_summary_once(
         "reporting_currency": "USD",
         "segment": "asset_class",
         "correlation_id": "corr-1",
-        "periods": [
-            {"period": "EXPLICIT", "frequencies": ["monthly", "quarterly", "yearly"]}
-        ],
+        "periods": [{"period": "EXPLICIT", "frequencies": ["monthly", "quarterly", "yearly"]}],
         "include_detail_blocks": False,
     }
 
