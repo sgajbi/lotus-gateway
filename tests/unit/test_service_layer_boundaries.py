@@ -128,6 +128,23 @@ def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     assert private_request_builders == []
 
 
+def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None:
+    path = _SERVICE_ROOT / "advisor_brief_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    workflow_pack_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and (
+            "workflow_pack_run" in node.name
+            or "workflow_pack_task_flow" in node.name
+            or node.name == "_assert_advisor_brief_review_action_allowed"
+        )
+    )
+
+    assert workflow_pack_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
