@@ -217,6 +217,12 @@ class _BinarySuccessAsyncClient:
         )
 
 
+class _UnexpectedAsyncClient:
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout, follow_redirects
+        raise AssertionError("AsyncClient should not be opened for unsupported methods")
+
+
 @pytest.mark.asyncio
 async def test_request_with_retry_retries_on_timeout(monkeypatch):
     _FlakyAsyncClient.calls = 0
@@ -369,6 +375,20 @@ async def test_request_with_retry_clamps_negative_retry_configuration(monkeypatc
     assert _RedirectAwareAsyncClient.requested_urls == ["http://service/health"]
 
 
+@pytest.mark.asyncio
+async def test_request_with_retry_rejects_unsupported_method(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _UnexpectedAsyncClient)
+
+    status, payload = await request_with_retry(
+        method="PATCH",
+        url="http://service/health",
+        timeout_seconds=1.0,
+    )
+
+    assert status == 503
+    assert payload == {"detail": "unsupported upstream HTTP method: PATCH"}
+
+
 class _RedirectAwareAsyncClient:
     requested_urls: list[str] = []
     follow_redirects = None
@@ -466,3 +486,19 @@ async def test_request_binary_with_retry_clamps_negative_retry_configuration(mon
     assert headers["content-type"] == "application/pdf"
     assert error_payload == {}
     assert _BinarySuccessAsyncClient.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_request_binary_with_retry_rejects_unsupported_method(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _UnexpectedAsyncClient)
+
+    status, content, headers, error_payload = await request_binary_with_retry(
+        method="PUT",
+        url="http://archive/documents/doc_1/download",
+        timeout_seconds=1.0,
+    )
+
+    assert status == 503
+    assert content == b""
+    assert headers == {}
+    assert error_payload == {"detail": "unsupported upstream HTTP method: PUT"}

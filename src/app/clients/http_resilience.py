@@ -3,6 +3,9 @@ from typing import Any
 
 import httpx
 
+_BINARY_REQUEST_METHODS = frozenset({"GET", "POST"})
+_JSON_REQUEST_METHODS = frozenset({"GET", "POST", "PUT"})
+
 
 def _retry_attempts(max_retries: int) -> int:
     return max(0, max_retries) + 1
@@ -23,6 +26,11 @@ def _response_payload(response: httpx.Response) -> dict[str, Any]:
     return {"detail": payload}
 
 
+def _unsupported_method_payload(method: str) -> dict[str, str]:
+    request_method = method.upper() or "<blank>"
+    return {"detail": f"unsupported upstream HTTP method: {request_method}"}
+
+
 async def request_with_retry(
     *,
     method: str,
@@ -38,6 +46,10 @@ async def request_with_retry(
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
 ) -> tuple[int, dict[str, Any]]:
+    request_method = method.upper()
+    if request_method not in _JSON_REQUEST_METHODS:
+        return 503, _unsupported_method_payload(method)
+
     attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
@@ -45,7 +57,6 @@ async def request_with_retry(
                 timeout=timeout_seconds,
                 follow_redirects=True,
             ) as client:
-                request_method = method.upper()
                 if request_method == "GET":
                     response = await client.get(url, params=params, headers=headers)
                 elif request_method == "PUT":
@@ -91,6 +102,10 @@ async def request_binary_with_retry(
     headers: dict[str, str] | None = None,
     retry_timeout_exceptions: bool = True,
 ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]:
+    request_method = method.upper()
+    if request_method not in _BINARY_REQUEST_METHODS:
+        return 503, b"", {}, _unsupported_method_payload(method)
+
     attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
@@ -98,7 +113,7 @@ async def request_binary_with_retry(
                 timeout=timeout_seconds,
                 follow_redirects=True,
             ) as client:
-                if method.upper() == "GET":
+                if request_method == "GET":
                     response = await client.get(url, params=params, headers=headers)
                 else:
                     response = await client.post(url, headers=headers)
