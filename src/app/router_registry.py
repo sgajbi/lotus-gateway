@@ -536,21 +536,24 @@ def register_routers(app: FastAPI) -> None:
         advisory_workspace_rationale_reviews_router,
         advisory_workspace_handoff_router,
     )
-    app.include_router(advisory_policy_router)
-    app.include_router(advisory_policy_pack_detail_router)
-    app.include_router(advisory_policy_actions_router)
-    app.include_router(advisory_policy_evaluations_router)
-    app.include_router(advisory_policy_review_queue_router)
-    app.include_router(advisory_policy_evaluation_detail_router)
-    app.include_router(advisory_policy_evaluation_evidence_router)
-    app.include_router(advisory_policy_evaluation_workflow_router)
-    app.include_router(advisory_policy_evaluation_actions_router)
-    app.include_router(advisory_policy_evaluation_events_router)
-    app.include_router(advisory_policy_evaluation_support_actions_router)
-    app.include_router(advisory_policy_sign_off_decisions_router)
-    app.include_router(advisory_policy_sign_off_package_router)
-    app.include_router(advisory_policy_ai_evidence_router)
-    app.include_router(advisory_policy_validation_router)
+    _include_routers(
+        app,
+        advisory_policy_router,
+        advisory_policy_pack_detail_router,
+        advisory_policy_actions_router,
+        advisory_policy_evaluations_router,
+        advisory_policy_review_queue_router,
+        advisory_policy_evaluation_detail_router,
+        advisory_policy_evaluation_evidence_router,
+        advisory_policy_evaluation_workflow_router,
+        advisory_policy_evaluation_actions_router,
+        advisory_policy_evaluation_events_router,
+        advisory_policy_evaluation_support_actions_router,
+        advisory_policy_sign_off_decisions_router,
+        advisory_policy_sign_off_package_router,
+        advisory_policy_ai_evidence_router,
+        advisory_policy_validation_router,
+    )
     app.include_router(proposal_generation_router)
     app.include_router(proposal_artifact_router)
     app.include_router(proposal_create_router)
