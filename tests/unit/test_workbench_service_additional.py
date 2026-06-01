@@ -3,11 +3,21 @@ from datetime import UTC, datetime
 import pytest
 from fastapi import HTTPException
 
-from app.contracts.workbench import WorkbenchPositionView, WorkbenchProjectedPositionView
+from app.contracts.workbench import (
+    WorkbenchOverviewSummary,
+    WorkbenchPartialFailure,
+    WorkbenchPerformanceSnapshot,
+    WorkbenchPortfolio360Response,
+    WorkbenchPortfolioSummary,
+    WorkbenchPositionView,
+    WorkbenchProjectedPositionView,
+)
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
+    build_workbench_return_metrics,
     build_workbench_top_changes,
     quantity_change_direction,
+    with_controlled_risk_bff_gap,
     workbench_position_bucket_key,
 )
 from app.services.workbench_core_snapshot import (
@@ -890,6 +900,56 @@ def test_build_workbench_top_changes_orders_limits_and_skips_unchanged_rows():
     assert "EQ_0" not in {change.security_id for change in top_changes}
     assert top_changes[1].security_id == "EQ_11"
     assert top_changes[1].direction == "INCREASE"
+
+
+def test_with_controlled_risk_bff_gap_appends_bounded_failure_once_per_projection():
+    portfolio_360 = WorkbenchPortfolio360Response(
+        correlation_id="corr-1",
+        contract_version="v1",
+        as_of_date="2026-02-24",
+        portfolio=WorkbenchPortfolioSummary(portfolio_id="P1", base_currency="USD"),
+        overview=WorkbenchOverviewSummary(
+            market_value_base=100.0,
+            cash_weight_pct=10.0,
+            position_count=1,
+        ),
+        warnings=["RISK_BFF_PENDING"],
+        partial_failures=[
+            WorkbenchPartialFailure(
+                source_service="lotus-performance",
+                error_code="HTTP_503",
+                detail="performance unavailable",
+            )
+        ],
+    )
+
+    projected = with_controlled_risk_bff_gap(portfolio_360)
+
+    assert projected is not portfolio_360
+    assert projected.warnings == ["RISK_BFF_PENDING"]
+    assert [failure.source_service for failure in projected.partial_failures] == [
+        "lotus-performance",
+        "risk",
+    ]
+    assert projected.partial_failures[-1].error_code == "RISK_BFF_NOT_IMPLEMENTED"
+
+
+def test_build_workbench_return_metrics_quantizes_active_return():
+    portfolio_return, benchmark_return, active_return = build_workbench_return_metrics(
+        WorkbenchPerformanceSnapshot(
+            period="YTD",
+            return_pct=1.23456,
+            benchmark_return_pct=0.11111,
+        )
+    )
+
+    assert portfolio_return == pytest.approx(1.23456)
+    assert benchmark_return == pytest.approx(0.11111)
+    assert active_return == pytest.approx(1.12345)
+
+
+def test_build_workbench_return_metrics_handles_missing_performance_snapshot():
+    assert build_workbench_return_metrics(None) == (None, None, None)
 
 
 @pytest.mark.parametrize(

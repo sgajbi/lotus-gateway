@@ -22,10 +22,11 @@ from app.contracts.workbench import (
     WorkbenchRebalanceSnapshot,
     WorkbenchSandboxStateResponse,
 )
-from app.precision_policy import quantize_performance
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
+    build_workbench_return_metrics,
     build_workbench_top_changes,
+    with_controlled_risk_bff_gap,
 )
 from app.services.workbench_core_snapshot import (
     extract_current_positions,
@@ -284,37 +285,13 @@ class WorkbenchService:
                 projected_positions=portfolio_360.projected_positions,
             )
             top_changes = build_workbench_top_changes(portfolio_360.projected_positions)
-            warnings = list(portfolio_360.warnings)
-            if "RISK_BFF_PENDING" not in warnings:
-                warnings.append("RISK_BFF_PENDING")
-            partial_failures = list(portfolio_360.partial_failures)
-            partial_failures.append(
-                WorkbenchPartialFailure(
-                    source_service="risk",
-                    error_code="RISK_BFF_NOT_IMPLEMENTED",
-                    detail=(
-                        "Legacy workbench risk proxy was removed. Stateful concentration risk "
-                        "will be restored through the RFC-0022 Gateway Risk BFF."
-                    ),
-                )
-            )
-            portfolio_360 = portfolio_360.model_copy(
-                update={"warnings": warnings, "partial_failures": partial_failures}
-            )
-            portfolio_return = (
-                portfolio_360.performance_snapshot.return_pct
-                if portfolio_360.performance_snapshot is not None
-                else None
-            )
-            benchmark_return = (
-                portfolio_360.performance_snapshot.benchmark_return_pct
-                if portfolio_360.performance_snapshot is not None
-                else None
-            )
-            active_return = (
-                float(portfolio_return) - float(benchmark_return)
-                if portfolio_return is not None and benchmark_return is not None
-                else None
+            portfolio_360 = with_controlled_risk_bff_gap(portfolio_360)
+            (
+                portfolio_return_pct,
+                benchmark_return_pct,
+                active_return_pct,
+            ) = build_workbench_return_metrics(
+                portfolio_360.performance_snapshot,
             )
         except (TypeError, ValueError) as exc:
             raise HTTPException(
@@ -330,19 +307,9 @@ class WorkbenchService:
             period=period,
             group_by=group_by,
             benchmark_code=benchmark_code,
-            portfolio_return_pct=(
-                float(quantize_performance(portfolio_return))
-                if portfolio_return is not None
-                else None
-            ),
-            benchmark_return_pct=(
-                float(quantize_performance(benchmark_return))
-                if benchmark_return is not None
-                else None
-            ),
-            active_return_pct=(
-                float(quantize_performance(active_return)) if active_return is not None else None
-            ),
+            portfolio_return_pct=portfolio_return_pct,
+            benchmark_return_pct=benchmark_return_pct,
+            active_return_pct=active_return_pct,
             allocation_buckets=allocation_buckets,
             top_changes=top_changes,
             warnings=portfolio_360.warnings,
