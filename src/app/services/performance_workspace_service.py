@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Awaitable, Mapping, Sequence
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, TypeAlias, cast
 
 from fastapi import HTTPException
@@ -51,6 +51,19 @@ from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialF
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_controls import (
+    SUPPORTED_WORKSPACE_FREQUENCIES,
+    build_attribution_trend_windows,
+    last_day_of_month,
+    normalize_attribution_trend_frequency,
+    normalize_workspace_chart_frequency,
+    normalize_workspace_dimension,
+    resolve_attribution_trend_window_end,
+    resolve_report_start_date,
+    resolve_requested_window,
+    resolve_workspace_summary_request,
+    shift_years,
+)
 from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
@@ -73,8 +86,6 @@ STANDARD_PERIOD_ANALYSES = (
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
 SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
-SUPPORTED_WORKSPACE_FREQUENCIES = ("monthly", "quarterly")
-SUPPORTED_WORKSPACE_SUMMARY_PERIODS = ("YTD", "1Y", "2Y", "5Y", "10Y", "SI", "EXPLICIT")
 LINEAGE_COMPLETION_POLL_ATTEMPTS = 3
 LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
 
@@ -1944,11 +1955,12 @@ class PerformanceWorkspaceService:
         warnings: list[str],
         warning_code: str,
     ) -> tuple[str, bool]:
-        normalized_dimension = requested_dimension.strip().lower()
-        if normalized_dimension in supported_dimensions:
-            return normalized_dimension, True
-        warnings.append(warning_code)
-        return supported_dimensions[0], False
+        return normalize_workspace_dimension(
+            requested_dimension=requested_dimension,
+            supported_dimensions=supported_dimensions,
+            warnings=warnings,
+            warning_code=warning_code,
+        )
 
     def _normalize_workspace_chart_frequency(
         self,
@@ -1957,11 +1969,11 @@ class PerformanceWorkspaceService:
         warnings: list[str],
         warning_code: str = "PERFORMANCE_CHART_FREQUENCY_NORMALIZED",
     ) -> tuple[str, bool]:
-        normalized_frequency = chart_frequency.strip().lower()
-        if normalized_frequency in SUPPORTED_WORKSPACE_FREQUENCIES:
-            return normalized_frequency, True
-        warnings.append(warning_code)
-        return "monthly", False
+        return normalize_workspace_chart_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+            warning_code=warning_code,
+        )
 
     def _resolve_workspace_summary_request(
         self,
@@ -1969,13 +1981,10 @@ class PerformanceWorkspaceService:
         period: str,
         report_start_date: date,
     ) -> tuple[str, str | None]:
-        normalized_period = period.upper()
-        if normalized_period in SUPPORTED_WORKSPACE_SUMMARY_PERIODS:
-            return (
-                normalized_period,
-                report_start_date.isoformat() if normalized_period == "EXPLICIT" else None,
-            )
-        return "EXPLICIT", report_start_date.isoformat()
+        return resolve_workspace_summary_request(
+            period=period,
+            report_start_date=report_start_date,
+        )
 
     async def _fetch_workspace_summary_result(
         self,
@@ -3006,21 +3015,7 @@ class PerformanceWorkspaceService:
         )
 
     def _resolve_report_start_date(self, *, as_of_date: date, period: str) -> date:
-        normalized_period = period.upper()
-        if normalized_period == "MTD":
-            return as_of_date.replace(day=1)
-        if normalized_period == "QTD":
-            quarter_month = ((as_of_date.month - 1) // 3) * 3 + 1
-            return as_of_date.replace(month=quarter_month, day=1)
-        if normalized_period == "YTD":
-            return as_of_date.replace(month=1, day=1)
-        if normalized_period == "1Y":
-            return self._shift_years(as_of_date, 1)
-        if normalized_period == "3Y":
-            return self._shift_years(as_of_date, 3)
-        if normalized_period == "5Y":
-            return self._shift_years(as_of_date, 5)
-        return as_of_date.replace(month=1, day=1)
+        return resolve_report_start_date(as_of_date=as_of_date, period=period)
 
     def _resolve_requested_window(
         self,
@@ -3030,17 +3025,11 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None,
         explicit_end_date: str | None,
     ) -> tuple[str, date, str]:
-        report_end = date.fromisoformat(explicit_end_date or default_report_end_date)
-        effective_period = period.upper()
-        if explicit_start_date:
-            report_start = date.fromisoformat(explicit_start_date)
-            if report_start > report_end:
-                report_start, report_end = report_end, report_start
-            return report_end.isoformat(), report_start, "EXPLICIT"
-        return (
-            report_end.isoformat(),
-            self._resolve_report_start_date(as_of_date=report_end, period=effective_period),
-            effective_period,
+        return resolve_requested_window(
+            default_report_end_date=default_report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
         )
 
     def _normalize_attribution_trend_frequency(
@@ -3049,11 +3038,10 @@ class PerformanceWorkspaceService:
         chart_frequency: str,
         warnings: list[str],
     ) -> str:
-        normalized_frequency = chart_frequency.lower()
-        if normalized_frequency in {"monthly", "quarterly", "yearly"}:
-            return normalized_frequency
-        warnings.append("ATTRIBUTION_TREND_FREQUENCY_NORMALIZED_TO_MONTHLY")
-        return "monthly"
+        return normalize_attribution_trend_frequency(
+            chart_frequency=chart_frequency,
+            warnings=warnings,
+        )
 
     def _build_attribution_trend_windows(
         self,
@@ -3062,19 +3050,11 @@ class PerformanceWorkspaceService:
         end_date: date,
         chart_frequency: str,
     ) -> list[tuple[date, date]]:
-        if start_date > end_date:
-            return []
-        windows: list[tuple[date, date]] = []
-        cursor = start_date
-        while cursor <= end_date:
-            window_end = self._resolve_attribution_trend_window_end(
-                window_start=cursor,
-                end_date=end_date,
-                chart_frequency=chart_frequency,
-            )
-            windows.append((cursor, window_end))
-            cursor = window_end + timedelta(days=1)
-        return windows
+        return build_attribution_trend_windows(
+            start_date=start_date,
+            end_date=end_date,
+            chart_frequency=chart_frequency,
+        )
 
     def _resolve_attribution_trend_window_end(
         self,
@@ -3083,37 +3063,17 @@ class PerformanceWorkspaceService:
         end_date: date,
         chart_frequency: str,
     ) -> date:
-        if chart_frequency == "quarterly":
-            quarter_end_month = ((window_start.month - 1) // 3 + 1) * 3
-            return min(
-                date(
-                    window_start.year,
-                    quarter_end_month,
-                    self._last_day_of_month(window_start.year, quarter_end_month),
-                ),
-                end_date,
-            )
-        if chart_frequency == "yearly":
-            return min(date(window_start.year, 12, 31), end_date)
-        return min(
-            date(
-                window_start.year,
-                window_start.month,
-                self._last_day_of_month(window_start.year, window_start.month),
-            ),
-            end_date,
+        return resolve_attribution_trend_window_end(
+            window_start=window_start,
+            end_date=end_date,
+            chart_frequency=chart_frequency,
         )
 
     def _last_day_of_month(self, year: int, month: int) -> int:
-        if month == 12:
-            return 31
-        return (date(year, month + 1, 1) - timedelta(days=1)).day
+        return last_day_of_month(year=year, month=month)
 
     def _shift_years(self, anchor: date, years: int) -> date:
-        try:
-            return anchor.replace(year=anchor.year - years) + timedelta(days=1)
-        except ValueError:
-            return anchor.replace(month=2, day=28, year=anchor.year - years) + timedelta(days=1)
+        return shift_years(anchor=anchor, years=years)
 
     def _parse_twr_result(
         self,
