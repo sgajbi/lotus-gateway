@@ -1,0 +1,57 @@
+[importlinter]
+root_package = app
+
+[importlinter:contract:routers_do_not_import_concrete_clients]
+name = Routers depend on service layer, not concrete upstream clients
+type = forbidden
+source_modules =
+    app.routers
+forbidden_modules =
+    app.clients
+
+[importlinter:contract:middleware_stays_out_of_services_and_clients]
+name = Middleware stays framework/cross-cutting only
+type = forbidden
+source_modules =
+    app.middleware
+forbidden_modules =
+    app.clients
+    app.services
+
+[importlinter:contract:contracts_do_not_depend_on_runtime_layers]
+name = Contracts do not depend on routers, services, clients, or middleware
+type = forbidden
+source_modules =
+    app.contracts
+forbidden_modules =
+    app.routers
+    app.services
+    app.clients
+    app.middleware
+
+[importlinter:contract:services_do_not_depend_on_routers]
+name = Services do not depend on routers
+type = forbidden
+source_modules =
+    app.services
+forbidden_modules =
+    app.routers
+
+[importlinter:contract:services_use_factories_for_concrete_clients]
+name = Services use factory modules for concrete upstream clients
+type = forbidden
+source_modules =
+    app.services
+forbidden_modules =
+    app.clients
+unmatched_ignore_imports_alerting = none
+ignore_imports =
+    app.services.advise_client_factory -> app.clients.advise_client
+    app.services.analytics_client_factory -> app.clients.lotus_analytics_client
+    app.services.archive_client_factory -> app.clients.archive_client
+    app.services.dpm_service_factory -> app.clients.dpm_client
+    app.services.dpm_service_factory -> app.clients.lotus_ai_client
+    app.services.lotus_core_client_factory -> app.clients.lotus_core_ingestion_client
+    app.services.lotus_core_client_factory -> app.clients.lotus_core_query_client
+    app.services.reporting_client_factory -> app.clients.render_client
+    app.services.reporting_client_factory -> app.clients.reporting_client
