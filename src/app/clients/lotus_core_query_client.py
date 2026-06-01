@@ -22,6 +22,10 @@ class LotusCoreQueryClient:
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
 
+    @staticmethod
+    def _optional_params(**values: Any) -> dict[str, Any]:
+        return {key: value for key, value in values.items() if value is not None}
+
     async def _get_query_resource(
         self,
         *,
@@ -143,22 +147,18 @@ class LotusCoreQueryClient:
         include_projected: bool = False,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
-        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params.update(
+            self._optional_params(
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
+            )
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.positions.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/positions",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_transactions(
@@ -185,8 +185,6 @@ class LotusCoreQueryClient:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
-        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {
             "limit": limit,
             "skip": skip,
@@ -194,41 +192,28 @@ class LotusCoreQueryClient:
             "sort_order": sort_order,
             "include_projected": str(include_projected).lower(),
         }
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if transaction_type is not None:
-            params["transaction_type"] = transaction_type
-        if security_id is not None:
-            params["security_id"] = security_id
-        if instrument_id is not None:
-            params["instrument_id"] = instrument_id
-        if component_type is not None:
-            params["component_type"] = component_type
-        if linked_transaction_group_id is not None:
-            params["linked_transaction_group_id"] = linked_transaction_group_id
-        if fx_contract_id is not None:
-            params["fx_contract_id"] = fx_contract_id
-        if swap_event_id is not None:
-            params["swap_event_id"] = swap_event_id
-        if near_leg_group_id is not None:
-            params["near_leg_group_id"] = near_leg_group_id
-        if far_leg_group_id is not None:
-            params["far_leg_group_id"] = far_leg_group_id
-        if start_date is not None:
-            params["start_date"] = start_date
-        if end_date is not None:
-            params["end_date"] = end_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params.update(
+            self._optional_params(
+                as_of_date=as_of_date,
+                transaction_type=transaction_type,
+                security_id=security_id,
+                instrument_id=instrument_id,
+                component_type=component_type,
+                linked_transaction_group_id=linked_transaction_group_id,
+                fx_contract_id=fx_contract_id,
+                swap_event_id=swap_event_id,
+                near_leg_group_id=near_leg_group_id,
+                far_leg_group_id=far_leg_group_id,
+                start_date=start_date,
+                end_date=end_date,
+                reporting_currency=reporting_currency,
+            )
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.transactions.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/transactions",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_cashflow_projection(
@@ -240,23 +225,16 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         include_projected: bool = True,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cashflow-projection"
-        headers = build_upstream_headers(correlation_id)
         params: dict[str, Any] = {
             "horizon_days": horizon_days,
             "include_projected": str(include_projected).lower(),
         }
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        return await self._request(
+        params.update(self._optional_params(as_of_date=as_of_date))
+        return await self._get_query_resource(
             operation="core.portfolios.cashflow-projection.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/cashflow-projection",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_cash_balances(
@@ -267,22 +245,15 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cash-balances"
-        headers = build_upstream_headers(correlation_id)
-        params: dict[str, Any] = {}
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params = self._optional_params(
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.cash-balances.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/cash-balances",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def query_assets_under_management(
