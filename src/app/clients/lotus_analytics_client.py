@@ -29,6 +29,23 @@ class LotusAnalyticsClient:
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
 
+    async def _get_analytics_request(
+        self,
+        *,
+        path: str,
+        correlation_id: str,
+        params: dict[str, str] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await request_with_retry(
+            method="GET",
+            url=f"{self._base_url}{path}",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params=params,
+            headers=build_upstream_headers(correlation_id),
+        )
+
     async def _poll_async_result(
         self,
         *,
@@ -175,21 +192,15 @@ class LotusAnalyticsClient:
         consumer_system: str | None = None,
         tenant_id: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/integration/capabilities"
         params: dict[str, str] = {}
         if consumer_system is not None:
             params["consumer_system"] = consumer_system
         if tenant_id is not None:
             params["tenant_id"] = tenant_id
-        headers = build_upstream_headers(correlation_id)
-        return await request_with_retry(
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+        return await self._get_analytics_request(
+            path="/integration/capabilities",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_execution(
@@ -198,15 +209,9 @@ class LotusAnalyticsClient:
         calculation_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/performance/executions/{calculation_id}"
-        headers = build_upstream_headers(correlation_id)
-        return await request_with_retry(
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+        return await self._get_analytics_request(
+            path=f"/performance/executions/{calculation_id}",
+            correlation_id=correlation_id,
         )
 
     async def get_lineage(
@@ -215,15 +220,9 @@ class LotusAnalyticsClient:
         calculation_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._base_url}/performance/lineage/{calculation_id}"
-        headers = build_upstream_headers(correlation_id)
-        return await request_with_retry(
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+        return await self._get_analytics_request(
+            path=f"/performance/lineage/{calculation_id}",
+            correlation_id=correlation_id,
         )
 
     async def get_lineage_artifact(
