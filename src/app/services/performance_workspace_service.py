@@ -9,12 +9,7 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.contracts.performance_workspace import (
-    AttributionSummaryView,
-    ContributionSummaryView,
-    MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
-    PerformanceChartPoint,
-    PerformanceComparativeSummary,
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
     PerformanceWorkspaceDetailsResponse,
@@ -28,7 +23,6 @@ from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialF
 from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_attribution import (
-    build_workspace_attribution_summary,
     parse_attribution_result,
     parse_attribution_trend_results,
 )
@@ -41,11 +35,7 @@ from app.services.performance_workspace_capabilities import (
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
     build_workspace_capabilities,
 )
-from app.services.performance_workspace_chart_points import (
-    build_workspace_chart_points,
-)
 from app.services.performance_workspace_contribution import (
-    build_workspace_contribution_summary,
     merge_contribution_summary_views,
     parse_contribution_result,
 )
@@ -74,8 +64,6 @@ from app.services.performance_workspace_horizon import (
     fetch_workspace_horizon_dependencies,
     parse_horizon_comparison_result,
 )
-from app.services.performance_workspace_mwr import build_workspace_mwr_summary
-from app.services.performance_workspace_parsing import safe_str
 from app.services.performance_workspace_projection import (
     project_portfolio_performance_snapshot,
     project_workspace_details,
@@ -85,11 +73,7 @@ from app.services.performance_workspace_reference import (
     analytics_reference_cache_key,
     resolve_performance_report_end_date,
 )
-from app.services.performance_workspace_returns import (
-    build_workspace_comparative_summary,
-    extract_twr_workspace_block,
-    resolve_results_period_key,
-)
+from app.services.performance_workspace_summary import parse_workspace_summary_result
 from app.services.workbench_service import WorkbenchService
 from app.services.workspace_client_protocols import (
     PerformanceWorkspaceAnalyticsClient,
@@ -617,22 +601,21 @@ class PerformanceWorkspaceService:
                 include_detail_blocks=request_workspace_summary_detail_blocks,
             )
 
-        (
-            net_performance,
-            gross_performance,
-            net_chart,
-            gross_chart,
-            money_weighted_return,
-            contribution,
-            attribution,
-            resolved_benchmark_code,
-        ) = self._parse_workspace_summary_result(
+        parsed_workspace_summary = parse_workspace_summary_result(
             result=workspace_summary_result,
             requested_period=effective_period,
             chart_frequency=resolved_chart_frequency,
             warnings=warnings,
             partial_failures=partial_failures,
         )
+        net_performance = parsed_workspace_summary.net_performance
+        gross_performance = parsed_workspace_summary.gross_performance
+        net_chart = parsed_workspace_summary.net_chart
+        gross_chart = parsed_workspace_summary.gross_chart
+        money_weighted_return = parsed_workspace_summary.money_weighted_return
+        contribution = parsed_workspace_summary.contribution
+        attribution = parsed_workspace_summary.attribution
+        resolved_benchmark_code = parsed_workspace_summary.resolved_benchmark_code
         workspace_summary_available = (
             net_performance.portfolio_return_pct is not None
             or gross_performance.portfolio_return_pct is not None
@@ -984,101 +967,3 @@ class PerformanceWorkspaceService:
 
     async def _empty_async_scalar_result(self, value: str | None) -> str | None:
         return value
-
-    def _parse_workspace_summary_result(
-        self,
-        *,
-        result: GatheredResult,
-        requested_period: str,
-        chart_frequency: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> tuple[
-        PerformanceComparativeSummary,
-        PerformanceComparativeSummary,
-        list[PerformanceChartPoint],
-        list[PerformanceChartPoint],
-        MoneyWeightedReturnSummary | None,
-        ContributionSummaryView | None,
-        AttributionSummaryView | None,
-        str | None,
-    ]:
-        empty_summary = PerformanceComparativeSummary(metric_basis="NET")
-        empty_gross_summary = PerformanceComparativeSummary(metric_basis="GROSS")
-        if isinstance(result, BaseException):
-            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return empty_summary, empty_gross_summary, [], [], None, None, None, None
-
-        status_code, payload = result
-        if not isinstance(payload, dict):
-            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
-            return empty_summary, empty_gross_summary, [], [], None, None, None, None
-        if status_code >= 400:
-            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return empty_summary, empty_gross_summary, [], [], None, None, None, None
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
-            return empty_summary, empty_gross_summary, [], [], None, None, None, None
-
-        period_key = resolve_results_period_key(
-            requested_period=requested_period,
-            results_by_period=results_by_period,
-        )
-        period_payload = results_by_period.get(period_key, {})
-        if not isinstance(period_payload, dict):
-            return empty_summary, empty_gross_summary, [], [], None, None, None, None
-
-        benchmark_block = period_payload.get("benchmark", {})
-        active_block = period_payload.get("active", {})
-        net_block = extract_twr_workspace_block(period_payload, "net")
-        gross_block = extract_twr_workspace_block(period_payload, "gross")
-        money_weighted_return = build_workspace_mwr_summary(period_payload)
-        contribution = build_workspace_contribution_summary(period_payload)
-        attribution = build_workspace_attribution_summary(period_payload)
-
-        net_summary = build_workspace_comparative_summary(
-            metric_basis="NET",
-            portfolio_block=net_block,
-            benchmark_block=benchmark_block,
-            active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
-        )
-        gross_summary = build_workspace_comparative_summary(
-            metric_basis="GROSS",
-            portfolio_block=gross_block,
-            benchmark_block=benchmark_block,
-            active_basis_block=active_block.get("gross") if isinstance(active_block, dict) else {},
-        )
-        net_chart = build_workspace_chart_points(
-            portfolio_block=net_block,
-            benchmark_block=benchmark_block,
-            chart_frequency=chart_frequency,
-        )
-        gross_chart = build_workspace_chart_points(
-            portfolio_block=gross_block,
-            benchmark_block=benchmark_block,
-            chart_frequency=chart_frequency,
-        )
-
-        resolved_benchmark_code = safe_str(benchmark_block.get("benchmark_id"))
-        return (
-            net_summary,
-            gross_summary,
-            net_chart,
-            gross_chart,
-            money_weighted_return,
-            contribution,
-            attribution,
-            resolved_benchmark_code,
-        )
