@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from datetime import date
 from typing import Any, TypeAlias, cast
 
@@ -17,7 +17,6 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
-    PerformanceHorizonComparisonRow,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -71,13 +70,12 @@ from app.services.performance_workspace_evidence import (
     resolve_evidence_state,
 )
 from app.services.performance_workspace_failures import build_performance_failure
-from app.services.performance_workspace_horizon import fetch_workspace_horizon_dependencies
-from app.services.performance_workspace_mwr import build_workspace_mwr_summary
-from app.services.performance_workspace_parsing import (
-    extract_return,
-    quantize_optional,
-    safe_str,
+from app.services.performance_workspace_horizon import (
+    fetch_workspace_horizon_dependencies,
+    parse_horizon_comparison_result,
 )
+from app.services.performance_workspace_mwr import build_workspace_mwr_summary
+from app.services.performance_workspace_parsing import safe_str
 from app.services.performance_workspace_projection import (
     project_portfolio_performance_snapshot,
     project_workspace_details,
@@ -98,7 +96,6 @@ from app.services.workspace_client_protocols import (
     PerformanceWorkspaceCoreClient,
 )
 
-STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
 LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -339,7 +336,7 @@ class PerformanceWorkspaceService:
                 portfolio_currency=overview.portfolio.base_currency,
                 chart_frequency=resolved_chart_frequency,
             )
-        rows, resolved_benchmark_code = self._parse_horizon_comparison_result(
+        rows, resolved_benchmark_code = parse_horizon_comparison_result(
             result=workspace_summary_result,
             requested_period=effective_period,
             requested_report_start_date=report_start_date.isoformat()
@@ -1085,183 +1082,3 @@ class PerformanceWorkspaceService:
             attribution,
             resolved_benchmark_code,
         )
-
-    def _parse_horizon_comparison_result(
-        self,
-        *,
-        result: GatheredResult,
-        requested_period: str,
-        requested_report_start_date: str | None,
-        requested_report_end_date: str | None,
-        detail_basis: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
-        if isinstance(result, BaseException):
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return [], None
-
-        status_code, payload = result
-        if not isinstance(payload, dict):
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-            return [], None
-        gateway_warnings = payload.get("_gateway_warnings", [])
-        if isinstance(gateway_warnings, list):
-            warnings.extend(str(warning) for warning in gateway_warnings)
-        gateway_partial_failures = payload.get("_gateway_partial_failures", [])
-        if isinstance(gateway_partial_failures, list):
-            for failure in gateway_partial_failures:
-                if not isinstance(failure, Mapping):
-                    continue
-                partial_failures.append(
-                    build_performance_failure(
-                        str(failure.get("source_service", "lotus-performance")),
-                        str(failure.get("error_code", "UNKNOWN_ERROR")),
-                        str(failure.get("detail", "")),
-                    )
-                )
-        if status_code >= 400:
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return [], None
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-            return [], None
-
-        rows: list[PerformanceHorizonComparisonRow] = []
-        resolved_benchmark_code: str | None = None
-        periods_to_render = (
-            tuple(results_by_period.keys())
-            if requested_period.upper() == "EXPLICIT"
-            else STANDARD_HORIZON_COMPARISON_PERIODS
-        )
-        for period in periods_to_render:
-            period_key = resolve_results_period_key(
-                requested_period=period,
-                results_by_period=results_by_period,
-            )
-            period_payload = results_by_period.get(period_key, {})
-            if not isinstance(period_payload, dict):
-                continue
-            benchmark_block = period_payload.get("benchmark", {})
-            active_block = period_payload.get("active", {})
-            net_block = extract_twr_workspace_block(period_payload, "net")
-            gross_block = extract_twr_workspace_block(period_payload, "gross")
-            net_summary_payload = (
-                net_block.get("summary", {}) if isinstance(net_block, dict) else {}
-            )
-            money_weighted_return = period_payload.get("money_weighted_return", {})
-            economics = (
-                net_summary_payload.get("economics", {})
-                if isinstance(net_summary_payload, dict)
-                else {}
-            )
-            comparative = build_workspace_comparative_summary(
-                metric_basis=detail_basis.upper(),
-                portfolio_block=net_block,
-                benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
-                active_basis_block=active_block.get("net")
-                if isinstance(active_block, dict)
-                else {},
-            )
-            if (
-                comparative.portfolio_return_pct is None
-                and comparative.benchmark_return_pct is None
-            ):
-                continue
-            rows.append(
-                PerformanceHorizonComparisonRow(
-                    period=period,
-                    period_start=(
-                        safe_str(money_weighted_return.get("start_date"))
-                        if isinstance(money_weighted_return, dict)
-                        else None
-                    )
-                    or safe_str(period_payload.get("_gateway_requested_period_start"))
-                    or requested_report_start_date,
-                    period_end=(
-                        safe_str(money_weighted_return.get("end_date"))
-                        if isinstance(money_weighted_return, dict)
-                        else None
-                    )
-                    or safe_str(period_payload.get("_gateway_requested_period_end"))
-                    or requested_report_end_date,
-                    begin_market_value=quantize_optional(economics.get("begin_market_value"))
-                    if isinstance(economics, dict)
-                    else None,
-                    end_market_value=quantize_optional(economics.get("end_market_value"))
-                    if isinstance(economics, dict)
-                    else None,
-                    beginning_cash_flow=quantize_optional(economics.get("beginning_cash_flow"))
-                    if isinstance(economics, dict)
-                    else None,
-                    ending_cash_flow=quantize_optional(economics.get("ending_cash_flow"))
-                    if isinstance(economics, dict)
-                    else None,
-                    flow_adjusted_end_market_value=quantize_optional(
-                        economics.get("flow_adjusted_end_market_value")
-                    )
-                    if isinstance(economics, dict)
-                    else None,
-                    net_cash_flow=quantize_optional(economics.get("net_cash_flow"))
-                    if isinstance(economics, dict)
-                    else None,
-                    fees=quantize_optional(economics.get("fees"))
-                    if isinstance(economics, dict)
-                    else None,
-                    net_return_pct=extract_return(net_block, "summary", "period_return", "base"),
-                    gross_return_pct=extract_return(
-                        gross_block, "summary", "period_return", "base"
-                    ),
-                    portfolio_return_pct=comparative.portfolio_return_pct,
-                    benchmark_return_pct=comparative.benchmark_return_pct,
-                    active_return_pct=comparative.active_return_pct,
-                    cumulative_net_return_pct=extract_return(
-                        net_block, "summary", "cumulative_return", "base"
-                    ),
-                    cumulative_gross_return_pct=extract_return(
-                        gross_block,
-                        "summary",
-                        "cumulative_return",
-                        "base",
-                    ),
-                    cumulative_benchmark_return_pct=extract_return(
-                        benchmark_block if isinstance(benchmark_block, dict) else {},
-                        "summary",
-                        "cumulative_return",
-                        "base",
-                    ),
-                    cumulative_active_return_pct=extract_return(
-                        active_block.get("net") if isinstance(active_block, dict) else {},
-                        "cumulative_return",
-                        "base",
-                    ),
-                    annualized_net_return_pct=extract_return(
-                        net_block,
-                        "summary",
-                        "annualized_return",
-                        "base",
-                    ),
-                    annualized_gross_return_pct=extract_return(
-                        gross_block,
-                        "summary",
-                        "annualized_return",
-                        "base",
-                    ),
-                    annualized_return_pct=comparative.annualized_return_pct,
-                )
-            )
-            if resolved_benchmark_code is None:
-                resolved_benchmark_code = comparative.benchmark_id
-        return rows, resolved_benchmark_code
