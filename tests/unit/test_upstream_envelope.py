@@ -10,6 +10,7 @@ from app.contracts.dpm_construction import (
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.services.upstream_envelope import (
     build_gateway_envelope,
+    build_product_safe_upstream_status_gateway_envelope,
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
     raise_for_upstream_error,
@@ -53,6 +54,45 @@ def test_build_upstream_status_gateway_envelope_preserves_supportability() -> No
     assert response.upstream_status == 200
     assert response.supportability == supportability
     assert response.data == payload
+
+
+def test_build_product_safe_upstream_status_gateway_envelope_preserves_success() -> None:
+    payload = {"alternative_set_id": "cas_1", "status": "READY"}
+    supportability = DpmConstructionSupportability(state="READY", reason_codes=["READY"])
+
+    response = build_product_safe_upstream_status_gateway_envelope(
+        DpmConstructionGatewayResponse,
+        correlation_id="corr-construction",
+        upstream_status=200,
+        upstream_payload=payload,
+        supportability=supportability,
+        error_model=DpmConstructionErrorDetail,
+        error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
+        default_detail="lotus-manage construction request failed",
+    )
+
+    assert response.correlation_id == "corr-construction"
+    assert response.upstream_status == 200
+    assert response.supportability == supportability
+    assert response.data == payload
+
+
+def test_build_product_safe_upstream_status_gateway_envelope_raises_typed_error() -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        build_product_safe_upstream_status_gateway_envelope(
+            DpmConstructionGatewayResponse,
+            correlation_id="corr-construction",
+            upstream_status=409,
+            upstream_payload={"message": "CONSTRUCTION_IDEMPOTENCY_KEY_CONFLICT"},
+            supportability=DpmConstructionSupportability(state="BLOCKED"),
+            error_model=DpmConstructionErrorDetail,
+            error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
+            default_detail="lotus-manage construction request failed",
+        )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail["error_code"] == "MANAGE_CONSTRUCTION_UPSTREAM_ERROR"
+    assert exc_info.value.detail["detail"] == "CONSTRUCTION_IDEMPOTENCY_KEY_CONFLICT"
 
 
 def test_build_upstream_status_payload_gateway_envelope_preserves_payload() -> None:
