@@ -35,6 +35,18 @@ def normalize_workspace_chart_frequency(
     return "monthly", False
 
 
+def resolve_shared_segment(
+    *,
+    contribution_dimension: str,
+    attribution_dimension: str,
+    warnings: list[str],
+) -> str:
+    if contribution_dimension == attribution_dimension:
+        return contribution_dimension
+    warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
+    return contribution_dimension
+
+
 def resolve_workspace_summary_request(
     *,
     period: str,

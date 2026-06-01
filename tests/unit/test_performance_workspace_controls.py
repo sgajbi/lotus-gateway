@@ -7,6 +7,7 @@ from app.services.performance_workspace_controls import (
     normalize_workspace_dimension,
     resolve_report_start_date,
     resolve_requested_window,
+    resolve_shared_segment,
     resolve_workspace_summary_request,
 )
 
@@ -36,6 +37,20 @@ def test_resolve_workspace_summary_request_normalizes_unsupported_period() -> No
         period="QTD",
         report_start_date=date(2026, 4, 1),
     ) == ("EXPLICIT", "2026-04-01")
+
+
+def test_resolve_shared_segment_aligns_to_contribution_contract() -> None:
+    warnings: list[str] = []
+
+    assert (
+        resolve_shared_segment(
+            contribution_dimension="asset_class",
+            attribution_dimension="sector",
+            warnings=warnings,
+        )
+        == "asset_class"
+    )
+    assert warnings == ["PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT"]
 
 
 def test_workspace_control_normalizers_append_warnings_for_unsupported_values() -> None:
