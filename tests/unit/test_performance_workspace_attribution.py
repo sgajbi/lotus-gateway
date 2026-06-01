@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.services.performance_workspace_attribution import (
     build_detail_attribution_summary,
     build_workspace_attribution_summary,
@@ -5,6 +7,7 @@ from app.services.performance_workspace_attribution import (
     parse_attribution_residual_materiality,
     parse_attribution_result,
     parse_attribution_supportability_evidence,
+    parse_attribution_trend_results,
 )
 
 
@@ -206,6 +209,104 @@ def test_parse_attribution_result_records_upstream_failure():
 
     assert summary is None
     assert warnings == ["ATTRIBUTION_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
+
+
+def test_parse_attribution_trend_results_builds_cumulative_rows():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows = parse_attribution_trend_results(
+        results=[
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "EXPLICIT": {
+                            "status": "valid",
+                            "reason_codes": ["LINKED"],
+                            "reconciliation": {
+                                "total_active_return": 0.11,
+                                "residual": 0.01,
+                            },
+                            "levels": [
+                                {
+                                    "totals": {
+                                        "allocation": 0.1,
+                                        "selection": 0.2,
+                                        "interaction": 0.0,
+                                        "total_effect": 0.3,
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                },
+            ),
+            (
+                200,
+                {
+                    "results_by_period": {
+                        "EXPLICIT": {
+                            "status": "partial",
+                            "reconciliation": {
+                                "total_active_return": 0.21,
+                                "residual": 0.02,
+                            },
+                            "levels": [
+                                {
+                                    "totals": {
+                                        "allocation": 0.05,
+                                        "selection": 0.15,
+                                        "interaction": 0.0,
+                                        "total_effect": 0.2,
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                },
+            ),
+        ],
+        window_pairs=[
+            (date(2026, 1, 1), date(2026, 1, 31)),
+            (date(2026, 2, 1), date(2026, 2, 28)),
+        ],
+        chart_frequency="monthly",
+        requested_period="EXPLICIT",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert len(rows) == 2
+    assert rows[0].period_label == "2026-01"
+    assert rows[0].total_effect_pct == 0.3
+    assert rows[0].cumulative_total_effect_pct == 0.3
+    assert rows[0].reason_codes == ["LINKED"]
+    assert rows[1].period_label == "2026-02"
+    assert rows[1].status == "partial"
+    assert rows[1].cumulative_total_effect_pct == 0.5
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_attribution_trend_results_skips_failed_periods():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows = parse_attribution_trend_results(
+        results=[RuntimeError("timeout")],
+        window_pairs=[(date(2026, 1, 1), date(2026, 1, 31))],
+        chart_frequency="monthly",
+        requested_period="EXPLICIT",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert rows == []
+    assert warnings == ["ATTRIBUTION_TREND_PERIOD_UNAVAILABLE"]
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-performance"
     assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"

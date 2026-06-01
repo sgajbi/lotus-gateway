@@ -13,7 +13,6 @@ from app.contracts.performance_workspace import (
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
-    PerformanceAttributionTrendRow,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
     PerformanceEvidenceView,
@@ -31,9 +30,8 @@ from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_attribution import (
     build_workspace_attribution_summary,
-    parse_attribution_residual_materiality,
     parse_attribution_result,
-    parse_attribution_supportability_evidence,
+    parse_attribution_trend_results,
 )
 from app.services.performance_workspace_benchmarks import (
     fetch_benchmark_context,
@@ -77,10 +75,8 @@ from app.services.performance_workspace_horizon import fetch_workspace_horizon_d
 from app.services.performance_workspace_mwr import build_workspace_mwr_summary
 from app.services.performance_workspace_parsing import (
     extract_return,
-    format_attribution_trend_label,
     quantize_optional,
     safe_str,
-    safe_str_list,
 )
 from app.services.performance_workspace_projection import (
     project_portfolio_performance_snapshot,
@@ -489,7 +485,7 @@ class PerformanceWorkspaceService:
                 ],
                 return_exceptions=True,
             )
-        rows = self._parse_attribution_trend_results(
+        rows = parse_attribution_trend_results(
             results=attribution_results,
             window_pairs=window_pairs,
             chart_frequency=resolved_frequency,
@@ -1269,121 +1265,3 @@ class PerformanceWorkspaceService:
             if resolved_benchmark_code is None:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
-
-    def _parse_attribution_trend_results(
-        self,
-        *,
-        results: Sequence[GatheredResult],
-        window_pairs: list[tuple[date, date]],
-        chart_frequency: str,
-        requested_period: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> list[PerformanceAttributionTrendRow]:
-        rows: list[PerformanceAttributionTrendRow] = []
-        cumulative_total_effect = 0.0
-
-        for index, result in enumerate(results):
-            window_start, window_end = window_pairs[index]
-            parsed_row = self._parse_single_attribution_trend_row(
-                result=result,
-                window_start=window_start,
-                window_end=window_end,
-                chart_frequency=chart_frequency,
-                requested_period=requested_period,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
-            if parsed_row is None:
-                continue
-
-            cumulative_total_effect += parsed_row.total_effect_pct or 0.0
-            row_payload = parsed_row.model_dump()
-            row_payload["cumulative_total_effect_pct"] = quantize_optional(cumulative_total_effect)
-            rows.append(PerformanceAttributionTrendRow(**row_payload))
-
-        return rows
-
-    def _parse_single_attribution_trend_row(
-        self,
-        *,
-        result: GatheredResult,
-        window_start: date,
-        window_end: date,
-        chart_frequency: str,
-        requested_period: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> PerformanceAttributionTrendRow | None:
-        if isinstance(result, BaseException):
-            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return None
-
-        status_code, payload = result
-        if status_code >= 400 or not isinstance(payload, dict):
-            warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}"
-                    if isinstance(status_code, int)
-                    else "INVALID_UPSTREAM_PAYLOAD",
-                    str(payload),
-                )
-            )
-            return None
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            return None
-
-        period_key = resolve_results_period_key(
-            requested_period=requested_period,
-            results_by_period=results_by_period,
-        )
-        period_payload = results_by_period.get(period_key, {})
-        if not isinstance(period_payload, dict):
-            return None
-
-        levels_payload = period_payload.get("levels", [])
-        reconciliation_payload = period_payload.get("reconciliation", {})
-        if not isinstance(levels_payload, list) or not levels_payload:
-            return None
-        if not isinstance(reconciliation_payload, dict):
-            reconciliation_payload = {}
-        supportability_evidence_payload = period_payload.get("supportability_evidence")
-
-        level_payload = levels_payload[0]
-        if not isinstance(level_payload, dict):
-            return None
-        totals_payload = level_payload.get("totals", {})
-        if not isinstance(totals_payload, dict):
-            totals_payload = {}
-
-        return PerformanceAttributionTrendRow(
-            period_label=format_attribution_trend_label(
-                window_start=window_start,
-                window_end=window_end,
-                chart_frequency=chart_frequency,
-            ),
-            period_start=window_start.isoformat(),
-            period_end=window_end.isoformat(),
-            frequency=chart_frequency,
-            allocation_pct=quantize_optional(totals_payload.get("allocation")),
-            selection_pct=quantize_optional(totals_payload.get("selection")),
-            interaction_pct=quantize_optional(totals_payload.get("interaction")),
-            total_effect_pct=quantize_optional(totals_payload.get("total_effect")),
-            active_return_pct=quantize_optional(reconciliation_payload.get("total_active_return")),
-            residual_pct=quantize_optional(reconciliation_payload.get("residual")),
-            status=safe_str(period_payload.get("status")) or "valid",
-            reason_codes=safe_str_list(period_payload.get("reason_codes")),
-            residual_materiality=parse_attribution_residual_materiality(
-                reconciliation_payload.get("residual_materiality")
-            ),
-            supportability_evidence=parse_attribution_supportability_evidence(
-                supportability_evidence_payload
-            ),
-        )
