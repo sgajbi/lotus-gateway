@@ -18,7 +18,7 @@ from app.services.lotus_ai_workflow import (
     require_lotus_ai_client,
 )
 from app.services.upstream_envelope import (
-    build_upstream_status_gateway_envelope,
+    build_product_safe_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
 )
@@ -184,13 +184,15 @@ class DpmProofPackService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmProofPackGatewayResponse:
-        _raise_manage_upstream_error(upstream_status, upstream_payload)
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmProofPackGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_supportability_from(upstream_payload),
             upstream_payload=upstream_payload,
+            supportability=_supportability_from(upstream_payload),
+            error_model=DpmProofPackErrorDetail,
+            error_code="MANAGE_PROOF_PACK_UPSTREAM_ERROR",
+            default_detail="lotus-manage proof-pack request failed",
         )
 
 

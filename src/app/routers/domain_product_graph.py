@@ -1,15 +1,11 @@
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.contracts.domain_products import DomainProductGraphResponse
-from app.middleware.correlation import correlation_id_var
+from app.routers.correlation import resolve_router_correlation_id
 from app.services.domain_product_catalog_service import DomainProductCatalogUnavailable
 from app.services.gateway_service_provider import domain_product_catalog_service
 
 router = APIRouter(prefix="/api/v1/domain-products", tags=["domain-products"])
-
-
-def _correlation_id(header_value: str | None) -> str:
-    return header_value or correlation_id_var.get() or ""
 
 
 async def _get_domain_product_dependency_graph(
@@ -19,7 +15,7 @@ async def _get_domain_product_dependency_graph(
 ) -> DomainProductGraphResponse:
     return await domain_product_catalog_service().get_dependency_graph(
         consumer_system=consumer_system,
-        correlation_id=_correlation_id(x_correlation_id),
+        correlation_id=resolve_router_correlation_id(x_correlation_id),
     )
 
 

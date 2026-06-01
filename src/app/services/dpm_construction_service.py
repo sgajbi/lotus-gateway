@@ -7,8 +7,7 @@ from app.contracts.dpm_construction import (
 )
 from app.services.dpm_client_protocols import DpmConstructionClient
 from app.services.upstream_envelope import (
-    build_upstream_status_gateway_envelope,
-    raise_product_safe_upstream_error,
+    build_product_safe_upstream_status_gateway_envelope,
 )
 
 
@@ -62,19 +61,15 @@ class DpmConstructionService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmConstructionGatewayResponse:
-        raise_product_safe_upstream_error(
-            upstream_status,
-            upstream_payload,
-            error_model=DpmConstructionErrorDetail,
-            error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
-            default_detail="lotus-manage construction request failed",
-        )
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmConstructionGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_supportability_from(upstream_payload),
             upstream_payload=upstream_payload,
+            supportability=_supportability_from(upstream_payload),
+            error_model=DpmConstructionErrorDetail,
+            error_code="MANAGE_CONSTRUCTION_UPSTREAM_ERROR",
+            default_detail="lotus-manage construction request failed",
         )
 
 

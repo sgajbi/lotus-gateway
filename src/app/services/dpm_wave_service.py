@@ -21,8 +21,8 @@ from app.services.lotus_ai_workflow import (
     require_lotus_ai_client,
 )
 from app.services.upstream_envelope import (
-    build_upstream_status_gateway_envelope,
-    build_upstream_status_payload_gateway_envelope,
+    build_product_safe_upstream_status_gateway_envelope,
+    build_product_safe_upstream_status_payload_gateway_envelope,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
 )
@@ -811,13 +811,15 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmWaveGatewayResponse:
-        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmWaveGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
             supportability=_supportability_from(upstream_payload),
             upstream_payload=upstream_payload,
+            error_model=DpmWaveErrorDetail,
+            error_code="MANAGE_WAVE_UPSTREAM_ERROR",
+            default_detail="lotus-manage rebalance-wave request failed",
         )
 
     def _compose_campaign_definition_response(
@@ -826,12 +828,14 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCampaignDefinitionGatewayResponse:
-        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
-        return build_upstream_status_payload_gateway_envelope(
+        return build_product_safe_upstream_status_payload_gateway_envelope(
             DpmCampaignDefinitionGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
+            error_model=DpmWaveErrorDetail,
+            error_code="MANAGE_WAVE_UPSTREAM_ERROR",
+            default_detail="lotus-manage rebalance-wave request failed",
         )
 
     def _compose_campaign_workflow_response(
@@ -840,12 +844,14 @@ class DpmWaveService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCampaignWorkflowGatewayResponse:
-        _raise_manage_wave_upstream_error(upstream_status, upstream_payload)
-        return build_upstream_status_payload_gateway_envelope(
+        return build_product_safe_upstream_status_payload_gateway_envelope(
             DpmCampaignWorkflowGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
             upstream_payload=upstream_payload,
+            error_model=DpmWaveErrorDetail,
+            error_code="MANAGE_WAVE_UPSTREAM_ERROR",
+            default_detail="lotus-manage rebalance-wave request failed",
         )
 
 

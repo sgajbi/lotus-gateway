@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header, Query
 
 from app.contracts.platform_capabilities import PlatformCapabilitiesResponse
-from app.middleware.correlation import correlation_id_var
+from app.routers.correlation import resolve_router_correlation_id
 from app.services.platform_capabilities_service_provider import platform_capabilities_service
 
 router = APIRouter(prefix="/api/v1/platform", tags=["platform"])
@@ -14,11 +14,10 @@ async def _get_platform_capabilities(
     x_correlation_id: str | None,
 ) -> PlatformCapabilitiesResponse:
     service = platform_capabilities_service()
-    correlation_id = x_correlation_id or correlation_id_var.get() or ""
     return await service.get_platform_capabilities(
         consumer_system=consumer_system,
         tenant_id=tenant_id,
-        correlation_id=correlation_id,
+        correlation_id=resolve_router_correlation_id(x_correlation_id),
     )
 
 

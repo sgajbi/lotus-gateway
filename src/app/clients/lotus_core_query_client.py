@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 
 LOGGER = logging.getLogger("analytics_ui.gateway")
 
@@ -22,24 +22,86 @@ class LotusCoreQueryClient:
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
 
+    @staticmethod
+    def _optional_params(**values: Any) -> dict[str, Any]:
+        return {key: value for key, value in values.items() if value is not None}
+
+    async def _get_query_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        params: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="GET",
+            url=f"{self._query_base_url}{path}",
+            params=params,
+            headers=build_upstream_headers(correlation_id),
+        )
+
+    async def _get_control_plane_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        params: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="GET",
+            url=f"{self._control_plane_base_url}{path}",
+            params=params,
+            headers=build_upstream_headers(correlation_id),
+        )
+
+    async def _post_query_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="POST",
+            url=f"{self._query_base_url}{path}",
+            json_body=payload,
+            headers=build_upstream_headers(correlation_id),
+        )
+
+    async def _post_control_plane_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="POST",
+            url=f"{self._control_plane_base_url}{path}",
+            json_body=payload,
+            headers=build_upstream_headers(correlation_id),
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/integration/capabilities"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.integration.capabilities",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path="/integration/capabilities",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_effective_policy(
@@ -48,34 +110,22 @@ class LotusCoreQueryClient:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/integration/policy/effective"
         params = {"consumer_system": consumer_system, "tenant_id": tenant_id}
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.integration.policy.effective",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path="/integration/policy/effective",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def list_portfolios(
         self,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.portfolios.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path="/portfolios",
+            correlation_id=correlation_id,
         )
 
     async def get_portfolio(
@@ -83,16 +133,10 @@ class LotusCoreQueryClient:
         portfolio_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.portfolios.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path=f"/portfolios/{portfolio_id}",
+            correlation_id=correlation_id,
         )
 
     async def get_portfolio_positions(
@@ -103,22 +147,18 @@ class LotusCoreQueryClient:
         include_projected: bool = False,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/positions"
-        headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {"include_projected": str(include_projected).lower()}
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params.update(
+            self._optional_params(
+                as_of_date=as_of_date,
+                reporting_currency=reporting_currency,
+            )
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.positions.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/positions",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_transactions(
@@ -145,8 +185,6 @@ class LotusCoreQueryClient:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/transactions"
-        headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {
             "limit": limit,
             "skip": skip,
@@ -154,41 +192,28 @@ class LotusCoreQueryClient:
             "sort_order": sort_order,
             "include_projected": str(include_projected).lower(),
         }
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if transaction_type is not None:
-            params["transaction_type"] = transaction_type
-        if security_id is not None:
-            params["security_id"] = security_id
-        if instrument_id is not None:
-            params["instrument_id"] = instrument_id
-        if component_type is not None:
-            params["component_type"] = component_type
-        if linked_transaction_group_id is not None:
-            params["linked_transaction_group_id"] = linked_transaction_group_id
-        if fx_contract_id is not None:
-            params["fx_contract_id"] = fx_contract_id
-        if swap_event_id is not None:
-            params["swap_event_id"] = swap_event_id
-        if near_leg_group_id is not None:
-            params["near_leg_group_id"] = near_leg_group_id
-        if far_leg_group_id is not None:
-            params["far_leg_group_id"] = far_leg_group_id
-        if start_date is not None:
-            params["start_date"] = start_date
-        if end_date is not None:
-            params["end_date"] = end_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params.update(
+            self._optional_params(
+                as_of_date=as_of_date,
+                transaction_type=transaction_type,
+                security_id=security_id,
+                instrument_id=instrument_id,
+                component_type=component_type,
+                linked_transaction_group_id=linked_transaction_group_id,
+                fx_contract_id=fx_contract_id,
+                swap_event_id=swap_event_id,
+                near_leg_group_id=near_leg_group_id,
+                far_leg_group_id=far_leg_group_id,
+                start_date=start_date,
+                end_date=end_date,
+                reporting_currency=reporting_currency,
+            )
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.transactions.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/transactions",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_cashflow_projection(
@@ -200,23 +225,16 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         include_projected: bool = True,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cashflow-projection"
-        headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {
             "horizon_days": horizon_days,
             "include_projected": str(include_projected).lower(),
         }
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        return await self._request(
+        params.update(self._optional_params(as_of_date=as_of_date))
+        return await self._get_query_resource(
             operation="core.portfolios.cashflow-projection.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/cashflow-projection",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_cash_balances(
@@ -227,22 +245,15 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}/cash-balances"
-        headers = propagation_headers(correlation_id)
-        params: dict[str, Any] = {}
-        if as_of_date is not None:
-            params["as_of_date"] = as_of_date
-        if reporting_currency is not None:
-            params["reporting_currency"] = reporting_currency
-        return await self._request(
+        params = self._optional_params(
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        return await self._get_query_resource(
             operation="core.portfolios.cash-balances.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/portfolios/{portfolio_id}/cash-balances",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def query_assets_under_management(
@@ -255,8 +266,6 @@ class LotusCoreQueryClient:
         as_of_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/assets-under-management/query"
-        headers = propagation_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -269,15 +278,11 @@ class LotusCoreQueryClient:
             payload["as_of_date"] = as_of_date
         if reporting_currency is not None:
             payload["reporting_currency"] = reporting_currency
-        return await self._request(
+        return await self._post_query_resource(
             operation="core.reporting.assets-under-management.query",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/reporting/assets-under-management/query",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def query_asset_allocation(
@@ -292,8 +297,6 @@ class LotusCoreQueryClient:
         reporting_currency: str | None = None,
         look_through_mode: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/reporting/asset-allocation/query"
-        headers = propagation_headers(correlation_id)
         scope: dict[str, Any] = {}
         if portfolio_id is not None:
             scope["portfolio_id"] = portfolio_id
@@ -308,15 +311,11 @@ class LotusCoreQueryClient:
             payload["reporting_currency"] = reporting_currency
         if look_through_mode is not None:
             payload["look_through_mode"] = look_through_mode
-        return await self._request(
+        return await self._post_query_resource(
             operation="core.reporting.asset-allocation.query",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/reporting/asset-allocation/query",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_core_snapshot(
@@ -327,22 +326,16 @@ class LotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/integration/portfolios/{portfolio_id}/core-snapshot"
-        headers = propagation_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "sections": sections,
             "consumer_system": consumer_system,
         }
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.integration.portfolios.core-snapshot.get",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path=f"/integration/portfolios/{portfolio_id}/core-snapshot",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_portfolio_analytics_reference(
@@ -352,24 +345,15 @@ class LotusCoreQueryClient:
         consumer_system: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/integration/portfolios/"
-            f"{portfolio_id}/analytics/reference"
-        )
-        headers = propagation_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "consumer_system": consumer_system,
         }
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.integration.portfolios.analytics-reference.get",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path=f"/integration/portfolios/{portfolio_id}/analytics/reference",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_benchmark_assignment(
@@ -380,24 +364,15 @@ class LotusCoreQueryClient:
         reporting_currency: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/integration/portfolios/"
-            f"{portfolio_id}/benchmark-assignment"
-        )
-        headers = propagation_headers(correlation_id)
         payload = {
             "as_of_date": as_of_date,
             "reporting_currency": reporting_currency,
         }
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.integration.portfolios.benchmark-assignment.get",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path=f"/integration/portfolios/{portfolio_id}/benchmark-assignment",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_external_order_execution_acknowledgement(
@@ -407,20 +382,11 @@ class LotusCoreQueryClient:
         payload: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = (
-            f"{self._control_plane_base_url}/integration/portfolios/"
-            f"{portfolio_id}/external-order-execution-acknowledgement"
-        )
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.integration.portfolios.external-order-execution-acknowledgement.get",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path=f"/integration/portfolios/{portfolio_id}/external-order-execution-acknowledgement",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_support_overview(
@@ -428,16 +394,10 @@ class LotusCoreQueryClient:
         portfolio_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/overview"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.support.portfolios.overview.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path=f"/support/portfolios/{portfolio_id}/overview",
+            correlation_id=correlation_id,
             params={},
         )
 
@@ -447,20 +407,14 @@ class LotusCoreQueryClient:
         correlation_id: str,
         as_of_date: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/support/portfolios/{portfolio_id}/readiness"
-        headers = propagation_headers(correlation_id)
         params: dict[str, Any] = {}
         if as_of_date is not None:
             params["as_of_date"] = as_of_date
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.support.portfolios.readiness.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=f"/support/portfolios/{portfolio_id}/readiness",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_benchmark_catalog(
@@ -472,8 +426,6 @@ class LotusCoreQueryClient:
         benchmark_status: str | None = "active",
         benchmark_type: str | None = "composite",
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/integration/benchmarks/catalog"
-        headers = propagation_headers(correlation_id)
         payload: dict[str, Any] = {
             "as_of_date": as_of_date,
         }
@@ -483,15 +435,11 @@ class LotusCoreQueryClient:
             payload["benchmark_status"] = benchmark_status
         if benchmark_type is not None:
             payload["benchmark_type"] = benchmark_type
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.integration.benchmarks.catalog.get",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/integration/benchmarks/catalog",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def list_instruments(
@@ -499,18 +447,12 @@ class LotusCoreQueryClient:
         limit: int,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/instruments"
-        headers = propagation_headers(correlation_id)
         params = {"skip": 0, "limit": limit}
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.instruments.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path="/instruments",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_lookups(
@@ -582,17 +524,11 @@ class LotusCoreQueryClient:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}{path}"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation=f"core{path.replace('/', '.')}.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=path,
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def create_simulation_session(
@@ -602,22 +538,16 @@ class LotusCoreQueryClient:
         ttl_hours: int,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/simulation-sessions"
-        headers = propagation_headers(correlation_id)
         payload = {
             "portfolio_id": portfolio_id,
             "created_by": created_by,
             "ttl_hours": ttl_hours,
         }
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.simulation-sessions.create",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path="/simulation-sessions",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def add_simulation_changes(
@@ -626,18 +556,12 @@ class LotusCoreQueryClient:
         changes: list[dict[str, Any]],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/changes"
-        headers = propagation_headers(correlation_id)
         payload = {"changes": changes}
-        return await self._request(
+        return await self._post_control_plane_resource(
             operation="core.simulation-sessions.changes.add",
-            method="POST",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
-            headers=headers,
+            path=f"/simulation-sessions/{session_id}/changes",
+            correlation_id=correlation_id,
+            payload=payload,
         )
 
     async def get_projected_positions(
@@ -645,16 +569,10 @@ class LotusCoreQueryClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-positions"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.simulation-sessions.projected-positions.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path=f"/simulation-sessions/{session_id}/projected-positions",
+            correlation_id=correlation_id,
         )
 
     async def get_projected_summary(
@@ -662,16 +580,10 @@ class LotusCoreQueryClient:
         session_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._control_plane_base_url}/simulation-sessions/{session_id}/projected-summary"
-        headers = propagation_headers(correlation_id)
-        return await self._request(
+        return await self._get_control_plane_resource(
             operation="core.simulation-sessions.projected-summary.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path=f"/simulation-sessions/{session_id}/projected-summary",
+            correlation_id=correlation_id,
         )
 
     async def _request(

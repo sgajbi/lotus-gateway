@@ -4,7 +4,7 @@ from app.contracts.source_products import (
     ExternalOrderExecutionAcknowledgementRequest,
     ExternalOrderExecutionAcknowledgementResponse,
 )
-from app.middleware.correlation import correlation_id_var
+from app.routers.correlation import resolve_router_correlation_id
 from app.services.gateway_service_provider import source_product_service
 
 router = APIRouter(prefix="/api/v1/source-products", tags=["Source Products"])
@@ -16,12 +16,11 @@ async def _get_external_order_execution_acknowledgement(
     portfolio_id: str,
     x_correlation_id: str | None,
 ) -> ExternalOrderExecutionAcknowledgementResponse:
-    correlation_id = x_correlation_id or correlation_id_var.get() or ""
     payload = request.model_dump(exclude_none=True)
     return await source_product_service().get_external_order_execution_acknowledgement(
         portfolio_id=portfolio_id,
         payload=payload,
-        correlation_id=correlation_id,
+        correlation_id=resolve_router_correlation_id(x_correlation_id),
     )
 
 
