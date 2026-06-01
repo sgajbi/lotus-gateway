@@ -7,6 +7,9 @@
 - composition logic under `src/app/services/`
 - upstream integrations under `src/app/clients/`
 - workbench-facing contracts under `src/app/contracts/`
+- consolidated architecture and quality-baseline docs under
+  [docs/architecture.md](../docs/architecture.md) and
+  [quality/architecture_rules.md](../quality/architecture_rules.md)
 
 ## Route-family map
 
