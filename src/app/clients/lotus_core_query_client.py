@@ -22,6 +22,22 @@ class LotusCoreQueryClient:
         self._max_retries = max_retries
         self._retry_backoff_seconds = retry_backoff_seconds
 
+    async def _get_query_resource(
+        self,
+        *,
+        operation: str,
+        path: str,
+        correlation_id: str,
+        params: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._request(
+            operation=operation,
+            method="GET",
+            url=f"{self._query_base_url}{path}",
+            params=params,
+            headers=build_upstream_headers(correlation_id),
+        )
+
     async def get_capabilities(
         self,
         consumer_system: str,
@@ -66,16 +82,10 @@ class LotusCoreQueryClient:
         self,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios"
-        headers = build_upstream_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.portfolios.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path="/portfolios",
+            correlation_id=correlation_id,
         )
 
     async def get_portfolio(
@@ -83,16 +93,10 @@ class LotusCoreQueryClient:
         portfolio_id: str,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/portfolios/{portfolio_id}"
-        headers = build_upstream_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.portfolios.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            headers=headers,
+            path=f"/portfolios/{portfolio_id}",
+            correlation_id=correlation_id,
         )
 
     async def get_portfolio_positions(
@@ -499,18 +503,12 @@ class LotusCoreQueryClient:
         limit: int,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}/instruments"
-        headers = build_upstream_headers(correlation_id)
         params = {"skip": 0, "limit": limit}
-        return await self._request(
+        return await self._get_query_resource(
             operation="core.instruments.list",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path="/instruments",
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def get_portfolio_lookups(
@@ -582,17 +580,11 @@ class LotusCoreQueryClient:
         params: dict[str, Any],
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        url = f"{self._query_base_url}{path}"
-        headers = build_upstream_headers(correlation_id)
-        return await self._request(
+        return await self._get_query_resource(
             operation=f"core{path.replace('/', '.')}.get",
-            method="GET",
-            url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
+            path=path,
+            correlation_id=correlation_id,
             params=params,
-            headers=headers,
         )
 
     async def create_simulation_session(
