@@ -3,6 +3,10 @@ from datetime import UTC, datetime
 import pytest
 from fastapi import HTTPException
 
+from app.services.workbench_core_snapshot import (
+    extract_current_positions,
+    parse_lotus_core_snapshot,
+)
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
 from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workbench_service import WorkbenchService
@@ -166,15 +170,13 @@ def test_raise_for_lotus_core_error_includes_upstream_detail():
 
 
 def test_parse_lotus_core_snapshot_invalid_structure_raises():
-    service, _, _, _ = _build_service()
     with pytest.raises(HTTPException) as exc:
-        service._parse_lotus_core_snapshot("P1", [], {}, "2026-02-24")
+        parse_lotus_core_snapshot("P1", [], {}, "2026-02-24")
     assert exc.value.status_code == 502
 
 
 def test_parse_lotus_core_snapshot_uses_fallback_defaults():
-    service, _, _, _ = _build_service()
-    portfolio, overview, as_of_date = service._parse_lotus_core_snapshot(
+    portfolio, overview, as_of_date = parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
         portfolio_payload={},
         snapshot_payload={"sections": {}},
@@ -407,28 +409,11 @@ def test_parse_dpm_snapshot_preserves_recent_run_error_and_workflow_state():
     assert parsed.recent_runs[0].workflow_state == "NEEDS_REVIEW"
 
 
-@pytest.mark.parametrize(
-    ("payload", "expected"),
-    [
-        ({"valuation": {"market_value_base": 100}}, 100.0),
-        ({"valuation": {"market_value": 101}}, 101.0),
-        ({"current_value_base": 102}, 102.0),
-        ({"value_base": 103}, 103.0),
-        ({"valuation": {"market_value_base": "bad"}}, None),
-    ],
-)
-def test_parse_position_market_value_variants(payload, expected):
-    service, _, _, _ = _build_service()
-    assert service._parse_position_market_value(payload) == expected
-
-
 def test_extract_current_positions_handles_non_dict_holdings():
-    service, _, _, _ = _build_service()
-    assert service._extract_current_positions({"sections": []}) == []
+    assert extract_current_positions({"sections": []}) == []
 
 
 def test_extract_current_positions_computes_weight_and_sorts():
-    service, _, _, _ = _build_service()
     payload = {
         "sections": {
             "positions_baseline": [
@@ -442,7 +427,7 @@ def test_extract_current_positions_computes_weight_and_sorts():
             ],
         },
     }
-    rows = service._extract_current_positions(payload)
+    rows = extract_current_positions(payload)
     assert [row.security_id for row in rows] == ["A", "B"]
     assert rows[0].weight_pct == pytest.approx(10.0)
     assert rows[1].weight_pct == pytest.approx(20.0)
@@ -647,13 +632,11 @@ async def test_evaluate_policy_feedback_uses_status_when_gate_decision_missing()
 
 
 def test_extract_current_positions_returns_empty_when_by_asset_class_not_dict():
-    service, _, _, _ = _build_service()
     payload = {"sections": {"positions_baseline": [], "instrument_enrichment": []}}
-    assert service._extract_current_positions(payload) == []
+    assert extract_current_positions(payload) == []
 
 
 def test_extract_current_positions_skips_invalid_item_shapes():
-    service, _, _, _ = _build_service()
     payload = {
         "sections": {
             "positions_baseline": ["bad", {"security_id": "EQ_1", "quantity": 1}],
@@ -661,29 +644,19 @@ def test_extract_current_positions_skips_invalid_item_shapes():
             "instrument_enrichment": [{"security_id": "EQ_1", "instrument_name": "EQ 1"}],
         },
     }
-    rows = service._extract_current_positions(payload)
+    rows = extract_current_positions(payload)
     assert len(rows) == 1
     assert rows[0].security_id == "EQ_1"
 
 
 def test_extract_current_positions_skips_asset_class_with_non_list_items():
-    service, _, _, _ = _build_service()
     payload = {"sections": {"positions_baseline": {"security_id": "EQ_1"}}}
-    rows = service._extract_current_positions(payload)
+    rows = extract_current_positions(payload)
     assert rows == []
 
 
-def test_parse_position_market_value_skips_non_numeric_in_flat_keys():
-    service, _, _, _ = _build_service()
-    assert (
-        service._parse_position_market_value({"market_value_base": "bad", "value_base": "bad"})
-        is None
-    )
-
-
 def test_parse_lotus_core_snapshot_handles_non_dict_overview_and_holdings_shapes():
-    service, _, _, _ = _build_service()
-    portfolio, overview, _ = service._parse_lotus_core_snapshot(
+    portfolio, overview, _ = parse_lotus_core_snapshot(
         fallback_portfolio_id="P1",
         portfolio_payload={"portfolio_id": "P1"},
         snapshot_payload={"sections": []},
