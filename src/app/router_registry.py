@@ -596,20 +596,32 @@ def register_routers(app: FastAPI) -> None:
         proposal_memo_reporting_router,
         proposal_memo_report_packages_router,
     )
-    app.include_router(platform_router)
-    app.include_router(domain_product_catalog_router)
-    app.include_router(domain_product_detail_router)
-    app.include_router(domain_product_graph_router)
-    app.include_router(domain_product_trust_router)
-    app.include_router(source_products_router)
-    app.include_router(intake_router)
-    app.include_router(intake_uploads_router)
-    app.include_router(intake_upload_commits_router)
-    app.include_router(lookup_currency_catalog_router)
-    app.include_router(lookup_instrument_catalog_router)
-    app.include_router(lookup_portfolio_catalog_router)
-    app.include_router(foundation_router)
-    app.include_router(foundation_workspace_router)
+    _include_routers(
+        app,
+        platform_router,
+        domain_product_catalog_router,
+        domain_product_detail_router,
+        domain_product_graph_router,
+        domain_product_trust_router,
+        source_products_router,
+    )
+    _include_routers(
+        app,
+        intake_router,
+        intake_uploads_router,
+        intake_upload_commits_router,
+    )
+    _include_routers(
+        app,
+        lookup_currency_catalog_router,
+        lookup_instrument_catalog_router,
+        lookup_portfolio_catalog_router,
+    )
+    _include_routers(
+        app,
+        foundation_router,
+        foundation_workspace_router,
+    )
     app.include_router(portfolio_router)
     app.include_router(portfolio_workspace_router)
     app.include_router(portfolio_readiness_router)
