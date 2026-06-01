@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from app.clients.http_resilience import request_with_retry
+from app.clients.http_resilience import request_binary_with_retry, request_with_retry
 
 
 class _FlakyAsyncClient:
@@ -145,6 +145,51 @@ class _PostParamsAsyncClient:
         _ = headers, data, files
         _PostParamsAsyncClient.calls.append({"url": url, "params": params, "json": json})
         return httpx.Response(200, json={"ok": True}, request=httpx.Request("POST", url))
+
+
+class _BinaryRetryStatusAsyncClient:
+    calls = 0
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _BinaryRetryStatusAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = params, headers
+        _BinaryRetryStatusAsyncClient.calls += 1
+        if _BinaryRetryStatusAsyncClient.calls == 1:
+            return httpx.Response(503, text="try again", request=httpx.Request("GET", url))
+        return httpx.Response(
+            200,
+            content=b"binary-content",
+            headers={"Content-Type": "application/pdf"},
+            request=httpx.Request("GET", url),
+        )
+
+
+class _BinaryTextErrorAsyncClient:
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _BinaryTextErrorAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = params, headers
+        return httpx.Response(502, text="archive unavailable", request=httpx.Request("GET", url))
 
 
 @pytest.mark.asyncio
@@ -332,3 +377,43 @@ async def test_request_with_retry_enables_redirect_following(monkeypatch):
     assert payload == {"redirected": True}
     assert _RedirectAwareAsyncClient.requested_urls == ["http://service/portfolios"]
     assert _RedirectAwareAsyncClient.follow_redirects is True
+
+
+@pytest.mark.asyncio
+async def test_request_binary_with_retry_retries_status_and_preserves_headers(monkeypatch):
+    _BinaryRetryStatusAsyncClient.calls = 0
+    monkeypatch.setattr("httpx.AsyncClient", _BinaryRetryStatusAsyncClient)
+
+    status, content, headers, error_payload = await request_binary_with_retry(
+        method="GET",
+        url="http://archive/documents/doc_1/download",
+        timeout_seconds=1.0,
+        max_retries=2,
+        backoff_seconds=0.0,
+        retry_status_codes={503},
+    )
+
+    assert status == 200
+    assert content == b"binary-content"
+    assert headers["content-type"] == "application/pdf"
+    assert error_payload == {}
+    assert _BinaryRetryStatusAsyncClient.calls == 2
+    assert _BinaryRetryStatusAsyncClient.follow_redirects is True
+
+
+@pytest.mark.asyncio
+async def test_request_binary_with_retry_returns_text_error_payload(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _BinaryTextErrorAsyncClient)
+
+    status, content, headers, error_payload = await request_binary_with_retry(
+        method="GET",
+        url="http://archive/documents/doc_1/download",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+    )
+
+    assert status == 502
+    assert content == b"archive unavailable"
+    assert headers["content-length"] == "19"
+    assert error_payload == {"detail": "archive unavailable"}
