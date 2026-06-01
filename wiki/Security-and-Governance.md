@@ -29,5 +29,6 @@
 ## Operational discipline
 
 - preserve correlation, evidence, supportability, and degraded-state signals
+- redact sensitive audit metadata across normalized key variants before logging
 - keep gateway contracts product-oriented instead of accreting thin pass-through clutter
 - document endpoint-specific parameter conventions explicitly when they differ by route family

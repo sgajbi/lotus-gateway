@@ -44,6 +44,26 @@ def test_redact_sensitive_masks_known_fields():
     assert redacted["details"]["allowed"] == "value"
 
 
+def test_redact_sensitive_masks_normalized_key_variants():
+    payload = {
+        "clientEmail": "user@example.com",
+        "access_token": "secret-token",
+        "apiToken": "secret-token",
+        "account-number-last4": "1234",
+        "safe_reason": "client requested a review",
+    }
+
+    redacted = redact_sensitive(payload)
+
+    assert redacted == {
+        "clientEmail": "***REDACTED***",
+        "access_token": "***REDACTED***",
+        "apiToken": "***REDACTED***",
+        "account-number-last4": "***REDACTED***",
+        "safe_reason": "client requested a review",
+    }
+
+
 def test_authorize_write_request_enforces_required_headers_when_enabled(monkeypatch):
     monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
     allowed, reason = authorize_write_request("POST", "/proposals", {})

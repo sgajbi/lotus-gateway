@@ -134,7 +134,7 @@ def redact_sensitive(value: Any, redaction_fields: set[str] | None = None) -> An
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
-            if key.lower() in fields:
+            if _is_sensitive_field(key, fields):
                 redacted[key] = "***REDACTED***"
             else:
                 redacted[key] = redact_sensitive(item, fields)
@@ -142,6 +142,21 @@ def redact_sensitive(value: Any, redaction_fields: set[str] | None = None) -> An
     if isinstance(value, list):
         return [redact_sensitive(item, fields) for item in value]
     return value
+
+
+def _is_sensitive_field(key: str, redaction_fields: set[str]) -> bool:
+    normalized_key = _normalize_field_name(key)
+    for field in redaction_fields:
+        normalized_field = _normalize_field_name(field)
+        if not normalized_field:
+            continue
+        if normalized_key == normalized_field or normalized_field in normalized_key:
+            return True
+    return False
+
+
+def _normalize_field_name(value: str) -> str:
+    return "".join(character for character in value.lower() if character.isalnum())
 
 
 def emit_audit_event(
