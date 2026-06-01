@@ -6,6 +6,7 @@ from app.services.performance_workspace_horizon import (
     build_horizon_comparison_frequencies,
     fetch_workspace_horizon_dependencies,
     merge_standard_horizon_results,
+    parse_horizon_comparison_result,
 )
 
 
@@ -176,3 +177,117 @@ def test_merge_standard_horizon_results_records_partial_failures():
             ],
         },
     )
+
+
+def test_parse_horizon_comparison_result_returns_row_and_benchmark_code():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows, benchmark_code = parse_horizon_comparison_result(
+        result=(
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {
+                        "portfolio_twr": {
+                            "net": {
+                                "summary": {
+                                    "period_return": {"base": 3.1},
+                                    "cumulative_return": {"base": 5.2},
+                                    "annualized_return": {"base": 6.3},
+                                    "economics": {
+                                        "begin_market_value": 100.0,
+                                        "end_market_value": 110.0,
+                                    },
+                                },
+                            },
+                            "gross": {
+                                "summary": {
+                                    "period_return": {"base": 3.3},
+                                    "cumulative_return": {"base": 5.4},
+                                    "annualized_return": {"base": 6.5},
+                                },
+                            },
+                        },
+                        "benchmark": {
+                            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                            "summary": {
+                                "period_return": {"base": 2.9},
+                                "cumulative_return": {"base": 4.8},
+                            },
+                        },
+                        "active": {"net": {"period_return": {"base": 0.2}}},
+                        "money_weighted_return": {
+                            "start_date": "2026-01-01",
+                            "end_date": "2026-03-27",
+                        },
+                    },
+                },
+            },
+        ),
+        requested_period="EXPLICIT",
+        requested_report_start_date=None,
+        requested_report_end_date="2026-03-27",
+        detail_basis="NET",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.period == "YTD"
+    assert row.period_start == "2026-01-01"
+    assert row.period_end == "2026-03-27"
+    assert row.portfolio_return_pct == 3.1
+    assert row.net_return_pct == 3.1
+    assert row.gross_return_pct == 3.3
+    assert row.benchmark_return_pct == 2.9
+    assert row.active_return_pct == 0.2
+    assert row.cumulative_net_return_pct == 5.2
+    assert row.cumulative_gross_return_pct == 5.4
+    assert row.cumulative_benchmark_return_pct == 4.8
+    assert row.annualized_return_pct == 6.3
+    assert row.begin_market_value == 100.0
+    assert row.end_market_value == 110.0
+    assert benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_horizon_comparison_result_propagates_gateway_failures():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows, benchmark_code = parse_horizon_comparison_result(
+        result=(
+            200,
+            {
+                "results_by_period": {},
+                "_gateway_warnings": ["PERFORMANCE_HORIZON_MTD_UNAVAILABLE"],
+                "_gateway_partial_failures": [
+                    {
+                        "source_service": "lotus-performance",
+                        "error_code": "HTTP_503",
+                        "detail": "mtd unavailable",
+                    },
+                ],
+            },
+        ),
+        requested_period="YTD",
+        requested_report_start_date=None,
+        requested_report_end_date="2026-03-27",
+        detail_basis="NET",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert rows == []
+    assert benchmark_code is None
+    assert warnings == [
+        "PERFORMANCE_HORIZON_MTD_UNAVAILABLE",
+        "PERFORMANCE_HORIZON_COMPARISON_INVALID",
+    ]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "mtd unavailable"
