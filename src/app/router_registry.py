@@ -515,21 +515,27 @@ def register_routers(app: FastAPI) -> None:
         advisor_cockpit_supportability_router,
         advisor_cockpit_house_view_router,
     )
-    app.include_router(bank_demo_proof_router)
-    app.include_router(bank_demo_supported_claims_router)
-    app.include_router(bank_demo_proof_packs_router)
-    app.include_router(advisory_workspaces_router)
-    app.include_router(advisory_workspace_actions_router)
-    app.include_router(advisory_workspace_draft_actions_router)
-    app.include_router(advisory_workspace_evaluate_router)
-    app.include_router(advisory_workspace_versions_router)
-    app.include_router(advisory_workspace_resume_router)
-    app.include_router(advisory_workspace_compare_router)
-    app.include_router(advisory_workspace_version_lookups_router)
-    app.include_router(advisory_workspace_replay_evidence_router)
-    app.include_router(advisory_workspace_assistant_router)
-    app.include_router(advisory_workspace_rationale_reviews_router)
-    app.include_router(advisory_workspace_handoff_router)
+    _include_routers(
+        app,
+        bank_demo_proof_router,
+        bank_demo_supported_claims_router,
+        bank_demo_proof_packs_router,
+    )
+    _include_routers(
+        app,
+        advisory_workspaces_router,
+        advisory_workspace_actions_router,
+        advisory_workspace_draft_actions_router,
+        advisory_workspace_evaluate_router,
+        advisory_workspace_versions_router,
+        advisory_workspace_resume_router,
+        advisory_workspace_compare_router,
+        advisory_workspace_version_lookups_router,
+        advisory_workspace_replay_evidence_router,
+        advisory_workspace_assistant_router,
+        advisory_workspace_rationale_reviews_router,
+        advisory_workspace_handoff_router,
+    )
     app.include_router(advisory_policy_router)
     app.include_router(advisory_policy_pack_detail_router)
     app.include_router(advisory_policy_actions_router)
