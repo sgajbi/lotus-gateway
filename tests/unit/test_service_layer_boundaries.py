@@ -145,6 +145,23 @@ def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None
     assert workflow_pack_helpers == []
 
 
+def test_advisor_brief_service_delegates_supportability_runtime_mapping() -> None:
+    path = _SERVICE_ROOT / "advisor_brief_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    supportability_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and (
+            node.name in {"_load_advisory_supportability", "_load_ai_surface_supportability"}
+            or node.name.startswith("_parse_ai_surface_supportability")
+            or node.name.startswith("_normalize_ai_surface_")
+        )
+    )
+
+    assert supportability_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
