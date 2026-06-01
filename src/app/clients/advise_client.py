@@ -4,7 +4,10 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import (
+    build_idempotent_upstream_headers,
+    build_upstream_headers,
+)
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -39,7 +42,7 @@ class AdviseClient:
             max_retries=self._max_retries,
             backoff_seconds=self._retry_backoff_seconds,
             params={"consumer_system": consumer_system, "tenant_id": tenant_id},
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
         )
 
     async def get_capabilities(
@@ -265,13 +268,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/workspaces/{workspace_id}/handoff",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.workspaces.handoff",
         )
 
@@ -822,13 +822,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/narrative/review",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.narrative.review",
         )
 
@@ -852,13 +849,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/execution-handoffs",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.execution-handoffs.create",
         )
 
@@ -905,13 +899,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/execution-updates",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.execution-updates.record",
         )
 
@@ -926,7 +917,7 @@ class AdviseClient:
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo",
             body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
+            headers=build_idempotent_upstream_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.memo.create",
         )
 
@@ -968,13 +959,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/review",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.memo.review",
         )
 
@@ -986,13 +974,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-package-events",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.memo.report-package-events",
         )
 
@@ -1004,13 +989,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/report-packages",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.memo.report-packages",
         )
 
@@ -1022,13 +1004,10 @@ class AdviseClient:
         idempotency_key: str | None,
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
-        headers = self._headers(correlation_id)
-        if idempotency_key is not None:
-            headers["Idempotency-Key"] = idempotency_key
         return await self._post(
             f"/advisory/proposals/{proposal_id}/versions/{version_no}/memo/ai-commentary",
             body=body,
-            headers=headers,
+            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
             operation="advise.advisory.proposals.memo.ai-commentary",
         )
 
@@ -1062,10 +1041,7 @@ class AdviseClient:
         correlation_id: str,
         extras: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        headers = propagation_headers(correlation_id)
-        if extras:
-            headers.update(extras)
-        return headers
+        return build_upstream_headers(correlation_id, extras=extras)
 
     def _optional_idempotency_headers(
         self,
@@ -1074,7 +1050,7 @@ class AdviseClient:
     ) -> dict[str, str]:
         if idempotency_key is None:
             return self._headers(correlation_id)
-        return self._headers(correlation_id, {"Idempotency-Key": idempotency_key})
+        return build_idempotent_upstream_headers(correlation_id, idempotency_key)
 
     async def _post(
         self,

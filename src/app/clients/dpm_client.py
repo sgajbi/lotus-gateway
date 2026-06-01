@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_binary_fanout, request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -1296,10 +1296,7 @@ class DpmClient:
         correlation_id: str,
         extras: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        headers = propagation_headers(correlation_id)
-        if extras:
-            headers.update(extras)
-        return headers
+        return build_upstream_headers(correlation_id, extras=extras)
 
     async def _get(
         self,

@@ -1,0 +1,48 @@
+from app.middleware.correlation import propagation_headers
+
+
+def build_upstream_headers(
+    correlation_id: str,
+    *,
+    extras: dict[str, str] | None = None,
+    caller_headers: dict[str, str] | None = None,
+) -> dict[str, str]:
+    headers = propagation_headers(correlation_id)
+    if extras:
+        headers.update(extras)
+    if caller_headers:
+        headers.update(caller_headers)
+    return headers
+
+
+def build_idempotent_upstream_headers(
+    correlation_id: str,
+    idempotency_key: str,
+    *,
+    caller_headers: dict[str, str] | None = None,
+) -> dict[str, str]:
+    return build_upstream_headers(
+        correlation_id,
+        extras={"Idempotency-Key": idempotency_key},
+        caller_headers=caller_headers,
+    )
+
+
+def build_archive_caller_headers(
+    *,
+    correlation_id: str,
+    caller_headers: dict[str, str],
+) -> dict[str, str]:
+    headers = build_upstream_headers(
+        correlation_id,
+        extras={
+            "X-Caller-Service": "lotus-gateway",
+            "X-Actor-Type": caller_headers.get("X-Role", "user"),
+            "X-Actor-Id": caller_headers["X-Actor-Id"],
+            "X-Tenant-Id": caller_headers["X-Tenant-Id"],
+            "X-Region": caller_headers["X-Region"],
+        },
+    )
+    if booking_center_code := caller_headers.get("X-Booking-Center-Code"):
+        headers["X-Booking-Center-Code"] = booking_center_code
+    return headers
