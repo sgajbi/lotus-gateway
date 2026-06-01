@@ -10,7 +10,6 @@ from app.contracts.performance_workspace import (
     AttributionSummaryView,
     AttributionSupportabilityEvidenceView,
 )
-from app.precision_policy import quantize_performance
 from app.services.performance_workspace_parsing import (
     format_key_label,
     quantize_optional,
@@ -227,7 +226,7 @@ def _build_attribution_rows(
     return rows
 
 
-def _effect_pct(value: Any, *, quantize_with_policy: bool) -> float:
+def _effect_pct(value: Any, *, quantize_with_policy: bool):
     if quantize_with_policy:
-        return float(quantize_performance(value))
+        return quantize_optional(value) or 0.0
     return quantize_optional(value) or 0.0
