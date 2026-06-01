@@ -751,23 +751,26 @@ def register_routers(app: FastAPI) -> None:
         dpm_wave_campaign_preview_readiness_router,
         dpm_wave_campaign_readiness_router,
     )
-    app.include_router(workbench_router)
-    app.include_router(workbench_portfolio_360_router)
-    app.include_router(workbench_analytics_router)
-    app.include_router(workbench_performance_router)
-    app.include_router(workbench_performance_details_router)
-    app.include_router(workbench_performance_advisor_brief_router)
-    app.include_router(workbench_performance_advisor_brief_review_actions_router)
-    app.include_router(workbench_performance_attribution_trend_router)
-    app.include_router(workbench_performance_evidence_router)
-    app.include_router(workbench_performance_modules_router)
-    app.include_router(workbench_risk_router)
-    app.include_router(workbench_risk_attribution_router)
-    app.include_router(workbench_risk_concentration_router)
-    app.include_router(workbench_risk_drawdown_router)
-    app.include_router(workbench_risk_rolling_router)
-    app.include_router(workbench_sandbox_router)
-    app.include_router(workbench_sandbox_changes_router)
+    _include_routers(
+        app,
+        workbench_router,
+        workbench_portfolio_360_router,
+        workbench_analytics_router,
+        workbench_performance_router,
+        workbench_performance_details_router,
+        workbench_performance_advisor_brief_router,
+        workbench_performance_advisor_brief_review_actions_router,
+        workbench_performance_attribution_trend_router,
+        workbench_performance_evidence_router,
+        workbench_performance_modules_router,
+        workbench_risk_router,
+        workbench_risk_attribution_router,
+        workbench_risk_concentration_router,
+        workbench_risk_drawdown_router,
+        workbench_risk_rolling_router,
+        workbench_sandbox_router,
+        workbench_sandbox_changes_router,
+    )
     app.include_router(reporting_portfolio_summary_router)
     app.include_router(reporting_portfolio_reviews_router)
     app.include_router(reporting_portfolio_snapshots_router)
