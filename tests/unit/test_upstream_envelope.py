@@ -13,6 +13,7 @@ from app.services.upstream_envelope import (
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
     raise_for_upstream_error,
+    raise_gateway_mapped_service_error,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
     safe_upstream_detail,
@@ -148,4 +149,32 @@ def test_raise_product_safe_service_error_builds_untyped_detail() -> None:
         "upstream_status": 503,
         "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
         "detail": "workflow pack unavailable",
+    }
+
+
+@pytest.mark.parametrize(
+    ("upstream_status", "gateway_status"),
+    [
+        (400, 400),
+        (422, 400),
+        (404, 404),
+        (500, 502),
+    ],
+)
+def test_raise_gateway_mapped_service_error_maps_status(
+    upstream_status: int,
+    gateway_status: int,
+) -> None:
+    with pytest.raises(HTTPException) as exc_info:
+        raise_gateway_mapped_service_error(
+            upstream_status,
+            {"detail": "upstream failed"},
+            source_service="lotus-core",
+        )
+
+    assert exc_info.value.status_code == gateway_status
+    assert exc_info.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": upstream_status,
+        "error": {"detail": "upstream failed"},
     }

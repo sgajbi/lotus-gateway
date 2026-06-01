@@ -157,3 +157,33 @@ def raise_product_safe_service_error(
             "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
         },
     )
+
+
+def raise_gateway_mapped_service_error(
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    *,
+    source_service: str,
+) -> None:
+    """Raise an upstream service error using Gateway's canonical status mapping."""
+
+    if upstream_status < status.HTTP_400_BAD_REQUEST:
+        return
+
+    gateway_status = status.HTTP_502_BAD_GATEWAY
+    if upstream_status == status.HTTP_404_NOT_FOUND:
+        gateway_status = status.HTTP_404_NOT_FOUND
+    elif upstream_status in {
+        status.HTTP_400_BAD_REQUEST,
+        status.HTTP_422_UNPROCESSABLE_CONTENT,
+    }:
+        gateway_status = status.HTTP_400_BAD_REQUEST
+
+    raise HTTPException(
+        status_code=gateway_status,
+        detail={
+            "source_service": source_service,
+            "upstream_status": upstream_status,
+            "error": upstream_payload,
+        },
+    )
