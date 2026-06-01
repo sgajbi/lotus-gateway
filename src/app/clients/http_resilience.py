@@ -4,6 +4,15 @@ from typing import Any
 import httpx
 
 
+def _retry_attempts(max_retries: int) -> int:
+    return max(0, max_retries) + 1
+
+
+def _retry_delay(backoff_seconds: float, attempt: int) -> float:
+    bounded_backoff = backoff_seconds if backoff_seconds > 0.0 else 0.0
+    return bounded_backoff * (2.0**attempt)
+
+
 def _response_payload(response: httpx.Response) -> dict[str, Any]:
     try:
         payload = response.json()
@@ -29,7 +38,7 @@ async def request_with_retry(
     files: dict[str, Any] | None = None,
     retry_timeout_exceptions: bool = True,
 ) -> tuple[int, dict[str, Any]]:
-    attempts = max_retries + 1
+    attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
             async with httpx.AsyncClient(
@@ -53,7 +62,7 @@ async def request_with_retry(
 
             should_retry_status = retry_status_codes and response.status_code in retry_status_codes
             if should_retry_status and attempt < max_retries:
-                await asyncio.sleep(backoff_seconds * (2**attempt))
+                await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
                 continue
             return response.status_code, _response_payload(response)
         except httpx.TimeoutException as exc:
@@ -61,11 +70,11 @@ async def request_with_retry(
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
             if attempt >= max_retries:
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
-            await asyncio.sleep(backoff_seconds * (2**attempt))
+            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
             if attempt >= max_retries:
                 return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
-            await asyncio.sleep(backoff_seconds * (2**attempt))
+            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
 
     return 503, {"detail": "upstream communication failure: exhausted retries"}
 
@@ -82,7 +91,7 @@ async def request_binary_with_retry(
     headers: dict[str, str] | None = None,
     retry_timeout_exceptions: bool = True,
 ) -> tuple[int, bytes, dict[str, str], dict[str, Any]]:
-    attempts = max_retries + 1
+    attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
             async with httpx.AsyncClient(
@@ -96,7 +105,7 @@ async def request_binary_with_retry(
 
             should_retry_status = retry_status_codes and response.status_code in retry_status_codes
             if should_retry_status and attempt < max_retries:
-                await asyncio.sleep(backoff_seconds * (2**attempt))
+                await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
                 continue
             error_payload: dict[str, Any] = {}
             if response.status_code >= 400:
@@ -117,7 +126,7 @@ async def request_binary_with_retry(
                     {},
                     {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
                 )
-            await asyncio.sleep(backoff_seconds * (2**attempt))
+            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
             if attempt >= max_retries:
                 return (
@@ -126,6 +135,6 @@ async def request_binary_with_retry(
                     {},
                     {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
                 )
-            await asyncio.sleep(backoff_seconds * (2**attempt))
+            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
 
     return 503, b"", {}, {"detail": "upstream communication failure: exhausted retries"}
