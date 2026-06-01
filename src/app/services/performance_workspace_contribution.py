@@ -10,7 +10,9 @@ from app.contracts.performance_workspace import (
     ContributionSourceEconomicsEvidenceView,
     ContributionSummaryView,
 )
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.precision_policy import quantize_performance
+from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_parsing import (
     format_key_label,
     quantize_optional,
@@ -20,6 +22,9 @@ from app.services.performance_workspace_parsing import (
     sum_optional,
     weight_to_pct,
 )
+from app.services.performance_workspace_returns import resolve_results_period_key
+
+ContributionResult = tuple[int, dict[str, Any]] | BaseException
 
 
 def build_workspace_contribution_summary(
@@ -91,6 +96,51 @@ def build_detail_contribution_summary(
         source_economics_evidence=parse_contribution_source_economics_evidence(
             source_economics_payload
         ),
+    )
+
+
+def parse_contribution_result(
+    *,
+    result: ContributionResult,
+    metric_basis: str,
+    requested_period: str,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> ContributionSummaryView | None:
+    if isinstance(result, BaseException):
+        warnings.append("CONTRIBUTION_UNAVAILABLE")
+        partial_failures.append(
+            build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+        )
+        return None
+    status_code, payload = result
+    if not isinstance(payload, dict):
+        warnings.append("CONTRIBUTION_INVALID")
+        return None
+    if status_code >= 400:
+        warnings.append("CONTRIBUTION_UNAVAILABLE")
+        partial_failures.append(
+            build_performance_failure(
+                "lotus-performance",
+                f"HTTP_{status_code}",
+                str(payload.get("detail", payload)),
+            )
+        )
+        return None
+    results_by_period = payload.get("results_by_period", {})
+    if not isinstance(results_by_period, dict) or not results_by_period:
+        return None
+    period_key = resolve_results_period_key(
+        requested_period=requested_period,
+        results_by_period=results_by_period,
+    )
+    period_payload = results_by_period.get(period_key, {})
+    if not isinstance(period_payload, dict):
+        return None
+    return build_detail_contribution_summary(
+        period_payload=period_payload,
+        metric_basis=metric_basis,
+        source_economics_payload=payload.get("source_economics_evidence"),
     )
 
 

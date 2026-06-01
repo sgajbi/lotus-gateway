@@ -48,9 +48,9 @@ from app.services.performance_workspace_chart_points import (
     build_workspace_chart_points,
 )
 from app.services.performance_workspace_contribution import (
-    build_detail_contribution_summary,
     build_workspace_contribution_summary,
     merge_contribution_summary_views,
+    parse_contribution_result,
 )
 from app.services.performance_workspace_controls import (
     build_attribution_trend_windows,
@@ -672,7 +672,7 @@ class PerformanceWorkspaceService:
             )
             contribution = merge_contribution_summary_views(
                 summary_contribution=contribution,
-                detail_contribution=self._parse_contribution_result(
+                detail_contribution=parse_contribution_result(
                     result=contribution_detail_result,
                     metric_basis=detail_basis,
                     requested_period=effective_period,
@@ -1269,51 +1269,6 @@ class PerformanceWorkspaceService:
             if resolved_benchmark_code is None:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
-
-    def _parse_contribution_result(
-        self,
-        *,
-        result: GatheredResult,
-        metric_basis: str,
-        requested_period: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> ContributionSummaryView | None:
-        if isinstance(result, BaseException):
-            warnings.append("CONTRIBUTION_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return None
-        status_code, payload = result
-        if not isinstance(payload, dict):
-            warnings.append("CONTRIBUTION_INVALID")
-            return None
-        if status_code >= 400:
-            warnings.append("CONTRIBUTION_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return None
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            return None
-        period_key = resolve_results_period_key(
-            requested_period=requested_period,
-            results_by_period=results_by_period,
-        )
-        period_payload = results_by_period.get(period_key, {})
-        if not isinstance(period_payload, dict):
-            return None
-        return build_detail_contribution_summary(
-            period_payload=period_payload,
-            metric_basis=metric_basis,
-            source_economics_payload=payload.get("source_economics_evidence"),
-        )
 
     def _parse_attribution_result(
         self,

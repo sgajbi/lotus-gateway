@@ -2,6 +2,7 @@ from app.services.performance_workspace_contribution import (
     build_detail_contribution_summary,
     build_workspace_contribution_summary,
     merge_contribution_summary_views,
+    parse_contribution_result,
     parse_contribution_smoothing_evidence,
     parse_contribution_source_economics_evidence,
 )
@@ -109,6 +110,73 @@ def test_build_detail_contribution_summary_maps_independent_payload():
     assert summary.position_rows[0].contribution_pct == 0.22222
     assert summary.source_economics_evidence is not None
     assert summary.source_economics_evidence.reason_codes == ["MISSING_FX"]
+
+
+def test_parse_contribution_result_selects_requested_period_and_source_economics():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_contribution_result(
+        result=(
+            200,
+            {
+                "source_economics_evidence": {
+                    "status": "partial",
+                    "reason_codes": ["MISSING_LOCAL_ECONOMICS"],
+                },
+                "results_by_period": {
+                    "YTD": {
+                        "summary": {"portfolio_contribution": 2.5},
+                        "total_portfolio_return": 2.9,
+                        "levels": [
+                            {
+                                "name": "Asset Class",
+                                "rows": [
+                                    {
+                                        "key": {"asset_class": "Equity"},
+                                        "contribution": 2.5,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                },
+            },
+        ),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is not None
+    assert summary.metric_basis == "NET"
+    assert summary.portfolio_contribution_pct == 2.5
+    assert summary.total_portfolio_return_pct == 2.9
+    assert summary.levels[0].rows[0].key_label == "Equity"
+    assert summary.source_economics_evidence is not None
+    assert summary.source_economics_evidence.reason_codes == ["MISSING_LOCAL_ECONOMICS"]
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_contribution_result_records_upstream_failure():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_contribution_result(
+        result=RuntimeError("timeout"),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["CONTRIBUTION_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
 
 
 def test_merge_contribution_summary_views_prefers_detail_when_present():
