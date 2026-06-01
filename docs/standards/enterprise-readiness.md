@@ -31,6 +31,8 @@ Evidence:
 
 - Feature flags are centrally loaded from `ENTERPRISE_FEATURE_FLAGS_JSON`.
 - Flags support tenant and role scoping with deterministic fallback order.
+- Write capability rules use method plus path-segment-aware matching, with more-specific path
+  rules evaluated before broader prefixes.
 - Invalid config payload defaults to deny-by-default behavior.
 
 Evidence:
