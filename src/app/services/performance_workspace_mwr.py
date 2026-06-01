@@ -48,24 +48,5 @@ def build_workspace_mwr_summary(
     )
 
 
-def build_detail_mwr_summary(payload: dict[str, Any]) -> MoneyWeightedReturnSummary:
-    return MoneyWeightedReturnSummary(
-        money_weighted_return_pct=quantize_optional(payload.get("money_weighted_return")),
-        annualized_return_pct=quantize_optional(payload.get("mwr_annualized")),
-        holding_period_return_pct=quantize_optional(payload.get("holding_period_return")),
-        method=safe_str(payload.get("method")),
-        status=safe_str(payload.get("status")),
-        reason_codes=safe_str_list(payload.get("reason_codes")),
-        warnings=safe_str_list(payload.get("warnings")),
-        is_annualized_primary=safe_bool(payload.get("is_annualized_primary")),
-        fallback_from=safe_str(payload.get("fallback_from")),
-        fallback_reason=safe_str(payload.get("fallback_reason")),
-        is_approximation=safe_bool(payload.get("is_approximation")),
-        start_date=safe_str(payload.get("start_date")),
-        end_date=safe_str(payload.get("end_date")),
-        notes=_safe_notes(payload.get("notes", [])),
-    )
-
-
 def _safe_notes(payload: Any) -> list[str]:
     return [str(note) for note in payload] if isinstance(payload, list) else []
