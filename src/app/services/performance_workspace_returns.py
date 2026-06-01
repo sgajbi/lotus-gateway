@@ -60,3 +60,15 @@ def build_workspace_comparative_summary(
         else None,
         fees=quantize_optional(economics.get("fees")) if isinstance(economics, dict) else None,
     )
+
+
+def resolve_results_period_key(
+    *,
+    requested_period: str,
+    results_by_period: dict[str, Any],
+) -> str:
+    normalized_requested_period = requested_period.upper()
+    for key in results_by_period:
+        if key.upper() == normalized_requested_period:
+            return key
+    return next(iter(results_by_period))

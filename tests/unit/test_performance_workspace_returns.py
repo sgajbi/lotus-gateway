@@ -1,6 +1,7 @@
 from app.services.performance_workspace_returns import (
     build_workspace_comparative_summary,
     extract_twr_workspace_block,
+    resolve_results_period_key,
 )
 
 
@@ -83,3 +84,23 @@ def test_build_workspace_comparative_summary_tolerates_missing_nested_blocks():
     assert summary.benchmark_return_pct is None
     assert summary.active_return_pct is None
     assert summary.begin_market_value is None
+
+
+def test_resolve_results_period_key_matches_case_insensitively():
+    assert (
+        resolve_results_period_key(
+            requested_period="ytd",
+            results_by_period={"MTD": {}, "YTD": {}},
+        )
+        == "YTD"
+    )
+
+
+def test_resolve_results_period_key_falls_back_to_first_available_period():
+    assert (
+        resolve_results_period_key(
+            requested_period="EXPLICIT",
+            results_by_period={"QTD": {}, "YTD": {}},
+        )
+        == "QTD"
+    )
