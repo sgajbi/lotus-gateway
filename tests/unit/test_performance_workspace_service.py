@@ -9,6 +9,7 @@ from app.contracts.workbench import (
     WorkbenchPartialFailure,
     WorkbenchPortfolioSummary,
 )
+from app.services.performance_workspace_capabilities import build_workspace_capabilities
 from app.services.performance_workspace_service import PerformanceWorkspaceService
 
 
@@ -2515,7 +2516,7 @@ async def test_performance_workspace_service_marks_aggregate_contribution_as_par
     )
 
     response.contribution.position_rows = []
-    response.capabilities = service._build_workspace_capabilities(
+    response.capabilities = build_workspace_capabilities(
         benchmark_code=response.benchmark_code,
         net_performance=response.net_performance,
         net_chart=response.net_chart,
@@ -2557,7 +2558,7 @@ async def test_performance_workspace_service_marks_summary_only_attribution_as_p
 
     assert response.attribution is not None
     response.attribution.levels[0].rows = []
-    response.capabilities = service._build_workspace_capabilities(
+    response.capabilities = build_workspace_capabilities(
         benchmark_code=response.benchmark_code,
         net_performance=response.net_performance,
         net_chart=response.net_chart,

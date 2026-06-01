@@ -21,8 +21,6 @@ from app.contracts.performance_workspace import (
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
     PerformanceHorizonComparisonRow,
-    PerformanceModuleCapability,
-    PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -43,10 +41,6 @@ from app.services.performance_workspace_benchmarks import fetch_benchmark_contex
 from app.services.performance_workspace_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
-    build_attribution_capability,
-    build_contribution_capability,
-    build_evidence_capability,
-    build_module_capability,
     build_workspace_capabilities,
 )
 from app.services.performance_workspace_chart_points import (
@@ -739,7 +733,7 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        capabilities = self._build_workspace_capabilities(
+        capabilities = build_workspace_capabilities(
             benchmark_code=resolved_benchmark_code or benchmark_code,
             net_performance=net_performance,
             net_chart=net_chart,
@@ -806,29 +800,6 @@ class PerformanceWorkspaceService:
                 detail=detail,
             )
         return content, content_type
-
-    def _capability(
-        self,
-        state: str,
-        reason: str | None = None,
-        *,
-        coverage_level: str | None = None,
-        fallback_available: bool | None = None,
-        earliest_available_date: str | None = None,
-        latest_available_date: str | None = None,
-        supported_dimensions: Sequence[str] | None = None,
-        supported_frequencies: Sequence[str] | None = None,
-    ) -> PerformanceModuleCapability:
-        return build_module_capability(
-            state=state,
-            reason=reason,
-            coverage_level=coverage_level,
-            fallback_available=fallback_available,
-            earliest_available_date=earliest_available_date,
-            latest_available_date=latest_available_date,
-            supported_dimensions=supported_dimensions,
-            supported_frequencies=supported_frequencies,
-        )
 
     async def _build_evidence_view(
         self,
@@ -1050,66 +1021,6 @@ class PerformanceWorkspaceService:
         if refreshed_result[0] >= 400:
             return execution_result
         return refreshed_result
-
-    def _build_workspace_capabilities(
-        self,
-        *,
-        benchmark_code: str | None,
-        net_performance: PerformanceComparativeSummary,
-        net_chart: list[PerformanceChartPoint],
-        contribution: ContributionSummaryView | None,
-        attribution: AttributionSummaryView | None,
-        evidence_view: PerformanceEvidenceView | None,
-        include_detail_blocks: bool = True,
-    ) -> PerformanceWorkspaceCapabilities:
-        return build_workspace_capabilities(
-            benchmark_code=benchmark_code,
-            net_performance=net_performance,
-            net_chart=net_chart,
-            contribution=contribution,
-            attribution=attribution,
-            evidence_view=evidence_view,
-            include_detail_blocks=include_detail_blocks,
-        )
-
-    def _build_evidence_capability(
-        self,
-        *,
-        evidence_view: PerformanceEvidenceView | None,
-    ) -> PerformanceModuleCapability:
-        return build_evidence_capability(evidence_view=evidence_view)
-
-    def _build_contribution_capability(
-        self,
-        *,
-        include_detail_blocks: bool,
-        has_position_ranking: bool,
-        has_contribution_detail: bool,
-        supported_reason: str,
-        aggregate_reason: str,
-        unavailable_reason: str,
-    ) -> PerformanceModuleCapability:
-        return build_contribution_capability(
-            include_detail_blocks=include_detail_blocks,
-            has_position_ranking=has_position_ranking,
-            has_contribution_detail=has_contribution_detail,
-            supported_reason=supported_reason,
-            aggregate_reason=aggregate_reason,
-            unavailable_reason=unavailable_reason,
-        )
-
-    def _build_attribution_capability(
-        self,
-        *,
-        include_detail_blocks: bool,
-        has_attribution_detail: bool,
-        has_attribution_summary: bool,
-    ) -> PerformanceModuleCapability:
-        return build_attribution_capability(
-            include_detail_blocks=include_detail_blocks,
-            has_attribution_detail=has_attribution_detail,
-            has_attribution_summary=has_attribution_summary,
-        )
 
     async def _determine_report_end_date(
         self,
