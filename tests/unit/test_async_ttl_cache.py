@@ -89,3 +89,20 @@ async def test_async_ttl_cache_retries_after_factory_exception() -> None:
 
     assert recovered == 7
     assert call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_async_ttl_cache_accepts_future_factory_result() -> None:
+    cache = AsyncTtlCache[int](ttl_seconds=60)
+    loop = asyncio.get_running_loop()
+    future: asyncio.Future[int] = loop.create_future()
+
+    def factory() -> asyncio.Future[int]:
+        return future
+
+    pending = asyncio.create_task(cache.get_or_set(("portfolio", "P1"), factory))
+    await asyncio.sleep(0)
+    future.set_result(9)
+
+    assert await pending == 9
+    assert await cache.get_or_set(("portfolio", "P1"), factory) == 9
