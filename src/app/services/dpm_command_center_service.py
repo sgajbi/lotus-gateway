@@ -25,7 +25,7 @@ from app.services.lotus_ai_workflow import (
     require_lotus_ai_client,
 )
 from app.services.upstream_envelope import (
-    build_upstream_status_gateway_envelope,
+    build_product_safe_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
 )
@@ -944,12 +944,7 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmOutcomeReviewGatewayResponse:
-        _raise_manage_command_center_error(
-            upstream_status,
-            upstream_payload,
-            error_code="MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
-        )
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmOutcomeReviewGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
@@ -957,6 +952,9 @@ class DpmCommandCenterService:
                 upstream_payload
             ),
             upstream_payload=upstream_payload,
+            error_model=DpmOutcomeReviewErrorDetail,
+            error_code="MANAGE_OUTCOME_REVIEW_UPSTREAM_ERROR",
+            default_detail="lotus-manage command-center request failed",
         )
 
     def _compose_pm_operating_quality_response(
@@ -965,12 +963,7 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmPmOperatingQualityGatewayResponse:
-        _raise_manage_command_center_error(
-            upstream_status,
-            upstream_payload,
-            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
-        )
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmPmOperatingQualityGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
@@ -980,6 +973,9 @@ class DpmCommandCenterService:
                 )
             ),
             upstream_payload=upstream_payload,
+            error_model=DpmOutcomeReviewErrorDetail,
+            error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
+            default_detail="lotus-manage command-center request failed",
         )
 
     def _compose_command_center_response(
@@ -988,12 +984,7 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmCommandCenterGatewayResponse:
-        _raise_manage_command_center_error(
-            upstream_status,
-            upstream_payload,
-            error_code="MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
-        )
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmCommandCenterGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
@@ -1001,6 +992,9 @@ class DpmCommandCenterService:
                 upstream_payload
             ),
             upstream_payload=upstream_payload,
+            error_model=DpmOutcomeReviewErrorDetail,
+            error_code="MANAGE_COMMAND_CENTER_UPSTREAM_ERROR",
+            default_detail="lotus-manage command-center request failed",
         )
 
     def _compose_portfolio_memory_response(
@@ -1009,12 +1003,7 @@ class DpmCommandCenterService:
         upstream_payload: dict[str, Any],
         correlation_id: str,
     ) -> DpmPortfolioMemoryGatewayResponse:
-        _raise_manage_command_center_error(
-            upstream_status,
-            upstream_payload,
-            error_code="MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
-        )
-        return build_upstream_status_gateway_envelope(
+        return build_product_safe_upstream_status_gateway_envelope(
             DpmPortfolioMemoryGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
@@ -1022,6 +1011,9 @@ class DpmCommandCenterService:
                 upstream_payload
             ),
             upstream_payload=upstream_payload,
+            error_model=DpmOutcomeReviewErrorDetail,
+            error_code="MANAGE_PORTFOLIO_MEMORY_UPSTREAM_ERROR",
+            default_detail="lotus-manage command-center request failed",
         )
 
 
