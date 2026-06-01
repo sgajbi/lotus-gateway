@@ -98,7 +98,6 @@ from app.services.performance_workspace_projection import (
     project_portfolio_performance_snapshot,
     project_workspace_details,
     project_workspace_summary,
-    snapshot_point_as_of_date,
 )
 from app.services.performance_workspace_returns import (
     build_workspace_comparative_summary,
@@ -220,7 +219,7 @@ class PerformanceWorkspaceService:
             include_benchmark_catalog=True,
             include_detail_blocks=False,
         )
-        return self._project_workspace_summary(workspace)
+        return project_workspace_summary(workspace)
 
     async def get_performance_workspace_details(
         self,
@@ -251,7 +250,7 @@ class PerformanceWorkspaceService:
             include_detail_blocks=True,
             prefer_independent_detail_analytics=True,
         )
-        return self._project_workspace_details(workspace)
+        return project_workspace_details(workspace)
 
     async def get_portfolio_performance_snapshot(
         self,
@@ -279,7 +278,7 @@ class PerformanceWorkspaceService:
             include_benchmark_catalog=False,
             include_detail_blocks=False,
         )
-        return self._project_portfolio_performance_snapshot(workspace)
+        return project_portfolio_performance_snapshot(workspace)
 
     async def get_performance_horizon_comparison(
         self,
@@ -807,24 +806,6 @@ class PerformanceWorkspaceService:
                 detail=detail,
             )
         return content, content_type
-
-    def _project_workspace_summary(
-        self, workspace: PerformanceWorkspaceResponse
-    ) -> PerformanceWorkspaceSummaryResponse:
-        return project_workspace_summary(workspace)
-
-    def _project_workspace_details(
-        self, workspace: PerformanceWorkspaceResponse
-    ) -> PerformanceWorkspaceDetailsResponse:
-        return project_workspace_details(workspace)
-
-    def _project_portfolio_performance_snapshot(
-        self, workspace: PerformanceWorkspaceResponse
-    ) -> PortfolioPerformanceSnapshotResponse:
-        return project_portfolio_performance_snapshot(workspace)
-
-    def _snapshot_point_as_of_date(self, point: PerformanceChartPoint) -> str:
-        return snapshot_point_as_of_date(point)
 
     def _capability(
         self,
