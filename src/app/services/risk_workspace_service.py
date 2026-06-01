@@ -107,6 +107,8 @@ _RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON = (
     "Issuer is supported for total risk only. Active risk by issuer remains "
     "unavailable until benchmark issuer exposure semantics are approved."
 )
+
+
 class RiskWorkspaceService:
     def __init__(
         self,

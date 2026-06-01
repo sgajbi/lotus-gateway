@@ -128,9 +128,7 @@ def test_build_attribution_request_includes_benchmark_only_for_active_risk() -> 
 
     assert "benchmark_id" not in total_risk_request["stateful_input"]
     assert active_risk_request["stateful_input"]["benchmark_id"] == "BMK_1"
-    assert total_risk_request["stateful_input"]["attribution_options"]["metrics"] == [
-        "VOLATILITY"
-    ]
+    assert total_risk_request["stateful_input"]["attribution_options"]["metrics"] == ["VOLATILITY"]
     assert active_risk_request["stateful_input"]["attribution_options"]["metrics"] == [
         "TRACKING_ERROR"
     ]
