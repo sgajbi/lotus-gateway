@@ -15,11 +15,6 @@ from app.contracts.performance_workspace import (
     AttributionRowView,
     AttributionSummaryView,
     AttributionSupportabilityEvidenceView,
-    ContributionLevelView,
-    ContributionPositionView,
-    ContributionRowView,
-    ContributionSmoothingEvidenceView,
-    ContributionSourceEconomicsEvidenceView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
@@ -57,6 +52,11 @@ from app.services.performance_workspace_capabilities import (
 from app.services.performance_workspace_chart_points import (
     build_workspace_chart_points,
     parse_chart_points,
+)
+from app.services.performance_workspace_contribution import (
+    build_detail_contribution_summary,
+    build_workspace_contribution_summary,
+    merge_contribution_summary_views,
 )
 from app.services.performance_workspace_controls import (
     build_attribution_trend_windows,
@@ -96,7 +96,6 @@ from app.services.performance_workspace_parsing import (
     safe_int,
     safe_str,
     safe_str_list,
-    sum_optional,
     weight_to_pct,
 )
 from app.services.performance_workspace_projection import (
@@ -688,7 +687,7 @@ class PerformanceWorkspaceService:
                 contribution_dimension=resolved_contribution_dimension,
                 attribution_dimension=resolved_attribution_dimension,
             )
-            contribution = self._merge_contribution_summary_views(
+            contribution = merge_contribution_summary_views(
                 summary_contribution=contribution,
                 detail_contribution=self._parse_contribution_result(
                     result=contribution_detail_result,
@@ -1319,7 +1318,7 @@ class PerformanceWorkspaceService:
         net_block = extract_twr_workspace_block(period_payload, "net")
         gross_block = extract_twr_workspace_block(period_payload, "gross")
         money_weighted_return = self._build_workspace_mwr_summary(period_payload)
-        contribution = self._build_workspace_contribution(period_payload)
+        contribution = build_workspace_contribution_summary(period_payload)
         attribution = self._build_workspace_attribution(period_payload)
 
         net_summary = build_workspace_comparative_summary(
@@ -1572,109 +1571,6 @@ class PerformanceWorkspaceService:
             net_cash_flow=quantize_optional(economics_payload.get("net_cash_flow")),
             fees=quantize_optional(economics_payload.get("fees")),
             notes=[str(note) for note in notes] if isinstance(notes, list) else [],
-        )
-
-    def _build_workspace_contribution(
-        self, period_payload: dict[str, Any]
-    ) -> ContributionSummaryView | None:
-        contribution_payload = period_payload.get("contribution", {})
-        if not isinstance(contribution_payload, dict):
-            return None
-        summary_payload = contribution_payload.get("summary", {})
-        if not isinstance(summary_payload, dict):
-            summary_payload = {}
-        smoothing_evidence = self._parse_contribution_smoothing_evidence(
-            period_payload.get("smoothing_evidence")
-        )
-        source_economics_evidence = self._parse_contribution_source_economics_evidence(
-            contribution_payload.get("source_economics_evidence")
-        )
-        levels_payload = contribution_payload.get("levels", [])
-        position_payloads = contribution_payload.get("position_contributions", [])
-        levels: list[ContributionLevelView] = []
-        if isinstance(levels_payload, list):
-            for level_payload in levels_payload:
-                if not isinstance(level_payload, dict):
-                    continue
-                rows_payload = level_payload.get("rows", [])
-                rows: list[ContributionRowView] = []
-                if isinstance(rows_payload, list):
-                    for row_payload in rows_payload:
-                        if not isinstance(row_payload, dict):
-                            continue
-                        rows.append(
-                            ContributionRowView(
-                                key_label=format_key_label(row_payload.get("key")),
-                                contribution_pct=quantize_optional(row_payload.get("contribution"))
-                                or 0.0,
-                                weight_avg_pct=weight_to_pct(row_payload.get("weight_avg")),
-                                total_return_pct=quantize_optional(row_payload.get("return")),
-                                local_contribution_pct=quantize_optional(
-                                    row_payload.get("local_contribution")
-                                ),
-                                fx_contribution_pct=quantize_optional(
-                                    row_payload.get("fx_contribution")
-                                ),
-                                is_other=bool(row_payload.get("is_other", False)),
-                            )
-                        )
-                source_level_return = quantize_optional(level_payload.get("total_portfolio_return"))
-                if source_level_return is None:
-                    source_level_return = quantize_optional(
-                        period_payload.get("total_portfolio_return")
-                    )
-                levels.append(
-                    ContributionLevelView(
-                        level=int(level_payload.get("level", len(levels) + 1)),
-                        name=str(level_payload.get("name", "Level")),
-                        rows=rows,
-                        total_contribution_pct=quantize_optional(
-                            summary_payload.get("portfolio_contribution")
-                        ),
-                        total_weight_avg_pct=sum_optional([row.weight_avg_pct for row in rows]),
-                        total_portfolio_return_pct=source_level_return,
-                    )
-                )
-        position_rows: list[ContributionPositionView] = []
-        if isinstance(position_payloads, list):
-            for position_payload in position_payloads:
-                if not isinstance(position_payload, dict):
-                    continue
-                position_rows.append(
-                    ContributionPositionView(
-                        position_id=str(position_payload.get("position_id", "Unknown Position")),
-                        contribution_pct=quantize_optional(
-                            position_payload.get("total_contribution")
-                        )
-                        or 0.0,
-                        weight_avg_pct=weight_to_pct(position_payload.get("average_weight")),
-                        total_return_pct=quantize_optional(position_payload.get("total_return")),
-                        local_contribution_pct=quantize_optional(
-                            position_payload.get("local_contribution")
-                        ),
-                        fx_contribution_pct=quantize_optional(
-                            position_payload.get("fx_contribution")
-                        ),
-                    )
-                )
-        return ContributionSummaryView(
-            metric_basis=safe_str(contribution_payload.get("metric_basis")) or "NET",
-            weighting_scheme=safe_str(summary_payload.get("weighting_scheme")),
-            portfolio_contribution_pct=quantize_optional(
-                summary_payload.get("portfolio_contribution")
-            ),
-            total_portfolio_return_pct=quantize_optional(
-                period_payload.get("total_portfolio_return")
-            ),
-            coverage_mv_pct=quantize_optional(summary_payload.get("coverage_mv_pct")),
-            portfolio_local_contribution_pct=quantize_optional(
-                summary_payload.get("local_contribution")
-            ),
-            portfolio_fx_contribution_pct=quantize_optional(summary_payload.get("fx_contribution")),
-            position_rows=position_rows,
-            levels=levels,
-            smoothing_evidence=smoothing_evidence,
-            source_economics_evidence=source_economics_evidence,
         )
 
     def _build_workspace_attribution(
@@ -2077,106 +1973,10 @@ class PerformanceWorkspaceService:
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             return None
-        summary_payload = period_payload.get("summary", {})
-        levels_payload = period_payload.get("levels", [])
-        if not isinstance(summary_payload, dict):
-            summary_payload = {}
-        smoothing_evidence = self._parse_contribution_smoothing_evidence(
-            period_payload.get("smoothing_evidence")
-        )
-        source_economics_evidence = self._parse_contribution_source_economics_evidence(
-            payload.get("source_economics_evidence")
-        )
-        levels: list[ContributionLevelView] = []
-        if isinstance(levels_payload, list):
-            for level_payload in levels_payload:
-                if not isinstance(level_payload, dict):
-                    continue
-                rows: list[ContributionRowView] = []
-                row_payloads = level_payload.get("rows", [])
-                if isinstance(row_payloads, list):
-                    for row_payload in row_payloads:
-                        if not isinstance(row_payload, dict):
-                            continue
-                        rows.append(
-                            ContributionRowView(
-                                key_label=format_key_label(row_payload.get("key")),
-                                contribution_pct=float(
-                                    quantize_performance(row_payload.get("contribution", 0.0))
-                                ),
-                                weight_avg_pct=weight_to_pct(row_payload.get("weight_avg")),
-                                local_contribution_pct=quantize_optional(
-                                    row_payload.get("local_contribution")
-                                ),
-                                fx_contribution_pct=quantize_optional(
-                                    row_payload.get("fx_contribution")
-                                ),
-                                is_other=bool(row_payload.get("is_other", False)),
-                            )
-                        )
-                source_level_total = quantize_optional(level_payload.get("total_contribution"))
-                if source_level_total is None:
-                    source_level_total = quantize_optional(period_payload.get("total_contribution"))
-                source_level_return = quantize_optional(level_payload.get("total_portfolio_return"))
-                if source_level_return is None:
-                    source_level_return = quantize_optional(
-                        period_payload.get("total_portfolio_return")
-                    )
-                levels.append(
-                    ContributionLevelView(
-                        level=int(level_payload.get("level", len(levels) + 1)),
-                        name=str(level_payload.get("name", "Level")),
-                        rows=rows,
-                        total_contribution_pct=source_level_total
-                        if source_level_total is not None
-                        else (
-                            quantize_optional(sum(row.contribution_pct for row in rows))
-                            if rows
-                            else None
-                        ),
-                        total_portfolio_return_pct=source_level_return,
-                    )
-                )
-        position_rows: list[ContributionPositionView] = []
-        position_payloads = period_payload.get("position_contributions", [])
-        if isinstance(position_payloads, list):
-            for position_payload in position_payloads:
-                if not isinstance(position_payload, dict):
-                    continue
-                position_rows.append(
-                    ContributionPositionView(
-                        position_id=str(position_payload.get("position_id", "Unknown Position")),
-                        contribution_pct=float(
-                            quantize_performance(position_payload.get("total_contribution", 0.0))
-                        ),
-                        weight_avg_pct=weight_to_pct(position_payload.get("average_weight")),
-                        total_return_pct=quantize_optional(position_payload.get("total_return")),
-                        local_contribution_pct=quantize_optional(
-                            position_payload.get("local_contribution")
-                        ),
-                        fx_contribution_pct=quantize_optional(
-                            position_payload.get("fx_contribution")
-                        ),
-                    )
-                )
-        return ContributionSummaryView(
+        return build_detail_contribution_summary(
+            period_payload=period_payload,
             metric_basis=metric_basis,
-            weighting_scheme=safe_str(summary_payload.get("weighting_scheme")),
-            portfolio_contribution_pct=quantize_optional(
-                summary_payload.get("portfolio_contribution")
-            ),
-            total_portfolio_return_pct=quantize_optional(
-                period_payload.get("total_portfolio_return")
-            ),
-            coverage_mv_pct=quantize_optional(summary_payload.get("coverage_mv_pct")),
-            portfolio_local_contribution_pct=quantize_optional(
-                summary_payload.get("local_contribution")
-            ),
-            portfolio_fx_contribution_pct=quantize_optional(summary_payload.get("fx_contribution")),
-            position_rows=position_rows,
-            levels=levels,
-            smoothing_evidence=smoothing_evidence,
-            source_economics_evidence=source_economics_evidence,
+            source_economics_payload=payload.get("source_economics_evidence"),
         )
 
     def _parse_attribution_result(
@@ -2353,91 +2153,6 @@ class PerformanceWorkspaceService:
             currency_attribution_status=safe_str(payload.get("currency_attribution_status"))
             or "not_requested",
             linking_status=safe_str(payload.get("linking_status")) or "not_requested",
-        )
-
-    def _merge_contribution_summary_views(
-        self,
-        *,
-        summary_contribution: ContributionSummaryView | None,
-        detail_contribution: ContributionSummaryView | None,
-    ) -> ContributionSummaryView | None:
-        if detail_contribution is None:
-            return summary_contribution
-        if summary_contribution is None:
-            return detail_contribution
-
-        return ContributionSummaryView(
-            metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
-            weighting_scheme=(
-                detail_contribution.weighting_scheme or summary_contribution.weighting_scheme
-            ),
-            portfolio_contribution_pct=(
-                detail_contribution.portfolio_contribution_pct
-                if detail_contribution.portfolio_contribution_pct is not None
-                else summary_contribution.portfolio_contribution_pct
-            ),
-            total_portfolio_return_pct=(
-                detail_contribution.total_portfolio_return_pct
-                if detail_contribution.total_portfolio_return_pct is not None
-                else summary_contribution.total_portfolio_return_pct
-            ),
-            coverage_mv_pct=(
-                detail_contribution.coverage_mv_pct
-                if detail_contribution.coverage_mv_pct is not None
-                else summary_contribution.coverage_mv_pct
-            ),
-            portfolio_local_contribution_pct=(
-                detail_contribution.portfolio_local_contribution_pct
-                if detail_contribution.portfolio_local_contribution_pct is not None
-                else summary_contribution.portfolio_local_contribution_pct
-            ),
-            portfolio_fx_contribution_pct=(
-                detail_contribution.portfolio_fx_contribution_pct
-                if detail_contribution.portfolio_fx_contribution_pct is not None
-                else summary_contribution.portfolio_fx_contribution_pct
-            ),
-            position_rows=(
-                detail_contribution.position_rows
-                if detail_contribution.position_rows
-                else summary_contribution.position_rows
-            ),
-            levels=detail_contribution.levels or summary_contribution.levels,
-            smoothing_evidence=(
-                detail_contribution.smoothing_evidence or summary_contribution.smoothing_evidence
-            ),
-            source_economics_evidence=(
-                detail_contribution.source_economics_evidence
-                or summary_contribution.source_economics_evidence
-            ),
-        )
-
-    def _parse_contribution_smoothing_evidence(
-        self, payload: Any
-    ) -> ContributionSmoothingEvidenceView | None:
-        if not isinstance(payload, dict):
-            return None
-        return ContributionSmoothingEvidenceView(
-            status=safe_str(payload.get("status")),
-            reason_codes=safe_str_list(payload.get("reason_codes")),
-            raw_contribution_pct=quantize_optional(payload.get("raw_contribution")),
-            final_contribution_pct=quantize_optional(payload.get("final_contribution")),
-            linked_return_pct=quantize_optional(payload.get("linked_return")),
-            smoothing_residual_pct=quantize_optional(payload.get("smoothing_residual")),
-        )
-
-    def _parse_contribution_source_economics_evidence(
-        self, payload: Any
-    ) -> ContributionSourceEconomicsEvidenceView | None:
-        if not isinstance(payload, dict):
-            return None
-        return ContributionSourceEconomicsEvidenceView(
-            status=safe_str(payload.get("status")),
-            reason_codes=safe_str_list(payload.get("reason_codes")),
-            source_contracts=safe_str_list(payload.get("source_contracts")),
-            available_economics=safe_str_list(payload.get("available_economics")),
-            unsupported_economics=safe_str_list(payload.get("unsupported_economics")),
-            degraded_economics=safe_str_list(payload.get("degraded_economics")),
-            source_snapshot_count=safe_int(payload.get("source_snapshot_count")),
         )
 
     def _parse_attribution_trend_results(
