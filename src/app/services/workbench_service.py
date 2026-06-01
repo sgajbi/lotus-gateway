@@ -22,7 +22,7 @@ from app.contracts.workbench import (
     WorkbenchRebalanceSnapshot,
     WorkbenchSandboxStateResponse,
 )
-from app.precision_policy import quantize_performance, quantize_quantity
+from app.precision_policy import quantize_performance
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
     build_workbench_top_changes,
@@ -32,6 +32,7 @@ from app.services.workbench_core_snapshot import (
     parse_lotus_core_snapshot,
 )
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_projected_state import parse_projected_state
 from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workspace_client_protocols import (
     WorkbenchAdviseClient,
@@ -494,39 +495,10 @@ class WorkbenchService:
                 detail=f"lotus-core projected summary unavailable: {summary_payload}",
             )
 
-        rows_payload = positions_payload.get("positions", [])
-        rows: list[WorkbenchProjectedPositionView] = []
-        if isinstance(rows_payload, list):
-            for row in rows_payload:
-                if not isinstance(row, dict):
-                    continue
-                rows.append(
-                    WorkbenchProjectedPositionView(
-                        security_id=str(row.get("security_id", "")),
-                        instrument_name=str(
-                            row.get("instrument_name", row.get("security_id", "UNKNOWN"))
-                        ),
-                        asset_class=(
-                            str(row["asset_class"]) if row.get("asset_class") is not None else None
-                        ),
-                        baseline_quantity=float(
-                            quantize_quantity(row.get("baseline_quantity", 0.0))
-                        ),
-                        proposed_quantity=float(
-                            quantize_quantity(row.get("proposed_quantity", 0.0))
-                        ),
-                        delta_quantity=float(quantize_quantity(row.get("delta_quantity", 0.0))),
-                    )
-                )
-
-        summary = WorkbenchProjectedSummary(
-            total_baseline_positions=int(summary_payload.get("total_baseline_positions", 0)),
-            total_proposed_positions=int(summary_payload.get("total_proposed_positions", 0)),
-            net_delta_quantity=float(
-                quantize_quantity(summary_payload.get("net_delta_quantity", 0.0))
-            ),
+        return parse_projected_state(
+            positions_payload=positions_payload,
+            summary_payload=summary_payload,
         )
-        return rows, summary
 
     async def _evaluate_policy_feedback(
         self,
