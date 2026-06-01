@@ -88,6 +88,10 @@ from app.services.performance_workspace_projection import (
     project_workspace_details,
     project_workspace_summary,
 )
+from app.services.performance_workspace_reference import (
+    analytics_reference_cache_key,
+    resolve_performance_report_end_date,
+)
 from app.services.performance_workspace_returns import (
     build_workspace_comparative_summary,
     extract_twr_workspace_block,
@@ -964,7 +968,10 @@ class PerformanceWorkspaceService:
         ) = cast(
             UpstreamResult,
             await self._get_cached_upstream_result(
-                ("analytics_reference", portfolio_id, as_of_date),
+                analytics_reference_cache_key(
+                    portfolio_id=portfolio_id,
+                    as_of_date=as_of_date,
+                ),
                 lambda: self._lotus_core_query_client.get_portfolio_analytics_reference(
                     portfolio_id=portfolio_id,
                     as_of_date=as_of_date,
@@ -973,26 +980,12 @@ class PerformanceWorkspaceService:
                 ),
             ),
         )
-        if status_code >= 400 or not isinstance(payload, dict):
-            warnings.append("PERFORMANCE_REFERENCE_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-core",
-                    (f"HTTP_{status_code}" if isinstance(status_code, int) else "INVALID_RESPONSE"),
-                    (
-                        str(payload.get("detail", payload))
-                        if isinstance(payload, dict)
-                        else str(payload)
-                    ),
-                )
-            )
-            return as_of_date
-
-        performance_end_date = payload.get("performance_end_date")
-        if not isinstance(performance_end_date, str) or not performance_end_date:
-            warnings.append("PERFORMANCE_REFERENCE_MISSING_END_DATE")
-            return as_of_date
-        return performance_end_date
+        return resolve_performance_report_end_date(
+            result=(status_code, payload),
+            fallback_as_of_date=as_of_date,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
