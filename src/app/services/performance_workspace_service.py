@@ -76,6 +76,7 @@ from app.services.performance_workspace_evidence import (
     resolve_evidence_reason,
     resolve_evidence_state,
 )
+from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_horizon import fetch_workspace_horizon_dependencies
 from app.services.performance_workspace_mwr import (
     build_detail_mwr_summary,
@@ -905,7 +906,7 @@ class PerformanceWorkspaceService:
 
         warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
         partial_failures.append(
-            self._performance_failure(
+            build_performance_failure(
                 "lotus-performance",
                 "PERFORMANCE_EVIDENCE_PARTIAL",
                 (
@@ -1068,7 +1069,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400 or not isinstance(payload, dict):
             warnings.append("PERFORMANCE_REFERENCE_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-core",
                     (f"HTTP_{status_code}" if isinstance(status_code, int) else "INVALID_RESPONSE"),
                     (
@@ -1115,7 +1116,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return empty_summary, empty_gross_summary, [], [], None, None, None, None
 
@@ -1126,7 +1127,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1204,7 +1205,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return [], None
 
@@ -1221,7 +1222,7 @@ class PerformanceWorkspaceService:
                 if not isinstance(failure, Mapping):
                     continue
                 partial_failures.append(
-                    self._performance_failure(
+                    build_performance_failure(
                         str(failure.get("source_service", "lotus-performance")),
                         str(failure.get("error_code", "UNKNOWN_ERROR")),
                         str(failure.get("detail", "")),
@@ -1230,7 +1231,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1381,14 +1382,14 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
             )
             return []
         status_code, payload = result
         if status_code >= 400 or not isinstance(payload, dict):
             warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-core",
                     f"HTTP_{status_code}"
                     if isinstance(status_code, int)
@@ -1439,7 +1440,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append(f"{metric_basis}_PERFORMANCE_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return empty_summary, []
         status_code, payload = result
@@ -1448,7 +1449,7 @@ class PerformanceWorkspaceService:
         if not isinstance(payload, dict):
             warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     "INVALID_UPSTREAM_PAYLOAD",
                     f"unexpected payload type: {type(payload)}",
@@ -1458,7 +1459,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append(f"{metric_basis}_PERFORMANCE_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1547,7 +1548,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("MWR_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return None
         status_code, payload = result
@@ -1557,7 +1558,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append("MWR_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1578,7 +1579,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("CONTRIBUTION_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return None
         status_code, payload = result
@@ -1588,7 +1589,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append("CONTRIBUTION_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1623,7 +1624,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("ATTRIBUTION_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return None
         status_code, payload = result
@@ -1633,7 +1634,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400:
             warnings.append("ATTRIBUTION_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}",
                     str(payload.get("detail", payload)),
@@ -1709,7 +1710,7 @@ class PerformanceWorkspaceService:
         if isinstance(result, BaseException):
             warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
             )
             return None
 
@@ -1717,7 +1718,7 @@ class PerformanceWorkspaceService:
         if status_code >= 400 or not isinstance(payload, dict):
             warnings.append("ATTRIBUTION_TREND_PERIOD_UNAVAILABLE")
             partial_failures.append(
-                self._performance_failure(
+                build_performance_failure(
                     "lotus-performance",
                     f"HTTP_{status_code}"
                     if isinstance(status_code, int)
@@ -1777,16 +1778,4 @@ class PerformanceWorkspaceService:
             supportability_evidence=parse_attribution_supportability_evidence(
                 supportability_evidence_payload
             ),
-        )
-
-    def _performance_failure(
-        self,
-        source_service: str,
-        error_code: str,
-        detail: str,
-    ) -> WorkbenchPartialFailure:
-        return WorkbenchPartialFailure(
-            source_service=source_service,
-            error_code=error_code,
-            detail=detail,
         )
