@@ -17,6 +17,7 @@ class _StubRiskClient:
         self.drawdown_status = 200
         self.rolling_status = 200
         self.attribution_status = 200
+        self.fail_first_rolling_risk_free_dependency = False
         self.calculate_payload: dict = {
             "scope": {
                 "as_of_date": "2026-04-04",
@@ -298,6 +299,12 @@ class _StubRiskClient:
 
     async def post_risk_rolling_metrics(self, payload: dict, correlation_id: str):
         self.rolling_calls.append({"payload": payload, "correlation_id": correlation_id})
+        if self.fail_first_rolling_risk_free_dependency and len(self.rolling_calls) == 1:
+            return 424, {
+                "detail": {
+                    "message": "lotus-core returned no usable risk-free returns for rolling Sharpe",
+                }
+            }
         return self.rolling_status, self.rolling_payload
 
     async def post_risk_historical_attribution(self, payload: dict, correlation_id: str):
@@ -758,19 +765,8 @@ async def test_risk_rolling_uses_stateful_request_and_maps_quality_flags() -> No
 @pytest.mark.asyncio
 async def test_risk_rolling_retries_without_sharpe_when_risk_free_dependency_fails() -> None:
     client = _StubRiskClient()
+    client.fail_first_rolling_risk_free_dependency = True
     service = RiskWorkspaceService(client, cache_ttl_seconds=60)
-
-    async def _rolling(payload: dict, correlation_id: str):
-        client.rolling_calls.append({"payload": payload, "correlation_id": correlation_id})
-        if len(client.rolling_calls) == 1:
-            return 424, {
-                "detail": {
-                    "message": "lotus-core returned no usable risk-free returns for rolling Sharpe",
-                }
-            }
-        return client.rolling_status, client.rolling_payload
-
-    client.post_risk_rolling_metrics = _rolling  # type: ignore[method-assign]
 
     response = await service.get_rolling(
         portfolio_id="PF_1",
