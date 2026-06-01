@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from fastapi import HTTPException
 
+from app.services.workbench_performance_snapshot import parse_performance_snapshot
 from app.services.workbench_service import WorkbenchService
 
 
@@ -192,29 +193,26 @@ def test_parse_lotus_core_snapshot_uses_fallback_defaults():
     ],
 )
 def test_parse_performance_snapshot_handles_exception_and_invalid_result_shape(result, warning):
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_performance_snapshot(result, partial_failures, warnings)
+    parsed = parse_performance_snapshot(result, partial_failures, warnings)
     assert parsed is None
     assert warning in warnings
     assert len(partial_failures) == 1
 
 
 def test_parse_performance_snapshot_handles_invalid_payload_types():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_performance_snapshot((200, "bad-payload"), partial_failures, warnings)
+    parsed = parse_performance_snapshot((200, "bad-payload"), partial_failures, warnings)
     assert parsed is None
     assert "PERFORMANCE_SNAPSHOT_UNAVAILABLE" in warnings
 
 
 def test_parse_performance_snapshot_handles_http_error_payload():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_performance_snapshot(
+    parsed = parse_performance_snapshot(
         (503, {"detail": "lotus-performance down"}),
         partial_failures,
         warnings,
@@ -224,10 +222,9 @@ def test_parse_performance_snapshot_handles_http_error_payload():
 
 
 def test_parse_performance_snapshot_handles_non_dict_period_map():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_performance_snapshot(
+    parsed = parse_performance_snapshot(
         (200, {"results_by_period": []}),
         partial_failures,
         warnings,
@@ -237,10 +234,9 @@ def test_parse_performance_snapshot_handles_non_dict_period_map():
 
 
 def test_parse_performance_snapshot_falls_back_to_first_period_key():
-    service, _, _, _ = _build_service()
     partial_failures = []
     warnings = []
-    parsed = service._parse_performance_snapshot(
+    parsed = parse_performance_snapshot(
         (
             200,
             {
@@ -643,20 +639,17 @@ def test_parse_lotus_core_snapshot_handles_non_dict_overview_and_holdings_shapes
 
 
 def test_parse_performance_snapshot_empty_results_by_period_returns_none():
-    service, _, _, _ = _build_service()
-    result = service._parse_performance_snapshot((200, {"results_by_period": {}}), [], [])
+    result = parse_performance_snapshot((200, {"results_by_period": {}}), [], [])
     assert result is None
 
 
 def test_parse_performance_snapshot_non_dict_period_payload_returns_none():
-    service, _, _, _ = _build_service()
-    result = service._parse_performance_snapshot((200, {"results_by_period": {"YTD": []}}), [], [])
+    result = parse_performance_snapshot((200, {"results_by_period": {"YTD": []}}), [], [])
     assert result is None
 
 
 def test_parse_performance_snapshot_none_period_key_returns_none():
-    service, _, _, _ = _build_service()
-    result = service._parse_performance_snapshot(
+    result = parse_performance_snapshot(
         (
             200,
             {
