@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from time import monotonic
-from typing import Coroutine, Generic, TypeVar, cast
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -10,7 +10,7 @@ class AsyncTtlCache(Generic[T]):
     def __init__(self, ttl_seconds: float):
         self._ttl_seconds = ttl_seconds
         self._entries: dict[tuple[object, ...], tuple[float, T]] = {}
-        self._inflight: dict[tuple[object, ...], asyncio.Task[T]] = {}
+        self._inflight: dict[tuple[object, ...], asyncio.Future[T]] = {}
         self._lock = asyncio.Lock()
 
     async def get_or_set(
@@ -34,7 +34,7 @@ class AsyncTtlCache(Generic[T]):
 
             task = self._inflight.get(key)
             if task is None:
-                task = asyncio.create_task(cast(Coroutine[object, object, T], factory()))
+                task = asyncio.ensure_future(factory())
                 self._inflight[key] = task
 
         try:

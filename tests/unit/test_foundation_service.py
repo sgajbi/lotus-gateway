@@ -10,12 +10,18 @@ class _StubLotusCoreQueryClient:
         list_payload: dict,
         snapshot_payload: dict,
         portfolio_payload: dict | None = None,
+        list_status_code: int = 200,
+        portfolio_status_code: int = 200,
+        snapshot_status_code: int = 200,
         analytics_reference_payload: dict | None = None,
         analytics_reference_status_code: int = 200,
     ):
         self.list_payload = list_payload
         self.snapshot_payload = snapshot_payload
         self.portfolio_payload = portfolio_payload or {}
+        self.list_status_code = list_status_code
+        self.portfolio_status_code = portfolio_status_code
+        self.snapshot_status_code = snapshot_status_code
         self.analytics_reference_payload = analytics_reference_payload or {
             "performance_end_date": "2026-03-25"
         }
@@ -25,7 +31,7 @@ class _StubLotusCoreQueryClient:
         self.analytics_reference_calls: list[dict[str, object]] = []
 
     async def get_portfolio_lookups(self, correlation_id: str):
-        return 200, self.list_payload
+        return self.list_status_code, self.list_payload
 
     async def get_portfolio(self, portfolio_id: str, correlation_id: str):
         self.portfolio_calls.append(
@@ -34,7 +40,7 @@ class _StubLotusCoreQueryClient:
                 "correlation_id": correlation_id,
             }
         )
-        return 200, self.portfolio_payload
+        return self.portfolio_status_code, self.portfolio_payload
 
     async def get_core_snapshot(
         self,
@@ -53,7 +59,7 @@ class _StubLotusCoreQueryClient:
                 "correlation_id": correlation_id,
             }
         )
-        return 200, self.snapshot_payload
+        return self.snapshot_status_code, self.snapshot_payload
 
     async def get_portfolio_analytics_reference(
         self,
@@ -591,16 +597,12 @@ async def test_foundation_catalog_rejects_upstream_error():
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"detail": "catalog unavailable"},
             snapshot_payload={},
+            list_status_code=503,
         ),
         analytics_client=_StubAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {}),
         reporting_client=_StubReportingClient(200, {}),
     )
-
-    async def _raise_catalog_error(correlation_id: str):
-        return 503, {"detail": "catalog unavailable"}
-
-    service._lotus_core_query_client.get_portfolio_lookups = _raise_catalog_error  # type: ignore[method-assign]
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_portfolio_catalog(correlation_id="corr-catalog-503")
@@ -615,22 +617,12 @@ async def test_foundation_workspace_rejects_snapshot_upstream_error():
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
             snapshot_payload={"detail": "snapshot unavailable"},
+            snapshot_status_code=503,
         ),
         analytics_client=_StubAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {}),
         reporting_client=_StubReportingClient(200, {}),
     )
-
-    async def _raise_snapshot_error(
-        portfolio_id: str,
-        as_of_date: str,
-        sections: list[str],
-        consumer_system: str,
-        correlation_id: str,
-    ):
-        return 503, {"detail": "snapshot unavailable"}
-
-    service._lotus_core_query_client.get_core_snapshot = _raise_snapshot_error  # type: ignore[method-assign]
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_portfolio_workspace(
@@ -649,16 +641,12 @@ async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
             list_payload={"items": []},
             portfolio_payload={"detail": "portfolio unavailable"},
             snapshot_payload={"portfolio_id": "PF_503", "sections": {}},
+            portfolio_status_code=503,
         ),
         analytics_client=_StubAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {}),
         reporting_client=_StubReportingClient(200, {}),
     )
-
-    async def _raise_portfolio_error(portfolio_id: str, correlation_id: str):
-        return 503, {"detail": "portfolio unavailable"}
-
-    service._lotus_core_query_client.get_portfolio = _raise_portfolio_error  # type: ignore[method-assign]
 
     with pytest.raises(HTTPException) as exc_info:
         await service.get_portfolio_workspace(

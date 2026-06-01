@@ -67,6 +67,36 @@ def test_normalize_evidence_surface_supportability_preserves_source_counts() -> 
     assert normalized["workflow_count"] == 0
 
 
+def test_normalize_evidence_surface_supportability_accepts_camel_case_counts() -> None:
+    normalized = normalize_evidence_surface_supportability(
+        {
+            "supportability": {
+                "featureKey": "unexpected-source-key",
+                "state": "ready",
+                "reason": "evidence_surface_ready",
+                "freshnessBucket": "current",
+                "evidenceFeatureCount": "5",
+                "readyEvidenceFeatureCount": 4,
+                "degradedEvidenceFeatureCount": -1,
+                "workflowCount": 3,
+                "readyWorkflowCount": True,
+            }
+        }
+    )
+
+    assert normalized == {
+        "feature_key": "report.observability.evidence_surface_supportability",
+        "state": "ready",
+        "reason": "evidence_surface_ready",
+        "freshness_bucket": "current",
+        "evidence_feature_count": 5,
+        "ready_evidence_feature_count": 4,
+        "degraded_evidence_feature_count": 0,
+        "workflow_count": 3,
+        "ready_workflow_count": 0,
+    }
+
+
 def test_normalize_evidence_surface_supportability_returns_safe_missing_fallback() -> None:
     expected = fallback_evidence_surface_supportability("evidence_surface_supportability_missing")
 
@@ -101,6 +131,24 @@ def test_normalize_render_supportability_accepts_camel_case_source_payload() -> 
         "default_output_format": "pdf",
         "supported_output_formats": ["pdf", "json"],
     }
+
+
+def test_normalize_render_supportability_parses_boolean_strings() -> None:
+    normalized = normalize_render_supportability(
+        {
+            "supportability": {
+                "state": "partial",
+                "reason": "render_supportability_partial",
+                "deterministicOutputSupported": "false",
+                "renderStoreReady": "yes",
+                "templateRegistryReady": 0,
+            }
+        }
+    )
+
+    assert normalized["deterministic_output_supported"] is False
+    assert normalized["render_store_ready"] is True
+    assert normalized["template_registry_ready"] is False
 
 
 def test_normalize_render_supportability_returns_safe_missing_fallback() -> None:

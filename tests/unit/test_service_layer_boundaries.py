@@ -124,6 +124,22 @@ def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     assert offenders == {}
 
 
+def test_service_tests_do_not_need_stub_method_suppressions() -> None:
+    forbidden_suppressions = ("# type: ignore[method-assign]", "# type: ignore[override]")
+    offenders: dict[str, dict[str, int]] = {}
+    for path in _TEST_ROOT.glob("test_*_service.py"):
+        text = path.read_text(encoding="utf-8")
+        suppression_counts = {
+            suppression: text.count(suppression)
+            for suppression in forbidden_suppressions
+            if suppression in text
+        }
+        if suppression_counts:
+            offenders[path.name] = suppression_counts
+
+    assert offenders == {}
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):

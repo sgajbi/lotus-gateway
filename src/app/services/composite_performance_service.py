@@ -1,10 +1,9 @@
 from typing import Any
 
-from fastapi import HTTPException, status
-
 from app.contracts.composite_performance import CompositePerformanceGatewayResponse
 from app.services.caller_context import caller_context_headers
 from app.services.domain_client_protocols import CompositePerformanceClient
+from app.services.upstream_envelope import raise_gateway_mapped_service_error
 
 
 class CompositePerformanceService:
@@ -68,18 +67,11 @@ class CompositePerformanceService:
         status_code: int,
         payload: dict[str, Any],
     ) -> None:
-        if status_code < status.HTTP_400_BAD_REQUEST:
-            return
-        detail = {
-            "source_service": "lotus-performance",
-            "upstream_status": status_code,
-            "error": payload,
-        }
-        if status_code == status.HTTP_404_NOT_FOUND:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-        if status_code in {status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT}:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail)
+        raise_gateway_mapped_service_error(
+            status_code,
+            payload,
+            source_service="lotus-performance",
+        )
 
     def _response(
         self,

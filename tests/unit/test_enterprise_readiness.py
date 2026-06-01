@@ -44,6 +44,26 @@ def test_redact_sensitive_masks_known_fields():
     assert redacted["details"]["allowed"] == "value"
 
 
+def test_redact_sensitive_masks_normalized_key_variants():
+    payload = {
+        "clientEmail": "user@example.com",
+        "access_token": "secret-token",
+        "apiToken": "secret-token",
+        "account-number-last4": "1234",
+        "safe_reason": "client requested a review",
+    }
+
+    redacted = redact_sensitive(payload)
+
+    assert redacted == {
+        "clientEmail": "***REDACTED***",
+        "access_token": "***REDACTED***",
+        "apiToken": "***REDACTED***",
+        "account-number-last4": "***REDACTED***",
+        "safe_reason": "client requested a review",
+    }
+
+
 def test_authorize_write_request_enforces_required_headers_when_enabled(monkeypatch):
     monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
     allowed, reason = authorize_write_request("POST", "/proposals", {})
@@ -73,6 +93,35 @@ def test_authorize_write_request_enforces_capability_rules(monkeypatch):
     allowed, allowed_reason = authorize_write_request("POST", "/proposals/123", headers)
     assert allowed is True
     assert allowed_reason is None
+
+
+def test_authorize_write_request_matches_capability_rules_on_path_segments(monkeypatch):
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.setenv(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        json.dumps(
+            {
+                "POST /api/v1/proposals": "proposal.write",
+                "POST /api/v1/proposals/special": "proposal.special.write",
+            }
+        ),
+    )
+    headers = {
+        "X-Actor-Id": "a1",
+        "X-Tenant-Id": "t1",
+        "X-Role": "advisor",
+        "X-Correlation-Id": "c1",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": "proposal.write",
+    }
+
+    allowed, reason = authorize_write_request("POST", "/api/v1/proposals-old", headers)
+    assert allowed is True
+    assert reason is None
+
+    allowed, reason = authorize_write_request("POST", "/api/v1/proposals/special/1", headers)
+    assert allowed is False
+    assert reason == "missing_capability:proposal.special.write"
 
 
 def test_validate_enterprise_runtime_config_reports_rotation_issue(monkeypatch):

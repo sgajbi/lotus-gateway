@@ -8,7 +8,8 @@
 
 - Service-level audit middleware captures privileged write actions (`POST/PUT/PATCH/DELETE`).
 - Audit records include actor, tenant, role, and correlation identifiers.
-- Sensitive fields are redacted before logging.
+- Sensitive fields are redacted before logging, including normalized key variants such as
+  camelCase, snake_case, hyphenated, and prefixed token/account/client-email fields.
 
 Evidence:
 - `src/app/enterprise_readiness.py`
@@ -30,6 +31,8 @@ Evidence:
 
 - Feature flags are centrally loaded from `ENTERPRISE_FEATURE_FLAGS_JSON`.
 - Flags support tenant and role scoping with deterministic fallback order.
+- Write capability rules use method plus path-segment-aware matching, with more-specific path
+  rules evaluated before broader prefixes.
 - Invalid config payload defaults to deny-by-default behavior.
 
 Evidence:

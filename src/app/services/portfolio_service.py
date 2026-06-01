@@ -1,4 +1,4 @@
-import asyncio  # noqa: I001
+import asyncio
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -61,9 +61,11 @@ from app.precision_policy import (
     quantize_quantity,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
-from app.services.workspace_client_protocols import PortfolioCoreClient
-from app.services.workspace_client_protocols import PortfolioManageClient
-from app.services.workspace_client_protocols import PortfolioPerformanceClient
+from app.services.workspace_client_protocols import (
+    PortfolioCoreClient,
+    PortfolioManageClient,
+    PortfolioPerformanceClient,
+)
 
 
 class PortfolioService:

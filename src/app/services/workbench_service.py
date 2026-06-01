@@ -1,4 +1,4 @@
-import asyncio  # noqa: I001
+import asyncio
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -31,10 +31,12 @@ from app.precision_policy import (
     quantize_performance,
     quantize_quantity,
 )
-from app.services.workspace_client_protocols import WorkbenchAdviseClient
-from app.services.workspace_client_protocols import WorkbenchCoreClient
-from app.services.workspace_client_protocols import WorkbenchManageClient
-from app.services.workspace_client_protocols import WorkbenchPerformanceClient
+from app.services.workspace_client_protocols import (
+    WorkbenchAdviseClient,
+    WorkbenchCoreClient,
+    WorkbenchManageClient,
+    WorkbenchPerformanceClient,
+)
 
 
 class WorkbenchService:
