@@ -32,6 +32,12 @@ from app.services.workbench_core_snapshot import (
     parse_lotus_core_snapshot,
 )
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_policy_feedback import (
+    build_policy_idempotency_key,
+    build_policy_simulation_payload,
+    parse_policy_feedback_success,
+    parse_policy_feedback_unavailable,
+)
 from app.services.workbench_projected_state import parse_projected_state
 from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workspace_client_protocols import (
@@ -514,31 +520,15 @@ class WorkbenchService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
         )
-        simulate_payload = {
-            "portfolio_snapshot": {
-                "portfolio_id": portfolio_id,
-                "base_currency": overview.portfolio.base_currency,
-                "positions": [
-                    {
-                        "instrument_id": row.security_id,
-                        "quantity": f"{row.proposed_quantity:.4f}",
-                    }
-                    for row in projected_positions
-                    if row.proposed_quantity > 0
-                ],
-                "cash_balances": [],
-            },
-            "market_data_snapshot": {"prices": [], "fx_rates": []},
-            "shelf_entries": [],
-            "options": {
-                "enable_proposal_simulation": True,
-                "proposal_apply_cash_flows_first": True,
-                "proposal_block_negative_cash": True,
-            },
-            "proposed_cash_flows": [],
-            "proposed_trades": [],
-        }
-        idempotency_key = f"sandbox-{session_id}-{session_version}"
+        simulate_payload = build_policy_simulation_payload(
+            portfolio_id=portfolio_id,
+            base_currency=overview.portfolio.base_currency,
+            projected_positions=projected_positions,
+        )
+        idempotency_key = build_policy_idempotency_key(
+            session_id=session_id,
+            session_version=session_version,
+        )
         advise_status, advise_payload = await self._advise_client.simulate_proposal(
             body=simulate_payload,
             idempotency_key=idempotency_key,
@@ -553,25 +543,9 @@ class WorkbenchService:
                     detail=str(advise_payload.get("detail", advise_payload)),
                 )
             )
-            return WorkbenchPolicyFeedback(
-                status="UNAVAILABLE",
-                detail="Proposal simulation unavailable",
-                raw=advise_payload if isinstance(advise_payload, dict) else None,
-            )
+            return parse_policy_feedback_unavailable(advise_payload)
 
-        gate_decision = advise_payload.get("gate_decision")
-        if isinstance(gate_decision, dict):
-            gate_status = str(gate_decision.get("status", "UNKNOWN"))
-            return WorkbenchPolicyFeedback(
-                status=gate_status,
-                detail=str(gate_decision.get("reason_code", "")) or None,
-                raw=advise_payload,
-            )
-        return WorkbenchPolicyFeedback(
-            status=str(advise_payload.get("status", "AVAILABLE")),
-            detail=None,
-            raw=advise_payload,
-        )
+        return parse_policy_feedback_success(advise_payload)
 
 
 @dataclass(slots=True)

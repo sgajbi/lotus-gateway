@@ -15,6 +15,12 @@ from app.services.workbench_core_snapshot import (
     parse_lotus_core_snapshot,
 )
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_policy_feedback import (
+    build_policy_idempotency_key,
+    build_policy_simulation_payload,
+    parse_policy_feedback_success,
+    parse_policy_feedback_unavailable,
+)
 from app.services.workbench_projected_state import parse_projected_state
 from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workbench_service import WorkbenchService
@@ -680,6 +686,58 @@ async def test_evaluate_policy_feedback_uses_status_when_gate_decision_missing()
         partial_failures=[],
     )
     assert feedback.status == "PASS"
+
+
+def test_build_policy_simulation_payload_filters_non_positive_positions():
+    payload = build_policy_simulation_payload(
+        portfolio_id="P1",
+        base_currency="USD",
+        projected_positions=[
+            WorkbenchProjectedPositionView(
+                security_id="EQ_1",
+                instrument_name="Equity 1",
+                asset_class="Equity",
+                baseline_quantity=1.0,
+                proposed_quantity=2.34567,
+                delta_quantity=1.34567,
+            ),
+            WorkbenchProjectedPositionView(
+                security_id="CASH_1",
+                instrument_name="Cash 1",
+                asset_class="Cash",
+                baseline_quantity=1.0,
+                proposed_quantity=0.0,
+                delta_quantity=-1.0,
+            ),
+        ],
+    )
+
+    assert payload["portfolio_snapshot"]["portfolio_id"] == "P1"
+    assert payload["portfolio_snapshot"]["base_currency"] == "USD"
+    assert payload["portfolio_snapshot"]["positions"] == [
+        {"instrument_id": "EQ_1", "quantity": "2.3457"}
+    ]
+    assert payload["options"]["proposal_block_negative_cash"] is True
+
+
+def test_build_policy_idempotency_key_uses_session_version():
+    assert (
+        build_policy_idempotency_key(session_id="sess-1", session_version=3) == "sandbox-sess-1-3"
+    )
+
+
+def test_parse_policy_feedback_success_prefers_gate_decision():
+    feedback = parse_policy_feedback_success(
+        {"status": "COMPLETED", "gate_decision": {"status": "PASS", "reason_code": "OK"}}
+    )
+    assert feedback.status == "PASS"
+    assert feedback.detail == "OK"
+
+
+def test_parse_policy_feedback_unavailable_omits_non_dict_raw_payload():
+    feedback = parse_policy_feedback_unavailable("upstream unavailable")
+    assert feedback.status == "UNAVAILABLE"
+    assert feedback.raw is None
 
 
 def test_extract_current_positions_returns_empty_when_by_asset_class_not_dict():
