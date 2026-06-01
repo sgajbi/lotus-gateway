@@ -29,11 +29,18 @@ def caller_context_headers(
             },
         )
     values = {
-        "X-Actor-Id": actor_id.strip() if actor_id else actor_id,
-        "X-Caller-Application": caller_application or "lotus-gateway",
-        "X-Tenant-Id": tenant_id.strip() if tenant_id else tenant_id,
-        "X-Region": region.strip() if region else region,
-        "X-Booking-Center-Code": booking_center_code,
-        "X-Role": role,
+        "X-Actor-Id": _clean_header_value(actor_id),
+        "X-Caller-Application": _clean_header_value(caller_application) or "lotus-gateway",
+        "X-Tenant-Id": _clean_header_value(tenant_id),
+        "X-Region": _clean_header_value(region),
+        "X-Booking-Center-Code": _clean_header_value(booking_center_code),
+        "X-Role": _clean_header_value(role),
     }
     return {key: value for key, value in values.items() if value}
+
+
+def _clean_header_value(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
