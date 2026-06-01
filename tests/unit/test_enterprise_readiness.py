@@ -95,6 +95,35 @@ def test_authorize_write_request_enforces_capability_rules(monkeypatch):
     assert allowed_reason is None
 
 
+def test_authorize_write_request_matches_capability_rules_on_path_segments(monkeypatch):
+    monkeypatch.setenv("ENTERPRISE_ENFORCE_AUTHZ", "true")
+    monkeypatch.setenv(
+        "ENTERPRISE_CAPABILITY_RULES_JSON",
+        json.dumps(
+            {
+                "POST /api/v1/proposals": "proposal.write",
+                "POST /api/v1/proposals/special": "proposal.special.write",
+            }
+        ),
+    )
+    headers = {
+        "X-Actor-Id": "a1",
+        "X-Tenant-Id": "t1",
+        "X-Role": "advisor",
+        "X-Correlation-Id": "c1",
+        "X-Service-Identity": "lotus-gateway",
+        "X-Capabilities": "proposal.write",
+    }
+
+    allowed, reason = authorize_write_request("POST", "/api/v1/proposals-old", headers)
+    assert allowed is True
+    assert reason is None
+
+    allowed, reason = authorize_write_request("POST", "/api/v1/proposals/special/1", headers)
+    assert allowed is False
+    assert reason == "missing_capability:proposal.special.write"
+
+
 def test_validate_enterprise_runtime_config_reports_rotation_issue(monkeypatch):
     monkeypatch.setenv("ENTERPRISE_SECRET_ROTATION_DAYS", "120")
     issues = validate_enterprise_runtime_config()

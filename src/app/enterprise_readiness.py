@@ -92,11 +92,23 @@ def is_feature_enabled(feature_key: str, tenant_id: str, role: str) -> bool:
 
 def _required_capability(method: str, path: str) -> str | None:
     method = method.upper()
-    for key, capability in load_capability_rules().items():
+    for key, capability in sorted(
+        load_capability_rules().items(),
+        key=lambda item: len(item[0]),
+        reverse=True,
+    ):
         prefix = f"{method} "
-        if key.upper().startswith(prefix) and path.startswith(key[len(prefix) :]):
+        if key.upper().startswith(prefix) and _path_matches_rule(path, key[len(prefix) :]):
             return capability
     return None
+
+
+def _path_matches_rule(path: str, rule_path: str) -> bool:
+    normalized_rule_path = rule_path.strip() or "/"
+    if normalized_rule_path == "/":
+        return True
+    normalized_rule_path = normalized_rule_path.rstrip("/")
+    return path == normalized_rule_path or path.startswith(f"{normalized_rule_path}/")
 
 
 def authorize_write_request(
