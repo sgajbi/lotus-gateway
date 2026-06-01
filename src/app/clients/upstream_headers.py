@@ -20,10 +20,11 @@ def build_idempotent_upstream_headers(
     idempotency_key: str,
     *,
     caller_headers: dict[str, str] | None = None,
+    idempotency_header: str = "Idempotency-Key",
 ) -> dict[str, str]:
     return build_upstream_headers(
         correlation_id,
-        extras={"Idempotency-Key": idempotency_key},
+        extras={idempotency_header: idempotency_key},
         caller_headers=caller_headers,
     )
 

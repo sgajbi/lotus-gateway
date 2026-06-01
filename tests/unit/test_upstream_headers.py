@@ -35,6 +35,18 @@ def test_build_idempotent_upstream_headers_preserves_reporting_merge_order() -> 
     assert headers["Idempotency-Key"] == "caller-overrides-existing-reporting-behavior"
 
 
+def test_build_idempotent_upstream_headers_supports_service_specific_header_name() -> None:
+    headers = build_idempotent_upstream_headers(
+        "corr-core-ingestion",
+        "idem-core-1",
+        idempotency_header="X-Idempotency-Key",
+    )
+
+    assert headers["X-Correlation-Id"] == "corr-core-ingestion"
+    assert headers["X-Idempotency-Key"] == "idem-core-1"
+    assert "Idempotency-Key" not in headers
+
+
 def test_build_archive_caller_headers_maps_gateway_archive_context() -> None:
     headers = build_archive_caller_headers(
         correlation_id="corr-archive",

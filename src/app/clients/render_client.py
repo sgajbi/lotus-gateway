@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -22,7 +22,7 @@ class RenderClient:
 
     async def get_metadata(self, *, correlation_id: str) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/metadata"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await request_observed_fanout(
             logger=logger,
             service="lotus-render",
