@@ -51,8 +51,16 @@ from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialF
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_capabilities import (
+    SUPPORTED_ATTRIBUTION_DIMENSIONS,
+    SUPPORTED_CONTRIBUTION_DIMENSIONS,
+    build_attribution_capability,
+    build_contribution_capability,
+    build_evidence_capability,
+    build_module_capability,
+    build_workspace_capabilities,
+)
 from app.services.performance_workspace_controls import (
-    SUPPORTED_WORKSPACE_FREQUENCIES,
     build_attribution_trend_windows,
     last_day_of_month,
     normalize_attribution_trend_frequency,
@@ -84,8 +92,6 @@ STANDARD_PERIOD_ANALYSES = (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
-SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
-SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
 LINEAGE_COMPLETION_POLL_ATTEMPTS = 3
 LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
 
@@ -903,15 +909,15 @@ class PerformanceWorkspaceService:
         supported_dimensions: Sequence[str] | None = None,
         supported_frequencies: Sequence[str] | None = None,
     ) -> PerformanceModuleCapability:
-        return PerformanceModuleCapability(
+        return build_module_capability(
             state=state,
             reason=reason,
             coverage_level=coverage_level,
             fallback_available=fallback_available,
             earliest_available_date=earliest_available_date,
             latest_available_date=latest_available_date,
-            supported_dimensions=list(supported_dimensions) if supported_dimensions else None,
-            supported_frequencies=list(supported_frequencies) if supported_frequencies else None,
+            supported_dimensions=supported_dimensions,
+            supported_frequencies=supported_frequencies,
         )
 
     def _extract_calculation_id_from_result(
@@ -1444,126 +1450,14 @@ class PerformanceWorkspaceService:
         evidence_view: PerformanceEvidenceView | None,
         include_detail_blocks: bool = True,
     ) -> PerformanceWorkspaceCapabilities:
-        has_return_history = len(net_chart) > 0
-        has_benchmark = bool(benchmark_code)
-        has_benchmark_returns = (
-            net_performance.benchmark_return_pct is not None
-            and net_performance.active_return_pct is not None
-        )
-        has_contribution_detail = bool(
-            contribution and (contribution.levels or contribution.position_rows)
-        )
-        has_position_ranking = bool(contribution and contribution.position_rows)
-        has_attribution_detail = bool(
-            attribution and any(level.rows for level in attribution.levels)
-        )
-        has_attribution_summary = bool(
-            attribution
-            and (
-                attribution.levels
-                or attribution.active_return_pct is not None
-                or attribution.sum_of_effects_pct is not None
-                or attribution.residual_pct is not None
-            )
-        )
-        dated_history = [
-            point
-            for point in net_chart
-            if point.period_start is not None or point.period_end is not None
-        ]
-        earliest_history_date = (
-            min(point.period_start or point.period_end or "" for point in dated_history)
-            if dated_history
-            else None
-        )
-        latest_history_date = (
-            max(point.period_end or point.period_start or "" for point in dated_history)
-            if dated_history
-            else None
-        )
-
-        return PerformanceWorkspaceCapabilities(
-            summary_kpis=self._capability(
-                "supported",
-                "The performance workspace contract supports executive summary metrics.",
-            ),
-            return_path=(
-                self._capability(
-                    "supported",
-                    "Time-series return observations are available for the selected horizon.",
-                    earliest_available_date=earliest_history_date,
-                    latest_available_date=latest_history_date,
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-                if has_return_history
-                else self._capability(
-                    "unavailable",
-                    "Published return observations are not available for the selected horizon.",
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-            ),
-            benchmark_comparison=(
-                self._capability(
-                    "supported",
-                    "Benchmark-relative return metrics are available.",
-                    earliest_available_date=earliest_history_date,
-                    latest_available_date=latest_history_date,
-                )
-                if has_benchmark and has_benchmark_returns
-                else self._capability(
-                    "partial",
-                    "A benchmark is assigned, but benchmark-relative returns are incomplete.",
-                    earliest_available_date=earliest_history_date,
-                    latest_available_date=latest_history_date,
-                )
-                if has_benchmark
-                else self._capability(
-                    "unavailable",
-                    "No benchmark is assigned to this mandate.",
-                )
-            ),
-            multi_horizon_returns=(
-                self._capability(
-                    "supported",
-                    "The workspace supports benchmark-aware horizon comparisons.",
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-                if has_benchmark
-                else self._capability(
-                    "partial",
-                    (
-                        "Horizon comparisons remain available, "
-                        "but benchmark-relative output is unavailable."
-                    ),
-                    supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-                )
-            ),
-            contribution_ranking=self._build_contribution_capability(
-                include_detail_blocks=include_detail_blocks,
-                has_position_ranking=has_position_ranking,
-                has_contribution_detail=has_contribution_detail,
-                supported_reason="Position-level contribution ranking is available.",
-                aggregate_reason="Contribution exists, but only aggregate rows are available.",
-                unavailable_reason=(
-                    "Contribution analytics are not available for the current selection."
-                ),
-            ),
-            attribution_detail=self._build_attribution_capability(
-                include_detail_blocks=include_detail_blocks,
-                has_attribution_detail=has_attribution_detail,
-                has_attribution_summary=has_attribution_summary,
-            ),
-            contribution_detail=self._build_contribution_capability(
-                include_detail_blocks=include_detail_blocks,
-                has_position_ranking=has_position_ranking,
-                has_contribution_detail=has_contribution_detail,
-                supported_reason="Contribution detail is available for the current selection.",
-                aggregate_reason="Contribution exists, but only aggregate rows are available.",
-                unavailable_reason=(
-                    "Contribution detail is not available for the current selection."
-                ),
-            ),
-            evidence=self._build_evidence_capability(evidence_view=evidence_view),
+        return build_workspace_capabilities(
+            benchmark_code=benchmark_code,
+            net_performance=net_performance,
+            net_chart=net_chart,
+            contribution=contribution,
+            attribution=attribution,
+            evidence_view=evidence_view,
+            include_detail_blocks=include_detail_blocks,
         )
 
     def _build_evidence_capability(
@@ -1571,30 +1465,7 @@ class PerformanceWorkspaceService:
         *,
         evidence_view: PerformanceEvidenceView | None,
     ) -> PerformanceModuleCapability:
-        if evidence_view is None:
-            return self._capability(
-                "unavailable",
-                "No evidence posture is available for the current selection.",
-            )
-        if evidence_view.state == "supported":
-            return self._capability(
-                "supported",
-                evidence_view.reason,
-                coverage_level="calculation",
-                fallback_available=True,
-            )
-        if evidence_view.state == "partial":
-            return self._capability(
-                "partial",
-                evidence_view.reason,
-                coverage_level="calculation",
-                fallback_available=True,
-            )
-        return self._capability(
-            "unavailable",
-            evidence_view.reason,
-            coverage_level="calculation",
-        )
+        return build_evidence_capability(evidence_view=evidence_view)
 
     def _build_contribution_capability(
         self,
@@ -1606,25 +1477,13 @@ class PerformanceWorkspaceService:
         aggregate_reason: str,
         unavailable_reason: str,
     ) -> PerformanceModuleCapability:
-        if not include_detail_blocks or has_position_ranking:
-            return self._capability(
-                "supported",
-                supported_reason,
-                coverage_level="position",
-                supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-            )
-        if has_contribution_detail:
-            return self._capability(
-                "partial",
-                aggregate_reason,
-                coverage_level="aggregate",
-                fallback_available=True,
-                supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-            )
-        return self._capability(
-            "unavailable",
-            unavailable_reason,
-            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+        return build_contribution_capability(
+            include_detail_blocks=include_detail_blocks,
+            has_position_ranking=has_position_ranking,
+            has_contribution_detail=has_contribution_detail,
+            supported_reason=supported_reason,
+            aggregate_reason=aggregate_reason,
+            unavailable_reason=unavailable_reason,
         )
 
     def _build_attribution_capability(
@@ -1634,31 +1493,10 @@ class PerformanceWorkspaceService:
         has_attribution_detail: bool,
         has_attribution_summary: bool,
     ) -> PerformanceModuleCapability:
-        if not include_detail_blocks or has_attribution_detail:
-            return self._capability(
-                "supported",
-                "Benchmark-relative attribution detail is available.",
-                coverage_level="detail",
-                supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-        if has_attribution_summary:
-            return self._capability(
-                "partial",
-                (
-                    "Benchmark-relative attribution is available only at summary level "
-                    "for the current selection."
-                ),
-                coverage_level="summary",
-                fallback_available=True,
-                supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-        return self._capability(
-            "unavailable",
-            "Attribution detail is not available for the current selection.",
-            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+        return build_attribution_capability(
+            include_detail_blocks=include_detail_blocks,
+            has_attribution_detail=has_attribution_detail,
+            has_attribution_summary=has_attribution_summary,
         )
 
     async def _determine_report_end_date(
