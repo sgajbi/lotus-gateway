@@ -2,7 +2,10 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import (
+    build_idempotent_upstream_headers,
+    build_upstream_headers,
+)
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -28,7 +31,7 @@ class ReportingClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/aggregations/portfolios/{portfolio_id}"
         params = {"as_of_date": as_of_date, "live": "true"}
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="report.aggregations.portfolio-snapshot",
             method="GET",
@@ -45,7 +48,7 @@ class ReportingClient:
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/integration/capabilities"
         params = {"consumerSystem": consumer_system, "tenantId": tenant_id}
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="report.integration.capabilities",
             method="GET",
@@ -61,7 +64,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/portfolios/{portfolio_id}/summary"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="report.portfolio.summary",
             method="POST",
@@ -77,7 +80,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/portfolios/{portfolio_id}/review"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await self._request(
             operation="report.portfolio.review",
             method="POST",
@@ -95,9 +98,11 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/portfolio-reviews"
-        headers = propagation_headers(correlation_id)
-        headers["Idempotency-Key"] = idempotency_key
-        headers.update(caller_headers)
+        headers = build_idempotent_upstream_headers(
+            correlation_id,
+            idempotency_key,
+            caller_headers=caller_headers,
+        )
         return await self._request(
             operation="report.portfolio-review-jobs.submit",
             method="POST",
@@ -115,9 +120,11 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/outcome-reviews"
-        headers = propagation_headers(correlation_id)
-        headers["Idempotency-Key"] = idempotency_key
-        headers.update(caller_headers)
+        headers = build_idempotent_upstream_headers(
+            correlation_id,
+            idempotency_key,
+            caller_headers=caller_headers,
+        )
         return await self._request(
             operation="report.outcome-review-jobs.submit",
             method="POST",
@@ -134,8 +141,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/jobs/{job_id}"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.jobs.get",
             method="GET",
@@ -151,8 +157,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/jobs"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.jobs.list",
             method="GET",
@@ -169,8 +174,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/jobs/{job_id}/events"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.jobs.events",
             method="GET",
@@ -186,8 +190,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/jobs/{job_id}/lineage"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.jobs.lineage",
             method="GET",
@@ -203,8 +206,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/snapshots/{snapshot_id}"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.snapshots.get",
             method="GET",
@@ -220,8 +222,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/snapshots/{snapshot_id}/lineage"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.snapshots.lineage",
             method="GET",
@@ -237,8 +238,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/jobs/{job_id}/cancel"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.jobs.cancel",
             method="POST",
@@ -255,9 +255,11 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/batches"
-        headers = propagation_headers(correlation_id)
-        headers["Idempotency-Key"] = idempotency_key
-        headers.update(caller_headers)
+        headers = build_idempotent_upstream_headers(
+            correlation_id,
+            idempotency_key,
+            caller_headers=caller_headers,
+        )
         return await self._request(
             operation="report.batches.create",
             method="POST",
@@ -274,8 +276,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/batches/{batch_id}"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.batches.get",
             method="GET",
@@ -293,8 +294,7 @@ class ReportingClient:
         payload: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/batches/{batch_id}:{action}"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation=f"report.batches.{action}",
             method="POST",
@@ -310,8 +310,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/batch-schedules"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.batch-schedules.list",
             method="GET",
@@ -327,8 +326,7 @@ class ReportingClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/reports/batch-schedules:run-due"
-        headers = propagation_headers(correlation_id)
-        headers.update(caller_headers)
+        headers = build_upstream_headers(correlation_id, caller_headers=caller_headers)
         return await self._request(
             operation="report.batch-schedules.run-due",
             method="POST",

@@ -5,7 +5,7 @@ from app.clients.observed_fanout import (
     request_observed_binary_fanout,
     request_observed_fanout,
 )
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_archive_caller_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -74,16 +74,7 @@ class ArchiveClient:
         caller_headers: dict[str, str],
         correlation_id: str,
     ) -> dict[str, str]:
-        headers = propagation_headers(correlation_id)
-        headers.update(
-            {
-                "X-Caller-Service": "lotus-gateway",
-                "X-Actor-Type": caller_headers.get("X-Role", "user"),
-                "X-Actor-Id": caller_headers["X-Actor-Id"],
-                "X-Tenant-Id": caller_headers["X-Tenant-Id"],
-                "X-Region": caller_headers["X-Region"],
-            }
+        return build_archive_caller_headers(
+            correlation_id=correlation_id,
+            caller_headers=caller_headers,
         )
-        if booking_center_code := caller_headers.get("X-Booking-Center-Code"):
-            headers["X-Booking-Center-Code"] = booking_center_code
-        return headers
