@@ -15,7 +15,6 @@ from app.contracts.performance_workspace import (
     PerformanceAttributionTrendResponse,
     PerformanceAttributionTrendRow,
     PerformanceBenchmarkOptionView,
-    PerformanceCalculationEvidenceView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
     PerformanceEvidenceView,
@@ -64,14 +63,10 @@ from app.services.performance_workspace_dependencies import (
     fetch_workspace_summary_result,
 )
 from app.services.performance_workspace_evidence import (
-    build_calculation_evidence_view,
     build_performance_evidence_view,
     build_source_supportability,
-    execution_is_complete,
-    execution_lineage_stage_complete,
     extract_calculation_id_from_result,
-    lineage_is_complete,
-    lineage_is_transient,
+    fetch_calculation_evidence,
     resolve_evidence_reason,
     resolve_evidence_state,
 )
@@ -105,7 +100,6 @@ from app.services.workspace_client_protocols import (
 )
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
-LINEAGE_COMPLETION_POLL_ATTEMPTS = 3
 LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -837,11 +831,13 @@ class PerformanceWorkspaceService:
 
         evidence_items = await asyncio.gather(
             *[
-                self._fetch_calculation_evidence(
+                fetch_calculation_evidence(
+                    analytics_client=self._analytics_client,
                     portfolio_id=portfolio_id,
                     calculation_role=role,
                     calculation_id=calculation_id,
                     correlation_id=correlation_id,
+                    poll_interval_seconds=LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
                 )
                 for role, calculation_id in requested_items
             ]
@@ -932,94 +928,6 @@ class PerformanceWorkspaceService:
             calculations=evidence_items,
             source_supportability=source_supportability,
         )
-
-    async def _fetch_calculation_evidence(
-        self,
-        *,
-        portfolio_id: str,
-        calculation_role: str,
-        calculation_id: str,
-        correlation_id: str,
-    ) -> PerformanceCalculationEvidenceView:
-        execution_result, lineage_result = await asyncio.gather(
-            self._analytics_client.get_execution(
-                calculation_id=calculation_id,
-                correlation_id=correlation_id,
-            ),
-            self._analytics_client.get_lineage(
-                calculation_id=calculation_id,
-                correlation_id=correlation_id,
-            ),
-        )
-        execution_result, lineage_result = await self._await_recent_evidence_completion(
-            calculation_id=calculation_id,
-            correlation_id=correlation_id,
-            execution_result=execution_result,
-            lineage_result=lineage_result,
-        )
-        return build_calculation_evidence_view(
-            portfolio_id=portfolio_id,
-            calculation_role=calculation_role,
-            calculation_id=calculation_id,
-            execution_result=execution_result,
-            lineage_result=lineage_result,
-        )
-
-    async def _await_recent_evidence_completion(
-        self,
-        *,
-        calculation_id: str,
-        correlation_id: str,
-        execution_result: UpstreamResult,
-        lineage_result: UpstreamResult,
-    ) -> tuple[UpstreamResult, UpstreamResult]:
-        if not execution_is_complete(execution_result):
-            return execution_result, lineage_result
-        if lineage_is_complete(lineage_result):
-            refreshed_execution = await self._refresh_execution_after_lineage_completion(
-                calculation_id=calculation_id,
-                correlation_id=correlation_id,
-                execution_result=execution_result,
-            )
-            return refreshed_execution, lineage_result
-        if not lineage_is_transient(lineage_result):
-            return execution_result, lineage_result
-
-        latest_result = lineage_result
-        for _ in range(LINEAGE_COMPLETION_POLL_ATTEMPTS):
-            if LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS > 0:
-                await asyncio.sleep(LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS)
-            latest_result = await self._analytics_client.get_lineage(
-                calculation_id=calculation_id,
-                correlation_id=correlation_id,
-            )
-            if lineage_is_complete(latest_result):
-                refreshed_execution = await self._refresh_execution_after_lineage_completion(
-                    calculation_id=calculation_id,
-                    correlation_id=correlation_id,
-                    execution_result=execution_result,
-                )
-                return refreshed_execution, latest_result
-            if not lineage_is_transient(latest_result):
-                return execution_result, latest_result
-        return execution_result, latest_result
-
-    async def _refresh_execution_after_lineage_completion(
-        self,
-        *,
-        calculation_id: str,
-        correlation_id: str,
-        execution_result: UpstreamResult,
-    ) -> UpstreamResult:
-        if execution_lineage_stage_complete(execution_result):
-            return execution_result
-        refreshed_result = await self._analytics_client.get_execution(
-            calculation_id=calculation_id,
-            correlation_id=correlation_id,
-        )
-        if refreshed_result[0] >= 400:
-            return execution_result
-        return refreshed_result
 
     async def _determine_report_end_date(
         self,

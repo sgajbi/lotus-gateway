@@ -1,9 +1,12 @@
+import pytest
+
 from app.contracts.performance_workspace import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceUpstreamSnapshotView,
     PerformanceSourceSupportabilityView,
 )
 from app.services.performance_workspace_evidence import (
+    await_recent_evidence_completion,
     build_calculation_evidence_view,
     build_performance_evidence_view,
     build_source_supportability,
@@ -11,12 +14,37 @@ from app.services.performance_workspace_evidence import (
     execution_is_complete,
     execution_lineage_stage_complete,
     extract_calculation_id_from_result,
+    fetch_calculation_evidence,
     gateway_evidence_artifact_url,
     lineage_is_complete,
     lineage_is_transient,
+    refresh_execution_after_lineage_completion,
     resolve_evidence_reason,
     resolve_evidence_state,
 )
+
+
+class _EvidenceAnalyticsClient:
+    def __init__(
+        self,
+        *,
+        execution_results: list[tuple[int, dict]],
+        lineage_results: list[tuple[int, dict]],
+    ) -> None:
+        self.execution_results = execution_results
+        self.lineage_results = lineage_results
+        self.execution_calls: list[str] = []
+        self.lineage_calls: list[str] = []
+
+    async def get_execution(self, *, calculation_id: str, correlation_id: str):
+        _ = correlation_id
+        self.execution_calls.append(calculation_id)
+        return self.execution_results.pop(0)
+
+    async def get_lineage(self, *, calculation_id: str, correlation_id: str):
+        _ = correlation_id
+        self.lineage_calls.append(calculation_id)
+        return self.lineage_results.pop(0)
 
 
 def test_extract_calculation_id_from_result_returns_stable_string_id():
@@ -115,6 +143,136 @@ def test_evidence_completion_helpers_fail_closed_for_bad_payloads():
     assert not execution_is_complete((500, {"status": "complete"}))
     assert not lineage_is_complete((200, {"status": "pending"}))
     assert not lineage_is_transient((404, {"status": "pending"}))
+
+
+@pytest.mark.asyncio
+async def test_refresh_execution_after_lineage_completion_keeps_complete_stage_result():
+    execution_result = (
+        200,
+        {
+            "status": "complete",
+            "stages": [
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "complete",
+                }
+            ],
+        },
+    )
+    client = _EvidenceAnalyticsClient(
+        execution_results=[(200, {"status": "complete"})],
+        lineage_results=[],
+    )
+
+    refreshed = await refresh_execution_after_lineage_completion(
+        analytics_client=client,
+        calculation_id="calc-1",
+        correlation_id="corr-1",
+        execution_result=execution_result,
+    )
+
+    assert refreshed == execution_result
+    assert client.execution_calls == []
+
+
+@pytest.mark.asyncio
+async def test_await_recent_evidence_completion_polls_and_refreshes_execution_stage():
+    execution_result = (
+        200,
+        {
+            "status": "complete",
+            "stages": [
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+    refreshed_execution = (
+        200,
+        {
+            "status": "complete",
+            "stages": [
+                {
+                    "stage_name": "lineage_materialization",
+                    "status": "complete",
+                }
+            ],
+        },
+    )
+    client = _EvidenceAnalyticsClient(
+        execution_results=[refreshed_execution],
+        lineage_results=[
+            (
+                200,
+                {
+                    "calculation_id": "calc-1",
+                    "status": "complete",
+                    "artifacts": {"response.json": {}},
+                },
+            )
+        ],
+    )
+
+    refreshed_execution_result, refreshed_lineage_result = await await_recent_evidence_completion(
+        analytics_client=client,
+        calculation_id="calc-1",
+        correlation_id="corr-1",
+        execution_result=execution_result,
+        lineage_result=(200, {"calculation_id": "calc-1", "status": "pending"}),
+        poll_attempts=2,
+        poll_interval_seconds=0,
+    )
+
+    assert refreshed_execution_result == refreshed_execution
+    assert refreshed_lineage_result[1]["status"] == "complete"
+    assert client.execution_calls == ["calc-1"]
+    assert client.lineage_calls == ["calc-1"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_calculation_evidence_returns_partial_lineage_evidence_after_poll_limit():
+    client = _EvidenceAnalyticsClient(
+        execution_results=[
+            (
+                200,
+                {
+                    "analytics_type": "WORKSPACE_SUMMARY",
+                    "execution_mode": "sync",
+                    "status": "complete",
+                    "stages": [
+                        {
+                            "stage_name": "lineage_materialization",
+                            "status": "in_progress",
+                        }
+                    ],
+                    "upstream_snapshots": [],
+                },
+            )
+        ],
+        lineage_results=[
+            (200, {"calculation_id": "calc-1", "status": "pending", "artifacts": {}}),
+            (200, {"calculation_id": "calc-1", "status": "pending", "artifacts": {}}),
+        ],
+    )
+
+    evidence = await fetch_calculation_evidence(
+        analytics_client=client,
+        portfolio_id="PORT-1",
+        calculation_role="workspace_summary",
+        calculation_id="calc-1",
+        correlation_id="corr-1",
+        poll_attempts=1,
+        poll_interval_seconds=0,
+    )
+
+    assert evidence.calculation_role == "workspace_summary"
+    assert evidence.execution_status == "complete"
+    assert evidence.lineage_status == "pending"
+    assert evidence.reason == "Lineage is pending in lotus-performance."
+    assert client.execution_calls == ["calc-1"]
+    assert client.lineage_calls == ["calc-1", "calc-1"]
 
 
 def test_build_calculation_evidence_view_maps_artifacts_and_reason():
