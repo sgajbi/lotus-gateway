@@ -44,6 +44,7 @@ from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialF
 from app.middleware.server_timing import server_timing_span
 from app.precision_policy import quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_benchmarks import fetch_benchmark_context
 from app.services.performance_workspace_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
@@ -329,7 +330,9 @@ class PerformanceWorkspaceService:
             (
                 resolved_benchmark_code,
                 benchmark_catalog_result,
-            ) = await self._fetch_benchmark_context(
+            ) = await fetch_benchmark_context(
+                cache=self._upstream_cache,
+                core_client=self._lotus_core_query_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=resolved_report_end_date,
@@ -443,7 +446,9 @@ class PerformanceWorkspaceService:
         )
 
         async with server_timing_span("perf-benchmark"):
-            resolved_benchmark_code, _ = await self._fetch_benchmark_context(
+            resolved_benchmark_code, _ = await fetch_benchmark_context(
+                cache=self._upstream_cache,
+                core_client=self._lotus_core_query_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=report_end_date,
@@ -595,7 +600,9 @@ class PerformanceWorkspaceService:
             (
                 resolved_benchmark_code,
                 benchmark_catalog_result,
-            ) = await self._fetch_benchmark_context(
+            ) = await fetch_benchmark_context(
+                cache=self._upstream_cache,
+                core_client=self._lotus_core_query_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=report_end_date,
@@ -1139,118 +1146,6 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             warnings=warnings,
             partial_failures=partial_failures,
-        )
-
-    async def _resolve_benchmark_code(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str,
-        portfolio_currency: str,
-        benchmark_code: str | None,
-    ) -> str | None:
-        if benchmark_code:
-            return benchmark_code
-        cache_key = (
-            "benchmark_assignment",
-            portfolio_id,
-            as_of_date,
-            portfolio_currency,
-        )
-        resolved_benchmark_code, cache_hit = await self._upstream_cache.get_or_set_with_status(
-            key=cache_key,
-            factory=lambda: self._fetch_assigned_benchmark_code(
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                portfolio_currency=portfolio_currency,
-                correlation_id=correlation_id,
-            ),
-        )
-        if resolved_benchmark_code:
-            return cast(str, resolved_benchmark_code)
-
-        self._upstream_cache.discard(cache_key)
-        if not cache_hit:
-            return None
-
-        refreshed_benchmark_code = await self._fetch_assigned_benchmark_code(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            portfolio_currency=portfolio_currency,
-            correlation_id=correlation_id,
-        )
-        if refreshed_benchmark_code:
-            self._upstream_cache.set(cache_key, refreshed_benchmark_code)
-        return refreshed_benchmark_code
-
-    async def _fetch_assigned_benchmark_code(
-        self,
-        *,
-        portfolio_id: str,
-        as_of_date: str,
-        portfolio_currency: str,
-        correlation_id: str,
-    ) -> str | None:
-        status_code, payload = await self._lotus_core_query_client.get_benchmark_assignment(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            reporting_currency=portfolio_currency,
-            correlation_id=correlation_id,
-        )
-        if status_code >= 400 or not isinstance(payload, dict):
-            return None
-        return safe_str(payload.get("benchmark_id"))
-
-    async def _fetch_benchmark_context(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        report_end_date: str,
-        portfolio_currency: str,
-        benchmark_code: str | None,
-        include_benchmark_catalog: bool,
-    ) -> tuple[str | None, GatheredResult]:
-        assignment_task = (
-            self._resolve_benchmark_code(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=report_end_date,
-                portfolio_currency=portfolio_currency,
-                benchmark_code=benchmark_code,
-            )
-            if not benchmark_code
-            else self._empty_async_scalar_result(None)
-        )
-        benchmark_catalog_task = (
-            self._get_cached_upstream_result(
-                ("benchmark_catalog", report_end_date, portfolio_currency),
-                lambda: self._lotus_core_query_client.get_benchmark_catalog(
-                    as_of_date=report_end_date,
-                    benchmark_currency=portfolio_currency,
-                    benchmark_status="active",
-                    benchmark_type="composite",
-                    correlation_id=correlation_id,
-                ),
-            )
-            if include_benchmark_catalog
-            else self._empty_async_result()
-        )
-        benchmark_context_results = await asyncio.gather(
-            assignment_task,
-            benchmark_catalog_task,
-            return_exceptions=True,
-        )
-        resolved_benchmark_code_result = cast(
-            str | None | BaseException,
-            benchmark_context_results[0],
-        )
-        benchmark_catalog_result_value = cast(GatheredResult, benchmark_context_results[1])
-        if isinstance(resolved_benchmark_code_result, BaseException):
-            return benchmark_code, cast(GatheredResult, benchmark_catalog_result_value)
-        return benchmark_code or cast(str | None, resolved_benchmark_code_result), cast(
-            GatheredResult, benchmark_catalog_result_value
         )
 
     async def _fetch_analytics_results(
