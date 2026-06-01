@@ -32,7 +32,7 @@ class _FakeAsyncClient:
         self.calls.append(
             {"method": "GET", "url": url, "params": params or {}, "headers": headers or {}}
         )
-        return self._next_response("GET", url)
+        return self._next_response()
 
     async def post(self, url, json=None, data=None, files=None, params=None, headers=None):
         self.calls.append(
@@ -46,7 +46,7 @@ class _FakeAsyncClient:
                 "headers": headers or {},
             }
         )
-        return self._next_response("POST", url)
+        return self._next_response()
 
     async def put(self, url, json=None, headers=None):
         self.calls.append(
@@ -57,16 +57,13 @@ class _FakeAsyncClient:
                 "headers": headers or {},
             }
         )
-        return self._next_response("PUT", url)
+        return self._next_response()
 
     @classmethod
-    def _next_response(cls, method: str, url: str) -> httpx.Response:
+    def _next_response(cls) -> httpx.Response:
         if not cls.responses:
             raise AssertionError("No queued response available.")
-        response = cls.responses.pop(0)
-        if response.request is None:
-            response.request = httpx.Request(method, url)  # type: ignore[misc]
-        return response
+        return cls.responses.pop(0)
 
     @classmethod
     def queue_json(cls, status_code: int, payload: dict | list):
