@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from app.clients.observed_fanout import request_observed_fanout
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 
 logger = logging.getLogger("analytics_ui.gateway")
 
@@ -53,7 +53,7 @@ class LotusAiClient:
             operation="ai.tasks.execute",
             method="POST",
             json_body=request_payload,
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/ai/tasks/execute",
         )
@@ -80,7 +80,7 @@ class LotusAiClient:
                 "workflow_surface": workflow_surface,
                 "task_request": task_request,
             },
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/execute",
         )
@@ -94,7 +94,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.consumer-view",
             method="GET",
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/consumer-view",
         )
@@ -108,7 +108,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.workflow-packs.runs.operator-profile",
             method="GET",
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/operator-profile",
         )
@@ -133,7 +133,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.task-flows.list",
             method="GET",
             params=params,
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/platform/workflow-packs/task-flows",
         )
@@ -149,7 +149,7 @@ class LotusAiClient:
             operation="ai.workflow-packs.runs.review-actions",
             method="POST",
             json_body=request_payload,
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path=f"/platform/workflow-packs/runs/{run_id}/review-actions",
         )
@@ -162,7 +162,7 @@ class LotusAiClient:
         return await self._request(
             operation="ai.observability.runtime-status",
             method="GET",
-            headers=propagation_headers(correlation_id),
+            headers=build_upstream_headers(correlation_id),
             retry_timeout_exceptions=False,
             path="/platform/observability/runtime-status",
         )
