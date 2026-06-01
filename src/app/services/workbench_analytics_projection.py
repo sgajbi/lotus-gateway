@@ -2,11 +2,61 @@ from typing import Any
 
 from app.contracts.workbench import (
     WorkbenchAnalyticsBucket,
+    WorkbenchPartialFailure,
+    WorkbenchPerformanceSnapshot,
+    WorkbenchPortfolio360Response,
     WorkbenchPositionView,
     WorkbenchProjectedPositionView,
     WorkbenchTopChange,
 )
 from app.precision_policy import quantize_performance, quantize_quantity
+
+
+def with_controlled_risk_bff_gap(
+    portfolio_360: WorkbenchPortfolio360Response,
+) -> WorkbenchPortfolio360Response:
+    warnings = list(portfolio_360.warnings)
+    if "RISK_BFF_PENDING" not in warnings:
+        warnings.append("RISK_BFF_PENDING")
+
+    partial_failures = list(portfolio_360.partial_failures)
+    partial_failures.append(
+        WorkbenchPartialFailure(
+            source_service="risk",
+            error_code="RISK_BFF_NOT_IMPLEMENTED",
+            detail=(
+                "Legacy workbench risk proxy was removed. Stateful concentration risk "
+                "will be restored through the RFC-0022 Gateway Risk BFF."
+            ),
+        )
+    )
+    return portfolio_360.model_copy(
+        update={"warnings": warnings, "partial_failures": partial_failures}
+    )
+
+
+def build_workbench_return_metrics(
+    performance_snapshot: WorkbenchPerformanceSnapshot | None,
+) -> tuple[float | None, float | None, float | None]:
+    if performance_snapshot is None:
+        return None, None, None
+
+    portfolio_return = performance_snapshot.return_pct
+    benchmark_return = performance_snapshot.benchmark_return_pct
+    active_return = (
+        quantize_performance(portfolio_return) - quantize_performance(benchmark_return)
+        if portfolio_return is not None and benchmark_return is not None
+        else None
+    )
+    return (
+        _as_number(quantize_performance(portfolio_return))
+        if portfolio_return is not None
+        else None,
+        _as_number(quantize_performance(benchmark_return))
+        if benchmark_return is not None
+        else None,
+        _as_number(quantize_performance(active_return)) if active_return is not None else None,
+    )
 
 
 def build_workbench_allocation_buckets(
