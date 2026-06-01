@@ -31,5 +31,8 @@
 - preserve correlation, evidence, supportability, and degraded-state signals
 - redact sensitive audit metadata across normalized key variants before logging
 - evaluate write capability rules with path-segment-aware matching before allowing privileged actions
+- keep upstream HTTP retries bounded and defensive: negative retry counts still make one attempt,
+  negative backoff is clamped, and unsupported shared-client methods fail closed instead of being
+  sent as another verb
 - keep gateway contracts product-oriented instead of accreting thin pass-through clutter
 - document endpoint-specific parameter conventions explicitly when they differ by route family
