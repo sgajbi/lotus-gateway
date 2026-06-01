@@ -45,7 +45,6 @@ from app.services.performance_workspace_capabilities import (
 )
 from app.services.performance_workspace_chart_points import (
     build_workspace_chart_points,
-    parse_chart_points,
 )
 from app.services.performance_workspace_contribution import (
     build_detail_contribution_summary,
@@ -86,7 +85,6 @@ from app.services.performance_workspace_parsing import (
     extract_return,
     format_attribution_trend_label,
     quantize_optional,
-    safe_int,
     safe_str,
     safe_str_list,
 )
@@ -98,6 +96,7 @@ from app.services.performance_workspace_projection import (
 from app.services.performance_workspace_returns import (
     build_workspace_comparative_summary,
     extract_twr_workspace_block,
+    resolve_results_period_key,
 )
 from app.services.workbench_service import WorkbenchService
 from app.services.workspace_client_protocols import (
@@ -1140,7 +1139,7 @@ class PerformanceWorkspaceService:
             warnings.append("PERFORMANCE_WORKSPACE_SUMMARY_INVALID")
             return empty_summary, empty_gross_summary, [], [], None, None, None, None
 
-        period_key = self._resolve_results_period_key(
+        period_key = resolve_results_period_key(
             requested_period=requested_period,
             results_by_period=results_by_period,
         )
@@ -1252,7 +1251,7 @@ class PerformanceWorkspaceService:
             else STANDARD_HORIZON_COMPARISON_PERIODS
         )
         for period in periods_to_render:
-            period_key = self._resolve_results_period_key(
+            period_key = resolve_results_period_key(
                 requested_period=period,
                 results_by_period=results_by_period,
             )
@@ -1426,118 +1425,6 @@ class PerformanceWorkspaceService:
             key=lambda option: (not option.is_assigned, option.benchmark_name),
         )
 
-    def _parse_twr_result(
-        self,
-        *,
-        result: GatheredResult,
-        metric_basis: str,
-        chart_frequency: str,
-        requested_period: str,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> tuple[PerformanceComparativeSummary, list[PerformanceChartPoint]]:
-        empty_summary = PerformanceComparativeSummary(metric_basis=metric_basis)
-        if isinstance(result, BaseException):
-            warnings.append(f"{metric_basis}_PERFORMANCE_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return empty_summary, []
-        status_code, payload = result
-        if status_code == 204:
-            return empty_summary, []
-        if not isinstance(payload, dict):
-            warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    "INVALID_UPSTREAM_PAYLOAD",
-                    f"unexpected payload type: {type(payload)}",
-                )
-            )
-            return empty_summary, []
-        if status_code >= 400:
-            warnings.append(f"{metric_basis}_PERFORMANCE_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return empty_summary, []
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict) or not results_by_period:
-            warnings.append(f"{metric_basis}_PERFORMANCE_INVALID")
-            return empty_summary, []
-        period_key = self._resolve_results_period_key(
-            requested_period=requested_period,
-            results_by_period=results_by_period,
-        )
-        period_payload = results_by_period.get(period_key, {})
-        if not isinstance(period_payload, dict):
-            return empty_summary, []
-
-        benchmark_context = payload.get("benchmark_context", {})
-        if not isinstance(benchmark_context, dict):
-            benchmark_context = {}
-        benchmark_supportability = self._benchmark_supportability_evidence(benchmark_context)
-
-        portfolio_block = period_payload.get("portfolio", {})
-        benchmark_block = period_payload.get("benchmark", {})
-        relative_block = period_payload.get("relative_performance", {})
-        summary = PerformanceComparativeSummary(
-            metric_basis=metric_basis,
-            portfolio_return_pct=extract_return(
-                portfolio_block, "summary", "period_return", "base"
-            ),
-            benchmark_return_pct=extract_return(
-                benchmark_block, "summary", "period_return", "base"
-            ),
-            active_return_pct=extract_return(relative_block, "summary", "period_return", "base"),
-            annualized_return_pct=extract_return(
-                portfolio_block, "summary", "annualized_return", "base"
-            ),
-            benchmark_id=safe_str(benchmark_context.get("benchmark_id")),
-            benchmark_return_source=safe_str(benchmark_context.get("return_source")),
-            benchmark_currency_state=safe_str(benchmark_supportability.get("currency_state")),
-            benchmark_calendar_alignment_state=safe_str(
-                benchmark_supportability.get("calendar_alignment_state")
-            ),
-            benchmark_warning_codes=safe_str_list(benchmark_supportability.get("warning_codes")),
-            benchmark_missing_date_count=safe_int(
-                benchmark_supportability.get("missing_benchmark_date_count")
-            ),
-        )
-        chart_points = parse_chart_points(
-            portfolio_block=portfolio_block,
-            benchmark_block=benchmark_block,
-            relative_block=relative_block,
-            chart_frequency=chart_frequency,
-        )
-        return summary, chart_points
-
-    def _benchmark_supportability_evidence(
-        self, benchmark_context: dict[str, Any]
-    ) -> dict[str, Any]:
-        evidence = benchmark_context.get("supportability_evidence")
-        return evidence if isinstance(evidence, dict) else {}
-
-    def _resolve_results_period_key(
-        self,
-        *,
-        requested_period: str,
-        results_by_period: dict[str, Any],
-    ) -> str:
-        normalized_requested_period = requested_period.upper()
-        for key in results_by_period:
-            if key.upper() == normalized_requested_period:
-                return key
-        if normalized_requested_period == "EXPLICIT":
-            return next(iter(results_by_period))
-        return next(iter(results_by_period))
-
     def _parse_mwr_result(
         self,
         *,
@@ -1599,7 +1486,7 @@ class PerformanceWorkspaceService:
         results_by_period = payload.get("results_by_period", {})
         if not isinstance(results_by_period, dict) or not results_by_period:
             return None
-        period_key = self._resolve_results_period_key(
+        period_key = resolve_results_period_key(
             requested_period=requested_period,
             results_by_period=results_by_period,
         )
@@ -1644,7 +1531,7 @@ class PerformanceWorkspaceService:
         results_by_period = payload.get("results_by_period", {})
         if not isinstance(results_by_period, dict) or not results_by_period:
             return None
-        period_key = self._resolve_results_period_key(
+        period_key = resolve_results_period_key(
             requested_period=requested_period,
             results_by_period=results_by_period,
         )
@@ -1732,7 +1619,7 @@ class PerformanceWorkspaceService:
         if not isinstance(results_by_period, dict) or not results_by_period:
             return None
 
-        period_key = self._resolve_results_period_key(
+        period_key = resolve_results_period_key(
             requested_period=requested_period,
             results_by_period=results_by_period,
         )
