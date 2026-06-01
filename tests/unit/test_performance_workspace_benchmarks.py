@@ -7,6 +7,7 @@ from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_benchmarks import (
     fetch_assigned_benchmark_code,
     fetch_benchmark_context,
+    parse_benchmark_catalog_result,
     resolve_benchmark_code,
 )
 
@@ -191,3 +192,72 @@ async def test_fetch_benchmark_context_skips_catalog_when_not_requested():
     assert benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert catalog_result == (200, {})
     assert client.catalog_calls == []
+
+
+def test_parse_benchmark_catalog_result_deduplicates_and_marks_assigned_option():
+    warnings: list[str] = []
+    partial_failures = []
+
+    options = parse_benchmark_catalog_result(
+        result=(
+            200,
+            {
+                "records": [
+                    {
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                        "benchmark_name": "Global Balanced 60/40",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Balanced",
+                        "benchmark_provider": "Lotus",
+                    },
+                    {
+                        "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                        "benchmark_name": "Global Balanced 60/40",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Balanced",
+                        "benchmark_provider": "Lotus",
+                    },
+                    {
+                        "benchmark_id": "BMK_GLOBAL_GROWTH_80_20",
+                        "benchmark_name": "Global Growth 80/20",
+                        "benchmark_currency": "USD",
+                        "benchmark_type": "composite",
+                        "benchmark_family": "Growth",
+                        "benchmark_provider": "Lotus",
+                    },
+                ]
+            },
+        ),
+        assigned_benchmark_code="BMK_PB_GLOBAL_BALANCED_60_40",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert [option.benchmark_code for option in options] == [
+        "BMK_PB_GLOBAL_BALANCED_60_40",
+        "BMK_GLOBAL_GROWTH_80_20",
+    ]
+    assert options[0].is_assigned is True
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_benchmark_catalog_result_records_upstream_failure():
+    warnings: list[str] = []
+    partial_failures = []
+
+    options = parse_benchmark_catalog_result(
+        result=(503, {"detail": "catalog unavailable"}),
+        assigned_benchmark_code=None,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert options == []
+    assert warnings == ["BENCHMARK_CATALOG_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-core"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "{'detail': 'catalog unavailable'}"

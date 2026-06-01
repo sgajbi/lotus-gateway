@@ -3,7 +3,10 @@ from __future__ import annotations
 import asyncio
 from typing import Any, TypeAlias, cast
 
+from app.contracts.performance_workspace import PerformanceBenchmarkOptionView
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_parsing import safe_str
 from app.services.workspace_client_protocols import PerformanceWorkspaceCoreClient
 
@@ -155,6 +158,61 @@ async def fetch_benchmark_context(
         return benchmark_code, benchmark_catalog_result_value
     return benchmark_code or cast(str | None, resolved_benchmark_code_result), (
         benchmark_catalog_result_value
+    )
+
+
+def parse_benchmark_catalog_result(
+    *,
+    result: GatheredResult,
+    assigned_benchmark_code: str | None,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> list[PerformanceBenchmarkOptionView]:
+    if isinstance(result, BaseException):
+        warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
+        partial_failures.append(
+            build_performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
+        )
+        return []
+    status_code, payload = result
+    if status_code >= 400 or not isinstance(payload, dict):
+        warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
+        partial_failures.append(
+            build_performance_failure(
+                "lotus-core",
+                f"HTTP_{status_code}"
+                if isinstance(status_code, int)
+                else "INVALID_UPSTREAM_PAYLOAD",
+                str(payload),
+            )
+        )
+        return []
+    records = payload.get("records", [])
+    if not isinstance(records, list):
+        return []
+    options_by_code: dict[str, PerformanceBenchmarkOptionView] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        benchmark_code_value = safe_str(record.get("benchmark_id"))
+        benchmark_name = safe_str(record.get("benchmark_name"))
+        if not benchmark_code_value or not benchmark_name:
+            continue
+        option = PerformanceBenchmarkOptionView(
+            benchmark_code=benchmark_code_value,
+            benchmark_name=benchmark_name,
+            benchmark_currency=safe_str(record.get("benchmark_currency")),
+            benchmark_type=safe_str(record.get("benchmark_type")),
+            benchmark_family=safe_str(record.get("benchmark_family")),
+            benchmark_provider=safe_str(record.get("benchmark_provider")),
+            is_assigned=benchmark_code_value == assigned_benchmark_code,
+        )
+        existing = options_by_code.get(benchmark_code_value)
+        if existing is None or (option.is_assigned and not existing.is_assigned):
+            options_by_code[benchmark_code_value] = option
+    return sorted(
+        options_by_code.values(),
+        key=lambda option: (not option.is_assigned, option.benchmark_name),
     )
 
 

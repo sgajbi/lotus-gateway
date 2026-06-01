@@ -14,7 +14,6 @@ from app.contracts.performance_workspace import (
     MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
     PerformanceAttributionTrendRow,
-    PerformanceBenchmarkOptionView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
     PerformanceEvidenceView,
@@ -36,7 +35,10 @@ from app.services.performance_workspace_attribution import (
     parse_attribution_residual_materiality,
     parse_attribution_supportability_evidence,
 )
-from app.services.performance_workspace_benchmarks import fetch_benchmark_context
+from app.services.performance_workspace_benchmarks import (
+    fetch_benchmark_context,
+    parse_benchmark_catalog_result,
+)
 from app.services.performance_workspace_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
@@ -357,7 +359,7 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             partial_failures=partial_failures,
         )
-        benchmark_options = self._parse_benchmark_catalog_result(
+        benchmark_options = parse_benchmark_catalog_result(
             result=benchmark_catalog_result,
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
             warnings=warnings,
@@ -694,7 +696,7 @@ class PerformanceWorkspaceService:
         else:
             contribution_detail_result = None
             attribution_detail_result = None
-        benchmark_options = self._parse_benchmark_catalog_result(
+        benchmark_options = parse_benchmark_catalog_result(
             result=benchmark_catalog_result,
             assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
             warnings=warnings,
@@ -1270,61 +1272,6 @@ class PerformanceWorkspaceService:
             if resolved_benchmark_code is None:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
-
-    def _parse_benchmark_catalog_result(
-        self,
-        *,
-        result: GatheredResult,
-        assigned_benchmark_code: str | None,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> list[PerformanceBenchmarkOptionView]:
-        if isinstance(result, BaseException):
-            warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-core", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return []
-        status_code, payload = result
-        if status_code >= 400 or not isinstance(payload, dict):
-            warnings.append("BENCHMARK_CATALOG_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-core",
-                    f"HTTP_{status_code}"
-                    if isinstance(status_code, int)
-                    else "INVALID_UPSTREAM_PAYLOAD",
-                    str(payload),
-                )
-            )
-            return []
-        records = payload.get("records", [])
-        if not isinstance(records, list):
-            return []
-        options_by_code: dict[str, PerformanceBenchmarkOptionView] = {}
-        for record in records:
-            if not isinstance(record, dict):
-                continue
-            benchmark_code = safe_str(record.get("benchmark_id"))
-            benchmark_name = safe_str(record.get("benchmark_name"))
-            if not benchmark_code or not benchmark_name:
-                continue
-            option = PerformanceBenchmarkOptionView(
-                benchmark_code=benchmark_code,
-                benchmark_name=benchmark_name,
-                benchmark_currency=safe_str(record.get("benchmark_currency")),
-                benchmark_type=safe_str(record.get("benchmark_type")),
-                benchmark_family=safe_str(record.get("benchmark_family")),
-                benchmark_provider=safe_str(record.get("benchmark_provider")),
-                is_assigned=benchmark_code == assigned_benchmark_code,
-            )
-            existing = options_by_code.get(benchmark_code)
-            if existing is None or (option.is_assigned and not existing.is_assigned):
-                options_by_code[benchmark_code] = option
-        return sorted(
-            options_by_code.values(),
-            key=lambda option: (not option.is_assigned, option.benchmark_name),
-        )
 
     def _parse_mwr_result(
         self,
