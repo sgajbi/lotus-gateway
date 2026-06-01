@@ -57,6 +57,7 @@ from app.services.performance_workspace_controls import (
     normalize_workspace_chart_frequency,
     normalize_workspace_dimension,
     resolve_requested_window,
+    resolve_shared_segment,
     resolve_workspace_summary_request,
 )
 from app.services.performance_workspace_dependencies import (
@@ -311,7 +312,7 @@ class PerformanceWorkspaceService:
         (
             resolved_chart_frequency,
             requested_chart_frequency_supported,
-        ) = self._normalize_workspace_chart_frequency(
+        ) = normalize_workspace_chart_frequency(
             chart_frequency=chart_frequency,
             warnings=warnings,
             warning_code="PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED",
@@ -421,7 +422,7 @@ class PerformanceWorkspaceService:
         (
             resolved_frequency,
             requested_chart_frequency_supported,
-        ) = self._normalize_workspace_chart_frequency(
+        ) = normalize_workspace_chart_frequency(
             chart_frequency=chart_frequency,
             warnings=warnings,
             warning_code="PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED",
@@ -429,7 +430,7 @@ class PerformanceWorkspaceService:
         (
             resolved_attribution_dimension,
             requested_attribution_dimension_supported,
-        ) = self._normalize_workspace_dimension(
+        ) = normalize_workspace_dimension(
             requested_dimension=attribution_dimension,
             supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
             warnings=warnings,
@@ -561,13 +562,11 @@ class PerformanceWorkspaceService:
         (
             resolved_chart_frequency,
             requested_chart_frequency_supported,
-        ) = self._normalize_workspace_chart_frequency(
-            chart_frequency=chart_frequency, warnings=warnings
-        )
+        ) = normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
         (
             resolved_contribution_dimension,
             requested_contribution_dimension_supported,
-        ) = self._normalize_workspace_dimension(
+        ) = normalize_workspace_dimension(
             requested_dimension=contribution_dimension,
             supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
             warnings=warnings,
@@ -576,13 +575,13 @@ class PerformanceWorkspaceService:
         (
             resolved_attribution_dimension,
             requested_attribution_dimension_supported,
-        ) = self._normalize_workspace_dimension(
+        ) = normalize_workspace_dimension(
             requested_dimension=attribution_dimension,
             supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
             warnings=warnings,
             warning_code="PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED",
         )
-        shared_segment = self._resolve_shared_segment(
+        shared_segment = resolve_shared_segment(
             contribution_dimension=resolved_contribution_dimension,
             attribution_dimension=resolved_attribution_dimension,
             warnings=warnings,
@@ -608,7 +607,7 @@ class PerformanceWorkspaceService:
             (
                 workspace_summary_period,
                 workspace_summary_report_start_date,
-            ) = self._resolve_workspace_summary_request(
+            ) = resolve_workspace_summary_request(
                 period=effective_period,
                 report_start_date=report_start_date,
             )
@@ -1086,57 +1085,6 @@ class PerformanceWorkspaceService:
             warnings.append("PERFORMANCE_REFERENCE_MISSING_END_DATE")
             return as_of_date
         return performance_end_date
-
-    def _resolve_shared_segment(
-        self,
-        *,
-        contribution_dimension: str,
-        attribution_dimension: str,
-        warnings: list[str],
-    ) -> str:
-        if contribution_dimension == attribution_dimension:
-            return contribution_dimension
-        warnings.append("PERFORMANCE_SEGMENTATION_ALIGNED_TO_SHARED_SOURCE_CONTRACT")
-        return contribution_dimension
-
-    def _normalize_workspace_dimension(
-        self,
-        *,
-        requested_dimension: str,
-        supported_dimensions: Sequence[str],
-        warnings: list[str],
-        warning_code: str,
-    ) -> tuple[str, bool]:
-        return normalize_workspace_dimension(
-            requested_dimension=requested_dimension,
-            supported_dimensions=supported_dimensions,
-            warnings=warnings,
-            warning_code=warning_code,
-        )
-
-    def _normalize_workspace_chart_frequency(
-        self,
-        *,
-        chart_frequency: str,
-        warnings: list[str],
-        warning_code: str = "PERFORMANCE_CHART_FREQUENCY_NORMALIZED",
-    ) -> tuple[str, bool]:
-        return normalize_workspace_chart_frequency(
-            chart_frequency=chart_frequency,
-            warnings=warnings,
-            warning_code=warning_code,
-        )
-
-    def _resolve_workspace_summary_request(
-        self,
-        *,
-        period: str,
-        report_start_date: date,
-    ) -> tuple[str, str | None]:
-        return resolve_workspace_summary_request(
-            period=period,
-            report_start_date=report_start_date,
-        )
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
         return 204, {}
