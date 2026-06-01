@@ -3,6 +3,13 @@ from datetime import UTC, datetime
 import pytest
 from fastapi import HTTPException
 
+from app.contracts.workbench import WorkbenchPositionView, WorkbenchProjectedPositionView
+from app.services.workbench_analytics_projection import (
+    build_workbench_allocation_buckets,
+    build_workbench_top_changes,
+    quantity_change_direction,
+    workbench_position_bucket_key,
+)
 from app.services.workbench_core_snapshot import (
     extract_current_positions,
     parse_lotus_core_snapshot,
@@ -703,6 +710,113 @@ def test_parse_dpm_snapshot_without_created_at_keeps_last_run_null():
     result = parse_rebalance_snapshot((200, {"items": [{"status": "READY"}]}), [], [])
     assert result is not None
     assert result.last_run_at_utc is None
+
+
+def test_build_workbench_allocation_buckets_merges_projected_and_unchanged_rows():
+    current_positions = [
+        WorkbenchPositionView(
+            security_id="EQ_1",
+            instrument_name="Equity 1",
+            asset_class="Equity",
+            quantity=10.0,
+            market_value_base=100.0,
+            weight=1.0,
+        ),
+        WorkbenchPositionView(
+            security_id="BOND_1",
+            instrument_name="Bond 1",
+            asset_class="Fixed Income",
+            quantity=30.0,
+            market_value_base=300.0,
+            weight=1.0,
+        ),
+    ]
+    projected_positions = [
+        WorkbenchProjectedPositionView(
+            security_id="EQ_1",
+            instrument_name="Equity 1",
+            asset_class="Equity",
+            baseline_quantity=10.0,
+            proposed_quantity=20.0,
+            delta_quantity=10.0,
+        )
+    ]
+
+    buckets = build_workbench_allocation_buckets(
+        group_by="ASSET_CLASS",
+        current_positions=current_positions,
+        projected_positions=projected_positions,
+    )
+
+    assert [bucket.bucket_key for bucket in buckets] == ["EQUITY", "FIXED INCOME"]
+    assert buckets[0].current_quantity == pytest.approx(10.0)
+    assert buckets[0].proposed_quantity == pytest.approx(20.0)
+    assert buckets[0].current_weight_pct == pytest.approx(25.0)
+    assert buckets[0].proposed_weight_pct == pytest.approx(40.0)
+    assert buckets[1].current_quantity == pytest.approx(30.0)
+    assert buckets[1].proposed_quantity == pytest.approx(30.0)
+
+
+def test_build_workbench_top_changes_orders_limits_and_skips_unchanged_rows():
+    projected_positions = [
+        WorkbenchProjectedPositionView(
+            security_id=f"EQ_{index}",
+            instrument_name=f"Equity {index}",
+            asset_class="Equity",
+            baseline_quantity=100.0,
+            proposed_quantity=100.0 + index,
+            delta_quantity=float(index),
+        )
+        for index in range(12)
+    ]
+    projected_positions.append(
+        WorkbenchProjectedPositionView(
+            security_id="BOND_REDUCE",
+            instrument_name="Bond Reduce",
+            asset_class="Fixed Income",
+            baseline_quantity=50.0,
+            proposed_quantity=25.0,
+            delta_quantity=-25.0,
+        )
+    )
+
+    top_changes = build_workbench_top_changes(projected_positions)
+
+    assert len(top_changes) == 10
+    assert top_changes[0].security_id == "BOND_REDUCE"
+    assert top_changes[0].direction == "DECREASE"
+    assert "EQ_0" not in {change.security_id for change in top_changes}
+    assert top_changes[1].security_id == "EQ_11"
+    assert top_changes[1].direction == "INCREASE"
+
+
+@pytest.mark.parametrize(
+    ("group_by", "expected"),
+    [
+        ("ASSET_CLASS", "UNCLASSIFIED"),
+        ("SECURITY", "SEC_1"),
+        ("INSTRUMENT", "Instrument 1"),
+        ("UNKNOWN", "UNCLASSIFIED"),
+    ],
+)
+def test_workbench_position_bucket_key_supports_expected_groupings(group_by, expected):
+    assert (
+        workbench_position_bucket_key(
+            group_by=group_by,
+            security_id="SEC_1",
+            instrument_name="Instrument 1",
+            asset_class=None,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("delta_quantity", "expected"),
+    [(1.0, "INCREASE"), (-1.0, "DECREASE"), (0.0, "UNCHANGED")],
+)
+def test_quantity_change_direction(delta_quantity, expected):
+    assert quantity_change_direction(delta_quantity) == expected
 
 
 @pytest.mark.asyncio
