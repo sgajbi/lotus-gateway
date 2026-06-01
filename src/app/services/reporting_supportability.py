@@ -71,17 +71,22 @@ def normalize_render_supportability(payload: dict[str, Any]) -> dict[str, Any]:
             or raw_supportability.get("freshness_bucket")
             or "unknown"
         ),
-        "deterministic_output_supported": bool(
-            raw_supportability.get("deterministicOutputSupported")
-            or raw_supportability.get("deterministic_output_supported")
+        "deterministic_output_supported": _bool_value(
+            _alias_value(
+                raw_supportability,
+                "deterministicOutputSupported",
+                "deterministic_output_supported",
+            )
         ),
-        "render_store_ready": bool(
-            raw_supportability.get("renderStoreReady")
-            or raw_supportability.get("render_store_ready")
+        "render_store_ready": _bool_value(
+            _alias_value(raw_supportability, "renderStoreReady", "render_store_ready")
         ),
-        "template_registry_ready": bool(
-            raw_supportability.get("templateRegistryReady")
-            or raw_supportability.get("template_registry_ready")
+        "template_registry_ready": _bool_value(
+            _alias_value(
+                raw_supportability,
+                "templateRegistryReady",
+                "template_registry_ready",
+            )
         ),
         "default_output_format": raw_supportability.get("defaultOutputFormat")
         or raw_supportability.get("default_output_format"),
@@ -149,6 +154,16 @@ def _non_negative_int(value: Any) -> int:
         except ValueError:
             return 0
     return 0
+
+
+def _bool_value(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes"}
+    return False
 
 
 async def get_evidence_surface_supportability(

@@ -133,6 +133,24 @@ def test_normalize_render_supportability_accepts_camel_case_source_payload() -> 
     }
 
 
+def test_normalize_render_supportability_parses_boolean_strings() -> None:
+    normalized = normalize_render_supportability(
+        {
+            "supportability": {
+                "state": "partial",
+                "reason": "render_supportability_partial",
+                "deterministicOutputSupported": "false",
+                "renderStoreReady": "yes",
+                "templateRegistryReady": 0,
+            }
+        }
+    )
+
+    assert normalized["deterministic_output_supported"] is False
+    assert normalized["render_store_ready"] is True
+    assert normalized["template_registry_ready"] is False
+
+
 def test_normalize_render_supportability_returns_safe_missing_fallback() -> None:
     assert normalize_render_supportability({}) == fallback_render_supportability(
         "render_supportability_missing"
