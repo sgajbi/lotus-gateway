@@ -60,15 +60,10 @@ from app.services.performance_workspace_contribution import (
 )
 from app.services.performance_workspace_controls import (
     build_attribution_trend_windows,
-    last_day_of_month,
-    normalize_attribution_trend_frequency,
     normalize_workspace_chart_frequency,
     normalize_workspace_dimension,
-    resolve_attribution_trend_window_end,
-    resolve_report_start_date,
     resolve_requested_window,
     resolve_workspace_summary_request,
-    shift_years,
 )
 from app.services.performance_workspace_dependencies import (
     fetch_workspace_detail_results,
@@ -314,13 +309,11 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
-        resolved_report_end_date, report_start_date, effective_period = (
-            self._resolve_requested_window(
-                default_report_end_date=report_end_date,
-                period=period,
-                explicit_start_date=explicit_start_date,
-                explicit_end_date=explicit_end_date,
-            )
+        resolved_report_end_date, report_start_date, effective_period = resolve_requested_window(
+            default_report_end_date=report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
         )
         (
             resolved_chart_frequency,
@@ -426,7 +419,7 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
-        report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+        report_end_date, report_start_date, effective_period = resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
             explicit_start_date=explicit_start_date,
@@ -483,7 +476,7 @@ class PerformanceWorkspaceService:
                 partial_failures=partial_failures,
             )
 
-        window_pairs = self._build_attribution_trend_windows(
+        window_pairs = build_attribution_trend_windows(
             start_date=report_start_date,
             end_date=date.fromisoformat(report_end_date),
             chart_frequency=resolved_frequency,
@@ -566,7 +559,7 @@ class PerformanceWorkspaceService:
                 warnings=warnings,
                 partial_failures=partial_failures,
             )
-        report_end_date, report_start_date, effective_period = self._resolve_requested_window(
+        report_end_date, report_start_date, effective_period = resolve_requested_window(
             default_report_end_date=resolved_report_end_date,
             period=period,
             explicit_start_date=explicit_start_date,
@@ -1591,67 +1584,6 @@ class PerformanceWorkspaceService:
             options_by_code.values(),
             key=lambda option: (not option.is_assigned, option.benchmark_name),
         )
-
-    def _resolve_report_start_date(self, *, as_of_date: date, period: str) -> date:
-        return resolve_report_start_date(as_of_date=as_of_date, period=period)
-
-    def _resolve_requested_window(
-        self,
-        *,
-        default_report_end_date: str,
-        period: str,
-        explicit_start_date: str | None,
-        explicit_end_date: str | None,
-    ) -> tuple[str, date, str]:
-        return resolve_requested_window(
-            default_report_end_date=default_report_end_date,
-            period=period,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
-        )
-
-    def _normalize_attribution_trend_frequency(
-        self,
-        *,
-        chart_frequency: str,
-        warnings: list[str],
-    ) -> str:
-        return normalize_attribution_trend_frequency(
-            chart_frequency=chart_frequency,
-            warnings=warnings,
-        )
-
-    def _build_attribution_trend_windows(
-        self,
-        *,
-        start_date: date,
-        end_date: date,
-        chart_frequency: str,
-    ) -> list[tuple[date, date]]:
-        return build_attribution_trend_windows(
-            start_date=start_date,
-            end_date=end_date,
-            chart_frequency=chart_frequency,
-        )
-
-    def _resolve_attribution_trend_window_end(
-        self,
-        *,
-        window_start: date,
-        end_date: date,
-        chart_frequency: str,
-    ) -> date:
-        return resolve_attribution_trend_window_end(
-            window_start=window_start,
-            end_date=end_date,
-            chart_frequency=chart_frequency,
-        )
-
-    def _last_day_of_month(self, year: int, month: int) -> int:
-        return last_day_of_month(year=year, month=month)
-
-    def _shift_years(self, anchor: date, years: int) -> date:
-        return shift_years(anchor=anchor, years=years)
 
     def _parse_twr_result(
         self,
