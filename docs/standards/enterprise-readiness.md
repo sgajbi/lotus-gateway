@@ -51,10 +51,17 @@ Evidence:
 ## Reliability and Operations Baseline
 
 - Standard resilient HTTP client behavior (timeouts, bounded retries, explicit failures).
+- Retry configuration is defensive: negative retry counts are clamped to a single attempt and
+  negative backoff values are clamped to zero-delay retry behavior, preventing configuration drift
+  from suppressing all upstream calls or producing invalid sleeps.
+- Shared upstream HTTP helpers fail closed on unsupported methods instead of silently downgrading to
+  a different verb; JSON fan-out currently supports `GET`, `POST`, and `PUT`, while binary fan-out
+  supports `GET` and `POST`.
 - Runbooks and migration/change controls are standardized in shared PPD standards.
 
 Evidence:
 - `src/app/clients/http_resilience.py`
+- `tests/unit/test_http_resilience.py`
 - `docs/standards/scalability-availability.md`
 - `docs/standards/migration-contract.md`
 
