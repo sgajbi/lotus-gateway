@@ -3,6 +3,7 @@ from app.services.performance_workspace_attribution import (
     build_workspace_attribution_summary,
     parse_attribution_reasons,
     parse_attribution_residual_materiality,
+    parse_attribution_result,
     parse_attribution_supportability_evidence,
 )
 
@@ -131,6 +132,83 @@ def test_build_detail_attribution_summary_maps_group_payload():
     assert summary.levels[0].rows[0].total_effect_pct == 0.33333
     assert summary.supportability_evidence is not None
     assert summary.supportability_evidence.benchmark_only_group_count == 2
+
+
+def test_parse_attribution_result_selects_requested_period_and_benchmark_context():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=(
+            200,
+            {
+                "model": "BF",
+                "linking": "carino",
+                "benchmark_context": {
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                    "return_source": "assigned",
+                },
+                "results_by_period": {
+                    "YTD": {
+                        "status": "valid",
+                        "reconciliation": {
+                            "total_active_return": 0.31,
+                            "sum_of_effects": 0.3,
+                            "residual": 0.01,
+                        },
+                        "levels": [
+                            {
+                                "dimension": "asset_class",
+                                "groups": [
+                                    {
+                                        "key": {"asset_class": "Equity"},
+                                        "allocation": 0.1,
+                                        "selection": 0.2,
+                                        "interaction": 0.0,
+                                        "total_effect": 0.3,
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                },
+            },
+        ),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is not None
+    assert summary.metric_basis == "NET"
+    assert summary.model == "BF"
+    assert summary.linking == "carino"
+    assert summary.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert summary.benchmark_return_source == "assigned"
+    assert summary.active_return_pct == 0.31
+    assert summary.levels[0].rows[0].key_label == "Equity"
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_parse_attribution_result_records_upstream_failure():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=RuntimeError("timeout"),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["ATTRIBUTION_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
 
 
 def test_attribution_parsers_fail_closed_for_invalid_payloads():
