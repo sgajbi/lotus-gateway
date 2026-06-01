@@ -6,7 +6,7 @@ from uuid import uuid4
 import httpx
 
 from app.clients.http_resilience import request_with_retry
-from app.middleware.correlation import propagation_headers
+from app.clients.upstream_headers import build_upstream_headers
 from app.observability.analytics_ui import (
     emit_gateway_analytics_fanout_log,
     emit_gateway_analytics_read_audit_log,
@@ -39,7 +39,7 @@ class LotusAnalyticsClient:
         max_attempts: int = 10,
         poll_interval_seconds: float = 0.35,
     ) -> tuple[int, dict[str, Any]]:
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         url = (
             result_path
             if result_path.startswith("http://") or result_path.startswith("https://")
@@ -89,7 +89,7 @@ class LotusAnalyticsClient:
         async_poll_interval_seconds: float = 0.35,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}{path}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         resolved_operation = operation or path.strip("/").replace("/", ".")
         started_at = gateway_analytics_fanout_timer()
         status_code, response_payload = await request_with_retry(
@@ -181,7 +181,7 @@ class LotusAnalyticsClient:
             params["consumer_system"] = consumer_system
         if tenant_id is not None:
             params["tenant_id"] = tenant_id
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await request_with_retry(
             method="GET",
             url=url,
@@ -199,7 +199,7 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/performance/executions/{calculation_id}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await request_with_retry(
             method="GET",
             url=url,
@@ -216,7 +216,7 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/performance/lineage/{calculation_id}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         return await request_with_retry(
             method="GET",
             url=url,
@@ -234,7 +234,7 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, bytes, str | None]:
         url = f"{self._base_url}/performance/lineage/{calculation_id}/artifacts/{artifact_name}"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         async with httpx.AsyncClient(
             timeout=self._timeout,
             follow_redirects=True,
@@ -250,7 +250,7 @@ class LotusAnalyticsClient:
         correlation_id: str,
     ) -> tuple[int, dict[str, Any]]:
         url = f"{self._base_url}/performance/twr"
-        headers = propagation_headers(correlation_id)
+        headers = build_upstream_headers(correlation_id)
         payload = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
