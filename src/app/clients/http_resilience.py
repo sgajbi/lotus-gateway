@@ -31,6 +31,20 @@ def _unsupported_method_payload(method: str) -> dict[str, str]:
     return {"detail": f"unsupported upstream HTTP method: {request_method}"}
 
 
+def _communication_failure_payload(reason: str) -> dict[str, str]:
+    return {"detail": f"upstream communication failure: {reason}"}
+
+
+def _communication_failure_result(reason: str) -> tuple[int, dict[str, str]]:
+    return 503, _communication_failure_payload(reason)
+
+
+def _binary_communication_failure_result(
+    reason: str,
+) -> tuple[int, bytes, dict[str, str], dict[str, str]]:
+    return 503, b"", {}, _communication_failure_payload(reason)
+
+
 async def request_with_retry(
     *,
     method: str,
@@ -78,16 +92,16 @@ async def request_with_retry(
             return response.status_code, _response_payload(response)
         except httpx.TimeoutException as exc:
             if not retry_timeout_exceptions:
-                return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
+                return _communication_failure_result(exc.__class__.__name__)
             if attempt >= max_retries:
-                return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
+                return _communication_failure_result(exc.__class__.__name__)
             await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
             if attempt >= max_retries:
-                return 503, {"detail": f"upstream communication failure: {exc.__class__.__name__}"}
+                return _communication_failure_result(exc.__class__.__name__)
             await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
 
-    return 503, {"detail": "upstream communication failure: exhausted retries"}
+    return _communication_failure_result("exhausted retries")
 
 
 async def request_binary_with_retry(
@@ -128,28 +142,13 @@ async def request_binary_with_retry(
             return response.status_code, response.content, dict(response.headers), error_payload
         except httpx.TimeoutException as exc:
             if not retry_timeout_exceptions:
-                return (
-                    503,
-                    b"",
-                    {},
-                    {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
-                )
+                return _binary_communication_failure_result(exc.__class__.__name__)
             if attempt >= max_retries:
-                return (
-                    503,
-                    b"",
-                    {},
-                    {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
-                )
+                return _binary_communication_failure_result(exc.__class__.__name__)
             await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
             if attempt >= max_retries:
-                return (
-                    503,
-                    b"",
-                    {},
-                    {"detail": f"upstream communication failure: {exc.__class__.__name__}"},
-                )
+                return _binary_communication_failure_result(exc.__class__.__name__)
             await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
 
-    return 503, b"", {}, {"detail": "upstream communication failure: exhausted retries"}
+    return _binary_communication_failure_result("exhausted retries")

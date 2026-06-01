@@ -217,6 +217,24 @@ class _BinarySuccessAsyncClient:
         )
 
 
+class _BinaryNetworkErrorAsyncClient:
+    follow_redirects = None
+
+    def __init__(self, timeout: float, follow_redirects: bool = False):
+        _ = timeout
+        _BinaryNetworkErrorAsyncClient.follow_redirects = follow_redirects
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def get(self, url, params=None, headers=None):
+        _ = url, params, headers
+        raise httpx.NetworkError("binary disconnected")
+
+
 class _UnexpectedAsyncClient:
     def __init__(self, timeout: float, follow_redirects: bool = False):
         _ = timeout, follow_redirects
@@ -502,3 +520,21 @@ async def test_request_binary_with_retry_rejects_unsupported_method(monkeypatch)
     assert content == b""
     assert headers == {}
     assert error_payload == {"detail": "unsupported upstream HTTP method: PUT"}
+
+
+@pytest.mark.asyncio
+async def test_request_binary_with_retry_returns_structured_communication_failure(monkeypatch):
+    monkeypatch.setattr("httpx.AsyncClient", _BinaryNetworkErrorAsyncClient)
+
+    status, content, headers, error_payload = await request_binary_with_retry(
+        method="GET",
+        url="http://archive/documents/doc_1/download",
+        timeout_seconds=1.0,
+        max_retries=0,
+        backoff_seconds=0.0,
+    )
+
+    assert status == 503
+    assert content == b""
+    assert headers == {}
+    assert error_payload == {"detail": "upstream communication failure: NetworkError"}
