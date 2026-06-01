@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any, TypeAlias, cast
 
@@ -65,6 +65,10 @@ from app.services.performance_workspace_controls import (
     resolve_requested_window,
     resolve_workspace_summary_request,
     shift_years,
+)
+from app.services.performance_workspace_dependencies import (
+    fetch_workspace_detail_results,
+    fetch_workspace_summary_result,
 )
 from app.services.performance_workspace_evidence import (
     build_calculation_evidence_view,
@@ -614,7 +618,9 @@ class PerformanceWorkspaceService:
                 period=effective_period,
                 report_start_date=report_start_date,
             )
-            workspace_summary_result = await self._fetch_workspace_summary_result(
+            workspace_summary_result = await fetch_workspace_summary_result(
+                cache=self._upstream_cache,
+                analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_end_date=report_end_date,
@@ -661,7 +667,9 @@ class PerformanceWorkspaceService:
             (
                 contribution_detail_result,
                 attribution_detail_result,
-            ) = await self._fetch_workspace_detail_results(
+            ) = await fetch_workspace_detail_results(
+                cache=self._upstream_cache,
+                analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 report_start_date=report_start_date.isoformat(),
@@ -1235,123 +1243,6 @@ class PerformanceWorkspaceService:
         return resolve_workspace_summary_request(
             period=period,
             report_start_date=report_start_date,
-        )
-
-    async def _fetch_workspace_summary_result(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        report_end_date: str,
-        report_start_date: str | None,
-        effective_period: str,
-        chart_frequency: str,
-        detail_basis: str,
-        benchmark_code: str | None,
-        portfolio_currency: str,
-        segment: str,
-        include_detail_blocks: bool = True,
-    ) -> GatheredResult:
-        return cast(
-            GatheredResult,
-            await self._get_cached_upstream_result(
-                (
-                    "workspace_summary",
-                    portfolio_id,
-                    report_end_date,
-                    report_start_date if effective_period == "EXPLICIT" else None,
-                    effective_period,
-                    chart_frequency,
-                    detail_basis,
-                    benchmark_code,
-                    portfolio_currency,
-                    segment,
-                    include_detail_blocks,
-                ),
-                lambda: self._analytics_client.get_workspace_summary(
-                    portfolio_id=portfolio_id,
-                    report_end_date=report_end_date,
-                    report_start_date=report_start_date if effective_period == "EXPLICIT" else None,
-                    period=effective_period,
-                    chart_frequency=chart_frequency,
-                    detail_basis=detail_basis,
-                    benchmark_id=benchmark_code,
-                    reporting_currency=portfolio_currency,
-                    segment=segment,
-                    correlation_id=correlation_id,
-                    include_detail_blocks=include_detail_blocks,
-                ),
-            ),
-        )
-
-    async def _fetch_workspace_detail_results(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        report_start_date: str,
-        report_end_date: str,
-        requested_period: str,
-        detail_basis: str,
-        benchmark_code: str | None,
-        contribution_dimension: str,
-        attribution_dimension: str,
-    ) -> tuple[GatheredResult, GatheredResult]:
-        def contribution_loader() -> Awaitable[GatheredResult]:
-            return self._analytics_client.get_contribution_analytics(
-                portfolio_id=portfolio_id,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                period=requested_period,
-                metric_basis=detail_basis,
-                dimension=contribution_dimension,
-                correlation_id=correlation_id,
-            )
-
-        def attribution_loader() -> Awaitable[GatheredResult]:
-            if not benchmark_code:
-                return self._empty_async_result()
-            return self._analytics_client.get_attribution_analytics(
-                portfolio_id=portfolio_id,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                period=requested_period,
-                metric_basis=detail_basis,
-                benchmark_id=benchmark_code,
-                dimension=attribution_dimension,
-                correlation_id=correlation_id,
-            )
-
-        return cast(
-            tuple[GatheredResult, GatheredResult],
-            await asyncio.gather(
-                self._get_cached_upstream_result(
-                    (
-                        "workspace_contribution_detail",
-                        portfolio_id,
-                        report_start_date,
-                        report_end_date,
-                        requested_period,
-                        detail_basis,
-                        contribution_dimension,
-                    ),
-                    contribution_loader,
-                ),
-                self._get_cached_upstream_result(
-                    (
-                        "workspace_attribution_detail",
-                        portfolio_id,
-                        report_start_date,
-                        report_end_date,
-                        requested_period,
-                        detail_basis,
-                        benchmark_code,
-                        attribution_dimension,
-                    ),
-                    attribution_loader,
-                ),
-                return_exceptions=True,
-            ),
         )
 
     async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
