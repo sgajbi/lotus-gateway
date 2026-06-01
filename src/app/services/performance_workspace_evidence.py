@@ -52,11 +52,7 @@ def build_performance_evidence_view(
 ) -> PerformanceEvidenceView:
     source_services = sorted(
         {service for service in ["lotus-performance"] if calculations}
-        | {
-            item.source_service
-            for item in source_supportability
-            if item.source_service is not None
-        }
+        | {item.source_service for item in source_supportability if item.source_service is not None}
     )
     upstream_dates = {
         snapshot.as_of_date

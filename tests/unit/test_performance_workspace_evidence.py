@@ -216,11 +216,14 @@ def test_build_performance_evidence_view_marks_stale_source_dates():
 
 
 def test_artifact_url_and_status_reason_are_bounded():
-    assert gateway_evidence_artifact_url(
-        portfolio_id="PORT-1",
-        calculation_id="calc-1",
-        artifact_name="request.json",
-    ) == "/api/v1/workbench/PORT-1/performance/evidence/artifacts/calc-1/request.json"
+    assert (
+        gateway_evidence_artifact_url(
+            portfolio_id="PORT-1",
+            calculation_id="calc-1",
+            artifact_name="request.json",
+        )
+        == "/api/v1/workbench/PORT-1/performance/evidence/artifacts/calc-1/request.json"
+    )
     assert evidence_status_reason(503, {"detail": "upstream unavailable"}) == (
         "upstream unavailable"
     )
