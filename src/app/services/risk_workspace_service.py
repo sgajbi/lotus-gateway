@@ -11,13 +11,11 @@ from app.contracts.risk_workspace import (
     WorkbenchPortfolioConcentration,
     WorkbenchRiskAttributionContributor,
     WorkbenchRiskAttributionControls,
-    WorkbenchRiskAttributionGroupingOption,
     WorkbenchRiskAttributionMethodologyContext,
     WorkbenchRiskAttributionPayload,
     WorkbenchRiskAttributionPeriodResult,
     WorkbenchRiskAttributionResponse,
     WorkbenchRiskAttributionSet,
-    WorkbenchRiskAttributionTypeOption,
     WorkbenchRiskConcentrationExecutionContext,
     WorkbenchRiskConcentrationPayload,
     WorkbenchRiskConcentrationResponse,
@@ -51,6 +49,19 @@ from app.contracts.risk_workspace import (
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.domain_client_protocols import RiskWorkspaceClient
+from app.services.risk_workspace_attribution_controls import (
+    RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS as _RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS,
+)
+from app.services.risk_workspace_attribution_controls import (
+    build_attribution_controls,
+    build_attribution_supportability,
+    metadata_grouping_dimension_set,
+    normalize_risk_attribution_grouping,
+    normalize_risk_attribution_type,
+    resolve_active_risk_grouping_support,
+    risk_attribution_grouping_label,
+    total_risk_gated_grouping_reason,
+)
 from app.services.risk_workspace_requests import (
     SUMMARY_METRICS as _SUMMARY_METRICS,
 )
@@ -90,23 +101,6 @@ _METRIC_LABELS = {
     "INFORMATION_RATIO": "Information Ratio",
     "VAR": "Value at Risk",
 }
-_RISK_ATTRIBUTION_TYPE_LABELS = {
-    "TOTAL_RISK": "Total Risk",
-    "ACTIVE_RISK": "Active Risk",
-}
-_RISK_ATTRIBUTION_GROUPING_LABELS = {
-    "POSITION": "Position",
-    "ISSUER": "Issuer",
-    "SECTOR": "Sector",
-    "ASSET_CLASS": "Asset Class",
-}
-_RISK_ATTRIBUTION_SUPPORTED_GROUPINGS = ("POSITION", "ISSUER", "SECTOR", "ASSET_CLASS")
-_RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS = ("POSITION", "SECTOR", "ASSET_CLASS")
-_RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS = ("ISSUER",)
-_RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON = (
-    "Issuer is supported for total risk only. Active risk by issuer remains "
-    "unavailable until benchmark issuer exposure semantics are approved."
-)
 
 
 class RiskWorkspaceService:
@@ -675,13 +669,11 @@ def _resolve_reporting_currency(value: str | None) -> str:
 
 
 def _normalize_risk_attribution_type(value: str) -> str:
-    normalized = value.upper()
-    return normalized if normalized in _RISK_ATTRIBUTION_TYPE_LABELS else "TOTAL_RISK"
+    return normalize_risk_attribution_type(value)
 
 
 def _normalize_risk_attribution_grouping(value: str) -> str:
-    normalized = value.upper()
-    return normalized if normalized in _RISK_ATTRIBUTION_GROUPING_LABELS else "SECTOR"
+    return normalize_risk_attribution_grouping(value)
 
 
 def _map_summary_response(
@@ -1486,77 +1478,11 @@ def _build_attribution_controls(
     grouping_dimension: str,
     upstream_metadata: dict[str, Any] | None = None,
 ) -> WorkbenchRiskAttributionControls:
-    (
-        active_risk_supported_groupings,
-        active_risk_gated_groupings,
-        active_risk_gate_reason,
-    ) = _resolve_active_risk_grouping_support(upstream_metadata)
-    type_options = [
-        WorkbenchRiskAttributionTypeOption(
-            key="TOTAL_RISK",
-            label=_RISK_ATTRIBUTION_TYPE_LABELS["TOTAL_RISK"],
-            state="ready",
-        ),
-        WorkbenchRiskAttributionTypeOption(
-            key="ACTIVE_RISK",
-            label=_RISK_ATTRIBUTION_TYPE_LABELS["ACTIVE_RISK"],
-            state="ready" if benchmark_code else "blocked",
-            reason=None if benchmark_code else "Active risk requires benchmark context.",
-        ),
-    ]
-    grouping_options: list[WorkbenchRiskAttributionGroupingOption] = []
-    grouping_keys = list(
-        dict.fromkeys(
-            [
-                *_RISK_ATTRIBUTION_SUPPORTED_GROUPINGS,
-                *active_risk_supported_groupings,
-                *active_risk_gated_groupings,
-                grouping_dimension,
-            ]
-        )
-    )
-    for key in grouping_keys:
-        total_risk_supported = key in _RISK_ATTRIBUTION_SUPPORTED_GROUPINGS
-        active_risk_supported = key in active_risk_supported_groupings and bool(benchmark_code)
-        state: RiskSupportabilityState = "ready"
-        reason: str | None = None
-        if attribution_type == "ACTIVE_RISK" and not benchmark_code:
-            state = "blocked"
-            reason = "Active risk requires benchmark context."
-        elif attribution_type == "ACTIVE_RISK":
-            if key in active_risk_gated_groupings:
-                state = "blocked"
-                reason = active_risk_gate_reason
-            elif key not in active_risk_supported_groupings:
-                state = "blocked"
-                reason = "Active risk is not supported for this grouping."
-        elif key in active_risk_gated_groupings:
-            state = "partial"
-            reason = (
-                "Supported for total risk. "
-                f"{active_risk_gate_reason or 'Active risk remains gated for this grouping.'}"
-            )
-        grouping_options.append(
-            WorkbenchRiskAttributionGroupingOption(
-                key=key,
-                label=_risk_attribution_grouping_label(key),
-                state=state,
-                reason=reason,
-                supported_attribution_types=[
-                    attribution_key
-                    for attribution_key, supported in (
-                        ("TOTAL_RISK", total_risk_supported),
-                        ("ACTIVE_RISK", active_risk_supported),
-                    )
-                    if supported
-                ],
-            )
-        )
-    return WorkbenchRiskAttributionControls(
-        attribution_types=type_options,
-        grouping_dimensions=grouping_options,
-        selected_attribution_type=attribution_type,
-        selected_grouping_dimension=grouping_dimension,
+    return build_attribution_controls(
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+        upstream_metadata=upstream_metadata,
     )
 
 
@@ -1567,82 +1493,12 @@ def _build_attribution_supportability(
     grouping_dimension: str,
     upstream_metadata: dict[str, Any] | None = None,
 ) -> list[WorkbenchRiskSupportabilityItem]:
-    (
-        active_risk_supported_groupings,
-        active_risk_gated_groupings,
-        active_risk_gate_reason,
-    ) = _resolve_active_risk_grouping_support(upstream_metadata)
-    supportability = [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_returns",
-            label="Portfolio returns",
-            state="ready",
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="exposure_history",
-            label="Exposure history",
-            state="ready",
-            source_service="lotus-core",
-        ),
-    ]
-    if attribution_type == "ACTIVE_RISK":
-        supportability.extend(
-            [
-                WorkbenchRiskSupportabilityItem(
-                    key="benchmark_returns",
-                    label="Benchmark returns",
-                    state="ready" if benchmark_code else "blocked",
-                    reason=None if benchmark_code else "Active risk requires benchmark context.",
-                    source_service="lotus-performance",
-                ),
-                WorkbenchRiskSupportabilityItem(
-                    key="benchmark_exposure_context",
-                    label="Benchmark exposure context",
-                    state=(
-                        "blocked"
-                        if grouping_dimension in active_risk_gated_groupings or not benchmark_code
-                        else "ready"
-                    ),
-                    reason=(
-                        active_risk_gate_reason
-                        if grouping_dimension in active_risk_gated_groupings
-                        else (
-                            "Active risk is not supported for this grouping."
-                            if grouping_dimension not in active_risk_supported_groupings
-                            else (
-                                "Active risk requires benchmark context."
-                                if not benchmark_code
-                                else None
-                            )
-                        )
-                        if benchmark_code
-                        else (
-                            "Active risk requires benchmark context."
-                            if not benchmark_code
-                            else None
-                        )
-                    ),
-                    source_service="lotus-performance",
-                ),
-            ]
-        )
-    else:
-        supportability.append(
-            WorkbenchRiskSupportabilityItem(
-                key="benchmark_exposure_context",
-                label="Benchmark exposure context",
-                state="partial" if grouping_dimension in active_risk_gated_groupings else "ready",
-                reason=(
-                    "Benchmark issuer exposure semantics are not required for total risk, but "
-                    f"{_total_risk_gated_grouping_reason(active_risk_gate_reason)}"
-                    if grouping_dimension in active_risk_gated_groupings
-                    else None
-                ),
-                source_service="lotus-performance",
-            )
-        )
-    return supportability
+    return build_attribution_supportability(
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+        upstream_metadata=upstream_metadata,
+    )
 
 
 def _blocked_attribution_response(
@@ -2143,42 +1999,17 @@ def _rolling_sharpe_failure_reason(upstream_payload: Any) -> str:
 
 
 def _risk_attribution_grouping_label(grouping_key: str) -> str:
-    return _RISK_ATTRIBUTION_GROUPING_LABELS.get(
-        grouping_key,
-        grouping_key.replace("_", " ").title(),
-    )
+    return risk_attribution_grouping_label(grouping_key)
 
 
 def _resolve_active_risk_grouping_support(
     metadata: dict[str, Any] | None,
 ) -> tuple[set[str], set[str], str]:
-    if not isinstance(metadata, dict):
-        return (
-            set(_RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS),
-            set(_RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS),
-            _RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON,
-        )
-
-    supported = _metadata_grouping_dimension_set(
-        metadata=metadata,
-        field_name="stateful_active_risk_supported_grouping_dimensions",
-        default=_RISK_ATTRIBUTION_ACTIVE_RISK_SUPPORTED_GROUPINGS,
-    )
-    gated = _metadata_grouping_dimension_set(
-        metadata=metadata,
-        field_name="stateful_active_risk_gated_grouping_dimensions",
-        default=_RISK_ATTRIBUTION_ACTIVE_RISK_GATED_GROUPINGS,
-    )
-    gate_reason = metadata.get("stateful_active_risk_gate_reason")
-    if not isinstance(gate_reason, str) or not gate_reason.strip():
-        gate_reason = _RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON
-    return supported, gated, gate_reason
+    return resolve_active_risk_grouping_support(metadata)
 
 
 def _total_risk_gated_grouping_reason(active_risk_gate_reason: str | None) -> str:
-    if not isinstance(active_risk_gate_reason, str) or not active_risk_gate_reason.strip():
-        return "active risk remains gated for this grouping."
-    return active_risk_gate_reason[:1].lower() + active_risk_gate_reason[1:]
+    return total_risk_gated_grouping_reason(active_risk_gate_reason)
 
 
 def _metadata_grouping_dimension_set(
@@ -2187,11 +2018,8 @@ def _metadata_grouping_dimension_set(
     field_name: str,
     default: tuple[str, ...],
 ) -> set[str]:
-    raw_value = metadata.get(field_name)
-    if not isinstance(raw_value, list):
-        return set(default)
-    normalized: set[str] = set()
-    for entry in raw_value:
-        if isinstance(entry, str) and entry.strip():
-            normalized.add(_normalize_risk_attribution_grouping(entry))
-    return normalized
+    return metadata_grouping_dimension_set(
+        metadata=metadata,
+        field_name=field_name,
+        default=default,
+    )
