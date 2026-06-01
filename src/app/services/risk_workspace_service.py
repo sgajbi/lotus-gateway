@@ -149,7 +149,7 @@ class RiskWorkspaceService:
         )
 
         async def _load() -> WorkbenchRiskSummaryResponse:
-            payload = _build_summary_request(
+            payload = build_summary_request(
                 portfolio_id=portfolio_id,
                 period=period,
                 detail_basis=detail_basis,
@@ -220,7 +220,7 @@ class RiskWorkspaceService:
         )
 
         async def _load() -> WorkbenchRiskConcentrationResponse:
-            payload = _build_concentration_request(
+            payload = build_concentration_request(
                 portfolio_id=portfolio_id,
                 as_of_date=resolved_as_of_date,
                 reporting_currency=reporting_currency,
@@ -291,7 +291,7 @@ class RiskWorkspaceService:
         )
 
         async def _load() -> WorkbenchRiskDrawdownResponse:
-            payload = _build_drawdown_request(
+            payload = build_drawdown_request(
                 portfolio_id=portfolio_id,
                 period=period,
                 detail_basis=detail_basis,
@@ -370,7 +370,7 @@ class RiskWorkspaceService:
         )
 
         async def _load() -> WorkbenchRiskRollingResponse:
-            initial_payload = _build_rolling_request(
+            initial_payload = build_rolling_request(
                 portfolio_id=portfolio_id,
                 period=period,
                 detail_basis=detail_basis,
@@ -392,7 +392,7 @@ class RiskWorkspaceService:
                 upstream_payload=upstream_payload,
             ):
                 sharpe_fallback_reason = _rolling_sharpe_failure_reason(upstream_payload)
-                fallback_payload = _build_rolling_request(
+                fallback_payload = build_rolling_request(
                     portfolio_id=portfolio_id,
                     period=period,
                     detail_basis=detail_basis,
@@ -494,7 +494,7 @@ class RiskWorkspaceService:
         )
 
         async def _load() -> WorkbenchRiskAttributionResponse:
-            payload = _build_attribution_request(
+            payload = build_attribution_request(
                 portfolio_id=portfolio_id,
                 period=period,
                 detail_basis=detail_basis,
@@ -549,119 +549,6 @@ class RiskWorkspaceService:
             },
             deep=True,
         )
-
-
-def _build_summary_request(
-    *,
-    portfolio_id: str,
-    period: str,
-    detail_basis: str,
-    as_of_date: str,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    reporting_currency: str | None,
-) -> dict[str, Any]:
-    return build_summary_request(
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-    )
-
-
-def _build_concentration_request(
-    *,
-    portfolio_id: str,
-    as_of_date: str,
-    reporting_currency: str | None,
-) -> dict[str, Any]:
-    return build_concentration_request(
-        portfolio_id=portfolio_id,
-        as_of_date=as_of_date,
-        reporting_currency=reporting_currency,
-    )
-
-
-def _build_drawdown_request(
-    *,
-    portfolio_id: str,
-    period: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    as_of_date: str,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    reporting_currency: str | None,
-    include_underwater_series: bool,
-) -> dict[str, Any]:
-    return build_drawdown_request(
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-        include_underwater_series=include_underwater_series,
-    )
-
-
-def _build_rolling_request(
-    *,
-    portfolio_id: str,
-    period: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    as_of_date: str,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    reporting_currency: str | None,
-    include_time_series: bool,
-    include_sharpe: bool,
-) -> dict[str, Any]:
-    return build_rolling_request(
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-        include_time_series=include_time_series,
-        include_sharpe=include_sharpe,
-    )
-
-
-def _build_attribution_request(
-    *,
-    portfolio_id: str,
-    period: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    as_of_date: str,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    reporting_currency: str | None,
-    attribution_type: str,
-    grouping_dimension: str,
-) -> dict[str, Any]:
-    return build_attribution_request(
-        portfolio_id=portfolio_id,
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-        attribution_type=attribution_type,
-        grouping_dimension=grouping_dimension,
-    )
 
 
 def _resolve_reporting_currency(value: str | None) -> str:

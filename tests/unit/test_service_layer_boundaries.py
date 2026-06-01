@@ -114,6 +114,20 @@ def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> Non
     assert offenders == {}
 
 
+def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
+    path = _SERVICE_ROOT / "risk_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    private_request_builders = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name.startswith("_build_")
+        and node.name.endswith("_request")
+    )
+
+    assert private_request_builders == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
