@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Header, HTTPException, Query, status
 
 from app.contracts.domain_products import DomainProductDetailResponse
-from app.middleware.correlation import correlation_id_var
+from app.routers.correlation import resolve_router_correlation_id
 from app.services.domain_product_catalog_service import (
     DomainProductCatalogUnavailable,
     DomainProductNotFound,
@@ -9,10 +9,6 @@ from app.services.domain_product_catalog_service import (
 from app.services.gateway_service_provider import domain_product_catalog_service
 
 router = APIRouter(prefix="/api/v1/domain-products", tags=["domain-products"])
-
-
-def _correlation_id(header_value: str | None) -> str:
-    return header_value or correlation_id_var.get() or ""
 
 
 async def _get_domain_product_detail(
@@ -28,7 +24,7 @@ async def _get_domain_product_detail(
         product_name=product_name,
         product_version=product_version,
         consumer_system=consumer_system,
-        correlation_id=_correlation_id(x_correlation_id),
+        correlation_id=resolve_router_correlation_id(x_correlation_id),
     )
 
 
