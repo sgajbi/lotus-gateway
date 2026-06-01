@@ -13,9 +13,11 @@ class _StubClient:
         payload: dict,
         policy_status_code: int = 200,
         policy_payload: dict | None = None,
+        raise_policy_exception: bool = False,
     ):
         self.status_code = status_code
         self.payload = payload
+        self.raise_policy_exception = raise_policy_exception
         self.policy_status_code = policy_status_code
         self.policy_payload = policy_payload or {
             "policyProvenance": {
@@ -42,6 +44,8 @@ class _StubClient:
         tenant_id: str,
         correlation_id: str,
     ):
+        if self.raise_policy_exception:
+            raise RuntimeError("policy endpoint timeout")
         return self.policy_status_code, self.policy_payload
 
 
@@ -474,22 +478,15 @@ async def test_platform_capabilities_normalization_handles_malformed_feature_sha
 
 @pytest.mark.asyncio
 async def test_platform_capabilities_records_pas_policy_exception():
-    class _PasPolicyErrorClient(_StubClient):
-        async def get_effective_policy(  # type: ignore[override]
-            self,
-            consumer_system: str,
-            tenant_id: str,
-            correlation_id: str,
-        ):
-            raise RuntimeError("policy endpoint timeout")
-
     service = PlatformCapabilitiesService(
         dpm_client=_StubClient(
             200,
             {"sourceService": "lotus_manage", "features": [], "workflows": []},
         ),
-        lotus_core_query_client=_PasPolicyErrorClient(
-            200, {"sourceService": "lotus_core", "features": [], "workflows": []}
+        lotus_core_query_client=_StubClient(
+            200,
+            {"sourceService": "lotus_core", "features": [], "workflows": []},
+            raise_policy_exception=True,
         ),
         analytics_client=_StubClient(
             200,
