@@ -1,7 +1,4 @@
-from app.services.performance_workspace_mwr import (
-    build_detail_mwr_summary,
-    build_workspace_mwr_summary,
-)
+from app.services.performance_workspace_mwr import build_workspace_mwr_summary
 
 
 def test_build_workspace_mwr_summary_maps_economics_and_notes():
@@ -54,37 +51,6 @@ def test_build_workspace_mwr_summary_maps_economics_and_notes():
     assert summary.net_cash_flow == 22500.0
     assert summary.fees == 0.0
     assert summary.notes == ["client contribution included"]
-
-
-def test_build_detail_mwr_summary_maps_independent_payload():
-    summary = build_detail_mwr_summary(
-        {
-            "money_weighted_return": 7.25,
-            "mwr_annualized": 9.1,
-            "holding_period_return": 2.2,
-            "method": "MODIFIED_DIETZ",
-            "status": "APPROXIMATED",
-            "reason_codes": ["DAILY_CASH_FLOW_MISSING"],
-            "warnings": ["USING_PERIOD_FLOWS"],
-            "is_annualized_primary": False,
-            "fallback_from": "XIRR",
-            "fallback_reason": "NO_ROOT",
-            "is_approximation": True,
-            "start_date": "2026-02-01",
-            "end_date": "2026-02-28",
-            "notes": ["fallback applied"],
-        }
-    )
-
-    assert summary.money_weighted_return_pct == 7.25
-    assert summary.annualized_return_pct == 9.1
-    assert summary.method == "MODIFIED_DIETZ"
-    assert summary.status == "APPROXIMATED"
-    assert summary.reason_codes == ["DAILY_CASH_FLOW_MISSING"]
-    assert summary.warnings == ["USING_PERIOD_FLOWS"]
-    assert summary.is_annualized_primary is False
-    assert summary.is_approximation is True
-    assert summary.notes == ["fallback applied"]
 
 
 def test_mwr_summary_builders_fail_closed_for_invalid_nested_payloads():

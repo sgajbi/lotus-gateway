@@ -74,10 +74,7 @@ from app.services.performance_workspace_evidence import (
 )
 from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_horizon import fetch_workspace_horizon_dependencies
-from app.services.performance_workspace_mwr import (
-    build_detail_mwr_summary,
-    build_workspace_mwr_summary,
-)
+from app.services.performance_workspace_mwr import build_workspace_mwr_summary
 from app.services.performance_workspace_parsing import (
     extract_return,
     format_attribution_trend_label,
@@ -1272,35 +1269,6 @@ class PerformanceWorkspaceService:
             if resolved_benchmark_code is None:
                 resolved_benchmark_code = comparative.benchmark_id
         return rows, resolved_benchmark_code
-
-    def _parse_mwr_result(
-        self,
-        *,
-        result: GatheredResult,
-        warnings: list[str],
-        partial_failures: list[WorkbenchPartialFailure],
-    ) -> MoneyWeightedReturnSummary | None:
-        if isinstance(result, BaseException):
-            warnings.append("MWR_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
-            )
-            return None
-        status_code, payload = result
-        if not isinstance(payload, dict):
-            warnings.append("MWR_INVALID")
-            return None
-        if status_code >= 400:
-            warnings.append("MWR_UNAVAILABLE")
-            partial_failures.append(
-                build_performance_failure(
-                    "lotus-performance",
-                    f"HTTP_{status_code}",
-                    str(payload.get("detail", payload)),
-                )
-            )
-            return None
-        return build_detail_mwr_summary(payload)
 
     def _parse_contribution_result(
         self,
