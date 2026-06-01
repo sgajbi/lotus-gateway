@@ -15,6 +15,7 @@ from app.services.workbench_core_snapshot import (
     parse_lotus_core_snapshot,
 )
 from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_projected_state import parse_projected_state
 from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workbench_service import WorkbenchService
 
@@ -471,6 +472,49 @@ async def test_load_projected_state_skips_non_dict_rows():
     assert len(rows) == 1
     assert rows[0].security_id == "EQ_1"
     assert summary.net_delta_quantity == 1.0
+
+
+def test_parse_projected_state_defaults_missing_fields_and_skips_invalid_rows():
+    rows, summary = parse_projected_state(
+        positions_payload={
+            "positions": [
+                "bad",
+                {
+                    "security_id": "EQ_1",
+                    "proposed_quantity": 1.23456,
+                    "delta_quantity": 1.23456,
+                },
+            ]
+        },
+        summary_payload={"net_delta_quantity": 1.23456},
+    )
+
+    assert len(rows) == 1
+    assert rows[0].security_id == "EQ_1"
+    assert rows[0].instrument_name == "EQ_1"
+    assert rows[0].asset_class is None
+    assert rows[0].baseline_quantity == pytest.approx(0.0)
+    assert rows[0].proposed_quantity == pytest.approx(1.23456)
+    assert rows[0].delta_quantity == pytest.approx(1.23456)
+    assert summary.total_baseline_positions == 0
+    assert summary.total_proposed_positions == 0
+    assert summary.net_delta_quantity == pytest.approx(1.23456)
+
+
+def test_parse_projected_state_handles_non_list_positions_payload():
+    rows, summary = parse_projected_state(
+        positions_payload={"positions": {"security_id": "EQ_1"}},
+        summary_payload={
+            "total_baseline_positions": 2,
+            "total_proposed_positions": 3,
+            "net_delta_quantity": -4.0,
+        },
+    )
+
+    assert rows == []
+    assert summary.total_baseline_positions == 2
+    assert summary.total_proposed_positions == 3
+    assert summary.net_delta_quantity == pytest.approx(-4.0)
 
 
 @pytest.mark.asyncio
