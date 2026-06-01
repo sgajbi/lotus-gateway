@@ -9,12 +9,7 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.contracts.performance_workspace import (
-    AttributionLevelView,
-    AttributionReasonView,
-    AttributionResidualMaterialityView,
-    AttributionRowView,
     AttributionSummaryView,
-    AttributionSupportabilityEvidenceView,
     ContributionSummaryView,
     MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
@@ -37,8 +32,13 @@ from app.contracts.portfolio import (
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
-from app.precision_policy import quantize_performance
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.performance_workspace_attribution import (
+    build_detail_attribution_summary,
+    build_workspace_attribution_summary,
+    parse_attribution_residual_materiality,
+    parse_attribution_supportability_evidence,
+)
 from app.services.performance_workspace_benchmarks import fetch_benchmark_context
 from app.services.performance_workspace_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
@@ -90,13 +90,11 @@ from app.services.performance_workspace_horizon import fetch_workspace_horizon_d
 from app.services.performance_workspace_parsing import (
     extract_return,
     format_attribution_trend_label,
-    format_key_label,
     quantize_optional,
     safe_bool,
     safe_int,
     safe_str,
     safe_str_list,
-    weight_to_pct,
 )
 from app.services.performance_workspace_projection import (
     project_portfolio_performance_snapshot,
@@ -1319,7 +1317,7 @@ class PerformanceWorkspaceService:
         gross_block = extract_twr_workspace_block(period_payload, "gross")
         money_weighted_return = self._build_workspace_mwr_summary(period_payload)
         contribution = build_workspace_contribution_summary(period_payload)
-        attribution = self._build_workspace_attribution(period_payload)
+        attribution = build_workspace_attribution_summary(period_payload)
 
         net_summary = build_workspace_comparative_summary(
             metric_basis="NET",
@@ -1571,94 +1569,6 @@ class PerformanceWorkspaceService:
             net_cash_flow=quantize_optional(economics_payload.get("net_cash_flow")),
             fees=quantize_optional(economics_payload.get("fees")),
             notes=[str(note) for note in notes] if isinstance(notes, list) else [],
-        )
-
-    def _build_workspace_attribution(
-        self, period_payload: dict[str, Any]
-    ) -> AttributionSummaryView | None:
-        attribution_payload = period_payload.get("attribution", {})
-        if not isinstance(attribution_payload, dict):
-            return None
-        result_payload = attribution_payload.get("result", {})
-        benchmark_context = attribution_payload.get("benchmark_context", {})
-        if not isinstance(result_payload, dict):
-            result_payload = {}
-        if not isinstance(benchmark_context, dict):
-            benchmark_context = {}
-        levels_payload = result_payload.get("levels", [])
-        reconciliation_payload = result_payload.get("reconciliation", {})
-        supportability_evidence_payload = result_payload.get("supportability_evidence")
-        if not isinstance(reconciliation_payload, dict):
-            reconciliation_payload = {}
-        levels: list[AttributionLevelView] = []
-        if isinstance(levels_payload, list):
-            for level_payload in levels_payload:
-                if not isinstance(level_payload, dict):
-                    continue
-                rows_payload = level_payload.get("rows", [])
-                totals_payload = level_payload.get("totals", {})
-                if not isinstance(totals_payload, dict):
-                    totals_payload = {}
-                rows: list[AttributionRowView] = []
-                if isinstance(rows_payload, list):
-                    for row_payload in rows_payload:
-                        if not isinstance(row_payload, dict):
-                            continue
-                        rows.append(
-                            AttributionRowView(
-                                key_label=format_key_label(row_payload.get("key")),
-                                portfolio_weight_avg_pct=weight_to_pct(
-                                    row_payload.get("portfolio_weight_avg")
-                                ),
-                                benchmark_weight_avg_pct=weight_to_pct(
-                                    row_payload.get("benchmark_weight_avg")
-                                ),
-                                portfolio_return_pct=quantize_optional(
-                                    row_payload.get("portfolio_return")
-                                ),
-                                benchmark_return_pct=quantize_optional(
-                                    row_payload.get("benchmark_return")
-                                ),
-                                allocation_pct=quantize_optional(row_payload.get("allocation"))
-                                or 0.0,
-                                selection_pct=quantize_optional(row_payload.get("selection"))
-                                or 0.0,
-                                interaction_pct=quantize_optional(row_payload.get("interaction"))
-                                or 0.0,
-                                total_effect_pct=quantize_optional(row_payload.get("total_effect"))
-                                or 0.0,
-                            )
-                        )
-                levels.append(
-                    AttributionLevelView(
-                        dimension=str(level_payload.get("dimension", "Dimension")),
-                        allocation_total_pct=quantize_optional(totals_payload.get("allocation")),
-                        selection_total_pct=quantize_optional(totals_payload.get("selection")),
-                        interaction_total_pct=quantize_optional(totals_payload.get("interaction")),
-                        total_effect_pct=quantize_optional(totals_payload.get("total_effect"))
-                        or 0.0,
-                        rows=rows,
-                    )
-                )
-        return AttributionSummaryView(
-            status=safe_str(result_payload.get("status")) or "valid",
-            reason_codes=safe_str_list(result_payload.get("reason_codes")),
-            reasons=self._parse_attribution_reasons(result_payload.get("reasons")),
-            metric_basis=safe_str(attribution_payload.get("metric_basis")) or "NET",
-            model=safe_str(attribution_payload.get("model")),
-            linking=safe_str(attribution_payload.get("linking")),
-            benchmark_id=safe_str(benchmark_context.get("benchmark_id")),
-            benchmark_return_source=safe_str(benchmark_context.get("return_source")),
-            active_return_pct=quantize_optional(reconciliation_payload.get("total_active_return")),
-            sum_of_effects_pct=quantize_optional(reconciliation_payload.get("sum_of_effects")),
-            residual_pct=quantize_optional(reconciliation_payload.get("residual")),
-            residual_materiality=self._parse_attribution_residual_materiality(
-                reconciliation_payload.get("residual_materiality")
-            ),
-            supportability_evidence=self._parse_attribution_supportability_evidence(
-                supportability_evidence_payload
-            ),
-            levels=levels,
         )
 
     def _parse_benchmark_catalog_result(
@@ -2018,141 +1928,15 @@ class PerformanceWorkspaceService:
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             return None
-        reconciliation_payload = period_payload.get("reconciliation", {})
         benchmark_context = payload.get("benchmark_context", {})
-        levels_payload = period_payload.get("levels", [])
-        supportability_evidence_payload = period_payload.get("supportability_evidence")
-        if not isinstance(reconciliation_payload, dict):
-            reconciliation_payload = {}
         if not isinstance(benchmark_context, dict):
             benchmark_context = {}
-        levels: list[AttributionLevelView] = []
-        if isinstance(levels_payload, list):
-            for level_payload in levels_payload:
-                if not isinstance(level_payload, dict):
-                    continue
-                groups = level_payload.get("groups", [])
-                rows: list[AttributionRowView] = []
-                if isinstance(groups, list):
-                    for group_payload in groups:
-                        if not isinstance(group_payload, dict):
-                            continue
-                        rows.append(
-                            AttributionRowView(
-                                key_label=format_key_label(group_payload.get("key")),
-                                portfolio_weight_avg_pct=weight_to_pct(
-                                    group_payload.get("portfolio_weight_avg")
-                                ),
-                                benchmark_weight_avg_pct=weight_to_pct(
-                                    group_payload.get("benchmark_weight_avg")
-                                ),
-                                portfolio_return_pct=quantize_optional(
-                                    group_payload.get("portfolio_return")
-                                ),
-                                benchmark_return_pct=quantize_optional(
-                                    group_payload.get("benchmark_return")
-                                ),
-                                allocation_pct=float(
-                                    quantize_performance(group_payload.get("allocation", 0.0))
-                                ),
-                                selection_pct=float(
-                                    quantize_performance(group_payload.get("selection", 0.0))
-                                ),
-                                interaction_pct=float(
-                                    quantize_performance(group_payload.get("interaction", 0.0))
-                                ),
-                                total_effect_pct=float(
-                                    quantize_performance(group_payload.get("total_effect", 0.0))
-                                ),
-                            )
-                        )
-                totals_payload = level_payload.get("totals", {})
-                total_effect = None
-                if isinstance(totals_payload, dict):
-                    total_effect = quantize_optional(totals_payload.get("total_effect"))
-                levels.append(
-                    AttributionLevelView(
-                        dimension=str(level_payload.get("dimension", "Dimension")),
-                        allocation_total_pct=quantize_optional(totals_payload.get("allocation")),
-                        selection_total_pct=quantize_optional(totals_payload.get("selection")),
-                        interaction_total_pct=quantize_optional(totals_payload.get("interaction")),
-                        total_effect_pct=total_effect or 0.0,
-                        rows=rows,
-                    )
-                )
-        return AttributionSummaryView(
-            status=safe_str(period_payload.get("status")) or "valid",
-            reason_codes=safe_str_list(period_payload.get("reason_codes")),
-            reasons=self._parse_attribution_reasons(period_payload.get("reasons")),
+        return build_detail_attribution_summary(
+            period_payload=period_payload,
             metric_basis=metric_basis,
-            model=safe_str(payload.get("model")),
-            linking=safe_str(payload.get("linking")),
-            benchmark_id=safe_str(benchmark_context.get("benchmark_id")),
-            benchmark_return_source=safe_str(benchmark_context.get("return_source")),
-            active_return_pct=quantize_optional(reconciliation_payload.get("total_active_return")),
-            sum_of_effects_pct=quantize_optional(reconciliation_payload.get("sum_of_effects")),
-            residual_pct=quantize_optional(reconciliation_payload.get("residual")),
-            residual_materiality=self._parse_attribution_residual_materiality(
-                reconciliation_payload.get("residual_materiality")
-            ),
-            supportability_evidence=self._parse_attribution_supportability_evidence(
-                supportability_evidence_payload
-            ),
-            levels=levels,
-        )
-
-    def _parse_attribution_reasons(self, payload: Any) -> list[AttributionReasonView]:
-        if not isinstance(payload, list):
-            return []
-        reasons: list[AttributionReasonView] = []
-        for item in payload:
-            if not isinstance(item, dict):
-                continue
-            reasons.append(
-                AttributionReasonView(
-                    code=safe_str(item.get("code")) or "unknown",
-                    severity=safe_str(item.get("severity")) or "warning",
-                    message=(safe_str(item.get("message")) or "Attribution supportability reason."),
-                    affected_group_count=safe_int(item.get("affected_group_count")) or 0,
-                )
-            )
-        return reasons
-
-    def _parse_attribution_residual_materiality(
-        self, payload: Any
-    ) -> AttributionResidualMaterialityView | None:
-        if not isinstance(payload, dict):
-            return None
-        absolute_residual = quantize_optional(payload.get("absolute_residual"))
-        warning_threshold = quantize_optional(payload.get("warning_threshold"))
-        material_threshold = quantize_optional(payload.get("material_threshold"))
-        if absolute_residual is None or warning_threshold is None or material_threshold is None:
-            return None
-        return AttributionResidualMaterialityView(
-            classification=safe_str(payload.get("classification")) or "immaterial",
-            treatment=safe_str(payload.get("treatment")) or "no_action",
-            absolute_residual_pct=absolute_residual,
-            warning_threshold_pct=warning_threshold,
-            material_threshold_pct=material_threshold,
-        )
-
-    def _parse_attribution_supportability_evidence(
-        self, payload: Any
-    ) -> AttributionSupportabilityEvidenceView | None:
-        if not isinstance(payload, dict):
-            return None
-        return AttributionSupportabilityEvidenceView(
-            portfolio_only_group_count=safe_int(payload.get("portfolio_only_group_count")) or 0,
-            benchmark_only_group_count=safe_int(payload.get("benchmark_only_group_count")) or 0,
-            unclassified_group_count=safe_int(payload.get("unclassified_group_count")) or 0,
-            missing_benchmark_return_count=safe_int(payload.get("missing_benchmark_return_count"))
-            or 0,
-            negative_weight_count=safe_int(payload.get("negative_weight_count")) or 0,
-            zero_portfolio_exposure_count=safe_int(payload.get("zero_portfolio_exposure_count"))
-            or 0,
-            currency_attribution_status=safe_str(payload.get("currency_attribution_status"))
-            or "not_requested",
-            linking_status=safe_str(payload.get("linking_status")) or "not_requested",
+            benchmark_context=benchmark_context,
+            model=payload.get("model"),
+            linking=payload.get("linking"),
         )
 
     def _parse_attribution_trend_results(
@@ -2265,10 +2049,10 @@ class PerformanceWorkspaceService:
             residual_pct=quantize_optional(reconciliation_payload.get("residual")),
             status=safe_str(period_payload.get("status")) or "valid",
             reason_codes=safe_str_list(period_payload.get("reason_codes")),
-            residual_materiality=self._parse_attribution_residual_materiality(
+            residual_materiality=parse_attribution_residual_materiality(
                 reconciliation_payload.get("residual_materiality")
             ),
-            supportability_evidence=self._parse_attribution_supportability_evidence(
+            supportability_evidence=parse_attribution_supportability_evidence(
                 supportability_evidence_payload
             ),
         )

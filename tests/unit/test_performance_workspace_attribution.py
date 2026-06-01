@@ -1,0 +1,141 @@
+from app.services.performance_workspace_attribution import (
+    build_detail_attribution_summary,
+    build_workspace_attribution_summary,
+    parse_attribution_reasons,
+    parse_attribution_residual_materiality,
+    parse_attribution_supportability_evidence,
+)
+
+
+def test_build_workspace_attribution_summary_maps_embedded_payload():
+    summary = build_workspace_attribution_summary(
+        {
+            "attribution": {
+                "metric_basis": "GROSS",
+                "model": "BF",
+                "linking": "carino",
+                "benchmark_context": {
+                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                    "return_source": "calculated",
+                },
+                "result": {
+                    "status": "partial",
+                    "reason_codes": ["OFF_BENCHMARK_EXPOSURE"],
+                    "reasons": [
+                        {
+                            "code": "OFF_BENCHMARK_EXPOSURE",
+                            "severity": "warning",
+                            "message": "Portfolio has off-benchmark exposure.",
+                            "affected_group_count": 1,
+                        }
+                    ],
+                    "reconciliation": {
+                        "total_active_return": 0.42,
+                        "sum_of_effects": 0.4,
+                        "residual": 0.02,
+                        "residual_materiality": {
+                            "classification": "immaterial",
+                            "treatment": "no_action",
+                            "absolute_residual": 0.02,
+                            "warning_threshold": 0.1,
+                            "material_threshold": 0.5,
+                        },
+                    },
+                    "supportability_evidence": {
+                        "portfolio_only_group_count": 1,
+                        "currency_attribution_status": "not_requested",
+                        "linking_status": "linked",
+                    },
+                    "levels": [
+                        {
+                            "dimension": "asset_class",
+                            "totals": {
+                                "allocation": 0.1,
+                                "selection": 0.2,
+                                "interaction": 0.1,
+                                "total_effect": 0.4,
+                            },
+                            "rows": [
+                                {
+                                    "key": {"asset_class": "Equity"},
+                                    "portfolio_weight_avg": 0.6,
+                                    "benchmark_weight_avg": 0.55,
+                                    "portfolio_return": 5.0,
+                                    "benchmark_return": 4.5,
+                                    "allocation": 0.1,
+                                    "selection": 0.2,
+                                    "interaction": 0.1,
+                                    "total_effect": 0.4,
+                                }
+                            ],
+                        }
+                    ],
+                },
+            }
+        }
+    )
+
+    assert summary is not None
+    assert summary.metric_basis == "GROSS"
+    assert summary.status == "partial"
+    assert summary.reasons[0].code == "OFF_BENCHMARK_EXPOSURE"
+    assert summary.benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert summary.active_return_pct == 0.42
+    assert summary.residual_materiality is not None
+    assert summary.residual_materiality.material_threshold_pct == 0.5
+    assert summary.supportability_evidence is not None
+    assert summary.supportability_evidence.portfolio_only_group_count == 1
+    assert summary.levels[0].dimension == "asset_class"
+    assert summary.levels[0].rows[0].key_label == "Equity"
+    assert summary.levels[0].rows[0].portfolio_weight_avg_pct == 60.0
+
+
+def test_build_detail_attribution_summary_maps_group_payload():
+    summary = build_detail_attribution_summary(
+        metric_basis="NET",
+        benchmark_context={
+            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+            "return_source": "assigned",
+        },
+        model="BF",
+        linking="none",
+        period_payload={
+            "status": "valid",
+            "reconciliation": {"total_active_return": 0.12345},
+            "supportability_evidence": {
+                "benchmark_only_group_count": 2,
+                "currency_attribution_status": "not_requested",
+                "linking_status": "not_requested",
+            },
+            "levels": [
+                {
+                    "dimension": "sector",
+                    "groups": [
+                        {
+                            "key": {"sector": "Technology"},
+                            "allocation": 0.11111,
+                            "selection": 0.22222,
+                            "interaction": 0.0,
+                            "total_effect": 0.33333,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    assert summary.metric_basis == "NET"
+    assert summary.benchmark_return_source == "assigned"
+    assert summary.levels[0].rows[0].key_label == "Technology"
+    assert summary.levels[0].rows[0].allocation_pct == 0.11111
+    assert summary.levels[0].rows[0].total_effect_pct == 0.33333
+    assert summary.supportability_evidence is not None
+    assert summary.supportability_evidence.benchmark_only_group_count == 2
+
+
+def test_attribution_parsers_fail_closed_for_invalid_payloads():
+    assert build_workspace_attribution_summary({"attribution": []}) is None
+    assert parse_attribution_reasons([]) == []
+    assert parse_attribution_residual_materiality([]) is None
+    assert parse_attribution_residual_materiality({"absolute_residual": 0.1}) is None
+    assert parse_attribution_supportability_evidence([]) is None
