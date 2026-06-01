@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import status
 
-from app.middleware.correlation import correlation_id_var
+from app.routers.correlation import resolve_router_correlation_id
 
 BANK_DEMO_PROOF_RESPONSES: dict[int | str, dict[str, Any]] = {
     status.HTTP_409_CONFLICT: {
@@ -16,4 +16,4 @@ BANK_DEMO_PROOF_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 def bank_demo_correlation_id(x_correlation_id: str | None) -> str:
-    return x_correlation_id or correlation_id_var.get() or ""
+    return resolve_router_correlation_id(x_correlation_id)
