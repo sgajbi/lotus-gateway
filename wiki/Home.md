@@ -10,6 +10,10 @@
   [docs/documentation/experience-api-foundation-blueprint.md](../docs/documentation/experience-api-foundation-blueprint.md)
 - Upstream contract-family map:
   [docs/standards/RFC-0082-upstream-contract-family-map.md](../docs/standards/RFC-0082-upstream-contract-family-map.md)
+- Quality and enterprise-readiness baseline:
+  [quality/baseline_report.md](../quality/baseline_report.md),
+  [quality/quality_scorecard.md](../quality/quality_scorecard.md), and
+  [docs/architecture.md](../docs/architecture.md)
 
 ## Current phase
 

@@ -12,6 +12,15 @@ Experience-API blueprint:
 Upstream contract-family map:
 [docs/standards/RFC-0082-upstream-contract-family-map.md](docs/standards/RFC-0082-upstream-contract-family-map.md)
 
+Quality and enterprise-readiness baseline:
+[quality/baseline_report.md](quality/baseline_report.md),
+[quality/quality_scorecard.md](quality/quality_scorecard.md),
+[docs/architecture.md](docs/architecture.md),
+[docs/api-governance.md](docs/api-governance.md),
+[docs/observability.md](docs/observability.md),
+[docs/security.md](docs/security.md), and
+[docs/operations-runbook.md](docs/operations-runbook.md)
+
 ## Purpose And Scope
 
 `lotus-gateway` owns product-facing API composition for Lotus.
@@ -259,6 +268,11 @@ Repo-native gate mapping:
   local feature-lane style validation
 - `make ci-local-docker`
   Docker parity for the live integration boundary
+
+The Quality Baseline workflow is intentionally report-only. It publishes complexity,
+maintainability, dead-code, dependency, security, import-boundary, documentation, coverage, and
+OpenAPI governance evidence without weakening the existing blocking lanes. Promote individual
+checks only after baseline findings are classified and no-new-regression thresholds are agreed.
 
 ## API Contract Notes
 

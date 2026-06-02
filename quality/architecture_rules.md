@@ -1,0 +1,54 @@
+# Architecture Rules
+
+This document records the baseline architecture rules for the `lotus-gateway` enterprise
+hardening program. The first implementation phase is report-only; later phases should fail only
+new regressions, then enforce agreed thresholds.
+
+## Layering
+
+1. Routers call gateway services or use-case modules only.
+2. Routers must not import or instantiate concrete downstream clients, HTTP clients, database
+   clients, Kafka, Redis, or persistence adapters.
+3. Middleware remains cross-cutting and thin. It must not contain portfolio, advisory, reporting,
+   analytics, or workflow business logic.
+4. Contracts define product-facing DTOs and must not depend on routers, services, clients, or
+   middleware.
+5. Service modules may orchestrate upstream calls through typed protocol surfaces and factories.
+6. Only service factory modules may construct concrete upstream clients.
+7. Gateway must not become the authority for portfolio source data, analytics methodology, advisory
+   workflow truth, management workflow truth, reporting truth, archive truth, or AI output truth.
+
+## Import-Linter Contracts
+
+`.importlinter` defines report-only contracts for:
+
+1. routers not importing `app.clients`,
+2. middleware not importing `app.clients` or `app.services`,
+3. contracts not importing runtime layers,
+4. services not importing routers.
+
+Existing AST-based unit boundary tests remain the blocking local protection for the currently
+validated rules. Import-linter expands the governed baseline and will become blocking after the
+report-only baseline is reviewed.
+
+## Baseline Findings
+
+The largest current modularity risks are:
+
+1. `src/app/services/portfolio_service.py` at 2,882 lines,
+2. `src/app/services/risk_workspace_service.py` at 1,781 lines,
+3. `src/app/services/advisor_brief_service.py` at 1,144 lines,
+4. `src/app/services/dpm_command_center_service.py` at 966 lines,
+5. `src/app/services/performance_workspace_service.py` at 937 lines.
+
+The longest current function is `register_routers` in `src/app/router_registry.py` at 298 lines.
+That function should be split into route-family registration groups without changing route
+contract behavior.
+
+## Progressive Enforcement
+
+1. Phase 1: report-only quality baseline.
+2. Phase 2: fail only new architecture regressions.
+3. Phase 3: enforce thresholds for largest modules, function length, complexity, and import rules.
+4. Phase 4: enterprise-readiness gate requiring architecture, API, security, observability, and
+   docs scorecard targets to pass.

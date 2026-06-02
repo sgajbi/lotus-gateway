@@ -6,6 +6,10 @@
 - if Windows startup looks healthy but routes fail, verify `--app-dir src`
 - treat partial-failure and supportability signals as contract data, not as noise to suppress
 - use repo-native gates before inventing custom checks
+- use [docs/operations-runbook.md](../docs/operations-runbook.md),
+  [docs/observability.md](../docs/observability.md), and
+  [docs/security.md](../docs/security.md) as the consolidated root-doc entry points for
+  operators and enterprise-readiness reviews
 
 ## Health and readiness surfaces
 

@@ -8,6 +8,8 @@
 2. `Pull Request Merge Gate`
 3. `Main Releasability Gate`
 4. platform-facing validation for cross-app experience changes
+5. `Quality Baseline`
+   report-only evidence for progressive enterprise-readiness gates
 
 ## Local command mapping
 
@@ -26,3 +28,27 @@
 - startup and migration truth
 - upstream composition safety
 - live integration-boundary parity
+
+## Quality baseline lane
+
+The Quality Baseline workflow is report-only. It installs the optional `quality` dependency group
+and records evidence for:
+
+- complexity and maintainability through `radon` and `xenon`
+- high-confidence dead-code candidates through `vulture`
+- dependency hygiene through `deptry`
+- security findings through `bandit` and `pip-audit`
+- import-boundary contracts through `import-linter`
+- docstring baseline through `interrogate`
+- OpenAPI governance through Spectral and `.spectral.yaml`
+
+The lane must not replace `make check` or `make ci`. It exists to classify current baseline
+findings, then promote only agreed no-new-regression checks into blocking Feature Lane and PR Merge
+Gate enforcement.
+
+Current baseline truth lives in:
+
+- [quality/baseline_report.md](../quality/baseline_report.md)
+- [quality/quality_scorecard.md](../quality/quality_scorecard.md)
+- [quality/architecture_rules.md](../quality/architecture_rules.md)
+- [quality/api_governance_rules.md](../quality/api_governance_rules.md)

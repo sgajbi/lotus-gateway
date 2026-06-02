@@ -22,6 +22,16 @@ dev = [
   "mypy>=1.13.0",
   "pip-audit>=2.9.0"
 ]
+quality = [
+  "bandit[toml]>=1.7.10",
+  "deptry>=0.23.0",
+  "import-linter>=2.1",
+  "interrogate>=1.7.0",
+  "pip-audit>=2.9.0",
+  "radon>=6.0.1",
+  "vulture>=2.14",
+  "xenon>=0.9.3"
+]
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -54,4 +64,23 @@ python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv-codex", ".venv", "output"]
+skips = []
+
+[tool.interrogate]
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-module = true
+ignore-nested-functions = true
+ignore-private = true
+ignore-property-decorators = true
+fail-under = 45
+exclude = ["tests", "output", ".venv", ".venv-codex"]
+
+[tool.deptry]
+known_first_party = ["app"]
+exclude = [".venv", ".venv-codex", "output"]
 
