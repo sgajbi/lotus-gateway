@@ -37,15 +37,16 @@ The largest current modularity risks are:
 
 1. `src/app/services/portfolio_service.py` at 3,016 lines,
 2. `src/app/services/risk_workspace_service.py` at 1,912 lines,
-3. `src/app/services/advisor_brief_service.py` at 1,244 lines,
+3. `src/app/services/advisor_brief_service.py` at 1,388 lines,
 4. `src/app/services/performance_workspace_service.py` at 1,152 lines,
 5. `src/app/services/dpm_command_center_service.py` at 966 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
 response builder has also been split into request-context, summary/detail, evidence, and assembly
-helpers. The current longest function is `_build_performance_advisor_brief` in
-`src/app/services/advisor_brief_service.py` at 241 lines.
+helpers. The advisor-brief response builder has been split into source-context, AI narrative,
+runtime supportability, and response assembly helpers. The current longest function is
+`_map_drawdown_response` in `src/app/services/risk_workspace_service.py` at 196 lines.
 
 ## Progressive Enforcement
 

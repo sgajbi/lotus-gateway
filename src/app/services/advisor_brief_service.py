@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from fastapi import HTTPException, status
 
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
+    AdvisorBriefAdvisorySupportability,
+    AdvisorBriefAiSurfaceSupportability,
     AdvisorBriefEvidenceRef,
     AdvisorBriefNarrativeItem,
     AdvisorBriefResponse,
@@ -13,7 +16,9 @@ from app.contracts.advisor_brief import (
     AdvisorBriefStatus,
     AdvisorBriefSupportabilityItem,
     AdvisorBriefTone,
+    AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
+    AdvisorBriefWorkflowPackTaskFlow,
 )
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
@@ -39,6 +44,38 @@ from app.services.async_ttl_cache import AsyncTtlCache
 
 _TASK_ID = "explain.v1"
 _EXPECTED_OUTPUT_LABEL = "EXPLANATION_ONLY"
+
+
+@dataclass(frozen=True)
+class AdvisorBriefSourceContext:
+    workspace: PerformanceWorkspaceResponse
+    selected_performance: PerformanceComparativeSummary
+    source_refs: list[str]
+    supportability: list[AdvisorBriefSupportabilityItem]
+    status: AdvisorBriefStatus
+    summary: str
+    talking_points: list[AdvisorBriefNarrativeItem]
+    recommended_actions: list[AdvisorBriefActionItem]
+    risks_and_exceptions: list[AdvisorBriefNarrativeItem]
+
+
+@dataclass(frozen=True)
+class AdvisorBriefNarrativeState:
+    status: AdvisorBriefStatus
+    summary: str
+    talking_points: list[AdvisorBriefNarrativeItem]
+    recommended_actions: list[AdvisorBriefActionItem]
+    risks_and_exceptions: list[AdvisorBriefNarrativeItem]
+    ai_audit: dict[str, Any]
+    ai_evidence: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class AdvisorBriefRuntimeContext:
+    workflow_pack_run: AdvisorBriefWorkflowPackRun | None
+    workflow_pack_task_flow: AdvisorBriefWorkflowPackTaskFlow | None
+    ai_surface_supportability: AdvisorBriefAiSurfaceSupportability | None
+    advisory_supportability: AdvisorBriefAdvisorySupportability | None
 
 
 class AdvisorBriefPerformanceWorkspaceService(Protocol):
@@ -131,8 +168,53 @@ class AdvisorBriefService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> AdvisorBriefResponse:
+        workspace = await self._load_performance_workspace(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        source_context = _build_advisor_brief_source_context(
+            workspace=workspace,
+            detail_basis=detail_basis,
+        )
+        narrative_state = await self._build_advisor_brief_narrative_state(
+            correlation_id=correlation_id,
+            source_context=source_context,
+        )
+        runtime_context = await self._load_advisor_brief_runtime_context(
+            correlation_id=correlation_id,
+            ai_audit=narrative_state.ai_audit,
+        )
+        return self._assemble_advisor_brief_response(
+            correlation_id=correlation_id,
+            source_context=source_context,
+            narrative_state=narrative_state,
+            runtime_context=runtime_context,
+        )
+
+    async def _load_performance_workspace(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> PerformanceWorkspaceResponse:
         async with server_timing_span("perf-advisor-brief-source"):
-            workspace = await self._performance_workspace_service.get_performance_workspace(
+            return await self._performance_workspace_service.get_performance_workspace(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 period=period,
@@ -145,52 +227,26 @@ class AdvisorBriefService:
                 explicit_end_date=explicit_end_date,
             )
 
-        selected_performance = (
-            workspace.net_performance
-            if detail_basis.upper() == "NET"
-            else workspace.gross_performance
-        )
-        source_refs = _build_source_refs(workspace=workspace)
-        supportability = _build_supportability(workspace=workspace)
-        status = _resolve_status(workspace=workspace, supportability=supportability)
-
-        source_summary = _build_source_summary(
-            workspace=workspace,
-            selected_performance=selected_performance,
-        )
-        talking_points = _build_source_talking_points(
-            workspace=workspace,
-            selected_performance=selected_performance,
-        )
-        recommended_actions = _build_recommended_actions(workspace=workspace)
-        risks_and_exceptions = _build_risks_and_exceptions(
-            workspace=workspace,
-            supportability=supportability,
-        )
+    async def _build_advisor_brief_narrative_state(
+        self,
+        *,
+        correlation_id: str,
+        source_context: AdvisorBriefSourceContext,
+    ) -> AdvisorBriefNarrativeState:
+        workspace = source_context.workspace
+        status = source_context.status
+        source_summary = source_context.summary
+        talking_points = source_context.talking_points
+        recommended_actions = source_context.recommended_actions
+        risks_and_exceptions = source_context.risks_and_exceptions
         ai_audit: dict[str, Any] = _normalize_ai_audit({})
         ai_evidence: dict[str, Any] = {"descriptors": []}
 
         if status is not AdvisorBriefStatus.UNAVAILABLE:
-            task_request = {
-                "task_id": _TASK_ID,
-                "input_mode": "STRUCTURED_CONTEXT",
-                "caller": {
-                    "caller_app": "lotus-gateway",
-                    "correlation_id": correlation_id,
-                },
-                "context": {
-                    "summary": (
-                        f"Advisor brief context for portfolio {workspace.portfolio_id}, "
-                        f"{workspace.period} period, basis {workspace.detail_basis}."
-                    ),
-                    "payload": _build_ai_fact_bundle(
-                        workspace=workspace,
-                        selected_performance=selected_performance,
-                    ),
-                    "source_refs": source_refs,
-                },
-                "expected_output_label": _EXPECTED_OUTPUT_LABEL,
-            }
+            task_request = _build_advisor_brief_ai_task_request(
+                correlation_id=correlation_id,
+                source_context=source_context,
+            )
             async with server_timing_span("perf-advisor-brief-ai"):
                 ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
                     pack_id="advisor_brief.pack",
@@ -306,6 +362,22 @@ class AdvisorBriefService:
                         ],
                     )
                 )
+        return AdvisorBriefNarrativeState(
+            status=status,
+            summary=source_summary,
+            talking_points=talking_points,
+            recommended_actions=recommended_actions,
+            risks_and_exceptions=risks_and_exceptions,
+            ai_audit=ai_audit,
+            ai_evidence=ai_evidence,
+        )
+
+    async def _load_advisor_brief_runtime_context(
+        self,
+        *,
+        correlation_id: str,
+        ai_audit: dict[str, Any],
+    ) -> AdvisorBriefRuntimeContext:
         workflow_pack_run = await load_advisor_brief_workflow_pack_run(
             lotus_ai_client=self._lotus_ai_client,
             ai_audit=ai_audit,
@@ -324,7 +396,22 @@ class AdvisorBriefService:
             advise_client=self._advise_client,
             correlation_id=correlation_id,
         )
+        return AdvisorBriefRuntimeContext(
+            workflow_pack_run=workflow_pack_run,
+            workflow_pack_task_flow=workflow_pack_task_flow,
+            ai_surface_supportability=ai_surface_supportability,
+            advisory_supportability=advisory_supportability,
+        )
 
+    def _assemble_advisor_brief_response(
+        self,
+        *,
+        correlation_id: str,
+        source_context: AdvisorBriefSourceContext,
+        narrative_state: AdvisorBriefNarrativeState,
+        runtime_context: AdvisorBriefRuntimeContext,
+    ) -> AdvisorBriefResponse:
+        workspace = source_context.workspace
         return AdvisorBriefResponse(
             correlation_id=correlation_id,
             contract_version=workspace.contract_version,
@@ -339,22 +426,22 @@ class AdvisorBriefService:
             contribution_dimension=workspace.contribution_dimension,
             attribution_dimension=workspace.attribution_dimension,
             benchmark_code=workspace.benchmark_code,
-            status=status,
-            summary=source_summary,
-            talking_points=talking_points,
-            recommended_actions=recommended_actions,
-            risks_and_exceptions=risks_and_exceptions,
+            status=narrative_state.status,
+            summary=narrative_state.summary,
+            talking_points=narrative_state.talking_points,
+            recommended_actions=narrative_state.recommended_actions,
+            risks_and_exceptions=narrative_state.risks_and_exceptions,
             source_metrics=_build_source_metrics(
                 workspace=workspace,
-                selected_performance=selected_performance,
+                selected_performance=source_context.selected_performance,
             ),
-            supportability=supportability,
-            ai_surface_supportability=ai_surface_supportability,
-            advisory_supportability=advisory_supportability,
-            ai_audit=ai_audit,
-            ai_evidence=ai_evidence,
-            workflow_pack_run=workflow_pack_run,
-            workflow_pack_task_flow=workflow_pack_task_flow,
+            supportability=source_context.supportability,
+            ai_surface_supportability=runtime_context.ai_surface_supportability,
+            advisory_supportability=runtime_context.advisory_supportability,
+            ai_audit=narrative_state.ai_audit,
+            ai_evidence=narrative_state.ai_evidence,
+            workflow_pack_run=runtime_context.workflow_pack_run,
+            workflow_pack_task_flow=runtime_context.workflow_pack_task_flow,
             warnings=workspace.warnings,
             partial_failures=workspace.partial_failures,
         )
@@ -448,6 +535,67 @@ class AdvisorBriefService:
                 "advisory_supportability": advisory_supportability,
             }
         )
+
+
+def _build_advisor_brief_source_context(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    detail_basis: str,
+) -> AdvisorBriefSourceContext:
+    selected_performance = (
+        workspace.net_performance if detail_basis.upper() == "NET" else workspace.gross_performance
+    )
+    source_refs = _build_source_refs(workspace=workspace)
+    supportability = _build_supportability(workspace=workspace)
+    status = _resolve_status(workspace=workspace, supportability=supportability)
+    return AdvisorBriefSourceContext(
+        workspace=workspace,
+        selected_performance=selected_performance,
+        source_refs=source_refs,
+        supportability=supportability,
+        status=status,
+        summary=_build_source_summary(
+            workspace=workspace,
+            selected_performance=selected_performance,
+        ),
+        talking_points=_build_source_talking_points(
+            workspace=workspace,
+            selected_performance=selected_performance,
+        ),
+        recommended_actions=_build_recommended_actions(workspace=workspace),
+        risks_and_exceptions=_build_risks_and_exceptions(
+            workspace=workspace,
+            supportability=supportability,
+        ),
+    )
+
+
+def _build_advisor_brief_ai_task_request(
+    *,
+    correlation_id: str,
+    source_context: AdvisorBriefSourceContext,
+) -> dict[str, Any]:
+    workspace = source_context.workspace
+    return {
+        "task_id": _TASK_ID,
+        "input_mode": "STRUCTURED_CONTEXT",
+        "caller": {
+            "caller_app": "lotus-gateway",
+            "correlation_id": correlation_id,
+        },
+        "context": {
+            "summary": (
+                f"Advisor brief context for portfolio {workspace.portfolio_id}, "
+                f"{workspace.period} period, basis {workspace.detail_basis}."
+            ),
+            "payload": _build_ai_fact_bundle(
+                workspace=workspace,
+                selected_performance=source_context.selected_performance,
+            ),
+            "source_refs": source_context.source_refs,
+        },
+        "expected_output_label": _EXPECTED_OUTPUT_LABEL,
+    }
 
 
 def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
