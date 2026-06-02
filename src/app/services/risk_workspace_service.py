@@ -130,6 +130,13 @@ class AttributionMappingResult:
     partial_failures: list[WorkbenchPartialFailure]
 
 
+@dataclass(frozen=True)
+class ConcentrationBlocks:
+    portfolio: dict[str, Any]
+    single_position: dict[str, Any]
+    issuer: dict[str, Any]
+
+
 class RiskWorkspaceService:
     def __init__(
         self,
@@ -752,12 +759,7 @@ def _map_concentration_response(
     benchmark_code: str | None,
     upstream_payload: dict[str, Any],
 ) -> WorkbenchRiskConcentrationResponse:
-    required_blocks = {
-        "portfolio_concentration": upstream_payload.get("risk_proxy"),
-        "single_position_concentration": upstream_payload.get("single_position_concentration"),
-        "issuer_concentration": upstream_payload.get("issuer_concentration"),
-    }
-    missing_blocks = [key for key, value in required_blocks.items() if not isinstance(value, dict)]
+    concentration_blocks, missing_blocks = _extract_concentration_blocks(upstream_payload)
     if missing_blocks:
         return _malformed_concentration(
             correlation_id=correlation_id,
@@ -767,9 +769,61 @@ def _map_concentration_response(
             benchmark_code=benchmark_code,
             missing_blocks=missing_blocks,
         )
-    issuer_payload = upstream_payload.get("issuer_concentration")
-    issuer_state = _issuer_supportability_state(issuer_payload)
-    supportability = [
+    assert concentration_blocks is not None
+    supportability = _build_concentration_supportability(
+        blocks=concentration_blocks,
+        upstream_payload=upstream_payload,
+    )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
+    return WorkbenchRiskConcentrationResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state=_concentration_response_state(supportability),
+        payload=_build_concentration_payload(
+            blocks=concentration_blocks,
+            upstream_payload=upstream_payload,
+        ),
+        supportability=supportability,
+        metadata=_metadata(input_mode="stateful", cache_status="miss"),
+    )
+
+
+def _extract_concentration_blocks(
+    upstream_payload: dict[str, Any],
+) -> tuple[ConcentrationBlocks | None, list[str]]:
+    block_payloads = {
+        "portfolio_concentration": upstream_payload.get("risk_proxy"),
+        "single_position_concentration": upstream_payload.get("single_position_concentration"),
+        "issuer_concentration": upstream_payload.get("issuer_concentration"),
+    }
+    missing_blocks = [key for key, value in block_payloads.items() if not isinstance(value, dict)]
+    if missing_blocks:
+        return None, missing_blocks
+    return (
+        ConcentrationBlocks(
+            portfolio=cast(dict[str, Any], block_payloads["portfolio_concentration"]),
+            single_position=cast(
+                dict[str, Any],
+                block_payloads["single_position_concentration"],
+            ),
+            issuer=cast(dict[str, Any], block_payloads["issuer_concentration"]),
+        ),
+        [],
+    )
+
+
+def _build_concentration_supportability(
+    *,
+    blocks: ConcentrationBlocks,
+    upstream_payload: dict[str, Any],
+) -> list[WorkbenchRiskSupportabilityItem]:
+    return [
         WorkbenchRiskSupportabilityItem(
             key="portfolio_positions",
             label="Portfolio positions",
@@ -779,8 +833,8 @@ def _map_concentration_response(
         WorkbenchRiskSupportabilityItem(
             key="issuer_enrichment",
             label="Issuer enrichment",
-            state=issuer_state,
-            reason=_issuer_supportability_reason(issuer_payload),
+            state=_issuer_supportability_state(blocks.issuer),
+            reason=_issuer_supportability_reason(blocks.issuer),
             source_service="lotus-risk",
         ),
         WorkbenchRiskSupportabilityItem(
@@ -798,41 +852,38 @@ def _map_concentration_response(
             source_service="lotus-risk",
         ),
     ]
-    _append_source_calculation_supportability(
-        supportability=supportability,
-        upstream_payload=upstream_payload,
-    )
-    return WorkbenchRiskConcentrationResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state="ready" if all(item.state == "ready" for item in supportability) else "partial",
-        payload=WorkbenchRiskConcentrationPayload(
-            portfolio_concentration=WorkbenchPortfolioConcentration.model_validate(
-                required_blocks["portfolio_concentration"]
-            ),
-            single_position_concentration=WorkbenchSinglePositionConcentration.model_validate(
-                required_blocks["single_position_concentration"]
-            ),
-            issuer_concentration=WorkbenchIssuerConcentration.model_validate(
-                required_blocks["issuer_concentration"]
-            ),
-            valuation_context=WorkbenchRiskConcentrationValuationContext.model_validate(
-                upstream_payload.get("valuation_context")
-            )
-            if isinstance(upstream_payload.get("valuation_context"), dict)
-            else None,
-            execution_context=WorkbenchRiskConcentrationExecutionContext.model_validate(
-                upstream_payload.get("metadata")
-            )
-            if isinstance(upstream_payload.get("metadata"), dict)
-            else None,
+
+
+def _build_concentration_payload(
+    *,
+    blocks: ConcentrationBlocks,
+    upstream_payload: dict[str, Any],
+) -> WorkbenchRiskConcentrationPayload:
+    valuation_context = upstream_payload.get("valuation_context")
+    execution_context = upstream_payload.get("metadata")
+    return WorkbenchRiskConcentrationPayload(
+        portfolio_concentration=WorkbenchPortfolioConcentration.model_validate(blocks.portfolio),
+        single_position_concentration=WorkbenchSinglePositionConcentration.model_validate(
+            blocks.single_position
         ),
-        supportability=supportability,
-        metadata=_metadata(input_mode="stateful", cache_status="miss"),
+        issuer_concentration=WorkbenchIssuerConcentration.model_validate(blocks.issuer),
+        valuation_context=WorkbenchRiskConcentrationValuationContext.model_validate(
+            valuation_context
+        )
+        if isinstance(valuation_context, dict)
+        else None,
+        execution_context=WorkbenchRiskConcentrationExecutionContext.model_validate(
+            execution_context
+        )
+        if isinstance(execution_context, dict)
+        else None,
     )
+
+
+def _concentration_response_state(
+    supportability: list[WorkbenchRiskSupportabilityItem],
+) -> RiskModuleState:
+    return "ready" if all(item.state == "ready" for item in supportability) else "partial"
 
 
 def _map_drawdown_response(
