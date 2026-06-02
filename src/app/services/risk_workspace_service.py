@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from numbers import Real
 from typing import Any, cast
 
 from fastapi import status
@@ -1259,7 +1260,7 @@ def _map_rolling_period_result(
 def _rolling_window_lengths(value: Any) -> list[int]:
     if not isinstance(value, list):
         return []
-    return [int(window) for window in value if isinstance(window, int | float)]
+    return [int(cast(Any, window)) for window in value if isinstance(window, Real)]
 
 
 def _rolling_dependency_context(value: Any) -> WorkbenchRiskRollingDependencyContext | None:
