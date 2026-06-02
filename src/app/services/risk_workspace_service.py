@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, cast
 
@@ -101,6 +102,17 @@ _METRIC_LABELS = {
     "INFORMATION_RATIO": "Information Ratio",
     "VAR": "Value at Risk",
 }
+
+
+@dataclass(frozen=True)
+class DrawdownMappingResult:
+    periods: list[WorkbenchRiskDrawdownPeriodResult]
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    benchmark_supportability_state: RiskSupportabilityState
+    benchmark_supportability_reason: str | None
+    underwater_supportability_state: RiskSupportabilityState
+    underwater_supportability_reason: str | None
 
 
 class RiskWorkspaceService:
@@ -819,176 +831,26 @@ def _map_drawdown_response(
     upstream_payload: dict[str, Any],
 ) -> WorkbenchRiskDrawdownResponse:
     results = upstream_payload.get("results")
-    warnings: list[str] = []
-    partial_failures: list[WorkbenchPartialFailure] = []
-    period_results: list[WorkbenchRiskDrawdownPeriodResult] = []
-    supportability = [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_returns",
-            label="Portfolio returns",
-            state="ready" if isinstance(results, dict) and results else "unavailable",
-            source_service="lotus-risk",
-        )
-    ]
-    benchmark_supportability_state: RiskSupportabilityState = "unavailable"
-    benchmark_supportability_reason: str | None = None
-    underwater_supportability_state: RiskSupportabilityState = (
-        "partial" if not include_underwater_series else "unavailable"
+    mapping = _map_drawdown_period_results(
+        results=results,
+        benchmark_code=benchmark_code,
+        include_underwater_series=include_underwater_series,
     )
-    underwater_supportability_reason = (
-        "Underwater series is available on demand and is not included in first paint."
-        if not include_underwater_series
-        else None
-    )
-
-    if isinstance(results, dict):
-        for key, value in results.items():
-            if not isinstance(value, dict):
-                continue
-            summary_payload = value.get("summary")
-            episodes_payload = value.get("episodes")
-            relative_payload = value.get("relative_to_benchmark")
-            underwater_payload = value.get("underwater_series")
-            error = value.get("error")
-
-            summary = (
-                _map_drawdown_summary(summary_payload)
-                if isinstance(summary_payload, dict)
-                else None
-            )
-            episodes = (
-                _map_drawdown_episodes(episodes_payload)
-                if isinstance(episodes_payload, list)
-                else []
-            )
-            relative_to_benchmark = (
-                WorkbenchRiskRelativeDrawdownSummary.model_validate(relative_payload)
-                if isinstance(relative_payload, dict)
-                else None
-            )
-            underwater_series = (
-                _map_underwater_series(underwater_payload)
-                if isinstance(underwater_payload, list)
-                else None
-            )
-
-            if benchmark_code:
-                if relative_to_benchmark is not None:
-                    benchmark_supportability_state = "ready"
-                elif isinstance(error, str) and error.strip():
-                    benchmark_supportability_state = "partial"
-                    benchmark_supportability_reason = error
-                else:
-                    benchmark_supportability_state = "partial"
-                    benchmark_supportability_reason = (
-                        "Benchmark-relative drawdown was not returned by lotus-risk."
-                    )
-            else:
-                benchmark_supportability_state = "partial"
-                benchmark_supportability_reason = (
-                    "Benchmark-relative drawdown requires benchmark context."
-                )
-
-            if include_underwater_series:
-                if underwater_series is not None:
-                    underwater_supportability_state = "ready"
-                    underwater_supportability_reason = None
-                else:
-                    underwater_supportability_state = "partial"
-                    underwater_supportability_reason = (
-                        "Underwater series detail was requested but not returned by lotus-risk."
-                    )
-
-            if isinstance(error, str) and error.strip():
-                partial_failures.append(
-                    WorkbenchPartialFailure(
-                        source_service="risk",
-                        error_code="DRAWDOWN_PERIOD_ERROR",
-                        detail=f"{key}: {error}",
-                    )
-                )
-                warnings.append("RISK_DRAWDOWN_PERIOD_PARTIAL")
-
-            period_results.append(
-                WorkbenchRiskDrawdownPeriodResult(
-                    key=str(key),
-                    label=str(key),
-                    start_date=str(value.get("start_date", "")),
-                    end_date=str(value.get("end_date", "")),
-                    portfolio_observation_count=int(value.get("portfolio_observation_count", 0)),
-                    benchmark_observation_count=int(value.get("benchmark_observation_count", 0)),
-                    summary=summary,
-                    episodes=episodes,
-                    relative_to_benchmark=relative_to_benchmark,
-                    relative_to_benchmark_context=(
-                        WorkbenchRiskRelativeDrawdownContext.model_validate(
-                            value.get("relative_to_benchmark_context")
-                        )
-                        if isinstance(value.get("relative_to_benchmark_context"), dict)
-                        else None
-                    ),
-                    underwater_series=underwater_series,
-                    error=str(error) if isinstance(error, str) and error.strip() else None,
-                )
-            )
-
-    supportability.extend(
-        [
-            WorkbenchRiskSupportabilityItem(
-                key=_DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK,
-                label="Benchmark-relative drawdown",
-                state=benchmark_supportability_state,
-                reason=benchmark_supportability_reason,
-                source_service="lotus-risk",
-            ),
-            WorkbenchRiskSupportabilityItem(
-                key="underwater_series",
-                label="Underwater series",
-                state=underwater_supportability_state,
-                reason=underwater_supportability_reason,
-                source_service="lotus-risk",
-            ),
-        ]
+    supportability = _build_drawdown_supportability(
+        results=results,
+        mapping=mapping,
     )
     _append_source_calculation_supportability(
         supportability=supportability,
         upstream_payload=upstream_payload,
     )
 
-    state: RiskModuleState = (
-        "partial" if any(item.state != "ready" for item in supportability) else "ready"
-    )
-    if not period_results:
-        state = "unavailable"
-        warnings.append("RISK_DRAWDOWN_EMPTY")
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="risk",
-                error_code="EMPTY_RISK_DRAWDOWN",
-                detail="lotus-risk returned no drawdown periods.",
-            )
-        )
-    elif all(period.summary is None for period in period_results):
-        state = "unavailable"
-
-    metadata = _metadata(input_mode="stateful", cache_status="miss")
     upstream_metadata = upstream_payload.get("metadata")
-    if isinstance(upstream_metadata, dict):
-        methodology_version = upstream_metadata.get("methodology_version")
-        if isinstance(methodology_version, str) and methodology_version.strip():
-            metadata = metadata.model_copy(update={"methodology_version": methodology_version})
-
-    drawdown_payload = (
-        WorkbenchRiskDrawdownPayload(
-            periods=period_results,
-            analysis_context=(
-                WorkbenchRiskDrawdownAnalysisContext.model_validate(upstream_metadata)
-                if isinstance(upstream_metadata, dict)
-                else None
-            ),
-        )
-        if period_results
-        else None
+    state, warnings, partial_failures = _resolve_drawdown_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=mapping.warnings,
+        partial_failures=mapping.partial_failures,
     )
 
     return WorkbenchRiskDrawdownResponse(
@@ -998,11 +860,221 @@ def _map_drawdown_response(
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
         state=state,
-        payload=drawdown_payload,
+        payload=_build_drawdown_payload(
+            period_results=mapping.periods,
+            upstream_metadata=upstream_metadata,
+        ),
         supportability=supportability,
         warnings=sorted(set(warnings)),
         partial_failures=partial_failures,
-        metadata=metadata,
+        metadata=_build_drawdown_metadata(upstream_metadata=upstream_metadata),
+    )
+
+
+def _map_drawdown_period_results(
+    *,
+    results: Any,
+    benchmark_code: str | None,
+    include_underwater_series: bool,
+) -> DrawdownMappingResult:
+    warnings: list[str] = []
+    partial_failures: list[WorkbenchPartialFailure] = []
+    period_results: list[WorkbenchRiskDrawdownPeriodResult] = []
+    benchmark_state: RiskSupportabilityState = "unavailable"
+    benchmark_reason: str | None = None
+    underwater_state: RiskSupportabilityState = (
+        "partial" if not include_underwater_series else "unavailable"
+    )
+    underwater_reason = (
+        "Underwater series is available on demand and is not included in first paint."
+        if not include_underwater_series
+        else None
+    )
+
+    if isinstance(results, dict):
+        for key, value in results.items():
+            if not isinstance(value, dict):
+                continue
+            period = _map_drawdown_period_result(key=key, value=value)
+            benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
+                benchmark_code=benchmark_code,
+                relative_to_benchmark=period.relative_to_benchmark,
+                error=value.get("error"),
+            )
+            if include_underwater_series:
+                underwater_state, underwater_reason = _resolve_underwater_supportability(
+                    underwater_series=period.underwater_series,
+                )
+            if period.error:
+                partial_failures.append(
+                    WorkbenchPartialFailure(
+                        source_service="risk",
+                        error_code="DRAWDOWN_PERIOD_ERROR",
+                        detail=f"{key}: {period.error}",
+                    )
+                )
+                warnings.append("RISK_DRAWDOWN_PERIOD_PARTIAL")
+            period_results.append(period)
+
+    return DrawdownMappingResult(
+        periods=period_results,
+        warnings=warnings,
+        partial_failures=partial_failures,
+        benchmark_supportability_state=benchmark_state,
+        benchmark_supportability_reason=benchmark_reason,
+        underwater_supportability_state=underwater_state,
+        underwater_supportability_reason=underwater_reason,
+    )
+
+
+def _map_drawdown_period_result(
+    *,
+    key: Any,
+    value: dict[str, Any],
+) -> WorkbenchRiskDrawdownPeriodResult:
+    summary_payload = value.get("summary")
+    episodes_payload = value.get("episodes")
+    relative_payload = value.get("relative_to_benchmark")
+    underwater_payload = value.get("underwater_series")
+    error = value.get("error")
+
+    return WorkbenchRiskDrawdownPeriodResult(
+        key=str(key),
+        label=str(key),
+        start_date=str(value.get("start_date", "")),
+        end_date=str(value.get("end_date", "")),
+        portfolio_observation_count=int(value.get("portfolio_observation_count", 0)),
+        benchmark_observation_count=int(value.get("benchmark_observation_count", 0)),
+        summary=(
+            _map_drawdown_summary(summary_payload) if isinstance(summary_payload, dict) else None
+        ),
+        episodes=(
+            _map_drawdown_episodes(episodes_payload) if isinstance(episodes_payload, list) else []
+        ),
+        relative_to_benchmark=(
+            WorkbenchRiskRelativeDrawdownSummary.model_validate(relative_payload)
+            if isinstance(relative_payload, dict)
+            else None
+        ),
+        relative_to_benchmark_context=(
+            WorkbenchRiskRelativeDrawdownContext.model_validate(
+                value.get("relative_to_benchmark_context")
+            )
+            if isinstance(value.get("relative_to_benchmark_context"), dict)
+            else None
+        ),
+        underwater_series=(
+            _map_underwater_series(underwater_payload)
+            if isinstance(underwater_payload, list)
+            else None
+        ),
+        error=str(error) if isinstance(error, str) and error.strip() else None,
+    )
+
+
+def _resolve_drawdown_benchmark_supportability(
+    *,
+    benchmark_code: str | None,
+    relative_to_benchmark: WorkbenchRiskRelativeDrawdownSummary | None,
+    error: Any,
+) -> tuple[RiskSupportabilityState, str | None]:
+    if not benchmark_code:
+        return "partial", "Benchmark-relative drawdown requires benchmark context."
+    if relative_to_benchmark is not None:
+        return "ready", None
+    if isinstance(error, str) and error.strip():
+        return "partial", error
+    return "partial", "Benchmark-relative drawdown was not returned by lotus-risk."
+
+
+def _resolve_underwater_supportability(
+    *,
+    underwater_series: list[WorkbenchRiskUnderwaterPoint] | None,
+) -> tuple[RiskSupportabilityState, str | None]:
+    if underwater_series is not None:
+        return "ready", None
+    return "partial", "Underwater series detail was requested but not returned by lotus-risk."
+
+
+def _build_drawdown_supportability(
+    *,
+    results: Any,
+    mapping: DrawdownMappingResult,
+) -> list[WorkbenchRiskSupportabilityItem]:
+    return [
+        WorkbenchRiskSupportabilityItem(
+            key="portfolio_returns",
+            label="Portfolio returns",
+            state="ready" if isinstance(results, dict) and results else "unavailable",
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key=_DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK,
+            label="Benchmark-relative drawdown",
+            state=mapping.benchmark_supportability_state,
+            reason=mapping.benchmark_supportability_reason,
+            source_service="lotus-risk",
+        ),
+        WorkbenchRiskSupportabilityItem(
+            key="underwater_series",
+            label="Underwater series",
+            state=mapping.underwater_supportability_state,
+            reason=mapping.underwater_supportability_reason,
+            source_service="lotus-risk",
+        ),
+    ]
+
+
+def _resolve_drawdown_state(
+    *,
+    period_results: list[WorkbenchRiskDrawdownPeriodResult],
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> tuple[RiskModuleState, list[str], list[WorkbenchPartialFailure]]:
+    resolved_warnings = list(warnings)
+    resolved_partial_failures = list(partial_failures)
+    state: RiskModuleState = (
+        "partial" if any(item.state != "ready" for item in supportability) else "ready"
+    )
+    if not period_results:
+        state = "unavailable"
+        resolved_warnings.append("RISK_DRAWDOWN_EMPTY")
+        resolved_partial_failures.append(
+            WorkbenchPartialFailure(
+                source_service="risk",
+                error_code="EMPTY_RISK_DRAWDOWN",
+                detail="lotus-risk returned no drawdown periods.",
+            )
+        )
+    elif all(period.summary is None for period in period_results):
+        state = "unavailable"
+    return state, resolved_warnings, resolved_partial_failures
+
+
+def _build_drawdown_metadata(*, upstream_metadata: Any) -> WorkbenchRiskMetadata:
+    metadata = _metadata(input_mode="stateful", cache_status="miss")
+    if isinstance(upstream_metadata, dict):
+        methodology_version = upstream_metadata.get("methodology_version")
+        if isinstance(methodology_version, str) and methodology_version.strip():
+            return metadata.model_copy(update={"methodology_version": methodology_version})
+    return metadata
+
+
+def _build_drawdown_payload(
+    *,
+    period_results: list[WorkbenchRiskDrawdownPeriodResult],
+    upstream_metadata: Any,
+) -> WorkbenchRiskDrawdownPayload | None:
+    if not period_results:
+        return None
+    return WorkbenchRiskDrawdownPayload(
+        periods=period_results,
+        analysis_context=(
+            WorkbenchRiskDrawdownAnalysisContext.model_validate(upstream_metadata)
+            if isinstance(upstream_metadata, dict)
+            else None
+        ),
     )
 
 
