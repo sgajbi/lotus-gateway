@@ -8,9 +8,9 @@ Baseline phase: report-only
 
 This baseline covers the current gateway hardening state after the report-only quality governance
 lane, router-registry split, performance workspace response split, and advisor-brief response
-split, risk drawdown mapper split, and risk rolling mapper split. It is intended to make quality
-debt visible before introducing stricter CI gates. Findings are not yet enforced unless they are
-already covered by existing repo-native gates.
+split, risk drawdown mapper split, risk rolling mapper split, and risk attribution mapper split.
+It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
+yet enforced unless they are already covered by existing repo-native gates.
 
 ## Repository Size
 
@@ -28,7 +28,7 @@ already covered by existing repo-native gates.
 | ---: | ---: | --- |
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,063 | `src/app/services/risk_workspace_service.py` |
+| 3 | 2,162 | `src/app/services/risk_workspace_service.py` |
 | 4 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
@@ -47,10 +47,10 @@ already covered by existing repo-native gates.
 | 4 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
 | 5 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
 | 6 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 7 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
-| 8 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 9 | 134 | `_build_shell_bootstrap` | `src/app/services/platform_capabilities_service.py` |
-| 10 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 7 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 8 | 134 | `_build_shell_bootstrap` | `src/app/services/platform_capabilities_service.py` |
+| 9 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 10 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
 
 ## Existing Blocking Gates
 
