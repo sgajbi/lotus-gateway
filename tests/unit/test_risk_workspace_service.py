@@ -491,13 +491,23 @@ async def test_risk_concentration_uses_stateful_request_and_maps_issuer_supporta
     assert response.payload.issuer_concentration.coverage_ratio_current == 0.8
     assert response.payload.execution_context is not None
     assert response.payload.execution_context.issuer_grouping_level == "ultimate_parent"
-    assert {item.key: item.state for item in response.supportability} == {
+    supportability = {item.key: item for item in response.supportability}
+    assert {key: item.state for key, item in supportability.items()} == {
         "portfolio_positions": "ready",
         "issuer_enrichment": "partial",
         "issuer_grouping": "ready",
         "valuation_basis": "ready",
         "source_calculation": "ready",
     }
+    assert supportability["issuer_enrichment"].reason == (
+        "Two positions have no issuer enrichment."
+    )
+    assert supportability["issuer_grouping"].reason == (
+        "Ultimate Parent grouping with merge caller then core enrichment policy."
+    )
+    assert supportability["valuation_basis"].reason == (
+        "Total Market Value Base in USD / USD context."
+    )
 
 
 @pytest.mark.asyncio

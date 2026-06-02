@@ -9,8 +9,6 @@ from app.config import settings
 from app.contracts.risk_workspace import (
     RiskModuleState,
     RiskSupportabilityState,
-    WorkbenchIssuerConcentration,
-    WorkbenchPortfolioConcentration,
     WorkbenchRiskAttributionContributor,
     WorkbenchRiskAttributionControls,
     WorkbenchRiskAttributionMethodologyContext,
@@ -18,10 +16,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskAttributionPeriodResult,
     WorkbenchRiskAttributionResponse,
     WorkbenchRiskAttributionSet,
-    WorkbenchRiskConcentrationExecutionContext,
-    WorkbenchRiskConcentrationPayload,
     WorkbenchRiskConcentrationResponse,
-    WorkbenchRiskConcentrationValuationContext,
     WorkbenchRiskDrawdownAnalysisContext,
     WorkbenchRiskDrawdownEpisode,
     WorkbenchRiskDrawdownPayload,
@@ -46,7 +41,6 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskSummaryResponse,
     WorkbenchRiskSupportabilityItem,
     WorkbenchRiskUnderwaterPoint,
-    WorkbenchSinglePositionConcentration,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
@@ -63,6 +57,10 @@ from app.services.risk_workspace_attribution_controls import (
     resolve_active_risk_grouping_support,
     risk_attribution_grouping_label,
     total_risk_gated_grouping_reason,
+)
+from app.services.risk_workspace_concentration import (
+    map_concentration_response,
+    unavailable_concentration,
 )
 from app.services.risk_workspace_requests import (
     SUMMARY_METRICS as _SUMMARY_METRICS,
@@ -259,7 +257,7 @@ class RiskWorkspaceService:
             if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
                 upstream_payload, dict
             ):
-                return _unavailable_concentration(
+                return unavailable_concentration(
                     correlation_id=correlation_id,
                     portfolio_id=portfolio_id,
                     period=period,
@@ -268,7 +266,7 @@ class RiskWorkspaceService:
                     upstream_status=upstream_status,
                     upstream_payload=upstream_payload,
                 )
-            return _map_concentration_response(
+            return map_concentration_response(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
                 period=period,
@@ -741,98 +739,6 @@ def _metric_dependency_supportability(
             source_service="lotus-risk",
         ),
     ]
-
-
-def _map_concentration_response(
-    *,
-    correlation_id: str,
-    portfolio_id: str,
-    period: str,
-    as_of_date: str,
-    benchmark_code: str | None,
-    upstream_payload: dict[str, Any],
-) -> WorkbenchRiskConcentrationResponse:
-    required_blocks = {
-        "portfolio_concentration": upstream_payload.get("risk_proxy"),
-        "single_position_concentration": upstream_payload.get("single_position_concentration"),
-        "issuer_concentration": upstream_payload.get("issuer_concentration"),
-    }
-    missing_blocks = [key for key, value in required_blocks.items() if not isinstance(value, dict)]
-    if missing_blocks:
-        return _malformed_concentration(
-            correlation_id=correlation_id,
-            portfolio_id=portfolio_id,
-            period=period,
-            as_of_date=as_of_date,
-            benchmark_code=benchmark_code,
-            missing_blocks=missing_blocks,
-        )
-    issuer_payload = upstream_payload.get("issuer_concentration")
-    issuer_state = _issuer_supportability_state(issuer_payload)
-    supportability = [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_positions",
-            label="Portfolio positions",
-            state="ready",
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="issuer_enrichment",
-            label="Issuer enrichment",
-            state=issuer_state,
-            reason=_issuer_supportability_reason(issuer_payload),
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="issuer_grouping",
-            label="Issuer grouping",
-            state="ready",
-            reason=_issuer_grouping_reason(upstream_payload.get("metadata")),
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="valuation_basis",
-            label="Valuation basis",
-            state="ready",
-            reason=_valuation_context_reason(upstream_payload.get("valuation_context")),
-            source_service="lotus-risk",
-        ),
-    ]
-    _append_source_calculation_supportability(
-        supportability=supportability,
-        upstream_payload=upstream_payload,
-    )
-    return WorkbenchRiskConcentrationResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state="ready" if all(item.state == "ready" for item in supportability) else "partial",
-        payload=WorkbenchRiskConcentrationPayload(
-            portfolio_concentration=WorkbenchPortfolioConcentration.model_validate(
-                required_blocks["portfolio_concentration"]
-            ),
-            single_position_concentration=WorkbenchSinglePositionConcentration.model_validate(
-                required_blocks["single_position_concentration"]
-            ),
-            issuer_concentration=WorkbenchIssuerConcentration.model_validate(
-                required_blocks["issuer_concentration"]
-            ),
-            valuation_context=WorkbenchRiskConcentrationValuationContext.model_validate(
-                upstream_payload.get("valuation_context")
-            )
-            if isinstance(upstream_payload.get("valuation_context"), dict)
-            else None,
-            execution_context=WorkbenchRiskConcentrationExecutionContext.model_validate(
-                upstream_payload.get("metadata")
-            )
-            if isinstance(upstream_payload.get("metadata"), dict)
-            else None,
-        ),
-        supportability=supportability,
-        metadata=_metadata(input_mode="stateful", cache_status="miss"),
-    )
 
 
 def _map_drawdown_response(
@@ -1688,58 +1594,6 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
-def _issuer_supportability_state(payload: Any) -> RiskSupportabilityState:
-    if not isinstance(payload, dict):
-        return "unavailable"
-    status_value = str(payload.get("coverage_status", "")).lower()
-    if status_value == "complete":
-        return "ready"
-    if status_value == "partial":
-        return "partial"
-    return "unavailable"
-
-
-def _issuer_supportability_reason(payload: Any) -> str | None:
-    if not isinstance(payload, dict):
-        return "Issuer concentration block was not returned by lotus-risk."
-    note = payload.get("note")
-    if isinstance(note, str) and note.strip():
-        return note
-    if str(payload.get("coverage_status", "")).lower() != "complete":
-        return "Issuer coverage is not complete for the selected portfolio context."
-    return None
-
-
-def _issuer_grouping_reason(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        return "Issuer grouping metadata was not returned by lotus-risk."
-    grouping = payload.get("issuer_grouping_level")
-    policy = payload.get("enrichment_policy")
-    grouping_label = str(grouping).replace("_", " ") if grouping else "unspecified grouping"
-    policy_label = str(policy).replace("_", " ") if policy else "unspecified policy"
-    return f"{grouping_label.title()} grouping with {policy_label} enrichment policy."
-
-
-def _valuation_context_reason(payload: Any) -> str:
-    if not isinstance(payload, dict):
-        return "Valuation context was not returned by lotus-risk."
-    reporting_currency = payload.get("reporting_currency")
-    portfolio_currency = payload.get("portfolio_currency")
-    weight_basis = payload.get("weight_basis")
-    basis_label = str(weight_basis).replace("_", " ") if weight_basis else "reported weights"
-    currency_context = " / ".join(
-        part
-        for part in [
-            str(reporting_currency) if reporting_currency else None,
-            str(portfolio_currency) if portfolio_currency else None,
-        ]
-        if part
-    )
-    if currency_context:
-        return f"{basis_label.title()} in {currency_context} context."
-    return f"{basis_label.title()} context."
-
-
 def _unavailable_summary(
     *,
     correlation_id: str,
@@ -1768,39 +1622,6 @@ def _unavailable_summary(
             )
         ],
         warnings=["RISK_SUMMARY_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
-        metadata=_metadata(input_mode="stateful", cache_status="miss"),
-    )
-
-
-def _unavailable_concentration(
-    *,
-    correlation_id: str,
-    portfolio_id: str,
-    period: str,
-    as_of_date: str,
-    benchmark_code: str | None,
-    upstream_status: int,
-    upstream_payload: Any,
-) -> WorkbenchRiskConcentrationResponse:
-    return WorkbenchRiskConcentrationResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state="unavailable",
-        payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service",
-                label="Risk service",
-                state="unavailable",
-                reason="lotus-risk concentration endpoint is unavailable.",
-                source_service="lotus-risk",
-            )
-        ],
-        warnings=["RISK_CONCENTRATION_UNAVAILABLE"],
         partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
@@ -1918,47 +1739,6 @@ def _unavailable_attribution(
         ),
         warnings=["RISK_ATTRIBUTION_UNAVAILABLE"],
         partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
-        metadata=_metadata(input_mode="stateful", cache_status="miss"),
-    )
-
-
-def _malformed_concentration(
-    *,
-    correlation_id: str,
-    portfolio_id: str,
-    period: str,
-    as_of_date: str,
-    benchmark_code: str | None,
-    missing_blocks: list[str],
-) -> WorkbenchRiskConcentrationResponse:
-    detail = "lotus-risk concentration response omitted required blocks: " + ", ".join(
-        missing_blocks
-    )
-    return WorkbenchRiskConcentrationResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state="unavailable",
-        payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service_contract",
-                label="Risk service contract",
-                state="unavailable",
-                reason=detail,
-                source_service="lotus-risk",
-            )
-        ],
-        warnings=["RISK_CONCENTRATION_CONTRACT_INVALID"],
-        partial_failures=[
-            WorkbenchPartialFailure(
-                source_service="risk",
-                error_code="MALFORMED_RISK_CONCENTRATION",
-                detail=detail,
-            )
-        ],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
