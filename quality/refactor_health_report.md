@@ -6,9 +6,9 @@ Phase: baseline/report-only
 ## Current Direction
 
 Recent gateway hardening has reduced monolithic Workbench, router-registry, performance workspace,
-and advisor-brief responsibilities by extracting focused service adapters while preserving public
-behavior and keeping CI green. The remaining work is still substantial: large portfolio, risk
-workspace, contract, and client modules remain.
+advisor-brief, and risk drawdown responsibilities by extracting focused service adapters while
+preserving public behavior and keeping CI green. The remaining work is still substantial: large
+portfolio, risk workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -28,7 +28,8 @@ workspace, contract, and client modules remain.
 
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
-2. Split `risk_workspace_service.py` response mappers by risk surface.
+2. Continue splitting `risk_workspace_service.py` response mappers by risk surface, starting with
+   rolling and attribution helpers.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.
