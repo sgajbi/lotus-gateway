@@ -115,6 +115,13 @@ class DrawdownMappingResult:
     underwater_supportability_reason: str | None
 
 
+@dataclass(frozen=True)
+class RollingMappingResult:
+    periods: list[WorkbenchRiskRollingPeriodResult]
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+
+
 class RiskWorkspaceService:
     def __init__(
         self,
@@ -1090,10 +1097,58 @@ def _map_rolling_response(
     upstream_payload: dict[str, Any],
 ) -> WorkbenchRiskRollingResponse:
     results = upstream_payload.get("results")
-    warnings: list[str] = []
-    partial_failures: list[WorkbenchPartialFailure] = []
-    period_results: list[WorkbenchRiskRollingPeriodResult] = []
-    supportability = [
+    mapping = _map_rolling_period_results(results)
+    supportability = _build_rolling_supportability(
+        results=results,
+        benchmark_code=benchmark_code,
+        include_time_series=include_time_series,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+    )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
+    upstream_metadata = upstream_payload.get("metadata")
+    warnings = list(mapping.warnings)
+    partial_failures = list(mapping.partial_failures)
+    _append_rolling_sharpe_fallback(
+        warnings=warnings,
+        partial_failures=partial_failures,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+    )
+    state, warnings, partial_failures = _resolve_rolling_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    return WorkbenchRiskRollingResponse(
+        correlation_id=correlation_id,
+        portfolio_id=portfolio_id,
+        period=period,
+        as_of_date=as_of_date,
+        benchmark_code=benchmark_code,
+        state=state,
+        payload=_build_rolling_payload(
+            period_results=mapping.periods,
+            upstream_metadata=upstream_metadata,
+        ),
+        supportability=supportability,
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=_build_rolling_metadata(upstream_metadata=upstream_metadata),
+    )
+
+
+def _build_rolling_supportability(
+    *,
+    results: Any,
+    benchmark_code: str | None,
+    include_time_series: bool,
+    sharpe_fallback_reason: str | None,
+) -> list[WorkbenchRiskSupportabilityItem]:
+    return [
         WorkbenchRiskSupportabilityItem(
             key="portfolio_returns",
             label="Portfolio returns",
@@ -1130,86 +1185,126 @@ def _map_rolling_response(
             source_service="lotus-risk",
         ),
     ]
-    _append_source_calculation_supportability(
-        supportability=supportability,
-        upstream_payload=upstream_payload,
-    )
 
-    if isinstance(results, dict):
-        for key, value in results.items():
-            if not isinstance(value, dict):
-                continue
-            quality_flags = [
-                str(flag)
-                for flag in value.get("quality_flags", [])
-                if isinstance(flag, str) and flag.strip()
-            ]
-            error = value.get("error")
-            if quality_flags:
-                warnings.append("RISK_ROLLING_QUALITY_FLAGS")
-            if isinstance(error, str) and error.strip():
-                partial_failures.append(
-                    WorkbenchPartialFailure(
-                        source_service="risk",
-                        error_code="ROLLING_PERIOD_ERROR",
-                        detail=f"{key}: {error}",
-                    )
-                )
-                warnings.append("RISK_ROLLING_PERIOD_PARTIAL")
-            period_results.append(
-                WorkbenchRiskRollingPeriodResult(
-                    key=str(key),
-                    label=str(key),
-                    start_date=str(value.get("start_date", "")),
-                    end_date=str(value.get("end_date", "")),
-                    series_count=int(value.get("series_count", 0)),
-                    benchmark_series_count=int(value.get("benchmark_series_count", 0)),
-                    aligned_benchmark_series_count=int(
-                        value.get("aligned_benchmark_series_count", 0)
-                    ),
-                    risk_free_series_count=int(value.get("risk_free_series_count", 0)),
-                    aligned_risk_free_series_count=int(
-                        value.get("aligned_risk_free_series_count", 0)
-                    ),
-                    window_lengths_requested=[
-                        int(window)
-                        for window in value.get("window_lengths_requested", [])
-                        if isinstance(window, int | float)
-                    ],
-                    window_count_requested=int(value.get("window_count_requested", 0)),
-                    window_lengths_emitted=[
-                        int(window)
-                        for window in value.get("window_lengths_emitted", [])
-                        if isinstance(window, int | float)
-                    ],
-                    window_count_emitted=int(value.get("window_count_emitted", 0)),
-                    benchmark_context=(
-                        WorkbenchRiskRollingDependencyContext.model_validate(
-                            value.get("benchmark_context")
-                        )
-                        if isinstance(value.get("benchmark_context"), dict)
-                        else None
-                    ),
-                    risk_free_context=(
-                        WorkbenchRiskRollingDependencyContext.model_validate(
-                            value.get("risk_free_context")
-                        )
-                        if isinstance(value.get("risk_free_context"), dict)
-                        else None
-                    ),
-                    window_results=_map_rolling_window_results(value.get("window_results")),
-                    quality_flags=quality_flags,
-                    error=str(error) if isinstance(error, str) and error.strip() else None,
+
+def _map_rolling_period_results(results: Any) -> RollingMappingResult:
+    warnings: list[str] = []
+    partial_failures: list[WorkbenchPartialFailure] = []
+    period_results: list[WorkbenchRiskRollingPeriodResult] = []
+
+    if not isinstance(results, dict):
+        return RollingMappingResult(
+            periods=period_results,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    for key, value in results.items():
+        if not isinstance(value, dict):
+            continue
+        period = _map_rolling_period_result(key=key, value=value)
+        if period.quality_flags:
+            warnings.append("RISK_ROLLING_QUALITY_FLAGS")
+        if period.error:
+            partial_failures.append(
+                WorkbenchPartialFailure(
+                    source_service="risk",
+                    error_code="ROLLING_PERIOD_ERROR",
+                    detail=f"{key}: {period.error}",
                 )
             )
+            warnings.append("RISK_ROLLING_PERIOD_PARTIAL")
+        period_results.append(period)
 
+    return RollingMappingResult(
+        periods=period_results,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+
+def _map_rolling_period_result(
+    *,
+    key: Any,
+    value: dict[str, Any],
+) -> WorkbenchRiskRollingPeriodResult:
+    quality_flags = [
+        str(flag)
+        for flag in value.get("quality_flags", [])
+        if isinstance(flag, str) and flag.strip()
+    ]
+    error = value.get("error")
+    return WorkbenchRiskRollingPeriodResult(
+        key=str(key),
+        label=str(key),
+        start_date=str(value.get("start_date", "")),
+        end_date=str(value.get("end_date", "")),
+        series_count=int(value.get("series_count", 0)),
+        benchmark_series_count=int(value.get("benchmark_series_count", 0)),
+        aligned_benchmark_series_count=int(value.get("aligned_benchmark_series_count", 0)),
+        risk_free_series_count=int(value.get("risk_free_series_count", 0)),
+        aligned_risk_free_series_count=int(value.get("aligned_risk_free_series_count", 0)),
+        window_lengths_requested=_rolling_window_lengths(value.get("window_lengths_requested")),
+        window_count_requested=int(value.get("window_count_requested", 0)),
+        window_lengths_emitted=_rolling_window_lengths(value.get("window_lengths_emitted")),
+        window_count_emitted=int(value.get("window_count_emitted", 0)),
+        benchmark_context=_rolling_dependency_context(value.get("benchmark_context")),
+        risk_free_context=_rolling_dependency_context(value.get("risk_free_context")),
+        window_results=_map_rolling_window_results(value.get("window_results")),
+        quality_flags=quality_flags,
+        error=str(error) if isinstance(error, str) and error.strip() else None,
+    )
+
+
+def _rolling_window_lengths(value: Any) -> list[int]:
+    if not isinstance(value, list):
+        return []
+    return [int(window) for window in value if isinstance(window, int | float)]
+
+
+def _rolling_dependency_context(value: Any) -> WorkbenchRiskRollingDependencyContext | None:
+    return (
+        WorkbenchRiskRollingDependencyContext.model_validate(value)
+        if isinstance(value, dict)
+        else None
+    )
+
+
+def _append_rolling_sharpe_fallback(
+    *,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+    sharpe_fallback_reason: str | None,
+) -> None:
+    if not sharpe_fallback_reason:
+        return
+
+    partial_failures.append(
+        WorkbenchPartialFailure(
+            source_service="risk",
+            error_code="ROLLING_SHARPE_UNAVAILABLE",
+            detail=sharpe_fallback_reason,
+        )
+    )
+    warnings.append("RISK_ROLLING_SHARPE_PARTIAL")
+
+
+def _resolve_rolling_state(
+    *,
+    period_results: list[WorkbenchRiskRollingPeriodResult],
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> tuple[RiskModuleState, list[str], list[WorkbenchPartialFailure]]:
+    resolved_warnings = list(warnings)
+    resolved_partial_failures = list(partial_failures)
     state: RiskModuleState = (
         "partial" if any(item.state != "ready" for item in supportability) else "ready"
     )
     if not period_results:
         state = "unavailable"
-        warnings.append("RISK_ROLLING_EMPTY")
-        partial_failures.append(
+        resolved_warnings.append("RISK_ROLLING_EMPTY")
+        resolved_partial_failures.append(
             WorkbenchPartialFailure(
                 source_service="risk",
                 error_code="EMPTY_RISK_ROLLING",
@@ -1218,49 +1313,32 @@ def _map_rolling_response(
         )
     elif all(not period.window_results for period in period_results):
         state = "unavailable"
+    return state, resolved_warnings, resolved_partial_failures
 
+
+def _build_rolling_metadata(*, upstream_metadata: Any) -> WorkbenchRiskMetadata:
     metadata = _metadata(input_mode="stateful", cache_status="miss")
-    upstream_metadata = upstream_payload.get("metadata")
     if isinstance(upstream_metadata, dict):
         methodology_version = upstream_metadata.get("methodology_version")
         if isinstance(methodology_version, str) and methodology_version.strip():
-            metadata = metadata.model_copy(update={"methodology_version": methodology_version})
+            return metadata.model_copy(update={"methodology_version": methodology_version})
+    return metadata
 
-    if sharpe_fallback_reason:
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="risk",
-                error_code="ROLLING_SHARPE_UNAVAILABLE",
-                detail=sharpe_fallback_reason,
-            )
-        )
-        warnings.append("RISK_ROLLING_SHARPE_PARTIAL")
 
-    rolling_payload = (
-        WorkbenchRiskRollingPayload(
-            periods=period_results,
-            request_context=(
-                WorkbenchRiskRollingRequestContext.model_validate(upstream_metadata)
-                if isinstance(upstream_metadata, dict)
-                else None
-            ),
-        )
-        if period_results
-        else None
-    )
-
-    return WorkbenchRiskRollingResponse(
-        correlation_id=correlation_id,
-        portfolio_id=portfolio_id,
-        period=period,
-        as_of_date=as_of_date,
-        benchmark_code=benchmark_code,
-        state=state,
-        payload=rolling_payload,
-        supportability=supportability,
-        warnings=sorted(set(warnings)),
-        partial_failures=partial_failures,
-        metadata=metadata,
+def _build_rolling_payload(
+    *,
+    period_results: list[WorkbenchRiskRollingPeriodResult],
+    upstream_metadata: Any,
+) -> WorkbenchRiskRollingPayload | None:
+    if not period_results:
+        return None
+    return WorkbenchRiskRollingPayload(
+        periods=period_results,
+        request_context=(
+            WorkbenchRiskRollingRequestContext.model_validate(upstream_metadata)
+            if isinstance(upstream_metadata, dict)
+            else None
+        ),
     )
 
 
