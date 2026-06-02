@@ -8,8 +8,9 @@ Baseline phase: report-only
 
 This baseline covers the current gateway hardening state after the report-only quality governance
 lane, router-registry split, performance workspace response split, and advisor-brief response
-split. It is intended to make quality debt visible before introducing stricter CI gates. Findings
-are not yet enforced unless they are already covered by existing repo-native gates.
+split, and risk drawdown mapper split. It is intended to make quality debt visible before
+introducing stricter CI gates. Findings are not yet enforced unless they are already covered by
+existing repo-native gates.
 
 ## Repository Size
 
@@ -28,10 +29,10 @@ are not yet enforced unless they are already covered by existing repo-native gat
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,912 | `src/app/services/risk_workspace_service.py` |
+| 4 | 1,986 | `src/app/services/risk_workspace_service.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 7 | 1,388 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,392 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
 | 9 | 1,152 | `src/app/services/performance_workspace_service.py` |
 | 10 | 1,098 | `src/app/clients/advise_client.py` |
@@ -40,16 +41,16 @@ are not yet enforced unless they are already covered by existing repo-native gat
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 196 | `_map_drawdown_response` | `src/app/services/risk_workspace_service.py` |
-| 2 | 195 | `_build_normalized_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 3 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
-| 4 | 184 | `_map_rolling_response` | `src/app/services/risk_workspace_service.py` |
-| 5 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 6 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
-| 7 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
-| 8 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 9 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
-| 10 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 1 | 195 | `_build_normalized_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 2 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
+| 3 | 184 | `_map_rolling_response` | `src/app/services/risk_workspace_service.py` |
+| 4 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 5 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
+| 6 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
+| 7 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 8 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
+| 9 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 10 | 134 | `_build_shell_bootstrap` | `src/app/services/platform_capabilities_service.py` |
 
 ## Existing Blocking Gates
 
@@ -88,7 +89,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 196 lines,
+2. no new function above the current longest-function baseline of 195 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
