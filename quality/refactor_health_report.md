@@ -6,9 +6,9 @@ Phase: baseline/report-only
 ## Current Direction
 
 Recent gateway hardening has reduced monolithic Workbench, router-registry, performance workspace,
-advisor-brief, risk drawdown, and risk rolling responsibilities by extracting focused service
-adapters while preserving public behavior and keeping CI green. The remaining work is still
-substantial: large portfolio, risk workspace, contract, and client modules remain.
+advisor-brief, risk drawdown, risk rolling, and risk attribution responsibilities by extracting
+focused service adapters while preserving public behavior and keeping CI green. The remaining work
+is still substantial: large portfolio, risk workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -17,7 +17,7 @@ substantial: large portfolio, risk workspace, contract, and client modules remai
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
 | Unit/contract coverage | Healthy | 934 tests passed in `make check` for the router-registry split |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.65%, above the 84% floor |
+| Total coverage | Healthy | 92.63%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
 | Modularity | Improving, incomplete | Multiple service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
@@ -28,8 +28,8 @@ substantial: large portfolio, risk workspace, contract, and client modules remai
 
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
-2. Continue splitting `risk_workspace_service.py` response mappers by risk surface, with
-   attribution mapping now the next risk mapper target.
+2. Continue splitting `risk_workspace_service.py` by risk surface, with concentration and shared
+   unavailable-envelope helpers as the next risk workspace targets.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.
