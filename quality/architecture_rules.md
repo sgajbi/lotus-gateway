@@ -41,9 +41,10 @@ The largest current modularity risks are:
 4. `src/app/services/dpm_command_center_service.py` at 966 lines,
 5. `src/app/services/performance_workspace_service.py` at 937 lines.
 
-The longest current function is `register_routers` in `src/app/router_registry.py` at 298 lines.
-That function should be split into route-family registration groups without changing route
-contract behavior.
+The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
+into explicit route-family groups and a short registration loop. The current longest function is
+`_build_performance_workspace_response` in
+`src/app/services/performance_workspace_service.py` at 253 lines.
 
 ## Progressive Enforcement
 
