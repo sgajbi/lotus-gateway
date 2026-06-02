@@ -6,9 +6,10 @@ Baseline phase: report-only
 
 ## Scope
 
-This baseline covers the current `main` state after PR #311. It is intended to make quality debt
-visible before introducing stricter CI gates. Findings are not yet enforced unless they are already
-covered by existing repo-native gates.
+This baseline covers the current gateway hardening state after the report-only quality governance
+lane and router-registry split. It is intended to make quality debt visible before introducing
+stricter CI gates. Findings are not yet enforced unless they are already covered by existing
+repo-native gates.
 
 ## Repository Size
 
@@ -39,16 +40,16 @@ covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 298 | `register_routers` | `src/app/router_registry.py` |
-| 2 | 253 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 3 | 241 | `_build_performance_advisor_brief` | `src/app/services/advisor_brief_service.py` |
-| 4 | 196 | `_map_drawdown_response` | `src/app/services/risk_workspace_service.py` |
-| 5 | 195 | `_build_normalized_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 6 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
-| 7 | 184 | `_map_rolling_response` | `src/app/services/risk_workspace_service.py` |
-| 8 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 9 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
-| 10 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 1 | 253 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 2 | 241 | `_build_performance_advisor_brief` | `src/app/services/advisor_brief_service.py` |
+| 3 | 196 | `_map_drawdown_response` | `src/app/services/risk_workspace_service.py` |
+| 4 | 195 | `_build_normalized_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 5 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
+| 6 | 184 | `_map_rolling_response` | `src/app/services/risk_workspace_service.py` |
+| 7 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 8 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
+| 9 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 10 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -65,11 +66,11 @@ Current repo-native gates already cover:
 9. `pip-audit` with one governed FastAPI/Starlette exception,
 10. Docker build and local Docker parity in the PR Merge Gate.
 
-Most recent local evidence from PR #311:
+Most recent local evidence:
 
-1. `make check`: 932 unit/contract tests passed.
+1. `make check`: 934 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,139 coverage tests passed.
+3. `make ci`: 1,141 coverage tests passed.
 4. Coverage: 92.60%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
@@ -83,11 +84,11 @@ Baseline workflow installs Python and Node quality tooling explicitly.
 ## Complexity And Maintainability Gaps
 
 Report-only complexity tools are being introduced now. Current manual size evidence already shows
-large-file and long-function hotspots in service, contract, client, and router registration code.
+large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline,
+2. no new function above the current longest-function baseline of 253 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

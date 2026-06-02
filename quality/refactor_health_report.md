@@ -7,16 +7,16 @@ Phase: baseline/report-only
 
 Recent gateway hardening has reduced monolithic Workbench and advisor-brief responsibilities by
 extracting focused service adapters while preserving public behavior and keeping CI green. The
-remaining work is still substantial: large portfolio, risk workspace, contract, client, and router
-registration modules remain.
+remaining work is still substantial: large portfolio, risk workspace, contract, and client modules
+remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | `main` only after PR #311 cleanup |
-| Unit/contract coverage | Healthy | 932 tests passed in `make check` on PR #311 |
-| Integration coverage | Healthy | 207 integration tests passed in `make ci` on PR #311 |
+| Branch hygiene | Healthy | clean `main` before the router-registry split |
+| Unit/contract coverage | Healthy | 934 tests passed in `make check` for the router-registry split |
+| Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.60%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
 | Modularity | Improving, incomplete | Multiple service files remain above 900 lines |
@@ -29,7 +29,7 @@ registration modules remain.
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
 2. Split `risk_workspace_service.py` response mappers by risk surface.
-3. Split `router_registry.py` registration into route-family groups.
+3. Split `_build_performance_workspace_response` into smaller response-shaping adapters.
 4. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
 5. Normalize route-specific upstream errors toward shared problem-details mapping.

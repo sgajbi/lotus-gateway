@@ -1,9 +1,9 @@
 import ast
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 
-from app.router_registry import register_routers
+from app.router_registry import ROUTER_GROUPS, register_routers
 
 _MAIN_MODULE = Path(__file__).parents[2] / "src" / "app" / "main.py"
 
@@ -30,6 +30,20 @@ def test_router_registry_mounts_representative_gateway_route_families() -> None:
     assert "/api/v1/dpm/command-center" in routes
     assert "/api/v1/report-batches/{batch_id}" in routes
     assert "/api/v1/documents/{document_id}" in routes
+
+
+def test_router_registry_groups_are_non_empty_router_groups() -> None:
+    assert ROUTER_GROUPS
+
+    for router_group in ROUTER_GROUPS:
+        assert router_group
+        assert all(isinstance(router, APIRouter) for router in router_group)
+
+
+def test_router_registry_groups_do_not_duplicate_router_instances() -> None:
+    routers = [router for router_group in ROUTER_GROUPS for router in router_group]
+
+    assert len(routers) == len({id(router) for router in routers})
 
 
 def test_main_delegates_router_imports_to_registry() -> None:
