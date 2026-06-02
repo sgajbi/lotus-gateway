@@ -28,7 +28,7 @@ already covered by existing repo-native gates.
 | ---: | ---: | --- |
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,062 | `src/app/services/risk_workspace_service.py` |
+| 3 | 2,063 | `src/app/services/risk_workspace_service.py` |
 | 4 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
@@ -72,7 +72,7 @@ Most recent local evidence:
 1. `make check`: 934 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
 3. `make ci`: 1,141 coverage tests passed.
-4. Coverage: 92.60%.
+4. Coverage: 92.65%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
