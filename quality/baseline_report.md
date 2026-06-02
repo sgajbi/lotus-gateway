@@ -8,7 +8,8 @@ Baseline phase: report-only
 
 This baseline covers the current gateway hardening state after the report-only quality governance
 lane, router-registry split, performance workspace response split, and advisor-brief response
-split, risk drawdown mapper split, risk rolling mapper split, and risk attribution mapper split.
+split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split, and
+risk concentration mapper extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -28,8 +29,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 | ---: | ---: | --- |
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,162 | `src/app/services/risk_workspace_service.py` |
-| 4 | 2,043 | `src/app/contracts/risk_workspace.py` |
+| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
+| 4 | 1,942 | `src/app/services/risk_workspace_service.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,392 | `src/app/services/advisor_brief_service.py` |
