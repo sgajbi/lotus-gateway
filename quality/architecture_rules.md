@@ -36,7 +36,7 @@ report-only baseline is reviewed.
 The largest current modularity risks are:
 
 1. `src/app/services/portfolio_service.py` at 3,016 lines,
-2. `src/app/services/risk_workspace_service.py` at 1,986 lines,
+2. `src/app/services/risk_workspace_service.py` at 2,062 lines,
 3. `src/app/services/advisor_brief_service.py` at 1,392 lines,
 4. `src/app/services/performance_workspace_service.py` at 1,152 lines,
 5. `src/app/services/dpm_command_center_service.py` at 966 lines.
@@ -46,9 +46,10 @@ into explicit route-family groups and a short registration loop. The performance
 response builder has also been split into request-context, summary/detail, evidence, and assembly
 helpers. The advisor-brief response builder has been split into source-context, AI narrative,
 runtime supportability, and response assembly helpers. The risk drawdown mapper has been split into
-period mapping, supportability, state, metadata, and payload helpers. The current longest function
-is `_build_normalized_capabilities` in `src/app/services/platform_capabilities_service.py` at 195
-lines.
+period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
+been split into period mapping, dependency context, supportability, state, metadata, Sharpe
+fallback, and payload helpers. The current longest function is `_build_normalized_capabilities` in
+`src/app/services/platform_capabilities_service.py` at 195 lines.
 
 ## Progressive Enforcement
 
