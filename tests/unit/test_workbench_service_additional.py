@@ -168,12 +168,14 @@ class _StubDpmClient:
         return self.simulate_status, self.simulate_payload
 
 
-def _build_service() -> tuple[
-    WorkbenchService,
-    _StubLotusCoreQueryClient,
-    _StubLotusAnalyticsClient,
-    _StubDpmClient,
-]:
+def _build_service() -> (
+    tuple[
+        WorkbenchService,
+        _StubLotusCoreQueryClient,
+        _StubLotusAnalyticsClient,
+        _StubDpmClient,
+    ]
+):
     pas = _StubLotusCoreQueryClient()
     performance = _StubLotusAnalyticsClient()
     dpm = _StubDpmClient()
