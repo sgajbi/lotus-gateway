@@ -5,10 +5,10 @@ Phase: baseline/report-only
 
 ## Current Direction
 
-Recent gateway hardening has reduced monolithic Workbench and advisor-brief responsibilities by
-extracting focused service adapters while preserving public behavior and keeping CI green. The
-remaining work is still substantial: large portfolio, risk workspace, contract, and client modules
-remain.
+Recent gateway hardening has reduced monolithic Workbench, router-registry, advisor-brief, and
+performance workspace responsibilities by extracting focused service adapters while preserving
+public behavior and keeping CI green. The remaining work is still substantial: large portfolio,
+risk workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -19,7 +19,7 @@ remain.
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.60%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Multiple service files remain above 900 lines |
+| Modularity | Improving, incomplete | Multiple service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -29,11 +29,13 @@ remain.
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
 2. Split `risk_workspace_service.py` response mappers by risk surface.
-3. Split `_build_performance_workspace_response` into smaller response-shaping adapters.
-4. Split large contract modules only when contract ownership boundaries are clear and tests remain
+3. Split `advisor_brief_service.py` orchestration into smaller response-shaping adapters.
+4. Continue extracting performance workspace evidence and attribution helpers behind stable
+   response contracts.
+5. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
-5. Normalize route-specific upstream errors toward shared problem-details mapping.
-6. Add explicit API governance tests for missing operation descriptions, tags, standard errors, and
+6. Normalize route-specific upstream errors toward shared problem-details mapping.
+7. Add explicit API governance tests for missing operation descriptions, tags, standard errors, and
    deprecation posture.
 
 ## Quality-Gate Roadmap

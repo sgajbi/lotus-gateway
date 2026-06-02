@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, TypeAlias, cast
 
@@ -9,9 +10,16 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.contracts.performance_workspace import (
+    AttributionSummaryView,
+    ContributionSummaryView,
+    MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
+    PerformanceBenchmarkOptionView,
+    PerformanceChartPoint,
+    PerformanceComparativeSummary,
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
+    PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
@@ -73,7 +81,10 @@ from app.services.performance_workspace_reference import (
     analytics_reference_cache_key,
     resolve_performance_report_end_date,
 )
-from app.services.performance_workspace_summary import parse_workspace_summary_result
+from app.services.performance_workspace_summary import (
+    ParsedWorkspaceSummary,
+    parse_workspace_summary_result,
+)
 from app.services.workbench_service import WorkbenchService
 from app.services.workspace_client_protocols import (
     PerformanceWorkspaceAnalyticsClient,
@@ -85,6 +96,60 @@ LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
 GatheredResult: TypeAlias = UpstreamResult | BaseException
+
+
+@dataclass(frozen=True)
+class WorkspaceRequestContext:
+    overview: WorkbenchOverviewResponse
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    report_end_date: str
+    report_start_date: date
+    effective_period: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    requested_chart_frequency_supported: bool
+    requested_contribution_dimension_supported: bool
+    requested_attribution_dimension_supported: bool
+    segment: str
+    benchmark_code: str | None
+    benchmark_catalog_result: GatheredResult
+
+
+@dataclass(frozen=True)
+class WorkspaceSummaryViews:
+    workspace_summary_result: GatheredResult
+    parsed_summary: ParsedWorkspaceSummary
+    contribution: ContributionSummaryView | None
+    attribution: AttributionSummaryView | None
+    contribution_detail_result: GatheredResult | None
+    attribution_detail_result: GatheredResult | None
+
+    @property
+    def net_performance(self) -> PerformanceComparativeSummary:
+        return self.parsed_summary.net_performance
+
+    @property
+    def gross_performance(self) -> PerformanceComparativeSummary:
+        return self.parsed_summary.gross_performance
+
+    @property
+    def net_chart(self) -> list[PerformanceChartPoint]:
+        return self.parsed_summary.net_chart
+
+    @property
+    def gross_chart(self) -> list[PerformanceChartPoint]:
+        return self.parsed_summary.gross_chart
+
+    @property
+    def money_weighted_return(self) -> MoneyWeightedReturnSummary | None:
+        return self.parsed_summary.money_weighted_return
+
+    @property
+    def resolved_benchmark_code(self) -> str | None:
+        return self.parsed_summary.resolved_benchmark_code
 
 
 class PerformanceWorkspaceService:
@@ -511,6 +576,77 @@ class PerformanceWorkspaceService:
         include_detail_blocks: bool = True,
         prefer_independent_detail_analytics: bool = False,
     ) -> PerformanceWorkspaceResponse:
+        context = await self._build_workspace_request_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+            include_benchmark_catalog=include_benchmark_catalog,
+        )
+        summary_views = await self._build_workspace_summary_views(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        )
+        benchmark_code_for_response = (
+            summary_views.resolved_benchmark_code or context.benchmark_code
+        )
+        benchmark_options = parse_benchmark_catalog_result(
+            result=context.benchmark_catalog_result,
+            assigned_benchmark_code=benchmark_code_for_response,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
+        )
+        evidence_view = await self._build_workspace_response_evidence_view(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            summary_views=summary_views,
+            benchmark_code=benchmark_code_for_response,
+        )
+        capabilities = build_workspace_capabilities(
+            benchmark_code=benchmark_code_for_response,
+            net_performance=summary_views.net_performance,
+            net_chart=summary_views.net_chart,
+            contribution=summary_views.contribution,
+            attribution=summary_views.attribution,
+            evidence_view=evidence_view,
+            include_detail_blocks=include_detail_blocks,
+        )
+        return self._assemble_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            summary_views=summary_views,
+            benchmark_code=benchmark_code_for_response,
+            benchmark_options=benchmark_options,
+            evidence_view=evidence_view,
+            capabilities=capabilities,
+        )
+
+    async def _build_workspace_request_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+        include_benchmark_catalog: bool,
+    ) -> WorkspaceRequestContext:
         async with server_timing_span("perf-overview"):
             overview = await self._get_cached_workspace_overview(
                 portfolio_id=portfolio_id,
@@ -574,6 +710,34 @@ class PerformanceWorkspaceService:
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=include_benchmark_catalog,
             )
+        return WorkspaceRequestContext(
+            overview=overview,
+            warnings=warnings,
+            partial_failures=partial_failures,
+            report_end_date=report_end_date,
+            report_start_date=report_start_date,
+            effective_period=effective_period,
+            chart_frequency=resolved_chart_frequency,
+            contribution_dimension=resolved_contribution_dimension,
+            attribution_dimension=resolved_attribution_dimension,
+            detail_basis=detail_basis,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=requested_contribution_dimension_supported,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
+            segment=shared_segment,
+            benchmark_code=resolved_benchmark_code,
+            benchmark_catalog_result=benchmark_catalog_result,
+        )
+
+    async def _build_workspace_summary_views(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> WorkspaceSummaryViews:
         async with server_timing_span("perf-summary"):
             request_workspace_summary_detail_blocks = (
                 include_detail_blocks and not prefer_independent_detail_analytics
@@ -582,31 +746,31 @@ class PerformanceWorkspaceService:
                 workspace_summary_period,
                 workspace_summary_report_start_date,
             ) = resolve_workspace_summary_request(
-                period=effective_period,
-                report_start_date=report_start_date,
+                period=context.effective_period,
+                report_start_date=context.report_start_date,
             )
             workspace_summary_result = await fetch_workspace_summary_result(
                 cache=self._upstream_cache,
                 analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                report_end_date=report_end_date,
+                report_end_date=context.report_end_date,
                 report_start_date=workspace_summary_report_start_date,
                 effective_period=workspace_summary_period,
-                chart_frequency=resolved_chart_frequency,
-                detail_basis=detail_basis,
-                benchmark_code=resolved_benchmark_code,
-                portfolio_currency=overview.portfolio.base_currency,
-                segment=shared_segment,
+                chart_frequency=context.chart_frequency,
+                detail_basis=context.detail_basis,
+                benchmark_code=context.benchmark_code,
+                portfolio_currency=context.overview.portfolio.base_currency,
+                segment=context.segment,
                 include_detail_blocks=request_workspace_summary_detail_blocks,
             )
 
         parsed_workspace_summary = parse_workspace_summary_result(
             result=workspace_summary_result,
-            requested_period=effective_period,
-            chart_frequency=resolved_chart_frequency,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            requested_period=context.effective_period,
+            chart_frequency=context.chart_frequency,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
         )
         net_performance = parsed_workspace_summary.net_performance
         gross_performance = parsed_workspace_summary.gross_performance
@@ -638,114 +802,133 @@ class PerformanceWorkspaceService:
                 analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                report_start_date=report_start_date.isoformat(),
-                report_end_date=report_end_date,
-                requested_period=effective_period,
-                detail_basis=detail_basis,
+                report_start_date=context.report_start_date.isoformat(),
+                report_end_date=context.report_end_date,
+                requested_period=context.effective_period,
+                detail_basis=context.detail_basis,
                 benchmark_code=resolved_benchmark_code,
-                contribution_dimension=resolved_contribution_dimension,
-                attribution_dimension=resolved_attribution_dimension,
+                contribution_dimension=context.contribution_dimension,
+                attribution_dimension=context.attribution_dimension,
             )
             contribution = merge_contribution_summary_views(
                 summary_contribution=contribution,
                 detail_contribution=parse_contribution_result(
                     result=contribution_detail_result,
-                    metric_basis=detail_basis,
-                    requested_period=effective_period,
-                    warnings=warnings,
-                    partial_failures=partial_failures,
+                    metric_basis=context.detail_basis,
+                    requested_period=context.effective_period,
+                    warnings=context.warnings,
+                    partial_failures=context.partial_failures,
                 ),
             )
             attribution = (
                 parse_attribution_result(
                     result=attribution_detail_result,
-                    metric_basis=detail_basis,
-                    requested_period=effective_period,
-                    warnings=warnings,
-                    partial_failures=partial_failures,
+                    metric_basis=context.detail_basis,
+                    requested_period=context.effective_period,
+                    warnings=context.warnings,
+                    partial_failures=context.partial_failures,
                 )
                 or attribution
             )
         else:
             contribution_detail_result = None
             attribution_detail_result = None
-        benchmark_options = parse_benchmark_catalog_result(
-            result=benchmark_catalog_result,
-            assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
-            warnings=warnings,
-            partial_failures=partial_failures,
+        return WorkspaceSummaryViews(
+            workspace_summary_result=workspace_summary_result,
+            parsed_summary=parsed_workspace_summary,
+            contribution=contribution,
+            attribution=attribution,
+            contribution_detail_result=contribution_detail_result,
+            attribution_detail_result=attribution_detail_result,
         )
-        evidence_view = await self._build_evidence_view(
+
+    async def _build_workspace_response_evidence_view(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        summary_views: WorkspaceSummaryViews,
+        benchmark_code: str | None,
+    ) -> PerformanceEvidenceView | None:
+        return await self._build_evidence_view(
             portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            period=effective_period,
-            basis=detail_basis,
-            benchmark_code=resolved_benchmark_code or benchmark_code,
-            contract_version=overview.contract_version,
+            as_of_date=context.overview.as_of_date,
+            period=context.effective_period,
+            basis=context.detail_basis,
+            benchmark_code=benchmark_code,
+            contract_version=context.overview.contract_version,
             correlation_id=correlation_id,
             calculations=[
                 (
                     "workspace_summary",
-                    extract_calculation_id_from_result(workspace_summary_result),
+                    extract_calculation_id_from_result(summary_views.workspace_summary_result),
                 ),
                 (
                     "contribution",
-                    extract_calculation_id_from_result(contribution_detail_result),
+                    extract_calculation_id_from_result(summary_views.contribution_detail_result),
                 ),
                 (
                     "attribution",
-                    extract_calculation_id_from_result(attribution_detail_result),
+                    extract_calculation_id_from_result(summary_views.attribution_detail_result),
                 ),
             ],
             source_results=[
-                workspace_summary_result,
-                contribution_detail_result,
-                attribution_detail_result,
+                summary_views.workspace_summary_result,
+                summary_views.contribution_detail_result,
+                summary_views.attribution_detail_result,
             ],
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        capabilities = build_workspace_capabilities(
-            benchmark_code=resolved_benchmark_code or benchmark_code,
-            net_performance=net_performance,
-            net_chart=net_chart,
-            contribution=contribution,
-            attribution=attribution,
-            evidence_view=evidence_view,
-            include_detail_blocks=include_detail_blocks,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
         )
 
+    def _assemble_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        summary_views: WorkspaceSummaryViews,
+        benchmark_code: str | None,
+        benchmark_options: list[PerformanceBenchmarkOptionView],
+        evidence_view: PerformanceEvidenceView | None,
+        capabilities: PerformanceWorkspaceCapabilities,
+    ) -> PerformanceWorkspaceResponse:
         return PerformanceWorkspaceResponse(
             correlation_id=correlation_id,
-            contract_version=overview.contract_version,
+            contract_version=context.overview.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            period=effective_period,
-            report_start_date=report_start_date.isoformat(),
-            report_end_date=report_end_date,
-            chart_frequency=resolved_chart_frequency,
-            contribution_dimension=resolved_contribution_dimension,
-            attribution_dimension=resolved_attribution_dimension,
-            detail_basis=detail_basis,
-            requested_chart_frequency_supported=requested_chart_frequency_supported,
-            requested_contribution_dimension_supported=requested_contribution_dimension_supported,
-            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
-            segment=shared_segment,
-            benchmark_code=resolved_benchmark_code or benchmark_code,
+            as_of_date=context.overview.as_of_date,
+            period=context.effective_period,
+            report_start_date=context.report_start_date.isoformat(),
+            report_end_date=context.report_end_date,
+            chart_frequency=context.chart_frequency,
+            contribution_dimension=context.contribution_dimension,
+            attribution_dimension=context.attribution_dimension,
+            detail_basis=context.detail_basis,
+            requested_chart_frequency_supported=context.requested_chart_frequency_supported,
+            requested_contribution_dimension_supported=(
+                context.requested_contribution_dimension_supported
+            ),
+            requested_attribution_dimension_supported=(
+                context.requested_attribution_dimension_supported
+            ),
+            segment=context.segment,
+            benchmark_code=benchmark_code,
             benchmark_options=benchmark_options,
             capabilities=capabilities,
             evidence_view=evidence_view,
-            portfolio=overview.portfolio,
-            overview=overview.overview,
-            net_performance=net_performance,
-            gross_performance=gross_performance,
-            money_weighted_return=money_weighted_return,
-            net_chart=net_chart,
-            gross_chart=gross_chart,
-            contribution=contribution,
-            attribution=attribution,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            portfolio=context.overview.portfolio,
+            overview=context.overview.overview,
+            net_performance=summary_views.net_performance,
+            gross_performance=summary_views.gross_performance,
+            money_weighted_return=summary_views.money_weighted_return,
+            net_chart=summary_views.net_chart,
+            gross_chart=summary_views.gross_chart,
+            contribution=summary_views.contribution,
+            attribution=summary_views.attribution,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
         )
 
     async def get_performance_evidence_artifact(
