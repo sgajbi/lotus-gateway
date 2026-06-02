@@ -8,9 +8,9 @@ Baseline phase: report-only
 
 This baseline covers the current gateway hardening state after the report-only quality governance
 lane, router-registry split, performance workspace response split, and advisor-brief response
-split, and risk drawdown mapper split. It is intended to make quality debt visible before
-introducing stricter CI gates. Findings are not yet enforced unless they are already covered by
-existing repo-native gates.
+split, risk drawdown mapper split, and risk rolling mapper split. It is intended to make quality
+debt visible before introducing stricter CI gates. Findings are not yet enforced unless they are
+already covered by existing repo-native gates.
 
 ## Repository Size
 
@@ -28,8 +28,8 @@ existing repo-native gates.
 | ---: | ---: | --- |
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,986 | `src/app/services/risk_workspace_service.py` |
+| 3 | 2,063 | `src/app/services/risk_workspace_service.py` |
+| 4 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,392 | `src/app/services/advisor_brief_service.py` |
@@ -43,14 +43,14 @@ existing repo-native gates.
 | ---: | ---: | --- | --- |
 | 1 | 195 | `_build_normalized_capabilities` | `src/app/services/platform_capabilities_service.py` |
 | 2 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
-| 3 | 184 | `_map_rolling_response` | `src/app/services/risk_workspace_service.py` |
-| 4 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 5 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
-| 6 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
-| 7 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 8 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
-| 9 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 10 | 134 | `_build_shell_bootstrap` | `src/app/services/platform_capabilities_service.py` |
+| 3 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 4 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
+| 5 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
+| 6 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 7 | 141 | `_map_attribution_response` | `src/app/services/risk_workspace_service.py` |
+| 8 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 9 | 134 | `_build_shell_bootstrap` | `src/app/services/platform_capabilities_service.py` |
+| 10 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -72,7 +72,7 @@ Most recent local evidence:
 1. `make check`: 934 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
 3. `make ci`: 1,141 coverage tests passed.
-4. Coverage: 92.60%.
+4. Coverage: 92.65%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
