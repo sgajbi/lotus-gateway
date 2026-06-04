@@ -700,15 +700,7 @@ class DpmWaveService:
             wave_id=wave_id,
             correlation_id=correlation_id,
         )
-        memo_request: dict[str, object] = {
-            "requested_outputs": request.requested_outputs,
-            "audience": request.audience,
-        }
-        task_payload: dict[str, object] = {
-            "wave_report_input": report_input.payload,
-            "memo_request": memo_request,
-            "supportability": _wave_pm_memo_supportability_payload(report_input.supportability),
-        }
+        memo_request = _wave_pm_memo_request_payload(request)
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
             version="v1",
@@ -721,7 +713,10 @@ class DpmWaveService:
                     "Generate review-gated DPM wave PM memo from manage-owned report input "
                     f"for {wave_id}."
                 ),
-                payload=task_payload,
+                payload=_wave_pm_memo_task_payload(
+                    report_input=report_input,
+                    memo_request=memo_request,
+                ),
                 source_refs=_wave_report_source_refs(report_input.payload, wave_id),
             ),
             correlation_id=correlation_id,
@@ -735,14 +730,11 @@ class DpmWaveService:
                 default_detail="lotus-ai wave PM memo request failed",
             )
 
-        return DpmWaveMemoGatewayResponse(
+        return _wave_pm_memo_response(
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            manage_upstream_status=report_input.upstream_status,
-            ai_upstream_status=ai_status,
-            supportability=report_input.supportability,
-            wave_report_input=report_input.payload,
+            report_input=report_input,
             memo_request=memo_request,
+            ai_upstream_status=ai_status,
             data=ai_payload,
         )
 
@@ -951,6 +943,45 @@ def _wave_report_source_refs(payload: dict[str, Any], wave_id: str) -> list[str]
 def _source_ref_token(value: object) -> str:
     token = str(value)
     return token.removeprefix("report-input:")
+
+
+def _wave_pm_memo_request_payload(request: DpmWaveMemoRequest) -> dict[str, object]:
+    return {
+        "requested_outputs": request.requested_outputs,
+        "audience": request.audience,
+    }
+
+
+def _wave_pm_memo_task_payload(
+    *,
+    report_input: WaveReportInput,
+    memo_request: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "wave_report_input": report_input.payload,
+        "memo_request": memo_request,
+        "supportability": _wave_pm_memo_supportability_payload(report_input.supportability),
+    }
+
+
+def _wave_pm_memo_response(
+    *,
+    correlation_id: str,
+    report_input: WaveReportInput,
+    memo_request: dict[str, object],
+    ai_upstream_status: int,
+    data: dict[str, Any],
+) -> DpmWaveMemoGatewayResponse:
+    return DpmWaveMemoGatewayResponse(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        manage_upstream_status=report_input.upstream_status,
+        ai_upstream_status=ai_upstream_status,
+        supportability=report_input.supportability,
+        wave_report_input=report_input.payload,
+        memo_request=memo_request,
+        data=data,
+    )
 
 
 def _operations_handoff_summary_request_payload(
