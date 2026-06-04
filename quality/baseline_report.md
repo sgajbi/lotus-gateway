@@ -31,7 +31,8 @@ orchestration, core snapshot summary parsing, portfolio workspace response compo
 and risk/performance Workbench route dependency handling. The latest 50-commit hardening branch
 then split shared analytics async polling, workspace-summary payload assembly, portfolio
 transaction-summary context loading, transaction page loading, and portfolio book response
-assembly.
+assembly, then split performance horizon-comparison dependency fetching and row parsing out of
+the top-level service method.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -53,7 +54,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,673 | `src/app/services/performance_workspace_service.py` |
+| 5 | 1,712 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
@@ -64,16 +65,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 2 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 3 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
-| 4 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
-| 5 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 6 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
-| 7 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 8 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
-| 9 | 56 | `build_performance_details_query` | `src/app/routers/workbench_performance_details.py` |
-| 10 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 1 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 2 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 3 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 4 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 5 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
+| 6 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
+| 7 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
+| 8 | 56 | `build_performance_details_query` | `src/app/routers/workbench_performance_details.py` |
+| 9 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 10 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
 
 ## Existing Blocking Gates
 
@@ -112,7 +113,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 57 lines,
+2. no new function above the current longest-function baseline of 56 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

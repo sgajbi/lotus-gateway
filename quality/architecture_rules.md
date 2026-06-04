@@ -122,8 +122,9 @@ context loading, transaction page loading, portfolio book response assembly, per
 attribution trend query metadata extraction, risk rolling query metadata extraction,
 advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
 extraction, DPM portfolio-memory search query metadata extraction, performance chart-point row
-projection extraction, and HTTP resilience JSON dispatch extraction. The current longest function
-is `get_performance_horizon_comparison` at 57 lines.
+projection extraction, HTTP resilience JSON dispatch extraction, and performance
+horizon-comparison dependency-phase extraction. The current longest functions are 56-line
+orchestration and mapper helpers.
 
 ## Progressive Enforcement
 
