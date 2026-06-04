@@ -63,6 +63,7 @@ from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
 )
+from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
@@ -2285,146 +2286,21 @@ class PortfolioService:
         allocation_views: list[PortfolioAllocationView],
         activity_summary: PortfolioActivitySummaryResponse,
     ) -> list[PortfolioInsight]:
-        insights: list[PortfolioInsight] = []
-        pricing_status = self._pricing_readiness_status(
-            positions=positions,
-            allocation_views=allocation_views,
-        )
-        reporting_status = self._reporting_status_label(
-            workspace.reporting.status,
-            workspace.reporting.row_count,
-        )
-        max_position_weight = self._max_position_weight(
+        return build_portfolio_insights(
+            portfolio_id=workspace.portfolio.portfolio_id,
+            summary=workspace.summary,
             positions=positions,
             top_positions=top_positions,
-        )
-        requested_window_activity = self._requested_window_activity_amount(activity_summary)
-
-        if not positions:
-            insights.append(
-                PortfolioInsight(
-                    key="no-holdings-booked",
-                    title="No holdings booked",
-                    detail=(
-                        "Book the first position to activate holdings, allocation, "
-                        "and valuation views."
-                    ),
-                    severity="critical",
-                    href="#portfolio-drilldown",
-                )
-            )
-
-        if not self._has_cash_funding_evidence(
-            summary=workspace.summary,
             activity_summary=activity_summary,
-        ):
-            insights.append(
-                PortfolioInsight(
-                    key="no-cash-funding",
-                    title="No cash funding recorded",
-                    detail=(
-                        "Add opening cash or a subscription so the portfolio can "
-                        "be funded and invested."
-                    ),
-                    severity="critical",
-                    href="#portfolio-insights",
-                )
-            )
-
-        if pricing_status != "Ready":
-            insights.append(
-                PortfolioInsight(
-                    key="pricing-not-published",
-                    title="Pricing not yet published",
-                    detail="Publish prices to complete valuation and unlock reliable reporting.",
-                    severity="warning",
-                    href="#portfolio-attention",
-                )
-            )
-
-        if reporting_status != "Ready":
-            insights.append(
-                PortfolioInsight(
-                    key="reporting-unavailable",
-                    title="Reporting cannot be generated yet",
-                    detail=(
-                        "Reporting remains blocked until book coverage and valuation are complete."
-                    ),
-                    severity="warning",
-                    href="#portfolio-health",
-                )
-            )
-
-        if max_position_weight >= 20:
-            insights.append(
-                PortfolioInsight(
-                    key="equity-concentration-high",
-                    title="Large position dominates portfolio risk",
-                    detail=(
-                        "One holding has become large enough to dominate current "
-                        "portfolio concentration. Open Risk to review concentration pressure."
-                    ),
-                    severity="warning",
-                    href=f"/risk?portfolioId={workspace.portfolio.portfolio_id}",
-                )
-            )
-
-        if (workspace.summary.cash_weight_pct or 0) >= 15:
-            insights.append(
-                PortfolioInsight(
-                    key="cash-above-target",
-                    title="Cash exceeds target allocation",
-                    detail="Available cash is elevated relative to invested assets.",
-                    severity="info",
-                    href="#portfolio-insights",
-                )
-            )
-
-        if requested_window_activity < 0:
-            insights.append(
-                PortfolioInsight(
-                    key="net-outflows-window",
-                    title="Net outflows in last 30 days",
-                    detail="Recent activity is net negative over the selected reporting window.",
-                    severity="warning",
-                    href="#portfolio-changes",
-                )
-            )
-
-        return insights
-
-    def _max_position_weight(
-        self,
-        *,
-        positions: list[PortfolioPositionView],
-        top_positions: list[PortfolioTopPosition],
-    ) -> float:
-        weighted_positions = [
-            *(position.weight_pct or 0 for position in top_positions),
-            *(position.weight_pct or 0 for position in positions),
-        ]
-        return max(weighted_positions, default=0)
-
-    def _has_cash_funding_evidence(
-        self,
-        *,
-        summary: PortfolioSummary,
-        activity_summary: PortfolioActivitySummaryResponse,
-    ) -> bool:
-        if summary.cash_balance_count > 0:
-            return True
-        if summary.cash_market_value_base > 0:
-            return True
-
-        inflow_bucket = next(
-            (bucket for bucket in activity_summary.buckets if bucket.bucket.upper() == "INFLOWS"),
-            None,
+            pricing_status=self._pricing_readiness_status(
+                positions=positions,
+                allocation_views=allocation_views,
+            ),
+            reporting_status=self._reporting_status_label(
+                workspace.reporting.status,
+                workspace.reporting.row_count,
+            ),
         )
-        if inflow_bucket is None:
-            return False
-        if inflow_bucket.requested_window.transaction_count > 0:
-            return True
-        return inflow_bucket.requested_window.reporting_currency_amount > 0
 
     def _build_workflow_actions(
         self,
@@ -2558,23 +2434,6 @@ class PortfolioService:
         if normalized == "PENDING" or row_count > 0:
             return "Partial"
         return "Missing"
-
-    def _requested_window_activity_amount(
-        self, activity_summary: PortfolioActivitySummaryResponse
-    ) -> float:
-        return float(
-            sum(
-                bucket.requested_window.reporting_currency_amount
-                * (
-                    1
-                    if bucket.bucket.upper() == "INFLOWS"
-                    else -1
-                    if bucket.bucket.upper() in {"OUTFLOWS", "FEES", "TAXES"}
-                    else 0
-                )
-                for bucket in activity_summary.buckets
-            )
-        )
 
     def _dedupe_workflow_cues(
         self, workflow_cues: list[PortfolioWorkflowLaunchCue]
