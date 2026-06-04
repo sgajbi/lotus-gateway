@@ -36,8 +36,8 @@ report-only baseline is reviewed.
 The largest current modularity risks are:
 
 1. `src/app/services/portfolio_service.py` at 3,016 lines,
-2. `src/app/services/risk_workspace_service.py` at 1,594 lines,
-3. `src/app/services/advisor_brief_service.py` at 1,392 lines,
+2. `src/app/services/advisor_brief_service.py` at 1,392 lines,
+3. `src/app/services/risk_workspace_service.py` at 1,185 lines,
 4. `src/app/services/performance_workspace_service.py` at 1,152 lines,
 5. `src/app/services/dpm_command_center_service.py` at 1,032 lines.
 
@@ -57,7 +57,10 @@ and supportability semantics. Risk unavailable-envelope primitives have been cen
 unavailable supportability, and risk metadata construction are no longer duplicated across risk
 surfaces. The drawdown response mapper and unavailable envelope have been extracted to
 `src/app/services/risk_workspace_drawdown.py`, reducing `risk_workspace_service.py` to 1,594 lines
-while keeping request orchestration and caching in the workspace service. The current longest
+while keeping request orchestration and caching in the workspace service. The rolling response
+mapper, Sharpe fallback policy, window parsing, and unavailable envelope have been extracted to
+`src/app/services/risk_workspace_rolling.py`, reducing `risk_workspace_service.py` to 1,185 lines.
+The current longest
 function is `_build_normalized_capabilities` in
 `src/app/services/platform_capabilities_service.py` at 195 lines.
 

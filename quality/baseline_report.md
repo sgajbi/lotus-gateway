@@ -10,7 +10,7 @@ This baseline covers the current gateway hardening state after the report-only q
 lane, router-registry split, performance workspace response split, and advisor-brief response
 split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
-risk drawdown response module extraction.
+risk drawdown response module extraction, and risk rolling response module extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -18,8 +18,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 646 |
-| Python source files under `src/app` | 434 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 647 |
+| Python source files under `src/app` | 435 |
 | Python test files under `tests` | 151 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
@@ -33,9 +33,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
 | 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,594 | `src/app/services/risk_workspace_service.py` |
-| 7 | 1,392 | `src/app/services/advisor_brief_service.py` |
-| 8 | 1,362 | `src/app/clients/dpm_client.py` |
+| 6 | 1,392 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,362 | `src/app/clients/dpm_client.py` |
+| 8 | 1,185 | `src/app/services/risk_workspace_service.py` |
 | 9 | 1,152 | `src/app/services/performance_workspace_service.py` |
 | 10 | 1,098 | `src/app/clients/advise_client.py` |
 
