@@ -52,7 +52,9 @@ builders, reducing `_build_evidence_view` from 134 lines to 58 lines and lowerin
 longest-function baseline to 133 lines. Portfolio exception-summary construction has now been
 extracted to `portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 lines
 to 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
-readiness delegation. The repository longest-function baseline is now 127 lines. The remaining
+readiness delegation. Performance workspace capability-input derivation has now been split into
+explicit capability input and history-date helpers, reducing `build_workspace_capabilities` from
+127 lines to 99 lines. The repository longest-function baseline is now 119 lines. The remaining
 work is still substantial: large portfolio, performance workspace, advisor-brief orchestration,
 contract, and client modules remain.
 
@@ -61,11 +63,11 @@ contract, and client modules remain.
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 961 tests passed in latest `make check` evidence |
+| Unit/contract coverage | Healthy | 964 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.83%, above the 84% floor |
+| Total coverage | Healthy | 92.84%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Performance workspace capability inputs, portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -80,8 +82,8 @@ contract, and client modules remain.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
    expand the extracted modules.
 4. Continue extracting performance workspace summary orchestration helpers behind stable response
-   contracts; horizon parsing, attribution trend orchestration, and evidence-view orchestration are
-   now below the current function-size baseline.
+   contracts; capability-input derivation, horizon parsing, attribution trend orchestration, and
+   evidence-view orchestration are now below the current function-size baseline.
 5. Continue splitting advisor-brief service orchestration around stable reviewed-narrative
    contracts if future changes expand the remaining runtime or review helpers.
 6. Split large contract modules only when contract ownership boundaries are clear and tests remain
