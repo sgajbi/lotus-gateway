@@ -153,6 +153,17 @@ class PortfolioTransactionsRequestContext:
 
 
 @dataclass(frozen=True)
+class PortfolioTransactionSummaryContext:
+    portfolio_id: str
+    correlation_id: str
+    reporting_currency: str
+    window_start: date
+    window_end: date
+    requested_window_rows: list[dict[str, Any]]
+    year_to_date_rows: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
 class PortfolioWorkflowActionSpec:
     title: str
     impact: str
@@ -1526,6 +1537,45 @@ class PortfolioService:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioIncomeSummaryResponse:
+        context = await self._load_transaction_summary_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
+        )
+        return self._build_income_summary_response(context)
+
+    async def get_activity_summary(
+        self,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        reporting_currency: str | None = None,
+    ) -> PortfolioActivitySummaryResponse:
+        context = await self._load_transaction_summary_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
+        )
+        return self._build_activity_summary_response(context)
+
+    async def _load_transaction_summary_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        start_date: str | None,
+        end_date: str | None,
+        reporting_currency: str | None,
+    ) -> PortfolioTransactionSummaryContext:
         window_start, window_end = self._resolve_reporting_window(
             start_date,
             end_date,
@@ -1549,16 +1599,34 @@ class PortfolioService:
                 end_date=window_end,
             )
         ]
-        requested_totals, income_type_totals = self._summarize_income_rows(requested_window_rows)
-        year_to_date_totals, income_type_ytd_totals = self._summarize_income_rows(year_to_date_rows)
+        return PortfolioTransactionSummaryContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
+            window_start=window_start,
+            window_end=window_end,
+            requested_window_rows=requested_window_rows,
+            year_to_date_rows=year_to_date_rows,
+        )
+
+    def _build_income_summary_response(
+        self,
+        context: PortfolioTransactionSummaryContext,
+    ) -> PortfolioIncomeSummaryResponse:
+        requested_totals, income_type_totals = self._summarize_income_rows(
+            context.requested_window_rows
+        )
+        year_to_date_totals, income_type_ytd_totals = self._summarize_income_rows(
+            context.year_to_date_rows
+        )
         income_types = sorted(set(income_type_totals) | set(income_type_ytd_totals))
         return PortfolioIncomeSummaryResponse(
-            correlation_id=correlation_id,
+            correlation_id=context.correlation_id,
             contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
-            window_start_date=window_start.isoformat(),
-            window_end_date=window_end.isoformat(),
+            portfolio_id=context.portfolio_id,
+            reporting_currency=context.reporting_currency,
+            window_start_date=context.window_start.isoformat(),
+            window_end_date=context.window_end.isoformat(),
             totals_requested_window=self._build_income_period_summary(requested_totals),
             totals_year_to_date=self._build_income_period_summary(year_to_date_totals),
             income_types=[
@@ -1575,50 +1643,22 @@ class PortfolioService:
             ],
         )
 
-    async def get_activity_summary(
+    def _build_activity_summary_response(
         self,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None = None,
-        start_date: str | None = None,
-        end_date: str | None = None,
-        reporting_currency: str | None = None,
+        context: PortfolioTransactionSummaryContext,
     ) -> PortfolioActivitySummaryResponse:
-        window_start, window_end = self._resolve_reporting_window(
-            start_date,
-            end_date,
-            default_end_date=as_of_date,
-        )
-        ytd_start = date(window_end.year, 1, 1)
-        resolved_reporting_currency, year_to_date_rows = await self._list_transaction_rows(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            start_date=ytd_start.isoformat(),
-            end_date=window_end.isoformat(),
-            as_of_date=as_of_date,
-            reporting_currency=reporting_currency,
-        )
-        requested_window_rows = [
-            item
-            for item in year_to_date_rows
-            if self._transaction_date_in_range(
-                transaction_date=self._transaction_date_value(item),
-                start_date=window_start,
-                end_date=window_end,
-            )
-        ]
-        requested_buckets = self._summarize_activity_rows(requested_window_rows)
-        year_to_date_buckets = self._summarize_activity_rows(year_to_date_rows)
+        requested_buckets = self._summarize_activity_rows(context.requested_window_rows)
+        year_to_date_buckets = self._summarize_activity_rows(context.year_to_date_rows)
         bucket_names = list(
             dict.fromkeys([*requested_buckets.keys(), *year_to_date_buckets.keys()])
         )
         return PortfolioActivitySummaryResponse(
-            correlation_id=correlation_id,
+            correlation_id=context.correlation_id,
             contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
-            window_start_date=window_start.isoformat(),
-            window_end_date=window_end.isoformat(),
+            portfolio_id=context.portfolio_id,
+            reporting_currency=context.reporting_currency,
+            window_start_date=context.window_start.isoformat(),
+            window_end_date=context.window_end.isoformat(),
             buckets=[
                 PortfolioActivityBucketSummary(
                     bucket=bucket,
