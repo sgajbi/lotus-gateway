@@ -78,6 +78,12 @@ class AdvisorBriefRuntimeContext:
     advisory_supportability: AdvisorBriefAdvisorySupportability | None
 
 
+@dataclass(frozen=True)
+class AdvisorBriefReviewActionContext:
+    brief: AdvisorBriefResponse
+    run_id: str
+
+
 class AdvisorBriefPerformanceWorkspaceService(Protocol):
     async def get_performance_workspace(
         self,
@@ -347,6 +353,49 @@ class AdvisorBriefService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> AdvisorBriefResponse:
+        review_context = await self._load_advisor_brief_review_action_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            request=request,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        await self._apply_advisor_brief_review_action(
+            run_id=review_context.run_id,
+            correlation_id=correlation_id,
+            request=request,
+        )
+        runtime_context = await self._load_advisor_brief_runtime_context(
+            correlation_id=correlation_id,
+            ai_audit=review_context.brief.ai_audit,
+        )
+        self.clear_cache()
+        return self._with_advisor_brief_runtime_context(
+            review_context.brief,
+            runtime_context,
+        )
+
+    async def _load_advisor_brief_review_action_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> AdvisorBriefReviewActionContext:
         brief = await self.get_performance_advisor_brief(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -373,7 +422,15 @@ class AdvisorBriefService:
             run_id=run_id,
             action_type=request.action_type.value,
         )
+        return AdvisorBriefReviewActionContext(brief=brief, run_id=run_id)
 
+    async def _apply_advisor_brief_review_action(
+        self,
+        *,
+        run_id: str,
+        correlation_id: str,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+    ) -> None:
         (
             review_status,
             review_payload,
@@ -394,31 +451,17 @@ class AdvisorBriefService:
                 detail=_safe_error_detail(review_payload),
             )
 
-        workflow_pack_run = await load_advisor_brief_workflow_pack_run(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=brief.ai_audit,
-            correlation_id=correlation_id,
-        )
-        workflow_pack_task_flow = await load_advisor_brief_workflow_pack_task_flow(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=brief.ai_audit,
-            correlation_id=correlation_id,
-        )
-        ai_surface_supportability = await load_ai_surface_supportability(
-            lotus_ai_client=self._lotus_ai_client,
-            correlation_id=correlation_id,
-        )
-        advisory_supportability = await load_advisory_supportability(
-            advise_client=self._advise_client,
-            correlation_id=correlation_id,
-        )
-        self.clear_cache()
+    def _with_advisor_brief_runtime_context(
+        self,
+        brief: AdvisorBriefResponse,
+        runtime_context: AdvisorBriefRuntimeContext,
+    ) -> AdvisorBriefResponse:
         return brief.model_copy(
             update={
-                "workflow_pack_run": workflow_pack_run,
-                "workflow_pack_task_flow": workflow_pack_task_flow,
-                "ai_surface_supportability": ai_surface_supportability,
-                "advisory_supportability": advisory_supportability,
+                "workflow_pack_run": runtime_context.workflow_pack_run,
+                "workflow_pack_task_flow": runtime_context.workflow_pack_task_flow,
+                "ai_surface_supportability": runtime_context.ai_surface_supportability,
+                "advisory_supportability": runtime_context.advisory_supportability,
             }
         )
 
