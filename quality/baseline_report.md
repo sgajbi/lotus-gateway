@@ -64,16 +64,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 62 | `build_performance_attribution_trend_query` | `src/app/routers/workbench_performance_attribution_trend.py` |
-| 2 | 58 | `build_risk_rolling_query` | `src/app/routers/workbench_risk_rolling.py` |
-| 3 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
-| 4 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 5 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 6 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
-| 7 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 8 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
-| 9 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 10 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 1 | 58 | `build_risk_rolling_query` | `src/app/routers/workbench_risk_rolling.py` |
+| 2 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
+| 3 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 4 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 5 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 6 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
+| 7 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
+| 8 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 9 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 10 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
 
 ## Existing Blocking Gates
 
@@ -112,7 +112,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 62 lines,
+2. no new function above the current longest-function baseline of 58 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

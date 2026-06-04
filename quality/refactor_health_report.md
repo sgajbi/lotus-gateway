@@ -84,8 +84,9 @@ to 74 lines. The current 50-commit branch then split portfolio memory search fil
 workspace assembly state, advisor-brief fact sections, portfolio liquidity loading, transaction
 ledger and risk-attribution request contexts, DPM operations handoff response assembly, shared
 analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
-context loading, transaction page loading, and portfolio book response assembly. The repository
-longest-function baseline is now 62 lines.
+context loading, transaction page loading, portfolio book response assembly, and performance
+attribution trend query metadata extraction. The repository longest-function baseline is now 58
+lines.
 `portfolio_service.py` is now 3,155 lines after explicit typed workspace component, transaction
 summary, transaction page, and book assembly helpers; it remains the largest-file hotspot even
 though individual portfolio orchestration functions are smaller. The remaining work is still
@@ -96,8 +97,8 @@ client modules remain.
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | clean feature branch at 50 commits over `origin/main` |
-| Unit/contract coverage | Healthy | 967 tests passed in latest `make check` evidence on commit `6836e69` |
+| Branch hygiene | Healthy | active focused feature branch over `origin/main` |
+| Unit/contract coverage | Healthy | 969 tests passed in latest `make check` evidence on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in latest `make ci` evidence on commit `e1e7980` |
 | Total coverage | Healthy | 93.32%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `e1e7980` |
