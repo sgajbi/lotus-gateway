@@ -35,9 +35,12 @@ reducing the parser itself from 172 lines to 50 lines and lowering the repositor
 longest-function baseline to 153 lines. The foundation core snapshot parser has now been split
 into validation, section extraction, totals, enrichment indexing, position projection, allocation
 finalization, and portfolio identity helpers, reducing `_parse_core_snapshot` from 153 lines to
-38 lines and lowering the repository longest-function baseline to 144 lines. The remaining work is
-still substantial: large portfolio, performance workspace, advisor-brief, contract, and client
-modules remain.
+38 lines and lowering the repository longest-function baseline to 144 lines. The advisor-brief
+narrative-state builder has now been split into source fallback, AI result classification,
+completed-output projection, unavailable-risk construction, and route-resolution helpers, reducing
+`_build_advisor_brief_narrative_state` from 144 lines to 30 lines and lowering the repository
+longest-function baseline to 143 lines. The remaining work is still substantial: large portfolio,
+performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
 
@@ -48,7 +51,7 @@ modules remain.
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.79%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -63,8 +66,8 @@ modules remain.
    future changes expand the extracted module.
 4. Continue extracting performance workspace service orchestration helpers behind stable response
    contracts; horizon parsing is now below the current function-size baseline.
-5. Continue splitting advisor-brief narrative construction behind stable reviewed-narrative
-   contracts.
+5. Continue splitting advisor-brief service orchestration around stable reviewed-narrative
+   contracts if future changes expand the remaining runtime or review helpers.
 6. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
 7. Normalize route-specific upstream errors toward shared problem-details mapping.

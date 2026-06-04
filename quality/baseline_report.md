@@ -12,7 +12,8 @@ split, risk drawdown mapper split, risk rolling mapper split, risk attribution m
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
 risk drawdown, rolling, attribution, and summary response module extraction, and platform
 capability normalization, shell-bootstrap, portfolio workspace-control boundary extraction, and
-performance horizon parser extraction, and foundation core snapshot parser extraction.
+performance horizon parser extraction, foundation core snapshot parser extraction, and
+advisor-brief narrative-state extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -45,16 +46,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
-| 2 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 3 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 4 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 5 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
-| 6 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 7 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
-| 8 | 116 | `_build_portfolio_insights` | `src/app/services/portfolio_service.py` |
-| 9 | 112 | `_build_workspace_summary_views` | `src/app/services/performance_workspace_service.py` |
-| 10 | 111 | `get_portfolio_workspace` | `src/app/services/foundation_service.py` |
+| 1 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 2 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 3 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 4 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
+| 5 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 6 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
+| 7 | 116 | `_build_portfolio_insights` | `src/app/services/portfolio_service.py` |
+| 8 | 112 | `_build_workspace_summary_views` | `src/app/services/performance_workspace_service.py` |
+| 9 | 111 | `get_portfolio_workspace` | `src/app/services/foundation_service.py` |
+| 10 | 111 | `get_portfolio_transactions` | `src/app/routers/portfolio_transactions.py` |
 
 ## Existing Blocking Gates
 
@@ -93,7 +94,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 144 lines,
+2. no new function above the current longest-function baseline of 143 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

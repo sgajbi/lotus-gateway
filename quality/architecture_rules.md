@@ -84,8 +84,12 @@ selection, row construction, period-block extraction, and date-resolution helper
 `parse_horizon_comparison_result` from 172 lines to 50 lines. The foundation core snapshot parser
 has been split into validation, section extraction, totals,
 enrichment indexing, position projection, allocation finalization, and portfolio identity helpers,
-reducing `_parse_core_snapshot` from 153 lines to 38 lines. The current longest function is
-`_build_advisor_brief_narrative_state` in `src/app/services/advisor_brief_service.py` at 144 lines.
+reducing `_parse_core_snapshot` from 153 lines to 38 lines. The advisor-brief narrative-state
+builder has been split into source fallback, AI result
+classification, completed-output projection, unavailable-risk construction, and route-resolution
+helpers, reducing `_build_advisor_brief_narrative_state` from 144 lines to 30 lines. The current
+longest function is `get_platform_capabilities` in
+`src/app/services/platform_capabilities_service.py` at 143 lines.
 
 ## Progressive Enforcement
 
