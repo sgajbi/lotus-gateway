@@ -17,97 +17,120 @@ def build_portfolio_insights(
     pricing_status: str,
     reporting_status: str,
 ) -> list[PortfolioInsight]:
-    insights: list[PortfolioInsight] = []
+    candidates = [
+        holdings_booked_insight(positions),
+        cash_funding_insight(summary=summary, activity_summary=activity_summary),
+        pricing_readiness_insight(pricing_status),
+        reporting_readiness_insight(reporting_status),
+        concentration_insight(
+            portfolio_id=portfolio_id,
+            positions=positions,
+            top_positions=top_positions,
+        ),
+        cash_allocation_insight(summary),
+        activity_outflow_insight(activity_summary),
+    ]
+    return [insight for insight in candidates if insight is not None]
 
-    if not positions:
-        insights.append(
-            PortfolioInsight(
-                key="no-holdings-booked",
-                title="No holdings booked",
-                detail=(
-                    "Book the first position to activate holdings, allocation, and valuation views."
-                ),
-                severity="critical",
-                href="#portfolio-drilldown",
-            )
-        )
 
-    if not has_cash_funding_evidence(
-        summary=summary,
-        activity_summary=activity_summary,
-    ):
-        insights.append(
-            PortfolioInsight(
-                key="no-cash-funding",
-                title="No cash funding recorded",
-                detail=(
-                    "Add opening cash or a subscription so the portfolio can "
-                    "be funded and invested."
-                ),
-                severity="critical",
-                href="#portfolio-insights",
-            )
-        )
+def holdings_booked_insight(
+    positions: list[PortfolioPositionView],
+) -> PortfolioInsight | None:
+    if positions:
+        return None
+    return PortfolioInsight(
+        key="no-holdings-booked",
+        title="No holdings booked",
+        detail="Book the first position to activate holdings, allocation, and valuation views.",
+        severity="critical",
+        href="#portfolio-drilldown",
+    )
 
-    if pricing_status != "Ready":
-        insights.append(
-            PortfolioInsight(
-                key="pricing-not-published",
-                title="Pricing not yet published",
-                detail="Publish prices to complete valuation and unlock reliable reporting.",
-                severity="warning",
-                href="#portfolio-attention",
-            )
-        )
 
-    if reporting_status != "Ready":
-        insights.append(
-            PortfolioInsight(
-                key="reporting-unavailable",
-                title="Reporting cannot be generated yet",
-                detail="Reporting remains blocked until book coverage and valuation are complete.",
-                severity="warning",
-                href="#portfolio-health",
-            )
-        )
+def cash_funding_insight(
+    *,
+    summary: PortfolioSummary,
+    activity_summary: PortfolioActivitySummaryResponse,
+) -> PortfolioInsight | None:
+    if has_cash_funding_evidence(summary=summary, activity_summary=activity_summary):
+        return None
+    return PortfolioInsight(
+        key="no-cash-funding",
+        title="No cash funding recorded",
+        detail="Add opening cash or a subscription so the portfolio can be funded and invested.",
+        severity="critical",
+        href="#portfolio-insights",
+    )
 
-    if max_position_weight(positions=positions, top_positions=top_positions) >= 20:
-        insights.append(
-            PortfolioInsight(
-                key="equity-concentration-high",
-                title="Large position dominates portfolio risk",
-                detail=(
-                    "One holding has become large enough to dominate current "
-                    "portfolio concentration. Open Risk to review concentration pressure."
-                ),
-                severity="warning",
-                href=f"/risk?portfolioId={portfolio_id}",
-            )
-        )
 
-    if (summary.cash_weight_pct or 0) >= 15:
-        insights.append(
-            PortfolioInsight(
-                key="cash-above-target",
-                title="Cash exceeds target allocation",
-                detail="Available cash is elevated relative to invested assets.",
-                severity="info",
-                href="#portfolio-insights",
-            )
-        )
+def pricing_readiness_insight(pricing_status: str) -> PortfolioInsight | None:
+    if pricing_status == "Ready":
+        return None
+    return PortfolioInsight(
+        key="pricing-not-published",
+        title="Pricing not yet published",
+        detail="Publish prices to complete valuation and unlock reliable reporting.",
+        severity="warning",
+        href="#portfolio-attention",
+    )
 
-    if requested_window_activity_amount(activity_summary) < 0:
-        insights.append(
-            PortfolioInsight(
-                key="net-outflows-window",
-                title="Net outflows in last 30 days",
-                detail="Recent activity is net negative over the selected reporting window.",
-                severity="warning",
-                href="#portfolio-changes",
-            )
-        )
 
-    return insights
+def reporting_readiness_insight(reporting_status: str) -> PortfolioInsight | None:
+    if reporting_status == "Ready":
+        return None
+    return PortfolioInsight(
+        key="reporting-unavailable",
+        title="Reporting cannot be generated yet",
+        detail="Reporting remains blocked until book coverage and valuation are complete.",
+        severity="warning",
+        href="#portfolio-health",
+    )
+
+
+def concentration_insight(
+    *,
+    portfolio_id: str,
+    positions: list[PortfolioPositionView],
+    top_positions: list[PortfolioTopPosition],
+) -> PortfolioInsight | None:
+    if max_position_weight(positions=positions, top_positions=top_positions) < 20:
+        return None
+    return PortfolioInsight(
+        key="equity-concentration-high",
+        title="Large position dominates portfolio risk",
+        detail=(
+            "One holding has become large enough to dominate current portfolio concentration. "
+            "Open Risk to review concentration pressure."
+        ),
+        severity="warning",
+        href=f"/risk?portfolioId={portfolio_id}",
+    )
+
+
+def cash_allocation_insight(summary: PortfolioSummary) -> PortfolioInsight | None:
+    if (summary.cash_weight_pct or 0) < 15:
+        return None
+    return PortfolioInsight(
+        key="cash-above-target",
+        title="Cash exceeds target allocation",
+        detail="Available cash is elevated relative to invested assets.",
+        severity="info",
+        href="#portfolio-insights",
+    )
+
+
+def activity_outflow_insight(
+    activity_summary: PortfolioActivitySummaryResponse,
+) -> PortfolioInsight | None:
+    if requested_window_activity_amount(activity_summary) >= 0:
+        return None
+    return PortfolioInsight(
+        key="net-outflows-window",
+        title="Net outflows in last 30 days",
+        detail="Recent activity is net negative over the selected reporting window.",
+        severity="warning",
+        href="#portfolio-changes",
+    )
 
 
 def max_position_weight(
