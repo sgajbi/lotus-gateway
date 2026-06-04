@@ -16,6 +16,7 @@ from app.contracts.dpm_command_center import (
     DpmPmOperatingQualityGatewayResponse,
     DpmPmOperatingQualitySummaryGatewayResponse,
     DpmPmOperatingQualitySummaryRequest,
+    DpmPmOperatingQualitySupportability,
     DpmPortfolioMemoryGatewayResponse,
 )
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
@@ -44,7 +45,7 @@ class DpmExceptionSummaryContext:
 class DpmPmOperatingQualitySummaryContext:
     manage_status: int
     score_run: dict[str, object]
-    supportability: DpmCommandCenterSupportability
+    supportability: DpmPmOperatingQualitySupportability
     summary_request: dict[str, object]
     task_payload: dict[str, object]
 
