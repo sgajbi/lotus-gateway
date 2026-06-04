@@ -71,7 +71,7 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 942 unit/contract tests passed.
+1. `make check`: 946 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
 3. `make ci`: 1,149 coverage tests passed.
 4. Coverage: 92.72%.
