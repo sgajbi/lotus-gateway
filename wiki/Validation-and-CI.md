@@ -68,4 +68,6 @@ from 99 lines to 88 lines. `portfolio_service.py` is now 2,750 lines because emp
 workflow actions are explicit governed data rather than inline control-flow literals. The
 Workbench performance snapshot parser split then lowered the repository longest-function baseline
 from 88 lines to 87 lines. Horizon comparison row-field extraction then lowered the repository
-longest-function baseline from 87 lines to 85 lines.
+longest-function baseline from 87 lines to 85 lines. Performance workspace summary parsing and
+evidence-view mapping splits then lowered the repository longest-function baseline from 85 lines
+to 84 lines.
