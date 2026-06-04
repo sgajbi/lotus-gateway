@@ -46,6 +46,23 @@ class StandardHorizonWindow:
     period: str
 
 
+@dataclass
+class StandardHorizonMergeState:
+    results_by_period: dict[str, Any]
+    warnings: list[str]
+    partial_failures: list[dict[str, str]]
+
+    def record_failure(self, *, label: str, error_code: str, detail: str) -> None:
+        self.warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
+        self.partial_failures.append(
+            {
+                "source_service": "lotus-performance",
+                "error_code": error_code,
+                "detail": detail,
+            }
+        )
+
+
 def build_horizon_comparison_frequencies(chart_frequency: str) -> list[str]:
     frequencies: list[str] = []
     for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
@@ -199,66 +216,116 @@ def merge_standard_horizon_results(
     quarter_start: str,
     report_end_date: str,
 ) -> UpstreamResult:
-    result_labels = ("MTD", "QTD", "STANDARD")
-    merged_results: dict[str, Any] = {}
-    merged_warnings: list[str] = []
-    merged_failures: list[dict[str, str]] = []
+    merge_state = StandardHorizonMergeState(
+        results_by_period={},
+        warnings=[],
+        partial_failures=[],
+    )
 
-    for label, result in zip(result_labels, gathered_results, strict=True):
-        if isinstance(result, BaseException):
-            merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
-            merged_failures.append(
-                {
-                    "source_service": "lotus-performance",
-                    "error_code": "UPSTREAM_EXCEPTION",
-                    "detail": str(result),
-                }
-            )
-            continue
-
-        status_code, payload = result
-        if status_code >= 400 or not isinstance(payload, dict):
-            merged_warnings.append(f"PERFORMANCE_HORIZON_{label}_UNAVAILABLE")
-            merged_failures.append(
-                {
-                    "source_service": "lotus-performance",
-                    "error_code": (
-                        f"HTTP_{status_code}"
-                        if isinstance(status_code, int)
-                        else "INVALID_UPSTREAM_PAYLOAD"
-                    ),
-                    "detail": str(payload.get("detail", payload))
-                    if isinstance(payload, dict)
-                    else str(payload),
-                }
-            )
-            continue
-
-        results_by_period = payload.get("results_by_period", {})
-        if not isinstance(results_by_period, dict):
-            continue
-
-        if label in {"MTD", "QTD"}:
-            explicit_result = results_by_period.get("EXPLICIT")
-            if isinstance(explicit_result, dict):
-                merged_results[label] = {
-                    **explicit_result,
-                    "_gateway_requested_period_start": month_start
-                    if label == "MTD"
-                    else quarter_start,
-                    "_gateway_requested_period_end": report_end_date,
-                }
-            continue
-
-        period_payload = results_by_period.get("YTD")
-        if isinstance(period_payload, dict):
-            merged_results["YTD"] = period_payload
+    for label, result in zip(("MTD", "QTD", "STANDARD"), gathered_results, strict=True):
+        merge_standard_horizon_result(
+            merge_state=merge_state,
+            label=label,
+            result=result,
+            month_start=month_start,
+            quarter_start=quarter_start,
+            report_end_date=report_end_date,
+        )
 
     return 200, {
-        "results_by_period": merged_results,
-        "_gateway_warnings": merged_warnings,
-        "_gateway_partial_failures": merged_failures,
+        "results_by_period": merge_state.results_by_period,
+        "_gateway_warnings": merge_state.warnings,
+        "_gateway_partial_failures": merge_state.partial_failures,
     }
+
+
+def merge_standard_horizon_result(
+    *,
+    merge_state: StandardHorizonMergeState,
+    label: str,
+    result: UpstreamResult | BaseException,
+    month_start: str,
+    quarter_start: str,
+    report_end_date: str,
+) -> None:
+    if isinstance(result, BaseException):
+        merge_state.record_failure(
+            label=label,
+            error_code="UPSTREAM_EXCEPTION",
+            detail=str(result),
+        )
+        return
+
+    status_code, payload = result
+    if status_code >= 400 or not isinstance(payload, dict):
+        merge_state.record_failure(
+            label=label,
+            error_code=standard_horizon_error_code(status_code),
+            detail=standard_horizon_error_detail(payload),
+        )
+        return
+
+    results_by_period = payload.get("results_by_period", {})
+    if isinstance(results_by_period, dict):
+        merge_standard_horizon_period_payload(
+            merge_state=merge_state,
+            label=label,
+            results_by_period=results_by_period,
+            month_start=month_start,
+            quarter_start=quarter_start,
+            report_end_date=report_end_date,
+        )
+
+
+def standard_horizon_error_code(status_code: int) -> str:
+    return f"HTTP_{status_code}" if isinstance(status_code, int) else "INVALID_UPSTREAM_PAYLOAD"
+
+
+def standard_horizon_error_detail(payload: UpstreamPayload) -> str:
+    return str(payload.get("detail", payload)) if isinstance(payload, dict) else str(payload)
+
+
+def merge_standard_horizon_period_payload(
+    *,
+    merge_state: StandardHorizonMergeState,
+    label: str,
+    results_by_period: Mapping[str, Any],
+    month_start: str,
+    quarter_start: str,
+    report_end_date: str,
+) -> None:
+    if label in {"MTD", "QTD"}:
+        merge_explicit_standard_horizon_period(
+            merge_state=merge_state,
+            label=label,
+            results_by_period=results_by_period,
+            month_start=month_start,
+            quarter_start=quarter_start,
+            report_end_date=report_end_date,
+        )
+        return
+
+    period_payload = results_by_period.get("YTD")
+    if isinstance(period_payload, dict):
+        merge_state.results_by_period["YTD"] = period_payload
+
+
+def merge_explicit_standard_horizon_period(
+    *,
+    merge_state: StandardHorizonMergeState,
+    label: str,
+    results_by_period: Mapping[str, Any],
+    month_start: str,
+    quarter_start: str,
+    report_end_date: str,
+) -> None:
+    explicit_result = results_by_period.get("EXPLICIT")
+    if isinstance(explicit_result, dict):
+        merge_state.results_by_period[label] = {
+            **explicit_result,
+            "_gateway_requested_period_start": month_start if label == "MTD" else quarter_start,
+            "_gateway_requested_period_end": report_end_date,
+        }
 
 
 def parse_horizon_comparison_result(
