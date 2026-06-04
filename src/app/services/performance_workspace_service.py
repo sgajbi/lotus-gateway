@@ -170,6 +170,14 @@ class WorkspaceSummaryViews:
 
 
 @dataclass(frozen=True)
+class WorkspaceDetailViews:
+    contribution: ContributionSummaryView | None
+    attribution: AttributionSummaryView | None
+    contribution_detail_result: GatheredResult | None
+    attribution_detail_result: GatheredResult | None
+
+
+@dataclass(frozen=True)
 class EvidenceViewRequestContext:
     portfolio_id: str
     as_of_date: str
@@ -993,25 +1001,37 @@ class PerformanceWorkspaceService:
             warnings=context.warnings,
             partial_failures=context.partial_failures,
         )
-        net_performance = parsed_workspace_summary.net_performance
-        gross_performance = parsed_workspace_summary.gross_performance
-        net_chart = parsed_workspace_summary.net_chart
-        gross_chart = parsed_workspace_summary.gross_chart
-        money_weighted_return = parsed_workspace_summary.money_weighted_return
-        contribution = parsed_workspace_summary.contribution
-        attribution = parsed_workspace_summary.attribution
-        resolved_benchmark_code = parsed_workspace_summary.resolved_benchmark_code
-        workspace_summary_available = (
-            net_performance.portfolio_return_pct is not None
-            or gross_performance.portfolio_return_pct is not None
-            or money_weighted_return is not None
-            or bool(net_chart)
-            or bool(gross_chart)
+        detail_views = await self._build_workspace_detail_views(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            parsed_workspace_summary=parsed_workspace_summary,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
         )
+        return WorkspaceSummaryViews(
+            workspace_summary_result=workspace_summary_result,
+            parsed_summary=parsed_workspace_summary,
+            contribution=detail_views.contribution,
+            attribution=detail_views.attribution,
+            contribution_detail_result=detail_views.contribution_detail_result,
+            attribution_detail_result=detail_views.attribution_detail_result,
+        )
+
+    async def _build_workspace_detail_views(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> WorkspaceDetailViews:
         if (
             include_detail_blocks
             and prefer_independent_detail_analytics
-            and workspace_summary_available
+            and self._workspace_summary_has_return_payload(parsed_workspace_summary)
         ):
             contribution_detail_result: GatheredResult | None = None
             attribution_detail_result: GatheredResult | None = None
@@ -1027,12 +1047,12 @@ class PerformanceWorkspaceService:
                 report_end_date=context.report_end_date,
                 requested_period=context.effective_period,
                 detail_basis=context.detail_basis,
-                benchmark_code=resolved_benchmark_code,
+                benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
                 contribution_dimension=context.contribution_dimension,
                 attribution_dimension=context.attribution_dimension,
             )
             contribution = merge_contribution_summary_views(
-                summary_contribution=contribution,
+                summary_contribution=parsed_workspace_summary.contribution,
                 detail_contribution=parse_contribution_result(
                     result=contribution_detail_result,
                     metric_basis=context.detail_basis,
@@ -1049,18 +1069,31 @@ class PerformanceWorkspaceService:
                     warnings=context.warnings,
                     partial_failures=context.partial_failures,
                 )
-                or attribution
+                or parsed_workspace_summary.attribution
             )
-        else:
-            contribution_detail_result = None
-            attribution_detail_result = None
-        return WorkspaceSummaryViews(
-            workspace_summary_result=workspace_summary_result,
-            parsed_summary=parsed_workspace_summary,
-            contribution=contribution,
-            attribution=attribution,
-            contribution_detail_result=contribution_detail_result,
-            attribution_detail_result=attribution_detail_result,
+            return WorkspaceDetailViews(
+                contribution=contribution,
+                attribution=attribution,
+                contribution_detail_result=contribution_detail_result,
+                attribution_detail_result=attribution_detail_result,
+            )
+        return WorkspaceDetailViews(
+            contribution=parsed_workspace_summary.contribution,
+            attribution=parsed_workspace_summary.attribution,
+            contribution_detail_result=None,
+            attribution_detail_result=None,
+        )
+
+    def _workspace_summary_has_return_payload(
+        self,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+    ) -> bool:
+        return (
+            parsed_workspace_summary.net_performance.portfolio_return_pct is not None
+            or parsed_workspace_summary.gross_performance.portfolio_return_pct is not None
+            or parsed_workspace_summary.money_weighted_return is not None
+            or bool(parsed_workspace_summary.net_chart)
+            or bool(parsed_workspace_summary.gross_chart)
         )
 
     async def _build_workspace_response_evidence_view(
