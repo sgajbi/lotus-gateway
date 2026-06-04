@@ -66,6 +66,20 @@ class RiskRollingRequestContext:
 
 
 @dataclass(frozen=True)
+class RiskDrawdownRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    as_of_date: str
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str | None
+    include_underwater_series: bool
+
+
+@dataclass(frozen=True)
 class RiskAttributionRequestContext:
     portfolio_id: str
     correlation_id: str
@@ -254,59 +268,26 @@ class RiskWorkspaceService:
         include_underwater_series: bool,
     ) -> WorkbenchRiskDrawdownResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        cache_key = (
-            "drawdown",
-            portfolio_id,
-            period,
-            detail_basis,
-            benchmark_code or "",
-            resolved_as_of_date,
-            report_start_date or "",
-            report_end_date or "",
-            reporting_currency or "",
-            include_underwater_series,
+        context = RiskDrawdownRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=resolved_as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+            include_underwater_series=include_underwater_series,
         )
 
         async def _load() -> WorkbenchRiskDrawdownResponse:
-            payload = build_drawdown_request(
-                portfolio_id=portfolio_id,
-                period=period,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                as_of_date=resolved_as_of_date,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                reporting_currency=reporting_currency,
-                include_underwater_series=include_underwater_series,
-            )
-            upstream_status, upstream_payload = await self._risk_client.post_risk_drawdown(
-                payload=payload,
-                correlation_id=correlation_id,
-            )
-            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
-                upstream_payload, dict
-            ):
-                return unavailable_drawdown(
-                    correlation_id=correlation_id,
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    as_of_date=resolved_as_of_date,
-                    benchmark_code=benchmark_code,
-                    include_underwater_series=include_underwater_series,
-                    upstream_status=upstream_status,
-                    upstream_payload=upstream_payload,
-                )
-            return map_drawdown_response(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                period=period,
-                as_of_date=resolved_as_of_date,
-                benchmark_code=benchmark_code,
-                include_underwater_series=include_underwater_series,
-                upstream_payload=upstream_payload,
-            )
+            return await self._load_drawdown_response(context)
 
-        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=self._drawdown_cache_key(context),
+            factory=_load,
+        )
         typed_response = cast(WorkbenchRiskDrawdownResponse, response)
         return typed_response.model_copy(
             update={
@@ -316,6 +297,60 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _drawdown_cache_key(self, context: RiskDrawdownRequestContext) -> tuple[object, ...]:
+        return (
+            "drawdown",
+            context.portfolio_id,
+            context.period,
+            context.detail_basis,
+            context.benchmark_code or "",
+            context.as_of_date,
+            context.report_start_date or "",
+            context.report_end_date or "",
+            context.reporting_currency or "",
+            context.include_underwater_series,
+        )
+
+    async def _load_drawdown_response(
+        self,
+        context: RiskDrawdownRequestContext,
+    ) -> WorkbenchRiskDrawdownResponse:
+        payload = build_drawdown_request(
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            benchmark_code=context.benchmark_code,
+            as_of_date=context.as_of_date,
+            report_start_date=context.report_start_date,
+            report_end_date=context.report_end_date,
+            reporting_currency=context.reporting_currency,
+            include_underwater_series=context.include_underwater_series,
+        )
+        upstream_status, upstream_payload = await self._risk_client.post_risk_drawdown(
+            payload=payload,
+            correlation_id=context.correlation_id,
+        )
+        if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
+            return unavailable_drawdown(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                include_underwater_series=context.include_underwater_series,
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+        return map_drawdown_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            include_underwater_series=context.include_underwater_series,
+            upstream_payload=upstream_payload,
         )
 
     async def get_rolling(
