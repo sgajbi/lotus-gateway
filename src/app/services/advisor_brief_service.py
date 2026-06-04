@@ -980,92 +980,124 @@ def _build_source_talking_points(
     selected_performance: PerformanceComparativeSummary,
 ) -> list[AdvisorBriefNarrativeItem]:
     points: list[AdvisorBriefNarrativeItem] = []
-    if (
-        selected_performance.portfolio_return_pct is not None
-        or selected_performance.benchmark_return_pct is not None
-        or selected_performance.active_return_pct is not None
-    ):
-        points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
-                    f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
-                ),
-                detail=(
-                    f"Active return is {_format_pct(selected_performance.active_return_pct)} "
-                    f"for the selected {workspace.period} period."
-                ),
-                tone=(
-                    AdvisorBriefTone.POSITIVE
-                    if (selected_performance.active_return_pct or 0) >= 0
-                    else AdvisorBriefTone.WARNING
-                ),
-                evidence_refs=[
-                    _summary_evidence_ref(
-                        label="Active Return",
-                        value=_format_pct(selected_performance.active_return_pct),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
-            )
-        )
+    return_talking_point = _build_return_talking_point(
+        workspace=workspace,
+        selected_performance=selected_performance,
+    )
+    if return_talking_point is not None:
+        points.append(return_talking_point)
 
-    top_position = _positive_position_contributors(contribution=workspace.contribution)[:1]
-    if top_position:
+    top_position = _first_positive_position_contributor(workspace.contribution)
+    if top_position is not None:
         points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Top contributor is {_normalize_position_label(top_position[0].position_id)}."
-                ),
-                detail=(
-                    f"{_normalize_position_label(top_position[0].position_id)} contributed "
-                    f"{_format_pct(top_position[0].contribution_pct)} with return "
-                    f"{_format_pct(top_position[0].total_return_pct)}."
-                ),
+            _build_position_talking_point(
+                position=top_position,
+                workspace=workspace,
+                headline_prefix="Top contributor",
+                label="Top Contributor",
                 tone=AdvisorBriefTone.POSITIVE,
-                evidence_refs=[
-                    _analysis_evidence_ref(
-                        label="Top Contributor",
-                        value=_normalize_position_label(top_position[0].position_id),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
             )
         )
 
-    bottom_position = _negative_position_contributors(contribution=workspace.contribution)[:1]
-    if bottom_position:
+    bottom_position = _first_negative_position_contributor(workspace.contribution)
+    if bottom_position is not None:
         points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Top detractor is {_normalize_position_label(bottom_position[0].position_id)}."
-                ),
-                detail=(
-                    f"{_normalize_position_label(bottom_position[0].position_id)} contributed "
-                    f"{_format_pct(bottom_position[0].contribution_pct)} with return "
-                    f"{_format_pct(bottom_position[0].total_return_pct)}."
-                ),
+            _build_position_talking_point(
+                position=bottom_position,
+                workspace=workspace,
+                headline_prefix="Top detractor",
+                label="Top Detractor",
                 tone=AdvisorBriefTone.WARNING,
-                evidence_refs=[
-                    _analysis_evidence_ref(
-                        label="Top Detractor",
-                        value=_normalize_position_label(bottom_position[0].position_id),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
             )
         )
 
     return points
+
+
+def _build_return_talking_point(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> AdvisorBriefNarrativeItem | None:
+    if (
+        selected_performance.portfolio_return_pct is None
+        and selected_performance.benchmark_return_pct is None
+        and selected_performance.active_return_pct is None
+    ):
+        return None
+
+    return AdvisorBriefNarrativeItem(
+        headline=(
+            f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
+            f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
+        ),
+        detail=(
+            f"Active return is {_format_pct(selected_performance.active_return_pct)} "
+            f"for the selected {workspace.period} period."
+        ),
+        tone=(
+            AdvisorBriefTone.POSITIVE
+            if (selected_performance.active_return_pct or 0) >= 0
+            else AdvisorBriefTone.WARNING
+        ),
+        evidence_refs=[
+            _summary_evidence_ref(
+                label="Active Return",
+                value=_format_pct(selected_performance.active_return_pct),
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            )
+        ],
+    )
+
+
+def _first_positive_position_contributor(
+    contribution: ContributionSummaryView | None,
+) -> ContributionPositionView | None:
+    if contribution is None:
+        return None
+    contributors = _positive_position_contributors(contribution=contribution)
+    return contributors[0] if contributors else None
+
+
+def _first_negative_position_contributor(
+    contribution: ContributionSummaryView | None,
+) -> ContributionPositionView | None:
+    if contribution is None:
+        return None
+    contributors = _negative_position_contributors(contribution=contribution)
+    return contributors[0] if contributors else None
+
+
+def _build_position_talking_point(
+    *,
+    position: ContributionPositionView,
+    workspace: PerformanceWorkspaceResponse,
+    headline_prefix: str,
+    label: str,
+    tone: AdvisorBriefTone,
+) -> AdvisorBriefNarrativeItem:
+    position_label = _normalize_position_label(position.position_id)
+    return AdvisorBriefNarrativeItem(
+        headline=f"{headline_prefix} is {position_label}.",
+        detail=(
+            f"{position_label} contributed {_format_pct(position.contribution_pct)} "
+            f"with return {_format_pct(position.total_return_pct)}."
+        ),
+        tone=tone,
+        evidence_refs=[
+            _analysis_evidence_ref(
+                label=label,
+                value=position_label,
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            )
+        ],
+    )
 
 
 def _build_recommended_actions(
