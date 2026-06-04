@@ -1,4 +1,5 @@
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, NoReturn
 
 from fastapi import HTTPException, status
 
@@ -29,6 +30,14 @@ from app.services.upstream_envelope import (
     raise_product_safe_service_error,
     raise_product_safe_upstream_error,
 )
+
+
+@dataclass(frozen=True)
+class DpmExceptionSummaryContext:
+    manage_status: int
+    exception_summary_input: dict[str, object]
+    supportability: DpmCommandCenterSupportability
+    summary_request: dict[str, object]
 
 
 class DpmCommandCenterService:
@@ -139,14 +148,33 @@ class DpmCommandCenterService:
         correlation_id: str,
     ) -> DpmExceptionSummaryGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
+        summary_context = await self._load_exception_summary_context(
+            exception_id,
+            request,
+            correlation_id,
+        )
+        ai_status, ai_payload = await self._execute_exception_summary_workflow(
+            lotus_ai_client,
+            exception_id,
+            summary_context,
+            correlation_id,
+        )
 
+        return self._compose_exception_summary_response(
+            summary_context,
+            ai_status,
+            ai_payload,
+            correlation_id,
+        )
+
+    async def _load_exception_summary_context(
+        self,
+        exception_id: str,
+        request: DpmExceptionSummaryRequest,
+        correlation_id: str,
+    ) -> DpmExceptionSummaryContext:
         manage_status, manage_payload = await self._dpm_client.list_monitoring_exceptions(
-            params={
-                "portfolio_id": request.portfolio_id,
-                "mandate_id": request.mandate_id,
-                "state": request.state,
-                "limit": 200,
-            },
+            params=_exception_summary_manage_params(request),
             correlation_id=correlation_id,
         )
         _raise_manage_command_center_error(
@@ -157,17 +185,7 @@ class DpmCommandCenterService:
 
         exception = dpm_command_center_ai_context.find_exception(manage_payload, exception_id)
         if exception is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "source_service": "lotus-manage",
-                    "upstream_status": manage_status,
-                    "error_code": "MANAGE_MONITORING_EXCEPTION_NOT_FOUND",
-                    "detail": (
-                        f"Monitoring exception `{exception_id}` was not returned by lotus-manage."
-                    ),
-                },
-            )
+            _raise_exception_summary_not_found(exception_id, manage_status)
 
         exception_summary_input = (
             dpm_command_center_ai_context.exception_summary_input_from_exception(exception)
@@ -184,10 +202,24 @@ class DpmCommandCenterService:
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
-        task_payload = dpm_command_center_ai_context.exception_summary_task_payload(
+        return DpmExceptionSummaryContext(
+            manage_status=manage_status,
             exception_summary_input=exception_summary_input,
-            summary_request=summary_request,
             supportability=supportability,
+            summary_request=summary_request,
+        )
+
+    async def _execute_exception_summary_workflow(
+        self,
+        lotus_ai_client: LotusAiWorkflowClient,
+        exception_id: str,
+        summary_context: DpmExceptionSummaryContext,
+        correlation_id: str,
+    ) -> tuple[int, dict[str, Any]]:
+        task_payload = dpm_command_center_ai_context.exception_summary_task_payload(
+            exception_summary_input=summary_context.exception_summary_input,
+            summary_request=summary_context.summary_request,
+            supportability=summary_context.supportability,
         )
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_exception_summary.pack",
@@ -203,7 +235,7 @@ class DpmCommandCenterService:
                 ),
                 payload=task_payload,
                 source_refs=dpm_command_center_ai_context.exception_summary_source_refs(
-                    exception_summary_input
+                    summary_context.exception_summary_input
                 ),
             ),
             correlation_id=correlation_id,
@@ -217,14 +249,23 @@ class DpmCommandCenterService:
                 default_detail="lotus-ai exception summary request failed",
             )
 
+        return ai_status, ai_payload
+
+    def _compose_exception_summary_response(
+        self,
+        summary_context: DpmExceptionSummaryContext,
+        ai_status: int,
+        ai_payload: dict[str, Any],
+        correlation_id: str,
+    ) -> DpmExceptionSummaryGatewayResponse:
         return DpmExceptionSummaryGatewayResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            manage_upstream_status=manage_status,
+            manage_upstream_status=summary_context.manage_status,
             ai_upstream_status=ai_status,
-            supportability=supportability,
-            exception_summary_input=exception_summary_input,
-            exception_summary_request=summary_request,
+            supportability=summary_context.supportability,
+            exception_summary_input=summary_context.exception_summary_input,
+            exception_summary_request=summary_context.summary_request,
             data=ai_payload,
         )
 
@@ -1029,4 +1070,30 @@ def _raise_manage_command_center_error(
         error_model=DpmOutcomeReviewErrorDetail,
         error_code=error_code,
         default_detail="lotus-manage command-center request failed",
+    )
+
+
+def _exception_summary_manage_params(
+    request: DpmExceptionSummaryRequest,
+) -> dict[str, object]:
+    return {
+        "portfolio_id": request.portfolio_id,
+        "mandate_id": request.mandate_id,
+        "state": request.state,
+        "limit": 200,
+    }
+
+
+def _raise_exception_summary_not_found(
+    exception_id: str,
+    manage_status: int,
+) -> NoReturn:
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "source_service": "lotus-manage",
+            "upstream_status": manage_status,
+            "error_code": "MANAGE_MONITORING_EXCEPTION_NOT_FOUND",
+            "detail": f"Monitoring exception `{exception_id}` was not returned by lotus-manage.",
+        },
     )
