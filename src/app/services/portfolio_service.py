@@ -92,6 +92,14 @@ class PortfolioWorkspaceAnalyticsResults:
 
 
 @dataclass(frozen=True)
+class PortfolioAllocationPayloads:
+    aum_result: UpstreamResult
+    aum_payload: dict[str, Any]
+    positions_payload: dict[str, Any]
+    allocation_payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class PortfolioWorkspaceComponents:
     portfolio: PortfolioIdentity
     profile: PortfolioProfile
@@ -1170,6 +1178,46 @@ class PortfolioService:
         reporting_currency: str | None = None,
         look_through_mode: str | None = "direct_only",
     ) -> PortfolioAllocationResponse:
+        payloads = await self._load_portfolio_allocation_payloads(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+            look_through_mode=look_through_mode,
+        )
+        summary = self._parse_summary_from_positions(
+            payloads.aum_result,
+            payloads.positions_payload,
+        )
+        return PortfolioAllocationResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=str(
+                payloads.aum_payload.get("resolved_as_of_date")
+                or as_of_date
+                or datetime.now(UTC).date()
+            ),
+            reporting_currency=self._optional_str(
+                payloads.allocation_payload.get("reporting_currency")
+            )
+            or reporting_currency,
+            look_through=self._parse_look_through_capability(
+                payloads.allocation_payload.get("look_through")
+            ),
+            summary=summary,
+            views=self._parse_allocation_views(payloads.allocation_payload),
+        )
+
+    async def _load_portfolio_allocation_payloads(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+        look_through_mode: str | None,
+    ) -> PortfolioAllocationPayloads:
         (
             aum_result,
             positions_result,
@@ -1197,33 +1245,20 @@ class PortfolioService:
                 look_through_mode=look_through_mode,
             ),
         )
-        aum_payload = self._require_payload(
-            result=aum_result,
-            unavailable_detail_prefix="lotus-core aum unavailable",
-        )
-        allocation_payload = self._require_payload(
-            result=allocation_result,
-            unavailable_detail_prefix="lotus-core allocation unavailable",
-        )
-        positions_payload = self._require_payload(
-            result=positions_result,
-            unavailable_detail_prefix="lotus-core positions unavailable",
-        )
-        summary = self._parse_summary_from_positions(aum_result, positions_payload)
-        return PortfolioAllocationResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=str(
-                aum_payload.get("resolved_as_of_date") or as_of_date or datetime.now(UTC).date()
+        return PortfolioAllocationPayloads(
+            aum_result=aum_result,
+            aum_payload=self._require_payload(
+                result=aum_result,
+                unavailable_detail_prefix="lotus-core aum unavailable",
             ),
-            reporting_currency=self._optional_str(allocation_payload.get("reporting_currency"))
-            or reporting_currency,
-            look_through=self._parse_look_through_capability(
-                allocation_payload.get("look_through")
+            allocation_payload=self._require_payload(
+                result=allocation_result,
+                unavailable_detail_prefix="lotus-core allocation unavailable",
             ),
-            summary=summary,
-            views=self._parse_allocation_views(allocation_payload),
+            positions_payload=self._require_payload(
+                result=positions_result,
+                unavailable_detail_prefix="lotus-core positions unavailable",
+            ),
         )
 
     async def get_portfolio_positions(
