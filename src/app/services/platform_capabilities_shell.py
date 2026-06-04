@@ -248,37 +248,85 @@ def build_workspace_descriptor(
         label=label,
         href=href,
         enabled=enabled,
-        supportability=PlatformBootstrapSupportability(
-            state=descriptor_state.supportability_state,
-            reasons=descriptor_state.reasons,
-        ),
+        supportability=workspace_supportability(descriptor_state=descriptor_state),
         freshness=PlatformBootstrapFreshness(
             state=descriptor_state.freshness_state,
             freshnessClass=freshness_class,
             evaluatedAt=evaluated_at,
             maxAgeSeconds=max_age_seconds,
         ),
-        evidence=PlatformBootstrapEvidence(
-            state=descriptor_state.evidence_state,
-            lineageSources=[dependency_source],
-            partialFailure=dependency_source in error_services,
-            sourceErrorServices=(
-                [dependency_source] if dependency_source in error_services else []
-            ),
+        evidence=workspace_evidence(
+            descriptor_state=descriptor_state,
+            dependency_source=dependency_source,
+            error_services=error_services,
         ),
-        versioning=PlatformBootstrapVersioning(
-            shellContractVersion=SHELL_BOOTSTRAP_CONTRACT_VERSION,
-            capabilityContractVersion=contract_version,
-            sourcePolicyVersion=policy_versions_by_source.get(dependency_source),
+        versioning=workspace_versioning(
+            dependency_source=dependency_source,
+            policy_versions_by_source=policy_versions_by_source,
+            contract_version=contract_version,
         ),
-        caching=PlatformBootstrapCaching(
-            cacheMode=cache_mode,
-            invalidationOwner=dependency_source,
-            staleReadTolerance=stale_read_tolerance,
-            revalidateOnNavigation=True,
-            ttlSeconds=max_age_seconds,
-            correctnessCritical=freshness_class == "workflow_truth",
+        caching=workspace_caching(
+            dependency_source=dependency_source,
+            freshness_class=freshness_class,
+            max_age_seconds=max_age_seconds,
+            cache_mode=cache_mode,
+            stale_read_tolerance=stale_read_tolerance,
         ),
+    )
+
+
+def workspace_supportability(
+    *,
+    descriptor_state: WorkspaceDescriptorState,
+) -> PlatformBootstrapSupportability:
+    return PlatformBootstrapSupportability(
+        state=descriptor_state.supportability_state,
+        reasons=descriptor_state.reasons,
+    )
+
+
+def workspace_evidence(
+    *,
+    descriptor_state: WorkspaceDescriptorState,
+    dependency_source: str,
+    error_services: list[str],
+) -> PlatformBootstrapEvidence:
+    return PlatformBootstrapEvidence(
+        state=descriptor_state.evidence_state,
+        lineageSources=[dependency_source],
+        partialFailure=dependency_source in error_services,
+        sourceErrorServices=[dependency_source] if dependency_source in error_services else [],
+    )
+
+
+def workspace_versioning(
+    *,
+    dependency_source: str,
+    policy_versions_by_source: dict[str, str],
+    contract_version: str,
+) -> PlatformBootstrapVersioning:
+    return PlatformBootstrapVersioning(
+        shellContractVersion=SHELL_BOOTSTRAP_CONTRACT_VERSION,
+        capabilityContractVersion=contract_version,
+        sourcePolicyVersion=policy_versions_by_source.get(dependency_source),
+    )
+
+
+def workspace_caching(
+    *,
+    dependency_source: str,
+    freshness_class: str,
+    max_age_seconds: int,
+    cache_mode: str,
+    stale_read_tolerance: str,
+) -> PlatformBootstrapCaching:
+    return PlatformBootstrapCaching(
+        cacheMode=cache_mode,
+        invalidationOwner=dependency_source,
+        staleReadTolerance=stale_read_tolerance,
+        revalidateOnNavigation=True,
+        ttlSeconds=max_age_seconds,
+        correctnessCritical=freshness_class == "workflow_truth",
     )
 
 
