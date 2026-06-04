@@ -100,6 +100,15 @@ class PortfolioAllocationPayloads:
 
 
 @dataclass(frozen=True)
+class PortfolioLiquidityPayloads:
+    aum_result: UpstreamResult
+    cash_balances_result: UpstreamResult
+    cashflow_result: UpstreamResult
+    aum_payload: dict[str, Any]
+    cash_balances_payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class PortfolioWorkspaceComponents:
     portfolio: PortfolioIdentity
     profile: PortfolioProfile
@@ -1122,6 +1131,49 @@ class PortfolioService:
     ) -> PortfolioLiquidityResponse:
         warnings: list[str] = []
         partial_failures: list[PortfolioPartialFailure] = []
+        payloads = await self._load_portfolio_liquidity_payloads(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        summary = self._parse_summary(
+            payloads.aum_result,
+            payloads.cash_balances_result,
+            warnings,
+            partial_failures,
+        )
+        return PortfolioLiquidityResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            as_of_date=str(
+                payloads.aum_payload.get("resolved_as_of_date")
+                or as_of_date
+                or datetime.now(UTC).date()
+            ),
+            portfolio_id=portfolio_id,
+            summary=summary,
+            cash_balances=self._parse_cash_balances(
+                payloads.cash_balances_payload,
+                summary.assets_under_management_base,
+            ),
+            cashflow_outlook=self._parse_cashflow(
+                payloads.cashflow_result,
+                warnings,
+                partial_failures,
+            ),
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    async def _load_portfolio_liquidity_payloads(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+    ) -> PortfolioLiquidityPayloads:
         (
             aum_result,
             cash_balances_result,
@@ -1147,29 +1199,18 @@ class PortfolioService:
                 horizon_days=10,
             ),
         )
-        aum_payload = self._require_payload(
-            result=aum_result,
-            unavailable_detail_prefix="lotus-core aum unavailable",
-        )
-        cash_balances_payload = self._require_payload(
-            result=cash_balances_result,
-            unavailable_detail_prefix="lotus-core cash balances unavailable",
-        )
-        summary = self._parse_summary(aum_result, cash_balances_result, warnings, partial_failures)
-        return PortfolioLiquidityResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            as_of_date=str(
-                aum_payload.get("resolved_as_of_date") or as_of_date or datetime.now(UTC).date()
+        return PortfolioLiquidityPayloads(
+            aum_result=aum_result,
+            cash_balances_result=cash_balances_result,
+            cashflow_result=cashflow_result,
+            aum_payload=self._require_payload(
+                result=aum_result,
+                unavailable_detail_prefix="lotus-core aum unavailable",
             ),
-            portfolio_id=portfolio_id,
-            summary=summary,
-            cash_balances=self._parse_cash_balances(
-                cash_balances_payload, summary.assets_under_management_base
+            cash_balances_payload=self._require_payload(
+                result=cash_balances_result,
+                unavailable_detail_prefix="lotus-core cash balances unavailable",
             ),
-            cashflow_outlook=self._parse_cashflow(cashflow_result, warnings, partial_failures),
-            warnings=warnings,
-            partial_failures=partial_failures,
         )
 
     async def get_portfolio_projected_cashflow(
