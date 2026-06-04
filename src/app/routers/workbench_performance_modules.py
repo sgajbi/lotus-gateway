@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.performance_workspace import (
     PerformanceHorizonComparisonResponse,
@@ -21,44 +21,7 @@ class PerformanceHorizonComparisonQuery:
     report_end_date: str | None
 
 
-async def _get_performance_horizon_comparison(
-    portfolio_id: str,
-    query: PerformanceHorizonComparisonQuery,
-) -> PerformanceHorizonComparisonResponse:
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_horizon_comparison(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=query.period,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        chart_frequency=query.chart_frequency,
-        explicit_start_date=query.report_start_date,
-        explicit_end_date=query.report_end_date,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/performance/horizon-comparison",
-    response_model=PerformanceHorizonComparisonResponse,
-    summary="Get Performance Horizon Comparison",
-    description=(
-        "Returns a compact benchmark-aware comparative return module for front-office-safe "
-        "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
-        "analytics surfaces until supportability gating is available through gateway. Use this "
-        "route for compact comparative return tables rather than the full summary or details "
-        "workspace contracts."
-    ),
-)
-async def get_performance_horizon_comparison(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful performance horizon-comparison module."
-        ),
-        examples=["PF_1001"],
-    ),
+def build_performance_horizon_comparison_query(
     period: str = Query(
         default="YTD",
         description=(
@@ -102,15 +65,58 @@ async def get_performance_horizon_comparison(
         ),
         examples=["2026-03-27"],
     ),
+) -> PerformanceHorizonComparisonQuery:
+    return PerformanceHorizonComparisonQuery(
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        chart_frequency=chart_frequency,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+    )
+
+
+async def _get_performance_horizon_comparison(
+    portfolio_id: str,
+    query: PerformanceHorizonComparisonQuery,
+) -> PerformanceHorizonComparisonResponse:
+    service = performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_horizon_comparison(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        chart_frequency=query.chart_frequency,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/horizon-comparison",
+    response_model=PerformanceHorizonComparisonResponse,
+    summary="Get Performance Horizon Comparison",
+    description=(
+        "Returns a compact benchmark-aware comparative return module for front-office-safe "
+        "MTD, QTD, and YTD first-paint analytics panels. Longer horizons stay on source-owned "
+        "analytics surfaces until supportability gating is available through gateway. Use this "
+        "route for compact comparative return tables rather than the full summary or details "
+        "workspace contracts."
+    ),
+)
+async def get_performance_horizon_comparison(
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance horizon-comparison module."
+        ),
+        examples=["PF_1001"],
+    ),
+    query: PerformanceHorizonComparisonQuery = Depends(build_performance_horizon_comparison_query),
 ) -> PerformanceHorizonComparisonResponse:
     return await _get_performance_horizon_comparison(
         portfolio_id=portfolio_id,
-        query=PerformanceHorizonComparisonQuery(
-            period=period,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            chart_frequency=chart_frequency,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-        ),
+        query=query,
     )
