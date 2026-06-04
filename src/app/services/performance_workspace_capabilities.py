@@ -77,57 +77,9 @@ def build_workspace_capabilities(
             "supported",
             "The performance workspace contract supports executive summary metrics.",
         ),
-        return_path=(
-            build_module_capability(
-                "supported",
-                "Time-series return observations are available for the selected horizon.",
-                earliest_available_date=inputs.earliest_history_date,
-                latest_available_date=inputs.latest_history_date,
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-            if inputs.has_return_history
-            else build_module_capability(
-                "unavailable",
-                "Published return observations are not available for the selected horizon.",
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-        ),
-        benchmark_comparison=(
-            build_module_capability(
-                "supported",
-                "Benchmark-relative return metrics are available.",
-                earliest_available_date=inputs.earliest_history_date,
-                latest_available_date=inputs.latest_history_date,
-            )
-            if inputs.has_benchmark and inputs.has_benchmark_returns
-            else build_module_capability(
-                "partial",
-                "A benchmark is assigned, but benchmark-relative returns are incomplete.",
-                earliest_available_date=inputs.earliest_history_date,
-                latest_available_date=inputs.latest_history_date,
-            )
-            if inputs.has_benchmark
-            else build_module_capability(
-                "unavailable",
-                "No benchmark is assigned to this mandate.",
-            )
-        ),
-        multi_horizon_returns=(
-            build_module_capability(
-                "supported",
-                "The workspace supports benchmark-aware horizon comparisons.",
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-            if inputs.has_benchmark
-            else build_module_capability(
-                "partial",
-                (
-                    "Horizon comparisons remain available, "
-                    "but benchmark-relative output is unavailable."
-                ),
-                supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
-            )
-        ),
+        return_path=build_return_path_capability(inputs),
+        benchmark_comparison=build_benchmark_comparison_capability(inputs),
+        multi_horizon_returns=build_multi_horizon_capability(inputs),
         contribution_ranking=build_contribution_capability(
             include_detail_blocks=include_detail_blocks,
             has_position_ranking=inputs.has_position_ranking,
@@ -152,6 +104,63 @@ def build_workspace_capabilities(
             unavailable_reason="Contribution detail is not available for the current selection.",
         ),
         evidence=build_evidence_capability(evidence_view=evidence_view),
+    )
+
+
+def build_return_path_capability(
+    inputs: PerformanceCapabilityInputs,
+) -> PerformanceModuleCapability:
+    if inputs.has_return_history:
+        return build_module_capability(
+            "supported",
+            "Time-series return observations are available for the selected horizon.",
+            earliest_available_date=inputs.earliest_history_date,
+            latest_available_date=inputs.latest_history_date,
+            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+        )
+    return build_module_capability(
+        "unavailable",
+        "Published return observations are not available for the selected horizon.",
+        supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+    )
+
+
+def build_benchmark_comparison_capability(
+    inputs: PerformanceCapabilityInputs,
+) -> PerformanceModuleCapability:
+    if inputs.has_benchmark and inputs.has_benchmark_returns:
+        return build_module_capability(
+            "supported",
+            "Benchmark-relative return metrics are available.",
+            earliest_available_date=inputs.earliest_history_date,
+            latest_available_date=inputs.latest_history_date,
+        )
+    if inputs.has_benchmark:
+        return build_module_capability(
+            "partial",
+            "A benchmark is assigned, but benchmark-relative returns are incomplete.",
+            earliest_available_date=inputs.earliest_history_date,
+            latest_available_date=inputs.latest_history_date,
+        )
+    return build_module_capability(
+        "unavailable",
+        "No benchmark is assigned to this mandate.",
+    )
+
+
+def build_multi_horizon_capability(
+    inputs: PerformanceCapabilityInputs,
+) -> PerformanceModuleCapability:
+    if inputs.has_benchmark:
+        return build_module_capability(
+            "supported",
+            "The workspace supports benchmark-aware horizon comparisons.",
+            supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
+        )
+    return build_module_capability(
+        "partial",
+        "Horizon comparisons remain available, but benchmark-relative output is unavailable.",
+        supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
     )
 
 
