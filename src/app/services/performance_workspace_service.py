@@ -132,6 +132,26 @@ class WorkspaceDimensionContext:
 
 
 @dataclass(frozen=True)
+class WorkspaceOverviewState:
+    overview: WorkbenchOverviewResponse
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+
+
+@dataclass(frozen=True)
+class WorkspaceReportWindow:
+    report_end_date: str
+    report_start_date: date
+    effective_period: str
+
+
+@dataclass(frozen=True)
+class WorkspaceBenchmarkContext:
+    benchmark_code: str | None
+    benchmark_catalog_result: GatheredResult
+
+
+@dataclass(frozen=True)
 class AttributionTrendRequestContext:
     overview: WorkbenchOverviewResponse
     warnings: list[str]
@@ -953,24 +973,14 @@ class PerformanceWorkspaceService:
         explicit_end_date: str | None,
         include_benchmark_catalog: bool,
     ) -> WorkspaceRequestContext:
-        async with server_timing_span("perf-overview"):
-            overview = await self._get_cached_workspace_overview(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            )
-        warnings = list(overview.warnings)
-        partial_failures = list(overview.partial_failures)
-        async with server_timing_span("perf-reference"):
-            resolved_report_end_date = await self._determine_report_end_date(
-                portfolio_id=portfolio_id,
-                as_of_date=overview.as_of_date,
-                correlation_id=correlation_id,
-                explicit_end_date=explicit_end_date,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
-        report_end_date, report_start_date, effective_period = resolve_requested_window(
-            default_report_end_date=resolved_report_end_date,
+        overview_state = await self._load_workspace_overview_state(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        report_window = await self._build_workspace_report_window(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            overview_state=overview_state,
             period=period,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
@@ -979,29 +989,23 @@ class PerformanceWorkspaceService:
             chart_frequency=chart_frequency,
             contribution_dimension=contribution_dimension,
             attribution_dimension=attribution_dimension,
-            warnings=warnings,
+            warnings=overview_state.warnings,
         )
-        async with server_timing_span("perf-benchmark"):
-            (
-                resolved_benchmark_code,
-                benchmark_catalog_result,
-            ) = await fetch_benchmark_context(
-                cache=self._upstream_cache,
-                core_client=self._lotus_core_query_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=report_end_date,
-                portfolio_currency=overview.portfolio.base_currency,
-                benchmark_code=benchmark_code,
-                include_benchmark_catalog=include_benchmark_catalog,
-            )
+        benchmark_context = await self._build_workspace_benchmark_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_window.report_end_date,
+            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+            include_benchmark_catalog=include_benchmark_catalog,
+        )
         return WorkspaceRequestContext(
-            overview=overview,
-            warnings=warnings,
-            partial_failures=partial_failures,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date,
-            effective_period=effective_period,
+            overview=overview_state.overview,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
+            report_end_date=report_window.report_end_date,
+            report_start_date=report_window.report_start_date,
+            effective_period=report_window.effective_period,
             chart_frequency=dimension_context.chart_frequency,
             contribution_dimension=dimension_context.contribution_dimension,
             attribution_dimension=dimension_context.attribution_dimension,
@@ -1016,6 +1020,80 @@ class PerformanceWorkspaceService:
                 dimension_context.requested_attribution_dimension_supported
             ),
             segment=dimension_context.segment,
+            benchmark_code=benchmark_context.benchmark_code,
+            benchmark_catalog_result=benchmark_context.benchmark_catalog_result,
+        )
+
+    async def _load_workspace_overview_state(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+    ) -> WorkspaceOverviewState:
+        async with server_timing_span("perf-overview"):
+            overview = await self._get_cached_workspace_overview(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+            )
+        return WorkspaceOverviewState(
+            overview=overview,
+            warnings=list(overview.warnings),
+            partial_failures=list(overview.partial_failures),
+        )
+
+    async def _build_workspace_report_window(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        overview_state: WorkspaceOverviewState,
+        period: str,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> WorkspaceReportWindow:
+        async with server_timing_span("perf-reference"):
+            resolved_report_end_date = await self._determine_report_end_date(
+                portfolio_id=portfolio_id,
+                as_of_date=overview_state.overview.as_of_date,
+                correlation_id=correlation_id,
+                explicit_end_date=explicit_end_date,
+                warnings=overview_state.warnings,
+                partial_failures=overview_state.partial_failures,
+            )
+        report_end_date, report_start_date, effective_period = resolve_requested_window(
+            default_report_end_date=resolved_report_end_date,
+            period=period,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        return WorkspaceReportWindow(
+            report_end_date=report_end_date,
+            report_start_date=report_start_date,
+            effective_period=effective_period,
+        )
+
+    async def _build_workspace_benchmark_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        report_end_date: str,
+        portfolio_currency: str,
+        benchmark_code: str | None,
+        include_benchmark_catalog: bool,
+    ) -> WorkspaceBenchmarkContext:
+        async with server_timing_span("perf-benchmark"):
+            resolved_benchmark_code, benchmark_catalog_result = await fetch_benchmark_context(
+                cache=self._upstream_cache,
+                core_client=self._lotus_core_query_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                portfolio_currency=portfolio_currency,
+                benchmark_code=benchmark_code,
+                include_benchmark_catalog=include_benchmark_catalog,
+            )
+        return WorkspaceBenchmarkContext(
             benchmark_code=resolved_benchmark_code,
             benchmark_catalog_result=benchmark_catalog_result,
         )
