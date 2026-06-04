@@ -67,4 +67,5 @@ review actions, and portfolio workflow actions, lowering the repository longest-
 from 99 lines to 88 lines. `portfolio_service.py` is now 2,750 lines because empty-portfolio
 workflow actions are explicit governed data rather than inline control-flow literals. The
 Workbench performance snapshot parser split then lowered the repository longest-function baseline
-from 88 lines to 87 lines.
+from 88 lines to 87 lines. Horizon comparison row-field extraction then lowered the repository
+longest-function baseline from 87 lines to 85 lines.
