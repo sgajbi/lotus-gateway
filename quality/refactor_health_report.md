@@ -12,7 +12,10 @@ service module. Shared risk unavailable-envelope helpers now centralize risk ups
 detail mapping, risk-service unavailable supportability, and risk metadata construction while
 preserving public behavior and keeping CI green. The risk drawdown response mapper has now been
 extracted to a dedicated drawdown module, reducing `risk_workspace_service.py` to 1,594 lines while
-leaving request orchestration and cache semantics in the workspace service. The remaining work is
+leaving request orchestration and cache semantics in the workspace service. The risk rolling
+response mapper, Sharpe fallback policy, and unavailable envelope have been extracted to a
+dedicated rolling module, reducing `risk_workspace_service.py` to 1,185 lines while preserving
+retry, request, and cache semantics in the workspace service. The remaining work is
 still substantial: large portfolio, risk workspace, contract, and client modules remain.
 
 ## Health Signals
@@ -34,8 +37,8 @@ still substantial: large portfolio, risk workspace, contract, and client modules
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
 2. Continue splitting `risk_workspace_service.py` by risk surface; the next risk workspace target
-   should be a bounded rolling module extraction after the shared unavailable-envelope and
-   drawdown-module helpers.
+   should be a bounded attribution module extraction after the shared unavailable-envelope,
+   drawdown-module, and rolling-module helpers.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.
