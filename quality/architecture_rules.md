@@ -121,9 +121,9 @@ shared analytics async polling, workspace-summary payload assembly, portfolio tr
 context loading, transaction page loading, portfolio book response assembly, performance
 attribution trend query metadata extraction, risk rolling query metadata extraction,
 advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
-extraction, DPM portfolio-memory search query metadata extraction, and performance chart-point row
-projection extraction. The current longest functions are `request_with_retry` and
-`get_performance_horizon_comparison` at 57 lines.
+extraction, DPM portfolio-memory search query metadata extraction, performance chart-point row
+projection extraction, and HTTP resilience JSON dispatch extraction. The current longest function
+is `get_performance_horizon_comparison` at 57 lines.
 
 ## Progressive Enforcement
 

@@ -64,16 +64,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 3 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 4 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
-| 5 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
-| 6 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 7 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
-| 8 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 9 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
-| 10 | 56 | `build_performance_details_query` | `src/app/routers/workbench_performance_details.py` |
+| 1 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
+| 2 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 3 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 4 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 5 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 6 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
+| 7 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
+| 8 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
+| 9 | 56 | `build_performance_details_query` | `src/app/routers/workbench_performance_details.py` |
+| 10 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
 
 ## Existing Blocking Gates
 
