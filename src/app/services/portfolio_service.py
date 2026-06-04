@@ -1302,6 +1302,27 @@ class PortfolioService:
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
+        return self._build_transaction_ledger_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            skip=skip,
+            limit=limit,
+            result_payload=result_payload,
+        )
+
+    def _build_transaction_ledger_response(
+        self,
+        *,
+        correlation_id: str,
+        portfolio_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        skip: int,
+        limit: int,
+        result_payload: dict[str, Any],
+    ) -> PortfolioTransactionLedgerResponse:
         transactions = [
             self._parse_transaction_view(item)
             for item in result_payload.get("transactions", [])
