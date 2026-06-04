@@ -18,15 +18,18 @@ dedicated rolling module, reducing `risk_workspace_service.py` to 1,185 lines wh
 retry, request, and cache semantics in the workspace service. The risk attribution response
 mapper, blocked/unavailable envelopes, and focused attribution module tests have been extracted to
 a dedicated attribution module, reducing `risk_workspace_service.py` to 780 lines while preserving
-request, cache, and correlation semantics in the workspace service. The remaining work is still
-substantial: large portfolio, performance workspace, contract, and client modules remain.
+request, cache, and correlation semantics in the workspace service. The risk summary response
+mapper and focused summary module tests have been extracted to a dedicated summary module,
+reducing `risk_workspace_service.py` to 540 lines while preserving request, cache, and correlation
+semantics in the workspace service. The remaining work is still substantial: large portfolio,
+performance workspace, contract, and client modules remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 942 tests passed in latest `make check` evidence |
+| Unit/contract coverage | Healthy | 942 tests passed in latest `make check` evidence before the summary module test addition |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.72%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
@@ -39,9 +42,8 @@ substantial: large portfolio, performance workspace, contract, and client module
 
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
-2. Continue splitting `risk_workspace_service.py` by risk surface; the next risk workspace target
-   should be a bounded summary response module extraction after the shared unavailable-envelope,
-   drawdown, rolling, and attribution helpers.
+2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
+   behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.

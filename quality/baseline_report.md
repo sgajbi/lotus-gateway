@@ -10,7 +10,7 @@ This baseline covers the current gateway hardening state after the report-only q
 lane, router-registry split, performance workspace response split, and advisor-brief response
 split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
-risk drawdown, rolling, and attribution response module extraction.
+risk drawdown, rolling, attribution, and summary response module extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -18,9 +18,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 659 |
-| Python source files under `src/app` | 436 |
-| Python test files under `tests` | 152 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 661 |
+| Python source files under `src/app` | 437 |
+| Python test files under `tests` | 153 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
 
