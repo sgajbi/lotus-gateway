@@ -30,6 +30,8 @@ from app.services.workspace_client_protocols import (
     FoundationReportingClient,
 )
 
+Number = int | float
+
 
 @dataclass(frozen=True)
 class CoreSnapshotSections:
@@ -346,7 +348,7 @@ class FoundationService:
         *,
         baseline_rows: list[Any],
         enrichment_rows: list[Any],
-        market_value_base: float,
+        market_value_base: Number,
     ) -> CoreSnapshotPositionViews:
         enrichment_by_security_id = self._index_core_enrichment_rows(enrichment_rows)
         allocations_by_asset_class: dict[str, FoundationAllocationBucket] = {}
@@ -396,7 +398,7 @@ class FoundationService:
         enrichment_by_security_id: dict[str, dict[str, Any]],
         allocations_by_asset_class: dict[str, FoundationAllocationBucket],
         top_positions: list[FoundationTopPosition],
-        market_value_base: float,
+        market_value_base: Number,
     ) -> None:
         security_id = self._optional_str(row.get("security_id"))
         enrichment = enrichment_by_security_id.get(security_id or "", {})
@@ -410,7 +412,9 @@ class FoundationService:
         bucket.position_count += 1
         if market_value is not None:
             current_market_value = bucket.market_value_base or 0.0
-            bucket.market_value_base = float(quantize_money(current_market_value + market_value))
+            bucket.market_value_base = self._to_number(
+                quantize_money(current_market_value + market_value)
+            )
 
         top_positions.append(
             self._build_core_top_position(
@@ -458,8 +462,8 @@ class FoundationService:
         security_id: str | None,
         enrichment: dict[str, Any],
         asset_class: str,
-        market_value: float | None,
-        market_value_base: float,
+        market_value: Number | None,
+        market_value_base: Number,
     ) -> FoundationTopPosition:
         return FoundationTopPosition(
             security_id=security_id or "UNKNOWN_SECURITY",
@@ -471,10 +475,12 @@ class FoundationService:
                 or "Unknown Security"
             ),
             asset_class=self._optional_str(asset_class),
-            market_value_base=float(quantize_money(market_value))
+            market_value_base=self._to_number(quantize_money(market_value))
             if market_value is not None
             else None,
-            weight_pct=float(quantize_performance((market_value / market_value_base) * 100.0))
+            weight_pct=self._to_number(
+                quantize_performance((market_value / market_value_base) * 100.0)
+            )
             if market_value is not None and market_value_base > 0
             else None,
         )
@@ -483,7 +489,7 @@ class FoundationService:
         self,
         *,
         allocations_by_asset_class: dict[str, FoundationAllocationBucket],
-        market_value_base: float,
+        market_value_base: Number,
     ) -> list[FoundationAllocationBucket]:
         allocations = sorted(allocations_by_asset_class.values(), key=lambda item: item.asset_class)
         for bucket in allocations:
@@ -779,3 +785,7 @@ class FoundationService:
             return None
         text = str(value).strip()
         return text or None
+
+    def _to_number(self, raw: Any) -> float:
+        converted = float(raw)
+        return converted
