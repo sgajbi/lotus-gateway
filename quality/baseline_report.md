@@ -64,16 +64,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 58 | `build_risk_rolling_query` | `src/app/routers/workbench_risk_rolling.py` |
-| 2 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
-| 3 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 4 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 5 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
-| 6 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 7 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
-| 8 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 9 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
-| 10 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 1 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
+| 2 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 3 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 4 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 5 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
+| 6 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
+| 7 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 8 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 9 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 10 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 

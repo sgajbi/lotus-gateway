@@ -117,9 +117,9 @@ parsing, portfolio workspace response-component assembly, risk attribution route
 performance summary route dependency extraction, shell workspace descriptor-state extraction, and
 rebalance supportability failure-recording extraction. The latest hardening branch further splits
 shared analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
-context loading, transaction page loading, portfolio book response assembly, and performance
-attribution trend query metadata extraction. The current longest functions are
-`build_risk_rolling_query`, `build_advisor_brief_query`, and `_build_evidence_view` at 58 lines.
+context loading, transaction page loading, portfolio book response assembly, performance
+attribution trend query metadata extraction, and risk rolling query metadata extraction. The
+current longest functions are `build_advisor_brief_query` and `_build_evidence_view` at 58 lines.
 
 ## Progressive Enforcement
 

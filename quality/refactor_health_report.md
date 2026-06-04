@@ -84,9 +84,9 @@ to 74 lines. The current 50-commit branch then split portfolio memory search fil
 workspace assembly state, advisor-brief fact sections, portfolio liquidity loading, transaction
 ledger and risk-attribution request contexts, DPM operations handoff response assembly, shared
 analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
-context loading, transaction page loading, portfolio book response assembly, and performance
-attribution trend query metadata extraction. The repository longest-function baseline is now 58
-lines.
+context loading, transaction page loading, portfolio book response assembly, performance
+attribution trend query metadata extraction, and risk rolling query metadata extraction. The
+repository longest-function baseline is now 58 lines.
 `portfolio_service.py` is now 3,155 lines after explicit typed workspace component, transaction
 summary, transaction page, and book assembly helpers; it remains the largest-file hotspot even
 though individual portfolio orchestration functions are smaller. The remaining work is still
