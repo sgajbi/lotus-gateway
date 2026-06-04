@@ -428,7 +428,7 @@ class PortfolioService:
         end_date: str | None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        context = PortfolioTransactionsRequestContext(
+        context = self._portfolio_transactions_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
@@ -450,6 +450,59 @@ class PortfolioService:
             end_date=end_date,
             reporting_currency=reporting_currency,
         )
+        return await self._get_portfolio_transactions_result_for_context(context)
+
+    def _portfolio_transactions_request_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        skip: int,
+        limit: int,
+        transaction_type: str | None,
+        security_id: str | None,
+        instrument_id: str | None,
+        component_type: str | None,
+        linked_transaction_group_id: str | None,
+        fx_contract_id: str | None,
+        swap_event_id: str | None,
+        near_leg_group_id: str | None,
+        far_leg_group_id: str | None,
+        sort_by: str,
+        sort_order: str,
+        start_date: str | None,
+        end_date: str | None,
+        reporting_currency: str | None,
+    ) -> PortfolioTransactionsRequestContext:
+        return PortfolioTransactionsRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            skip=skip,
+            limit=limit,
+            transaction_type=transaction_type,
+            security_id=security_id,
+            instrument_id=instrument_id,
+            component_type=component_type,
+            linked_transaction_group_id=linked_transaction_group_id,
+            fx_contract_id=fx_contract_id,
+            swap_event_id=swap_event_id,
+            near_leg_group_id=near_leg_group_id,
+            far_leg_group_id=far_leg_group_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
+        )
+
+    async def _get_portfolio_transactions_result_for_context(
+        self,
+        context: PortfolioTransactionsRequestContext,
+    ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
             self._portfolio_transactions_cache_key(context),
             lambda: self._fetch_portfolio_transactions(context),
@@ -1405,7 +1458,7 @@ class PortfolioService:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
-        status_code, payload = await self._get_portfolio_transactions_result(
+        context = self._portfolio_transactions_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
@@ -1427,29 +1480,20 @@ class PortfolioService:
             end_date=end_date,
             reporting_currency=reporting_currency,
         )
+        status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
         result_payload = self._require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
         return self._build_transaction_ledger_response(
-            correlation_id=correlation_id,
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            include_projected=include_projected,
-            skip=skip,
-            limit=limit,
+            context=context,
             result_payload=result_payload,
         )
 
     def _build_transaction_ledger_response(
         self,
         *,
-        correlation_id: str,
-        portfolio_id: str,
-        as_of_date: str | None,
-        include_projected: bool,
-        skip: int,
-        limit: int,
+        context: PortfolioTransactionsRequestContext,
         result_payload: dict[str, Any],
     ) -> PortfolioTransactionLedgerResponse:
         transactions = [
@@ -1458,18 +1502,18 @@ class PortfolioService:
             if isinstance(item, dict)
         ]
         return PortfolioTransactionLedgerResponse(
-            correlation_id=correlation_id,
+            correlation_id=context.correlation_id,
             contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
+            portfolio_id=context.portfolio_id,
             as_of_date=(
                 str(result_payload.get("as_of_date"))
                 if result_payload.get("as_of_date")
-                else as_of_date
+                else context.as_of_date
             ),
-            include_projected=include_projected,
+            include_projected=context.include_projected,
             total=int(result_payload.get("total", len(transactions))),
-            skip=int(result_payload.get("skip", skip)),
-            limit=int(result_payload.get("limit", limit)),
+            skip=int(result_payload.get("skip", context.skip)),
+            limit=int(result_payload.get("limit", context.limit)),
             transactions=transactions,
         )
 
