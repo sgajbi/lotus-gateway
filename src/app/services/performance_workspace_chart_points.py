@@ -64,6 +64,28 @@ def build_workspace_chart_points(
     return points
 
 
+def _build_parsed_chart_point(
+    *,
+    index: int,
+    normalized_frequency: str,
+    portfolio_row: dict[str, Any],
+    benchmark_row: dict[str, Any],
+    relative_row: dict[str, Any],
+) -> PerformanceChartPoint:
+    return PerformanceChartPoint(
+        label=str(portfolio_row.get("period", f"point-{index + 1}")),
+        frequency=normalized_frequency,
+        period_start=safe_str(portfolio_row.get("period_start")),
+        period_end=safe_str(portfolio_row.get("period_end")),
+        portfolio_return_pct=extract_return(portfolio_row, "period_return", "base"),
+        benchmark_return_pct=extract_return(benchmark_row, "period_return", "base"),
+        active_return_pct=extract_return(relative_row, "period_return", "base"),
+        cumulative_portfolio_return_pct=extract_return(portfolio_row, "cumulative_return", "base"),
+        cumulative_benchmark_return_pct=extract_return(benchmark_row, "cumulative_return", "base"),
+        cumulative_active_return_pct=extract_return(relative_row, "cumulative_return", "base"),
+    )
+
+
 def parse_chart_points(
     *,
     portfolio_block: dict[str, Any],
@@ -101,23 +123,12 @@ def parse_chart_points(
         if not isinstance(relative_row, dict):
             relative_row = {}
         points.append(
-            PerformanceChartPoint(
-                label=str(portfolio_row.get("period", f"point-{index + 1}")),
-                frequency=normalized_frequency,
-                period_start=safe_str(portfolio_row.get("period_start")),
-                period_end=safe_str(portfolio_row.get("period_end")),
-                portfolio_return_pct=extract_return(portfolio_row, "period_return", "base"),
-                benchmark_return_pct=extract_return(benchmark_row, "period_return", "base"),
-                active_return_pct=extract_return(relative_row, "period_return", "base"),
-                cumulative_portfolio_return_pct=extract_return(
-                    portfolio_row, "cumulative_return", "base"
-                ),
-                cumulative_benchmark_return_pct=extract_return(
-                    benchmark_row, "cumulative_return", "base"
-                ),
-                cumulative_active_return_pct=extract_return(
-                    relative_row, "cumulative_return", "base"
-                ),
+            _build_parsed_chart_point(
+                index=index,
+                normalized_frequency=normalized_frequency,
+                portfolio_row=portfolio_row,
+                benchmark_row=benchmark_row,
+                relative_row=relative_row,
             )
         )
     return points
