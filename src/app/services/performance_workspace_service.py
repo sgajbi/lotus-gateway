@@ -584,8 +584,36 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        workspace_summary_result = await self._fetch_horizon_comparison_dependencies(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+        )
+        rows, resolved_benchmark_code = self._parse_horizon_comparison_rows(
+            detail_basis=detail_basis,
+            context=context,
+            workspace_summary_result=workspace_summary_result,
+        )
+        return self._build_horizon_comparison_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+            benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
+            rows=rows,
+        )
+
+    async def _fetch_horizon_comparison_dependencies(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        context: HorizonComparisonRequestContext,
+    ) -> GatheredResult:
         async with server_timing_span("perf-horizon"):
-            workspace_summary_result = await fetch_workspace_horizon_dependencies(
+            return await fetch_workspace_horizon_dependencies(
                 analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -599,7 +627,15 @@ class PerformanceWorkspaceService:
                 portfolio_currency=context.overview.portfolio.base_currency,
                 chart_frequency=context.chart_frequency,
             )
-        rows, resolved_benchmark_code = parse_horizon_comparison_result(
+
+    def _parse_horizon_comparison_rows(
+        self,
+        *,
+        detail_basis: str,
+        context: HorizonComparisonRequestContext,
+        workspace_summary_result: GatheredResult,
+    ) -> tuple[list[Any], str | None]:
+        return parse_horizon_comparison_result(
             result=workspace_summary_result,
             requested_period=context.effective_period,
             requested_report_start_date=context.report_start_date.isoformat()
@@ -611,14 +647,6 @@ class PerformanceWorkspaceService:
             detail_basis=detail_basis,
             warnings=context.warnings,
             partial_failures=context.partial_failures,
-        )
-        return self._build_horizon_comparison_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            detail_basis=detail_basis,
-            context=context,
-            benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
-            rows=rows,
         )
 
     async def _build_horizon_comparison_request_context(
