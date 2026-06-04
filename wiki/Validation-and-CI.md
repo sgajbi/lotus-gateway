@@ -73,6 +73,11 @@ longest-function baseline from 87 lines to 85 lines. Performance workspace summa
 evidence-view mapping splits then lowered the repository longest-function baseline from 85 lines
 to 84 lines. Foundation workspace response assembly, PM operating quality summary orchestration,
 and risk attribution supportability splits then lowered the repository longest-function baseline
-from 84 lines to 82 lines, with `portfolio_service.py` currently measured at 2,621 lines. The DPM
-PM quality summary context now uses the specific PM operating quality supportability contract type,
-keeping the Feature Lane mypy gate green.
+from 84 lines to 82 lines, with `portfolio_service.py` then measured at 2,621 lines. The DPM PM
+quality summary context now uses the specific PM operating quality supportability contract type,
+keeping the Feature Lane mypy gate green. Attribution trend row parsing, portfolio position
+parsing, and performance workspace request-context splits then lowered the repository
+longest-function baseline from 82 lines to 80 lines, with `portfolio_service.py` currently
+measured at 2,617 lines. Local `make check` remains green with 967 unit/contract tests, and the
+latest pushed code slices have green Remote Feature Lane and Quality Baseline runs as of this
+evidence update.

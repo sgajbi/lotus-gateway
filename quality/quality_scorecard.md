@@ -7,7 +7,7 @@ Mode: baseline/report-only
 | --- | ---: | --- | --- |
 | Build and test reliability | 4/5 | Strong repo-native gates and green PR lanes | Keep Docker parity blocking |
 | Coverage | 4/5 | 92.84% total coverage | Add targeted middleware/security/error tests |
-| Modularity | 3/5 | Portfolio workspace assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts, foundation workspace assembly and response composition, risk rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon comparison row-field projection, performance workspace summary parsing, performance evidence-view mapping, performance workspace capability inputs, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; large services and contracts remain | Continue extraction slices |
+| Modularity | 3/5 | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon comparison row-field projection, performance workspace summary parsing, performance evidence-view mapping, performance workspace capability inputs, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; large services and contracts remain | Continue extraction slices |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 3/5 | Good generated OpenAPI; minor description/tag/error gaps | Add Spectral artifact and explicit API tests |
 | Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions | Normalize route/upstream errors |
@@ -37,7 +37,7 @@ Candidate thresholds:
 2. no new forbidden imports,
 3. no new high-confidence dead-code findings,
 4. no new high-severity bandit findings,
-5. no new file/function above the current baseline maxima of 2,621 file lines and 82 function lines.
+5. no new file/function above the current baseline maxima of 2,617 file lines and 80 function lines.
 
 ### Phase 3: Enforce Agreed Thresholds
 

@@ -24,7 +24,8 @@ source talking-point and review-action extraction, portfolio workflow-action ext
 Workbench performance snapshot parser extraction, and horizon comparison row-field extraction.
 The latest focused batch also split performance workspace summary parsing and performance
 evidence-view mapping, foundation workspace response assembly, PM operating quality summary
-orchestration, and risk attribution supportability construction.
+orchestration, risk attribution supportability construction, attribution trend row parsing,
+portfolio position parsing, and performance workspace request-context assembly.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -42,13 +43,13 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,621 | `src/app/services/portfolio_service.py` |
+| 1 | 2,617 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
 | 5 | 1,539 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,397 | `src/app/services/advisor_brief_service.py` |
-| 7 | 1,390 | `src/app/services/performance_workspace_service.py` |
+| 6 | 1,459 | `src/app/services/performance_workspace_service.py` |
+| 7 | 1,397 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,258 | `src/app/clients/dpm_client.py` |
 | 9 | 1,095 | `src/app/services/dpm_command_center_service.py` |
 | 10 | 1,012 | `src/app/clients/advise_client.py` |
@@ -57,16 +58,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 82 | `parse_single_attribution_trend_row` | `src/app/services/performance_workspace_attribution.py` |
-| 2 | 81 | `_parse_positions` | `src/app/services/portfolio_service.py` |
-| 3 | 81 | `_build_workspace_request_context` | `src/app/services/performance_workspace_service.py` |
-| 4 | 80 | `post_performance_advisor_brief_review_action` | `src/app/routers/workbench_performance_advisor_brief_review_actions.py` |
-| 5 | 79 | `build_attribution_controls` | `src/app/services/risk_workspace_attribution_controls.py` |
-| 6 | 78 | `parse_rebalance_snapshot` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 7 | 78 | `get_portfolio_performance_snapshot` | `src/app/routers/portfolio_performance.py` |
-| 8 | 78 | `get_performance_advisor_brief` | `src/app/routers/workbench_performance_advisor_brief.py` |
-| 9 | 78 | `get_drawdown` | `src/app/services/risk_workspace_service.py` |
-| 10 | 77 | `parse_lotus_core_snapshot` | `src/app/services/workbench_core_snapshot.py` |
+| 1 | 80 | `post_performance_advisor_brief_review_action` | `src/app/routers/workbench_performance_advisor_brief_review_actions.py` |
+| 2 | 79 | `build_attribution_controls` | `src/app/services/risk_workspace_attribution_controls.py` |
+| 3 | 78 | `parse_rebalance_snapshot` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 4 | 78 | `get_portfolio_performance_snapshot` | `src/app/routers/portfolio_performance.py` |
+| 5 | 78 | `get_performance_advisor_brief` | `src/app/routers/workbench_performance_advisor_brief.py` |
+| 6 | 78 | `get_drawdown` | `src/app/services/risk_workspace_service.py` |
+| 7 | 77 | `parse_lotus_core_snapshot` | `src/app/services/workbench_core_snapshot.py` |
+| 8 | 77 | `_build_portfolio_workspace_response` | `src/app/services/portfolio_service.py` |
+| 9 | 76 | `get_workbench_risk_attribution` | `src/app/routers/workbench_risk_attribution.py` |
+| 10 | 76 | `get_performance_workspace_summary` | `src/app/routers/workbench_performance.py` |
 
 ## Existing Blocking Gates
 
@@ -105,7 +106,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 82 lines,
+2. no new function above the current longest-function baseline of 80 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

@@ -70,8 +70,13 @@ workspace response assembly now has separate core-view, optional-view, and final
 composition helpers. PM operating quality summary orchestration now has separate Manage evidence
 context loading, score-run validation, Lotus AI workflow execution, and gateway response
 composition helpers. Risk attribution supportability construction now has separate base,
-active-risk, and total-risk benchmark-exposure helpers. `portfolio_service.py` is now 2,621 lines,
-and the repository longest-function baseline is now 82 lines. The remaining work is still substantial: large
+active-risk, and total-risk benchmark-exposure helpers. Attribution trend row parsing now has
+separate upstream-result validation, period selection, period-payload extraction, and row
+projection helpers. Portfolio position parsing now has a per-position mapper and reusable
+valuation conversion helpers without adding monetary-float allowlist debt. Performance workspace
+request-context assembly now has separate overview, report-window, and benchmark-context helpers.
+`portfolio_service.py` is now 2,617 lines, and the repository longest-function baseline is now
+80 lines. The remaining work is still substantial: large
 portfolio, performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
@@ -83,7 +88,7 @@ portfolio, performance workspace, advisor-brief orchestration, contract, and cli
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.84%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts, foundation workspace assembly and response composition, risk rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon comparison row-field projection, performance workspace summary parsing, performance evidence-view mapping, performance workspace capability inputs, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon comparison row-field projection, performance workspace summary parsing, performance evidence-view mapping, performance workspace capability inputs, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
