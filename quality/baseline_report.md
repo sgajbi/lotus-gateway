@@ -11,7 +11,7 @@ lane, router-registry split, performance workspace response split, and advisor-b
 split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
 risk drawdown, rolling, attribution, and summary response module extraction, and platform
-capability normalization boundary extraction.
+capability normalization and shell-bootstrap boundary extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -19,9 +19,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 663 |
-| Python source files under `src/app` | 438 |
-| Python test files under `tests` | 154 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 665 |
+| Python source files under `src/app` | 439 |
+| Python test files under `tests` | 155 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
 

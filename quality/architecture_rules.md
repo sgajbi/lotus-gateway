@@ -72,8 +72,11 @@ service. Platform capability normalization, shell-bootstrap construction, worksp
 module-health classification, policy diagnostics, workflow flags, and input-mode normalization have
 been extracted to `src/app/services/platform_capabilities_normalization.py`, reducing
 `platform_capabilities_service.py` to 330 lines while keeping upstream orchestration, timeout
-handling, correlation propagation, and partial-failure collection in the service. The current
-longest function is `_build_workspace_control_capabilities` in
+handling, correlation propagation, and partial-failure collection in the service. Shell-bootstrap
+contract assembly and workspace descriptor state mapping have been further extracted to
+`src/app/services/platform_capabilities_shell.py`, reducing the capability normalization module to
+355 lines and keeping shell navigation evidence separately testable. The current longest function
+is `_build_workspace_control_capabilities` in
 `src/app/services/portfolio_service.py` at 191 lines.
 
 ## Progressive Enforcement
