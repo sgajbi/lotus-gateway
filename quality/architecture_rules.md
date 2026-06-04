@@ -123,8 +123,9 @@ attribution trend query metadata extraction, risk rolling query metadata extract
 advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
 extraction, DPM portfolio-memory search query metadata extraction, performance chart-point row
 projection extraction, HTTP resilience JSON dispatch extraction, and performance
-horizon-comparison dependency-phase extraction. The current longest functions are 56-line
-orchestration and mapper helpers.
+horizon-comparison dependency-phase extraction, followed by performance summary/detail route
+query metadata extraction. The current longest functions are 56-line orchestration and mapper
+helpers.
 
 ## Progressive Enforcement
 

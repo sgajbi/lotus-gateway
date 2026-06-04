@@ -32,7 +32,8 @@ and risk/performance Workbench route dependency handling. The latest 50-commit h
 then split shared analytics async polling, workspace-summary payload assembly, portfolio
 transaction-summary context loading, transaction page loading, and portfolio book response
 assembly, then split performance horizon-comparison dependency fetching and row parsing out of
-the top-level service method.
+the top-level service method, followed by performance summary/detail route query metadata
+extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -71,10 +72,10 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 4 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
 | 5 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
 | 6 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 7 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
-| 8 | 56 | `build_performance_details_query` | `src/app/routers/workbench_performance_details.py` |
-| 9 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 10 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 7 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 8 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 9 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
+| 10 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
 
 ## Existing Blocking Gates
 
