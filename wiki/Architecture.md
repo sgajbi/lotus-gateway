@@ -10,6 +10,9 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
+- current enterprise-hardening evidence records `portfolio_service.py` at 2,744 lines after the
+  portfolio exception-summary extraction, with the repository longest-function baseline reduced to
+  127 lines
 
 ## Route-family map
 
@@ -73,3 +76,6 @@
     Only client factory modules construct `app.clients.*` clients; protocol modules own broad AI,
     DPM, reporting, advisory, workspace/composition, and domain-support protocol families, and
     boundary tests enforce this factory-only construction rule.
+12. portfolio exception-summary payload construction is isolated in
+    `src/app/services/portfolio_exception_summaries.py`; `PortfolioService` keeps readiness
+    orchestration while the compact exception-summary contract remains separately testable.

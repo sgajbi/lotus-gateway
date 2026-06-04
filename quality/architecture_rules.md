@@ -35,7 +35,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,839 lines,
+1. `src/app/services/portfolio_service.py` at 2,744 lines,
 2. `src/app/services/advisor_brief_service.py` at 1,392 lines,
 3. `src/app/services/performance_workspace_service.py` at 1,152 lines,
 4. `src/app/services/dpm_command_center_service.py` at 1,032 lines,
@@ -96,8 +96,11 @@ window-pair construction, attribution fan-out, and response assembly helpers, re
 `get_performance_attribution_trend` from 135 lines to 56 lines. The performance evidence-view
 orchestrator has now been split into request context, fetch state, requested-calculation
 selection, and explicit response builders, reducing `_build_evidence_view` from 134 lines to
-58 lines. The current longest function is `_build_portfolio_exception_summaries` in
-`src/app/services/portfolio_service.py` at 133 lines.
+58 lines. Portfolio exception-summary construction has been extracted to
+`src/app/services/portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 to
+2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
+delegation over readiness status. The current longest function is `build_workspace_capabilities`
+in `src/app/services/performance_workspace_capabilities.py` at 127 lines.
 
 ## Progressive Enforcement
 

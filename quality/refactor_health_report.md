@@ -1,6 +1,6 @@
 # Refactor Health Report
 
-Date: 2026-06-02  
+Date: 2026-06-04
 Phase: baseline/report-only
 
 ## Current Direction
@@ -49,19 +49,23 @@ helpers, reducing `get_performance_attribution_trend` from 135 lines to 56 lines
 repository longest-function baseline to 134 lines. Performance evidence-view orchestration has now
 been split into request context, fetch state, requested-calculation selection, and explicit response
 builders, reducing `_build_evidence_view` from 134 lines to 58 lines and lowering the repository
-longest-function baseline to 133 lines. The remaining work is still substantial: large
-portfolio, performance workspace, advisor-brief orchestration, contract, and client modules remain.
+longest-function baseline to 133 lines. Portfolio exception-summary construction has now been
+extracted to `portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 lines
+to 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
+readiness delegation. The repository longest-function baseline is now 127 lines. The remaining
+work is still substantial: large portfolio, performance workspace, advisor-brief orchestration,
+contract, and client modules remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 958 tests passed in latest `make check` evidence |
+| Unit/contract coverage | Healthy | 961 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.80%, above the 84% floor |
+| Total coverage | Healthy | 92.83%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -69,7 +73,8 @@ portfolio, performance workspace, advisor-brief orchestration, contract, and cli
 ## Primary Refactor Backlog
 
 1. Continue splitting `portfolio_service.py` into source-readiness, transaction/activity, income,
-   workspace, and workflow-cue adapters.
+   workspace, insight, and workflow-cue adapters. Exception-summary payload construction is now
+   separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes

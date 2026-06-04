@@ -52,3 +52,8 @@ Current baseline truth lives in:
 - [quality/quality_scorecard.md](../quality/quality_scorecard.md)
 - [quality/architecture_rules.md](../quality/architecture_rules.md)
 - [quality/api_governance_rules.md](../quality/api_governance_rules.md)
+
+Latest enterprise-hardening evidence: the portfolio exception-summary extraction lowered the
+repository longest-function baseline from 133 lines to 127 lines and reduced
+`portfolio_service.py` from 2,839 lines to 2,744 lines while preserving focused portfolio insight
+and router contract tests.
