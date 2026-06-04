@@ -190,59 +190,40 @@ def _extract_rebalance_supportability_payload(
     if supportability_result is None:
         return None
     if isinstance(supportability_result, BaseException):
-        if partial_failures is not None:
-            partial_failures.append(
-                WorkbenchPartialFailure(
-                    source_service="lotus-manage",
-                    error_code="SUPPORTABILITY_SUMMARY_UNAVAILABLE",
-                    detail=str(supportability_result),
-                )
-            )
-        if warnings is not None:
-            warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+        _record_rebalance_supportability_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="SUPPORTABILITY_SUMMARY_UNAVAILABLE",
+            detail=str(supportability_result),
+        )
         return None
     if not isinstance(supportability_result, tuple) or len(supportability_result) != 2:
-        if partial_failures is not None:
-            partial_failures.append(
-                WorkbenchPartialFailure(
-                    source_service="lotus-manage",
-                    error_code="INVALID_SUPPORTABILITY_SUMMARY_RESULT",
-                    detail=f"unexpected supportability result: {type(supportability_result)}",
-                )
-            )
-        if warnings is not None:
-            warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+        _record_rebalance_supportability_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="INVALID_SUPPORTABILITY_SUMMARY_RESULT",
+            detail=f"unexpected supportability result: {type(supportability_result)}",
+        )
         return None
     supportability_status, supportability_summary = supportability_result
     if not isinstance(supportability_status, int) or not isinstance(
         supportability_summary,
         dict,
     ):
-        if partial_failures is not None:
-            partial_failures.append(
-                WorkbenchPartialFailure(
-                    source_service="lotus-manage",
-                    error_code="INVALID_SUPPORTABILITY_SUMMARY_PAYLOAD",
-                    detail=(
-                        "supportability summary result must include integer status "
-                        "and object payload"
-                    ),
-                )
-            )
-        if warnings is not None:
-            warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+        _record_rebalance_supportability_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="INVALID_SUPPORTABILITY_SUMMARY_PAYLOAD",
+            detail=("supportability summary result must include integer status and object payload"),
+        )
         return None
     if supportability_status >= status.HTTP_400_BAD_REQUEST:
-        if partial_failures is not None:
-            partial_failures.append(
-                WorkbenchPartialFailure(
-                    source_service="lotus-manage",
-                    error_code=f"SUPPORTABILITY_HTTP_{supportability_status}",
-                    detail=str(supportability_summary.get("detail", supportability_summary)),
-                )
-            )
-        if warnings is not None:
-            warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
+        _record_rebalance_supportability_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code=f"SUPPORTABILITY_HTTP_{supportability_status}",
+            detail=str(supportability_summary.get("detail", supportability_summary)),
+        )
         return None
     supportability_payload = supportability_summary.get("supportability")
     if isinstance(supportability_payload, dict):
@@ -252,6 +233,25 @@ def _extract_rebalance_supportability_payload(
                 merged_payload[summary_key] = supportability_summary[summary_key]
         return merged_payload
     return None
+
+
+def _record_rebalance_supportability_unavailable(
+    *,
+    partial_failures: list[WorkbenchPartialFailure] | None,
+    warnings: list[str] | None,
+    error_code: str,
+    detail: str,
+) -> None:
+    if partial_failures is not None:
+        partial_failures.append(
+            WorkbenchPartialFailure(
+                source_service="lotus-manage",
+                error_code=error_code,
+                detail=detail,
+            )
+        )
+    if warnings is not None:
+        warnings.append("MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
 
 
 def _extract_dpm_run_error_code(item: dict[str, Any]) -> str | None:
