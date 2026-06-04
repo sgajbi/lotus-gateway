@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from app.contracts.advisory_policy import AdvisoryPolicyEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
@@ -21,6 +21,11 @@ async def _list_policy_packs() -> AdvisoryPolicyEnvelopeResponse:
         "Returns enterprise suitability and best-interest policy packs from lotus-advise. "
         "Gateway does not assemble or validate policy facts locally."
     ),
+    responses={
+        status.HTTP_502_BAD_GATEWAY: {
+            "description": "lotus-advise policy-pack source truth is unavailable or invalid.",
+        },
+    },
 )
 async def list_policy_packs() -> AdvisoryPolicyEnvelopeResponse:
     return await _list_policy_packs()

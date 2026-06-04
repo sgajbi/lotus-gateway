@@ -91,27 +91,84 @@ app = FastAPI(
                 "source-owned scenario, supported-claim, and sanitized proof-pack truth."
             ),
         },
+        {
+            "name": "Operations",
+            "description": "Operational health, readiness, and Prometheus metrics endpoints.",
+        },
     ],
 )
 setup_logging()
 validate_enterprise_runtime_config()
 app.middleware("http")(correlation_middleware)
 app.middleware("http")(build_enterprise_audit_middleware("lotus-gateway"))
-Instrumentator().instrument(app).expose(app)
+Instrumentator().instrument(app).expose(
+    app,
+    tags=["Operations"],
+    summary="Prometheus Metrics",
+    description=(
+        "Exposes Prometheus scrape metrics for gateway request latency, throughput, and "
+        "status-code telemetry. This endpoint is operational telemetry only and does not "
+        "return portfolio, advisory, or client-domain data."
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Metrics rendering failed because the local collector is unavailable.",
+        },
+    },
+)
 register_routers(app)
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["Operations"],
+    summary="Health",
+    description=(
+        "Returns a lightweight gateway process health signal for load balancers and "
+        "operator diagnostics. This check confirms the application process is responding."
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "The gateway process could not produce a health response.",
+        },
+    },
+)
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/health/live")
+@app.get(
+    "/health/live",
+    tags=["Operations"],
+    summary="Health Live",
+    description=(
+        "Returns the gateway liveness signal used to confirm the application process should "
+        "continue receiving runtime supervision."
+    ),
+    responses={
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "The gateway process could not produce a liveness response.",
+        },
+    },
+)
 async def health_live() -> dict[str, str]:
     return {"status": "live"}
 
 
-@app.get("/health/ready")
+@app.get(
+    "/health/ready",
+    tags=["Operations"],
+    summary="Health Ready",
+    description=(
+        "Returns readiness for traffic. During graceful drain the endpoint responds with "
+        "503 and a draining status so callers can remove the instance from rotation."
+    ),
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "The gateway is draining and should not receive new traffic.",
+        },
+    },
+)
 async def health_ready(response: Response) -> dict[str, str]:
     if bool(getattr(app.state, "is_draining", False)):
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
