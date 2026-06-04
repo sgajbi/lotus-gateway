@@ -11,8 +11,8 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records `portfolio_service.py` at 2,744 lines after the
-  portfolio exception-summary extraction, with the repository longest-function baseline reduced to
-  127 lines
+  portfolio exception-summary extraction and records performance workspace capability-input
+  extraction with the repository longest-function baseline reduced to 119 lines
 
 ## Route-family map
 
@@ -79,3 +79,6 @@
 12. portfolio exception-summary payload construction is isolated in
     `src/app/services/portfolio_exception_summaries.py`; `PortfolioService` keeps readiness
     orchestration while the compact exception-summary contract remains separately testable.
+13. performance workspace capability state derivation is isolated behind
+    `PerformanceCapabilityInputs` and `resolve_history_date_range`; capability payload assembly
+    remains in `src/app/services/performance_workspace_capabilities.py`.

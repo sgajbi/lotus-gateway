@@ -99,8 +99,11 @@ selection, and explicit response builders, reducing `_build_evidence_view` from 
 58 lines. Portfolio exception-summary construction has been extracted to
 `src/app/services/portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 to
 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
-delegation over readiness status. The current longest function is `build_workspace_capabilities`
-in `src/app/services/performance_workspace_capabilities.py` at 127 lines.
+delegation over readiness status. Performance workspace capability-input derivation has been
+split into `PerformanceCapabilityInputs`, `build_performance_capability_inputs`, and
+`resolve_history_date_range`, reducing `build_workspace_capabilities` from 127 lines to 99 lines
+while keeping capability payload assembly in the original module. The current longest function is
+`get_portfolio_workspace` in `src/app/services/portfolio_service.py` at 119 lines.
 
 ## Progressive Enforcement
 

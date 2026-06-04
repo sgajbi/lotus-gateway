@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
@@ -15,6 +16,19 @@ from app.services.performance_workspace_controls import SUPPORTED_WORKSPACE_FREQ
 
 SUPPORTED_CONTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country")
 SUPPORTED_ATTRIBUTION_DIMENSIONS = ("asset_class", "sector", "country", "currency")
+
+
+@dataclass(frozen=True)
+class PerformanceCapabilityInputs:
+    has_return_history: bool
+    has_benchmark: bool
+    has_benchmark_returns: bool
+    has_contribution_detail: bool
+    has_position_ranking: bool
+    has_attribution_detail: bool
+    has_attribution_summary: bool
+    earliest_history_date: str | None
+    latest_history_date: str | None
 
 
 def build_module_capability(
@@ -50,40 +64,12 @@ def build_workspace_capabilities(
     evidence_view: PerformanceEvidenceView | None,
     include_detail_blocks: bool = True,
 ) -> PerformanceWorkspaceCapabilities:
-    has_return_history = len(net_chart) > 0
-    has_benchmark = bool(benchmark_code)
-    has_benchmark_returns = (
-        net_performance.benchmark_return_pct is not None
-        and net_performance.active_return_pct is not None
-    )
-    has_contribution_detail = bool(
-        contribution and (contribution.levels or contribution.position_rows)
-    )
-    has_position_ranking = bool(contribution and contribution.position_rows)
-    has_attribution_detail = bool(attribution and any(level.rows for level in attribution.levels))
-    has_attribution_summary = bool(
-        attribution
-        and (
-            attribution.levels
-            or attribution.active_return_pct is not None
-            or attribution.sum_of_effects_pct is not None
-            or attribution.residual_pct is not None
-        )
-    )
-    dated_history = [
-        point
-        for point in net_chart
-        if point.period_start is not None or point.period_end is not None
-    ]
-    earliest_history_date = (
-        min(point.period_start or point.period_end or "" for point in dated_history)
-        if dated_history
-        else None
-    )
-    latest_history_date = (
-        max(point.period_end or point.period_start or "" for point in dated_history)
-        if dated_history
-        else None
+    inputs = build_performance_capability_inputs(
+        benchmark_code=benchmark_code,
+        net_performance=net_performance,
+        net_chart=net_chart,
+        contribution=contribution,
+        attribution=attribution,
     )
 
     return PerformanceWorkspaceCapabilities(
@@ -95,11 +81,11 @@ def build_workspace_capabilities(
             build_module_capability(
                 "supported",
                 "Time-series return observations are available for the selected horizon.",
-                earliest_available_date=earliest_history_date,
-                latest_available_date=latest_history_date,
+                earliest_available_date=inputs.earliest_history_date,
+                latest_available_date=inputs.latest_history_date,
                 supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
             )
-            if has_return_history
+            if inputs.has_return_history
             else build_module_capability(
                 "unavailable",
                 "Published return observations are not available for the selected horizon.",
@@ -110,17 +96,17 @@ def build_workspace_capabilities(
             build_module_capability(
                 "supported",
                 "Benchmark-relative return metrics are available.",
-                earliest_available_date=earliest_history_date,
-                latest_available_date=latest_history_date,
+                earliest_available_date=inputs.earliest_history_date,
+                latest_available_date=inputs.latest_history_date,
             )
-            if has_benchmark and has_benchmark_returns
+            if inputs.has_benchmark and inputs.has_benchmark_returns
             else build_module_capability(
                 "partial",
                 "A benchmark is assigned, but benchmark-relative returns are incomplete.",
-                earliest_available_date=earliest_history_date,
-                latest_available_date=latest_history_date,
+                earliest_available_date=inputs.earliest_history_date,
+                latest_available_date=inputs.latest_history_date,
             )
-            if has_benchmark
+            if inputs.has_benchmark
             else build_module_capability(
                 "unavailable",
                 "No benchmark is assigned to this mandate.",
@@ -132,7 +118,7 @@ def build_workspace_capabilities(
                 "The workspace supports benchmark-aware horizon comparisons.",
                 supported_frequencies=SUPPORTED_WORKSPACE_FREQUENCIES,
             )
-            if has_benchmark
+            if inputs.has_benchmark
             else build_module_capability(
                 "partial",
                 (
@@ -144,8 +130,8 @@ def build_workspace_capabilities(
         ),
         contribution_ranking=build_contribution_capability(
             include_detail_blocks=include_detail_blocks,
-            has_position_ranking=has_position_ranking,
-            has_contribution_detail=has_contribution_detail,
+            has_position_ranking=inputs.has_position_ranking,
+            has_contribution_detail=inputs.has_contribution_detail,
             supported_reason="Position-level contribution ranking is available.",
             aggregate_reason="Contribution exists, but only aggregate rows are available.",
             unavailable_reason=(
@@ -154,18 +140,71 @@ def build_workspace_capabilities(
         ),
         attribution_detail=build_attribution_capability(
             include_detail_blocks=include_detail_blocks,
-            has_attribution_detail=has_attribution_detail,
-            has_attribution_summary=has_attribution_summary,
+            has_attribution_detail=inputs.has_attribution_detail,
+            has_attribution_summary=inputs.has_attribution_summary,
         ),
         contribution_detail=build_contribution_capability(
             include_detail_blocks=include_detail_blocks,
-            has_position_ranking=has_position_ranking,
-            has_contribution_detail=has_contribution_detail,
+            has_position_ranking=inputs.has_position_ranking,
+            has_contribution_detail=inputs.has_contribution_detail,
             supported_reason="Contribution detail is available for the current selection.",
             aggregate_reason="Contribution exists, but only aggregate rows are available.",
             unavailable_reason="Contribution detail is not available for the current selection.",
         ),
         evidence=build_evidence_capability(evidence_view=evidence_view),
+    )
+
+
+def build_performance_capability_inputs(
+    *,
+    benchmark_code: str | None,
+    net_performance: PerformanceComparativeSummary,
+    net_chart: list[PerformanceChartPoint],
+    contribution: ContributionSummaryView | None,
+    attribution: AttributionSummaryView | None,
+) -> PerformanceCapabilityInputs:
+    earliest_history_date, latest_history_date = resolve_history_date_range(net_chart)
+    return PerformanceCapabilityInputs(
+        has_return_history=bool(net_chart),
+        has_benchmark=bool(benchmark_code),
+        has_benchmark_returns=(
+            net_performance.benchmark_return_pct is not None
+            and net_performance.active_return_pct is not None
+        ),
+        has_contribution_detail=bool(
+            contribution and (contribution.levels or contribution.position_rows)
+        ),
+        has_position_ranking=bool(contribution and contribution.position_rows),
+        has_attribution_detail=bool(
+            attribution and any(level.rows for level in attribution.levels)
+        ),
+        has_attribution_summary=bool(
+            attribution
+            and (
+                attribution.levels
+                or attribution.active_return_pct is not None
+                or attribution.sum_of_effects_pct is not None
+                or attribution.residual_pct is not None
+            )
+        ),
+        earliest_history_date=earliest_history_date,
+        latest_history_date=latest_history_date,
+    )
+
+
+def resolve_history_date_range(
+    net_chart: list[PerformanceChartPoint],
+) -> tuple[str | None, str | None]:
+    dated_history = [
+        point
+        for point in net_chart
+        if point.period_start is not None or point.period_end is not None
+    ]
+    if not dated_history:
+        return None, None
+    return (
+        min(point.period_start or point.period_end or "" for point in dated_history),
+        max(point.period_end or point.period_start or "" for point in dated_history),
     )
 
 
