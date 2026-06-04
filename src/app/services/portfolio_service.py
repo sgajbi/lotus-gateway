@@ -164,6 +164,14 @@ class PortfolioTransactionSummaryContext:
 
 
 @dataclass(frozen=True)
+class PortfolioBookSourceResults:
+    allocations: PortfolioAllocationResponse
+    positions: PortfolioPositionBookResponse
+    cash_balances_result: UpstreamResult
+    portfolio_result: UpstreamResult
+
+
+@dataclass(frozen=True)
 class PortfolioWorkflowActionSpec:
     title: str
     impact: str
@@ -1138,6 +1146,27 @@ class PortfolioService:
         include_projected: bool,
         reporting_currency: str | None = None,
     ) -> PortfolioBookResponse:
+        source_results = await self._load_portfolio_book_source_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            reporting_currency=reporting_currency,
+        )
+        return self._build_portfolio_book_response(
+            correlation_id=correlation_id,
+            source_results=source_results,
+        )
+
+    async def _load_portfolio_book_source_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        reporting_currency: str | None,
+    ) -> PortfolioBookSourceResults:
         allocations, positions, cash_balances_result, portfolio_result = await asyncio.gather(
             self.get_portfolio_allocations(
                 portfolio_id=portfolio_id,
@@ -1163,27 +1192,41 @@ class PortfolioService:
                 correlation_id=correlation_id,
             ),
         )
+        return PortfolioBookSourceResults(
+            allocations=allocations,
+            positions=positions,
+            cash_balances_result=cash_balances_result,
+            portfolio_result=portfolio_result,
+        )
+
+    def _build_portfolio_book_response(
+        self,
+        *,
+        correlation_id: str,
+        source_results: PortfolioBookSourceResults,
+    ) -> PortfolioBookResponse:
         portfolio_payload = self._require_payload(
-            result=portfolio_result,
+            result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
         )
         cash_balances_payload = self._require_payload(
-            result=cash_balances_result,
+            result=source_results.cash_balances_result,
             unavailable_detail_prefix="lotus-core cash balances unavailable",
         )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         return PortfolioBookResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=positions.as_of_date,
+            as_of_date=source_results.positions.as_of_date,
             portfolio=portfolio,
-            summary=positions.summary,
+            summary=source_results.positions.summary,
             cash_balances=self._parse_cash_balances(
-                cash_balances_payload, positions.summary.assets_under_management_base
+                cash_balances_payload,
+                source_results.positions.summary.assets_under_management_base,
             ),
-            allocation_views=allocations.views,
-            top_positions=positions.top_positions,
-            positions=positions.positions,
+            allocation_views=source_results.allocations.views,
+            top_positions=source_results.positions.top_positions,
+            positions=source_results.positions.positions,
         )
 
     async def get_portfolio_liquidity(
