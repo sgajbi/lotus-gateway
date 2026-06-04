@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.contracts.reporting import (
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
@@ -58,42 +58,7 @@ async def _list_report_jobs(
     )
 
 
-@search_router.get(
-    "",
-    response_model=ReportJobListResponse,
-    summary="Search report jobs for operations and support",
-    description=(
-        "Return a bounded list of report jobs through the governed gateway boundary. Use this "
-        "endpoint when operators or support tooling need to find jobs by tenant, region, status, "
-        "portfolio, as-of date, idempotency key, or correlation identifier before drilling into "
-        "status or event history."
-    ),
-    openapi_extra={
-        "responses": {
-            "200": {
-                "content": {
-                    "application/json": {
-                        "example": REPORT_JOB_LIST_RESPONSE_EXAMPLE,
-                    }
-                }
-            }
-        }
-    },
-    responses={
-        **report_job_error_response(
-            400,
-            example_key="invalid_report_job_filters",
-            description="Returned when no supported job-search filter is supplied.",
-        ),
-        **report_job_error_response(
-            502,
-            example_key="report_job_upstream_unavailable",
-            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
-        ),
-    },
-)
-async def list_report_jobs(
-    caller_headers: ReportingCallerContext,
+def build_report_job_search_filters(
     tenant_id_filter: Annotated[
         str | None,
         Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
@@ -149,20 +114,61 @@ async def list_report_jobs(
             description="Maximum number of report jobs returned by this bounded search.",
         ),
     ] = 25,
+) -> ReportJobSearchFilters:
+    return ReportJobSearchFilters(
+        tenant_id=tenant_id_filter,
+        region=region_filter,
+        status=status_filter,
+        report_type=report_type_filter,
+        portfolio_id=portfolio_id_filter,
+        as_of_date=as_of_date_filter,
+        idempotency_key=idempotency_key_filter,
+        correlation_id=correlation_id_filter,
+        created_from=created_from,
+        created_to=created_to,
+        limit=limit,
+    )
+
+
+@search_router.get(
+    "",
+    response_model=ReportJobListResponse,
+    summary="Search report jobs for operations and support",
+    description=(
+        "Return a bounded list of report jobs through the governed gateway boundary. Use this "
+        "endpoint when operators or support tooling need to find jobs by tenant, region, status, "
+        "portfolio, as-of date, idempotency key, or correlation identifier before drilling into "
+        "status or event history."
+    ),
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "example": REPORT_JOB_LIST_RESPONSE_EXAMPLE,
+                    }
+                }
+            }
+        }
+    },
+    responses={
+        **report_job_error_response(
+            400,
+            example_key="invalid_report_job_filters",
+            description="Returned when no supported job-search filter is supplied.",
+        ),
+        **report_job_error_response(
+            502,
+            example_key="report_job_upstream_unavailable",
+            description="Returned when lotus-report is unavailable or returns an unsafe failure.",
+        ),
+    },
+)
+async def list_report_jobs(
+    caller_headers: ReportingCallerContext,
+    filters: ReportJobSearchFilters = Depends(build_report_job_search_filters),
 ) -> ReportJobListResponse:
     return await _list_report_jobs(
         caller_headers=caller_headers,
-        filters=ReportJobSearchFilters(
-            tenant_id=tenant_id_filter,
-            region=region_filter,
-            status=status_filter,
-            report_type=report_type_filter,
-            portfolio_id=portfolio_id_filter,
-            as_of_date=as_of_date_filter,
-            idempotency_key=idempotency_key_filter,
-            correlation_id=correlation_id_filter,
-            created_from=created_from,
-            created_to=created_to,
-            limit=limit,
-        ),
+        filters=filters,
     )
