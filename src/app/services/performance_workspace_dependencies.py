@@ -78,50 +78,108 @@ async def fetch_workspace_detail_results(
     return cast(
         tuple[GatheredResult, GatheredResult],
         await asyncio.gather(
-            cache.get_or_set(
-                key=(
-                    "workspace_contribution_detail",
-                    portfolio_id,
-                    report_start_date,
-                    report_end_date,
-                    requested_period,
-                    detail_basis,
-                    contribution_dimension,
-                ),
-                factory=lambda: analytics_client.get_contribution_analytics(
-                    portfolio_id=portfolio_id,
-                    report_start_date=report_start_date,
-                    report_end_date=report_end_date,
-                    period=requested_period,
-                    metric_basis=detail_basis,
-                    dimension=contribution_dimension,
-                    correlation_id=correlation_id,
-                ),
+            _fetch_contribution_detail_result(
+                cache=cache,
+                analytics_client=analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                requested_period=requested_period,
+                detail_basis=detail_basis,
+                contribution_dimension=contribution_dimension,
             ),
-            cache.get_or_set(
-                key=(
-                    "workspace_attribution_detail",
-                    portfolio_id,
-                    report_start_date,
-                    report_end_date,
-                    requested_period,
-                    detail_basis,
-                    benchmark_code,
-                    attribution_dimension,
-                ),
-                factory=lambda: _fetch_attribution_detail(
-                    analytics_client=analytics_client,
-                    portfolio_id=portfolio_id,
-                    correlation_id=correlation_id,
-                    report_start_date=report_start_date,
-                    report_end_date=report_end_date,
-                    requested_period=requested_period,
-                    detail_basis=detail_basis,
-                    benchmark_code=benchmark_code,
-                    attribution_dimension=attribution_dimension,
-                ),
+            _fetch_attribution_detail_result(
+                cache=cache,
+                analytics_client=analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                requested_period=requested_period,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                attribution_dimension=attribution_dimension,
             ),
             return_exceptions=True,
+        ),
+    )
+
+
+async def _fetch_contribution_detail_result(
+    *,
+    cache: AsyncTtlCache[Any],
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    portfolio_id: str,
+    correlation_id: str,
+    report_start_date: str,
+    report_end_date: str,
+    requested_period: str,
+    detail_basis: str,
+    contribution_dimension: str,
+) -> GatheredResult:
+    return cast(
+        GatheredResult,
+        await cache.get_or_set(
+            key=(
+                "workspace_contribution_detail",
+                portfolio_id,
+                report_start_date,
+                report_end_date,
+                requested_period,
+                detail_basis,
+                contribution_dimension,
+            ),
+            factory=lambda: analytics_client.get_contribution_analytics(
+                portfolio_id=portfolio_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                period=requested_period,
+                metric_basis=detail_basis,
+                dimension=contribution_dimension,
+                correlation_id=correlation_id,
+            ),
+        ),
+    )
+
+
+async def _fetch_attribution_detail_result(
+    *,
+    cache: AsyncTtlCache[Any],
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    portfolio_id: str,
+    correlation_id: str,
+    report_start_date: str,
+    report_end_date: str,
+    requested_period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    attribution_dimension: str,
+) -> GatheredResult:
+    return cast(
+        GatheredResult,
+        await cache.get_or_set(
+            key=(
+                "workspace_attribution_detail",
+                portfolio_id,
+                report_start_date,
+                report_end_date,
+                requested_period,
+                detail_basis,
+                benchmark_code,
+                attribution_dimension,
+            ),
+            factory=lambda: _fetch_attribution_detail(
+                analytics_client=analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_start_date=report_start_date,
+                report_end_date=report_end_date,
+                requested_period=requested_period,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                attribution_dimension=attribution_dimension,
+            ),
         ),
     )
 
