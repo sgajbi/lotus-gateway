@@ -87,7 +87,8 @@ analytics async polling, workspace-summary payload assembly, portfolio transacti
 context loading, transaction page loading, portfolio book response assembly, performance
 attribution trend query metadata extraction, risk rolling query metadata extraction,
 advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
-extraction. The repository longest-function baseline is now 57 lines.
+extraction, and DPM portfolio-memory search query metadata extraction. The repository
+longest-function baseline is now 57 lines.
 `portfolio_service.py` is now 3,155 lines after explicit typed workspace component, transaction
 summary, transaction page, and book assembly helpers; it remains the largest-file hotspot even
 though individual portfolio orchestration functions are smaller. The remaining work is still

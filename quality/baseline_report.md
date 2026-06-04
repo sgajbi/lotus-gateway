@@ -67,13 +67,13 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 1 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
 | 2 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
 | 3 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 4 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
-| 5 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 6 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
-| 7 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
-| 8 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 9 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
-| 10 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
+| 4 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 5 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 6 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 7 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 8 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
+| 9 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
+| 10 | 56 | `build_performance_summary_query` | `src/app/routers/workbench_performance.py` |
 
 ## Existing Blocking Gates
 
