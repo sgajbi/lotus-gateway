@@ -5,6 +5,53 @@ from fastapi import Header, Query
 
 from app.routers.workbench_caller_context import require_workbench_caller_context
 
+PERIOD_QUERY = Query(
+    default="YTD",
+    description=(
+        "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
+        "paired with report dates."
+    ),
+    examples=["YTD"],
+)
+CHART_FREQUENCY_QUERY = Query(
+    default="monthly",
+    description="Requested workspace frequency context used to source the advisor brief.",
+    examples=["monthly"],
+)
+CONTRIBUTION_DIMENSION_QUERY = Query(
+    default="asset_class",
+    description="Requested contribution dimension used to source the advisor brief context.",
+    examples=["asset_class"],
+)
+ATTRIBUTION_DIMENSION_QUERY = Query(
+    default="asset_class",
+    description="Requested attribution dimension used to source the advisor brief context.",
+    examples=["asset_class"],
+)
+DETAIL_BASIS_QUERY = Query(
+    default="NET",
+    description="Performance basis requested for the advisor brief analytics.",
+    examples=["NET"],
+)
+BENCHMARK_CODE_QUERY = Query(
+    default=None,
+    description=(
+        "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
+        "when available."
+    ),
+    examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+)
+REPORT_START_DATE_QUERY = Query(
+    default=None,
+    description="Inclusive explicit start date for an EXPLICIT advisor-brief window.",
+    examples=["2026-01-01"],
+)
+REPORT_END_DATE_QUERY = Query(
+    default=None,
+    description="Inclusive explicit end date for an EXPLICIT advisor-brief window.",
+    examples=["2026-04-04"],
+)
+
 
 @dataclass(frozen=True)
 class AdvisorBriefQuery:
@@ -38,52 +85,14 @@ def require_advisor_brief_caller_context(
 
 
 def build_advisor_brief_query(
-    period: str = Query(
-        default="YTD",
-        description=(
-            "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
-            "paired with report dates."
-        ),
-        examples=["YTD"],
-    ),
-    chart_frequency: str = Query(
-        default="monthly",
-        description="Requested workspace frequency context used to source the advisor brief.",
-        examples=["monthly"],
-    ),
-    contribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested contribution dimension used to source the advisor brief context.",
-        examples=["asset_class"],
-    ),
-    attribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested attribution dimension used to source the advisor brief context.",
-        examples=["asset_class"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Performance basis requested for the advisor brief analytics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description=(
-            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
-            "when available."
-        ),
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit start date for an EXPLICIT advisor-brief window.",
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date for an EXPLICIT advisor-brief window.",
-        examples=["2026-04-04"],
-    ),
+    period: str = PERIOD_QUERY,
+    chart_frequency: str = CHART_FREQUENCY_QUERY,
+    contribution_dimension: str = CONTRIBUTION_DIMENSION_QUERY,
+    attribution_dimension: str = ATTRIBUTION_DIMENSION_QUERY,
+    detail_basis: str = DETAIL_BASIS_QUERY,
+    benchmark_code: str | None = BENCHMARK_CODE_QUERY,
+    report_start_date: str | None = REPORT_START_DATE_QUERY,
+    report_end_date: str | None = REPORT_END_DATE_QUERY,
 ) -> AdvisorBriefQuery:
     return AdvisorBriefQuery(
         period=period,
