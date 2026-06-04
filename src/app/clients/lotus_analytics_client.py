@@ -108,49 +108,22 @@ class LotusAnalyticsClient:
         url = f"{self._base_url}{path}"
         headers = build_upstream_headers(correlation_id)
         resolved_operation = operation or path.strip("/").replace("/", ".")
-        started_at = gateway_analytics_fanout_timer()
-        status_code, response_payload = await request_with_retry(
-            method="POST",
+        status_code, response_payload = await self._post_observed_analytics_request(
             url=url,
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            json_body=payload,
             headers=headers,
-            retry_timeout_exceptions=False,
-        )
-        emit_gateway_analytics_fanout_log(
-            logger=logger,
-            started_at=started_at,
             service=service,
             operation=resolved_operation,
-            status_code=status_code,
-            payload=response_payload,
+            payload=payload,
         )
-        if self._should_retry_duplicate_calculation(
-            status_code=status_code, payload=response_payload, request=payload
-        ):
-            replay_payload = dict(payload)
-            replay_payload["calculation_id"] = str(uuid4())
-            replay_started_at = gateway_analytics_fanout_timer()
-            status_code, response_payload = await request_with_retry(
-                method="POST",
-                url=url,
-                timeout_seconds=self._timeout,
-                max_retries=self._max_retries,
-                backoff_seconds=self._retry_backoff_seconds,
-                json_body=replay_payload,
-                headers=headers,
-                retry_timeout_exceptions=False,
-            )
-            emit_gateway_analytics_fanout_log(
-                logger=logger,
-                started_at=replay_started_at,
-                service=service,
-                operation=f"{resolved_operation}.duplicate-retry",
-                status_code=status_code,
-                payload=response_payload,
-            )
+        status_code, response_payload = await self._retry_duplicate_calculation_request(
+            status_code=status_code,
+            response_payload=response_payload,
+            request_payload=payload,
+            url=url,
+            headers=headers,
+            service=service,
+            operation=resolved_operation,
+        )
         if status_code == 202 and isinstance(response_payload, dict):
             result_path = response_payload.get("result_path") or response_payload.get("resultPath")
             if isinstance(result_path, str) and result_path:
@@ -168,6 +141,61 @@ class LotusAnalyticsClient:
             status_code=status_code,
         )
         return status_code, response_payload
+
+    async def _post_observed_analytics_request(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        service: str,
+        operation: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        started_at = gateway_analytics_fanout_timer()
+        status_code, response_payload = await request_with_retry(
+            method="POST",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            json_body=payload,
+            headers=headers,
+            retry_timeout_exceptions=False,
+        )
+        emit_gateway_analytics_fanout_log(
+            logger=logger,
+            started_at=started_at,
+            service=service,
+            operation=operation,
+            status_code=status_code,
+            payload=response_payload,
+        )
+        return status_code, response_payload
+
+    async def _retry_duplicate_calculation_request(
+        self,
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+        request_payload: dict[str, Any],
+        url: str,
+        headers: dict[str, str],
+        service: str,
+        operation: str,
+    ) -> tuple[int, dict[str, Any]]:
+        if not self._should_retry_duplicate_calculation(
+            status_code=status_code, payload=response_payload, request=request_payload
+        ):
+            return status_code, response_payload
+        replay_payload = dict(request_payload)
+        replay_payload["calculation_id"] = str(uuid4())
+        return await self._post_observed_analytics_request(
+            url=url,
+            headers=headers,
+            service=service,
+            operation=f"{operation}.duplicate-retry",
+            payload=replay_payload,
+        )
 
     @staticmethod
     def _should_retry_duplicate_calculation(
