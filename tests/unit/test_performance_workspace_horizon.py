@@ -254,6 +254,62 @@ def test_parse_horizon_comparison_result_returns_row_and_benchmark_code():
     assert partial_failures == []
 
 
+def test_parse_horizon_comparison_result_renders_standard_period_date_fallbacks():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows, benchmark_code = parse_horizon_comparison_result(
+        result=(
+            200,
+            {
+                "results_by_period": {
+                    "MTD": {
+                        "_gateway_requested_period_start": "2026-03-01",
+                        "_gateway_requested_period_end": "2026-03-27",
+                        "portfolio_twr": {
+                            "net": {"summary": {"period_return": {"base": 1.1}}},
+                        },
+                    },
+                    "QTD": {
+                        "_gateway_requested_period_start": "2026-01-01",
+                        "_gateway_requested_period_end": "2026-03-27",
+                        "portfolio_twr": {
+                            "net": {"summary": {"period_return": {"base": 2.2}}},
+                        },
+                    },
+                    "YTD": {
+                        "portfolio_twr": {
+                            "net": {"summary": {"period_return": {"base": 3.3}}},
+                        },
+                        "benchmark": {
+                            "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
+                            "summary": {"period_return": {"base": 2.8}},
+                        },
+                    },
+                },
+            },
+        ),
+        requested_period="YTD",
+        requested_report_start_date=None,
+        requested_report_end_date="2026-03-27",
+        detail_basis="NET",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert [row.period for row in rows] == ["MTD", "QTD", "YTD"]
+    assert [(row.period_start, row.period_end) for row in rows] == [
+        ("2026-03-01", "2026-03-27"),
+        ("2026-01-01", "2026-03-27"),
+        (None, "2026-03-27"),
+    ]
+    assert [row.portfolio_return_pct for row in rows] == [1.1, 2.2, 3.3]
+    assert rows[2].benchmark_return_pct == 2.8
+    assert benchmark_code == "BMK_PB_GLOBAL_BALANCED_60_40"
+    assert warnings == []
+    assert partial_failures == []
+
+
 def test_parse_horizon_comparison_result_propagates_gateway_failures():
     warnings: list[str] = []
     partial_failures = []
