@@ -19,7 +19,8 @@ portfolio exception-summary extraction, performance workspace capability-input e
 portfolio workspace assembly extraction, portfolio insight-rule extraction, performance workspace
 summary/detail and horizon-context extraction, foundation workspace assembly extraction, risk
 rolling/attribution orchestration extraction, shell workspace descriptor-spec extraction, and
-transaction query-contract extraction.
+transaction query-contract extraction, DPM exception-summary workflow extraction, advisor-brief
+source talking-point and review-action extraction, and portfolio workflow-action extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -37,31 +38,31 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,700 | `src/app/services/portfolio_service.py` |
+| 1 | 2,750 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
 | 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,463 | `src/app/services/performance_workspace_service.py` |
-| 7 | 1,463 | `src/app/services/advisor_brief_service.py` |
+| 6 | 1,538 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,463 | `src/app/services/performance_workspace_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
-| 9 | 1,098 | `src/app/clients/advise_client.py` |
-| 10 | 1,032 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 1,099 | `src/app/services/dpm_command_center_service.py` |
+| 10 | 1,098 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 99 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 2 | 95 | `request_exception_summary` | `src/app/services/dpm_command_center_service.py` |
-| 3 | 92 | `_build_source_talking_points` | `src/app/services/advisor_brief_service.py` |
-| 4 | 89 | `apply_performance_advisor_brief_review_action` | `src/app/services/advisor_brief_service.py` |
-| 5 | 88 | `parse_performance_snapshot` | `src/app/services/workbench_performance_snapshot.py` |
-| 6 | 88 | `_build_workflow_actions` | `src/app/services/portfolio_service.py` |
-| 7 | 87 | `build_horizon_comparison_row` | `src/app/services/performance_workspace_horizon.py` |
-| 8 | 85 | `parse_workspace_summary_result` | `src/app/services/performance_workspace_summary.py` |
-| 9 | 85 | `build_calculation_evidence_view` | `src/app/services/performance_workspace_evidence.py` |
-| 10 | 84 | `_build_foundation_workspace_response` | `src/app/services/foundation_service.py` |
+| 1 | 88 | `parse_performance_snapshot` | `src/app/services/workbench_performance_snapshot.py` |
+| 2 | 87 | `build_horizon_comparison_row` | `src/app/services/performance_workspace_horizon.py` |
+| 3 | 85 | `parse_workspace_summary_result` | `src/app/services/performance_workspace_summary.py` |
+| 4 | 85 | `build_calculation_evidence_view` | `src/app/services/performance_workspace_evidence.py` |
+| 5 | 84 | `_build_foundation_workspace_response` | `src/app/services/foundation_service.py` |
+| 6 | 83 | `request_pm_operating_quality_summary` | `src/app/services/dpm_command_center_service.py` |
+| 7 | 83 | `build_attribution_supportability` | `src/app/services/risk_workspace_attribution_controls.py` |
+| 8 | 82 | `parse_single_attribution_trend_row` | `src/app/services/performance_workspace_attribution.py` |
+| 9 | 81 | `_parse_positions` | `src/app/services/portfolio_service.py` |
+| 10 | 81 | `_build_workspace_request_context` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -100,7 +101,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 99 lines,
+2. no new function above the current longest-function baseline of 88 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

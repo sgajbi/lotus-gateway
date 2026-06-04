@@ -10,9 +10,9 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `portfolio_service.py` at 2,700 lines after the
-  portfolio workspace assembly and insight-rule extractions, with the repository longest-function
-  baseline reduced to 99 lines
+- current enterprise-hardening evidence records `portfolio_service.py` at 2,750 lines after the
+  portfolio workspace, insight-rule, and workflow-action extractions, with the repository
+  longest-function baseline reduced to 88 lines
 
 ## Route-family map
 

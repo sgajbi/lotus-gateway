@@ -57,10 +57,12 @@ explicit capability input and history-date helpers, reducing `build_workspace_ca
 127 lines to 99 lines. The current branch has further split portfolio workspace source/analytics
 assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts,
 foundation workspace assembly, risk rolling and attribution orchestration, shell workspace
-descriptor specs, and transaction query contracts. `portfolio_service.py` is now 2,700 lines, and
-the repository longest-function baseline is now 99 lines. The remaining work is still substantial:
-large portfolio, performance workspace, advisor-brief orchestration, contract, and client modules
-remain.
+descriptor specs, transaction query contracts, DPM exception-summary workflow orchestration,
+advisor-brief source talking-point and review-action orchestration, and portfolio workflow-action
+assembly. `portfolio_service.py` is now 2,750 lines after making empty-portfolio workflow actions
+explicit data, and the repository longest-function baseline is now 88 lines. The remaining work is
+still substantial: large portfolio, performance workspace, advisor-brief orchestration, contract,
+and client modules remain.
 
 ## Health Signals
 
@@ -71,7 +73,7 @@ remain.
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.84%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling/attribution orchestration, shell workspace descriptor specs, transaction query contracts, performance workspace capability inputs, portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling/attribution orchestration, shell workspace descriptor specs, transaction query contracts, DPM exception-summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, performance workspace capability inputs, portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -79,8 +81,8 @@ remain.
 ## Primary Refactor Backlog
 
 1. Continue splitting `portfolio_service.py` into source-readiness, transaction/activity, income,
-   workspace, insight, and workflow-cue adapters. Exception-summary payload construction is now
-   separately testable.
+   workspace, insight, and workflow-cue adapters. Exception-summary payload construction and
+   workflow-action assembly are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes

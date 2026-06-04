@@ -61,4 +61,8 @@ repository longest-function baseline from 127 lines to 119 lines while adding fo
 input, history-date, and aggregate-only fallback tests. The current branch batch further lowered
 the repository longest-function baseline from 119 lines to 99 lines, reduced
 `portfolio_service.py` from 2,744 lines to 2,700 lines, added focused portfolio insight-rule tests,
-and passed `make check` with 967 unit/contract tests.
+and passed `make check` with 967 unit/contract tests. The latest focused batch split DPM
+exception-summary workflow orchestration, advisor-brief source talking points, advisor-brief
+review actions, and portfolio workflow actions, lowering the repository longest-function baseline
+from 99 lines to 88 lines. `portfolio_service.py` is now 2,750 lines because empty-portfolio
+workflow actions are explicit governed data rather than inline control-flow literals.

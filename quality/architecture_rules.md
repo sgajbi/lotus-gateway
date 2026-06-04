@@ -35,10 +35,10 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,700 lines,
-2. `src/app/services/performance_workspace_service.py` at 1,463 lines,
-3. `src/app/services/advisor_brief_service.py` at 1,463 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,032 lines,
+1. `src/app/services/portfolio_service.py` at 2,750 lines,
+2. `src/app/services/advisor_brief_service.py` at 1,538 lines,
+3. `src/app/services/performance_workspace_service.py` at 1,463 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,099 lines,
 5. `src/app/services/dpm_wave_service.py` at 981 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
@@ -105,9 +105,10 @@ split into `PerformanceCapabilityInputs`, `build_performance_capability_inputs`,
 while keeping capability payload assembly in the original module. The current branch also splits
 portfolio workspace source/analytics assembly, portfolio insight-rule helpers, performance
 workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling and
-attribution orchestration, shell workspace descriptor specs, and transaction query contracts. The
-current longest function remains `build_workspace_capabilities` in
-`src/app/services/performance_workspace_capabilities.py` at 99 lines.
+attribution orchestration, shell workspace descriptor specs, transaction query contracts, DPM
+exception-summary workflow orchestration, advisor-brief source talking-point and review-action
+orchestration, and portfolio workflow-action assembly. The current longest function is
+`parse_performance_snapshot` in `src/app/services/workbench_performance_snapshot.py` at 88 lines.
 
 ## Progressive Enforcement
 
