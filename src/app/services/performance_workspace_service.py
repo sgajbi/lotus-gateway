@@ -189,6 +189,12 @@ class HorizonComparisonRequestContext:
 
 
 @dataclass(frozen=True)
+class HorizonComparisonChartFrequencyContext:
+    chart_frequency: str
+    requested_chart_frequency_supported: bool
+
+
+@dataclass(frozen=True)
 class WorkspaceSummaryViews:
     workspace_summary_result: GatheredResult
     parsed_summary: ParsedWorkspaceSummary
@@ -608,28 +614,51 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None,
         explicit_end_date: str | None,
     ) -> HorizonComparisonRequestContext:
-        async with server_timing_span("perf-overview"):
-            overview = await self._get_cached_workspace_overview(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            )
-        warnings = list(overview.warnings)
-        partial_failures = list(overview.partial_failures)
-        async with server_timing_span("perf-reference"):
-            report_end_date = await self._determine_report_end_date(
-                portfolio_id=portfolio_id,
-                as_of_date=overview.as_of_date,
-                correlation_id=correlation_id,
-                explicit_end_date=explicit_end_date,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
-        resolved_report_end_date, report_start_date, effective_period = resolve_requested_window(
-            default_report_end_date=report_end_date,
+        overview_state = await self._load_workspace_overview_state(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        report_window = await self._build_workspace_report_window(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            overview_state=overview_state,
             period=period,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        chart_frequency_context = self._build_horizon_chart_frequency_context(
+            chart_frequency=chart_frequency,
+            warnings=overview_state.warnings,
+        )
+        benchmark_context = await self._build_workspace_benchmark_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_window.report_end_date,
+            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+            include_benchmark_catalog=True,
+        )
+        return HorizonComparisonRequestContext(
+            overview=overview_state.overview,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
+            report_end_date=report_window.report_end_date,
+            report_start_date=report_window.report_start_date,
+            effective_period=report_window.effective_period,
+            chart_frequency=chart_frequency_context.chart_frequency,
+            requested_chart_frequency_supported=(
+                chart_frequency_context.requested_chart_frequency_supported
+            ),
+            benchmark_code=benchmark_context.benchmark_code,
+            benchmark_catalog_result=benchmark_context.benchmark_catalog_result,
+        )
+
+    def _build_horizon_chart_frequency_context(
+        self,
+        *,
+        chart_frequency: str,
+        warnings: list[str],
+    ) -> HorizonComparisonChartFrequencyContext:
         (
             resolved_chart_frequency,
             requested_chart_frequency_supported,
@@ -638,31 +667,9 @@ class PerformanceWorkspaceService:
             warnings=warnings,
             warning_code="PERFORMANCE_HORIZON_CHART_FREQUENCY_NORMALIZED",
         )
-        async with server_timing_span("perf-benchmark"):
-            (
-                resolved_benchmark_code,
-                benchmark_catalog_result,
-            ) = await fetch_benchmark_context(
-                cache=self._upstream_cache,
-                core_client=self._lotus_core_query_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=resolved_report_end_date,
-                portfolio_currency=overview.portfolio.base_currency,
-                benchmark_code=benchmark_code,
-                include_benchmark_catalog=True,
-            )
-        return HorizonComparisonRequestContext(
-            overview=overview,
-            warnings=warnings,
-            partial_failures=partial_failures,
-            report_end_date=resolved_report_end_date,
-            report_start_date=report_start_date,
-            effective_period=effective_period,
+        return HorizonComparisonChartFrequencyContext(
             chart_frequency=resolved_chart_frequency,
             requested_chart_frequency_supported=requested_chart_frequency_supported,
-            benchmark_code=resolved_benchmark_code,
-            benchmark_catalog_result=benchmark_catalog_result,
         )
 
     def _build_horizon_comparison_response(
