@@ -18,9 +18,9 @@ portfolio, risk workspace, contract, and client modules remain.
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 934 tests passed in `make check` for the router-registry split |
+| Unit/contract coverage | Healthy | 938 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.63%, above the 84% floor |
+| Total coverage | Healthy | 92.65%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
 | Modularity | Improving, incomplete | Multiple service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
