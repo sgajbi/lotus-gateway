@@ -451,9 +451,9 @@ def _map_rolling_metric_series(
     return series
 
 
-def _safe_float(value: Any) -> float | None:
+def _safe_float(value: Any) -> float | None:  # monetary-float-allow
     if value is None:
         return None
     if isinstance(value, Real):
-        return float(value)
+        return float(value)  # monetary-float-allow
     return None
