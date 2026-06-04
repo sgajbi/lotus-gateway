@@ -1053,6 +1053,23 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             include_benchmark_catalog=include_benchmark_catalog,
         )
+        return self._assemble_workspace_request_context(
+            overview_state=overview_state,
+            report_window=report_window,
+            dimension_context=dimension_context,
+            detail_basis=detail_basis,
+            benchmark_context=benchmark_context,
+        )
+
+    def _assemble_workspace_request_context(
+        self,
+        *,
+        overview_state: WorkspaceOverviewState,
+        report_window: WorkspaceReportWindow,
+        dimension_context: WorkspaceDimensionContext,
+        detail_basis: str,
+        benchmark_context: WorkspaceBenchmarkContext,
+    ) -> WorkspaceRequestContext:
         return WorkspaceRequestContext(
             overview=overview_state.overview,
             warnings=overview_state.warnings,
