@@ -23,7 +23,24 @@ class RiskAttributionQuery:
     grouping_dimension: str
 
 
-def build_risk_attribution_query(
+@dataclass(frozen=True)
+class RiskAttributionWindowQuery:
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    as_of_date: str | None
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str
+
+
+@dataclass(frozen=True)
+class RiskAttributionControlQuery:
+    attribution_type: str
+    grouping_dimension: str
+
+
+def build_risk_attribution_window_query(
     period: str = Query(
         default="YTD",
         description=RISK_PERIOD_QUERY_DESCRIPTION,
@@ -61,6 +78,19 @@ def build_risk_attribution_query(
         description="Reporting currency used for stateful risk attribution analytics.",
         examples=["USD"],
     ),
+) -> RiskAttributionWindowQuery:
+    return RiskAttributionWindowQuery(
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
+    )
+
+
+def build_risk_attribution_control_query(
     attribution_type: str = Query(
         default="TOTAL_RISK",
         description=(
@@ -77,17 +107,27 @@ def build_risk_attribution_query(
         ),
         examples=["SECTOR"],
     ),
-) -> RiskAttributionQuery:
-    return RiskAttributionQuery(
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        as_of_date=as_of_date,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
+) -> RiskAttributionControlQuery:
+    return RiskAttributionControlQuery(
         attribution_type=attribution_type,
         grouping_dimension=grouping_dimension,
+    )
+
+
+def build_risk_attribution_query(
+    window_query: RiskAttributionWindowQuery = Depends(build_risk_attribution_window_query),
+    control_query: RiskAttributionControlQuery = Depends(build_risk_attribution_control_query),
+) -> RiskAttributionQuery:
+    return RiskAttributionQuery(
+        period=window_query.period,
+        detail_basis=window_query.detail_basis,
+        benchmark_code=window_query.benchmark_code,
+        as_of_date=window_query.as_of_date,
+        report_start_date=window_query.report_start_date,
+        report_end_date=window_query.report_end_date,
+        reporting_currency=window_query.reporting_currency,
+        attribution_type=control_query.attribution_type,
+        grouping_dimension=control_query.grouping_dimension,
     )
 
 
