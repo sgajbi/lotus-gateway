@@ -1662,85 +1662,86 @@ class PortfolioService:
 
     def _parse_positions(self, payload: dict[str, Any]) -> list[PortfolioPositionView]:
         return [
-            PortfolioPositionView(
-                security_id=str(item.get("security_id", "")),
-                instrument_name=str(item.get("instrument_name", "")),
-                asset_class=self._optional_str(item.get("asset_class")),
-                isin=self._optional_str(item.get("isin")),
-                currency=self._optional_str(item.get("currency")),
-                sector=self._optional_str(item.get("sector")),
-                country_of_risk=self._optional_str(item.get("country_of_risk")),
-                held_since_date=str(item.get("held_since_date"))
-                if item.get("held_since_date")
-                else None,
-                quantity=float(quantize_quantity(item.get("quantity", 0))),
-                market_price=float(quantize_price(item.get("valuation", {}).get("market_price", 0)))
-                if item.get("valuation", {}).get("market_price") is not None
-                else None,
-                cost_basis_base=float(quantize_money(item.get("cost_basis", 0)))
-                if item.get("cost_basis") is not None
-                else None,
-                cost_basis_local=float(quantize_money(item.get("cost_basis_local", 0)))
-                if item.get("cost_basis_local") is not None
-                else None,
-                market_value_base=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "market_value_base", fallback_key="market_value"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "market_value_base", fallback_key="market_value"
-                )
-                is not None
-                else None,
-                market_value_local=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "market_value_local", fallback_key="market_value"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "market_value_local", fallback_key="market_value"
-                )
-                is not None
-                else None,
-                unrealized_gain_loss_base=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
-                )
-                is not None
-                else None,
-                unrealized_gain_loss_local=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item,
-                            "unrealized_gain_loss_local",
-                            fallback_key="unrealized_gain_loss",
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "unrealized_gain_loss_local", fallback_key="unrealized_gain_loss"
-                )
-                is not None
-                else None,
-                weight_pct=float(quantize_performance(float(item.get("weight", 0)) * 100))
-                if item.get("weight") is not None
-                else None,
-                reprocessing_status=self._optional_str(item.get("reprocessing_status")),
-            )
+            self._parse_position(item)
             for item in payload.get("positions", [])
             if isinstance(item, dict)
         ]
+
+    def _parse_position(self, item: dict[str, Any]) -> PortfolioPositionView:
+        return PortfolioPositionView(
+            security_id=str(item.get("security_id", "")),
+            instrument_name=str(item.get("instrument_name", "")),
+            asset_class=self._optional_str(item.get("asset_class")),
+            isin=self._optional_str(item.get("isin")),
+            currency=self._optional_str(item.get("currency")),
+            sector=self._optional_str(item.get("sector")),
+            country_of_risk=self._optional_str(item.get("country_of_risk")),
+            held_since_date=(
+                str(item.get("held_since_date")) if item.get("held_since_date") else None
+            ),
+            quantity=float(quantize_quantity(item.get("quantity", 0))),
+            market_price=self._position_quote(item),
+            cost_basis_base=self._position_decimal_number(item.get("cost_basis")),
+            cost_basis_local=self._position_decimal_number(item.get("cost_basis_local")),
+            market_value_base=self._position_valuation_money(
+                item,
+                "market_value_base",
+                fallback_key="market_value",
+            ),
+            market_value_local=self._position_valuation_money(
+                item,
+                "market_value_local",
+                fallback_key="market_value",
+            ),
+            unrealized_gain_loss_base=self._position_valuation_money(
+                item,
+                "unrealized_gain_loss_base",
+                fallback_key="unrealized_gain_loss",
+            ),
+            unrealized_gain_loss_local=self._position_valuation_money(
+                item,
+                "unrealized_gain_loss_local",
+                fallback_key="unrealized_gain_loss",
+            ),
+            weight_pct=self._position_pct(item),
+            reprocessing_status=self._optional_str(item.get("reprocessing_status")),
+        )
+
+    def _position_quote(self, item: dict[str, Any]):
+        valuation = item.get("valuation", {})
+        if not isinstance(valuation, dict):
+            return None
+        raw_quote = valuation.get("market_price")
+        if raw_quote is None:
+            return None
+        quantized = quantize_price(raw_quote)
+        converted = float(quantized)
+        return converted
+
+    def _position_decimal_number(self, raw: Any):
+        if raw is None:
+            return None
+        quantized = quantize_money(raw)
+        converted = float(quantized)
+        return converted
+
+    def _position_valuation_money(
+        self,
+        item: dict[str, Any],
+        primary_key: str,
+        fallback_key: str | None = None,
+    ):
+        value = self._position_valuation_value(item, primary_key, fallback_key=fallback_key)
+        return self._position_decimal_number(value)
+
+    def _position_pct(self, item: dict[str, Any]):
+        raw = item.get("weight")
+        if raw is None:
+            return None
+        raw_number = float(raw or 0)
+        quantized = quantize_performance(raw_number * 100)
+        converted = float(quantized)
+        return converted
 
     def _parse_allocation_views(self, payload: dict[str, Any]) -> list[PortfolioAllocationView]:
         return [
