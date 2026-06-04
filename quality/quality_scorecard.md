@@ -6,8 +6,8 @@ Mode: baseline/report-only
 | Dimension | Score | Baseline status | Next action |
 | --- | ---: | --- | --- |
 | Build and test reliability | 4/5 | Strong repo-native gates and green PR lanes | Keep Docker parity blocking |
-| Coverage | 4/5 | 92.75% total coverage | Add targeted middleware/security/error tests |
-| Modularity | 2/5 | Performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; large services and contracts remain | Continue extraction slices |
+| Coverage | 4/5 | 92.79% total coverage | Add targeted middleware/security/error tests |
+| Modularity | 2/5 | Foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; large services and contracts remain | Continue extraction slices |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 3/5 | Good generated OpenAPI; minor description/tag/error gaps | Add Spectral artifact and explicit API tests |
 | Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions | Normalize route/upstream errors |
