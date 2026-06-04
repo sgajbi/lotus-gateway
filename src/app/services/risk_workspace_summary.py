@@ -264,6 +264,6 @@ def _summary_response_state(
 
 
 def _safe_float(value: Any) -> float | None:  # monetary-float-allow
-    if isinstance(value, int | float):
+    if isinstance(value, int | float):  # monetary-float-allow
         return float(value)  # monetary-float-allow
     return None
