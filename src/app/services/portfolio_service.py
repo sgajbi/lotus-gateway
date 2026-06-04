@@ -92,6 +92,19 @@ class PortfolioWorkspaceAnalyticsResults:
 
 
 @dataclass(frozen=True)
+class PortfolioWorkspaceComponents:
+    portfolio: PortfolioIdentity
+    profile: PortfolioProfile
+    summary: PortfolioSummary
+    cashflow_outlook: PortfolioCashflowOutlook | None
+    performance: PortfolioPerformanceSummary | None
+    rebalance: PortfolioRebalanceSummary | None
+    operations: PortfolioOperationalReadiness | None
+    warnings: list[str]
+    partial_failures: list[PortfolioPartialFailure]
+
+
+@dataclass(frozen=True)
 class PortfolioWorkflowActionSpec:
     title: str
     impact: str
@@ -657,6 +670,50 @@ class PortfolioService:
         source_results: PortfolioWorkspaceSourceResults,
         analytics_results: PortfolioWorkspaceAnalyticsResults,
     ) -> PortfolioWorkspaceResponse:
+        components = self._build_portfolio_workspace_components(
+            source_results=source_results,
+            analytics_results=analytics_results,
+        )
+
+        portfolio = components.portfolio
+        profile = components.profile
+        summary = components.summary
+        warnings = components.warnings
+        partial_failures = components.partial_failures
+
+        reporting = self._reporting_readiness(summary, source_results.readiness_result)
+        control_capabilities = self._build_workspace_control_capabilities(
+            portfolio=portfolio,
+            profile=profile,
+            requested_as_of_date=effective_as_of_date,
+            effective_as_of_date=resolved_as_of_date,
+            requested_reporting_currency=reporting_currency,
+        )
+
+        return PortfolioWorkspaceResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            as_of_date=resolved_as_of_date,
+            portfolio=portfolio,
+            profile=profile,
+            summary=summary,
+            cashflow_outlook=components.cashflow_outlook,
+            performance=components.performance,
+            rebalance=components.rebalance,
+            reporting=reporting,
+            operations=components.operations,
+            control_capabilities=control_capabilities,
+            workflow_cues=self._build_workflow_cues(portfolio_id),
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    def _build_portfolio_workspace_components(
+        self,
+        *,
+        source_results: PortfolioWorkspaceSourceResults,
+        analytics_results: PortfolioWorkspaceAnalyticsResults,
+    ) -> PortfolioWorkspaceComponents:
         portfolio_payload = self._require_payload(
             result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
@@ -669,8 +726,6 @@ class PortfolioService:
             source_results.readiness_result,
             detail_prefix="lotus-core portfolio readiness rejected the request",
         )
-        portfolio = self._parse_portfolio_identity(portfolio_payload)
-        profile = self._parse_portfolio_profile(portfolio_payload)
         warnings: list[str] = []
         partial_failures: list[PortfolioPartialFailure] = []
         summary = self._parse_summary(
@@ -700,26 +755,15 @@ class PortfolioService:
             warnings,
             partial_failures,
         )
-        return PortfolioWorkspaceResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            as_of_date=resolved_as_of_date,
-            portfolio=portfolio,
-            profile=profile,
+
+        return PortfolioWorkspaceComponents(
+            portfolio=self._parse_portfolio_identity(portfolio_payload),
+            profile=self._parse_portfolio_profile(portfolio_payload),
             summary=summary,
             cashflow_outlook=cashflow_outlook,
             performance=performance,
             rebalance=rebalance,
-            reporting=self._reporting_readiness(summary, source_results.readiness_result),
             operations=operations,
-            control_capabilities=self._build_workspace_control_capabilities(
-                portfolio=portfolio,
-                profile=profile,
-                requested_as_of_date=effective_as_of_date,
-                effective_as_of_date=resolved_as_of_date,
-                requested_reporting_currency=reporting_currency,
-            ),
-            workflow_cues=self._build_workflow_cues(portfolio_id),
             warnings=warnings,
             partial_failures=partial_failures,
         )
