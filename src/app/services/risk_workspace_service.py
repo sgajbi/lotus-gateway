@@ -555,29 +555,20 @@ class RiskWorkspaceService:
         attribution_type: str,
         grouping_dimension: str,
     ) -> WorkbenchRiskAttributionResponse:
-        resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        context = RiskAttributionRequestContext(
+        context = self._risk_attribution_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            as_of_date=resolved_as_of_date,
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
-            attribution_type=_normalize_risk_attribution_type(attribution_type),
-            grouping_dimension=_normalize_risk_attribution_grouping(grouping_dimension),
+            attribution_type=attribution_type,
+            grouping_dimension=grouping_dimension,
         )
-        blocked_response = blocked_attribution_response(
-            correlation_id=correlation_id,
-            portfolio_id=portfolio_id,
-            period=period,
-            as_of_date=resolved_as_of_date,
-            benchmark_code=benchmark_code,
-            attribution_type=context.attribution_type,
-            grouping_dimension=context.grouping_dimension,
-        )
+        blocked_response = self._blocked_risk_attribution_response(context)
         if blocked_response is not None:
             return blocked_response
 
@@ -597,6 +588,49 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _risk_attribution_request_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        as_of_date: str | None,
+        report_start_date: str | None,
+        report_end_date: str | None,
+        reporting_currency: str | None,
+        attribution_type: str,
+        grouping_dimension: str,
+    ) -> RiskAttributionRequestContext:
+        return RiskAttributionRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=_resolve_as_of_date(as_of_date),
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+            attribution_type=_normalize_risk_attribution_type(attribution_type),
+            grouping_dimension=_normalize_risk_attribution_grouping(grouping_dimension),
+        )
+
+    def _blocked_risk_attribution_response(
+        self,
+        context: RiskAttributionRequestContext,
+    ) -> WorkbenchRiskAttributionResponse | None:
+        return blocked_attribution_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            attribution_type=context.attribution_type,
+            grouping_dimension=context.grouping_dimension,
         )
 
     def _attribution_cache_key(self, context: RiskAttributionRequestContext) -> tuple[object, ...]:
