@@ -68,6 +68,39 @@ class PlatformCapabilitiesService:
         correlation_id: str,
     ) -> PlatformCapabilitiesResponse:
         evaluated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        tasks, optional_sources = self._build_capability_tasks(
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
+        )
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        sources, errors = self._primary_sources_from_results(results)
+        lotus_core_policy_payload = self._lotus_core_policy_from_result(
+            result=results[len(PRIMARY_CAPABILITY_SOURCES)],
+            errors=errors,
+        )
+        self._merge_optional_capability_sources(
+            results=results,
+            optional_sources=optional_sources,
+            sources=sources,
+            errors=errors,
+        )
+        return self._build_platform_capabilities_response(
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+            sources=sources,
+            errors=errors,
+            lotus_core_policy_payload=lotus_core_policy_payload,
+            evaluated_at=evaluated_at,
+        )
+
+    def _build_capability_tasks(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> tuple[list[Any], list[str]]:
         tasks: list[Any] = [
             self._with_timeout(
                 self._lotus_core_query_client.get_capabilities(
@@ -122,64 +155,48 @@ class PlatformCapabilitiesService:
                 )
             )
             optional_sources.append("risk")
+        return tasks, optional_sources
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
+    def _primary_sources_from_results(
+        self,
+        results: list[Any],
+    ) -> tuple[dict[str, dict[str, Any]], list[CapabilitySourceError]]:
         sources: dict[str, dict[str, Any]] = {}
         errors: list[CapabilitySourceError] = []
         for service_name, result in zip(PRIMARY_CAPABILITY_SOURCES, results[:5], strict=True):
-            if isinstance(result, BaseException):
-                errors.append(
-                    CapabilitySourceError(
-                        service=service_name,
-                        status_code=500,
-                        detail=self._exception_detail(result),
-                    )
-                )
-                continue
-
-            status_code, payload = cast(tuple[int, dict[str, Any]], result)
-            if status_code >= 400:
-                errors.append(
-                    CapabilitySourceError(
-                        service=service_name,
-                        status_code=status_code,
-                        detail=str(payload.get("detail", payload)),
-                    )
-                )
-                continue
-
-            sources[service_name] = payload
-
-        lotus_core_policy_payload: dict[str, Any] | None = None
-        lotus_core_policy_result = results[5]
-        if isinstance(lotus_core_policy_result, BaseException):
-            errors.append(
-                CapabilitySourceError(
-                    service="lotus_core_policy",
-                    status_code=500,
-                    detail=self._exception_detail(lotus_core_policy_result),
-                )
+            payload = self._payload_from_source_result(
+                result=result,
+                service_name=service_name,
+                errors=errors,
             )
-        else:
-            policy_status_code, policy_payload = cast(
-                tuple[int, dict[str, Any]], lotus_core_policy_result
-            )
-            if policy_status_code >= 400:
-                errors.append(
-                    CapabilitySourceError(
-                        service="lotus_core_policy",
-                        status_code=policy_status_code,
-                        detail=str(policy_payload.get("detail", policy_payload)),
-                    )
-                )
-            else:
-                lotus_core_policy_payload = policy_payload
+            if payload is not None:
+                sources[service_name] = payload
+        return sources, errors
 
+    def _lotus_core_policy_from_result(
+        self,
+        *,
+        result: Any,
+        errors: list[CapabilitySourceError],
+    ) -> dict[str, Any] | None:
+        return self._payload_from_source_result(
+            result=result,
+            service_name="lotus_core_policy",
+            errors=errors,
+        )
+
+    def _merge_optional_capability_sources(
+        self,
+        *,
+        results: list[Any],
+        optional_sources: list[str],
+        sources: dict[str, dict[str, Any]],
+        errors: list[CapabilitySourceError],
+    ) -> None:
         optional_result_map: dict[str, Any] = {}
-        for index, source in enumerate(optional_sources, start=6):
+        start_index = len(PRIMARY_CAPABILITY_SOURCES) + 1
+        for index, source in enumerate(optional_sources, start=start_index):
             optional_result_map[source] = results[index]
-
         self._merge_optional_source(
             optional_result_map=optional_result_map,
             source_name="risk",
@@ -188,6 +205,16 @@ class PlatformCapabilitiesService:
             errors=errors,
         )
 
+    def _build_platform_capabilities_response(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        sources: dict[str, dict[str, Any]],
+        errors: list[CapabilitySourceError],
+        lotus_core_policy_payload: dict[str, Any] | None,
+        evaluated_at: str,
+    ) -> PlatformCapabilitiesResponse:
         normalized = self._build_normalized_capabilities(
             sources=sources,
             errors=errors,
@@ -204,6 +231,34 @@ class PlatformCapabilitiesService:
             normalized=normalized,
         )
         return PlatformCapabilitiesResponse(data=data)
+
+    def _payload_from_source_result(
+        self,
+        *,
+        result: Any,
+        service_name: str,
+        errors: list[CapabilitySourceError],
+    ) -> dict[str, Any] | None:
+        if isinstance(result, BaseException):
+            errors.append(
+                CapabilitySourceError(
+                    service=service_name,
+                    status_code=500,
+                    detail=self._exception_detail(result),
+                )
+            )
+            return None
+        status_code, payload = cast(tuple[int, dict[str, Any]], result)
+        if status_code >= 400:
+            errors.append(
+                CapabilitySourceError(
+                    service=service_name,
+                    status_code=status_code,
+                    detail=str(payload.get("detail", payload)),
+                )
+            )
+            return None
+        return payload
 
     async def _with_timeout(self, coroutine: Any) -> Any:
         return await asyncio.wait_for(coroutine, timeout=self._source_timeout_seconds)
@@ -301,26 +356,13 @@ class PlatformCapabilitiesService:
         result = optional_result_map.get(source_name)
         if result is None:
             return
-        if isinstance(result, BaseException):
-            errors.append(
-                CapabilitySourceError(
-                    service=gateway_source_name,
-                    status_code=500,
-                    detail=self._exception_detail(result),
-                )
-            )
-            return
-        status_code, payload = cast(tuple[int, dict[str, Any]], result)
-        if status_code >= 400:
-            errors.append(
-                CapabilitySourceError(
-                    service=gateway_source_name,
-                    status_code=status_code,
-                    detail=str(payload.get("detail", payload)),
-                )
-            )
-            return
-        sources[gateway_source_name] = payload
+        payload = self._payload_from_source_result(
+            result=result,
+            service_name=gateway_source_name,
+            errors=errors,
+        )
+        if payload is not None:
+            sources[gateway_source_name] = payload
 
     def _exception_detail(self, exc: BaseException) -> str:
         message = str(exc)

@@ -88,8 +88,11 @@ reducing `_parse_core_snapshot` from 153 lines to 38 lines. The advisor-brief na
 builder has been split into source fallback, AI result
 classification, completed-output projection, unavailable-risk construction, and route-resolution
 helpers, reducing `_build_advisor_brief_narrative_state` from 144 lines to 30 lines. The current
-longest function is `get_platform_capabilities` in
-`src/app/services/platform_capabilities_service.py` at 143 lines.
+platform-capabilities orchestration has been split into task assembly, primary-source
+classification, policy-result extraction, optional-source merging, shared source-result mapping,
+and response construction helpers, reducing `get_platform_capabilities` from 143 lines to 32
+lines. The current longest function is `get_performance_attribution_trend` in
+`src/app/services/performance_workspace_service.py` at 135 lines.
 
 ## Progressive Enforcement
 

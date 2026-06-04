@@ -39,7 +39,11 @@ finalization, and portfolio identity helpers, reducing `_parse_core_snapshot` fr
 narrative-state builder has now been split into source fallback, AI result classification,
 completed-output projection, unavailable-risk construction, and route-resolution helpers, reducing
 `_build_advisor_brief_narrative_state` from 144 lines to 30 lines and lowering the repository
-longest-function baseline to 143 lines. The remaining work is still substantial: large portfolio,
+longest-function baseline to 143 lines. Platform-capabilities orchestration has now been split
+into task assembly, primary-source classification, policy-result extraction, optional-source
+merging, shared source-result mapping, and response construction helpers, reducing
+`get_platform_capabilities` from 143 lines to 32 lines and lowering the repository
+longest-function baseline to 135 lines. The remaining work is still substantial: large portfolio,
 performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
@@ -49,9 +53,9 @@ performance workspace, advisor-brief orchestration, contract, and client modules
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
 | Unit/contract coverage | Healthy | 958 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.78%, above the 84% floor |
+| Total coverage | Healthy | 92.80%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -62,8 +66,8 @@ performance workspace, advisor-brief orchestration, contract, and client modules
    workspace, and workflow-cue adapters.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
-3. Continue splitting platform capability normalization into smaller feature/workflow helpers if
-   future changes expand the extracted module.
+3. Continue splitting platform capability normalization or orchestration helpers if future changes
+   expand the extracted modules.
 4. Continue extracting performance workspace service orchestration helpers behind stable response
    contracts; horizon parsing is now below the current function-size baseline.
 5. Continue splitting advisor-brief service orchestration around stable reviewed-narrative
