@@ -89,6 +89,8 @@ page loading, and portfolio book response assembly, lowering the baseline to 62 
 `portfolio_service.py` is now measured at 3,155 lines after explicit typed workspace component,
 transaction-summary, transaction-page, and book assembly helpers, so it remains the largest-file
 hotspot. Local `make check` remains green with 967 unit/contract tests on commit `6836e69`, and
-the latest focused slices have local router/service/contract, boundary, lint, format, mypy, and
-monetary-float evidence. GitHub Feature Lane and Quality Baseline runs remain the authoritative
-remote evidence and must be rechecked before PR readiness.
+local `make ci` passes on commit `e1e7980` with 207 integration tests, 1,174 coverage tests,
+93.32 percent total coverage, and `pip-audit` reporting no known vulnerabilities after the
+governed FastAPI/Starlette exception. The latest focused slices have local router/service/contract,
+boundary, lint, format, mypy, and monetary-float evidence. GitHub Feature Lane and Quality
+Baseline runs remain the authoritative remote evidence and must be rechecked before PR readiness.
