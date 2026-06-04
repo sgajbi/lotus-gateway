@@ -68,52 +68,23 @@ def build_workbench_allocation_buckets(
     bucket_quantities: dict[str, dict[str, float]] = {}
 
     if projected_positions:
-        for projected_row in projected_positions:
-            bucket_key = workbench_position_bucket_key(
-                group_by=group_by,
-                security_id=projected_row.security_id,
-                instrument_name=projected_row.instrument_name,
-                asset_class=projected_row.asset_class,
-            )
-            bucket = bucket_quantities.setdefault(
-                bucket_key,
-                {"current": 0.0, "proposed": 0.0},
-            )
-            bucket["current"] += _as_number(projected_row.baseline_quantity)
-            bucket["proposed"] += _as_number(projected_row.proposed_quantity)
-
-        projected_security_ids = {
-            projected_row.security_id for projected_row in projected_positions
-        }
-        for current_row in current_positions:
-            if current_row.security_id in projected_security_ids:
-                continue
-            bucket_key = workbench_position_bucket_key(
-                group_by=group_by,
-                security_id=current_row.security_id,
-                instrument_name=current_row.instrument_name,
-                asset_class=current_row.asset_class,
-            )
-            bucket = bucket_quantities.setdefault(
-                bucket_key,
-                {"current": 0.0, "proposed": 0.0},
-            )
-            bucket["current"] += _as_number(current_row.quantity)
-            bucket["proposed"] += _as_number(current_row.quantity)
+        add_projected_allocation_buckets(
+            bucket_quantities=bucket_quantities,
+            group_by=group_by,
+            projected_positions=projected_positions,
+        )
+        add_unchanged_current_allocation_buckets(
+            bucket_quantities=bucket_quantities,
+            group_by=group_by,
+            current_positions=current_positions,
+            projected_positions=projected_positions,
+        )
     else:
-        for current_row in current_positions:
-            bucket_key = workbench_position_bucket_key(
-                group_by=group_by,
-                security_id=current_row.security_id,
-                instrument_name=current_row.instrument_name,
-                asset_class=current_row.asset_class,
-            )
-            bucket = bucket_quantities.setdefault(
-                bucket_key,
-                {"current": 0.0, "proposed": 0.0},
-            )
-            bucket["current"] += _as_number(current_row.quantity)
-            bucket["proposed"] += _as_number(current_row.quantity)
+        add_current_allocation_buckets(
+            bucket_quantities=bucket_quantities,
+            group_by=group_by,
+            current_positions=current_positions,
+        )
 
     total_current = sum(abs(bucket["current"]) for bucket in bucket_quantities.values())
     total_proposed = sum(abs(bucket["proposed"]) for bucket in bucket_quantities.values())
@@ -130,6 +101,84 @@ def build_workbench_allocation_buckets(
         )
         for bucket_key, values in sorted(bucket_quantities.items())
     ]
+
+
+def add_projected_allocation_buckets(
+    *,
+    bucket_quantities: dict[str, dict[str, float]],
+    group_by: str,
+    projected_positions: list[WorkbenchProjectedPositionView],
+) -> None:
+    for projected_row in projected_positions:
+        add_allocation_bucket_quantities(
+            bucket_quantities=bucket_quantities,
+            group_by=group_by,
+            security_id=projected_row.security_id,
+            instrument_name=projected_row.instrument_name,
+            asset_class=projected_row.asset_class,
+            current_quantity=_as_number(projected_row.baseline_quantity),
+            proposed_quantity=_as_number(projected_row.proposed_quantity),
+        )
+
+
+def add_unchanged_current_allocation_buckets(
+    *,
+    bucket_quantities: dict[str, dict[str, float]],
+    group_by: str,
+    current_positions: list[WorkbenchPositionView],
+    projected_positions: list[WorkbenchProjectedPositionView],
+) -> None:
+    projected_security_ids = {projected_row.security_id for projected_row in projected_positions}
+    unchanged_rows = [
+        current_row
+        for current_row in current_positions
+        if current_row.security_id not in projected_security_ids
+    ]
+    add_current_allocation_buckets(
+        bucket_quantities=bucket_quantities,
+        group_by=group_by,
+        current_positions=unchanged_rows,
+    )
+
+
+def add_current_allocation_buckets(
+    *,
+    bucket_quantities: dict[str, dict[str, float]],
+    group_by: str,
+    current_positions: list[WorkbenchPositionView],
+) -> None:
+    for current_row in current_positions:
+        quantity = _as_number(current_row.quantity)
+        add_allocation_bucket_quantities(
+            bucket_quantities=bucket_quantities,
+            group_by=group_by,
+            security_id=current_row.security_id,
+            instrument_name=current_row.instrument_name,
+            asset_class=current_row.asset_class,
+            current_quantity=quantity,
+            proposed_quantity=quantity,
+        )
+
+
+def add_allocation_bucket_quantities(
+    *,
+    bucket_quantities: dict[str, dict[str, float]],
+    group_by: str,
+    security_id: str,
+    instrument_name: str,
+    asset_class: str | None,
+    current_quantity: float,
+    proposed_quantity: float,
+) -> None:
+    bucket_key = workbench_position_bucket_key(
+        group_by=group_by,
+        security_id=security_id,
+        instrument_name=instrument_name,
+        asset_class=asset_class,
+    )
+    bucket = bucket_quantities.setdefault(bucket_key, {"current": 0.0, "proposed": 0.0})
+    bucket["current"] += current_quantity
+    bucket["proposed"] += proposed_quantity
 
 
 def build_workbench_top_changes(
