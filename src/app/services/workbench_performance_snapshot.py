@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 from fastapi import status
 
@@ -30,7 +30,7 @@ def parse_performance_snapshot(
 
     return WorkbenchPerformanceSnapshot(
         period=period_key,
-        return_pct=cast(float | None, period_return_payload.get("base")),
+        return_pct=cast(Any, period_return_payload.get("base")),
         benchmark_return_pct=None,
     )
 
