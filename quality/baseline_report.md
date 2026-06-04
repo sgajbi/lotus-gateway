@@ -33,7 +33,8 @@ then split shared analytics async polling, workspace-summary payload assembly, p
 transaction-summary context loading, transaction page loading, and portfolio book response
 assembly, then split performance horizon-comparison dependency fetching and row parsing out of
 the top-level service method, followed by performance summary/detail route query metadata
-extraction and DPM wave PM memo payload/response extraction.
+extraction, DPM wave PM memo payload/response extraction, and risk summary period/metric-state
+extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -66,16 +67,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
-| 2 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
-| 3 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 4 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
-| 5 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 6 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 7 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
-| 8 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
-| 9 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 10 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
+| 1 | 56 | `load_advisor_brief_workflow_pack_run` | `src/app/services/advisor_brief_workflow_pack.py` |
+| 2 | 56 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 3 | 56 | `fetch_benchmark_context` | `src/app/services/performance_workspace_benchmarks.py` |
+| 4 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
+| 5 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 6 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 7 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
+| 8 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 9 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
+| 10 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
 
 ## Existing Blocking Gates
 

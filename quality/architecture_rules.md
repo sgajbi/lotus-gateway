@@ -125,7 +125,8 @@ extraction, DPM portfolio-memory search query metadata extraction, performance c
 projection extraction, HTTP resilience JSON dispatch extraction, and performance
 horizon-comparison dependency-phase extraction, followed by performance summary/detail route
 query metadata extraction and DPM wave PM memo payload/response construction extraction. The
-current longest functions are 56-line orchestration and mapper helpers.
+latest risk summary mapper slice split period and metric-state mapping out of the response
+composer. The current longest functions are 56-line orchestration and mapper helpers.
 
 ## Progressive Enforcement
 
