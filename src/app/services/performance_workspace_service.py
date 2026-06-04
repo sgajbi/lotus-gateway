@@ -223,6 +223,14 @@ class WorkspaceSummaryViews:
 
 
 @dataclass(frozen=True)
+class WorkspaceResponseComponents:
+    benchmark_code: str | None
+    benchmark_options: list[PerformanceBenchmarkOptionView]
+    evidence_view: PerformanceEvidenceView | None
+    capabilities: PerformanceWorkspaceCapabilities
+
+
+@dataclass(frozen=True)
 class WorkspaceDetailViews:
     contribution: ContributionSummaryView | None
     attribution: AttributionSummaryView | None
@@ -940,12 +948,37 @@ class PerformanceWorkspaceService:
             include_detail_blocks=include_detail_blocks,
             prefer_independent_detail_analytics=prefer_independent_detail_analytics,
         )
-        benchmark_code_for_response = (
-            summary_views.resolved_benchmark_code or context.benchmark_code
+        response_components = await self._build_workspace_response_components(
+            context=context,
+            summary_views=summary_views,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            include_detail_blocks=include_detail_blocks,
         )
+        return self._assemble_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            summary_views=summary_views,
+            benchmark_code=response_components.benchmark_code,
+            benchmark_options=response_components.benchmark_options,
+            evidence_view=response_components.evidence_view,
+            capabilities=response_components.capabilities,
+        )
+
+    async def _build_workspace_response_components(
+        self,
+        *,
+        context: WorkspaceRequestContext,
+        summary_views: WorkspaceSummaryViews,
+        portfolio_id: str,
+        correlation_id: str,
+        include_detail_blocks: bool,
+    ) -> WorkspaceResponseComponents:
+        benchmark_code = summary_views.resolved_benchmark_code or context.benchmark_code
         benchmark_options = parse_benchmark_catalog_result(
             result=context.benchmark_catalog_result,
-            assigned_benchmark_code=benchmark_code_for_response,
+            assigned_benchmark_code=benchmark_code,
             warnings=context.warnings,
             partial_failures=context.partial_failures,
         )
@@ -954,10 +987,10 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             context=context,
             summary_views=summary_views,
-            benchmark_code=benchmark_code_for_response,
+            benchmark_code=benchmark_code,
         )
         capabilities = build_workspace_capabilities(
-            benchmark_code=benchmark_code_for_response,
+            benchmark_code=benchmark_code,
             net_performance=summary_views.net_performance,
             net_chart=summary_views.net_chart,
             contribution=summary_views.contribution,
@@ -965,12 +998,8 @@ class PerformanceWorkspaceService:
             evidence_view=evidence_view,
             include_detail_blocks=include_detail_blocks,
         )
-        return self._assemble_workspace_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            summary_views=summary_views,
-            benchmark_code=benchmark_code_for_response,
+        return WorkspaceResponseComponents(
+            benchmark_code=benchmark_code,
             benchmark_options=benchmark_options,
             evidence_view=evidence_view,
             capabilities=capabilities,
