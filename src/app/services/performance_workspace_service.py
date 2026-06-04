@@ -136,6 +136,20 @@ class AttributionTrendRequestContext:
 
 
 @dataclass(frozen=True)
+class HorizonComparisonRequestContext:
+    overview: WorkbenchOverviewResponse
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    report_end_date: str
+    report_start_date: date
+    effective_period: str
+    chart_frequency: str
+    requested_chart_frequency_supported: bool
+    benchmark_code: str | None
+    benchmark_catalog_result: GatheredResult
+
+
+@dataclass(frozen=True)
 class WorkspaceSummaryViews:
     workspace_summary_result: GatheredResult
     parsed_summary: ParsedWorkspaceSummary
@@ -490,6 +504,63 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> PerformanceHorizonComparisonResponse:
+        context = await self._build_horizon_comparison_request_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            benchmark_code=benchmark_code,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        async with server_timing_span("perf-horizon"):
+            workspace_summary_result = await fetch_workspace_horizon_dependencies(
+                analytics_client=self._analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=context.report_end_date,
+                report_start_date=context.report_start_date.isoformat()
+                if context.effective_period == "EXPLICIT"
+                else None,
+                period=context.effective_period,
+                detail_basis=detail_basis,
+                benchmark_code=context.benchmark_code,
+                portfolio_currency=context.overview.portfolio.base_currency,
+                chart_frequency=context.chart_frequency,
+            )
+        rows, resolved_benchmark_code = parse_horizon_comparison_result(
+            result=workspace_summary_result,
+            requested_period=context.effective_period,
+            requested_report_start_date=context.report_start_date.isoformat()
+            if context.effective_period == "EXPLICIT"
+            else None,
+            requested_report_end_date=context.report_end_date
+            if context.effective_period == "EXPLICIT"
+            else None,
+            detail_basis=detail_basis,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
+        )
+        return self._build_horizon_comparison_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+            benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
+            rows=rows,
+        )
+
+    async def _build_horizon_comparison_request_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        benchmark_code: str | None,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> HorizonComparisonRequestContext:
         async with server_timing_span("perf-overview"):
             overview = await self._get_cached_workspace_overview(
                 portfolio_id=portfolio_id,
@@ -534,57 +605,52 @@ class PerformanceWorkspaceService:
                 benchmark_code=benchmark_code,
                 include_benchmark_catalog=True,
             )
-        async with server_timing_span("perf-horizon"):
-            workspace_summary_result = await fetch_workspace_horizon_dependencies(
-                analytics_client=self._analytics_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=resolved_report_end_date,
-                report_start_date=report_start_date.isoformat()
-                if effective_period == "EXPLICIT"
-                else None,
-                period=effective_period,
-                detail_basis=detail_basis,
-                benchmark_code=resolved_benchmark_code,
-                portfolio_currency=overview.portfolio.base_currency,
-                chart_frequency=resolved_chart_frequency,
-            )
-        rows, resolved_benchmark_code = parse_horizon_comparison_result(
-            result=workspace_summary_result,
-            requested_period=effective_period,
-            requested_report_start_date=report_start_date.isoformat()
-            if effective_period == "EXPLICIT"
-            else None,
-            requested_report_end_date=resolved_report_end_date
-            if effective_period == "EXPLICIT"
-            else None,
-            detail_basis=detail_basis,
+        return HorizonComparisonRequestContext(
+            overview=overview,
             warnings=warnings,
             partial_failures=partial_failures,
+            report_end_date=resolved_report_end_date,
+            report_start_date=report_start_date,
+            effective_period=effective_period,
+            chart_frequency=resolved_chart_frequency,
+            requested_chart_frequency_supported=requested_chart_frequency_supported,
+            benchmark_code=resolved_benchmark_code,
+            benchmark_catalog_result=benchmark_catalog_result,
         )
+
+    def _build_horizon_comparison_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        context: HorizonComparisonRequestContext,
+        benchmark_code: str | None,
+        rows: list[Any],
+    ) -> PerformanceHorizonComparisonResponse:
         benchmark_options = parse_benchmark_catalog_result(
-            result=benchmark_catalog_result,
-            assigned_benchmark_code=resolved_benchmark_code or benchmark_code,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            result=context.benchmark_catalog_result,
+            assigned_benchmark_code=benchmark_code,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
         )
         return PerformanceHorizonComparisonResponse(
             correlation_id=correlation_id,
-            contract_version=overview.contract_version,
+            contract_version=context.overview.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=overview.as_of_date,
-            period=effective_period,
-            report_start_date=report_start_date.isoformat(),
-            report_end_date=resolved_report_end_date,
-            reporting_currency=overview.portfolio.base_currency,
+            as_of_date=context.overview.as_of_date,
+            period=context.effective_period,
+            report_start_date=context.report_start_date.isoformat(),
+            report_end_date=context.report_end_date,
+            reporting_currency=context.overview.portfolio.base_currency,
             detail_basis=detail_basis,
-            chart_frequency=resolved_chart_frequency,
-            requested_chart_frequency_supported=requested_chart_frequency_supported,
-            benchmark_code=resolved_benchmark_code or benchmark_code,
+            chart_frequency=context.chart_frequency,
+            requested_chart_frequency_supported=context.requested_chart_frequency_supported,
+            benchmark_code=benchmark_code,
             benchmark_options=benchmark_options,
             rows=rows,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            warnings=context.warnings,
+            partial_failures=context.partial_failures,
         )
 
     async def get_performance_attribution_trend(
