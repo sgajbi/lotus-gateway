@@ -37,9 +37,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
 | 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,392 | `src/app/services/advisor_brief_service.py` |
+| 6 | 1,463 | `src/app/services/advisor_brief_service.py` |
 | 7 | 1,362 | `src/app/clients/dpm_client.py` |
-| 8 | 1,152 | `src/app/services/performance_workspace_service.py` |
+| 8 | 1,327 | `src/app/services/performance_workspace_service.py` |
 | 9 | 1,098 | `src/app/clients/advise_client.py` |
 | 10 | 1,032 | `src/app/services/dpm_command_center_service.py` |
 
@@ -47,16 +47,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 2 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
-| 3 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 4 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
-| 5 | 116 | `_build_portfolio_insights` | `src/app/services/portfolio_service.py` |
-| 6 | 112 | `_build_workspace_summary_views` | `src/app/services/performance_workspace_service.py` |
-| 7 | 111 | `get_portfolio_workspace` | `src/app/services/foundation_service.py` |
-| 8 | 111 | `get_portfolio_transactions` | `src/app/routers/portfolio_transactions.py` |
-| 9 | 108 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 10 | 107 | `get_rolling` | `src/app/services/risk_workspace_service.py` |
+| 1 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
+| 2 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 3 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
+| 4 | 116 | `_build_portfolio_insights` | `src/app/services/portfolio_service.py` |
+| 5 | 112 | `_build_workspace_summary_views` | `src/app/services/performance_workspace_service.py` |
+| 6 | 111 | `get_portfolio_workspace` | `src/app/services/foundation_service.py` |
+| 7 | 111 | `get_portfolio_transactions` | `src/app/routers/portfolio_transactions.py` |
+| 8 | 108 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
+| 9 | 107 | `get_rolling` | `src/app/services/risk_workspace_service.py` |
+| 10 | 103 | `workspace_descriptors` | `src/app/services/platform_capabilities_shell.py` |
 
 ## Existing Blocking Gates
 
@@ -95,7 +95,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 134 lines,
+2. no new function above the current longest-function baseline of 133 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

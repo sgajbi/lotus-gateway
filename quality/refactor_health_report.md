@@ -46,7 +46,10 @@ merging, shared source-result mapping, and response construction helpers, reduci
 longest-function baseline to 135 lines. Performance attribution trend orchestration has now been
 split into request-context, window-pair construction, attribution fan-out, and response assembly
 helpers, reducing `get_performance_attribution_trend` from 135 lines to 56 lines and lowering the
-repository longest-function baseline to 134 lines. The remaining work is still substantial: large
+repository longest-function baseline to 134 lines. Performance evidence-view orchestration has now
+been split into request context, fetch state, requested-calculation selection, and explicit response
+builders, reducing `_build_evidence_view` from 134 lines to 58 lines and lowering the repository
+longest-function baseline to 133 lines. The remaining work is still substantial: large
 portfolio, performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
@@ -58,7 +61,7 @@ portfolio, performance workspace, advisor-brief orchestration, contract, and cli
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.80%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -71,9 +74,9 @@ portfolio, performance workspace, advisor-brief orchestration, contract, and cli
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
    expand the extracted modules.
-4. Continue extracting performance workspace service evidence and summary orchestration helpers
-   behind stable response contracts; horizon parsing and attribution trend orchestration are now
-   below the current function-size baseline.
+4. Continue extracting performance workspace summary orchestration helpers behind stable response
+   contracts; horizon parsing, attribution trend orchestration, and evidence-view orchestration are
+   now below the current function-size baseline.
 5. Continue splitting advisor-brief service orchestration around stable reviewed-narrative
    contracts if future changes expand the remaining runtime or review helpers.
 6. Split large contract modules only when contract ownership boundaries are clear and tests remain
