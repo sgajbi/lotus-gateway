@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from fastapi import HTTPException, status
@@ -233,143 +233,29 @@ class AdvisorBriefService:
         correlation_id: str,
         source_context: AdvisorBriefSourceContext,
     ) -> AdvisorBriefNarrativeState:
-        workspace = source_context.workspace
-        status = source_context.status
-        source_summary = source_context.summary
-        talking_points = source_context.talking_points
-        recommended_actions = source_context.recommended_actions
-        risks_and_exceptions = source_context.risks_and_exceptions
-        ai_audit: dict[str, Any] = _normalize_ai_audit({})
-        ai_evidence: dict[str, Any] = {"descriptors": []}
+        narrative_state = _build_source_advisor_brief_narrative_state(source_context=source_context)
+        if narrative_state.status is AdvisorBriefStatus.UNAVAILABLE:
+            return narrative_state
 
-        if status is not AdvisorBriefStatus.UNAVAILABLE:
-            task_request = _build_advisor_brief_ai_task_request(
+        task_request = _build_advisor_brief_ai_task_request(
+            correlation_id=correlation_id,
+            source_context=source_context,
+        )
+        async with server_timing_span("perf-advisor-brief-ai"):
+            ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
+                pack_id="advisor_brief.pack",
+                version="v1",
+                environment="DEVELOPMENT",
+                caller_identity_class="BANKER_PRODUCT",
+                workflow_surface="advisor-brief-workspace",
+                task_request=task_request,
                 correlation_id=correlation_id,
-                source_context=source_context,
             )
-            async with server_timing_span("perf-advisor-brief-ai"):
-                ai_status, ai_payload = await self._lotus_ai_client.execute_workflow_pack(
-                    pack_id="advisor_brief.pack",
-                    version="v1",
-                    environment="DEVELOPMENT",
-                    caller_identity_class="BANKER_PRODUCT",
-                    workflow_surface="advisor-brief-workspace",
-                    task_request=task_request,
-                    correlation_id=correlation_id,
-                )
-            execution_payload = _safe_dict(ai_payload.get("execution")) if ai_status == 200 else {}
-            if ai_status == 200:
-                ai_audit = _normalize_ai_audit(_safe_dict(execution_payload.get("audit")))
-                ai_evidence = _safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
-            if ai_status == 200 and execution_payload.get("status") == "COMPLETED":
-                result = _safe_dict(execution_payload.get("result"))
-                structured_output = _safe_dict(result.get("structured_output"))
-                source_summary = (
-                    _extract_ai_summary(
-                        ai_payload=execution_payload,
-                        structured_output=structured_output,
-                    )
-                    or source_summary
-                )
-                talking_points = (
-                    _extract_ai_talking_points(
-                        structured_output=structured_output,
-                        route=_route_query(
-                            portfolio_id=workspace.portfolio_id,
-                            period=workspace.period,
-                            basis=workspace.detail_basis,
-                            benchmark_code=workspace.benchmark_code,
-                        ),
-                    )
-                    or talking_points
-                )
-                recommended_actions = (
-                    _extract_ai_recommended_actions(
-                        structured_output=structured_output,
-                        route=_route_query(
-                            portfolio_id=workspace.portfolio_id,
-                            period=workspace.period,
-                            basis=workspace.detail_basis,
-                            benchmark_code=workspace.benchmark_code,
-                        ),
-                    )
-                    or recommended_actions
-                )
-                risks_and_exceptions = (
-                    _extract_ai_risks(
-                        structured_output=structured_output,
-                        route=_route_query(
-                            portfolio_id=workspace.portfolio_id,
-                            period=workspace.period,
-                            basis=workspace.detail_basis,
-                            benchmark_code=workspace.benchmark_code,
-                        ),
-                    )
-                    or risks_and_exceptions
-                )
-            elif ai_status == 200:
-                status = AdvisorBriefStatus.PARTIAL
-                risks_and_exceptions.append(
-                    AdvisorBriefNarrativeItem(
-                        headline="AI narrative generation is unavailable.",
-                        detail=(
-                            _safe_execution_detail(execution_payload)
-                            or (
-                                "Source-backed metrics remain available for manual review and "
-                                "client prep."
-                            )
-                        ),
-                        tone=AdvisorBriefTone.WARNING,
-                        evidence_refs=[
-                            _summary_evidence_ref(
-                                label="Advisor Brief",
-                                value="Unavailable",
-                                portfolio_id=workspace.portfolio_id,
-                                period=workspace.period,
-                                basis=workspace.detail_basis,
-                                benchmark_code=workspace.benchmark_code,
-                            )
-                        ],
-                    )
-                )
-            else:
-                status = AdvisorBriefStatus.PARTIAL
-                ai_audit = _normalize_ai_audit(
-                    {
-                        "task_id": _TASK_ID,
-                        "output_label": _EXPECTED_OUTPUT_LABEL,
-                        "provider_mode": "unavailable",
-                        "detail": _safe_error_detail(ai_payload),
-                    }
-                )
-                risks_and_exceptions.append(
-                    AdvisorBriefNarrativeItem(
-                        headline="AI narrative generation is unavailable.",
-                        detail=(
-                            "Source-backed metrics remain available for manual review and "
-                            "client prep."
-                        ),
-                        tone=AdvisorBriefTone.WARNING,
-                        evidence_refs=[
-                            _summary_evidence_ref(
-                                label="Advisor Brief",
-                                value="Unavailable",
-                                portfolio_id=workspace.portfolio_id,
-                                period=workspace.period,
-                                basis=workspace.detail_basis,
-                                benchmark_code=workspace.benchmark_code,
-                            )
-                        ],
-                    )
-                )
-        return AdvisorBriefNarrativeState(
-            status=status,
-            summary=source_summary,
-            talking_points=talking_points,
-            recommended_actions=recommended_actions,
-            risks_and_exceptions=risks_and_exceptions,
-            ai_audit=ai_audit,
-            ai_evidence=ai_evidence,
+        return _build_ai_advisor_brief_narrative_state(
+            source_context=source_context,
+            narrative_state=narrative_state,
+            ai_status=ai_status,
+            ai_payload=ai_payload,
         )
 
     async def _load_advisor_brief_runtime_context(
@@ -596,6 +482,191 @@ def _build_advisor_brief_ai_task_request(
         },
         "expected_output_label": _EXPECTED_OUTPUT_LABEL,
     }
+
+
+def _build_source_advisor_brief_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+) -> AdvisorBriefNarrativeState:
+    return AdvisorBriefNarrativeState(
+        status=source_context.status,
+        summary=source_context.summary,
+        talking_points=source_context.talking_points,
+        recommended_actions=source_context.recommended_actions,
+        risks_and_exceptions=source_context.risks_and_exceptions,
+        ai_audit=_normalize_ai_audit({}),
+        ai_evidence={"descriptors": []},
+    )
+
+
+def _build_ai_advisor_brief_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    ai_status: int,
+    ai_payload: dict[str, Any],
+) -> AdvisorBriefNarrativeState:
+    if ai_status != 200:
+        return _build_ai_http_unavailable_narrative_state(
+            source_context=source_context,
+            narrative_state=narrative_state,
+            ai_payload=ai_payload,
+        )
+
+    execution_payload = _safe_dict(ai_payload.get("execution"))
+    ai_audit = _normalize_ai_audit(_safe_dict(execution_payload.get("audit")))
+    ai_evidence = _safe_dict(execution_payload.get("evidence")) or {"descriptors": []}
+    if execution_payload.get("status") == "COMPLETED":
+        return _build_completed_ai_advisor_brief_narrative_state(
+            source_context=source_context,
+            narrative_state=narrative_state,
+            execution_payload=execution_payload,
+            ai_audit=ai_audit,
+            ai_evidence=ai_evidence,
+        )
+
+    return _build_ai_execution_unavailable_narrative_state(
+        source_context=source_context,
+        narrative_state=narrative_state,
+        execution_payload=execution_payload,
+        ai_audit=ai_audit,
+        ai_evidence=ai_evidence,
+    )
+
+
+def _build_completed_ai_advisor_brief_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    execution_payload: dict[str, Any],
+    ai_audit: dict[str, Any],
+    ai_evidence: dict[str, Any],
+) -> AdvisorBriefNarrativeState:
+    structured_output = _safe_dict(
+        _safe_dict(execution_payload.get("result")).get("structured_output")
+    )
+    route = _advisor_brief_workspace_route(source_context=source_context)
+    return replace(
+        narrative_state,
+        summary=_extract_ai_summary(
+            ai_payload=execution_payload,
+            structured_output=structured_output,
+        )
+        or narrative_state.summary,
+        talking_points=_extract_ai_talking_points(
+            structured_output=structured_output,
+            route=route,
+        )
+        or narrative_state.talking_points,
+        recommended_actions=_extract_ai_recommended_actions(
+            structured_output=structured_output,
+            route=route,
+        )
+        or narrative_state.recommended_actions,
+        risks_and_exceptions=_extract_ai_risks(
+            structured_output=structured_output,
+            route=route,
+        )
+        or narrative_state.risks_and_exceptions,
+        ai_audit=ai_audit,
+        ai_evidence=ai_evidence,
+    )
+
+
+def _build_ai_execution_unavailable_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    execution_payload: dict[str, Any],
+    ai_audit: dict[str, Any],
+    ai_evidence: dict[str, Any],
+) -> AdvisorBriefNarrativeState:
+    detail = _safe_execution_detail(execution_payload) or (
+        "Source-backed metrics remain available for manual review and client prep."
+    )
+    return _with_ai_unavailable_risk(
+        source_context=source_context,
+        narrative_state=narrative_state,
+        detail=detail,
+        ai_audit=ai_audit,
+        ai_evidence=ai_evidence,
+    )
+
+
+def _build_ai_http_unavailable_narrative_state(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    ai_payload: dict[str, Any],
+) -> AdvisorBriefNarrativeState:
+    ai_audit = _normalize_ai_audit(
+        {
+            "task_id": _TASK_ID,
+            "output_label": _EXPECTED_OUTPUT_LABEL,
+            "provider_mode": "unavailable",
+            "detail": _safe_error_detail(ai_payload),
+        }
+    )
+    return _with_ai_unavailable_risk(
+        source_context=source_context,
+        narrative_state=narrative_state,
+        detail="Source-backed metrics remain available for manual review and client prep.",
+        ai_audit=ai_audit,
+        ai_evidence={"descriptors": []},
+    )
+
+
+def _with_ai_unavailable_risk(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    narrative_state: AdvisorBriefNarrativeState,
+    detail: str,
+    ai_audit: dict[str, Any],
+    ai_evidence: dict[str, Any],
+) -> AdvisorBriefNarrativeState:
+    return replace(
+        narrative_state,
+        status=AdvisorBriefStatus.PARTIAL,
+        risks_and_exceptions=[
+            *narrative_state.risks_and_exceptions,
+            _build_ai_unavailable_risk(source_context=source_context, detail=detail),
+        ],
+        ai_audit=ai_audit,
+        ai_evidence=ai_evidence,
+    )
+
+
+def _build_ai_unavailable_risk(
+    *,
+    source_context: AdvisorBriefSourceContext,
+    detail: str,
+) -> AdvisorBriefNarrativeItem:
+    workspace = source_context.workspace
+    return AdvisorBriefNarrativeItem(
+        headline="AI narrative generation is unavailable.",
+        detail=detail,
+        tone=AdvisorBriefTone.WARNING,
+        evidence_refs=[
+            _summary_evidence_ref(
+                label="Advisor Brief",
+                value="Unavailable",
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            )
+        ],
+    )
+
+
+def _advisor_brief_workspace_route(*, source_context: AdvisorBriefSourceContext) -> str:
+    workspace = source_context.workspace
+    return _route_query(
+        portfolio_id=workspace.portfolio_id,
+        period=workspace.period,
+        basis=workspace.detail_basis,
+        benchmark_code=workspace.benchmark_code,
+    )
 
 
 def _normalize_ai_audit(audit: dict[str, Any]) -> dict[str, Any]:
