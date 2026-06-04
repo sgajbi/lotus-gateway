@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any
 
 from app.contracts.platform_capabilities import (
@@ -12,6 +13,81 @@ from app.contracts.platform_capabilities import (
 )
 
 SHELL_BOOTSTRAP_CONTRACT_VERSION = "shell-bootstrap.v1"
+
+
+@dataclass(frozen=True)
+class WorkspaceDescriptorSpec:
+    workspace_id: str
+    label: str
+    href: str
+    navigation_key: str
+    dependency_source: str
+    freshness_class: str
+    max_age_seconds: int
+    cache_mode: str
+    stale_read_tolerance: str
+    source_supportability_source: str | None = None
+
+
+WORKSPACE_DESCRIPTOR_SPECS = (
+    WorkspaceDescriptorSpec(
+        workspace_id="portfolio",
+        label="Portfolio",
+        href="/portfolio",
+        navigation_key="portfolio_workspace",
+        dependency_source="lotus_core",
+        freshness_class="shell_navigation",
+        max_age_seconds=60,
+        cache_mode="request_scoped_composition",
+        stale_read_tolerance="bounded_navigation_refresh",
+    ),
+    WorkspaceDescriptorSpec(
+        workspace_id="performance",
+        label="Performance",
+        href="/performance",
+        navigation_key="performance_workspace",
+        dependency_source="lotus_performance",
+        freshness_class="analytical_summary",
+        max_age_seconds=120,
+        cache_mode="short_lived_revalidation",
+        stale_read_tolerance="bounded_analytical_read",
+    ),
+    WorkspaceDescriptorSpec(
+        workspace_id="risk",
+        label="Risk",
+        href="/performance?mode=risk",
+        navigation_key="risk_workspace",
+        dependency_source="lotus_risk",
+        freshness_class="analytical_summary",
+        max_age_seconds=120,
+        cache_mode="short_lived_revalidation",
+        stale_read_tolerance="bounded_analytical_read",
+    ),
+    WorkspaceDescriptorSpec(
+        workspace_id="proposal",
+        label="Proposal",
+        href="/proposals",
+        navigation_key="proposal_workspace",
+        dependency_source="lotus_advise",
+        freshness_class="workflow_truth",
+        max_age_seconds=0,
+        cache_mode="authoritative_read",
+        stale_read_tolerance="none",
+        source_supportability_source="lotus_advise",
+    ),
+    WorkspaceDescriptorSpec(
+        workspace_id="advisory",
+        label="Advisory",
+        href="/recommendations",
+        navigation_key="advisory_workspace",
+        dependency_source="lotus_advise",
+        freshness_class="workflow_truth",
+        max_age_seconds=0,
+        cache_mode="authoritative_read",
+        stale_read_tolerance="none",
+        source_supportability_source="lotus_advise",
+    ),
+)
 
 
 def build_shell_bootstrap(
@@ -82,98 +158,55 @@ def workspace_descriptors(
     contract_version: str,
 ) -> list[PlatformShellWorkspaceDescriptor]:
     return [
-        build_workspace_descriptor(
-            workspace_id="portfolio",
-            label="Portfolio",
-            href="/portfolio",
-            enabled=navigation["portfolio_workspace"],
-            dependency_source="lotus_core",
-            source_supportability=None,
+        build_workspace_descriptor_from_spec(
+            spec=spec,
+            sources=sources,
+            navigation=navigation,
             module_health_by_source=module_health_by_source,
             policy_versions_by_source=policy_versions_by_source,
             error_services=error_services,
             evaluated_at=evaluated_at,
             contract_version=contract_version,
-            freshness_class="shell_navigation",
-            max_age_seconds=60,
-            cache_mode="request_scoped_composition",
-            stale_read_tolerance="bounded_navigation_refresh",
-        ),
-        build_workspace_descriptor(
-            workspace_id="performance",
-            label="Performance",
-            href="/performance",
-            enabled=navigation["performance_workspace"],
-            dependency_source="lotus_performance",
-            source_supportability=None,
-            module_health_by_source=module_health_by_source,
-            policy_versions_by_source=policy_versions_by_source,
-            error_services=error_services,
-            evaluated_at=evaluated_at,
-            contract_version=contract_version,
-            freshness_class="analytical_summary",
-            max_age_seconds=120,
-            cache_mode="short_lived_revalidation",
-            stale_read_tolerance="bounded_analytical_read",
-        ),
-        build_workspace_descriptor(
-            workspace_id="risk",
-            label="Risk",
-            href="/performance?mode=risk",
-            enabled=navigation["risk_workspace"],
-            dependency_source="lotus_risk",
-            source_supportability=None,
-            module_health_by_source=module_health_by_source,
-            policy_versions_by_source=policy_versions_by_source,
-            error_services=error_services,
-            evaluated_at=evaluated_at,
-            contract_version=contract_version,
-            freshness_class="analytical_summary",
-            max_age_seconds=120,
-            cache_mode="short_lived_revalidation",
-            stale_read_tolerance="bounded_analytical_read",
-        ),
-        build_workspace_descriptor(
-            workspace_id="proposal",
-            label="Proposal",
-            href="/proposals",
-            enabled=navigation["proposal_workspace"],
-            dependency_source="lotus_advise",
-            source_supportability=source_supportability(
-                sources=sources,
-                source_name="lotus_advise",
-            ),
-            module_health_by_source=module_health_by_source,
-            policy_versions_by_source=policy_versions_by_source,
-            error_services=error_services,
-            evaluated_at=evaluated_at,
-            contract_version=contract_version,
-            freshness_class="workflow_truth",
-            max_age_seconds=0,
-            cache_mode="authoritative_read",
-            stale_read_tolerance="none",
-        ),
-        build_workspace_descriptor(
-            workspace_id="advisory",
-            label="Advisory",
-            href="/recommendations",
-            enabled=navigation["advisory_workspace"],
-            dependency_source="lotus_advise",
-            source_supportability=source_supportability(
-                sources=sources,
-                source_name="lotus_advise",
-            ),
-            module_health_by_source=module_health_by_source,
-            policy_versions_by_source=policy_versions_by_source,
-            error_services=error_services,
-            evaluated_at=evaluated_at,
-            contract_version=contract_version,
-            freshness_class="workflow_truth",
-            max_age_seconds=0,
-            cache_mode="authoritative_read",
-            stale_read_tolerance="none",
-        ),
+        )
+        for spec in WORKSPACE_DESCRIPTOR_SPECS
     ]
+
+
+def build_workspace_descriptor_from_spec(
+    *,
+    spec: WorkspaceDescriptorSpec,
+    sources: dict[str, dict[str, Any]],
+    navigation: dict[str, bool],
+    module_health_by_source: dict[str, str],
+    policy_versions_by_source: dict[str, str],
+    error_services: list[str],
+    evaluated_at: str,
+    contract_version: str,
+) -> PlatformShellWorkspaceDescriptor:
+    return build_workspace_descriptor(
+        workspace_id=spec.workspace_id,
+        label=spec.label,
+        href=spec.href,
+        enabled=navigation[spec.navigation_key],
+        dependency_source=spec.dependency_source,
+        source_supportability=(
+            source_supportability(
+                sources=sources,
+                source_name=spec.source_supportability_source,
+            )
+            if spec.source_supportability_source is not None
+            else None
+        ),
+        module_health_by_source=module_health_by_source,
+        policy_versions_by_source=policy_versions_by_source,
+        error_services=error_services,
+        evaluated_at=evaluated_at,
+        contract_version=contract_version,
+        freshness_class=spec.freshness_class,
+        max_age_seconds=spec.max_age_seconds,
+        cache_mode=spec.cache_mode,
+        stale_read_tolerance=spec.stale_read_tolerance,
+    )
 
 
 def build_workspace_descriptor(
