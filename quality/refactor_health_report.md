@@ -21,8 +21,11 @@ a dedicated attribution module, reducing `risk_workspace_service.py` to 780 line
 request, cache, and correlation semantics in the workspace service. The risk summary response
 mapper and focused summary module tests have been extracted to a dedicated summary module,
 reducing `risk_workspace_service.py` to 540 lines while preserving request, cache, and correlation
-semantics in the workspace service. The remaining work is still substantial: large portfolio,
-performance workspace, contract, and client modules remain.
+semantics in the workspace service. Platform capability normalization has been extracted to
+`platform_capabilities_normalization.py`, reducing `platform_capabilities_service.py` to 330 lines
+while preserving upstream orchestration, timeout handling, correlation propagation, and
+partial-failure collection in the service. The remaining work is still substantial: large
+portfolio, performance workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -33,7 +36,7 @@ performance workspace, contract, and client modules remain.
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.75%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Platform capability normalization extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -44,7 +47,8 @@ performance workspace, contract, and client modules remain.
    and workflow-cue adapters.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
-3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
+3. Continue splitting platform capability normalization into smaller feature/workflow/bootstrap
+   helpers if future changes expand the extracted module.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.
 5. Split large contract modules only when contract ownership boundaries are clear and tests remain

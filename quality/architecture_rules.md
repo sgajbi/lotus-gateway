@@ -68,8 +68,13 @@ The risk summary response mapper, unavailable envelope, metric labelling, depend
 supportability, source-calculation supportability, and empty-result envelope have been extracted to
 `src/app/services/risk_workspace_summary.py`, reducing `risk_workspace_service.py` to 540 lines
 while keeping summary request orchestration, caching, and correlation handling in the workspace
-service. The current longest function is `_build_normalized_capabilities` in
-`src/app/services/platform_capabilities_service.py` at 195 lines.
+service. Platform capability normalization, shell-bootstrap construction, workspace descriptors,
+module-health classification, policy diagnostics, workflow flags, and input-mode normalization have
+been extracted to `src/app/services/platform_capabilities_normalization.py`, reducing
+`platform_capabilities_service.py` to 330 lines while keeping upstream orchestration, timeout
+handling, correlation propagation, and partial-failure collection in the service. The current
+longest function is `_build_workspace_control_capabilities` in
+`src/app/services/portfolio_service.py` at 191 lines.
 
 ## Progressive Enforcement
 
