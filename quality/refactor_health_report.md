@@ -15,8 +15,11 @@ extracted to a dedicated drawdown module, reducing `risk_workspace_service.py` t
 leaving request orchestration and cache semantics in the workspace service. The risk rolling
 response mapper, Sharpe fallback policy, and unavailable envelope have been extracted to a
 dedicated rolling module, reducing `risk_workspace_service.py` to 1,185 lines while preserving
-retry, request, and cache semantics in the workspace service. The remaining work is
-still substantial: large portfolio, risk workspace, contract, and client modules remain.
+retry, request, and cache semantics in the workspace service. The risk attribution response
+mapper, blocked/unavailable envelopes, and focused attribution module tests have been extracted to
+a dedicated attribution module, reducing `risk_workspace_service.py` to 780 lines while preserving
+request, cache, and correlation semantics in the workspace service. The remaining work is still
+substantial: large portfolio, performance workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -27,7 +30,7 @@ still substantial: large portfolio, risk workspace, contract, and client modules
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.65%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Multiple service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -37,8 +40,8 @@ still substantial: large portfolio, risk workspace, contract, and client modules
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
 2. Continue splitting `risk_workspace_service.py` by risk surface; the next risk workspace target
-   should be a bounded attribution module extraction after the shared unavailable-envelope,
-   drawdown-module, and rolling-module helpers.
+   should be a bounded summary response module extraction after the shared unavailable-envelope,
+   drawdown, rolling, and attribution helpers.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.

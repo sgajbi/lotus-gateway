@@ -37,9 +37,9 @@ The largest current modularity risks are:
 
 1. `src/app/services/portfolio_service.py` at 3,016 lines,
 2. `src/app/services/advisor_brief_service.py` at 1,392 lines,
-3. `src/app/services/risk_workspace_service.py` at 1,185 lines,
-4. `src/app/services/performance_workspace_service.py` at 1,152 lines,
-5. `src/app/services/dpm_command_center_service.py` at 1,032 lines.
+3. `src/app/services/performance_workspace_service.py` at 1,152 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,032 lines,
+5. `src/app/services/dpm_wave_service.py` at 981 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -60,6 +60,10 @@ surfaces. The drawdown response mapper and unavailable envelope have been extrac
 while keeping request orchestration and caching in the workspace service. The rolling response
 mapper, Sharpe fallback policy, window parsing, and unavailable envelope have been extracted to
 `src/app/services/risk_workspace_rolling.py`, reducing `risk_workspace_service.py` to 1,185 lines.
+The risk attribution response mapper, blocked/unavailable envelopes, period/set/contributor
+parsing, methodology metadata, and metric conversion have been extracted to
+`src/app/services/risk_workspace_attribution.py`, reducing `risk_workspace_service.py` to 780
+lines while keeping attribution request orchestration and cache semantics in the workspace service.
 The current longest
 function is `_build_normalized_capabilities` in
 `src/app/services/platform_capabilities_service.py` at 195 lines.
