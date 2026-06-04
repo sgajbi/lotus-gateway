@@ -113,6 +113,13 @@ class PortfolioWorkspaceComponents:
 
 
 @dataclass(frozen=True)
+class PortfolioWorkspaceAssemblyState:
+    portfolio_payload: dict[str, Any]
+    warnings: list[str]
+    partial_failures: list[PortfolioPartialFailure]
+
+
+@dataclass(frozen=True)
 class PortfolioTransactionsRequestContext:
     portfolio_id: str
     correlation_id: str
@@ -780,6 +787,20 @@ class PortfolioService:
         source_results: PortfolioWorkspaceSourceResults,
         analytics_results: PortfolioWorkspaceAnalyticsResults,
     ) -> PortfolioWorkspaceComponents:
+        assembly_state = self._portfolio_workspace_assembly_state(
+            source_results=source_results,
+        )
+        return self._assemble_portfolio_workspace_components(
+            source_results=source_results,
+            analytics_results=analytics_results,
+            assembly_state=assembly_state,
+        )
+
+    def _portfolio_workspace_assembly_state(
+        self,
+        *,
+        source_results: PortfolioWorkspaceSourceResults,
+    ) -> PortfolioWorkspaceAssemblyState:
         portfolio_payload = self._require_payload(
             result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
@@ -792,46 +813,57 @@ class PortfolioService:
             source_results.readiness_result,
             detail_prefix="lotus-core portfolio readiness rejected the request",
         )
-        warnings: list[str] = []
-        partial_failures: list[PortfolioPartialFailure] = []
+        return PortfolioWorkspaceAssemblyState(
+            portfolio_payload=portfolio_payload,
+            warnings=[],
+            partial_failures=[],
+        )
+
+    def _assemble_portfolio_workspace_components(
+        self,
+        *,
+        source_results: PortfolioWorkspaceSourceResults,
+        analytics_results: PortfolioWorkspaceAnalyticsResults,
+        assembly_state: PortfolioWorkspaceAssemblyState,
+    ) -> PortfolioWorkspaceComponents:
         summary = self._parse_summary(
             source_results.aum_result,
             source_results.cash_balance_result,
-            warnings,
-            partial_failures,
+            assembly_state.warnings,
+            assembly_state.partial_failures,
         )
         cashflow_outlook = self._parse_cashflow(
             source_results.cashflow_result,
-            warnings,
-            partial_failures,
+            assembly_state.warnings,
+            assembly_state.partial_failures,
         )
         performance = self._parse_workspace_performance(
             analytics_results.performance_result,
-            warnings,
-            partial_failures,
+            assembly_state.warnings,
+            assembly_state.partial_failures,
         )
         rebalance = self._parse_workspace_rebalance(
             analytics_results.rebalance_result,
             analytics_results.rebalance_supportability_result,
-            warnings,
-            partial_failures,
+            assembly_state.warnings,
+            assembly_state.partial_failures,
         )
         operations = self._parse_operations(
             source_results.support_result,
-            warnings,
-            partial_failures,
+            assembly_state.warnings,
+            assembly_state.partial_failures,
         )
 
         return PortfolioWorkspaceComponents(
-            portfolio=self._parse_portfolio_identity(portfolio_payload),
-            profile=self._parse_portfolio_profile(portfolio_payload),
+            portfolio=self._parse_portfolio_identity(assembly_state.portfolio_payload),
+            profile=self._parse_portfolio_profile(assembly_state.portfolio_payload),
             summary=summary,
             cashflow_outlook=cashflow_outlook,
             performance=performance,
             rebalance=rebalance,
             operations=operations,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            warnings=assembly_state.warnings,
+            partial_failures=assembly_state.partial_failures,
         )
 
     async def get_portfolio_readiness(
