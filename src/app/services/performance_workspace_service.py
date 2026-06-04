@@ -1219,33 +1219,13 @@ class PerformanceWorkspaceService:
         include_detail_blocks: bool,
         prefer_independent_detail_analytics: bool,
     ) -> WorkspaceSummaryViews:
-        async with server_timing_span("perf-summary"):
-            request_workspace_summary_detail_blocks = (
-                include_detail_blocks and not prefer_independent_detail_analytics
-            )
-            (
-                workspace_summary_period,
-                workspace_summary_report_start_date,
-            ) = resolve_workspace_summary_request(
-                period=context.effective_period,
-                report_start_date=context.report_start_date,
-            )
-            workspace_summary_result = await fetch_workspace_summary_result(
-                cache=self._upstream_cache,
-                analytics_client=self._analytics_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=context.report_end_date,
-                report_start_date=workspace_summary_report_start_date,
-                effective_period=workspace_summary_period,
-                chart_frequency=context.chart_frequency,
-                detail_basis=context.detail_basis,
-                benchmark_code=context.benchmark_code,
-                portfolio_currency=context.overview.portfolio.base_currency,
-                segment=context.segment,
-                include_detail_blocks=request_workspace_summary_detail_blocks,
-            )
-
+        workspace_summary_result = await self._fetch_workspace_summary_view_result(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        )
         parsed_workspace_summary = parse_workspace_summary_result(
             result=workspace_summary_result,
             requested_period=context.effective_period,
@@ -1269,6 +1249,40 @@ class PerformanceWorkspaceService:
             contribution_detail_result=detail_views.contribution_detail_result,
             attribution_detail_result=detail_views.attribution_detail_result,
         )
+
+    async def _fetch_workspace_summary_view_result(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> GatheredResult:
+        async with server_timing_span("perf-summary"):
+            workspace_summary_period, workspace_summary_report_start_date = (
+                resolve_workspace_summary_request(
+                    period=context.effective_period,
+                    report_start_date=context.report_start_date,
+                )
+            )
+            return await fetch_workspace_summary_result(
+                cache=self._upstream_cache,
+                analytics_client=self._analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=context.report_end_date,
+                report_start_date=workspace_summary_report_start_date,
+                effective_period=workspace_summary_period,
+                chart_frequency=context.chart_frequency,
+                detail_basis=context.detail_basis,
+                benchmark_code=context.benchmark_code,
+                portfolio_currency=context.overview.portfolio.base_currency,
+                segment=context.segment,
+                include_detail_blocks=(
+                    include_detail_blocks and not prefer_independent_detail_analytics
+                ),
+            )
 
     async def _build_workspace_detail_views(
         self,
