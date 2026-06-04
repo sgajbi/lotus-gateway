@@ -73,8 +73,8 @@ Most recent local evidence:
 
 1. `make check`: 942 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,145 coverage tests passed.
-4. Coverage: 92.65%.
+3. `make ci`: 1,149 coverage tests passed.
+4. Coverage: 92.72%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
