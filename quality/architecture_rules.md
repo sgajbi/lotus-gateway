@@ -107,8 +107,9 @@ portfolio workspace source/analytics assembly, portfolio insight-rule helpers, p
 workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling and
 attribution orchestration, shell workspace descriptor specs, transaction query contracts, DPM
 exception-summary workflow orchestration, advisor-brief source talking-point and review-action
-orchestration, and portfolio workflow-action assembly. The current longest function is
-`parse_performance_snapshot` in `src/app/services/workbench_performance_snapshot.py` at 88 lines.
+orchestration, portfolio workflow-action assembly, and Workbench performance snapshot parsing. The
+current longest function is `build_horizon_comparison_row` in
+`src/app/services/performance_workspace_horizon.py` at 87 lines.
 
 ## Progressive Enforcement
 

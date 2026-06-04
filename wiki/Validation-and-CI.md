@@ -65,4 +65,6 @@ and passed `make check` with 967 unit/contract tests. The latest focused batch s
 exception-summary workflow orchestration, advisor-brief source talking points, advisor-brief
 review actions, and portfolio workflow actions, lowering the repository longest-function baseline
 from 99 lines to 88 lines. `portfolio_service.py` is now 2,750 lines because empty-portfolio
-workflow actions are explicit governed data rather than inline control-flow literals.
+workflow actions are explicit governed data rather than inline control-flow literals. The
+Workbench performance snapshot parser split then lowered the repository longest-function baseline
+from 88 lines to 87 lines.
