@@ -21,14 +21,15 @@ Current generated OpenAPI baseline:
 1. 170 paths,
 2. 170 operations,
 3. 0 missing summaries,
-4. 3 missing descriptions,
+4. 0 missing descriptions,
 5. 0 missing generated operation IDs,
-6. 4 missing tags,
-7. 4 missing documented 4xx/5xx responses,
+6. 0 missing tags,
+7. 0 missing documented 4xx/5xx responses,
 8. 186 Spectral warnings and 0 Spectral errors in the first report-only smoke.
 
 `.spectral.yaml` captures report-only rules for operation ID, summary, description, tags, and
-standard error responses.
+standard error responses. A contract test now fails if any generated public operation is missing a
+description, tags, or a documented 4xx/5xx response.
 
 ## Error Governance
 

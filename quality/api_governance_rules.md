@@ -19,9 +19,10 @@ Every public operation should define:
 
 `.spectral.yaml` records these expectations as warning-level baseline checks. The current FastAPI
 OpenAPI export contains 170 paths and 170 operations. Current generated OpenAPI has no missing
-summaries or operation IDs, but it has baseline gaps for 3 descriptions, 4 tags, and 4 documented
-4xx/5xx responses. A Spectral smoke using `.spectral.yaml` plus the inherited `spectral:oas`
-rules reports 186 warnings and no errors; most warnings are missing global tag declarations.
+summaries, descriptions, operation IDs, tags, or documented 4xx/5xx responses. The
+operation-level checks are now pinned by a contract test. A Spectral smoke using `.spectral.yaml`
+plus the inherited `spectral:oas` rules reports 186 warnings and no errors; most warnings are
+missing global tag declarations.
 
 ## Error Model
 

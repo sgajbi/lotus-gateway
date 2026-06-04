@@ -102,7 +102,7 @@ client modules remain.
 | Total coverage | Healthy | 93.32%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `e1e7980` |
 | Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, rebalance supportability failure recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, shell bootstrap, shared analytics request polling, workspace-summary payload assembly, portfolio transaction-summary context, transaction page loading, and portfolio book response assembly extracted; several service files remain above 1,000 lines |
-| API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
+| API governance | Improving, incomplete | Operation-level OpenAPI description, tag, and error-response gaps are closed and contract-tested; Spectral/global tag warnings remain report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
 
@@ -124,8 +124,8 @@ client modules remain.
 6. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
 7. Normalize route-specific upstream errors toward shared problem-details mapping.
-8. Add explicit API governance tests for missing operation descriptions, tags, standard errors, and
-   deprecation posture.
+8. Extend API governance tests beyond operation completeness to cover deprecation posture and
+   explicit operation ID policy once those standards are approved.
 
 ## Quality-Gate Roadmap
 

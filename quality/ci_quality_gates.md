@@ -14,7 +14,7 @@ The current local and PR-grade blocking gates are:
 1. `ruff` lint and format checks,
 2. monetary-float governance,
 3. `mypy` over `src`,
-4. Workbench OpenAPI contract smoke,
+4. Workbench OpenAPI contract smoke and operation-governance contract checks,
 5. migration contract smoke,
 6. unit and contract tests,
 7. integration tests,
@@ -56,7 +56,8 @@ Most recent local PR-grade evidence:
 ## Next Tightening Candidates
 
 1. Keep the quality baseline workflow report-only while findings are classified.
-2. Add no-new-regression checks for OpenAPI missing descriptions, tags, and standard errors.
+2. Triage remaining Spectral/global tag warnings and decide whether explicit operation IDs should
+   replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Add no-new-file/function-above-baseline checks for refactor slices.
 5. Add static no-sensitive-observability checks for logs, metrics labels, and diagnostics fields.
