@@ -79,8 +79,10 @@ contract assembly and workspace descriptor state mapping have been further extra
 capability construction has been extracted to
 `src/app/services/portfolio_workspace_controls.py`, reducing `portfolio_service.py` to 2,839 lines
 and moving historical-snapshot and reporting-currency support matrices behind focused tests. The
-current longest function is `parse_horizon_comparison_result` in
-`src/app/services/performance_workspace_horizon.py` at 172 lines.
+performance horizon comparison parser has been split into diagnostic propagation, row-list
+selection, row construction, period-block extraction, and date-resolution helpers, reducing
+`parse_horizon_comparison_result` from 172 lines to 50 lines. The current longest function is
+`_parse_core_snapshot` in `src/app/services/foundation_service.py` at 153 lines.
 
 ## Progressive Enforcement
 

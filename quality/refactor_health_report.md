@@ -29,19 +29,22 @@ descriptor state mapping have been extracted to `platform_capabilities_shell.py`
 `platform_capabilities_normalization.py` to 355 lines while keeping shell navigation evidence
 separately testable. Portfolio workspace-control capability construction has been extracted to
 `portfolio_workspace_controls.py`, reducing `portfolio_service.py` to 2,839 lines and lowering the
-longest-function baseline to 172 lines. The remaining work is still substantial: large portfolio,
-performance workspace, contract, and client modules remain.
+longest-function baseline to 172 lines. The performance horizon comparison parser has now been
+split into diagnostic, row-selection, row-construction, period-block, and date-resolution helpers,
+reducing the parser itself from 172 lines to 50 lines and lowering the repository
+longest-function baseline to 153 lines. The remaining work is still substantial: large portfolio,
+performance workspace, foundation, contract, and client modules remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 957 tests passed in latest `make check` evidence |
+| Unit/contract coverage | Healthy | 958 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.75%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -54,8 +57,8 @@ performance workspace, contract, and client modules remain.
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization into smaller feature/workflow helpers if
    future changes expand the extracted module.
-4. Continue extracting performance workspace evidence and attribution helpers behind stable
-   response contracts.
+4. Continue extracting performance workspace service orchestration helpers behind stable response
+   contracts; horizon parsing is now below the current function-size baseline.
 5. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
 6. Normalize route-specific upstream errors toward shared problem-details mapping.
