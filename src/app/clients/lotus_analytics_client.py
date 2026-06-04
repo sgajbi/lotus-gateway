@@ -124,23 +124,53 @@ class LotusAnalyticsClient:
             service=service,
             operation=resolved_operation,
         )
-        if status_code == 202 and isinstance(response_payload, dict):
-            result_path = response_payload.get("result_path") or response_payload.get("resultPath")
-            if isinstance(result_path, str) and result_path:
-                return await self._poll_async_result(
-                    result_path=result_path,
-                    correlation_id=correlation_id,
-                    service=service,
-                    operation=resolved_operation,
-                    max_attempts=async_poll_attempts,
-                    poll_interval_seconds=async_poll_interval_seconds,
-                )
+        async_result = await self._poll_async_response_if_available(
+            status_code=status_code,
+            response_payload=response_payload,
+            correlation_id=correlation_id,
+            service=service,
+            operation=resolved_operation,
+            async_poll_attempts=async_poll_attempts,
+            async_poll_interval_seconds=async_poll_interval_seconds,
+        )
+        if async_result is not None:
+            return async_result
+        self._emit_analytics_read_audit(operation=resolved_operation, status_code=status_code)
+        return status_code, response_payload
+
+    async def _poll_async_response_if_available(
+        self,
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+        correlation_id: str,
+        service: str,
+        operation: str,
+        async_poll_attempts: int,
+        async_poll_interval_seconds: float,
+    ) -> tuple[int, dict[str, Any]] | None:
+        result_path = self._async_result_path(
+            status_code=status_code,
+            response_payload=response_payload,
+        )
+        if result_path is None:
+            return None
+        return await self._poll_async_result(
+            result_path=result_path,
+            correlation_id=correlation_id,
+            service=service,
+            operation=operation,
+            max_attempts=async_poll_attempts,
+            poll_interval_seconds=async_poll_interval_seconds,
+        )
+
+    @staticmethod
+    def _emit_analytics_read_audit(*, operation: str, status_code: int) -> None:
         emit_gateway_analytics_read_audit_log(
             logger=logger,
-            operation=resolved_operation,
+            operation=operation,
             status_code=status_code,
         )
-        return status_code, response_payload
 
     async def _post_observed_analytics_request(
         self,
@@ -212,6 +242,19 @@ class LotusAnalyticsClient:
         if not isinstance(detail, str):
             return False
         return "calculation_id already exists" in detail.lower()
+
+    @staticmethod
+    def _async_result_path(
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+    ) -> str | None:
+        if status_code != 202:
+            return None
+        result_path = response_payload.get("result_path") or response_payload.get("resultPath")
+        if not isinstance(result_path, str):
+            return None
+        return result_path or None
 
     async def get_capabilities(
         self,
