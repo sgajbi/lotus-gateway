@@ -91,8 +91,10 @@ helpers, reducing `_build_advisor_brief_narrative_state` from 144 lines to 30 li
 platform-capabilities orchestration has been split into task assembly, primary-source
 classification, policy-result extraction, optional-source merging, shared source-result mapping,
 and response construction helpers, reducing `get_platform_capabilities` from 143 lines to 32
-lines. The current longest function is `get_performance_attribution_trend` in
-`src/app/services/performance_workspace_service.py` at 135 lines.
+lines. The performance attribution trend orchestrator has been split into request-context,
+window-pair construction, attribution fan-out, and response assembly helpers, reducing
+`get_performance_attribution_trend` from 135 lines to 56 lines. The current longest function is
+`_build_evidence_view` in `src/app/services/performance_workspace_service.py` at 134 lines.
 
 ## Progressive Enforcement
 
