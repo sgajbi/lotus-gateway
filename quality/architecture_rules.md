@@ -81,8 +81,11 @@ capability construction has been extracted to
 and moving historical-snapshot and reporting-currency support matrices behind focused tests. The
 performance horizon comparison parser has been split into diagnostic propagation, row-list
 selection, row construction, period-block extraction, and date-resolution helpers, reducing
-`parse_horizon_comparison_result` from 172 lines to 50 lines. The current longest function is
-`_parse_core_snapshot` in `src/app/services/foundation_service.py` at 153 lines.
+`parse_horizon_comparison_result` from 172 lines to 50 lines. The foundation core snapshot parser
+has been split into validation, section extraction, totals,
+enrichment indexing, position projection, allocation finalization, and portfolio identity helpers,
+reducing `_parse_core_snapshot` from 153 lines to 38 lines. The current longest function is
+`_build_advisor_brief_narrative_state` in `src/app/services/advisor_brief_service.py` at 144 lines.
 
 ## Progressive Enforcement
 

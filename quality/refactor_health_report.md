@@ -32,8 +32,12 @@ separately testable. Portfolio workspace-control capability construction has bee
 longest-function baseline to 172 lines. The performance horizon comparison parser has now been
 split into diagnostic, row-selection, row-construction, period-block, and date-resolution helpers,
 reducing the parser itself from 172 lines to 50 lines and lowering the repository
-longest-function baseline to 153 lines. The remaining work is still substantial: large portfolio,
-performance workspace, foundation, contract, and client modules remain.
+longest-function baseline to 153 lines. The foundation core snapshot parser has now been split
+into validation, section extraction, totals, enrichment indexing, position projection, allocation
+finalization, and portfolio identity helpers, reducing `_parse_core_snapshot` from 153 lines to
+38 lines and lowering the repository longest-function baseline to 144 lines. The remaining work is
+still substantial: large portfolio, performance workspace, advisor-brief, contract, and client
+modules remain.
 
 ## Health Signals
 
@@ -44,7 +48,7 @@ performance workspace, foundation, contract, and client modules remain.
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.75%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -59,10 +63,12 @@ performance workspace, foundation, contract, and client modules remain.
    future changes expand the extracted module.
 4. Continue extracting performance workspace service orchestration helpers behind stable response
    contracts; horizon parsing is now below the current function-size baseline.
-5. Split large contract modules only when contract ownership boundaries are clear and tests remain
+5. Continue splitting advisor-brief narrative construction behind stable reviewed-narrative
+   contracts.
+6. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
-6. Normalize route-specific upstream errors toward shared problem-details mapping.
-7. Add explicit API governance tests for missing operation descriptions, tags, standard errors, and
+7. Normalize route-specific upstream errors toward shared problem-details mapping.
+8. Add explicit API governance tests for missing operation descriptions, tags, standard errors, and
    deprecation posture.
 
 ## Quality-Gate Roadmap
