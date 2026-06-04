@@ -1,14 +1,14 @@
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 from app.contracts.advisor_brief import AdvisorBriefResponse
 from app.middleware.correlation import correlation_id_var
 from app.observability.analytics_ui import emit_gateway_analytics_read_audit_log
 from app.routers.workbench_performance_advisor_brief_common import (
     AdvisorBriefQuery,
-    require_advisor_brief_caller_context,
+    build_advisor_brief_query,
+    require_advisor_brief_caller_context_dependency,
 )
 from app.services.workbench_service_provider import advisor_brief_service
 
@@ -48,42 +48,13 @@ async def _get_advisor_brief(
 async def _get_performance_advisor_brief(
     *,
     portfolio_id: str,
-    period: str,
-    chart_frequency: str,
-    contribution_dimension: str,
-    attribution_dimension: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
+    query: AdvisorBriefQuery,
+    _caller_context: dict[str, str],
 ) -> AdvisorBriefResponse:
-    require_advisor_brief_caller_context(
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
-    )
     try:
         response = await _get_advisor_brief(
             portfolio_id=portfolio_id,
-            query=AdvisorBriefQuery(
-                period=period,
-                chart_frequency=chart_frequency,
-                contribution_dimension=contribution_dimension,
-                attribution_dimension=attribution_dimension,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-            ),
+            query=query,
         )
     except HTTPException as exc:
         _emit_advisor_brief_read_audit(status_code=exc.status_code)
@@ -109,73 +80,11 @@ async def get_performance_advisor_brief(
         ),
         examples=["PF_1001"],
     ),
-    period: str = Query(
-        default="YTD",
-        description=(
-            "Requested advisor-brief horizon. Use canonical values such as YTD or EXPLICIT when "
-            "paired with report dates."
-        ),
-        examples=["YTD"],
-    ),
-    chart_frequency: str = Query(
-        default="monthly",
-        description="Requested workspace frequency context used to source the advisor brief.",
-        examples=["monthly"],
-    ),
-    contribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested contribution dimension used to source the advisor brief context.",
-        examples=["asset_class"],
-    ),
-    attribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested attribution dimension used to source the advisor brief context.",
-        examples=["asset_class"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Performance basis requested for the advisor brief analytics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description=(
-            "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
-            "when available."
-        ),
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit start date for an EXPLICIT advisor-brief window.",
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date for an EXPLICIT advisor-brief window.",
-        examples=["2026-04-04"],
-    ),
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
+    query: AdvisorBriefQuery = Depends(build_advisor_brief_query),
+    caller_context: dict[str, str] = Depends(require_advisor_brief_caller_context_dependency),
 ) -> AdvisorBriefResponse:
     return await _get_performance_advisor_brief(
         portfolio_id=portfolio_id,
-        period=period,
-        chart_frequency=chart_frequency,
-        contribution_dimension=contribution_dimension,
-        attribution_dimension=attribution_dimension,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+        query=query,
+        _caller_context=caller_context,
     )

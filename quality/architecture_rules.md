@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,744 lines,
-2. `src/app/services/advisor_brief_service.py` at 1,392 lines,
-3. `src/app/services/performance_workspace_service.py` at 1,152 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,032 lines,
-5. `src/app/services/dpm_wave_service.py` at 981 lines.
+1. `src/app/services/portfolio_service.py` at 2,795 lines,
+2. `src/app/services/performance_workspace_service.py` at 1,459 lines,
+3. `src/app/services/advisor_brief_service.py` at 1,397 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,095 lines,
+5. `src/app/services/dpm_wave_service.py` at 902 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -102,8 +102,22 @@ selection, and explicit response builders, reducing `_build_evidence_view` from 
 delegation over readiness status. Performance workspace capability-input derivation has been
 split into `PerformanceCapabilityInputs`, `build_performance_capability_inputs`, and
 `resolve_history_date_range`, reducing `build_workspace_capabilities` from 127 lines to 99 lines
-while keeping capability payload assembly in the original module. The current longest function is
-`get_portfolio_workspace` in `src/app/services/portfolio_service.py` at 119 lines.
+while keeping capability payload assembly in the original module. The current branch also splits
+portfolio workspace source/analytics assembly, portfolio insight-rule helpers, performance
+workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling and
+attribution orchestration, shell workspace descriptor specs, transaction query contracts, DPM
+exception-summary workflow orchestration, advisor-brief source talking-point and review-action
+orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon
+comparison row-field projection, performance workspace summary parsing, and performance
+evidence-view mapping, foundation workspace response assembly, PM operating quality summary
+orchestration, risk attribution supportability construction, attribution trend row parsing,
+portfolio position parsing, performance workspace request-context assembly, advisor-brief and
+portfolio performance route dependencies, risk drawdown orchestration, core snapshot summary
+parsing, portfolio workspace response-component assembly, risk attribution route query extraction,
+performance summary route dependency extraction, shell workspace descriptor-state extraction, and
+rebalance supportability failure-recording extraction. The current longest functions are
+`list_report_jobs`, `build_portfolio_performance_snapshot_query`, and `_post_analytics_request` at
+74 lines.
 
 ## Progressive Enforcement
 

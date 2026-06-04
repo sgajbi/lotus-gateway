@@ -78,6 +78,12 @@ class AdvisorBriefRuntimeContext:
     advisory_supportability: AdvisorBriefAdvisorySupportability | None
 
 
+@dataclass(frozen=True)
+class AdvisorBriefReviewActionContext:
+    brief: AdvisorBriefResponse
+    run_id: str
+
+
 class AdvisorBriefPerformanceWorkspaceService(Protocol):
     async def get_performance_workspace(
         self,
@@ -347,6 +353,49 @@ class AdvisorBriefService:
         explicit_start_date: str | None = None,
         explicit_end_date: str | None = None,
     ) -> AdvisorBriefResponse:
+        review_context = await self._load_advisor_brief_review_action_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            request=request,
+            explicit_start_date=explicit_start_date,
+            explicit_end_date=explicit_end_date,
+        )
+        await self._apply_advisor_brief_review_action(
+            run_id=review_context.run_id,
+            correlation_id=correlation_id,
+            request=request,
+        )
+        runtime_context = await self._load_advisor_brief_runtime_context(
+            correlation_id=correlation_id,
+            ai_audit=review_context.brief.ai_audit,
+        )
+        self.clear_cache()
+        return self._with_advisor_brief_runtime_context(
+            review_context.brief,
+            runtime_context,
+        )
+
+    async def _load_advisor_brief_review_action_context(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        period: str,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        detail_basis: str,
+        benchmark_code: str | None,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+        explicit_start_date: str | None,
+        explicit_end_date: str | None,
+    ) -> AdvisorBriefReviewActionContext:
         brief = await self.get_performance_advisor_brief(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -373,7 +422,15 @@ class AdvisorBriefService:
             run_id=run_id,
             action_type=request.action_type.value,
         )
+        return AdvisorBriefReviewActionContext(brief=brief, run_id=run_id)
 
+    async def _apply_advisor_brief_review_action(
+        self,
+        *,
+        run_id: str,
+        correlation_id: str,
+        request: AdvisorBriefWorkflowPackRunReviewActionRequest,
+    ) -> None:
         (
             review_status,
             review_payload,
@@ -394,31 +451,17 @@ class AdvisorBriefService:
                 detail=_safe_error_detail(review_payload),
             )
 
-        workflow_pack_run = await load_advisor_brief_workflow_pack_run(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=brief.ai_audit,
-            correlation_id=correlation_id,
-        )
-        workflow_pack_task_flow = await load_advisor_brief_workflow_pack_task_flow(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=brief.ai_audit,
-            correlation_id=correlation_id,
-        )
-        ai_surface_supportability = await load_ai_surface_supportability(
-            lotus_ai_client=self._lotus_ai_client,
-            correlation_id=correlation_id,
-        )
-        advisory_supportability = await load_advisory_supportability(
-            advise_client=self._advise_client,
-            correlation_id=correlation_id,
-        )
-        self.clear_cache()
+    def _with_advisor_brief_runtime_context(
+        self,
+        brief: AdvisorBriefResponse,
+        runtime_context: AdvisorBriefRuntimeContext,
+    ) -> AdvisorBriefResponse:
         return brief.model_copy(
             update={
-                "workflow_pack_run": workflow_pack_run,
-                "workflow_pack_task_flow": workflow_pack_task_flow,
-                "ai_surface_supportability": ai_surface_supportability,
-                "advisory_supportability": advisory_supportability,
+                "workflow_pack_run": runtime_context.workflow_pack_run,
+                "workflow_pack_task_flow": runtime_context.workflow_pack_task_flow,
+                "ai_surface_supportability": runtime_context.ai_surface_supportability,
+                "advisory_supportability": runtime_context.advisory_supportability,
             }
         )
 
@@ -980,92 +1023,124 @@ def _build_source_talking_points(
     selected_performance: PerformanceComparativeSummary,
 ) -> list[AdvisorBriefNarrativeItem]:
     points: list[AdvisorBriefNarrativeItem] = []
-    if (
-        selected_performance.portfolio_return_pct is not None
-        or selected_performance.benchmark_return_pct is not None
-        or selected_performance.active_return_pct is not None
-    ):
-        points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
-                    f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
-                ),
-                detail=(
-                    f"Active return is {_format_pct(selected_performance.active_return_pct)} "
-                    f"for the selected {workspace.period} period."
-                ),
-                tone=(
-                    AdvisorBriefTone.POSITIVE
-                    if (selected_performance.active_return_pct or 0) >= 0
-                    else AdvisorBriefTone.WARNING
-                ),
-                evidence_refs=[
-                    _summary_evidence_ref(
-                        label="Active Return",
-                        value=_format_pct(selected_performance.active_return_pct),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
-            )
-        )
+    return_talking_point = _build_return_talking_point(
+        workspace=workspace,
+        selected_performance=selected_performance,
+    )
+    if return_talking_point is not None:
+        points.append(return_talking_point)
 
-    top_position = _positive_position_contributors(contribution=workspace.contribution)[:1]
-    if top_position:
+    top_position = _first_positive_position_contributor(workspace.contribution)
+    if top_position is not None:
         points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Top contributor is {_normalize_position_label(top_position[0].position_id)}."
-                ),
-                detail=(
-                    f"{_normalize_position_label(top_position[0].position_id)} contributed "
-                    f"{_format_pct(top_position[0].contribution_pct)} with return "
-                    f"{_format_pct(top_position[0].total_return_pct)}."
-                ),
+            _build_position_talking_point(
+                position=top_position,
+                workspace=workspace,
+                headline_prefix="Top contributor",
+                label="Top Contributor",
                 tone=AdvisorBriefTone.POSITIVE,
-                evidence_refs=[
-                    _analysis_evidence_ref(
-                        label="Top Contributor",
-                        value=_normalize_position_label(top_position[0].position_id),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
             )
         )
 
-    bottom_position = _negative_position_contributors(contribution=workspace.contribution)[:1]
-    if bottom_position:
+    bottom_position = _first_negative_position_contributor(workspace.contribution)
+    if bottom_position is not None:
         points.append(
-            AdvisorBriefNarrativeItem(
-                headline=(
-                    f"Top detractor is {_normalize_position_label(bottom_position[0].position_id)}."
-                ),
-                detail=(
-                    f"{_normalize_position_label(bottom_position[0].position_id)} contributed "
-                    f"{_format_pct(bottom_position[0].contribution_pct)} with return "
-                    f"{_format_pct(bottom_position[0].total_return_pct)}."
-                ),
+            _build_position_talking_point(
+                position=bottom_position,
+                workspace=workspace,
+                headline_prefix="Top detractor",
+                label="Top Detractor",
                 tone=AdvisorBriefTone.WARNING,
-                evidence_refs=[
-                    _analysis_evidence_ref(
-                        label="Top Detractor",
-                        value=_normalize_position_label(bottom_position[0].position_id),
-                        portfolio_id=workspace.portfolio_id,
-                        period=workspace.period,
-                        basis=workspace.detail_basis,
-                        benchmark_code=workspace.benchmark_code,
-                    )
-                ],
             )
         )
 
     return points
+
+
+def _build_return_talking_point(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+) -> AdvisorBriefNarrativeItem | None:
+    if (
+        selected_performance.portfolio_return_pct is None
+        and selected_performance.benchmark_return_pct is None
+        and selected_performance.active_return_pct is None
+    ):
+        return None
+
+    return AdvisorBriefNarrativeItem(
+        headline=(
+            f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
+            f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
+        ),
+        detail=(
+            f"Active return is {_format_pct(selected_performance.active_return_pct)} "
+            f"for the selected {workspace.period} period."
+        ),
+        tone=(
+            AdvisorBriefTone.POSITIVE
+            if (selected_performance.active_return_pct or 0) >= 0
+            else AdvisorBriefTone.WARNING
+        ),
+        evidence_refs=[
+            _summary_evidence_ref(
+                label="Active Return",
+                value=_format_pct(selected_performance.active_return_pct),
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            )
+        ],
+    )
+
+
+def _first_positive_position_contributor(
+    contribution: ContributionSummaryView | None,
+) -> ContributionPositionView | None:
+    if contribution is None:
+        return None
+    contributors = _positive_position_contributors(contribution=contribution)
+    return contributors[0] if contributors else None
+
+
+def _first_negative_position_contributor(
+    contribution: ContributionSummaryView | None,
+) -> ContributionPositionView | None:
+    if contribution is None:
+        return None
+    contributors = _negative_position_contributors(contribution=contribution)
+    return contributors[0] if contributors else None
+
+
+def _build_position_talking_point(
+    *,
+    position: ContributionPositionView,
+    workspace: PerformanceWorkspaceResponse,
+    headline_prefix: str,
+    label: str,
+    tone: AdvisorBriefTone,
+) -> AdvisorBriefNarrativeItem:
+    position_label = _normalize_position_label(position.position_id)
+    return AdvisorBriefNarrativeItem(
+        headline=f"{headline_prefix} is {position_label}.",
+        detail=(
+            f"{position_label} contributed {_format_pct(position.contribution_pct)} "
+            f"with return {_format_pct(position.total_return_pct)}."
+        ),
+        tone=tone,
+        evidence_refs=[
+            _analysis_evidence_ref(
+                label=label,
+                value=position_label,
+                portfolio_id=workspace.portfolio_id,
+                period=workspace.period,
+                basis=workspace.detail_basis,
+                benchmark_code=workspace.benchmark_code,
+            )
+        ],
+    )
 
 
 def _build_recommended_actions(

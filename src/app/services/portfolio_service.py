@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -62,11 +63,97 @@ from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
 )
+from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
     PortfolioPerformanceClient,
+)
+
+UpstreamResult = tuple[int, dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceSourceResults:
+    portfolio_result: UpstreamResult
+    aum_result: UpstreamResult
+    support_result: UpstreamResult
+    cashflow_result: UpstreamResult
+    cash_balance_result: UpstreamResult
+    readiness_result: UpstreamResult
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceAnalyticsResults:
+    performance_result: UpstreamResult | None
+    rebalance_result: UpstreamResult | None
+    rebalance_supportability_result: UpstreamResult | None
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceComponents:
+    portfolio: PortfolioIdentity
+    profile: PortfolioProfile
+    summary: PortfolioSummary
+    cashflow_outlook: PortfolioCashflowOutlook | None
+    performance: PortfolioPerformanceSummary | None
+    rebalance: PortfolioRebalanceSummary | None
+    operations: PortfolioOperationalReadiness | None
+    warnings: list[str]
+    partial_failures: list[PortfolioPartialFailure]
+
+
+@dataclass(frozen=True)
+class PortfolioWorkflowActionSpec:
+    title: str
+    impact: str
+    target: str
+    href: str
+    cta_label: str
+    recommended: bool = False
+
+
+EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS: tuple[PortfolioWorkflowActionSpec, ...] = (
+    PortfolioWorkflowActionSpec(
+        title="Fund portfolio",
+        impact=(
+            "Create opening liquidity so balances, allocation, and readiness checks become "
+            "meaningful."
+        ),
+        target="Target: cash funding and opening balance setup",
+        href="operations",
+        cta_label="Fund now",
+        recommended=True,
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Book first trade",
+        impact="Activate the holdings book and create the first investable position.",
+        target="Target: transaction entry and execution workflow",
+        href="operations",
+        cta_label="Book trade",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Publish pricing",
+        impact="Enable valuation, allocation, and downstream reporting coverage.",
+        target="Target: pricing publication and valuation refresh",
+        href="operations",
+        cta_label="Publish prices",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Review holdings",
+        impact="Confirm the funded book, position weights, and coverage after valuation.",
+        target="Target: holdings and allocation review",
+        href="#portfolio-insights",
+        cta_label="Open holdings",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Open performance",
+        impact="Review return analytics once holdings are funded and valued.",
+        target="Target: performance workspace after valuation is available",
+        href="performance",
+        cta_label="Open performance",
+    ),
 )
 
 
@@ -461,6 +548,39 @@ class PortfolioService:
         reporting_currency: str | None = None,
     ) -> PortfolioWorkspaceResponse:
         effective_as_of_date = as_of_date or datetime.now(UTC).date().isoformat()
+        source_results = await self._load_portfolio_workspace_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        resolved_as_of_date = (
+            self._extract_resolved_as_of_date(source_results.aum_result) or effective_as_of_date
+        )
+        performance_as_of_date = as_of_date or resolved_as_of_date
+        analytics_results = await self._load_portfolio_workspace_analytics(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            performance_as_of_date=performance_as_of_date,
+        )
+        return self._build_portfolio_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            resolved_as_of_date=resolved_as_of_date,
+            reporting_currency=reporting_currency,
+            source_results=source_results,
+            analytics_results=analytics_results,
+        )
+
+    async def _load_portfolio_workspace_sources(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        reporting_currency: str | None,
+    ) -> PortfolioWorkspaceSourceResults:
         (
             portfolio_result,
             aum_result,
@@ -499,8 +619,22 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
-        resolved_as_of_date = self._extract_resolved_as_of_date(aum_result) or effective_as_of_date
-        performance_as_of_date = as_of_date or resolved_as_of_date
+        return PortfolioWorkspaceSourceResults(
+            portfolio_result=portfolio_result,
+            aum_result=aum_result,
+            support_result=support_result,
+            cashflow_result=cashflow_result,
+            cash_balance_result=cash_balance_result,
+            readiness_result=readiness_result,
+        )
+
+    async def _load_portfolio_workspace_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        performance_as_of_date: str,
+    ) -> PortfolioWorkspaceAnalyticsResults:
         (
             performance_result,
             rebalance_result,
@@ -519,36 +653,43 @@ class PortfolioService:
                 correlation_id=correlation_id,
             ),
         )
-        portfolio_payload = self._require_payload(
-            result=portfolio_result,
-            unavailable_detail_prefix="lotus-core portfolio unavailable",
+        return PortfolioWorkspaceAnalyticsResults(
+            performance_result=performance_result,
+            rebalance_result=rebalance_result,
+            rebalance_supportability_result=rebalance_supportability_result,
         )
-        self._raise_on_upstream_client_error(
-            support_result,
-            detail_prefix="lotus-core support overview rejected the request",
+
+    def _build_portfolio_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        resolved_as_of_date: str,
+        reporting_currency: str | None,
+        source_results: PortfolioWorkspaceSourceResults,
+        analytics_results: PortfolioWorkspaceAnalyticsResults,
+    ) -> PortfolioWorkspaceResponse:
+        components = self._build_portfolio_workspace_components(
+            source_results=source_results,
+            analytics_results=analytics_results,
         )
-        self._raise_on_upstream_client_error(
-            readiness_result,
-            detail_prefix="lotus-core portfolio readiness rejected the request",
+
+        portfolio = components.portfolio
+        profile = components.profile
+        summary = components.summary
+        warnings = components.warnings
+        partial_failures = components.partial_failures
+
+        reporting = self._reporting_readiness(summary, source_results.readiness_result)
+        control_capabilities = self._build_workspace_control_capabilities(
+            portfolio=portfolio,
+            profile=profile,
+            requested_as_of_date=effective_as_of_date,
+            effective_as_of_date=resolved_as_of_date,
+            requested_reporting_currency=reporting_currency,
         )
-        portfolio = self._parse_portfolio_identity(portfolio_payload)
-        profile = self._parse_portfolio_profile(portfolio_payload)
-        warnings: list[str] = []
-        partial_failures: list[PortfolioPartialFailure] = []
-        summary = self._parse_summary(aum_result, cash_balance_result, warnings, partial_failures)
-        cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
-        performance = self._parse_workspace_performance(
-            performance_result,
-            warnings,
-            partial_failures,
-        )
-        rebalance = self._parse_workspace_rebalance(
-            rebalance_result,
-            rebalance_supportability_result,
-            warnings,
-            partial_failures,
-        )
-        operations = self._parse_operations(support_result, warnings, partial_failures)
+
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -556,19 +697,73 @@ class PortfolioService:
             portfolio=portfolio,
             profile=profile,
             summary=summary,
+            cashflow_outlook=components.cashflow_outlook,
+            performance=components.performance,
+            rebalance=components.rebalance,
+            reporting=reporting,
+            operations=components.operations,
+            control_capabilities=control_capabilities,
+            workflow_cues=self._build_workflow_cues(portfolio_id),
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    def _build_portfolio_workspace_components(
+        self,
+        *,
+        source_results: PortfolioWorkspaceSourceResults,
+        analytics_results: PortfolioWorkspaceAnalyticsResults,
+    ) -> PortfolioWorkspaceComponents:
+        portfolio_payload = self._require_payload(
+            result=source_results.portfolio_result,
+            unavailable_detail_prefix="lotus-core portfolio unavailable",
+        )
+        self._raise_on_upstream_client_error(
+            source_results.support_result,
+            detail_prefix="lotus-core support overview rejected the request",
+        )
+        self._raise_on_upstream_client_error(
+            source_results.readiness_result,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
+        )
+        warnings: list[str] = []
+        partial_failures: list[PortfolioPartialFailure] = []
+        summary = self._parse_summary(
+            source_results.aum_result,
+            source_results.cash_balance_result,
+            warnings,
+            partial_failures,
+        )
+        cashflow_outlook = self._parse_cashflow(
+            source_results.cashflow_result,
+            warnings,
+            partial_failures,
+        )
+        performance = self._parse_workspace_performance(
+            analytics_results.performance_result,
+            warnings,
+            partial_failures,
+        )
+        rebalance = self._parse_workspace_rebalance(
+            analytics_results.rebalance_result,
+            analytics_results.rebalance_supportability_result,
+            warnings,
+            partial_failures,
+        )
+        operations = self._parse_operations(
+            source_results.support_result,
+            warnings,
+            partial_failures,
+        )
+
+        return PortfolioWorkspaceComponents(
+            portfolio=self._parse_portfolio_identity(portfolio_payload),
+            profile=self._parse_portfolio_profile(portfolio_payload),
+            summary=summary,
             cashflow_outlook=cashflow_outlook,
             performance=performance,
             rebalance=rebalance,
-            reporting=self._reporting_readiness(summary, readiness_result),
             operations=operations,
-            control_capabilities=self._build_workspace_control_capabilities(
-                portfolio=portfolio,
-                profile=profile,
-                requested_as_of_date=effective_as_of_date,
-                effective_as_of_date=resolved_as_of_date,
-                requested_reporting_currency=reporting_currency,
-            ),
-            workflow_cues=self._build_workflow_cues(portfolio_id),
             warnings=warnings,
             partial_failures=partial_failures,
         )
@@ -1511,85 +1706,86 @@ class PortfolioService:
 
     def _parse_positions(self, payload: dict[str, Any]) -> list[PortfolioPositionView]:
         return [
-            PortfolioPositionView(
-                security_id=str(item.get("security_id", "")),
-                instrument_name=str(item.get("instrument_name", "")),
-                asset_class=self._optional_str(item.get("asset_class")),
-                isin=self._optional_str(item.get("isin")),
-                currency=self._optional_str(item.get("currency")),
-                sector=self._optional_str(item.get("sector")),
-                country_of_risk=self._optional_str(item.get("country_of_risk")),
-                held_since_date=str(item.get("held_since_date"))
-                if item.get("held_since_date")
-                else None,
-                quantity=float(quantize_quantity(item.get("quantity", 0))),
-                market_price=float(quantize_price(item.get("valuation", {}).get("market_price", 0)))
-                if item.get("valuation", {}).get("market_price") is not None
-                else None,
-                cost_basis_base=float(quantize_money(item.get("cost_basis", 0)))
-                if item.get("cost_basis") is not None
-                else None,
-                cost_basis_local=float(quantize_money(item.get("cost_basis_local", 0)))
-                if item.get("cost_basis_local") is not None
-                else None,
-                market_value_base=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "market_value_base", fallback_key="market_value"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "market_value_base", fallback_key="market_value"
-                )
-                is not None
-                else None,
-                market_value_local=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "market_value_local", fallback_key="market_value"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "market_value_local", fallback_key="market_value"
-                )
-                is not None
-                else None,
-                unrealized_gain_loss_base=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "unrealized_gain_loss_base", fallback_key="unrealized_gain_loss"
-                )
-                is not None
-                else None,
-                unrealized_gain_loss_local=float(
-                    quantize_money(
-                        self._position_valuation_value(
-                            item,
-                            "unrealized_gain_loss_local",
-                            fallback_key="unrealized_gain_loss",
-                        )
-                    )
-                )
-                if self._position_valuation_value(
-                    item, "unrealized_gain_loss_local", fallback_key="unrealized_gain_loss"
-                )
-                is not None
-                else None,
-                weight_pct=float(quantize_performance(float(item.get("weight", 0)) * 100))
-                if item.get("weight") is not None
-                else None,
-                reprocessing_status=self._optional_str(item.get("reprocessing_status")),
-            )
+            self._parse_position(item)
             for item in payload.get("positions", [])
             if isinstance(item, dict)
         ]
+
+    def _parse_position(self, item: dict[str, Any]) -> PortfolioPositionView:
+        return PortfolioPositionView(
+            security_id=str(item.get("security_id", "")),
+            instrument_name=str(item.get("instrument_name", "")),
+            asset_class=self._optional_str(item.get("asset_class")),
+            isin=self._optional_str(item.get("isin")),
+            currency=self._optional_str(item.get("currency")),
+            sector=self._optional_str(item.get("sector")),
+            country_of_risk=self._optional_str(item.get("country_of_risk")),
+            held_since_date=(
+                str(item.get("held_since_date")) if item.get("held_since_date") else None
+            ),
+            quantity=float(quantize_quantity(item.get("quantity", 0))),
+            market_price=self._position_quote(item),
+            cost_basis_base=self._position_decimal_number(item.get("cost_basis")),
+            cost_basis_local=self._position_decimal_number(item.get("cost_basis_local")),
+            market_value_base=self._position_valuation_money(
+                item,
+                "market_value_base",
+                fallback_key="market_value",
+            ),
+            market_value_local=self._position_valuation_money(
+                item,
+                "market_value_local",
+                fallback_key="market_value",
+            ),
+            unrealized_gain_loss_base=self._position_valuation_money(
+                item,
+                "unrealized_gain_loss_base",
+                fallback_key="unrealized_gain_loss",
+            ),
+            unrealized_gain_loss_local=self._position_valuation_money(
+                item,
+                "unrealized_gain_loss_local",
+                fallback_key="unrealized_gain_loss",
+            ),
+            weight_pct=self._position_pct(item),
+            reprocessing_status=self._optional_str(item.get("reprocessing_status")),
+        )
+
+    def _position_quote(self, item: dict[str, Any]):
+        valuation = item.get("valuation", {})
+        if not isinstance(valuation, dict):
+            return None
+        raw_quote = valuation.get("market_price")
+        if raw_quote is None:
+            return None
+        quantized = quantize_price(raw_quote)
+        converted = float(quantized)
+        return converted
+
+    def _position_decimal_number(self, raw: Any):
+        if raw is None:
+            return None
+        quantized = quantize_money(raw)
+        converted = float(quantized)
+        return converted
+
+    def _position_valuation_money(
+        self,
+        item: dict[str, Any],
+        primary_key: str,
+        fallback_key: str | None = None,
+    ):
+        value = self._position_valuation_value(item, primary_key, fallback_key=fallback_key)
+        return self._position_decimal_number(value)
+
+    def _position_pct(self, item: dict[str, Any]):
+        raw = item.get("weight")
+        if raw is None:
+            return None
+        raw_number = float(raw or 0)
+        quantized = quantize_performance(raw_number * 100)
+        converted = float(quantized)
+        return converted
 
     def _parse_allocation_views(self, payload: dict[str, Any]) -> list[PortfolioAllocationView]:
         return [
@@ -2188,146 +2384,21 @@ class PortfolioService:
         allocation_views: list[PortfolioAllocationView],
         activity_summary: PortfolioActivitySummaryResponse,
     ) -> list[PortfolioInsight]:
-        insights: list[PortfolioInsight] = []
-        pricing_status = self._pricing_readiness_status(
-            positions=positions,
-            allocation_views=allocation_views,
-        )
-        reporting_status = self._reporting_status_label(
-            workspace.reporting.status,
-            workspace.reporting.row_count,
-        )
-        max_position_weight = self._max_position_weight(
+        return build_portfolio_insights(
+            portfolio_id=workspace.portfolio.portfolio_id,
+            summary=workspace.summary,
             positions=positions,
             top_positions=top_positions,
-        )
-        requested_window_activity = self._requested_window_activity_amount(activity_summary)
-
-        if not positions:
-            insights.append(
-                PortfolioInsight(
-                    key="no-holdings-booked",
-                    title="No holdings booked",
-                    detail=(
-                        "Book the first position to activate holdings, allocation, "
-                        "and valuation views."
-                    ),
-                    severity="critical",
-                    href="#portfolio-drilldown",
-                )
-            )
-
-        if not self._has_cash_funding_evidence(
-            summary=workspace.summary,
             activity_summary=activity_summary,
-        ):
-            insights.append(
-                PortfolioInsight(
-                    key="no-cash-funding",
-                    title="No cash funding recorded",
-                    detail=(
-                        "Add opening cash or a subscription so the portfolio can "
-                        "be funded and invested."
-                    ),
-                    severity="critical",
-                    href="#portfolio-insights",
-                )
-            )
-
-        if pricing_status != "Ready":
-            insights.append(
-                PortfolioInsight(
-                    key="pricing-not-published",
-                    title="Pricing not yet published",
-                    detail="Publish prices to complete valuation and unlock reliable reporting.",
-                    severity="warning",
-                    href="#portfolio-attention",
-                )
-            )
-
-        if reporting_status != "Ready":
-            insights.append(
-                PortfolioInsight(
-                    key="reporting-unavailable",
-                    title="Reporting cannot be generated yet",
-                    detail=(
-                        "Reporting remains blocked until book coverage and valuation are complete."
-                    ),
-                    severity="warning",
-                    href="#portfolio-health",
-                )
-            )
-
-        if max_position_weight >= 20:
-            insights.append(
-                PortfolioInsight(
-                    key="equity-concentration-high",
-                    title="Large position dominates portfolio risk",
-                    detail=(
-                        "One holding has become large enough to dominate current "
-                        "portfolio concentration. Open Risk to review concentration pressure."
-                    ),
-                    severity="warning",
-                    href=f"/risk?portfolioId={workspace.portfolio.portfolio_id}",
-                )
-            )
-
-        if (workspace.summary.cash_weight_pct or 0) >= 15:
-            insights.append(
-                PortfolioInsight(
-                    key="cash-above-target",
-                    title="Cash exceeds target allocation",
-                    detail="Available cash is elevated relative to invested assets.",
-                    severity="info",
-                    href="#portfolio-insights",
-                )
-            )
-
-        if requested_window_activity < 0:
-            insights.append(
-                PortfolioInsight(
-                    key="net-outflows-window",
-                    title="Net outflows in last 30 days",
-                    detail="Recent activity is net negative over the selected reporting window.",
-                    severity="warning",
-                    href="#portfolio-changes",
-                )
-            )
-
-        return insights
-
-    def _max_position_weight(
-        self,
-        *,
-        positions: list[PortfolioPositionView],
-        top_positions: list[PortfolioTopPosition],
-    ) -> float:
-        weighted_positions = [
-            *(position.weight_pct or 0 for position in top_positions),
-            *(position.weight_pct or 0 for position in positions),
-        ]
-        return max(weighted_positions, default=0)
-
-    def _has_cash_funding_evidence(
-        self,
-        *,
-        summary: PortfolioSummary,
-        activity_summary: PortfolioActivitySummaryResponse,
-    ) -> bool:
-        if summary.cash_balance_count > 0:
-            return True
-        if summary.cash_market_value_base > 0:
-            return True
-
-        inflow_bucket = next(
-            (bucket for bucket in activity_summary.buckets if bucket.bucket.upper() == "INFLOWS"),
-            None,
+            pricing_status=self._pricing_readiness_status(
+                positions=positions,
+                allocation_views=allocation_views,
+            ),
+            reporting_status=self._reporting_status_label(
+                workspace.reporting.status,
+                workspace.reporting.row_count,
+            ),
         )
-        if inflow_bucket is None:
-            return False
-        if inflow_bucket.requested_window.transaction_count > 0:
-            return True
-        return inflow_bucket.requested_window.reporting_currency_amount > 0
 
     def _build_workflow_actions(
         self,
@@ -2338,85 +2409,82 @@ class PortfolioService:
         workflow_cues: list[PortfolioWorkflowLaunchCue],
         transaction_total: int,
     ) -> list[PortfolioWorkflowAction]:
-        portfolio_operations_href = f"/workbench?portfolioId={portfolio_id}"
-        is_empty_portfolio = (
-            summary.position_count == 0
-            and summary.cash_balance_count == 0
-            and transaction_total == 0
-        )
+        if self._is_empty_portfolio_workflow(summary, transaction_total):
+            return self._build_empty_portfolio_workflow_actions(portfolio_id)
+        return self._build_supported_cue_workflow_actions(workflow_cues)
 
-        if is_empty_portfolio:
-            return [
-                PortfolioWorkflowAction(
-                    sequence=1,
-                    title="Fund portfolio",
-                    impact=(
-                        "Create opening liquidity so balances, allocation, and readiness "
-                        "checks become meaningful."
-                    ),
-                    target="Target: cash funding and opening balance setup",
-                    href=portfolio_operations_href,
-                    cta_label="Fund now",
-                    recommended=True,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=2,
-                    title="Book first trade",
-                    impact="Activate the holdings book and create the first investable position.",
-                    target="Target: transaction entry and execution workflow",
-                    href=portfolio_operations_href,
-                    cta_label="Book trade",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=3,
-                    title="Publish pricing",
-                    impact="Enable valuation, allocation, and downstream reporting coverage.",
-                    target="Target: pricing publication and valuation refresh",
-                    href=portfolio_operations_href,
-                    cta_label="Publish prices",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=4,
-                    title="Review holdings",
-                    impact=(
-                        "Confirm the funded book, position weights, and coverage after valuation."
-                    ),
-                    target="Target: holdings and allocation review",
-                    href="#portfolio-insights",
-                    cta_label="Open holdings",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=5,
-                    title="Open performance",
-                    impact="Review return analytics once holdings are funded and valued.",
-                    target="Target: performance workspace after valuation is available",
-                    href=f"/performance?portfolioId={portfolio_id}",
-                    cta_label="Open performance",
-                    recommended=False,
-                ),
-            ]
+    def _build_empty_portfolio_workflow_actions(
+        self,
+        portfolio_id: str,
+    ) -> list[PortfolioWorkflowAction]:
+        return [
+            PortfolioWorkflowAction(
+                sequence=index + 1,
+                title=spec.title,
+                impact=spec.impact,
+                target=spec.target,
+                href=self._workflow_action_spec_href(spec, portfolio_id),
+                cta_label=spec.cta_label,
+                recommended=spec.recommended,
+            )
+            for index, spec in enumerate(EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS)
+        ]
 
+    def _build_supported_cue_workflow_actions(
+        self,
+        workflow_cues: list[PortfolioWorkflowLaunchCue],
+    ) -> list[PortfolioWorkflowAction]:
         ordered_cues = sorted(
             self._supported_workflow_cues(self._dedupe_workflow_cues(workflow_cues)),
             key=lambda cue: self._workflow_order_rank(cue.key),
         )
         return [
-            PortfolioWorkflowAction(
+            self._build_supported_cue_workflow_action(
+                cue=cue,
                 sequence=index + 1,
-                title=self._workflow_task_label(cue.key),
-                impact=self._workflow_impact_label(cue.key),
-                target=(
-                    f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio"
-                ),
-                href=cue.href,
-                cta_label=self._workflow_cta_label(cue.key),
                 recommended=index == 0,
             )
             for index, cue in enumerate(ordered_cues)
         ]
+
+    def _build_supported_cue_workflow_action(
+        self,
+        *,
+        cue: PortfolioWorkflowLaunchCue,
+        sequence: int,
+        recommended: bool,
+    ) -> PortfolioWorkflowAction:
+        return PortfolioWorkflowAction(
+            sequence=sequence,
+            title=self._workflow_task_label(cue.key),
+            impact=self._workflow_impact_label(cue.key),
+            target=f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio",
+            href=cue.href,
+            cta_label=self._workflow_cta_label(cue.key),
+            recommended=recommended,
+        )
+
+    def _is_empty_portfolio_workflow(
+        self,
+        summary: PortfolioSummary,
+        transaction_total: int,
+    ) -> bool:
+        return (
+            summary.position_count == 0
+            and summary.cash_balance_count == 0
+            and transaction_total == 0
+        )
+
+    def _workflow_action_spec_href(
+        self,
+        spec: PortfolioWorkflowActionSpec,
+        portfolio_id: str,
+    ) -> str:
+        if spec.href == "operations":
+            return f"/workbench?portfolioId={portfolio_id}"
+        if spec.href == "performance":
+            return f"/performance?portfolioId={portfolio_id}"
+        return spec.href
 
     def _holdings_readiness_status(
         self, *, position_count: int, positions: list[PortfolioPositionView]
@@ -2461,23 +2529,6 @@ class PortfolioService:
         if normalized == "PENDING" or row_count > 0:
             return "Partial"
         return "Missing"
-
-    def _requested_window_activity_amount(
-        self, activity_summary: PortfolioActivitySummaryResponse
-    ) -> float:
-        return float(
-            sum(
-                bucket.requested_window.reporting_currency_amount
-                * (
-                    1
-                    if bucket.bucket.upper() == "INFLOWS"
-                    else -1
-                    if bucket.bucket.upper() in {"OUTFLOWS", "FEES", "TAXES"}
-                    else 0
-                )
-                for bucket in activity_summary.buckets
-            )
-        )
 
     def _dedupe_workflow_cues(
         self, workflow_cues: list[PortfolioWorkflowLaunchCue]

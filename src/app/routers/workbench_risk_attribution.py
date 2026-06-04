@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskAttributionResponse
 from app.middleware.correlation import correlation_id_var
@@ -23,46 +23,7 @@ class RiskAttributionQuery:
     grouping_dimension: str
 
 
-async def _get_risk_attribution(
-    *,
-    portfolio_id: str,
-    query: RiskAttributionQuery,
-) -> WorkbenchRiskAttributionResponse:
-    return await risk_workspace_service().get_attribution(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=query.period,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        as_of_date=query.as_of_date,
-        report_start_date=query.report_start_date,
-        report_end_date=query.report_end_date,
-        reporting_currency=query.reporting_currency,
-        attribution_type=query.attribution_type,
-        grouping_dimension=query.grouping_dimension,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/risk/attribution",
-    response_model=WorkbenchRiskAttributionResponse,
-    summary="Get Workbench Risk Attribution",
-    description=(
-        "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
-        "Use this endpoint for historical total-risk or active-risk decomposition by grouping. "
-        "Active-risk availability is derived from lotus-risk metadata so the UI stays aligned "
-        "with the authoritative domain contract, including benchmark-required and "
-        "grouping-gated combinations."
-    ),
-)
-async def get_workbench_risk_attribution(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful workbench risk attribution surface."
-        ),
-        examples=["PF_1001"],
-    ),
+def build_risk_attribution_query(
     period: str = Query(
         default="YTD",
         description=RISK_PERIOD_QUERY_DESCRIPTION,
@@ -116,18 +77,63 @@ async def get_workbench_risk_attribution(
         ),
         examples=["SECTOR"],
     ),
+) -> RiskAttributionQuery:
+    return RiskAttributionQuery(
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+    )
+
+
+async def _get_risk_attribution(
+    *,
+    portfolio_id: str,
+    query: RiskAttributionQuery,
+) -> WorkbenchRiskAttributionResponse:
+    return await risk_workspace_service().get_attribution(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        as_of_date=query.as_of_date,
+        report_start_date=query.report_start_date,
+        report_end_date=query.report_end_date,
+        reporting_currency=query.reporting_currency,
+        attribution_type=query.attribution_type,
+        grouping_dimension=query.grouping_dimension,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/attribution",
+    response_model=WorkbenchRiskAttributionResponse,
+    summary="Get Workbench Risk Attribution",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk historical risk attribution for Workbench. "
+        "Use this endpoint for historical total-risk or active-risk decomposition by grouping. "
+        "Active-risk availability is derived from lotus-risk metadata so the UI stays aligned "
+        "with the authoritative domain contract, including benchmark-required and "
+        "grouping-gated combinations."
+    ),
+)
+async def get_workbench_risk_attribution(
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk attribution surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    query: RiskAttributionQuery = Depends(build_risk_attribution_query),
 ) -> WorkbenchRiskAttributionResponse:
     return await _get_risk_attribution(
         portfolio_id=portfolio_id,
-        query=RiskAttributionQuery(
-            period=period,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            as_of_date=as_of_date,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-            reporting_currency=reporting_currency,
-            attribution_type=attribution_type,
-            grouping_dimension=grouping_dimension,
-        ),
+        query=query,
     )

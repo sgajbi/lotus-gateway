@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any, cast
 
@@ -48,6 +49,49 @@ from app.services.risk_workspace_summary import (
     map_summary_response,
     unavailable_summary,
 )
+
+
+@dataclass(frozen=True)
+class RiskRollingRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    as_of_date: str
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str | None
+    include_time_series: bool
+
+
+@dataclass(frozen=True)
+class RiskDrawdownRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    as_of_date: str
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str | None
+    include_underwater_series: bool
+
+
+@dataclass(frozen=True)
+class RiskAttributionRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    period: str
+    detail_basis: str
+    benchmark_code: str | None
+    as_of_date: str
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str | None
+    attribution_type: str
+    grouping_dimension: str
 
 
 class RiskWorkspaceService:
@@ -224,59 +268,26 @@ class RiskWorkspaceService:
         include_underwater_series: bool,
     ) -> WorkbenchRiskDrawdownResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        cache_key = (
-            "drawdown",
-            portfolio_id,
-            period,
-            detail_basis,
-            benchmark_code or "",
-            resolved_as_of_date,
-            report_start_date or "",
-            report_end_date or "",
-            reporting_currency or "",
-            include_underwater_series,
+        context = RiskDrawdownRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=resolved_as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+            include_underwater_series=include_underwater_series,
         )
 
         async def _load() -> WorkbenchRiskDrawdownResponse:
-            payload = build_drawdown_request(
-                portfolio_id=portfolio_id,
-                period=period,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                as_of_date=resolved_as_of_date,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                reporting_currency=reporting_currency,
-                include_underwater_series=include_underwater_series,
-            )
-            upstream_status, upstream_payload = await self._risk_client.post_risk_drawdown(
-                payload=payload,
-                correlation_id=correlation_id,
-            )
-            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
-                upstream_payload, dict
-            ):
-                return unavailable_drawdown(
-                    correlation_id=correlation_id,
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    as_of_date=resolved_as_of_date,
-                    benchmark_code=benchmark_code,
-                    include_underwater_series=include_underwater_series,
-                    upstream_status=upstream_status,
-                    upstream_payload=upstream_payload,
-                )
-            return map_drawdown_response(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                period=period,
-                as_of_date=resolved_as_of_date,
-                benchmark_code=benchmark_code,
-                include_underwater_series=include_underwater_series,
-                upstream_payload=upstream_payload,
-            )
+            return await self._load_drawdown_response(context)
 
-        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=self._drawdown_cache_key(context),
+            factory=_load,
+        )
         typed_response = cast(WorkbenchRiskDrawdownResponse, response)
         return typed_response.model_copy(
             update={
@@ -286,6 +297,60 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _drawdown_cache_key(self, context: RiskDrawdownRequestContext) -> tuple[object, ...]:
+        return (
+            "drawdown",
+            context.portfolio_id,
+            context.period,
+            context.detail_basis,
+            context.benchmark_code or "",
+            context.as_of_date,
+            context.report_start_date or "",
+            context.report_end_date or "",
+            context.reporting_currency or "",
+            context.include_underwater_series,
+        )
+
+    async def _load_drawdown_response(
+        self,
+        context: RiskDrawdownRequestContext,
+    ) -> WorkbenchRiskDrawdownResponse:
+        payload = build_drawdown_request(
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            benchmark_code=context.benchmark_code,
+            as_of_date=context.as_of_date,
+            report_start_date=context.report_start_date,
+            report_end_date=context.report_end_date,
+            reporting_currency=context.reporting_currency,
+            include_underwater_series=context.include_underwater_series,
+        )
+        upstream_status, upstream_payload = await self._risk_client.post_risk_drawdown(
+            payload=payload,
+            correlation_id=context.correlation_id,
+        )
+        if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
+            return unavailable_drawdown(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                include_underwater_series=context.include_underwater_series,
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+        return map_drawdown_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            include_underwater_series=context.include_underwater_series,
+            upstream_payload=upstream_payload,
         )
 
     async def get_rolling(
@@ -303,88 +368,26 @@ class RiskWorkspaceService:
         include_time_series: bool,
     ) -> WorkbenchRiskRollingResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        cache_key = (
-            "rolling",
-            portfolio_id,
-            period,
-            detail_basis,
-            benchmark_code or "",
-            resolved_as_of_date,
-            report_start_date or "",
-            report_end_date or "",
-            reporting_currency or "",
-            include_time_series,
+        context = RiskRollingRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=resolved_as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+            include_time_series=include_time_series,
         )
 
         async def _load() -> WorkbenchRiskRollingResponse:
-            initial_payload = build_rolling_request(
-                portfolio_id=portfolio_id,
-                period=period,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                as_of_date=resolved_as_of_date,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                reporting_currency=reporting_currency,
-                include_time_series=include_time_series,
-                include_sharpe=True,
-            )
-            upstream_status, upstream_payload = await self._risk_client.post_risk_rolling_metrics(
-                payload=initial_payload,
-                correlation_id=correlation_id,
-            )
-            sharpe_fallback_reason: str | None = None
-            if should_retry_rolling_without_sharpe(
-                upstream_status=upstream_status,
-                upstream_payload=upstream_payload,
-            ):
-                sharpe_fallback_reason = rolling_sharpe_failure_reason(upstream_payload)
-                fallback_payload = build_rolling_request(
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    detail_basis=detail_basis,
-                    benchmark_code=benchmark_code,
-                    as_of_date=resolved_as_of_date,
-                    report_start_date=report_start_date,
-                    report_end_date=report_end_date,
-                    reporting_currency=reporting_currency,
-                    include_time_series=include_time_series,
-                    include_sharpe=False,
-                )
-                (
-                    upstream_status,
-                    upstream_payload,
-                ) = await self._risk_client.post_risk_rolling_metrics(
-                    payload=fallback_payload,
-                    correlation_id=correlation_id,
-                )
+            return await self._load_rolling_response(context)
 
-            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
-                upstream_payload, dict
-            ):
-                return unavailable_rolling(
-                    correlation_id=correlation_id,
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    as_of_date=resolved_as_of_date,
-                    benchmark_code=benchmark_code,
-                    include_time_series=include_time_series,
-                    upstream_status=upstream_status,
-                    upstream_payload=upstream_payload,
-                )
-
-            return map_rolling_response(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                period=period,
-                as_of_date=resolved_as_of_date,
-                benchmark_code=benchmark_code,
-                include_time_series=include_time_series,
-                sharpe_fallback_reason=sharpe_fallback_reason,
-                upstream_payload=upstream_payload,
-            )
-
-        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=self._rolling_cache_key(context),
+            factory=_load,
+        )
         typed_response = cast(WorkbenchRiskRollingResponse, response)
         return typed_response.model_copy(
             update={
@@ -394,6 +397,85 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _rolling_cache_key(self, context: RiskRollingRequestContext) -> tuple[object, ...]:
+        return (
+            "rolling",
+            context.portfolio_id,
+            context.period,
+            context.detail_basis,
+            context.benchmark_code or "",
+            context.as_of_date,
+            context.report_start_date or "",
+            context.report_end_date or "",
+            context.reporting_currency or "",
+            context.include_time_series,
+        )
+
+    async def _load_rolling_response(
+        self,
+        context: RiskRollingRequestContext,
+    ) -> WorkbenchRiskRollingResponse:
+        upstream_status, upstream_payload = await self._post_rolling_metrics(
+            context=context,
+            include_sharpe=True,
+        )
+        sharpe_fallback_reason: str | None = None
+        if should_retry_rolling_without_sharpe(
+            upstream_status=upstream_status,
+            upstream_payload=upstream_payload,
+        ):
+            sharpe_fallback_reason = rolling_sharpe_failure_reason(upstream_payload)
+            upstream_status, upstream_payload = await self._post_rolling_metrics(
+                context=context,
+                include_sharpe=False,
+            )
+
+        if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
+            return unavailable_rolling(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                include_time_series=context.include_time_series,
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+
+        return map_rolling_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            include_time_series=context.include_time_series,
+            sharpe_fallback_reason=sharpe_fallback_reason,
+            upstream_payload=upstream_payload,
+        )
+
+    async def _post_rolling_metrics(
+        self,
+        *,
+        context: RiskRollingRequestContext,
+        include_sharpe: bool,
+    ) -> tuple[int, Any]:
+        payload = build_rolling_request(
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            benchmark_code=context.benchmark_code,
+            as_of_date=context.as_of_date,
+            report_start_date=context.report_start_date,
+            report_end_date=context.report_end_date,
+            reporting_currency=context.reporting_currency,
+            include_time_series=context.include_time_series,
+            include_sharpe=include_sharpe,
+        )
+        return await self._risk_client.post_risk_rolling_metrics(
+            payload=payload,
+            correlation_id=context.correlation_id,
         )
 
     async def get_attribution(
@@ -412,80 +494,38 @@ class RiskWorkspaceService:
         grouping_dimension: str,
     ) -> WorkbenchRiskAttributionResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        normalized_type = _normalize_risk_attribution_type(attribution_type)
-        normalized_grouping = _normalize_risk_attribution_grouping(grouping_dimension)
+        context = RiskAttributionRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            detail_basis=detail_basis,
+            benchmark_code=benchmark_code,
+            as_of_date=resolved_as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
+            attribution_type=_normalize_risk_attribution_type(attribution_type),
+            grouping_dimension=_normalize_risk_attribution_grouping(grouping_dimension),
+        )
         blocked_response = blocked_attribution_response(
             correlation_id=correlation_id,
             portfolio_id=portfolio_id,
             period=period,
             as_of_date=resolved_as_of_date,
             benchmark_code=benchmark_code,
-            attribution_type=normalized_type,
-            grouping_dimension=normalized_grouping,
+            attribution_type=context.attribution_type,
+            grouping_dimension=context.grouping_dimension,
         )
         if blocked_response is not None:
             return blocked_response
 
-        cache_key = (
-            "attribution",
-            portfolio_id,
-            period,
-            detail_basis,
-            benchmark_code or "",
-            resolved_as_of_date,
-            report_start_date or "",
-            report_end_date or "",
-            reporting_currency or "",
-            normalized_type,
-            normalized_grouping,
-        )
-
         async def _load() -> WorkbenchRiskAttributionResponse:
-            payload = build_attribution_request(
-                portfolio_id=portfolio_id,
-                period=period,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                as_of_date=resolved_as_of_date,
-                report_start_date=report_start_date,
-                report_end_date=report_end_date,
-                reporting_currency=reporting_currency,
-                attribution_type=normalized_type,
-                grouping_dimension=normalized_grouping,
-            )
-            (
-                upstream_status,
-                upstream_payload,
-            ) = await self._risk_client.post_risk_historical_attribution(
-                payload=payload,
-                correlation_id=correlation_id,
-            )
-            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
-                upstream_payload, dict
-            ):
-                return unavailable_attribution(
-                    correlation_id=correlation_id,
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    as_of_date=resolved_as_of_date,
-                    benchmark_code=benchmark_code,
-                    attribution_type=normalized_type,
-                    grouping_dimension=normalized_grouping,
-                    upstream_status=upstream_status,
-                    upstream_payload=upstream_payload,
-                )
-            return map_attribution_response(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                period=period,
-                as_of_date=resolved_as_of_date,
-                benchmark_code=benchmark_code,
-                attribution_type=normalized_type,
-                grouping_dimension=normalized_grouping,
-                upstream_payload=upstream_payload,
-            )
+            return await self._load_attribution_response(context)
 
-        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=self._attribution_cache_key(context),
+            factory=_load,
+        )
         typed_response = cast(WorkbenchRiskAttributionResponse, response)
         return typed_response.model_copy(
             update={
@@ -495,6 +535,67 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _attribution_cache_key(self, context: RiskAttributionRequestContext) -> tuple[object, ...]:
+        return (
+            "attribution",
+            context.portfolio_id,
+            context.period,
+            context.detail_basis,
+            context.benchmark_code or "",
+            context.as_of_date,
+            context.report_start_date or "",
+            context.report_end_date or "",
+            context.reporting_currency or "",
+            context.attribution_type,
+            context.grouping_dimension,
+        )
+
+    async def _load_attribution_response(
+        self,
+        context: RiskAttributionRequestContext,
+    ) -> WorkbenchRiskAttributionResponse:
+        payload = build_attribution_request(
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            detail_basis=context.detail_basis,
+            benchmark_code=context.benchmark_code,
+            as_of_date=context.as_of_date,
+            report_start_date=context.report_start_date,
+            report_end_date=context.report_end_date,
+            reporting_currency=context.reporting_currency,
+            attribution_type=context.attribution_type,
+            grouping_dimension=context.grouping_dimension,
+        )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._risk_client.post_risk_historical_attribution(
+            payload=payload,
+            correlation_id=context.correlation_id,
+        )
+        if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
+            return unavailable_attribution(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                attribution_type=context.attribution_type,
+                grouping_dimension=context.grouping_dimension,
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+        return map_attribution_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            attribution_type=context.attribution_type,
+            grouping_dimension=context.grouping_dimension,
+            upstream_payload=upstream_payload,
         )
 
 

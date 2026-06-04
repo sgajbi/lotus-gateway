@@ -31,6 +31,8 @@ from app.services.workspace_client_protocols import (
 )
 
 Number = int | float
+UpstreamResult = tuple[int, dict[str, Any]]
+GatheredResult = UpstreamResult | BaseException
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,37 @@ class CoreSnapshotPositionViews:
     position_count: int
     allocations: list[FoundationAllocationBucket]
     top_positions: list[FoundationTopPosition]
+
+
+@dataclass(frozen=True)
+class FoundationWorkspaceCoreView:
+    portfolio: FoundationPortfolioIdentity
+    summary: FoundationPortfolioSummary
+    allocations: list[FoundationAllocationBucket]
+    top_positions: list[FoundationTopPosition]
+    as_of_date: str
+
+
+@dataclass(frozen=True)
+class FoundationWorkspaceOptionalViews:
+    performance: FoundationPerformanceSummary | None
+    rebalance: FoundationRebalanceSummary | None
+    reporting: FoundationReportingReadiness
+    warnings: list[str]
+    partial_failures: list[FoundationPartialFailure]
+
+
+@dataclass(frozen=True)
+class FoundationWorkspaceSourceResults:
+    identity_result: UpstreamResult
+    snapshot_result: UpstreamResult
+
+
+@dataclass(frozen=True)
+class FoundationWorkspaceOptionalResults:
+    performance_result: GatheredResult
+    rebalance_result: GatheredResult
+    reporting_result: GatheredResult
 
 
 class FoundationService:
@@ -95,6 +128,25 @@ class FoundationService:
         correlation_id: str,
     ) -> FoundationWorkspaceResponse:
         as_of_date = datetime.now(UTC).date().isoformat()
+        source_results = await self._load_foundation_workspace_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        return await self._build_foundation_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            fallback_as_of_date=as_of_date,
+            source_results=source_results,
+        )
+
+    async def _load_foundation_workspace_sources(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+    ) -> FoundationWorkspaceSourceResults:
         identity_result, snapshot_result = await asyncio.gather(
             self._lotus_core_query_client.get_portfolio(
                 portfolio_id=portfolio_id,
@@ -108,14 +160,58 @@ class FoundationService:
                 correlation_id=correlation_id,
             ),
         )
-        identity_status, identity_payload = identity_result
+        return FoundationWorkspaceSourceResults(
+            identity_result=identity_result,
+            snapshot_result=snapshot_result,
+        )
+
+    async def _build_foundation_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        fallback_as_of_date: str,
+        source_results: FoundationWorkspaceSourceResults,
+    ) -> FoundationWorkspaceResponse:
+        core_view = self._build_foundation_workspace_core_view(
+            portfolio_id=portfolio_id,
+            fallback_as_of_date=fallback_as_of_date,
+            source_results=source_results,
+        )
+        performance_report_end_date = await self._resolve_performance_report_end_date(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=core_view.as_of_date,
+        )
+        optional_results = await self._load_foundation_workspace_optional_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=core_view.as_of_date,
+            performance_report_end_date=performance_report_end_date,
+        )
+        optional_views = self._build_foundation_workspace_optional_views(optional_results)
+        return self._compose_foundation_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            core_view=core_view,
+            optional_views=optional_views,
+        )
+
+    def _build_foundation_workspace_core_view(
+        self,
+        *,
+        portfolio_id: str,
+        fallback_as_of_date: str,
+        source_results: FoundationWorkspaceSourceResults,
+    ) -> FoundationWorkspaceCoreView:
+        identity_status, identity_payload = source_results.identity_result
         if identity_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=f"lotus-core portfolio identity unavailable: {identity_payload}",
             )
 
-        pas_status, pas_payload = snapshot_result
+        pas_status, pas_payload = source_results.snapshot_result
         if pas_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -126,14 +222,87 @@ class FoundationService:
             fallback_portfolio_id=portfolio_id,
             portfolio_payload=identity_payload,
             payload=pas_payload,
-            fallback_as_of_date=as_of_date,
+            fallback_as_of_date=fallback_as_of_date,
         )
-        performance_report_end_date = await self._resolve_performance_report_end_date(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
+        return FoundationWorkspaceCoreView(
+            portfolio=portfolio,
+            summary=summary,
+            allocations=allocations,
+            top_positions=top_positions,
             as_of_date=as_of_date,
         )
 
+    def _build_foundation_workspace_optional_views(
+        self,
+        optional_results: FoundationWorkspaceOptionalResults,
+    ) -> FoundationWorkspaceOptionalViews:
+        warnings: list[str] = []
+        partial_failures: list[FoundationPartialFailure] = []
+        performance = self._parse_performance_result(
+            result=optional_results.performance_result,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        rebalance = self._parse_rebalance_result(
+            result=optional_results.rebalance_result,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        reporting = self._parse_reporting_result(
+            result=optional_results.reporting_result,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        return FoundationWorkspaceOptionalViews(
+            performance=performance,
+            rebalance=rebalance,
+            reporting=reporting,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+
+    def _compose_foundation_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        core_view: FoundationWorkspaceCoreView,
+        optional_views: FoundationWorkspaceOptionalViews,
+    ) -> FoundationWorkspaceResponse:
+        readiness = FoundationWorkspaceReadiness(
+            has_positions=core_view.summary.position_count > 0,
+            reporting=optional_views.reporting,
+        )
+        evidence = self._build_evidence_summary(
+            warnings=optional_views.warnings,
+            partial_failures=optional_views.partial_failures,
+        )
+
+        return FoundationWorkspaceResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            as_of_date=core_view.as_of_date,
+            portfolio=core_view.portfolio,
+            summary=core_view.summary,
+            allocations=core_view.allocations,
+            top_positions=core_view.top_positions,
+            performance=optional_views.performance,
+            rebalance=optional_views.rebalance,
+            readiness=readiness,
+            workflow_cues=self._build_workflow_cues(portfolio_id=portfolio_id),
+            evidence=evidence,
+            warnings=optional_views.warnings,
+            partial_failures=optional_views.partial_failures,
+        )
+
+    async def _load_foundation_workspace_optional_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str,
+        performance_report_end_date: str,
+    ) -> FoundationWorkspaceOptionalResults:
         performance_task = self._analytics_client.get_stateful_twr(
             portfolio_id=portfolio_id,
             report_end_date=performance_report_end_date,
@@ -155,50 +324,10 @@ class FoundationService:
             reporting_task,
             return_exceptions=True,
         )
-
-        warnings: list[str] = []
-        partial_failures: list[FoundationPartialFailure] = []
-
-        performance = self._parse_performance_result(
-            result=cast(object, gathered[0]),
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        rebalance = self._parse_rebalance_result(
-            result=cast(object, gathered[1]),
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        reporting = self._parse_reporting_result(
-            result=cast(object, gathered[2]),
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-
-        readiness = FoundationWorkspaceReadiness(
-            has_positions=summary.position_count > 0,
-            reporting=reporting,
-        )
-        evidence = self._build_evidence_summary(
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-
-        return FoundationWorkspaceResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            as_of_date=as_of_date,
-            portfolio=portfolio,
-            summary=summary,
-            allocations=allocations,
-            top_positions=top_positions,
-            performance=performance,
-            rebalance=rebalance,
-            readiness=readiness,
-            workflow_cues=self._build_workflow_cues(portfolio_id=portfolio_id),
-            evidence=evidence,
-            warnings=warnings,
-            partial_failures=partial_failures,
+        return FoundationWorkspaceOptionalResults(
+            performance_result=cast(GatheredResult, gathered[0]),
+            rebalance_result=cast(GatheredResult, gathered[1]),
+            reporting_result=cast(GatheredResult, gathered[2]),
         )
 
     async def _resolve_performance_report_end_date(

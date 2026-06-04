@@ -8,6 +8,95 @@ from app.services.portfolio_service_provider import portfolio_service
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
+AS_OF_DATE_QUERY = Query(
+    default=None,
+    description="Optional as-of date in YYYY-MM-DD format used for booked transaction state.",
+    examples=["2026-03-27"],
+)
+INCLUDE_PROJECTED_QUERY = Query(
+    default=False,
+    description="Whether future-dated projected transactions should be included.",
+    examples=[False],
+)
+TRANSACTION_TYPE_QUERY = Query(
+    default=None,
+    description="Optional canonical transaction type filter.",
+    examples=["BUY"],
+)
+SECURITY_ID_QUERY = Query(
+    default=None,
+    description="Optional security identifier filter for holdings drill-down.",
+    examples=["EQ_1"],
+)
+INSTRUMENT_ID_QUERY = Query(
+    default=None,
+    description="Optional instrument identifier filter for instrument-specific inspection.",
+    examples=["INST-AAPL-USD"],
+)
+COMPONENT_TYPE_QUERY = Query(
+    default=None,
+    description="Optional component-type filter for linked cash, trade, or FX event rows.",
+    examples=["FX_CONTRACT_OPEN"],
+)
+LINKED_TRANSACTION_GROUP_ID_QUERY = Query(
+    default=None,
+    description="Optional linked-transaction-group filter for multi-row economic events.",
+    examples=["LTG-FX-2026-0001"],
+)
+FX_CONTRACT_ID_QUERY = Query(
+    default=None,
+    description="Optional FX contract identifier filter.",
+    examples=["FXC-2026-0001"],
+)
+SWAP_EVENT_ID_QUERY = Query(
+    default=None,
+    description="Optional FX swap event identifier filter.",
+    examples=["FXSWAP-2026-0001"],
+)
+NEAR_LEG_GROUP_ID_QUERY = Query(
+    default=None,
+    description="Optional FX swap near-leg group identifier filter.",
+    examples=["FXSWAP-2026-0001-NEAR"],
+)
+FAR_LEG_GROUP_ID_QUERY = Query(
+    default=None,
+    description="Optional FX swap far-leg group identifier filter.",
+    examples=["FXSWAP-2026-0001-FAR"],
+)
+START_DATE_QUERY = Query(
+    default=None,
+    description="Optional inclusive transaction-window start date in YYYY-MM-DD format.",
+    examples=["2026-03-01"],
+)
+END_DATE_QUERY = Query(
+    default=None,
+    description="Optional inclusive transaction-window end date in YYYY-MM-DD format.",
+    examples=["2026-03-27"],
+)
+SKIP_QUERY = Query(
+    default=0,
+    ge=0,
+    description="Number of matching transaction rows to skip before returning the page.",
+    examples=[0],
+)
+LIMIT_QUERY = Query(
+    default=50,
+    ge=1,
+    le=500,
+    description="Maximum number of matching transaction rows to return.",
+    examples=[50],
+)
+SORT_BY_QUERY = Query(
+    default="transaction_date",
+    description="Transaction sort field. Defaults to transaction_date for latest-first review.",
+    examples=["transaction_date"],
+)
+SORT_ORDER_QUERY = Query(
+    default="desc",
+    description="Transaction sort order. Use asc or desc.",
+    examples=["desc"],
+)
+
 
 @dataclass(frozen=True)
 class PortfolioTransactionLedgerFilters:
@@ -117,94 +206,23 @@ async def _get_portfolio_transactions(
 )
 async def get_portfolio_transactions(
     portfolio_id: str,
-    as_of_date: str | None = Query(
-        default=None,
-        description="Optional as-of date in YYYY-MM-DD format used for booked transaction state.",
-        examples=["2026-03-27"],
-    ),
-    include_projected: bool = Query(
-        default=False,
-        description="Whether future-dated projected transactions should be included.",
-        examples=[False],
-    ),
-    transaction_type: str | None = Query(
-        default=None,
-        description="Optional canonical transaction type filter.",
-        examples=["BUY"],
-    ),
-    security_id: str | None = Query(
-        default=None,
-        description="Optional security identifier filter for holdings drill-down.",
-        examples=["EQ_1"],
-    ),
-    instrument_id: str | None = Query(
-        default=None,
-        description="Optional instrument identifier filter for instrument-specific inspection.",
-        examples=["INST-AAPL-USD"],
-    ),
-    component_type: str | None = Query(
-        default=None,
-        description="Optional component-type filter for linked cash, trade, or FX event rows.",
-        examples=["FX_CONTRACT_OPEN"],
-    ),
-    linked_transaction_group_id: str | None = Query(
-        default=None,
-        description="Optional linked-transaction-group filter for multi-row economic events.",
-        examples=["LTG-FX-2026-0001"],
-    ),
-    fx_contract_id: str | None = Query(
-        default=None,
-        description="Optional FX contract identifier filter.",
-        examples=["FXC-2026-0001"],
-    ),
-    swap_event_id: str | None = Query(
-        default=None,
-        description="Optional FX swap event identifier filter.",
-        examples=["FXSWAP-2026-0001"],
-    ),
-    near_leg_group_id: str | None = Query(
-        default=None,
-        description="Optional FX swap near-leg group identifier filter.",
-        examples=["FXSWAP-2026-0001-NEAR"],
-    ),
-    far_leg_group_id: str | None = Query(
-        default=None,
-        description="Optional FX swap far-leg group identifier filter.",
-        examples=["FXSWAP-2026-0001-FAR"],
-    ),
-    start_date: str | None = Query(
-        default=None,
-        description="Optional inclusive transaction-window start date in YYYY-MM-DD format.",
-        examples=["2026-03-01"],
-    ),
-    end_date: str | None = Query(
-        default=None,
-        description="Optional inclusive transaction-window end date in YYYY-MM-DD format.",
-        examples=["2026-03-27"],
-    ),
-    skip: int = Query(
-        default=0,
-        ge=0,
-        description="Number of matching transaction rows to skip before returning the page.",
-        examples=[0],
-    ),
-    limit: int = Query(
-        default=50,
-        ge=1,
-        le=500,
-        description="Maximum number of matching transaction rows to return.",
-        examples=[50],
-    ),
-    sort_by: str = Query(
-        default="transaction_date",
-        description="Transaction sort field. Defaults to transaction_date for latest-first review.",
-        examples=["transaction_date"],
-    ),
-    sort_order: str = Query(
-        default="desc",
-        description="Transaction sort order. Use asc or desc.",
-        examples=["desc"],
-    ),
+    as_of_date: str | None = AS_OF_DATE_QUERY,
+    include_projected: bool = INCLUDE_PROJECTED_QUERY,
+    transaction_type: str | None = TRANSACTION_TYPE_QUERY,
+    security_id: str | None = SECURITY_ID_QUERY,
+    instrument_id: str | None = INSTRUMENT_ID_QUERY,
+    component_type: str | None = COMPONENT_TYPE_QUERY,
+    linked_transaction_group_id: str | None = LINKED_TRANSACTION_GROUP_ID_QUERY,
+    fx_contract_id: str | None = FX_CONTRACT_ID_QUERY,
+    swap_event_id: str | None = SWAP_EVENT_ID_QUERY,
+    near_leg_group_id: str | None = NEAR_LEG_GROUP_ID_QUERY,
+    far_leg_group_id: str | None = FAR_LEG_GROUP_ID_QUERY,
+    start_date: str | None = START_DATE_QUERY,
+    end_date: str | None = END_DATE_QUERY,
+    skip: int = SKIP_QUERY,
+    limit: int = LIMIT_QUERY,
+    sort_by: str = SORT_BY_QUERY,
+    sort_order: str = SORT_ORDER_QUERY,
 ) -> PortfolioTransactionLedgerResponse:
     return await _get_portfolio_transactions(
         portfolio_id=portfolio_id,

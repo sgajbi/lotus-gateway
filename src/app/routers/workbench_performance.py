@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Path, Query
+from fastapi import APIRouter, Depends, Header, Path, Query
 
 from app.contracts.performance_workspace import PerformanceWorkspaceSummaryResponse
 from app.middleware.correlation import correlation_id_var
@@ -23,43 +23,14 @@ class PerformanceSummaryQuery:
     report_end_date: str | None
 
 
-async def _get_performance_summary(
-    *,
-    portfolio_id: str,
-    query: PerformanceSummaryQuery,
-) -> PerformanceWorkspaceSummaryResponse:
-    return await performance_workspace_service().get_performance_workspace_summary(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=query.period,
-        chart_frequency=query.chart_frequency,
-        contribution_dimension=query.contribution_dimension,
-        attribution_dimension=query.attribution_dimension,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        explicit_start_date=query.report_start_date,
-        explicit_end_date=query.report_end_date,
-    )
-
-
-async def _get_performance_workspace_summary(
-    *,
-    portfolio_id: str,
-    period: str,
-    chart_frequency: str,
-    contribution_dimension: str,
-    attribution_dimension: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    actor_id: str | None,
-    caller_application: str | None,
-    tenant_id: str | None,
-    region: str | None,
-    booking_center_code: str | None,
-    role: str | None,
-) -> PerformanceWorkspaceSummaryResponse:
+def require_performance_summary_caller_context(
+    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
+    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
+    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
+    region: Annotated[str | None, Header(alias="X-Region")] = None,
+    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
+    role: Annotated[str | None, Header(alias="X-Role")] = None,
+) -> None:
     require_workbench_caller_context(
         actor_id=actor_id,
         caller_application=caller_application,
@@ -68,40 +39,9 @@ async def _get_performance_workspace_summary(
         booking_center_code=booking_center_code,
         role=role,
     )
-    return await _get_performance_summary(
-        portfolio_id=portfolio_id,
-        query=PerformanceSummaryQuery(
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-        ),
-    )
 
 
-@router.get(
-    "/{portfolio_id}/performance/summary",
-    response_model=PerformanceWorkspaceSummaryResponse,
-    summary="Get Performance Workspace Summary",
-    description=(
-        "Returns the first-paint performance workspace payload for overview and benchmark-aware "
-        "return panels. Use this route when the consumer needs mandate context, comparative "
-        "performance, money-weighted return, benchmark options, and current evidence posture "
-        "without loading the heavier chart, contribution, and attribution tables."
-    ),
-)
-async def get_performance_workspace_summary(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful performance summary workspace."
-        ),
-        examples=["PF_1001"],
-    ),
+def build_performance_summary_query(
     period: str = Query(
         default="YTD",
         description="Requested performance horizon for the summary workspace.",
@@ -146,15 +86,8 @@ async def get_performance_workspace_summary(
         ),
         examples=["2026-03-27"],
     ),
-    actor_id: Annotated[str | None, Header(alias="X-Actor-Id")] = None,
-    caller_application: Annotated[str | None, Header(alias="X-Caller-Application")] = None,
-    tenant_id: Annotated[str | None, Header(alias="X-Tenant-Id")] = None,
-    region: Annotated[str | None, Header(alias="X-Region")] = None,
-    booking_center_code: Annotated[str | None, Header(alias="X-Booking-Center-Code")] = None,
-    role: Annotated[str | None, Header(alias="X-Role")] = None,
-) -> PerformanceWorkspaceSummaryResponse:
-    return await _get_performance_workspace_summary(
-        portfolio_id=portfolio_id,
+) -> PerformanceSummaryQuery:
+    return PerformanceSummaryQuery(
         period=period,
         chart_frequency=chart_frequency,
         contribution_dimension=contribution_dimension,
@@ -163,10 +96,51 @@ async def get_performance_workspace_summary(
         benchmark_code=benchmark_code,
         report_start_date=report_start_date,
         report_end_date=report_end_date,
-        actor_id=actor_id,
-        caller_application=caller_application,
-        tenant_id=tenant_id,
-        region=region,
-        booking_center_code=booking_center_code,
-        role=role,
+    )
+
+
+async def _get_performance_summary(
+    *,
+    portfolio_id: str,
+    query: PerformanceSummaryQuery,
+) -> PerformanceWorkspaceSummaryResponse:
+    return await performance_workspace_service().get_performance_workspace_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        contribution_dimension=query.contribution_dimension,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/summary",
+    response_model=PerformanceWorkspaceSummaryResponse,
+    summary="Get Performance Workspace Summary",
+    description=(
+        "Returns the first-paint performance workspace payload for overview and benchmark-aware "
+        "return panels. Use this route when the consumer needs mandate context, comparative "
+        "performance, money-weighted return, benchmark options, and current evidence posture "
+        "without loading the heavier chart, contribution, and attribution tables."
+    ),
+)
+async def get_performance_workspace_summary(
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful performance summary workspace."
+        ),
+        examples=["PF_1001"],
+    ),
+    query: PerformanceSummaryQuery = Depends(build_performance_summary_query),
+    _caller_context: None = Depends(require_performance_summary_caller_context),
+) -> PerformanceWorkspaceSummaryResponse:
+    return await _get_performance_summary(
+        portfolio_id=portfolio_id,
+        query=query,
     )

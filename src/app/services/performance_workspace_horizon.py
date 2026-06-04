@@ -386,72 +386,100 @@ def build_horizon_comparison_row(
     return (
         PerformanceHorizonComparisonRow(
             period=period,
-            period_start=resolve_horizon_period_start(
+            **build_horizon_row_period_fields(
                 blocks=blocks,
                 requested_report_start_date=requested_report_start_date,
-            ),
-            period_end=resolve_horizon_period_end(
-                blocks=blocks,
                 requested_report_end_date=requested_report_end_date,
             ),
-            begin_market_value=quantize_optional(blocks.economics.get("begin_market_value")),
-            end_market_value=quantize_optional(blocks.economics.get("end_market_value")),
-            beginning_cash_flow=quantize_optional(blocks.economics.get("beginning_cash_flow")),
-            ending_cash_flow=quantize_optional(blocks.economics.get("ending_cash_flow")),
-            flow_adjusted_end_market_value=quantize_optional(
-                blocks.economics.get("flow_adjusted_end_market_value")
-            ),
-            net_cash_flow=quantize_optional(blocks.economics.get("net_cash_flow")),
-            fees=quantize_optional(blocks.economics.get("fees")),
-            net_return_pct=extract_return(blocks.net_block, "summary", "period_return", "base"),
-            gross_return_pct=extract_return(
-                blocks.gross_block,
-                "summary",
-                "period_return",
-                "base",
-            ),
+            **build_horizon_row_economics_fields(blocks),
+            **build_horizon_row_return_fields(blocks),
             portfolio_return_pct=comparative.portfolio_return_pct,
             benchmark_return_pct=comparative.benchmark_return_pct,
             active_return_pct=comparative.active_return_pct,
-            cumulative_net_return_pct=extract_return(
-                blocks.net_block,
-                "summary",
-                "cumulative_return",
-                "base",
-            ),
-            cumulative_gross_return_pct=extract_return(
-                blocks.gross_block,
-                "summary",
-                "cumulative_return",
-                "base",
-            ),
-            cumulative_benchmark_return_pct=extract_return(
-                blocks.benchmark_block,
-                "summary",
-                "cumulative_return",
-                "base",
-            ),
-            cumulative_active_return_pct=extract_return(
-                blocks.active_block.get("net", {}),
-                "cumulative_return",
-                "base",
-            ),
-            annualized_net_return_pct=extract_return(
-                blocks.net_block,
-                "summary",
-                "annualized_return",
-                "base",
-            ),
-            annualized_gross_return_pct=extract_return(
-                blocks.gross_block,
-                "summary",
-                "annualized_return",
-                "base",
-            ),
             annualized_return_pct=comparative.annualized_return_pct,
         ),
         comparative.benchmark_id,
     )
+
+
+def build_horizon_row_period_fields(
+    *,
+    blocks: HorizonPeriodBlocks,
+    requested_report_start_date: str | None,
+    requested_report_end_date: str | None,
+) -> dict[str, Any]:
+    return {
+        "period_start": resolve_horizon_period_start(
+            blocks=blocks,
+            requested_report_start_date=requested_report_start_date,
+        ),
+        "period_end": resolve_horizon_period_end(
+            blocks=blocks,
+            requested_report_end_date=requested_report_end_date,
+        ),
+    }
+
+
+def build_horizon_row_economics_fields(blocks: HorizonPeriodBlocks) -> dict[str, Any]:
+    return {
+        "begin_market_value": quantize_optional(blocks.economics.get("begin_market_value")),
+        "end_market_value": quantize_optional(blocks.economics.get("end_market_value")),
+        "beginning_cash_flow": quantize_optional(blocks.economics.get("beginning_cash_flow")),
+        "ending_cash_flow": quantize_optional(blocks.economics.get("ending_cash_flow")),
+        "flow_adjusted_end_market_value": quantize_optional(
+            blocks.economics.get("flow_adjusted_end_market_value")
+        ),
+        "net_cash_flow": quantize_optional(blocks.economics.get("net_cash_flow")),
+        "fees": quantize_optional(blocks.economics.get("fees")),
+    }
+
+
+def build_horizon_row_return_fields(blocks: HorizonPeriodBlocks) -> dict[str, Any]:
+    active_net_block = blocks.active_block.get("net", {})
+    return {
+        "net_return_pct": extract_return(blocks.net_block, "summary", "period_return", "base"),
+        "gross_return_pct": extract_return(
+            blocks.gross_block,
+            "summary",
+            "period_return",
+            "base",
+        ),
+        "cumulative_net_return_pct": extract_return(
+            blocks.net_block,
+            "summary",
+            "cumulative_return",
+            "base",
+        ),
+        "cumulative_gross_return_pct": extract_return(
+            blocks.gross_block,
+            "summary",
+            "cumulative_return",
+            "base",
+        ),
+        "cumulative_benchmark_return_pct": extract_return(
+            blocks.benchmark_block,
+            "summary",
+            "cumulative_return",
+            "base",
+        ),
+        "cumulative_active_return_pct": extract_return(
+            active_net_block if isinstance(active_net_block, dict) else {},
+            "cumulative_return",
+            "base",
+        ),
+        "annualized_net_return_pct": extract_return(
+            blocks.net_block,
+            "summary",
+            "annualized_return",
+            "base",
+        ),
+        "annualized_gross_return_pct": extract_return(
+            blocks.gross_block,
+            "summary",
+            "annualized_return",
+            "base",
+        ),
+    }
 
 
 def extract_horizon_period_blocks(
