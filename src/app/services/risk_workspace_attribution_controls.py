@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from app.contracts.risk_workspace import (
@@ -29,6 +30,13 @@ RISK_ATTRIBUTION_ACTIVE_RISK_GATE_REASON = (
 )
 
 
+@dataclass(frozen=True)
+class ActiveRiskGroupingSupport:
+    supported_groupings: set[str]
+    gated_groupings: set[str]
+    gate_reason: str
+
+
 def normalize_risk_attribution_type(value: str) -> str:
     normalized = value.upper()
     return normalized if normalized in RISK_ATTRIBUTION_TYPE_LABELS else "TOTAL_RISK"
@@ -46,12 +54,37 @@ def build_attribution_controls(
     grouping_dimension: str,
     upstream_metadata: dict[str, Any] | None = None,
 ) -> WorkbenchRiskAttributionControls:
-    (
-        active_risk_supported_groupings,
-        active_risk_gated_groupings,
-        active_risk_gate_reason,
-    ) = resolve_active_risk_grouping_support(upstream_metadata)
-    type_options = [
+    active_risk_support = build_active_risk_grouping_support(upstream_metadata)
+    return WorkbenchRiskAttributionControls(
+        attribution_types=build_attribution_type_options(benchmark_code),
+        grouping_dimensions=build_attribution_grouping_options(
+            benchmark_code=benchmark_code,
+            attribution_type=attribution_type,
+            grouping_dimension=grouping_dimension,
+            active_risk_support=active_risk_support,
+        ),
+        selected_attribution_type=attribution_type,
+        selected_grouping_dimension=grouping_dimension,
+    )
+
+
+def build_active_risk_grouping_support(
+    upstream_metadata: dict[str, Any] | None,
+) -> ActiveRiskGroupingSupport:
+    supported_groupings, gated_groupings, gate_reason = resolve_active_risk_grouping_support(
+        upstream_metadata
+    )
+    return ActiveRiskGroupingSupport(
+        supported_groupings=supported_groupings,
+        gated_groupings=gated_groupings,
+        gate_reason=gate_reason,
+    )
+
+
+def build_attribution_type_options(
+    benchmark_code: str | None,
+) -> list[WorkbenchRiskAttributionTypeOption]:
+    return [
         WorkbenchRiskAttributionTypeOption(
             key="TOTAL_RISK",
             label=RISK_ATTRIBUTION_TYPE_LABELS["TOTAL_RISK"],
@@ -64,60 +97,125 @@ def build_attribution_controls(
             reason=None if benchmark_code else "Active risk requires benchmark context.",
         ),
     ]
-    grouping_options: list[WorkbenchRiskAttributionGroupingOption] = []
-    grouping_keys = list(
+
+
+def build_attribution_grouping_options(
+    *,
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> list[WorkbenchRiskAttributionGroupingOption]:
+    return [
+        build_attribution_grouping_option(
+            key=key,
+            benchmark_code=benchmark_code,
+            attribution_type=attribution_type,
+            active_risk_support=active_risk_support,
+        )
+        for key in attribution_grouping_keys(
+            grouping_dimension=grouping_dimension,
+            active_risk_support=active_risk_support,
+        )
+    ]
+
+
+def attribution_grouping_keys(
+    *,
+    grouping_dimension: str,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> list[str]:
+    return list(
         dict.fromkeys(
             [
                 *RISK_ATTRIBUTION_SUPPORTED_GROUPINGS,
-                *active_risk_supported_groupings,
-                *active_risk_gated_groupings,
+                *active_risk_support.supported_groupings,
+                *active_risk_support.gated_groupings,
                 grouping_dimension,
             ]
         )
     )
-    for key in grouping_keys:
-        total_risk_supported = key in RISK_ATTRIBUTION_SUPPORTED_GROUPINGS
-        active_risk_supported = key in active_risk_supported_groupings and bool(benchmark_code)
-        state: RiskSupportabilityState = "ready"
-        reason: str | None = None
-        if attribution_type == "ACTIVE_RISK" and not benchmark_code:
-            state = "blocked"
-            reason = "Active risk requires benchmark context."
-        elif attribution_type == "ACTIVE_RISK":
-            if key in active_risk_gated_groupings:
-                state = "blocked"
-                reason = active_risk_gate_reason
-            elif key not in active_risk_supported_groupings:
-                state = "blocked"
-                reason = "Active risk is not supported for this grouping."
-        elif key in active_risk_gated_groupings:
-            state = "partial"
-            reason = (
-                "Supported for total risk. "
-                f"{active_risk_gate_reason or 'Active risk remains gated for this grouping.'}"
-            )
-        grouping_options.append(
-            WorkbenchRiskAttributionGroupingOption(
-                key=key,
-                label=risk_attribution_grouping_label(key),
-                state=state,
-                reason=reason,
-                supported_attribution_types=[
-                    attribution_key
-                    for attribution_key, supported in (
-                        ("TOTAL_RISK", total_risk_supported),
-                        ("ACTIVE_RISK", active_risk_supported),
-                    )
-                    if supported
-                ],
-            )
-        )
-    return WorkbenchRiskAttributionControls(
-        attribution_types=type_options,
-        grouping_dimensions=grouping_options,
-        selected_attribution_type=attribution_type,
-        selected_grouping_dimension=grouping_dimension,
+
+
+def build_attribution_grouping_option(
+    *,
+    key: str,
+    benchmark_code: str | None,
+    attribution_type: str,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> WorkbenchRiskAttributionGroupingOption:
+    state, reason = attribution_grouping_state(
+        key=key,
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        active_risk_support=active_risk_support,
     )
+    return WorkbenchRiskAttributionGroupingOption(
+        key=key,
+        label=risk_attribution_grouping_label(key),
+        state=state,
+        reason=reason,
+        supported_attribution_types=supported_attribution_types_for_grouping(
+            key=key,
+            benchmark_code=benchmark_code,
+            active_risk_support=active_risk_support,
+        ),
+    )
+
+
+def attribution_grouping_state(
+    *,
+    key: str,
+    benchmark_code: str | None,
+    attribution_type: str,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> tuple[RiskSupportabilityState, str | None]:
+    if attribution_type == "ACTIVE_RISK":
+        return active_risk_grouping_state(
+            key=key,
+            benchmark_code=benchmark_code,
+            active_risk_support=active_risk_support,
+        )
+    if key in active_risk_support.gated_groupings:
+        return (
+            "partial",
+            "Supported for total risk. "
+            f"{active_risk_support.gate_reason or 'Active risk remains gated for this grouping.'}",
+        )
+    return "ready", None
+
+
+def active_risk_grouping_state(
+    *,
+    key: str,
+    benchmark_code: str | None,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> tuple[RiskSupportabilityState, str | None]:
+    if not benchmark_code:
+        return "blocked", "Active risk requires benchmark context."
+    if key in active_risk_support.gated_groupings:
+        return "blocked", active_risk_support.gate_reason
+    if key not in active_risk_support.supported_groupings:
+        return "blocked", "Active risk is not supported for this grouping."
+    return "ready", None
+
+
+def supported_attribution_types_for_grouping(
+    *,
+    key: str,
+    benchmark_code: str | None,
+    active_risk_support: ActiveRiskGroupingSupport,
+) -> list[str]:
+    total_risk_supported = key in RISK_ATTRIBUTION_SUPPORTED_GROUPINGS
+    active_risk_supported = key in active_risk_support.supported_groupings and bool(benchmark_code)
+    return [
+        attribution_key
+        for attribution_key, supported in (
+            ("TOTAL_RISK", total_risk_supported),
+            ("ACTIVE_RISK", active_risk_supported),
+        )
+        if supported
+    ]
 
 
 def build_attribution_supportability(
