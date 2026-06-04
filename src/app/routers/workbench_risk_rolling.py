@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskRollingResponse
 from app.middleware.correlation import correlation_id_var
@@ -22,46 +22,7 @@ class RiskRollingQuery:
     include_time_series: bool
 
 
-async def _get_risk_rolling(
-    portfolio_id: str,
-    query: RiskRollingQuery,
-) -> WorkbenchRiskRollingResponse:
-    service = risk_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_rolling(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=query.period,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        as_of_date=query.as_of_date,
-        report_start_date=query.report_start_date,
-        report_end_date=query.report_end_date,
-        reporting_currency=query.reporting_currency,
-        include_time_series=query.include_time_series,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/risk/rolling",
-    response_model=WorkbenchRiskRollingResponse,
-    summary="Get Workbench Risk Rolling Metrics",
-    description=(
-        "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
-        "Rolling series detail is optional and requested on demand via "
-        "`include_time_series=true` to keep first paint lean. "
-        "If lotus-risk cannot source the risk-free dependency, gateway omits rolling Sharpe "
-        "and surfaces an explicit partial-failure signal."
-    ),
-)
-async def get_workbench_risk_rolling(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful workbench rolling-risk surface."
-        ),
-        examples=["PF_1001"],
-    ),
+def build_risk_rolling_query(
     period: str = Query(
         default="YTD",
         description=RISK_PERIOD_QUERY_DESCRIPTION,
@@ -108,17 +69,62 @@ async def get_workbench_risk_rolling(
         ),
         examples=[True],
     ),
+) -> RiskRollingQuery:
+    return RiskRollingQuery(
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
+        include_time_series=include_time_series,
+    )
+
+
+async def _get_risk_rolling(
+    portfolio_id: str,
+    query: RiskRollingQuery,
+) -> WorkbenchRiskRollingResponse:
+    service = risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_rolling(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        as_of_date=query.as_of_date,
+        report_start_date=query.report_start_date,
+        report_end_date=query.report_end_date,
+        reporting_currency=query.reporting_currency,
+        include_time_series=query.include_time_series,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/rolling",
+    response_model=WorkbenchRiskRollingResponse,
+    summary="Get Workbench Risk Rolling Metrics",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk rolling metrics for Workbench. "
+        "Rolling series detail is optional and requested on demand via "
+        "`include_time_series=true` to keep first paint lean. "
+        "If lotus-risk cannot source the risk-free dependency, gateway omits rolling Sharpe "
+        "and surfaces an explicit partial-failure signal."
+    ),
+)
+async def get_workbench_risk_rolling(
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench rolling-risk surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    query: RiskRollingQuery = Depends(build_risk_rolling_query),
 ) -> WorkbenchRiskRollingResponse:
     return await _get_risk_rolling(
         portfolio_id=portfolio_id,
-        query=RiskRollingQuery(
-            period=period,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            as_of_date=as_of_date,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-            reporting_currency=reporting_currency,
-            include_time_series=include_time_series,
-        ),
+        query=query,
     )
