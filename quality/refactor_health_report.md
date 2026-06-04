@@ -8,8 +8,10 @@ Phase: baseline/report-only
 Recent gateway hardening has reduced monolithic Workbench, router-registry, performance workspace,
 advisor-brief, risk drawdown, risk rolling, and risk attribution responsibilities by extracting
 focused service adapters and has extracted risk concentration response mapping behind a dedicated
-service module while preserving public behavior and keeping CI green. The remaining work is still
-substantial: large portfolio, risk workspace, contract, and client modules remain.
+service module. Shared risk unavailable-envelope helpers now centralize risk upstream failure
+detail mapping, risk-service unavailable supportability, and risk metadata construction while
+preserving public behavior and keeping CI green. The remaining work is still substantial: large
+portfolio, risk workspace, contract, and client modules remain.
 
 ## Health Signals
 
@@ -29,8 +31,9 @@ substantial: large portfolio, risk workspace, contract, and client modules remai
 
 1. Split `portfolio_service.py` into source-readiness, transaction/activity, income, workspace,
    and workflow-cue adapters.
-2. Continue splitting `risk_workspace_service.py` by risk surface, with shared unavailable-envelope
-   helpers as the next risk workspace target.
+2. Continue splitting `risk_workspace_service.py` by risk surface; the next risk workspace target
+   should be a bounded drawdown or rolling module extraction after the shared unavailable-envelope
+   helpers.
 3. Split `platform_capabilities_service.py` capability normalization into smaller adapters.
 4. Continue extracting performance workspace evidence and attribution helpers behind stable
    response contracts.
