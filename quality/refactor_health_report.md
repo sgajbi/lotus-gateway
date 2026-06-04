@@ -46,7 +46,7 @@ modules remain.
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
 | Unit/contract coverage | Healthy | 958 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
-| Total coverage | Healthy | 92.75%, above the 84% floor |
+| Total coverage | Healthy | 92.79%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
 | Modularity | Improving, incomplete | Foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
