@@ -383,6 +383,24 @@ def _build_partial_evidence_view_response(
     )
 
 
+def _record_partial_evidence_view(
+    *,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> None:
+    warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
+    partial_failures.append(
+        build_performance_failure(
+            "lotus-performance",
+            "PERFORMANCE_EVIDENCE_PARTIAL",
+            (
+                "Gateway resolved only partial execution or lineage evidence "
+                "for one or more performance calculations."
+            ),
+        )
+    )
+
+
 class PerformanceWorkspaceService:
     def __init__(
         self,
@@ -1566,16 +1584,9 @@ class PerformanceWorkspaceService:
                 context=request_context,
                 fetch_state=fetch_state,
             )
-        warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
-        partial_failures.append(
-            build_performance_failure(
-                "lotus-performance",
-                "PERFORMANCE_EVIDENCE_PARTIAL",
-                (
-                    "Gateway resolved only partial execution or lineage evidence "
-                    "for one or more performance calculations."
-                ),
-            )
+        _record_partial_evidence_view(
+            warnings=warnings,
+            partial_failures=partial_failures,
         )
         return _build_partial_evidence_view_response(
             context=request_context,
