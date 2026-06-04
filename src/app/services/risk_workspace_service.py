@@ -107,6 +107,18 @@ class RiskSummaryRequestContext:
     reporting_currency: str | None
 
 
+@dataclass(frozen=True)
+class RiskConcentrationRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    period: str
+    benchmark_code: str | None
+    as_of_date: str
+    report_start_date: str | None
+    report_end_date: str | None
+    reporting_currency: str | None
+
+
 class RiskWorkspaceService:
     def __init__(
         self,
@@ -227,49 +239,24 @@ class RiskWorkspaceService:
         benchmark_code: str | None,
     ) -> WorkbenchRiskConcentrationResponse:
         resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        cache_key = (
-            "concentration",
-            portfolio_id,
-            period,
-            resolved_as_of_date,
-            report_start_date or "",
-            report_end_date or "",
-            reporting_currency or "",
-            benchmark_code or "",
+        context = RiskConcentrationRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            period=period,
+            benchmark_code=benchmark_code,
+            as_of_date=resolved_as_of_date,
+            report_start_date=report_start_date,
+            report_end_date=report_end_date,
+            reporting_currency=reporting_currency,
         )
 
         async def _load() -> WorkbenchRiskConcentrationResponse:
-            payload = build_concentration_request(
-                portfolio_id=portfolio_id,
-                as_of_date=resolved_as_of_date,
-                reporting_currency=reporting_currency,
-            )
-            upstream_status, upstream_payload = await self._risk_client.post_risk_concentration(
-                payload=payload,
-                correlation_id=correlation_id,
-            )
-            if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(
-                upstream_payload, dict
-            ):
-                return unavailable_concentration(
-                    correlation_id=correlation_id,
-                    portfolio_id=portfolio_id,
-                    period=period,
-                    as_of_date=resolved_as_of_date,
-                    benchmark_code=benchmark_code,
-                    upstream_status=upstream_status,
-                    upstream_payload=upstream_payload,
-                )
-            return map_concentration_response(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                period=period,
-                as_of_date=resolved_as_of_date,
-                benchmark_code=benchmark_code,
-                upstream_payload=upstream_payload,
-            )
+            return await self._load_concentration_response(context)
 
-        response, cache_hit = await self._cache.get_or_set_with_status(key=cache_key, factory=_load)
+        response, cache_hit = await self._cache.get_or_set_with_status(
+            key=self._concentration_cache_key(context),
+            factory=_load,
+        )
         typed_response = cast(WorkbenchRiskConcentrationResponse, response)
         return typed_response.model_copy(
             update={
@@ -279,6 +266,53 @@ class RiskWorkspaceService:
                 ),
             },
             deep=True,
+        )
+
+    def _concentration_cache_key(
+        self,
+        context: RiskConcentrationRequestContext,
+    ) -> tuple[object, ...]:
+        return (
+            "concentration",
+            context.portfolio_id,
+            context.period,
+            context.as_of_date,
+            context.report_start_date or "",
+            context.report_end_date or "",
+            context.reporting_currency or "",
+            context.benchmark_code or "",
+        )
+
+    async def _load_concentration_response(
+        self,
+        context: RiskConcentrationRequestContext,
+    ) -> WorkbenchRiskConcentrationResponse:
+        payload = build_concentration_request(
+            portfolio_id=context.portfolio_id,
+            as_of_date=context.as_of_date,
+            reporting_currency=context.reporting_currency,
+        )
+        upstream_status, upstream_payload = await self._risk_client.post_risk_concentration(
+            payload=payload,
+            correlation_id=context.correlation_id,
+        )
+        if upstream_status >= status.HTTP_400_BAD_REQUEST or not isinstance(upstream_payload, dict):
+            return unavailable_concentration(
+                correlation_id=context.correlation_id,
+                portfolio_id=context.portfolio_id,
+                period=context.period,
+                as_of_date=context.as_of_date,
+                benchmark_code=context.benchmark_code,
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+        return map_concentration_response(
+            correlation_id=context.correlation_id,
+            portfolio_id=context.portfolio_id,
+            period=context.period,
+            as_of_date=context.as_of_date,
+            benchmark_code=context.benchmark_code,
+            upstream_payload=upstream_payload,
         )
 
     async def get_drawdown(
