@@ -9,6 +9,47 @@ from app.services.workbench_service_provider import risk_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
+PERIOD_QUERY = Query(
+    default="YTD",
+    description=RISK_PERIOD_QUERY_DESCRIPTION,
+    examples=["YTD"],
+)
+DETAIL_BASIS_QUERY = Query(
+    default="NET",
+    description="Requested net or gross basis for rolling-risk metrics.",
+    examples=["NET"],
+)
+BENCHMARK_CODE_QUERY = Query(
+    default=None,
+    description="Optional benchmark override used for relative rolling-risk context.",
+    examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+)
+AS_OF_DATE_QUERY = Query(
+    default=None,
+    description="Optional business as-of date in YYYY-MM-DD format.",
+    examples=["2026-02-24"],
+)
+REPORT_START_DATE_QUERY = Query(
+    default=None,
+    description=("Inclusive explicit start date when the caller requests an explicit risk window."),
+    examples=["2026-01-01"],
+)
+REPORT_END_DATE_QUERY = Query(
+    default=None,
+    description="Inclusive explicit end date when the caller requests an explicit risk window.",
+    examples=["2026-03-27"],
+)
+REPORTING_CURRENCY_QUERY = Query(
+    default="USD",
+    description="Reporting currency used for stateful rolling-risk and risk-free-rate sourcing.",
+    examples=["USD"],
+)
+INCLUDE_TIME_SERIES_QUERY = Query(
+    default=False,
+    description="Whether to include the heavier rolling time-series detail for drill-down flows.",
+    examples=[True],
+)
+
 
 @dataclass(frozen=True)
 class RiskRollingQuery:
@@ -23,52 +64,14 @@ class RiskRollingQuery:
 
 
 def build_risk_rolling_query(
-    period: str = Query(
-        default="YTD",
-        description=RISK_PERIOD_QUERY_DESCRIPTION,
-        examples=["YTD"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Requested net or gross basis for rolling-risk metrics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description="Optional benchmark override used for relative rolling-risk context.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    as_of_date: str | None = Query(
-        default=None,
-        description="Optional business as-of date in YYYY-MM-DD format.",
-        examples=["2026-02-24"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller requests an explicit risk window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date when the caller requests an explicit risk window.",
-        examples=["2026-03-27"],
-    ),
-    reporting_currency: str = Query(
-        default="USD",
-        description=(
-            "Reporting currency used for stateful rolling-risk and risk-free-rate sourcing."
-        ),
-        examples=["USD"],
-    ),
-    include_time_series: bool = Query(
-        default=False,
-        description=(
-            "Whether to include the heavier rolling time-series detail for drill-down flows."
-        ),
-        examples=[True],
-    ),
+    period: str = PERIOD_QUERY,
+    detail_basis: str = DETAIL_BASIS_QUERY,
+    benchmark_code: str | None = BENCHMARK_CODE_QUERY,
+    as_of_date: str | None = AS_OF_DATE_QUERY,
+    report_start_date: str | None = REPORT_START_DATE_QUERY,
+    report_end_date: str | None = REPORT_END_DATE_QUERY,
+    reporting_currency: str = REPORTING_CURRENCY_QUERY,
+    include_time_series: bool = INCLUDE_TIME_SERIES_QUERY,
 ) -> RiskRollingQuery:
     return RiskRollingQuery(
         period=period,
