@@ -121,6 +121,17 @@ class WorkspaceRequestContext:
 
 
 @dataclass(frozen=True)
+class WorkspaceDimensionContext:
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    requested_chart_frequency_supported: bool
+    requested_contribution_dimension_supported: bool
+    requested_attribution_dimension_supported: bool
+    segment: str
+
+
+@dataclass(frozen=True)
 class AttributionTrendRequestContext:
     overview: WorkbenchOverviewResponse
     warnings: list[str]
@@ -964,31 +975,10 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
-        (
-            resolved_chart_frequency,
-            requested_chart_frequency_supported,
-        ) = normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
-        (
-            resolved_contribution_dimension,
-            requested_contribution_dimension_supported,
-        ) = normalize_workspace_dimension(
-            requested_dimension=contribution_dimension,
-            supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
-            warnings=warnings,
-            warning_code="PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED",
-        )
-        (
-            resolved_attribution_dimension,
-            requested_attribution_dimension_supported,
-        ) = normalize_workspace_dimension(
-            requested_dimension=attribution_dimension,
-            supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
-            warnings=warnings,
-            warning_code="PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED",
-        )
-        shared_segment = resolve_shared_segment(
-            contribution_dimension=resolved_contribution_dimension,
-            attribution_dimension=resolved_attribution_dimension,
+        dimension_context = self._build_workspace_dimension_context(
+            chart_frequency=chart_frequency,
+            contribution_dimension=contribution_dimension,
+            attribution_dimension=attribution_dimension,
             warnings=warnings,
         )
         async with server_timing_span("perf-benchmark"):
@@ -1012,16 +1002,63 @@ class PerformanceWorkspaceService:
             report_end_date=report_end_date,
             report_start_date=report_start_date,
             effective_period=effective_period,
+            chart_frequency=dimension_context.chart_frequency,
+            contribution_dimension=dimension_context.contribution_dimension,
+            attribution_dimension=dimension_context.attribution_dimension,
+            detail_basis=detail_basis,
+            requested_chart_frequency_supported=(
+                dimension_context.requested_chart_frequency_supported
+            ),
+            requested_contribution_dimension_supported=(
+                dimension_context.requested_contribution_dimension_supported
+            ),
+            requested_attribution_dimension_supported=(
+                dimension_context.requested_attribution_dimension_supported
+            ),
+            segment=dimension_context.segment,
+            benchmark_code=resolved_benchmark_code,
+            benchmark_catalog_result=benchmark_catalog_result,
+        )
+
+    def _build_workspace_dimension_context(
+        self,
+        *,
+        chart_frequency: str,
+        contribution_dimension: str,
+        attribution_dimension: str,
+        warnings: list[str],
+    ) -> WorkspaceDimensionContext:
+        resolved_chart_frequency, requested_chart_frequency_supported = (
+            normalize_workspace_chart_frequency(chart_frequency=chart_frequency, warnings=warnings)
+        )
+        resolved_contribution_dimension, requested_contribution_dimension_supported = (
+            normalize_workspace_dimension(
+                requested_dimension=contribution_dimension,
+                supported_dimensions=SUPPORTED_CONTRIBUTION_DIMENSIONS,
+                warnings=warnings,
+                warning_code="PERFORMANCE_CONTRIBUTION_DIMENSION_NORMALIZED",
+            )
+        )
+        resolved_attribution_dimension, requested_attribution_dimension_supported = (
+            normalize_workspace_dimension(
+                requested_dimension=attribution_dimension,
+                supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
+                warnings=warnings,
+                warning_code="PERFORMANCE_ATTRIBUTION_DIMENSION_NORMALIZED",
+            )
+        )
+        return WorkspaceDimensionContext(
             chart_frequency=resolved_chart_frequency,
             contribution_dimension=resolved_contribution_dimension,
             attribution_dimension=resolved_attribution_dimension,
-            detail_basis=detail_basis,
             requested_chart_frequency_supported=requested_chart_frequency_supported,
-            requested_contribution_dimension_supported=requested_contribution_dimension_supported,
+            requested_contribution_dimension_supported=(requested_contribution_dimension_supported),
             requested_attribution_dimension_supported=requested_attribution_dimension_supported,
-            segment=shared_segment,
-            benchmark_code=resolved_benchmark_code,
-            benchmark_catalog_result=benchmark_catalog_result,
+            segment=resolve_shared_segment(
+                contribution_dimension=resolved_contribution_dimension,
+                attribution_dimension=resolved_attribution_dimension,
+                warnings=warnings,
+            ),
         )
 
     async def _build_workspace_summary_views(
