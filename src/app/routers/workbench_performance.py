@@ -99,6 +99,25 @@ def build_performance_summary_query(
     )
 
 
+async def _get_performance_summary(
+    *,
+    portfolio_id: str,
+    query: PerformanceSummaryQuery,
+) -> PerformanceWorkspaceSummaryResponse:
+    return await performance_workspace_service().get_performance_workspace_summary(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        contribution_dimension=query.contribution_dimension,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
+
+
 @router.get(
     "/{portfolio_id}/performance/summary",
     response_model=PerformanceWorkspaceSummaryResponse,
@@ -121,15 +140,7 @@ async def get_performance_workspace_summary(
     query: PerformanceSummaryQuery = Depends(build_performance_summary_query),
     _caller_context: None = Depends(require_performance_summary_caller_context),
 ) -> PerformanceWorkspaceSummaryResponse:
-    return await performance_workspace_service().get_performance_workspace_summary(
+    return await _get_performance_summary(
         portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=query.period,
-        chart_frequency=query.chart_frequency,
-        contribution_dimension=query.contribution_dimension,
-        attribution_dimension=query.attribution_dimension,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        explicit_start_date=query.report_start_date,
-        explicit_end_date=query.report_end_date,
+        query=query,
     )
