@@ -2208,39 +2208,21 @@ class PortfolioService:
         skip = 0
 
         while True:
-            status_code, payload = await self._get_portfolio_transactions_result(
+            result_payload = await self._load_transaction_rows_page(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
                 skip=skip,
                 limit=page_size,
-                transaction_type=None,
-                security_id=None,
-                instrument_id=None,
-                component_type=None,
-                linked_transaction_group_id=None,
-                fx_contract_id=None,
-                swap_event_id=None,
-                near_leg_group_id=None,
-                far_leg_group_id=None,
-                sort_by="transaction_date",
-                sort_order="asc",
                 start_date=start_date,
                 end_date=end_date,
                 reporting_currency=reporting_currency,
-            )
-            result_payload = self._require_payload(
-                result=(status_code, payload),
-                unavailable_detail_prefix="lotus-core transactions unavailable",
             )
             if resolved_reporting_currency is None:
                 resolved_reporting_currency = self._optional_str(
                     result_payload.get("reporting_currency")
                 )
-            page_rows = [
-                item for item in result_payload.get("transactions", []) if isinstance(item, dict)
-            ]
+            page_rows = self._transaction_page_rows(result_payload)
             rows.extend(page_rows)
             total = int(result_payload.get("total", len(page_rows)))
             skip += len(page_rows)
@@ -2248,6 +2230,49 @@ class PortfolioService:
                 break
 
         return resolved_reporting_currency, rows
+
+    async def _load_transaction_rows_page(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        skip: int,
+        limit: int,
+        start_date: str,
+        end_date: str,
+        reporting_currency: str | None,
+    ) -> dict[str, Any]:
+        status_code, payload = await self._get_portfolio_transactions_result(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=False,
+            skip=skip,
+            limit=limit,
+            transaction_type=None,
+            security_id=None,
+            instrument_id=None,
+            component_type=None,
+            linked_transaction_group_id=None,
+            fx_contract_id=None,
+            swap_event_id=None,
+            near_leg_group_id=None,
+            far_leg_group_id=None,
+            sort_by="transaction_date",
+            sort_order="asc",
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
+        )
+        return self._require_payload(
+            result=(status_code, payload),
+            unavailable_detail_prefix="lotus-core transactions unavailable",
+        )
+
+    @staticmethod
+    def _transaction_page_rows(result_payload: dict[str, Any]) -> list[dict[str, Any]]:
+        return [item for item in result_payload.get("transactions", []) if isinstance(item, dict)]
 
     def _summarize_income_rows(
         self,
