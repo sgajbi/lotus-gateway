@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
@@ -68,6 +69,25 @@ from app.services.workspace_client_protocols import (
     PortfolioManageClient,
     PortfolioPerformanceClient,
 )
+
+UpstreamResult = tuple[int, dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceSourceResults:
+    portfolio_result: UpstreamResult
+    aum_result: UpstreamResult
+    support_result: UpstreamResult
+    cashflow_result: UpstreamResult
+    cash_balance_result: UpstreamResult
+    readiness_result: UpstreamResult
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceAnalyticsResults:
+    performance_result: UpstreamResult | None
+    rebalance_result: UpstreamResult | None
+    rebalance_supportability_result: UpstreamResult | None
 
 
 class PortfolioService:
@@ -461,6 +481,39 @@ class PortfolioService:
         reporting_currency: str | None = None,
     ) -> PortfolioWorkspaceResponse:
         effective_as_of_date = as_of_date or datetime.now(UTC).date().isoformat()
+        source_results = await self._load_portfolio_workspace_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        resolved_as_of_date = (
+            self._extract_resolved_as_of_date(source_results.aum_result) or effective_as_of_date
+        )
+        performance_as_of_date = as_of_date or resolved_as_of_date
+        analytics_results = await self._load_portfolio_workspace_analytics(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            performance_as_of_date=performance_as_of_date,
+        )
+        return self._build_portfolio_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            resolved_as_of_date=resolved_as_of_date,
+            reporting_currency=reporting_currency,
+            source_results=source_results,
+            analytics_results=analytics_results,
+        )
+
+    async def _load_portfolio_workspace_sources(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        reporting_currency: str | None,
+    ) -> PortfolioWorkspaceSourceResults:
         (
             portfolio_result,
             aum_result,
@@ -499,8 +552,22 @@ class PortfolioService:
                 as_of_date=effective_as_of_date,
             ),
         )
-        resolved_as_of_date = self._extract_resolved_as_of_date(aum_result) or effective_as_of_date
-        performance_as_of_date = as_of_date or resolved_as_of_date
+        return PortfolioWorkspaceSourceResults(
+            portfolio_result=portfolio_result,
+            aum_result=aum_result,
+            support_result=support_result,
+            cashflow_result=cashflow_result,
+            cash_balance_result=cash_balance_result,
+            readiness_result=readiness_result,
+        )
+
+    async def _load_portfolio_workspace_analytics(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        performance_as_of_date: str,
+    ) -> PortfolioWorkspaceAnalyticsResults:
         (
             performance_result,
             rebalance_result,
@@ -519,36 +586,66 @@ class PortfolioService:
                 correlation_id=correlation_id,
             ),
         )
+        return PortfolioWorkspaceAnalyticsResults(
+            performance_result=performance_result,
+            rebalance_result=rebalance_result,
+            rebalance_supportability_result=rebalance_supportability_result,
+        )
+
+    def _build_portfolio_workspace_response(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        resolved_as_of_date: str,
+        reporting_currency: str | None,
+        source_results: PortfolioWorkspaceSourceResults,
+        analytics_results: PortfolioWorkspaceAnalyticsResults,
+    ) -> PortfolioWorkspaceResponse:
         portfolio_payload = self._require_payload(
-            result=portfolio_result,
+            result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
         )
         self._raise_on_upstream_client_error(
-            support_result,
+            source_results.support_result,
             detail_prefix="lotus-core support overview rejected the request",
         )
         self._raise_on_upstream_client_error(
-            readiness_result,
+            source_results.readiness_result,
             detail_prefix="lotus-core portfolio readiness rejected the request",
         )
         portfolio = self._parse_portfolio_identity(portfolio_payload)
         profile = self._parse_portfolio_profile(portfolio_payload)
         warnings: list[str] = []
         partial_failures: list[PortfolioPartialFailure] = []
-        summary = self._parse_summary(aum_result, cash_balance_result, warnings, partial_failures)
-        cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
+        summary = self._parse_summary(
+            source_results.aum_result,
+            source_results.cash_balance_result,
+            warnings,
+            partial_failures,
+        )
+        cashflow_outlook = self._parse_cashflow(
+            source_results.cashflow_result,
+            warnings,
+            partial_failures,
+        )
         performance = self._parse_workspace_performance(
-            performance_result,
+            analytics_results.performance_result,
             warnings,
             partial_failures,
         )
         rebalance = self._parse_workspace_rebalance(
-            rebalance_result,
-            rebalance_supportability_result,
+            analytics_results.rebalance_result,
+            analytics_results.rebalance_supportability_result,
             warnings,
             partial_failures,
         )
-        operations = self._parse_operations(support_result, warnings, partial_failures)
+        operations = self._parse_operations(
+            source_results.support_result,
+            warnings,
+            partial_failures,
+        )
         return PortfolioWorkspaceResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -559,7 +656,7 @@ class PortfolioService:
             cashflow_outlook=cashflow_outlook,
             performance=performance,
             rebalance=rebalance,
-            reporting=self._reporting_readiness(summary, readiness_result),
+            reporting=self._reporting_readiness(summary, source_results.readiness_result),
             operations=operations,
             control_capabilities=self._build_workspace_control_capabilities(
                 portfolio=portfolio,
