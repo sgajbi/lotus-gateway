@@ -46,24 +46,8 @@ def map_summary_response(
     results = upstream_payload.get("results")
     warnings: list[str] = []
     partial_failures: list[WorkbenchPartialFailure] = []
-    period_results: list[WorkbenchRiskPeriodResult] = []
-    supportability = [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_returns",
-            label="Portfolio returns",
-            state="ready" if isinstance(results, dict) and results else "unavailable",
-            source_service="lotus-risk",
-        )
-    ]
-    metric_states: dict[str, str] = {}
-    if isinstance(results, dict):
-        for key, value in results.items():
-            if not isinstance(value, dict):
-                continue
-            mapped_period = _map_summary_period(key=key, value=value)
-            for metric in mapped_period.metrics:
-                metric_states[metric.key] = metric.state
-            period_results.append(mapped_period)
+    period_results, metric_states = _map_summary_periods(results)
+    supportability = _portfolio_returns_supportability(results)
 
     supportability.extend(_metric_dependency_supportability(metric_states, benchmark_code))
     _append_source_calculation_supportability(
@@ -122,6 +106,36 @@ def unavailable_summary(
         ],
         metadata=risk_metadata(input_mode="stateful", cache_status="miss"),
     )
+
+
+def _portfolio_returns_supportability(
+    results: object,
+) -> list[WorkbenchRiskSupportabilityItem]:
+    return [
+        WorkbenchRiskSupportabilityItem(
+            key="portfolio_returns",
+            label="Portfolio returns",
+            state="ready" if isinstance(results, dict) and results else "unavailable",
+            source_service="lotus-risk",
+        )
+    ]
+
+
+def _map_summary_periods(
+    results: object,
+) -> tuple[list[WorkbenchRiskPeriodResult], dict[str, str]]:
+    period_results: list[WorkbenchRiskPeriodResult] = []
+    metric_states: dict[str, str] = {}
+    if not isinstance(results, dict):
+        return period_results, metric_states
+    for key, value in results.items():
+        if not isinstance(value, dict):
+            continue
+        mapped_period = _map_summary_period(key=key, value=value)
+        for metric in mapped_period.metrics:
+            metric_states[metric.key] = metric.state
+        period_results.append(mapped_period)
+    return period_results, metric_states
 
 
 def _map_summary_period(*, key: Any, value: dict[str, Any]) -> WorkbenchRiskPeriodResult:
