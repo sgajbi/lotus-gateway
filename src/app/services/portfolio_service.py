@@ -105,6 +105,30 @@ class PortfolioWorkspaceComponents:
 
 
 @dataclass(frozen=True)
+class PortfolioTransactionsRequestContext:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    include_projected: bool
+    skip: int
+    limit: int
+    transaction_type: str | None
+    security_id: str | None
+    instrument_id: str | None
+    component_type: str | None
+    linked_transaction_group_id: str | None
+    fx_contract_id: str | None
+    swap_event_id: str | None
+    near_leg_group_id: str | None
+    far_leg_group_id: str | None
+    sort_by: str
+    sort_order: str
+    start_date: str | None
+    end_date: str | None
+    reporting_currency: str | None
+
+
+@dataclass(frozen=True)
 class PortfolioWorkflowActionSpec:
     title: str
     impact: str
@@ -380,51 +404,85 @@ class PortfolioService:
         end_date: str | None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
+        context = PortfolioTransactionsRequestContext(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            skip=skip,
+            limit=limit,
+            transaction_type=transaction_type,
+            security_id=security_id,
+            instrument_id=instrument_id,
+            component_type=component_type,
+            linked_transaction_group_id=linked_transaction_group_id,
+            fx_contract_id=fx_contract_id,
+            swap_event_id=swap_event_id,
+            near_leg_group_id=near_leg_group_id,
+            far_leg_group_id=far_leg_group_id,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            start_date=start_date,
+            end_date=end_date,
+            reporting_currency=reporting_currency,
+        )
         return await self._get_cached_upstream_result(
-            (
-                "transactions",
-                portfolio_id,
-                as_of_date,
-                include_projected,
-                skip,
-                limit,
-                transaction_type,
-                security_id,
-                instrument_id,
-                component_type,
-                linked_transaction_group_id,
-                fx_contract_id,
-                swap_event_id,
-                near_leg_group_id,
-                far_leg_group_id,
-                sort_by,
-                sort_order,
-                start_date,
-                end_date,
-                reporting_currency,
-            ),
-            lambda: self._lotus_core_query_client.get_portfolio_transactions(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                include_projected=include_projected,
-                skip=skip,
-                limit=limit,
-                sort_by=sort_by,
-                sort_order=sort_order,
-                transaction_type=transaction_type,
-                security_id=security_id,
-                instrument_id=instrument_id,
-                component_type=component_type,
-                linked_transaction_group_id=linked_transaction_group_id,
-                fx_contract_id=fx_contract_id,
-                swap_event_id=swap_event_id,
-                near_leg_group_id=near_leg_group_id,
-                far_leg_group_id=far_leg_group_id,
-                start_date=start_date,
-                end_date=end_date,
-                reporting_currency=reporting_currency,
-            ),
+            self._portfolio_transactions_cache_key(context),
+            lambda: self._fetch_portfolio_transactions(context),
+        )
+
+    def _portfolio_transactions_cache_key(
+        self,
+        context: PortfolioTransactionsRequestContext,
+    ) -> tuple[object, ...]:
+        return (
+            "transactions",
+            context.portfolio_id,
+            context.as_of_date,
+            context.include_projected,
+            context.skip,
+            context.limit,
+            context.transaction_type,
+            context.security_id,
+            context.instrument_id,
+            context.component_type,
+            context.linked_transaction_group_id,
+            context.fx_contract_id,
+            context.swap_event_id,
+            context.near_leg_group_id,
+            context.far_leg_group_id,
+            context.sort_by,
+            context.sort_order,
+            context.start_date,
+            context.end_date,
+            context.reporting_currency,
+        )
+
+    async def _fetch_portfolio_transactions(
+        self,
+        context: PortfolioTransactionsRequestContext,
+    ) -> tuple[int, dict[str, Any]]:
+        return await self._lotus_core_query_client.get_portfolio_transactions(
+            portfolio_id=context.portfolio_id,
+            correlation_id=context.correlation_id,
+            as_of_date=context.as_of_date,
+            include_projected=context.include_projected,
+            skip=context.skip,
+            limit=context.limit,
+            sort_by=context.sort_by,
+            sort_order=context.sort_order,
+            transaction_type=context.transaction_type,
+            security_id=context.security_id,
+            instrument_id=context.instrument_id,
+            component_type=context.component_type,
+            linked_transaction_group_id=context.linked_transaction_group_id,
+            fx_contract_id=context.fx_contract_id,
+            swap_event_id=context.swap_event_id,
+            near_leg_group_id=context.near_leg_group_id,
+            far_leg_group_id=context.far_leg_group_id,
+            start_date=context.start_date,
+            end_date=context.end_date,
+            reporting_currency=context.reporting_currency,
         )
 
     async def _get_portfolio_readiness_result(
