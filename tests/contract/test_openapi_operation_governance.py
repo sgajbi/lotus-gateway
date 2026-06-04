@@ -35,3 +35,21 @@ def test_public_operations_document_description_tags_and_errors() -> None:
     assert missing_descriptions == []
     assert missing_tags == []
     assert missing_error_responses == []
+
+
+def test_public_operation_tags_have_global_descriptions() -> None:
+    spec = TestClient(app).get("/openapi.json").json()
+
+    operation_tags = {
+        tag
+        for path_item in spec["paths"].values()
+        for method, operation in path_item.items()
+        if method in OPENAPI_METHODS
+        for tag in operation.get("tags", [])
+    }
+    global_tag_descriptions = {
+        tag["name"]: tag.get("description", "") for tag in spec.get("tags", [])
+    }
+
+    assert sorted(operation_tags - set(global_tag_descriptions)) == []
+    assert [tag for tag in sorted(operation_tags) if not global_tag_descriptions[tag].strip()] == []

@@ -26,10 +26,31 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         ),
     },
     {
+        "name": "advisory-policy",
+        "description": (
+            "Gateway-facing advisory policy pack, evaluation, evidence, workflow, validation, "
+            "and sign-off APIs backed by lotus-advise policy authority."
+        ),
+    },
+    {
+        "name": "advisory-workspaces",
+        "description": (
+            "Gateway-facing advisory workspace draft, comparison, rationale, handoff, replay, "
+            "version, and assistant APIs backed by lotus-advise workspace authority."
+        ),
+    },
+    {
         "name": "Composite Performance",
         "description": (
             "Gateway-facing composite performance operations backed by lotus-performance "
             "source-owned calculation, inspection, lineage, and evidence contracts."
+        ),
+    },
+    {
+        "name": "domain-products",
+        "description": (
+            "Gateway discovery facade for governed domain-product catalogs, detail, dependency "
+            "graphs, and trust certification evidence."
         ),
     },
     {
@@ -48,10 +69,59 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         ),
     },
     {
+        "name": "foundation",
+        "description": (
+            "Gateway-facing Foundation portfolio catalog and workspace APIs backed by source "
+            "portfolio, identity, allocation, and reference-data truth."
+        ),
+    },
+    {
+        "name": "intake",
+        "description": (
+            "Gateway-facing intake package, upload, and commit APIs for governed front-office "
+            "portfolio onboarding workflows."
+        ),
+    },
+    {
+        "name": "lookups",
+        "description": (
+            "Gateway-facing lookup catalogs for portfolio, instrument, currency, and related "
+            "front-office selector data."
+        ),
+    },
+    {
         "name": "advisor-cockpit",
         "description": (
             "Gateway-facing advisor cockpit action, snapshot, supportability, and "
             "acknowledgement APIs backed by lotus-advise source truth."
+        ),
+    },
+    {
+        "name": "platform",
+        "description": (
+            "Gateway-facing platform capability, shell bootstrap, and source health composition "
+            "APIs for governed Workbench runtime discovery."
+        ),
+    },
+    {
+        "name": "portfolio",
+        "description": (
+            "Gateway-facing portfolio catalog, workspace, book, position, transaction, "
+            "performance, readiness, workflow, and liquidity APIs backed by portfolio source truth."
+        ),
+    },
+    {
+        "name": "proposals",
+        "description": (
+            "Gateway-facing proposal creation, state transition, memo, lineage, execution, "
+            "reporting, and workflow APIs backed by proposal source authority."
+        ),
+    },
+    {
+        "name": "workbench",
+        "description": (
+            "Gateway-facing Workbench overview, analytics, portfolio 360, performance, risk, "
+            "sandbox, and advisor-brief composition APIs."
         ),
     },
     {
