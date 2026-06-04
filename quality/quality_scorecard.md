@@ -1,13 +1,13 @@
 # Quality Scorecard
 
-Date: 2026-06-04
+Date: 2026-06-05
 Mode: baseline/report-only
 
 | Dimension | Score | Baseline status | Next action |
 | --- | ---: | --- | --- |
 | Build and test reliability | 4/5 | Strong repo-native gates and green PR lanes | Keep Docker parity blocking |
 | Coverage | 4/5 | 92.84% total coverage | Add targeted middleware/security/error tests |
-| Modularity | 3/5 | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, rebalance supportability failure recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; large services and contracts remain | Continue extraction slices |
+| Modularity | 3/5 | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, rebalance supportability failure recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, shell bootstrap, shared analytics request polling, workspace-summary payload assembly, portfolio transaction-summary context, transaction page loading, and portfolio book response assembly extracted; large services and contracts remain | Continue extraction slices and reduce largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 3/5 | Good generated OpenAPI; minor description/tag/error gaps | Add Spectral artifact and explicit API tests |
 | Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions | Normalize route/upstream errors |
@@ -37,7 +37,7 @@ Candidate thresholds:
 2. no new forbidden imports,
 3. no new high-confidence dead-code findings,
 4. no new high-severity bandit findings,
-5. no new file/function above the current baseline maxima of 2,795 file lines and 74 function lines.
+5. no new file/function above the current branch maxima of 3,155 file lines and 62 function lines.
 
 ### Phase 3: Enforce Agreed Thresholds
 

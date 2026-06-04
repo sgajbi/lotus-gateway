@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,795 lines,
-2. `src/app/services/performance_workspace_service.py` at 1,459 lines,
-3. `src/app/services/advisor_brief_service.py` at 1,397 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,095 lines,
-5. `src/app/services/dpm_wave_service.py` at 902 lines.
+1. `src/app/services/portfolio_service.py` at 3,155 lines,
+2. `src/app/services/performance_workspace_service.py` at 1,673 lines,
+3. `src/app/services/advisor_brief_service.py` at 1,581 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
+5. `src/app/services/dpm_wave_service.py` at 1,030 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -115,9 +115,10 @@ portfolio position parsing, performance workspace request-context assembly, advi
 portfolio performance route dependencies, risk drawdown orchestration, core snapshot summary
 parsing, portfolio workspace response-component assembly, risk attribution route query extraction,
 performance summary route dependency extraction, shell workspace descriptor-state extraction, and
-rebalance supportability failure-recording extraction. The current longest functions are
-`list_report_jobs`, `build_portfolio_performance_snapshot_query`, and `_post_analytics_request` at
-74 lines.
+rebalance supportability failure-recording extraction. The latest hardening branch further splits
+shared analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
+context loading, transaction page loading, and portfolio book response assembly. The current
+longest function is `build_performance_attribution_trend_query` at 62 lines.
 
 ## Progressive Enforcement
 
