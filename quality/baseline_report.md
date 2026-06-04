@@ -10,7 +10,7 @@ This baseline covers the current gateway hardening state after the report-only q
 lane, router-registry split, performance workspace response split, and advisor-brief response
 split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
-risk drawdown response module extraction, and risk rolling response module extraction.
+risk drawdown, rolling, and attribution response module extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -18,9 +18,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 647 |
-| Python source files under `src/app` | 435 |
-| Python test files under `tests` | 151 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 659 |
+| Python source files under `src/app` | 436 |
+| Python test files under `tests` | 152 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
 
@@ -35,9 +35,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 6 | 1,392 | `src/app/services/advisor_brief_service.py` |
 | 7 | 1,362 | `src/app/clients/dpm_client.py` |
-| 8 | 1,185 | `src/app/services/risk_workspace_service.py` |
-| 9 | 1,152 | `src/app/services/performance_workspace_service.py` |
-| 10 | 1,098 | `src/app/clients/advise_client.py` |
+| 8 | 1,152 | `src/app/services/performance_workspace_service.py` |
+| 9 | 1,098 | `src/app/clients/advise_client.py` |
+| 10 | 1,032 | `src/app/services/dpm_command_center_service.py` |
 
 ## Largest Functions
 
@@ -71,10 +71,10 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 938 unit/contract tests passed.
+1. `make check`: 942 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,145 coverage tests passed.
-4. Coverage: 92.65%.
+3. `make ci`: 1,149 coverage tests passed.
+4. Coverage: 92.72%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
