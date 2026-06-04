@@ -29,6 +29,14 @@ class WorkspaceDescriptorSpec:
     source_supportability_source: str | None = None
 
 
+@dataclass(frozen=True)
+class WorkspaceDescriptorState:
+    supportability_state: str
+    evidence_state: str
+    freshness_state: str
+    reasons: list[str]
+
+
 WORKSPACE_DESCRIPTOR_SPECS = (
     WorkspaceDescriptorSpec(
         workspace_id="portfolio",
@@ -227,26 +235,13 @@ def build_workspace_descriptor(
     cache_mode: str,
     stale_read_tolerance: str,
 ) -> PlatformShellWorkspaceDescriptor:
-    source_health = module_health_by_source.get(dependency_source, "unknown")
-    if enabled and source_health == "available":
-        supportability_state = "ready"
-        evidence_state = "source_backed"
-        freshness_state = "current"
-        reasons: list[str] = []
-    elif source_health == "unavailable":
-        supportability_state = "partial"
-        evidence_state = "partial"
-        freshness_state = "partial"
-        reasons = [f"{dependency_source}_unavailable"]
-    else:
-        supportability_state = "unavailable"
-        evidence_state = "unavailable"
-        freshness_state = "unavailable"
-        reasons = [f"{workspace_id}_disabled"] if not enabled else [f"{dependency_source}_unknown"]
-    if source_supportability is not None and source_health == "available":
-        supportability_state = str(source_supportability.get("state") or supportability_state)
-        source_reason = source_supportability.get("reason")
-        reasons = [str(source_reason)] if source_reason else reasons
+    descriptor_state = workspace_descriptor_state(
+        workspace_id=workspace_id,
+        enabled=enabled,
+        dependency_source=dependency_source,
+        source_supportability=source_supportability,
+        source_health=module_health_by_source.get(dependency_source, "unknown"),
+    )
 
     return PlatformShellWorkspaceDescriptor(
         id=workspace_id,
@@ -254,17 +249,17 @@ def build_workspace_descriptor(
         href=href,
         enabled=enabled,
         supportability=PlatformBootstrapSupportability(
-            state=supportability_state,
-            reasons=reasons,
+            state=descriptor_state.supportability_state,
+            reasons=descriptor_state.reasons,
         ),
         freshness=PlatformBootstrapFreshness(
-            state=freshness_state,
+            state=descriptor_state.freshness_state,
             freshnessClass=freshness_class,
             evaluatedAt=evaluated_at,
             maxAgeSeconds=max_age_seconds,
         ),
         evidence=PlatformBootstrapEvidence(
-            state=evidence_state,
+            state=descriptor_state.evidence_state,
             lineageSources=[dependency_source],
             partialFailure=dependency_source in error_services,
             sourceErrorServices=(
@@ -284,6 +279,62 @@ def build_workspace_descriptor(
             ttlSeconds=max_age_seconds,
             correctnessCritical=freshness_class == "workflow_truth",
         ),
+    )
+
+
+def workspace_descriptor_state(
+    *,
+    workspace_id: str,
+    enabled: bool,
+    dependency_source: str,
+    source_supportability: dict[str, Any] | None,
+    source_health: str,
+) -> WorkspaceDescriptorState:
+    if enabled and source_health == "available":
+        descriptor_state = WorkspaceDescriptorState(
+            supportability_state="ready",
+            evidence_state="source_backed",
+            freshness_state="current",
+            reasons=[],
+        )
+    elif source_health == "unavailable":
+        descriptor_state = WorkspaceDescriptorState(
+            supportability_state="partial",
+            evidence_state="partial",
+            freshness_state="partial",
+            reasons=[f"{dependency_source}_unavailable"],
+        )
+    else:
+        reason = f"{workspace_id}_disabled" if not enabled else f"{dependency_source}_unknown"
+        descriptor_state = WorkspaceDescriptorState(
+            supportability_state="unavailable",
+            evidence_state="unavailable",
+            freshness_state="unavailable",
+            reasons=[reason],
+        )
+    return apply_source_supportability(
+        descriptor_state=descriptor_state,
+        source_health=source_health,
+        source_supportability=source_supportability,
+    )
+
+
+def apply_source_supportability(
+    *,
+    descriptor_state: WorkspaceDescriptorState,
+    source_health: str,
+    source_supportability: dict[str, Any] | None,
+) -> WorkspaceDescriptorState:
+    if source_supportability is None or source_health != "available":
+        return descriptor_state
+    source_reason = source_supportability.get("reason")
+    return WorkspaceDescriptorState(
+        supportability_state=str(
+            source_supportability.get("state") or descriptor_state.supportability_state
+        ),
+        evidence_state=descriptor_state.evidence_state,
+        freshness_state=descriptor_state.freshness_state,
+        reasons=[str(source_reason)] if source_reason else descriptor_state.reasons,
     )
 
 
