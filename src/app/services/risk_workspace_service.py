@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from numbers import Real
 from typing import Any, cast
 
@@ -61,6 +61,11 @@ from app.services.risk_workspace_attribution_controls import (
 from app.services.risk_workspace_concentration import (
     map_concentration_response,
     unavailable_concentration,
+)
+from app.services.risk_workspace_envelopes import (
+    risk_metadata,
+    risk_upstream_failure,
+    unavailable_risk_service_supportability,
 )
 from app.services.risk_workspace_requests import (
     SUMMARY_METRICS as _SUMMARY_METRICS,
@@ -1612,17 +1617,16 @@ def _unavailable_summary(
         benchmark_code=benchmark_code,
         state="unavailable",
         payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service",
-                label="Risk service",
-                state="unavailable",
-                reason="lotus-risk summary endpoint is unavailable.",
-                source_service="lotus-risk",
+        supportability=unavailable_risk_service_supportability(
+            reason="lotus-risk summary endpoint is unavailable."
+        ),
+        warnings=["RISK_SUMMARY_UNAVAILABLE"],
+        partial_failures=[
+            risk_upstream_failure(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
             )
         ],
-        warnings=["RISK_SUMMARY_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
@@ -1651,17 +1655,14 @@ def _unavailable_drawdown(
         benchmark_code=benchmark_code,
         state="unavailable",
         payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service",
-                label="Risk service",
-                state="unavailable",
-                reason=reason,
-                source_service="lotus-risk",
+        supportability=unavailable_risk_service_supportability(reason=reason),
+        warnings=["RISK_DRAWDOWN_UNAVAILABLE"],
+        partial_failures=[
+            risk_upstream_failure(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
             )
         ],
-        warnings=["RISK_DRAWDOWN_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
@@ -1690,17 +1691,14 @@ def _unavailable_rolling(
         benchmark_code=benchmark_code,
         state="unavailable",
         payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service",
-                label="Risk service",
-                state="unavailable",
-                reason=reason,
-                source_service="lotus-risk",
+        supportability=unavailable_risk_service_supportability(reason=reason),
+        warnings=["RISK_ROLLING_UNAVAILABLE"],
+        partial_failures=[
+            risk_upstream_failure(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
             )
         ],
-        warnings=["RISK_ROLLING_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
@@ -1738,30 +1736,18 @@ def _unavailable_attribution(
             grouping_dimension=grouping_dimension,
         ),
         warnings=["RISK_ATTRIBUTION_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
+        partial_failures=[
+            risk_upstream_failure(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
+            )
+        ],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
 
-def _upstream_failure(upstream_status: int, upstream_payload: Any) -> WorkbenchPartialFailure:
-    detail = (
-        str(upstream_payload.get("detail", upstream_payload))
-        if isinstance(upstream_payload, dict)
-        else str(upstream_payload)
-    )
-    return WorkbenchPartialFailure(
-        source_service="risk",
-        error_code=f"HTTP_{upstream_status}",
-        detail=detail,
-    )
-
-
 def _metadata(*, input_mode: str, cache_status: str) -> WorkbenchRiskMetadata:
-    return WorkbenchRiskMetadata(
-        generated_at=datetime.now(tz=UTC).isoformat(),
-        input_mode=cast(Any, input_mode),
-        cache_status=cast(Any, cache_status),
-    )
+    return risk_metadata(input_mode=input_mode, cache_status=cache_status)
 
 
 def _latest_business_day(today: date | None = None) -> date:
