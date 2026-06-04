@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskDrawdownResponse
 from app.middleware.correlation import correlation_id_var
@@ -22,45 +22,7 @@ class RiskDrawdownQuery:
     include_underwater_series: bool
 
 
-async def _get_risk_drawdown(
-    portfolio_id: str,
-    query: RiskDrawdownQuery,
-) -> WorkbenchRiskDrawdownResponse:
-    service = risk_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_drawdown(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=query.period,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        as_of_date=query.as_of_date,
-        report_start_date=query.report_start_date,
-        report_end_date=query.report_end_date,
-        reporting_currency=query.reporting_currency,
-        include_underwater_series=query.include_underwater_series,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/risk/drawdown",
-    response_model=WorkbenchRiskDrawdownResponse,
-    summary="Get Workbench Risk Drawdown",
-    description=(
-        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench "
-        "max-drawdown, episode, and benchmark-relative review. Use this route for first-paint "
-        "drawdown posture and request `include_underwater_series=true` only for the heavier "
-        "underwater-path drill-down surface."
-    ),
-)
-async def get_workbench_risk_drawdown(
-    portfolio_id: str = Path(
-        ...,
-        description=(
-            "Canonical portfolio identifier for the stateful workbench risk drawdown surface."
-        ),
-        examples=["PF_1001"],
-    ),
+def build_risk_drawdown_query(
     period: str = Query(
         default="YTD",
         description=RISK_PERIOD_QUERY_DESCRIPTION,
@@ -103,17 +65,61 @@ async def get_workbench_risk_drawdown(
         description="Whether to include the heavier underwater-series detail for drill-down flows.",
         examples=[True],
     ),
+) -> RiskDrawdownQuery:
+    return RiskDrawdownQuery(
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=as_of_date,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
+        include_underwater_series=include_underwater_series,
+    )
+
+
+async def _get_risk_drawdown(
+    portfolio_id: str,
+    query: RiskDrawdownQuery,
+) -> WorkbenchRiskDrawdownResponse:
+    service = risk_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_drawdown(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        as_of_date=query.as_of_date,
+        report_start_date=query.report_start_date,
+        report_end_date=query.report_end_date,
+        reporting_currency=query.reporting_currency,
+        include_underwater_series=query.include_underwater_series,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/risk/drawdown",
+    response_model=WorkbenchRiskDrawdownResponse,
+    summary="Get Workbench Risk Drawdown",
+    description=(
+        "Returns Gateway-shaped, stateful lotus-risk drawdown analytics for Workbench "
+        "max-drawdown, episode, and benchmark-relative review. Use this route for first-paint "
+        "drawdown posture and request `include_underwater_series=true` only for the heavier "
+        "underwater-path drill-down surface."
+    ),
+)
+async def get_workbench_risk_drawdown(
+    portfolio_id: str = Path(
+        ...,
+        description=(
+            "Canonical portfolio identifier for the stateful workbench risk drawdown surface."
+        ),
+        examples=["PF_1001"],
+    ),
+    query: RiskDrawdownQuery = Depends(build_risk_drawdown_query),
 ) -> WorkbenchRiskDrawdownResponse:
     return await _get_risk_drawdown(
         portfolio_id=portfolio_id,
-        query=RiskDrawdownQuery(
-            period=period,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            as_of_date=as_of_date,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-            reporting_currency=reporting_currency,
-            include_underwater_series=include_underwater_series,
-        ),
+        query=query,
     )
