@@ -10,9 +10,9 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `portfolio_service.py` at 2,617 lines after the
-  portfolio workspace, insight-rule, and workflow-action extractions, with the repository
-  longest-function baseline reduced to 80 lines
+- current enterprise-hardening evidence records `portfolio_service.py` at 2,795 lines after the
+  portfolio workspace, insight-rule, workflow-action, and typed response-component extractions,
+  with the repository longest-function baseline reduced to 76 lines
 
 ## Route-family map
 
@@ -82,9 +82,10 @@
 13. performance workspace capability state derivation is isolated behind
     `PerformanceCapabilityInputs` and `resolve_history_date_range`; capability payload assembly
     remains in `src/app/services/performance_workspace_capabilities.py`.
-14. portfolio workspace source/analytics assembly and position parsing, foundation workspace
-    assembly and response composition, performance workspace summary/detail, horizon,
-    attribution-trend, and request contexts, risk rolling/attribution orchestration and attribution
-    supportability, shell workspace descriptor specs, DPM PM quality summary orchestration, and
-    portfolio transaction query contracts now sit behind focused helpers so public route/service
-    methods stay orchestration-oriented.
+14. portfolio workspace source/analytics assembly, response-component assembly, and position
+    parsing, foundation workspace assembly and response composition, performance workspace
+    summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,
+    risk drawdown/rolling/attribution orchestration and attribution supportability, risk
+    attribution route queries, shell workspace descriptor specs, DPM PM quality summary
+    orchestration, advisor-brief route dependencies, and portfolio transaction query contracts now
+    sit behind focused helpers so public route/service methods stay orchestration-oriented.

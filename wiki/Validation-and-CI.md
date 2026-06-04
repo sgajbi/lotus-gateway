@@ -78,6 +78,12 @@ quality summary context now uses the specific PM operating quality supportabilit
 keeping the Feature Lane mypy gate green. Attribution trend row parsing, portfolio position
 parsing, and performance workspace request-context splits then lowered the repository
 longest-function baseline from 82 lines to 80 lines, with `portfolio_service.py` currently
-measured at 2,617 lines. Local `make check` remains green with 967 unit/contract tests, and the
-latest pushed code slices have green Remote Feature Lane and Quality Baseline runs as of this
-evidence update.
+measured at 2,617 lines. Advisor-brief route dependency, portfolio performance snapshot query,
+risk drawdown orchestration, core snapshot summary parsing, portfolio workspace response-component,
+risk attribution route query, and performance summary route dependency splits then lowered the
+repository longest-function baseline from 80 lines to 76 lines. `portfolio_service.py` is now
+measured at 2,795 lines after explicit typed workspace component assembly, so it remains the
+largest-file hotspot. Local `make check` remains green with 967 unit/contract tests, and the latest
+focused slices have local router/service/contract, boundary, lint, format, mypy, and
+monetary-float evidence. GitHub Feature Lane and Quality Baseline runs remain the authoritative
+remote evidence and must be rechecked before PR readiness.

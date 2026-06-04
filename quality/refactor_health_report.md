@@ -75,8 +75,13 @@ separate upstream-result validation, period selection, period-payload extraction
 projection helpers. Portfolio position parsing now has a per-position mapper and reusable
 valuation conversion helpers without adding monetary-float allowlist debt. Performance workspace
 request-context assembly now has separate overview, report-window, and benchmark-context helpers.
-`portfolio_service.py` is now 2,617 lines, and the repository longest-function baseline is now
-80 lines. The remaining work is still substantial: large
+The latest focused batch split advisor-brief review and read-route dependencies, risk attribution
+route queries, portfolio performance snapshot query parsing, performance summary route
+dependencies, risk drawdown orchestration, core snapshot summary parsing, and portfolio workspace
+response-component assembly. The repository longest-function baseline is now 76 lines.
+`portfolio_service.py` is now 2,795 lines after adding explicit typed workspace component
+assembly; that remains the largest-file hotspot even though individual workspace assembly
+functions are smaller. The remaining work is still substantial: large
 portfolio, performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
@@ -88,7 +93,7 @@ portfolio, performance workspace, advisor-brief orchestration, contract, and cli
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.84%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point and review-action orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon comparison row-field projection, performance workspace summary parsing, performance evidence-view mapping, performance workspace capability inputs, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
