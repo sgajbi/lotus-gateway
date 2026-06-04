@@ -40,6 +40,15 @@ class DpmExceptionSummaryContext:
     summary_request: dict[str, object]
 
 
+@dataclass(frozen=True)
+class DpmPmOperatingQualitySummaryContext:
+    manage_status: int
+    score_run: dict[str, object]
+    supportability: DpmCommandCenterSupportability
+    summary_request: dict[str, object]
+    task_payload: dict[str, object]
+
+
 class DpmCommandCenterService:
     def __init__(
         self,
@@ -848,7 +857,32 @@ class DpmCommandCenterService:
         correlation_id: str,
     ) -> DpmPmOperatingQualitySummaryGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
+        summary_context = await self._load_pm_operating_quality_summary_context(
+            score_run_id=score_run_id,
+            request=request,
+            correlation_id=correlation_id,
+        )
 
+        ai_status, ai_payload = await self._execute_pm_operating_quality_summary_workflow(
+            lotus_ai_client=lotus_ai_client,
+            score_run_id=score_run_id,
+            correlation_id=correlation_id,
+            summary_context=summary_context,
+        )
+        return self._compose_pm_operating_quality_summary_response(
+            correlation_id=correlation_id,
+            summary_context=summary_context,
+            ai_status=ai_status,
+            ai_payload=ai_payload,
+        )
+
+    async def _load_pm_operating_quality_summary_context(
+        self,
+        *,
+        score_run_id: str,
+        request: DpmPmOperatingQualitySummaryRequest,
+        correlation_id: str,
+    ) -> DpmPmOperatingQualitySummaryContext:
         manage_status, manage_payload = await self._dpm_client.get_pm_operating_quality_score_run(
             score_run_id=score_run_id,
             correlation_id=correlation_id,
@@ -858,22 +892,11 @@ class DpmCommandCenterService:
             manage_payload,
             error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
         )
-
-        score_run = dpm_command_center_ai_context.pm_quality_score_run_from(manage_payload)
-        if score_run is None:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={
-                    "source_service": "lotus-manage",
-                    "upstream_status": manage_status,
-                    "error_code": "MANAGE_PM_OPERATING_QUALITY_SCORE_RUN_MISSING",
-                    "detail": (
-                        f"Manage response for score run `{score_run_id}` did not include a "
-                        "score_run object."
-                    ),
-                },
-            )
-
+        score_run = self._require_pm_operating_quality_score_run(
+            score_run_id=score_run_id,
+            manage_status=manage_status,
+            manage_payload=manage_payload,
+        )
         supportability = dpm_command_center_supportability.pm_operating_quality_supportability_from(
             manage_payload
         )
@@ -887,7 +910,45 @@ class DpmCommandCenterService:
             summary_request=summary_request,
             supportability=supportability,
         )
+        return DpmPmOperatingQualitySummaryContext(
+            manage_status=manage_status,
+            score_run=score_run,
+            supportability=supportability,
+            summary_request=summary_request,
+            task_payload=task_payload,
+        )
 
+    def _require_pm_operating_quality_score_run(
+        self,
+        *,
+        score_run_id: str,
+        manage_status: int,
+        manage_payload: dict[str, Any],
+    ) -> dict[str, object]:
+        score_run = dpm_command_center_ai_context.pm_quality_score_run_from(manage_payload)
+        if score_run is not None:
+            return score_run
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "source_service": "lotus-manage",
+                "upstream_status": manage_status,
+                "error_code": "MANAGE_PM_OPERATING_QUALITY_SCORE_RUN_MISSING",
+                "detail": (
+                    f"Manage response for score run `{score_run_id}` did not include a "
+                    "score_run object."
+                ),
+            },
+        )
+
+    async def _execute_pm_operating_quality_summary_workflow(
+        self,
+        *,
+        lotus_ai_client: LotusAiWorkflowClient,
+        score_run_id: str,
+        correlation_id: str,
+        summary_context: DpmPmOperatingQualitySummaryContext,
+    ) -> tuple[int, dict[str, Any]]:
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="pm_quality_summary.pack",
             version="v1",
@@ -900,8 +961,10 @@ class DpmCommandCenterService:
                     "Generate review-gated PM operating quality summary from "
                     f"Manage-owned score-run evidence for {score_run_id}."
                 ),
-                payload=task_payload,
-                source_refs=dpm_command_center_ai_context.pm_quality_summary_source_refs(score_run),
+                payload=summary_context.task_payload,
+                source_refs=dpm_command_center_ai_context.pm_quality_summary_source_refs(
+                    summary_context.score_run
+                ),
             ),
             correlation_id=correlation_id,
         )
@@ -913,15 +976,24 @@ class DpmCommandCenterService:
                 error_code="AI_PM_OPERATING_QUALITY_SUMMARY_UPSTREAM_ERROR",
                 default_detail="lotus-ai PM operating quality summary request failed",
             )
+        return ai_status, ai_payload
 
+    def _compose_pm_operating_quality_summary_response(
+        self,
+        *,
+        correlation_id: str,
+        summary_context: DpmPmOperatingQualitySummaryContext,
+        ai_status: int,
+        ai_payload: dict[str, Any],
+    ) -> DpmPmOperatingQualitySummaryGatewayResponse:
         return DpmPmOperatingQualitySummaryGatewayResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            manage_upstream_status=manage_status,
+            manage_upstream_status=summary_context.manage_status,
             ai_upstream_status=ai_status,
-            supportability=supportability,
-            score_run=score_run,
-            summary_request=summary_request,
+            supportability=summary_context.supportability,
+            score_run=summary_context.score_run,
+            summary_request=summary_context.summary_request,
             data=ai_payload,
         )
 
