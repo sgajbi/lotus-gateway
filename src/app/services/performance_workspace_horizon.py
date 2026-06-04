@@ -39,6 +39,13 @@ class HorizonPeriodBlocks:
     money_weighted_return: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class StandardHorizonWindow:
+    label: str
+    report_start_date: str | None
+    period: str
+
+
 def build_horizon_comparison_frequencies(chart_frequency: str) -> list[str]:
     frequencies: list[str] = []
     for frequency in [chart_frequency, "monthly", "quarterly", "yearly"]:
@@ -110,61 +117,78 @@ async def fetch_standard_horizon_workspace_summary(
 ) -> GatheredResult:
     frequencies = build_horizon_comparison_frequencies(chart_frequency)
     report_end = date.fromisoformat(report_end_date)
-    month_start = report_end.replace(day=1).isoformat()
-    quarter_start_month = ((report_end.month - 1) // 3) * 3 + 1
-    quarter_start = report_end.replace(month=quarter_start_month, day=1).isoformat()
+    windows = build_standard_horizon_windows(report_end)
 
     gathered_results = await asyncio.gather(
-        analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=month_start,
-            period="EXPLICIT",
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            reporting_currency=portfolio_currency,
-            segment="asset_class",
-            correlation_id=correlation_id,
-            periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
-            include_detail_blocks=False,
-        ),
-        analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=quarter_start,
-            period="EXPLICIT",
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            reporting_currency=portfolio_currency,
-            segment="asset_class",
-            correlation_id=correlation_id,
-            periods=[{"period": "EXPLICIT", "frequencies": frequencies}],
-            include_detail_blocks=False,
-        ),
-        analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=report_end_date,
-            report_start_date=None,
-            period="YTD",
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_id=benchmark_code,
-            reporting_currency=portfolio_currency,
-            segment="asset_class",
-            correlation_id=correlation_id,
-            periods=[{"period": "YTD", "frequencies": frequencies}],
-            include_detail_blocks=False,
-        ),
+        *[
+            fetch_standard_horizon_window_summary(
+                analytics_client=analytics_client,
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                report_end_date=report_end_date,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                portfolio_currency=portfolio_currency,
+                chart_frequency=chart_frequency,
+                frequencies=frequencies,
+                window=window,
+            )
+            for window in windows
+        ],
         return_exceptions=True,
     )
 
     return merge_standard_horizon_results(
         gathered_results=gathered_results,
-        month_start=month_start,
-        quarter_start=quarter_start,
+        month_start=windows[0].report_start_date or report_end_date,
+        quarter_start=windows[1].report_start_date or report_end_date,
         report_end_date=report_end_date,
+    )
+
+
+def build_standard_horizon_windows(report_end: date) -> tuple[StandardHorizonWindow, ...]:
+    quarter_start_month = ((report_end.month - 1) // 3) * 3 + 1
+    return (
+        StandardHorizonWindow(
+            label="MTD",
+            report_start_date=report_end.replace(day=1).isoformat(),
+            period="EXPLICIT",
+        ),
+        StandardHorizonWindow(
+            label="QTD",
+            report_start_date=report_end.replace(month=quarter_start_month, day=1).isoformat(),
+            period="EXPLICIT",
+        ),
+        StandardHorizonWindow(label="STANDARD", report_start_date=None, period="YTD"),
+    )
+
+
+async def fetch_standard_horizon_window_summary(
+    *,
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    portfolio_id: str,
+    correlation_id: str,
+    report_end_date: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    portfolio_currency: str,
+    chart_frequency: str,
+    frequencies: Sequence[str],
+    window: StandardHorizonWindow,
+) -> UpstreamResult:
+    return await analytics_client.get_workspace_summary(
+        portfolio_id=portfolio_id,
+        report_end_date=report_end_date,
+        report_start_date=window.report_start_date,
+        period=window.period,
+        chart_frequency=chart_frequency,
+        detail_basis=detail_basis,
+        benchmark_id=benchmark_code,
+        reporting_currency=portfolio_currency,
+        segment="asset_class",
+        correlation_id=correlation_id,
+        periods=[{"period": window.period, "frequencies": list(frequencies)}],
+        include_detail_blocks=False,
     )
 
 
