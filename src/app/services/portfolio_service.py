@@ -58,6 +58,10 @@ from app.precision_policy import (
     quantize_quantity,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.portfolio_exception_summaries import (
+    PortfolioExceptionReadiness,
+    build_portfolio_exception_summaries,
+)
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
@@ -2148,131 +2152,32 @@ class PortfolioService:
         allocation_views: list[PortfolioAllocationView],
         transaction_total: int,
     ) -> list[PortfolioExceptionSummary]:
-        exceptions: list[PortfolioExceptionSummary] = []
-        holdings_status = self._holdings_readiness_status(
-            position_count=workspace.summary.position_count,
-            positions=positions,
+        return build_portfolio_exception_summaries(
+            readiness=PortfolioExceptionReadiness(
+                holdings_status=self._holdings_readiness_status(
+                    position_count=workspace.summary.position_count,
+                    positions=positions,
+                ),
+                pricing_status=self._pricing_readiness_status(
+                    positions=positions,
+                    allocation_views=allocation_views,
+                ),
+                transaction_status=self._transactions_readiness_status(
+                    transaction_total=transaction_total,
+                    operations=workspace.operations,
+                ),
+                reporting_status=self._reporting_status_label(
+                    workspace.reporting.status,
+                    workspace.reporting.row_count,
+                ),
+            ),
+            controls_blocking=(
+                bool(workspace.operations.controls_blocking)
+                if workspace.operations is not None
+                else False
+            ),
+            partial_failures=workspace.partial_failures,
         )
-        pricing_status = self._pricing_readiness_status(
-            positions=positions,
-            allocation_views=allocation_views,
-        )
-        transaction_status = self._transactions_readiness_status(
-            transaction_total=transaction_total,
-            operations=workspace.operations,
-        )
-        reporting_status = self._reporting_status_label(
-            workspace.reporting.status,
-            workspace.reporting.row_count,
-        )
-
-        if holdings_status != "Ready":
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key="holdings",
-                    title=(
-                        "Holdings coverage incomplete"
-                        if holdings_status == "Partial"
-                        else "Missing holdings"
-                    ),
-                    detail=(
-                        "The holdings inventory is only partially available for this book."
-                        if holdings_status == "Partial"
-                        else "No positions are currently booked for this portfolio."
-                    ),
-                    tone="warn" if holdings_status == "Partial" else "danger",
-                    href="#portfolio-drilldown",
-                )
-            )
-
-        if pricing_status != "Ready":
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key="pricing",
-                    title=(
-                        "Pricing coverage incomplete"
-                        if pricing_status == "Partial"
-                        else "No priced positions"
-                    ),
-                    detail=(
-                        "Some holdings lack complete valuation coverage."
-                        if pricing_status == "Partial"
-                        else "Valuation cannot run until priced positions are available."
-                    ),
-                    tone="warn" if pricing_status == "Partial" else "danger",
-                    href="#portfolio-attention",
-                )
-            )
-
-        if transaction_status != "Ready":
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key="transactions",
-                    title=(
-                        "Transaction history incomplete"
-                        if transaction_status == "Partial"
-                        else "Empty transaction history"
-                    ),
-                    detail=(
-                        "Booked transaction history is present but not fully "
-                        "available in the current view."
-                        if transaction_status == "Partial"
-                        else "No funding, trading, or cash activity has been recorded yet."
-                    ),
-                    tone="warn" if transaction_status == "Partial" else "danger",
-                    href="#portfolio-drilldown",
-                )
-            )
-
-        if reporting_status != "Ready":
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key="reporting",
-                    title=(
-                        "Reporting output incomplete"
-                        if reporting_status == "Partial"
-                        else "Reporting output unavailable"
-                        if reporting_status == "Empty"
-                        else "Reporting output missing"
-                    ),
-                    detail=(
-                        "Reporting output exists, but the current book is not fully reportable."
-                        if reporting_status == "Partial"
-                        else "Reporting has not produced any rows for this portfolio yet."
-                        if reporting_status == "Empty"
-                        else "Reporting coverage is not yet available for this portfolio."
-                    ),
-                    tone="warn" if reporting_status in {"Partial", "Empty"} else "danger",
-                    href="#portfolio-health",
-                )
-            )
-
-        if workspace.operations and workspace.operations.controls_blocking:
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key="controls_blocking",
-                    title="Blocking controls active",
-                    detail=(
-                        "Operational controls are currently preventing publication "
-                        "or downstream processing."
-                    ),
-                    tone="danger",
-                    href="#portfolio-attention",
-                )
-            )
-
-        for failure in workspace.partial_failures:
-            exceptions.append(
-                PortfolioExceptionSummary(
-                    key=f"partial_failure_{failure.error_code}",
-                    title=failure.error_code.replace("_", " "),
-                    detail=failure.detail,
-                    tone="warn",
-                    href="#portfolio-attention",
-                )
-            )
-
-        return exceptions
 
     def _build_portfolio_insights(
         self,
