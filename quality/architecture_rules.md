@@ -95,8 +95,9 @@ lines. The performance attribution trend orchestrator has been split into reques
 window-pair construction, attribution fan-out, and response assembly helpers, reducing
 `get_performance_attribution_trend` from 135 lines to 56 lines. The performance evidence-view
 orchestrator has now been split into request context, fetch state, requested-calculation
-selection, and explicit response builders, reducing `_build_evidence_view` from 134 lines to
-58 lines. Portfolio exception-summary construction has been extracted to
+selection, explicit response builders, and partial-failure recording, reducing
+`_build_evidence_view` from 134 lines to 51 lines. Portfolio exception-summary construction has
+been extracted to
 `src/app/services/portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 to
 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
 delegation over readiness status. Performance workspace capability-input derivation has been
@@ -118,9 +119,10 @@ performance summary route dependency extraction, shell workspace descriptor-stat
 rebalance supportability failure-recording extraction. The latest hardening branch further splits
 shared analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
 context loading, transaction page loading, portfolio book response assembly, performance
-attribution trend query metadata extraction, risk rolling query metadata extraction, and
-advisor-brief query metadata extraction. The current longest function is `_build_evidence_view`
-at 58 lines.
+attribution trend query metadata extraction, risk rolling query metadata extraction,
+advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
+extraction. The current longest functions are `request_with_retry`, `parse_chart_points`,
+`get_performance_horizon_comparison`, and `build_portfolio_memory_search_filters` at 57 lines.
 
 ## Progressive Enforcement
 

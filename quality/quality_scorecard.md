@@ -37,7 +37,7 @@ Candidate thresholds:
 2. no new forbidden imports,
 3. no new high-confidence dead-code findings,
 4. no new high-severity bandit findings,
-5. no new file/function above the current branch maxima of 3,155 file lines and 58 function lines.
+5. no new file/function above the current branch maxima of 3,155 file lines and 57 function lines.
 
 ### Phase 3: Enforce Agreed Thresholds
 

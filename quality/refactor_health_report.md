@@ -48,8 +48,8 @@ split into request-context, window-pair construction, attribution fan-out, and r
 helpers, reducing `get_performance_attribution_trend` from 135 lines to 56 lines and lowering the
 repository longest-function baseline to 134 lines. Performance evidence-view orchestration has now
 been split into request context, fetch state, requested-calculation selection, and explicit response
-builders, reducing `_build_evidence_view` from 134 lines to 58 lines and lowering the repository
-longest-function baseline to 133 lines. Portfolio exception-summary construction has now been
+builders, later adding partial-failure recording extraction to reduce `_build_evidence_view` to
+51 lines. Portfolio exception-summary construction has now been
 extracted to `portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 lines
 to 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
 readiness delegation. Performance workspace capability-input derivation has now been split into
@@ -85,8 +85,9 @@ workspace assembly state, advisor-brief fact sections, portfolio liquidity loadi
 ledger and risk-attribution request contexts, DPM operations handoff response assembly, shared
 analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
 context loading, transaction page loading, portfolio book response assembly, performance
-attribution trend query metadata extraction, risk rolling query metadata extraction, and
-advisor-brief query metadata extraction. The repository longest-function baseline is now 58 lines.
+attribution trend query metadata extraction, risk rolling query metadata extraction,
+advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
+extraction. The repository longest-function baseline is now 57 lines.
 `portfolio_service.py` is now 3,155 lines after explicit typed workspace component, transaction
 summary, transaction page, and book assembly helpers; it remains the largest-file hotspot even
 though individual portfolio orchestration functions are smaller. The remaining work is still
