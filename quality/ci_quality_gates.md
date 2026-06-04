@@ -47,10 +47,10 @@ Report-only quality checks should remain advisory until findings are classified:
 
 Most recent local PR-grade evidence:
 
-1. `make check`: 942 unit/contract tests passed.
+1. `make check`: 946 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,149 coverage tests passed.
-4. Total coverage: 92.72%, above the 84% floor.
+3. `make ci`: 1,153 coverage tests passed.
+4. Total coverage: 92.75%, above the 84% floor.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates

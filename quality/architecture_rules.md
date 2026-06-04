@@ -64,8 +64,11 @@ The risk attribution response mapper, blocked/unavailable envelopes, period/set/
 parsing, methodology metadata, and metric conversion have been extracted to
 `src/app/services/risk_workspace_attribution.py`, reducing `risk_workspace_service.py` to 780
 lines while keeping attribution request orchestration and cache semantics in the workspace service.
-The current longest
-function is `_build_normalized_capabilities` in
+The risk summary response mapper, unavailable envelope, metric labelling, dependency
+supportability, source-calculation supportability, and empty-result envelope have been extracted to
+`src/app/services/risk_workspace_summary.py`, reducing `risk_workspace_service.py` to 540 lines
+while keeping summary request orchestration, caching, and correlation handling in the workspace
+service. The current longest function is `_build_normalized_capabilities` in
 `src/app/services/platform_capabilities_service.py` at 195 lines.
 
 ## Progressive Enforcement
