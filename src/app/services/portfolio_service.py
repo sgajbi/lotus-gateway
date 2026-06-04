@@ -868,6 +868,27 @@ class PortfolioService:
             [],
             [],
         )
+        return self._build_portfolio_readiness_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            workspace=workspace,
+            positions=positions,
+            allocations=allocations,
+            transactions=transactions,
+            source_payload=source_payload,
+        )
+
+    def _build_portfolio_readiness_response(
+        self,
+        *,
+        correlation_id: str,
+        portfolio_id: str,
+        workspace: PortfolioWorkspaceResponse,
+        positions: PortfolioPositionBookResponse,
+        allocations: PortfolioAllocationResponse,
+        transactions: PortfolioTransactionLedgerResponse,
+        source_payload: dict[str, Any] | None,
+    ) -> PortfolioReadinessResponse:
         indicators = self._build_source_readiness_indicators(
             payload=source_payload,
             detailed_view=False,
