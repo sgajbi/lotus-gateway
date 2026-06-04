@@ -35,7 +35,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 3,016 lines,
+1. `src/app/services/portfolio_service.py` at 2,839 lines,
 2. `src/app/services/advisor_brief_service.py` at 1,392 lines,
 3. `src/app/services/performance_workspace_service.py` at 1,152 lines,
 4. `src/app/services/dpm_command_center_service.py` at 1,032 lines,
@@ -75,9 +75,12 @@ been extracted to `src/app/services/platform_capabilities_normalization.py`, red
 handling, correlation propagation, and partial-failure collection in the service. Shell-bootstrap
 contract assembly and workspace descriptor state mapping have been further extracted to
 `src/app/services/platform_capabilities_shell.py`, reducing the capability normalization module to
-355 lines and keeping shell navigation evidence separately testable. The current longest function
-is `_build_workspace_control_capabilities` in
-`src/app/services/portfolio_service.py` at 191 lines.
+355 lines and keeping shell navigation evidence separately testable. Portfolio workspace-control
+capability construction has been extracted to
+`src/app/services/portfolio_workspace_controls.py`, reducing `portfolio_service.py` to 2,839 lines
+and moving historical-snapshot and reporting-currency support matrices behind focused tests. The
+current longest function is `parse_horizon_comparison_result` in
+`src/app/services/performance_workspace_horizon.py` at 172 lines.
 
 ## Progressive Enforcement
 

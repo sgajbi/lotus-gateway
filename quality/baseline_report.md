@@ -11,7 +11,7 @@ lane, router-registry split, performance workspace response split, and advisor-b
 split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
 risk concentration mapper extraction, shared risk unavailable-envelope helper extraction, and
 risk drawdown, rolling, attribution, and summary response module extraction, and platform
-capability normalization and shell-bootstrap boundary extraction.
+capability normalization, shell-bootstrap, and portfolio workspace-control boundary extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -19,9 +19,9 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 665 |
-| Python source files under `src/app` | 439 |
-| Python test files under `tests` | 155 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 667 |
+| Python source files under `src/app` | 440 |
+| Python test files under `tests` | 156 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
 
@@ -29,7 +29,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,016 | `src/app/services/portfolio_service.py` |
+| 1 | 2,839 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
@@ -44,16 +44,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 191 | `_build_workspace_control_capabilities` | `src/app/services/portfolio_service.py` |
-| 2 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 3 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
-| 4 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
-| 5 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
-| 6 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 7 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 8 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
-| 9 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 10 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
+| 1 | 172 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 2 | 153 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
+| 3 | 144 | `_build_advisor_brief_narrative_state` | `src/app/services/advisor_brief_service.py` |
+| 4 | 143 | `get_platform_capabilities` | `src/app/services/platform_capabilities_service.py` |
+| 5 | 135 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 6 | 134 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 7 | 133 | `_build_portfolio_exception_summaries` | `src/app/services/portfolio_service.py` |
+| 8 | 127 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 9 | 119 | `get_portfolio_workspace` | `src/app/services/portfolio_service.py` |
+| 10 | 116 | `_build_portfolio_insights` | `src/app/services/portfolio_service.py` |
 
 ## Existing Blocking Gates
 
@@ -92,7 +92,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 191 lines,
+2. no new function above the current longest-function baseline of 172 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
