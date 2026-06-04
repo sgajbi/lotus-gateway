@@ -8,8 +8,8 @@ Baseline phase: report-only
 
 This baseline covers the current gateway hardening state after the report-only quality governance
 lane, router-registry split, performance workspace response split, and advisor-brief response
-split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split, and
-risk concentration mapper extraction.
+split, risk drawdown mapper split, risk rolling mapper split, risk attribution mapper split,
+risk concentration mapper extraction, and shared risk unavailable-envelope helper extraction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -18,8 +18,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Measure | Current value |
 | --- | ---: |
 | Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 645 |
-| Python source files under `src/app` | 431 |
-| Python test files under `tests` | 150 |
+| Python source files under `src/app` | 433 |
+| Python test files under `tests` | 151 |
 | OpenAPI paths | 170 |
 | OpenAPI operations | 170 |
 
@@ -30,7 +30,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 1 | 3,016 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,942 | `src/app/services/risk_workspace_service.py` |
+| 4 | 1,928 | `src/app/services/risk_workspace_service.py` |
 | 5 | 1,840 | `src/app/contracts/reporting.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,392 | `src/app/services/advisor_brief_service.py` |
@@ -70,10 +70,10 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 934 unit/contract tests passed.
+1. `make check`: 938 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,141 coverage tests passed.
-4. Coverage: 92.64%.
+3. `make ci`: 1,145 coverage tests passed.
+4. Coverage: 92.65%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline

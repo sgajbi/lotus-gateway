@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Any, cast
 
 from app.contracts.risk_workspace import (
@@ -16,6 +15,11 @@ from app.contracts.risk_workspace import (
     WorkbenchSinglePositionConcentration,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.risk_workspace_envelopes import (
+    risk_metadata,
+    risk_upstream_failure,
+    unavailable_risk_service_supportability,
+)
 from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
@@ -91,17 +95,16 @@ def unavailable_concentration(
         benchmark_code=benchmark_code,
         state="unavailable",
         payload=None,
-        supportability=[
-            WorkbenchRiskSupportabilityItem(
-                key="risk_service",
-                label="Risk service",
-                state="unavailable",
-                reason="lotus-risk concentration endpoint is unavailable.",
-                source_service="lotus-risk",
+        supportability=unavailable_risk_service_supportability(
+            reason="lotus-risk concentration endpoint is unavailable."
+        ),
+        warnings=["RISK_CONCENTRATION_UNAVAILABLE"],
+        partial_failures=[
+            risk_upstream_failure(
+                upstream_status=upstream_status,
+                upstream_payload=upstream_payload,
             )
         ],
-        warnings=["RISK_CONCENTRATION_UNAVAILABLE"],
-        partial_failures=[_upstream_failure(upstream_status, upstream_payload)],
         metadata=_metadata(input_mode="stateful", cache_status="miss"),
     )
 
@@ -314,23 +317,9 @@ def _append_source_calculation_supportability(
     )
 
 
-def _upstream_failure(upstream_status: int, upstream_payload: Any) -> WorkbenchPartialFailure:
-    detail = (
-        str(upstream_payload.get("detail", upstream_payload))
-        if isinstance(upstream_payload, dict)
-        else str(upstream_payload)
-    )
-    return WorkbenchPartialFailure(
-        source_service="risk",
-        error_code=f"HTTP_{upstream_status}",
-        detail=detail,
-    )
-
-
 def _metadata(*, input_mode: str, cache_status: str) -> WorkbenchRiskMetadata:
-    return WorkbenchRiskMetadata(
-        generated_at=datetime.now(tz=UTC).isoformat(),
-        input_mode=cast(Any, input_mode),
-        cache_status=cast(Any, cache_status),
+    return risk_metadata(
+        input_mode=input_mode,
+        cache_status=cache_status,
         methodology_version="lotus-risk",
     )
