@@ -10,9 +10,9 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `portfolio_service.py` at 2,750 lines after the
+- current enterprise-hardening evidence records `portfolio_service.py` at 2,621 lines after the
   portfolio workspace, insight-rule, and workflow-action extractions, with the repository
-  longest-function baseline reduced to 84 lines
+  longest-function baseline reduced to 82 lines
 
 ## Route-family map
 
@@ -82,7 +82,8 @@
 13. performance workspace capability state derivation is isolated behind
     `PerformanceCapabilityInputs` and `resolve_history_date_range`; capability payload assembly
     remains in `src/app/services/performance_workspace_capabilities.py`.
-14. portfolio workspace source/analytics assembly, foundation workspace assembly, performance
-    workspace summary/detail and horizon contexts, risk rolling/attribution orchestration, shell
-    workspace descriptor specs, and portfolio transaction query contracts now sit behind focused
-    helpers so public route/service methods stay orchestration-oriented.
+14. portfolio workspace source/analytics assembly, foundation workspace assembly and response
+    composition, performance workspace summary/detail and horizon contexts, risk rolling/attribution
+    orchestration and attribution supportability, shell workspace descriptor specs, DPM PM quality
+    summary orchestration, and portfolio transaction query contracts now sit behind focused helpers
+    so public route/service methods stay orchestration-oriented.

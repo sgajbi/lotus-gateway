@@ -23,7 +23,8 @@ transaction query-contract extraction, DPM exception-summary workflow extraction
 source talking-point and review-action extraction, portfolio workflow-action extraction, and
 Workbench performance snapshot parser extraction, and horizon comparison row-field extraction.
 The latest focused batch also split performance workspace summary parsing and performance
-evidence-view mapping.
+evidence-view mapping, foundation workspace response assembly, PM operating quality summary
+orchestration, and risk attribution supportability construction.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -41,31 +42,31 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,750 | `src/app/services/portfolio_service.py` |
-| 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,538 | `src/app/services/advisor_brief_service.py` |
-| 7 | 1,463 | `src/app/services/performance_workspace_service.py` |
-| 8 | 1,362 | `src/app/clients/dpm_client.py` |
-| 9 | 1,099 | `src/app/services/dpm_command_center_service.py` |
-| 10 | 1,098 | `src/app/clients/advise_client.py` |
+| 1 | 2,621 | `src/app/services/portfolio_service.py` |
+| 2 | 2,123 | `src/app/contracts/portfolio.py` |
+| 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
+| 4 | 1,731 | `src/app/contracts/reporting.py` |
+| 5 | 1,539 | `src/app/contracts/performance_workspace.py` |
+| 6 | 1,397 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,390 | `src/app/services/performance_workspace_service.py` |
+| 8 | 1,258 | `src/app/clients/dpm_client.py` |
+| 9 | 1,095 | `src/app/services/dpm_command_center_service.py` |
+| 10 | 1,012 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 84 | `_build_foundation_workspace_response` | `src/app/services/foundation_service.py` |
-| 2 | 83 | `request_pm_operating_quality_summary` | `src/app/services/dpm_command_center_service.py` |
-| 3 | 83 | `build_attribution_supportability` | `src/app/services/risk_workspace_attribution_controls.py` |
-| 4 | 82 | `parse_single_attribution_trend_row` | `src/app/services/performance_workspace_attribution.py` |
-| 5 | 81 | `_parse_positions` | `src/app/services/portfolio_service.py` |
-| 6 | 81 | `_build_workspace_request_context` | `src/app/services/performance_workspace_service.py` |
-| 7 | 80 | `post_performance_advisor_brief_review_action` | `src/app/routers/workbench_performance_advisor_brief_review_actions.py` |
-| 8 | 79 | `build_attribution_controls` | `src/app/services/risk_workspace_attribution_controls.py` |
-| 9 | 78 | `parse_rebalance_snapshot` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 10 | 78 | `get_portfolio_performance_snapshot` | `src/app/routers/portfolio_performance.py` |
+| 1 | 82 | `parse_single_attribution_trend_row` | `src/app/services/performance_workspace_attribution.py` |
+| 2 | 81 | `_parse_positions` | `src/app/services/portfolio_service.py` |
+| 3 | 81 | `_build_workspace_request_context` | `src/app/services/performance_workspace_service.py` |
+| 4 | 80 | `post_performance_advisor_brief_review_action` | `src/app/routers/workbench_performance_advisor_brief_review_actions.py` |
+| 5 | 79 | `build_attribution_controls` | `src/app/services/risk_workspace_attribution_controls.py` |
+| 6 | 78 | `parse_rebalance_snapshot` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 7 | 78 | `get_portfolio_performance_snapshot` | `src/app/routers/portfolio_performance.py` |
+| 8 | 78 | `get_performance_advisor_brief` | `src/app/routers/workbench_performance_advisor_brief.py` |
+| 9 | 78 | `get_drawdown` | `src/app/services/risk_workspace_service.py` |
+| 10 | 77 | `parse_lotus_core_snapshot` | `src/app/services/workbench_core_snapshot.py` |
 
 ## Existing Blocking Gates
 
@@ -104,7 +105,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 84 lines,
+2. no new function above the current longest-function baseline of 82 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

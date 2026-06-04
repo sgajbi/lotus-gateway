@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,750 lines,
-2. `src/app/services/advisor_brief_service.py` at 1,538 lines,
-3. `src/app/services/performance_workspace_service.py` at 1,463 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,099 lines,
-5. `src/app/services/dpm_wave_service.py` at 981 lines.
+1. `src/app/services/portfolio_service.py` at 2,621 lines,
+2. `src/app/services/advisor_brief_service.py` at 1,397 lines,
+3. `src/app/services/performance_workspace_service.py` at 1,390 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,095 lines,
+5. `src/app/services/dpm_wave_service.py` at 902 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -109,8 +109,10 @@ attribution orchestration, shell workspace descriptor specs, transaction query c
 exception-summary workflow orchestration, advisor-brief source talking-point and review-action
 orchestration, portfolio workflow-action assembly, Workbench performance snapshot parsing, horizon
 comparison row-field projection, performance workspace summary parsing, and performance
-evidence-view mapping. The current longest function is `_build_foundation_workspace_response` in
-`src/app/services/foundation_service.py` at 84 lines.
+evidence-view mapping, foundation workspace response assembly, PM operating quality summary
+orchestration, and risk attribution supportability construction. The current longest function is
+`parse_single_attribution_trend_row` in
+`src/app/services/performance_workspace_attribution.py` at 82 lines.
 
 ## Progressive Enforcement
 

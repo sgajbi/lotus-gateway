@@ -64,10 +64,15 @@ the repository longest-function baseline from 119 lines to 99 lines, reduced
 and passed `make check` with 967 unit/contract tests. The latest focused batch split DPM
 exception-summary workflow orchestration, advisor-brief source talking points, advisor-brief
 review actions, and portfolio workflow actions, lowering the repository longest-function baseline
-from 99 lines to 88 lines. `portfolio_service.py` is now 2,750 lines because empty-portfolio
-workflow actions are explicit governed data rather than inline control-flow literals. The
+from 99 lines to 88 lines. That batch put `portfolio_service.py` at 2,750 lines because
+empty-portfolio workflow actions became explicit governed data rather than inline control-flow
+literals. The
 Workbench performance snapshot parser split then lowered the repository longest-function baseline
 from 88 lines to 87 lines. Horizon comparison row-field extraction then lowered the repository
 longest-function baseline from 87 lines to 85 lines. Performance workspace summary parsing and
 evidence-view mapping splits then lowered the repository longest-function baseline from 85 lines
-to 84 lines.
+to 84 lines. Foundation workspace response assembly, PM operating quality summary orchestration,
+and risk attribution supportability splits then lowered the repository longest-function baseline
+from 84 lines to 82 lines, with `portfolio_service.py` currently measured at 2,621 lines. The DPM
+PM quality summary context now uses the specific PM operating quality supportability contract type,
+keeping the Feature Lane mypy gate green.
