@@ -1263,55 +1263,102 @@ class PerformanceWorkspaceService:
         include_detail_blocks: bool,
         prefer_independent_detail_analytics: bool,
     ) -> WorkspaceDetailViews:
-        if (
+        if self._should_fetch_independent_detail_views(
+            parsed_workspace_summary=parsed_workspace_summary,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        ):
+            return await self._build_independent_workspace_detail_views(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                context=context,
+                parsed_workspace_summary=parsed_workspace_summary,
+            )
+        return self._build_summary_workspace_detail_views(parsed_workspace_summary)
+
+    def _should_fetch_independent_detail_views(
+        self,
+        *,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> bool:
+        return (
             include_detail_blocks
             and prefer_independent_detail_analytics
             and self._workspace_summary_has_return_payload(parsed_workspace_summary)
-        ):
-            contribution_detail_result: GatheredResult | None = None
-            attribution_detail_result: GatheredResult | None = None
-            (
-                contribution_detail_result,
-                attribution_detail_result,
-            ) = await fetch_workspace_detail_results(
-                cache=self._upstream_cache,
-                analytics_client=self._analytics_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_start_date=context.report_start_date.isoformat(),
-                report_end_date=context.report_end_date,
+        )
+
+    async def _build_independent_workspace_detail_views(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+    ) -> WorkspaceDetailViews:
+        (
+            contribution_detail_result,
+            attribution_detail_result,
+        ) = await self._fetch_independent_workspace_detail_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            parsed_workspace_summary=parsed_workspace_summary,
+        )
+        contribution = merge_contribution_summary_views(
+            summary_contribution=parsed_workspace_summary.contribution,
+            detail_contribution=parse_contribution_result(
+                result=contribution_detail_result,
+                metric_basis=context.detail_basis,
                 requested_period=context.effective_period,
-                detail_basis=context.detail_basis,
-                benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
-                contribution_dimension=context.contribution_dimension,
-                attribution_dimension=context.attribution_dimension,
+                warnings=context.warnings,
+                partial_failures=context.partial_failures,
+            ),
+        )
+        attribution = (
+            parse_attribution_result(
+                result=attribution_detail_result,
+                metric_basis=context.detail_basis,
+                requested_period=context.effective_period,
+                warnings=context.warnings,
+                partial_failures=context.partial_failures,
             )
-            contribution = merge_contribution_summary_views(
-                summary_contribution=parsed_workspace_summary.contribution,
-                detail_contribution=parse_contribution_result(
-                    result=contribution_detail_result,
-                    metric_basis=context.detail_basis,
-                    requested_period=context.effective_period,
-                    warnings=context.warnings,
-                    partial_failures=context.partial_failures,
-                ),
-            )
-            attribution = (
-                parse_attribution_result(
-                    result=attribution_detail_result,
-                    metric_basis=context.detail_basis,
-                    requested_period=context.effective_period,
-                    warnings=context.warnings,
-                    partial_failures=context.partial_failures,
-                )
-                or parsed_workspace_summary.attribution
-            )
-            return WorkspaceDetailViews(
-                contribution=contribution,
-                attribution=attribution,
-                contribution_detail_result=contribution_detail_result,
-                attribution_detail_result=attribution_detail_result,
-            )
+            or parsed_workspace_summary.attribution
+        )
+        return WorkspaceDetailViews(
+            contribution=contribution,
+            attribution=attribution,
+            contribution_detail_result=contribution_detail_result,
+            attribution_detail_result=attribution_detail_result,
+        )
+
+    async def _fetch_independent_workspace_detail_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        context: WorkspaceRequestContext,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+    ) -> tuple[GatheredResult, GatheredResult]:
+        return await fetch_workspace_detail_results(
+            cache=self._upstream_cache,
+            analytics_client=self._analytics_client,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_start_date=context.report_start_date.isoformat(),
+            report_end_date=context.report_end_date,
+            requested_period=context.effective_period,
+            detail_basis=context.detail_basis,
+            benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
+            contribution_dimension=context.contribution_dimension,
+            attribution_dimension=context.attribution_dimension,
+        )
+
+    def _build_summary_workspace_detail_views(
+        self,
+        parsed_workspace_summary: ParsedWorkspaceSummary,
+    ) -> WorkspaceDetailViews:
         return WorkspaceDetailViews(
             contribution=parsed_workspace_summary.contribution,
             attribution=parsed_workspace_summary.attribution,
