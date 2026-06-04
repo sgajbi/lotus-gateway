@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, TypeAlias, cast
 
@@ -25,6 +26,17 @@ STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
 GatheredResult: TypeAlias = UpstreamResult | BaseException
+
+
+@dataclass(frozen=True)
+class HorizonPeriodBlocks:
+    period_payload: dict[str, Any]
+    benchmark_block: dict[str, Any]
+    active_block: dict[str, Any]
+    net_block: dict[str, Any]
+    gross_block: dict[str, Any]
+    economics: dict[str, Any]
+    money_weighted_return: dict[str, Any]
 
 
 def build_horizon_comparison_frequencies(chart_frequency: str) -> list[str]:
@@ -236,9 +248,11 @@ def parse_horizon_comparison_result(
     partial_failures: list[WorkbenchPartialFailure],
 ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
     if isinstance(result, BaseException):
-        warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-        partial_failures.append(
-            build_performance_failure("lotus-performance", "UPSTREAM_EXCEPTION", str(result))
+        record_horizon_upstream_failure(
+            warnings=warnings,
+            partial_failures=partial_failures,
+            error_code="UPSTREAM_EXCEPTION",
+            detail=str(result),
         )
         return [], None
 
@@ -246,29 +260,18 @@ def parse_horizon_comparison_result(
     if not isinstance(payload, dict):
         warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
         return [], None
-    gateway_warnings = payload.get("_gateway_warnings", [])
-    if isinstance(gateway_warnings, list):
-        warnings.extend(str(warning) for warning in gateway_warnings)
-    gateway_partial_failures = payload.get("_gateway_partial_failures", [])
-    if isinstance(gateway_partial_failures, list):
-        for failure in gateway_partial_failures:
-            if not isinstance(failure, Mapping):
-                continue
-            partial_failures.append(
-                build_performance_failure(
-                    str(failure.get("source_service", "lotus-performance")),
-                    str(failure.get("error_code", "UNKNOWN_ERROR")),
-                    str(failure.get("detail", "")),
-                )
-            )
+
+    propagate_gateway_horizon_diagnostics(
+        payload=payload,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
     if status_code >= 400:
-        warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
-        partial_failures.append(
-            build_performance_failure(
-                "lotus-performance",
-                f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
-            )
+        record_horizon_upstream_failure(
+            warnings=warnings,
+            partial_failures=partial_failures,
+            error_code=f"HTTP_{status_code}",
+            detail=str(payload.get("detail", payload)),
         )
         return [], None
 
@@ -277,6 +280,60 @@ def parse_horizon_comparison_result(
         warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
         return [], None
 
+    return build_horizon_comparison_rows(
+        results_by_period=results_by_period,
+        requested_period=requested_period,
+        requested_report_start_date=requested_report_start_date,
+        requested_report_end_date=requested_report_end_date,
+        detail_basis=detail_basis,
+    )
+
+
+def record_horizon_upstream_failure(
+    *,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+    error_code: str,
+    detail: str,
+) -> None:
+    warnings.append("PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE")
+    partial_failures.append(build_performance_failure("lotus-performance", error_code, detail))
+
+
+def propagate_gateway_horizon_diagnostics(
+    *,
+    payload: Mapping[str, Any],
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> None:
+    gateway_warnings = payload.get("_gateway_warnings", [])
+    if isinstance(gateway_warnings, list):
+        warnings.extend(str(warning) for warning in gateway_warnings)
+
+    gateway_partial_failures = payload.get("_gateway_partial_failures", [])
+    if not isinstance(gateway_partial_failures, list):
+        return
+
+    for failure in gateway_partial_failures:
+        if not isinstance(failure, Mapping):
+            continue
+        partial_failures.append(
+            build_performance_failure(
+                str(failure.get("source_service", "lotus-performance")),
+                str(failure.get("error_code", "UNKNOWN_ERROR")),
+                str(failure.get("detail", "")),
+            )
+        )
+
+
+def build_horizon_comparison_rows(
+    *,
+    results_by_period: dict[str, Any],
+    requested_period: str,
+    requested_report_start_date: str | None,
+    requested_report_end_date: str | None,
+    detail_basis: str,
+) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
     rows: list[PerformanceHorizonComparisonRow] = []
     resolved_benchmark_code: str | None = None
     periods_to_render = (
@@ -292,108 +349,154 @@ def parse_horizon_comparison_result(
         period_payload = results_by_period.get(period_key, {})
         if not isinstance(period_payload, dict):
             continue
-        benchmark_block = period_payload.get("benchmark", {})
-        active_block = period_payload.get("active", {})
-        net_block = extract_twr_workspace_block(period_payload, "net")
-        gross_block = extract_twr_workspace_block(period_payload, "gross")
-        net_summary_payload = net_block.get("summary", {}) if isinstance(net_block, dict) else {}
-        money_weighted_return = period_payload.get("money_weighted_return", {})
-        economics = (
-            net_summary_payload.get("economics", {})
-            if isinstance(net_summary_payload, dict)
-            else {}
+
+        row, benchmark_code = build_horizon_comparison_row(
+            period=period,
+            period_payload=period_payload,
+            detail_basis=detail_basis,
+            requested_report_start_date=requested_report_start_date,
+            requested_report_end_date=requested_report_end_date,
         )
-        comparative = build_workspace_comparative_summary(
-            metric_basis=detail_basis.upper(),
-            portfolio_block=net_block,
-            benchmark_block=benchmark_block if isinstance(benchmark_block, dict) else {},
-            active_basis_block=active_block.get("net") if isinstance(active_block, dict) else {},
-        )
-        if comparative.portfolio_return_pct is None and comparative.benchmark_return_pct is None:
+        if row is None:
             continue
-        rows.append(
-            PerformanceHorizonComparisonRow(
-                period=period,
-                period_start=(
-                    safe_str(money_weighted_return.get("start_date"))
-                    if isinstance(money_weighted_return, dict)
-                    else None
-                )
-                or safe_str(period_payload.get("_gateway_requested_period_start"))
-                or requested_report_start_date,
-                period_end=(
-                    safe_str(money_weighted_return.get("end_date"))
-                    if isinstance(money_weighted_return, dict)
-                    else None
-                )
-                or safe_str(period_payload.get("_gateway_requested_period_end"))
-                or requested_report_end_date,
-                begin_market_value=quantize_optional(economics.get("begin_market_value"))
-                if isinstance(economics, dict)
-                else None,
-                end_market_value=quantize_optional(economics.get("end_market_value"))
-                if isinstance(economics, dict)
-                else None,
-                beginning_cash_flow=quantize_optional(economics.get("beginning_cash_flow"))
-                if isinstance(economics, dict)
-                else None,
-                ending_cash_flow=quantize_optional(economics.get("ending_cash_flow"))
-                if isinstance(economics, dict)
-                else None,
-                flow_adjusted_end_market_value=quantize_optional(
-                    economics.get("flow_adjusted_end_market_value")
-                )
-                if isinstance(economics, dict)
-                else None,
-                net_cash_flow=quantize_optional(economics.get("net_cash_flow"))
-                if isinstance(economics, dict)
-                else None,
-                fees=quantize_optional(economics.get("fees"))
-                if isinstance(economics, dict)
-                else None,
-                net_return_pct=extract_return(net_block, "summary", "period_return", "base"),
-                gross_return_pct=extract_return(gross_block, "summary", "period_return", "base"),
-                portfolio_return_pct=comparative.portfolio_return_pct,
-                benchmark_return_pct=comparative.benchmark_return_pct,
-                active_return_pct=comparative.active_return_pct,
-                cumulative_net_return_pct=extract_return(
-                    net_block,
-                    "summary",
-                    "cumulative_return",
-                    "base",
-                ),
-                cumulative_gross_return_pct=extract_return(
-                    gross_block,
-                    "summary",
-                    "cumulative_return",
-                    "base",
-                ),
-                cumulative_benchmark_return_pct=extract_return(
-                    benchmark_block if isinstance(benchmark_block, dict) else {},
-                    "summary",
-                    "cumulative_return",
-                    "base",
-                ),
-                cumulative_active_return_pct=extract_return(
-                    active_block.get("net") if isinstance(active_block, dict) else {},
-                    "cumulative_return",
-                    "base",
-                ),
-                annualized_net_return_pct=extract_return(
-                    net_block,
-                    "summary",
-                    "annualized_return",
-                    "base",
-                ),
-                annualized_gross_return_pct=extract_return(
-                    gross_block,
-                    "summary",
-                    "annualized_return",
-                    "base",
-                ),
-                annualized_return_pct=comparative.annualized_return_pct,
-            )
-        )
+        rows.append(row)
         if resolved_benchmark_code is None:
-            resolved_benchmark_code = comparative.benchmark_id
+            resolved_benchmark_code = benchmark_code
     return rows, resolved_benchmark_code
+
+
+def build_horizon_comparison_row(
+    *,
+    period: str,
+    period_payload: dict[str, Any],
+    detail_basis: str,
+    requested_report_start_date: str | None,
+    requested_report_end_date: str | None,
+) -> tuple[PerformanceHorizonComparisonRow | None, str | None]:
+    blocks = extract_horizon_period_blocks(period_payload)
+    comparative = build_workspace_comparative_summary(
+        metric_basis=detail_basis.upper(),
+        portfolio_block=blocks.net_block,
+        benchmark_block=blocks.benchmark_block,
+        active_basis_block=blocks.active_block.get("net", {}),
+    )
+    if comparative.portfolio_return_pct is None and comparative.benchmark_return_pct is None:
+        return None, None
+
+    return (
+        PerformanceHorizonComparisonRow(
+            period=period,
+            period_start=resolve_horizon_period_start(
+                blocks=blocks,
+                requested_report_start_date=requested_report_start_date,
+            ),
+            period_end=resolve_horizon_period_end(
+                blocks=blocks,
+                requested_report_end_date=requested_report_end_date,
+            ),
+            begin_market_value=quantize_optional(blocks.economics.get("begin_market_value")),
+            end_market_value=quantize_optional(blocks.economics.get("end_market_value")),
+            beginning_cash_flow=quantize_optional(blocks.economics.get("beginning_cash_flow")),
+            ending_cash_flow=quantize_optional(blocks.economics.get("ending_cash_flow")),
+            flow_adjusted_end_market_value=quantize_optional(
+                blocks.economics.get("flow_adjusted_end_market_value")
+            ),
+            net_cash_flow=quantize_optional(blocks.economics.get("net_cash_flow")),
+            fees=quantize_optional(blocks.economics.get("fees")),
+            net_return_pct=extract_return(blocks.net_block, "summary", "period_return", "base"),
+            gross_return_pct=extract_return(
+                blocks.gross_block,
+                "summary",
+                "period_return",
+                "base",
+            ),
+            portfolio_return_pct=comparative.portfolio_return_pct,
+            benchmark_return_pct=comparative.benchmark_return_pct,
+            active_return_pct=comparative.active_return_pct,
+            cumulative_net_return_pct=extract_return(
+                blocks.net_block,
+                "summary",
+                "cumulative_return",
+                "base",
+            ),
+            cumulative_gross_return_pct=extract_return(
+                blocks.gross_block,
+                "summary",
+                "cumulative_return",
+                "base",
+            ),
+            cumulative_benchmark_return_pct=extract_return(
+                blocks.benchmark_block,
+                "summary",
+                "cumulative_return",
+                "base",
+            ),
+            cumulative_active_return_pct=extract_return(
+                blocks.active_block.get("net", {}),
+                "cumulative_return",
+                "base",
+            ),
+            annualized_net_return_pct=extract_return(
+                blocks.net_block,
+                "summary",
+                "annualized_return",
+                "base",
+            ),
+            annualized_gross_return_pct=extract_return(
+                blocks.gross_block,
+                "summary",
+                "annualized_return",
+                "base",
+            ),
+            annualized_return_pct=comparative.annualized_return_pct,
+        ),
+        comparative.benchmark_id,
+    )
+
+
+def extract_horizon_period_blocks(
+    period_payload: dict[str, Any],
+) -> HorizonPeriodBlocks:
+    benchmark_payload = period_payload.get("benchmark", {})
+    active_payload = period_payload.get("active", {})
+    net_block = extract_twr_workspace_block(period_payload, "net")
+    gross_block = extract_twr_workspace_block(period_payload, "gross")
+    net_summary_payload = net_block.get("summary", {})
+    money_weighted_payload = period_payload.get("money_weighted_return", {})
+    economics_payload = net_summary_payload.get("economics", {})
+
+    return HorizonPeriodBlocks(
+        period_payload=period_payload,
+        benchmark_block=benchmark_payload if isinstance(benchmark_payload, dict) else {},
+        active_block=active_payload if isinstance(active_payload, dict) else {},
+        net_block=net_block,
+        gross_block=gross_block,
+        economics=economics_payload if isinstance(economics_payload, dict) else {},
+        money_weighted_return=money_weighted_payload
+        if isinstance(money_weighted_payload, dict)
+        else {},
+    )
+
+
+def resolve_horizon_period_start(
+    *,
+    blocks: HorizonPeriodBlocks,
+    requested_report_start_date: str | None,
+) -> str | None:
+    return (
+        safe_str(blocks.money_weighted_return.get("start_date"))
+        or safe_str(blocks.period_payload.get("_gateway_requested_period_start"))
+        or requested_report_start_date
+    )
+
+
+def resolve_horizon_period_end(
+    *,
+    blocks: HorizonPeriodBlocks,
+    requested_report_end_date: str | None,
+) -> str | None:
+    return (
+        safe_str(blocks.money_weighted_return.get("end_date"))
+        or safe_str(blocks.period_payload.get("_gateway_requested_period_end"))
+        or requested_report_end_date
+    )
