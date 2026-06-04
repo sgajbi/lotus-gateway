@@ -167,6 +167,14 @@ class AttributionTrendRequestContext:
 
 
 @dataclass(frozen=True)
+class AttributionTrendDimensionContext:
+    chart_frequency: str
+    attribution_dimension: str
+    requested_chart_frequency_supported: bool
+    requested_attribution_dimension_supported: bool
+
+
+@dataclass(frozen=True)
 class HorizonComparisonRequestContext:
     overview: WorkbenchOverviewResponse
     warnings: list[str]
@@ -753,28 +761,56 @@ class PerformanceWorkspaceService:
         explicit_start_date: str | None,
         explicit_end_date: str | None,
     ) -> AttributionTrendRequestContext:
-        async with server_timing_span("perf-overview"):
-            overview = await self._get_cached_workspace_overview(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            )
-        warnings = list(overview.warnings)
-        partial_failures = list(overview.partial_failures)
-        async with server_timing_span("perf-reference"):
-            resolved_report_end_date = await self._determine_report_end_date(
-                portfolio_id=portfolio_id,
-                as_of_date=overview.as_of_date,
-                correlation_id=correlation_id,
-                explicit_end_date=explicit_end_date,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
-        report_end_date, report_start_date, effective_period = resolve_requested_window(
-            default_report_end_date=resolved_report_end_date,
+        overview_state = await self._load_workspace_overview_state(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+        )
+        report_window = await self._build_workspace_report_window(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            overview_state=overview_state,
             period=period,
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        dimension_context = self._build_attribution_trend_dimension_context(
+            chart_frequency=chart_frequency,
+            attribution_dimension=attribution_dimension,
+            warnings=overview_state.warnings,
+        )
+        benchmark_context = await self._build_workspace_benchmark_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            report_end_date=report_window.report_end_date,
+            portfolio_currency=overview_state.overview.portfolio.base_currency,
+            benchmark_code=benchmark_code,
+            include_benchmark_catalog=False,
+        )
+        return AttributionTrendRequestContext(
+            overview=overview_state.overview,
+            warnings=overview_state.warnings,
+            partial_failures=overview_state.partial_failures,
+            report_end_date=report_window.report_end_date,
+            report_start_date=report_window.report_start_date,
+            effective_period=report_window.effective_period,
+            chart_frequency=dimension_context.chart_frequency,
+            attribution_dimension=dimension_context.attribution_dimension,
+            requested_chart_frequency_supported=(
+                dimension_context.requested_chart_frequency_supported
+            ),
+            requested_attribution_dimension_supported=(
+                dimension_context.requested_attribution_dimension_supported
+            ),
+            benchmark_code=benchmark_context.benchmark_code,
+        )
+
+    def _build_attribution_trend_dimension_context(
+        self,
+        *,
+        chart_frequency: str,
+        attribution_dimension: str,
+        warnings: list[str],
+    ) -> AttributionTrendDimensionContext:
         resolved_frequency, requested_chart_frequency_supported = (
             normalize_workspace_chart_frequency(
                 chart_frequency=chart_frequency,
@@ -782,7 +818,7 @@ class PerformanceWorkspaceService:
                 warning_code="PERFORMANCE_ATTRIBUTION_TREND_CHART_FREQUENCY_NORMALIZED",
             )
         )
-        resolved_attribution_dimension, requested_attribution_dimension_supported = (
+        resolved_dimension, requested_attribution_dimension_supported = (
             normalize_workspace_dimension(
                 requested_dimension=attribution_dimension,
                 supported_dimensions=SUPPORTED_ATTRIBUTION_DIMENSIONS,
@@ -790,29 +826,11 @@ class PerformanceWorkspaceService:
                 warning_code="PERFORMANCE_ATTRIBUTION_TREND_DIMENSION_NORMALIZED",
             )
         )
-        async with server_timing_span("perf-benchmark"):
-            resolved_benchmark_code, _ = await fetch_benchmark_context(
-                cache=self._upstream_cache,
-                core_client=self._lotus_core_query_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=report_end_date,
-                portfolio_currency=overview.portfolio.base_currency,
-                benchmark_code=benchmark_code,
-                include_benchmark_catalog=False,
-            )
-        return AttributionTrendRequestContext(
-            overview=overview,
-            warnings=warnings,
-            partial_failures=partial_failures,
-            report_end_date=report_end_date,
-            report_start_date=report_start_date,
-            effective_period=effective_period,
+        return AttributionTrendDimensionContext(
             chart_frequency=resolved_frequency,
-            attribution_dimension=resolved_attribution_dimension,
+            attribution_dimension=resolved_dimension,
             requested_chart_frequency_supported=requested_chart_frequency_supported,
-            requested_attribution_dimension_supported=(requested_attribution_dimension_supported),
-            benchmark_code=resolved_benchmark_code,
+            requested_attribution_dimension_supported=requested_attribution_dimension_supported,
         )
 
     def _build_attribution_trend_window_pairs(
