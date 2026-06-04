@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.performance_workspace import PerformanceWorkspaceDetailsResponse
 from app.middleware.correlation import correlation_id_var
@@ -21,42 +21,7 @@ class PerformanceDetailsQuery:
     report_end_date: str | None
 
 
-async def _get_performance_workspace_details(
-    portfolio_id: str,
-    query: PerformanceDetailsQuery,
-) -> PerformanceWorkspaceDetailsResponse:
-    service = performance_workspace_service()
-    correlation_id = correlation_id_var.get()
-    return await service.get_performance_workspace_details(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=query.period,
-        chart_frequency=query.chart_frequency,
-        contribution_dimension=query.contribution_dimension,
-        attribution_dimension=query.attribution_dimension,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        explicit_start_date=query.report_start_date,
-        explicit_end_date=query.report_end_date,
-    )
-
-
-@router.get(
-    "/{portfolio_id}/performance/details",
-    response_model=PerformanceWorkspaceDetailsResponse,
-    summary="Get Performance Workspace Details",
-    description=(
-        "Returns the heavier analytical detail payload for chart history, contribution rows, "
-        "attribution rows, and execution evidence. Use this route after the summary route when "
-        "the caller needs drill-down analytics rather than first-paint KPI context only."
-    ),
-)
-async def get_performance_workspace_details(
-    portfolio_id: str = Path(
-        ...,
-        description="Canonical portfolio identifier for the stateful performance detail workspace.",
-        examples=["PF_1001"],
-    ),
+def build_performance_details_query(
     period: str = Query(
         default="YTD",
         description="Requested performance horizon for the analytical detail workspace.",
@@ -101,17 +66,58 @@ async def get_performance_workspace_details(
         ),
         examples=["2026-03-27"],
     ),
+) -> PerformanceDetailsQuery:
+    return PerformanceDetailsQuery(
+        period=period,
+        chart_frequency=chart_frequency,
+        contribution_dimension=contribution_dimension,
+        attribution_dimension=attribution_dimension,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+    )
+
+
+async def _get_performance_workspace_details(
+    portfolio_id: str,
+    query: PerformanceDetailsQuery,
+) -> PerformanceWorkspaceDetailsResponse:
+    service = performance_workspace_service()
+    correlation_id = correlation_id_var.get()
+    return await service.get_performance_workspace_details(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        contribution_dimension=query.contribution_dimension,
+        attribution_dimension=query.attribution_dimension,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.report_start_date,
+        explicit_end_date=query.report_end_date,
+    )
+
+
+@router.get(
+    "/{portfolio_id}/performance/details",
+    response_model=PerformanceWorkspaceDetailsResponse,
+    summary="Get Performance Workspace Details",
+    description=(
+        "Returns the heavier analytical detail payload for chart history, contribution rows, "
+        "attribution rows, and execution evidence. Use this route after the summary route when "
+        "the caller needs drill-down analytics rather than first-paint KPI context only."
+    ),
+)
+async def get_performance_workspace_details(
+    portfolio_id: str = Path(
+        ...,
+        description="Canonical portfolio identifier for the stateful performance detail workspace.",
+        examples=["PF_1001"],
+    ),
+    query: PerformanceDetailsQuery = Depends(build_performance_details_query),
 ) -> PerformanceWorkspaceDetailsResponse:
     return await _get_performance_workspace_details(
         portfolio_id=portfolio_id,
-        query=PerformanceDetailsQuery(
-            period=period,
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            report_start_date=report_start_date,
-            report_end_date=report_end_date,
-        ),
+        query=query,
     )
