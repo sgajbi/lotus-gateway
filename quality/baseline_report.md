@@ -1,6 +1,6 @@
 # Quality Baseline Report
 
-Date: 2026-06-04
+Date: 2026-06-05
 Repository: `lotus-gateway`  
 Baseline phase: report-only
 
@@ -28,7 +28,10 @@ orchestration, risk attribution supportability construction, attribution trend r
 portfolio position parsing, and performance workspace request-context assembly. The current
 focused batch split advisor-brief and portfolio performance route dependencies, risk drawdown
 orchestration, core snapshot summary parsing, portfolio workspace response component assembly,
-and risk/performance Workbench route dependency handling.
+and risk/performance Workbench route dependency handling. The latest 50-commit hardening branch
+then split shared analytics async polling, workspace-summary payload assembly, portfolio
+transaction-summary context loading, transaction page loading, and portfolio book response
+assembly.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -46,31 +49,31 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,795 | `src/app/services/portfolio_service.py` |
+| 1 | 3,155 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,541 | `src/app/services/performance_workspace_service.py` |
-| 7 | 1,538 | `src/app/services/advisor_brief_service.py` |
+| 5 | 1,673 | `src/app/services/performance_workspace_service.py` |
+| 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
+| 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
-| 9 | 1,172 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
 | 10 | 1,098 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 74 | `list_report_jobs` | `src/app/routers/reporting_job_search.py` |
-| 2 | 74 | `build_portfolio_performance_snapshot_query` | `src/app/routers/portfolio_performance.py` |
-| 3 | 74 | `_post_analytics_request` | `src/app/clients/lotus_analytics_client.py` |
-| 4 | 73 | `historical_snapshot_module_capabilities` | `src/app/services/portfolio_workspace_controls.py` |
-| 5 | 73 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 6 | 73 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 7 | 72 | `get_summary` | `src/app/services/risk_workspace_service.py` |
-| 8 | 72 | `get_performance_attribution_trend` | `src/app/routers/workbench_performance_attribution_trend.py` |
-| 9 | 72 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 10 | 71 | `reporting_currency_module_capabilities` | `src/app/services/portfolio_workspace_controls.py` |
+| 1 | 62 | `build_performance_attribution_trend_query` | `src/app/routers/workbench_performance_attribution_trend.py` |
+| 2 | 58 | `build_risk_rolling_query` | `src/app/routers/workbench_risk_rolling.py` |
+| 3 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
+| 4 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 5 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 6 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 7 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
+| 8 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
+| 9 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
+| 10 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
 
 ## Existing Blocking Gates
 
@@ -89,10 +92,10 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 967 unit/contract tests passed.
-2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,171 coverage tests passed.
-4. Coverage: 92.84%.
+1. `make check`: 967 unit/contract tests passed on commit `6836e69`.
+2. `make ci`: 207 integration tests passed on commit `e1e7980`.
+3. `make ci`: 1,174 coverage tests passed on commit `e1e7980`.
+4. Coverage: 93.32%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
@@ -109,7 +112,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 74 lines,
+2. no new function above the current longest-function baseline of 62 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

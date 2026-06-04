@@ -377,38 +377,17 @@ class WorkbenchService:
         rebalance_snapshot = None
 
         if include_performance_snapshot or include_rebalance_snapshot:
-            performance_task: Awaitable[tuple[int, dict[str, Any]]]
-            if include_performance_snapshot:
-                performance_end_date = await self._resolve_performance_snapshot_end_date(
-                    portfolio_id=portfolio_id,
-                    as_of_date=as_of_date,
-                    correlation_id=correlation_id,
-                )
-                performance_task = self._analytics_client.get_twr_analytics(
-                    portfolio_id=portfolio_id,
-                    report_end_date=performance_end_date,
-                    report_start_date=None,
-                    period="YTD",
-                    metric_basis="NET",
-                    benchmark_id=None,
-                    correlation_id=correlation_id,
-                )
-            else:
-                performance_task = self._empty_async_result()
-
-            dpm_runs_task: Awaitable[tuple[int, dict[str, Any]]]
-            dpm_supportability_task: Awaitable[tuple[int, dict[str, Any]]]
-            if include_rebalance_snapshot:
-                dpm_runs_task = self._dpm_client.list_runs(
-                    params={"portfolio_id": portfolio_id, "limit": 5},
-                    correlation_id=correlation_id,
-                )
-                dpm_supportability_task = self._dpm_client.get_supportability_summary(
-                    correlation_id=correlation_id,
-                )
-            else:
-                dpm_runs_task = self._empty_async_result()
-                dpm_supportability_task = self._empty_async_result()
+            performance_task = await self._build_performance_snapshot_task(
+                portfolio_id=portfolio_id,
+                as_of_date=as_of_date,
+                correlation_id=correlation_id,
+                include_performance_snapshot=include_performance_snapshot,
+            )
+            dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
+                portfolio_id=portfolio_id,
+                correlation_id=correlation_id,
+                include_rebalance_snapshot=include_rebalance_snapshot,
+            )
             gathered = await asyncio.gather(
                 performance_task,
                 dpm_runs_task,
@@ -430,6 +409,48 @@ class WorkbenchService:
                 )
 
         return performance_snapshot, rebalance_snapshot, warnings, partial_failures
+
+    async def _build_performance_snapshot_task(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        include_performance_snapshot: bool,
+    ) -> Awaitable[tuple[int, dict[str, Any]]]:
+        if not include_performance_snapshot:
+            return self._empty_async_result()
+        performance_end_date = await self._resolve_performance_snapshot_end_date(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            correlation_id=correlation_id,
+        )
+        return self._analytics_client.get_twr_analytics(
+            portfolio_id=portfolio_id,
+            report_end_date=performance_end_date,
+            report_start_date=None,
+            period="YTD",
+            metric_basis="NET",
+            benchmark_id=None,
+            correlation_id=correlation_id,
+        )
+
+    def _build_rebalance_snapshot_tasks(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        include_rebalance_snapshot: bool,
+    ) -> tuple[Awaitable[tuple[int, dict[str, Any]]], Awaitable[tuple[int, dict[str, Any]]]]:
+        if not include_rebalance_snapshot:
+            return self._empty_async_result(), self._empty_async_result()
+        return (
+            self._dpm_client.list_runs(
+                params={"portfolio_id": portfolio_id, "limit": 5},
+                correlation_id=correlation_id,
+            ),
+            self._dpm_client.get_supportability_summary(correlation_id=correlation_id),
+        )
 
     def _raise_for_lotus_core_error(self, upstream_status: int, payload: dict[str, Any]) -> None:
         if upstream_status < status.HTTP_400_BAD_REQUEST:

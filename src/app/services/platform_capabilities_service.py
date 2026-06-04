@@ -101,61 +101,112 @@ class PlatformCapabilitiesService:
         tenant_id: str,
         correlation_id: str,
     ) -> tuple[list[Any], list[str]]:
-        tasks: list[Any] = [
-            self._with_timeout(
-                self._lotus_core_query_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                )
+        tasks = self._required_capability_tasks(
+            consumer_system=consumer_system,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
+        )
+        tasks.append(
+            self._lotus_core_policy_task(
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
+            )
+        )
+        optional_tasks, optional_sources = self._optional_capability_tasks(
+            correlation_id=correlation_id,
+        )
+        tasks.extend(optional_tasks)
+        return tasks, optional_sources
+
+    def _required_capability_tasks(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> list[Any]:
+        return [
+            self._source_capability_task(
+                client=self._lotus_core_query_client,
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             ),
-            self._with_timeout(
-                self._analytics_client.get_capabilities(
-                    correlation_id=correlation_id,
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                )
+            self._source_capability_task(
+                client=self._analytics_client,
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             ),
-            self._with_timeout(
-                self._advise_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                )
+            self._source_capability_task(
+                client=self._advise_client,
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             ),
-            self._with_timeout(
-                self._manage_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                )
+            self._source_capability_task(
+                client=self._manage_client,
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             ),
-            self._with_timeout(
-                self._reporting_client.get_capabilities(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                )
-            ),
-            self._with_timeout(
-                self._lotus_core_query_client.get_effective_policy(
-                    consumer_system=consumer_system,
-                    tenant_id=tenant_id,
-                    correlation_id=correlation_id,
-                )
+            self._source_capability_task(
+                client=self._reporting_client,
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             ),
         ]
-        optional_sources: list[str] = []
-        if self._risk_client is not None:
-            tasks.append(
-                self._with_timeout(
-                    self._risk_client.get_capabilities(
-                        correlation_id=correlation_id,
-                    )
-                )
+
+    def _source_capability_task(
+        self,
+        *,
+        client: PlatformCapabilitiesSourceClient,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> Any:
+        return self._with_timeout(
+            client.get_capabilities(
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
             )
-            optional_sources.append("risk")
-        return tasks, optional_sources
+        )
+
+    def _lotus_core_policy_task(
+        self,
+        *,
+        consumer_system: str,
+        tenant_id: str,
+        correlation_id: str,
+    ) -> Any:
+        return self._with_timeout(
+            self._lotus_core_query_client.get_effective_policy(
+                consumer_system=consumer_system,
+                tenant_id=tenant_id,
+                correlation_id=correlation_id,
+            )
+        )
+
+    def _optional_capability_tasks(
+        self,
+        *,
+        correlation_id: str,
+    ) -> tuple[list[Any], list[str]]:
+        if self._risk_client is not None:
+            return (
+                [
+                    self._with_timeout(
+                        self._risk_client.get_capabilities(
+                            correlation_id=correlation_id,
+                        )
+                    )
+                ],
+                ["risk"],
+            )
+        return [], []
 
     def _primary_sources_from_results(
         self,

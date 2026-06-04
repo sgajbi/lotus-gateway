@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
@@ -19,9 +20,9 @@ class PortfolioPerformanceSnapshotQuery:
     explicit_end_date: str | None
 
 
-def build_portfolio_performance_snapshot_query(
-    period: str = Query(
-        default="YTD",
+SnapshotPeriod = Annotated[
+    str,
+    Query(
         description=(
             "Requested performance horizon. Use canonical values such as MTD, QTD, YTD, 1Y, 3Y, "
             "5Y, or EXPLICIT."
@@ -29,8 +30,10 @@ def build_portfolio_performance_snapshot_query(
         examples=["YTD"],
         openapi_examples={"standard": {"summary": "Year to date", "value": "YTD"}},
     ),
-    chart_frequency: str = Query(
-        default="monthly",
+]
+SnapshotChartFrequency = Annotated[
+    str,
+    Query(
         description=(
             "Requested sparkline aggregation frequency for the compact return trend. "
             "Unsupported values are normalized to the nearest supported workspace frequency "
@@ -39,8 +42,10 @@ def build_portfolio_performance_snapshot_query(
         examples=["monthly"],
         openapi_examples={"monthly": {"summary": "Monthly sparkline", "value": "monthly"}},
     ),
-    detail_basis: str = Query(
-        default="NET",
+]
+SnapshotDetailBasis = Annotated[
+    str,
+    Query(
         description=(
             "Performance basis requested for the snapshot return metrics. Use NET for the "
             "advisor-facing post-fee view or GROSS when the cockpit needs pre-fee return context."
@@ -48,8 +53,10 @@ def build_portfolio_performance_snapshot_query(
         examples=["NET"],
         openapi_examples={"net": {"summary": "Net of fees", "value": "NET"}},
     ),
-    benchmark_code: str | None = Query(
-        default=None,
+]
+SnapshotBenchmarkCode = Annotated[
+    str | None,
+    Query(
         description=(
             "Optional benchmark override. When omitted, the portfolio-assigned benchmark is used "
             "when available."
@@ -62,8 +69,10 @@ def build_portfolio_performance_snapshot_query(
             }
         },
     ),
-    explicit_start_date: str | None = Query(
-        default=None,
+]
+SnapshotExplicitStartDate = Annotated[
+    str | None,
+    Query(
         description=(
             "Inclusive explicit start date when requesting an EXPLICIT window or overriding the "
             "canonical period boundary for the resolved snapshot horizon."
@@ -73,8 +82,10 @@ def build_portfolio_performance_snapshot_query(
             "quarter_start": {"summary": "Explicit quarter start", "value": "2026-01-01"}
         },
     ),
-    explicit_end_date: str | None = Query(
-        default=None,
+]
+SnapshotExplicitEndDate = Annotated[
+    str | None,
+    Query(
         description=(
             "Inclusive explicit end date when requesting an EXPLICIT window or overriding the "
             "resolved analytics reference end date for the snapshot horizon."
@@ -84,6 +95,16 @@ def build_portfolio_performance_snapshot_query(
             "quarter_end": {"summary": "Explicit quarter end", "value": "2026-03-27"}
         },
     ),
+]
+
+
+def build_portfolio_performance_snapshot_query(
+    period: SnapshotPeriod = "YTD",
+    chart_frequency: SnapshotChartFrequency = "monthly",
+    detail_basis: SnapshotDetailBasis = "NET",
+    benchmark_code: SnapshotBenchmarkCode = None,
+    explicit_start_date: SnapshotExplicitStartDate = None,
+    explicit_end_date: SnapshotExplicitEndDate = None,
 ) -> PortfolioPerformanceSnapshotQuery:
     return PortfolioPerformanceSnapshotQuery(
         period=period,

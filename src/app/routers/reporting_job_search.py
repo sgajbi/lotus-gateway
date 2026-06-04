@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.contracts.reporting import (
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
@@ -46,6 +46,28 @@ class ReportJobSearchFilters:
         return {key: value for key, value in filters.items() if value is not None}
 
 
+@dataclass(frozen=True)
+class ReportJobScopeFilters:
+    tenant_id: str | None
+    region: str | None
+    status: str | None
+    report_type: str | None
+    portfolio_id: str | None
+    as_of_date: str | None
+
+
+@dataclass(frozen=True)
+class ReportJobTraceFilters:
+    idempotency_key: str | None
+    correlation_id: str | None
+
+
+@dataclass(frozen=True)
+class ReportJobCreatedWindow:
+    created_from: str | None
+    created_to: str | None
+
+
 async def _list_report_jobs(
     *,
     caller_headers: dict[str, str],
@@ -55,6 +77,109 @@ async def _list_report_jobs(
         filters=filters.as_query_params(),
         caller_headers=caller_headers,
         correlation_id=correlation_id_var.get(),
+    )
+
+
+def build_report_job_scope_filters(
+    tenant_id_filter: Annotated[
+        str | None,
+        Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
+    ] = None,
+    region_filter: Annotated[
+        str | None,
+        Query(alias="region", description="Return only jobs for this operating region."),
+    ] = None,
+    status_filter: Annotated[
+        str | None,
+        Query(alias="status", description="Return only jobs in this current lifecycle status."),
+    ] = None,
+    report_type_filter: Annotated[
+        str | None,
+        Query(alias="reportType", description="Return only jobs for this report type."),
+    ] = None,
+    portfolio_id_filter: Annotated[
+        str | None,
+        Query(
+            alias="portfolioId",
+            description="Return only jobs whose scope includes this portfolio.",
+        ),
+    ] = None,
+    as_of_date_filter: Annotated[
+        str | None,
+        Query(alias="asOfDate", description="Return only jobs for this business as-of date."),
+    ] = None,
+) -> ReportJobScopeFilters:
+    return ReportJobScopeFilters(
+        tenant_id=tenant_id_filter,
+        region=region_filter,
+        status=status_filter,
+        report_type=report_type_filter,
+        portfolio_id=portfolio_id_filter,
+        as_of_date=as_of_date_filter,
+    )
+
+
+def build_report_job_trace_filters(
+    idempotency_key_filter: Annotated[
+        str | None,
+        Query(alias="idempotencyKey", description="Return only jobs for this idempotency key."),
+    ] = None,
+    correlation_id_filter: Annotated[
+        str | None,
+        Query(
+            alias="correlationId",
+            description="Return only jobs for this correlation identifier.",
+        ),
+    ] = None,
+) -> ReportJobTraceFilters:
+    return ReportJobTraceFilters(
+        idempotency_key=idempotency_key_filter,
+        correlation_id=correlation_id_filter,
+    )
+
+
+def build_report_job_created_window(
+    created_from: Annotated[
+        str | None,
+        Query(alias="createdFrom", description="Inclusive UTC lower bound for job creation time."),
+    ] = None,
+    created_to: Annotated[
+        str | None,
+        Query(alias="createdTo", description="Inclusive UTC upper bound for job creation time."),
+    ] = None,
+) -> ReportJobCreatedWindow:
+    return ReportJobCreatedWindow(
+        created_from=created_from,
+        created_to=created_to,
+    )
+
+
+def build_report_job_search_filters(
+    scope_filters: ReportJobScopeFilters = Depends(build_report_job_scope_filters),
+    trace_filters: ReportJobTraceFilters = Depends(build_report_job_trace_filters),
+    created_window: ReportJobCreatedWindow = Depends(build_report_job_created_window),
+    limit: Annotated[
+        int,
+        Query(
+            alias="limit",
+            ge=1,
+            le=100,
+            description="Maximum number of report jobs returned by this bounded search.",
+        ),
+    ] = 25,
+) -> ReportJobSearchFilters:
+    return ReportJobSearchFilters(
+        tenant_id=scope_filters.tenant_id,
+        region=scope_filters.region,
+        status=scope_filters.status,
+        report_type=scope_filters.report_type,
+        portfolio_id=scope_filters.portfolio_id,
+        as_of_date=scope_filters.as_of_date,
+        idempotency_key=trace_filters.idempotency_key,
+        correlation_id=trace_filters.correlation_id,
+        created_from=created_window.created_from,
+        created_to=created_window.created_to,
+        limit=limit,
     )
 
 
@@ -94,75 +219,9 @@ async def _list_report_jobs(
 )
 async def list_report_jobs(
     caller_headers: ReportingCallerContext,
-    tenant_id_filter: Annotated[
-        str | None,
-        Query(alias="tenantId", description="Return only jobs for this tenant identifier."),
-    ] = None,
-    region_filter: Annotated[
-        str | None,
-        Query(alias="region", description="Return only jobs for this operating region."),
-    ] = None,
-    status_filter: Annotated[
-        str | None,
-        Query(alias="status", description="Return only jobs in this current lifecycle status."),
-    ] = None,
-    report_type_filter: Annotated[
-        str | None,
-        Query(alias="reportType", description="Return only jobs for this report type."),
-    ] = None,
-    portfolio_id_filter: Annotated[
-        str | None,
-        Query(
-            alias="portfolioId",
-            description="Return only jobs whose scope includes this portfolio.",
-        ),
-    ] = None,
-    as_of_date_filter: Annotated[
-        str | None,
-        Query(alias="asOfDate", description="Return only jobs for this business as-of date."),
-    ] = None,
-    idempotency_key_filter: Annotated[
-        str | None,
-        Query(alias="idempotencyKey", description="Return only jobs for this idempotency key."),
-    ] = None,
-    correlation_id_filter: Annotated[
-        str | None,
-        Query(
-            alias="correlationId",
-            description="Return only jobs for this correlation identifier.",
-        ),
-    ] = None,
-    created_from: Annotated[
-        str | None,
-        Query(alias="createdFrom", description="Inclusive UTC lower bound for job creation time."),
-    ] = None,
-    created_to: Annotated[
-        str | None,
-        Query(alias="createdTo", description="Inclusive UTC upper bound for job creation time."),
-    ] = None,
-    limit: Annotated[
-        int,
-        Query(
-            alias="limit",
-            ge=1,
-            le=100,
-            description="Maximum number of report jobs returned by this bounded search.",
-        ),
-    ] = 25,
+    filters: ReportJobSearchFilters = Depends(build_report_job_search_filters),
 ) -> ReportJobListResponse:
     return await _list_report_jobs(
         caller_headers=caller_headers,
-        filters=ReportJobSearchFilters(
-            tenant_id=tenant_id_filter,
-            region=region_filter,
-            status=status_filter,
-            report_type=report_type_filter,
-            portfolio_id=portfolio_id_filter,
-            as_of_date=as_of_date_filter,
-            idempotency_key=idempotency_key_filter,
-            correlation_id=correlation_id_filter,
-            created_from=created_from,
-            created_to=created_to,
-            limit=limit,
-        ),
+        filters=filters,
     )

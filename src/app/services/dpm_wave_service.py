@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import status
@@ -47,6 +48,13 @@ _OPERATIONS_HANDOFF_UNSUPPORTED_CLAIMS = [
     "execution_instruction",
     "order_routing",
 ]
+
+
+@dataclass(frozen=True)
+class WaveReportInput:
+    upstream_status: int
+    payload: dict[str, Any]
+    supportability: DpmWaveSupportability
 
 
 class DpmWaveService:
@@ -688,23 +696,18 @@ class DpmWaveService:
         correlation_id: str,
     ) -> DpmWaveMemoGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
-
-        manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
+        report_input = await self._load_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            _raise_manage_wave_upstream_error(manage_status, manage_payload)
-
-        supportability = _supportability_from(manage_payload)
         memo_request: dict[str, object] = {
             "requested_outputs": request.requested_outputs,
             "audience": request.audience,
         }
         task_payload: dict[str, object] = {
-            "wave_report_input": manage_payload,
+            "wave_report_input": report_input.payload,
             "memo_request": memo_request,
-            "supportability": _wave_pm_memo_supportability_payload(supportability),
+            "supportability": _wave_pm_memo_supportability_payload(report_input.supportability),
         }
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_wave_pm_memo.pack",
@@ -719,7 +722,7 @@ class DpmWaveService:
                     f"for {wave_id}."
                 ),
                 payload=task_payload,
-                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+                source_refs=_wave_report_source_refs(report_input.payload, wave_id),
             ),
             correlation_id=correlation_id,
         )
@@ -735,10 +738,10 @@ class DpmWaveService:
         return DpmWaveMemoGatewayResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            manage_upstream_status=manage_status,
+            manage_upstream_status=report_input.upstream_status,
             ai_upstream_status=ai_status,
-            supportability=supportability,
-            wave_report_input=manage_payload,
+            supportability=report_input.supportability,
+            wave_report_input=report_input.payload,
             memo_request=memo_request,
             data=ai_payload,
         )
@@ -750,24 +753,11 @@ class DpmWaveService:
         correlation_id: str,
     ) -> DpmOperationsHandoffSummaryGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
-
-        manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
+        report_input = await self._load_wave_report_input(
             wave_id=wave_id,
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            _raise_manage_wave_upstream_error(manage_status, manage_payload)
-
-        supportability = _supportability_from(manage_payload)
-        handoff_summary_request: dict[str, object] = {
-            "requested_outputs": request.requested_outputs,
-            "audience": request.audience,
-        }
-        task_payload: dict[str, object] = {
-            "wave_report_input": manage_payload,
-            "handoff_summary_request": handoff_summary_request,
-            "supportability": _operations_handoff_supportability_payload(supportability),
-        }
+        handoff_summary_request = _operations_handoff_summary_request_payload(request)
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_operations_handoff_summary.pack",
             version="v1",
@@ -780,8 +770,11 @@ class DpmWaveService:
                     "Generate review-gated DPM operations handoff summary from "
                     f"manage-owned handoff evidence for {wave_id}."
                 ),
-                payload=task_payload,
-                source_refs=_wave_report_source_refs(manage_payload, wave_id),
+                payload=_operations_handoff_summary_task_payload(
+                    report_input=report_input,
+                    handoff_summary_request=handoff_summary_request,
+                ),
+                source_refs=_wave_report_source_refs(report_input.payload, wave_id),
             ),
             correlation_id=correlation_id,
         )
@@ -794,15 +787,30 @@ class DpmWaveService:
                 default_detail="lotus-ai operations handoff summary request failed",
             )
 
-        return DpmOperationsHandoffSummaryGatewayResponse(
+        return _operations_handoff_summary_response(
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            manage_upstream_status=manage_status,
-            ai_upstream_status=ai_status,
-            supportability=supportability,
-            wave_report_input=manage_payload,
+            report_input=report_input,
             handoff_summary_request=handoff_summary_request,
+            ai_upstream_status=ai_status,
             data=ai_payload,
+        )
+
+    async def _load_wave_report_input(
+        self,
+        *,
+        wave_id: str,
+        correlation_id: str,
+    ) -> WaveReportInput:
+        manage_status, manage_payload = await self._dpm_client.get_wave_report_input(
+            wave_id=wave_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            _raise_manage_wave_upstream_error(manage_status, manage_payload)
+        return WaveReportInput(
+            upstream_status=manage_status,
+            payload=manage_payload,
+            supportability=_supportability_from(manage_payload),
         )
 
     def _compose_response(
@@ -943,6 +951,47 @@ def _wave_report_source_refs(payload: dict[str, Any], wave_id: str) -> list[str]
 def _source_ref_token(value: object) -> str:
     token = str(value)
     return token.removeprefix("report-input:")
+
+
+def _operations_handoff_summary_request_payload(
+    request: DpmOperationsHandoffSummaryRequest,
+) -> dict[str, object]:
+    return {
+        "requested_outputs": request.requested_outputs,
+        "audience": request.audience,
+    }
+
+
+def _operations_handoff_summary_task_payload(
+    *,
+    report_input: WaveReportInput,
+    handoff_summary_request: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "wave_report_input": report_input.payload,
+        "handoff_summary_request": handoff_summary_request,
+        "supportability": _operations_handoff_supportability_payload(report_input.supportability),
+    }
+
+
+def _operations_handoff_summary_response(
+    *,
+    correlation_id: str,
+    report_input: WaveReportInput,
+    handoff_summary_request: dict[str, object],
+    ai_upstream_status: int,
+    data: dict[str, Any],
+) -> DpmOperationsHandoffSummaryGatewayResponse:
+    return DpmOperationsHandoffSummaryGatewayResponse(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        manage_upstream_status=report_input.upstream_status,
+        ai_upstream_status=ai_upstream_status,
+        supportability=report_input.supportability,
+        wave_report_input=report_input.payload,
+        handoff_summary_request=handoff_summary_request,
+        data=data,
+    )
 
 
 def _wave_pm_memo_supportability_payload(

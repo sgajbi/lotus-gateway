@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any
 
 from fastapi import status
@@ -36,6 +37,13 @@ _PROOF_PACK_PM_MEMO_UNSUPPORTED_CLAIMS = [
     "portfolio_manager_scoring",
     "execution_instruction",
 ]
+
+
+@dataclass(frozen=True)
+class ProofPackAiEvidenceInput:
+    upstream_status: int
+    payload: dict[str, Any]
+    supportability: DpmProofPackSupportability
 
 
 class DpmProofPackService:
@@ -123,24 +131,11 @@ class DpmProofPackService:
         correlation_id: str,
     ) -> DpmProofPackMemoGatewayResponse:
         lotus_ai_client = require_lotus_ai_client(self._lotus_ai_client)
-
-        manage_status, manage_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
+        ai_evidence_input = await self._load_proof_pack_ai_evidence_input(
             proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
         )
-        if manage_status >= status.HTTP_400_BAD_REQUEST:
-            _raise_manage_upstream_error(manage_status, manage_payload)
-
-        supportability = _supportability_from(manage_payload)
-        memo_request: dict[str, object] = {
-            "requested_outputs": request.requested_outputs,
-            "audience": request.audience,
-        }
-        task_payload: dict[str, object] = {
-            "ai_evidence_input": manage_payload,
-            "memo_request": memo_request,
-            "supportability": _proof_pack_pm_memo_supportability_payload(supportability),
-        }
+        memo_request = _proof_pack_pm_memo_request_payload(request)
         ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
             pack_id="dpm_pm_memo.pack",
             version="v1",
@@ -153,8 +148,14 @@ class DpmProofPackService:
                     "Generate review-gated proof-pack PM memo from bounded AI evidence "
                     f"for {proof_pack_id}."
                 ),
-                payload=task_payload,
-                source_refs=_proof_pack_ai_source_refs(manage_payload, proof_pack_id),
+                payload=_proof_pack_pm_memo_task_payload(
+                    ai_evidence_input=ai_evidence_input,
+                    memo_request=memo_request,
+                ),
+                source_refs=_proof_pack_ai_source_refs(
+                    ai_evidence_input.payload,
+                    proof_pack_id,
+                ),
             ),
             correlation_id=correlation_id,
         )
@@ -167,15 +168,30 @@ class DpmProofPackService:
                 default_detail="lotus-ai proof-pack PM memo request failed",
             )
 
-        return DpmProofPackMemoGatewayResponse(
+        return _proof_pack_pm_memo_response(
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            manage_upstream_status=manage_status,
-            ai_upstream_status=ai_status,
-            supportability=supportability,
-            ai_evidence_input=manage_payload,
+            ai_evidence_input=ai_evidence_input,
             memo_request=memo_request,
+            ai_upstream_status=ai_status,
             data=ai_payload,
+        )
+
+    async def _load_proof_pack_ai_evidence_input(
+        self,
+        *,
+        proof_pack_id: str,
+        correlation_id: str,
+    ) -> ProofPackAiEvidenceInput:
+        manage_status, manage_payload = await self._dpm_client.get_proof_pack_ai_evidence_input(
+            proof_pack_id=proof_pack_id,
+            correlation_id=correlation_id,
+        )
+        if manage_status >= status.HTTP_400_BAD_REQUEST:
+            _raise_manage_upstream_error(manage_status, manage_payload)
+        return ProofPackAiEvidenceInput(
+            upstream_status=manage_status,
+            payload=manage_payload,
+            supportability=_supportability_from(manage_payload),
         )
 
     def _compose_response(
@@ -216,6 +232,49 @@ def _supportability_from(payload: dict[str, Any]) -> DpmProofPackSupportability:
             or payload.get("ai_evidence_input")
             or proof_pack.get("ai_evidence_input_ref")
         ),
+    )
+
+
+def _proof_pack_pm_memo_request_payload(
+    request: DpmProofPackMemoRequest,
+) -> dict[str, object]:
+    return {
+        "requested_outputs": request.requested_outputs,
+        "audience": request.audience,
+    }
+
+
+def _proof_pack_pm_memo_task_payload(
+    *,
+    ai_evidence_input: ProofPackAiEvidenceInput,
+    memo_request: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "ai_evidence_input": ai_evidence_input.payload,
+        "memo_request": memo_request,
+        "supportability": _proof_pack_pm_memo_supportability_payload(
+            ai_evidence_input.supportability
+        ),
+    }
+
+
+def _proof_pack_pm_memo_response(
+    *,
+    correlation_id: str,
+    ai_evidence_input: ProofPackAiEvidenceInput,
+    memo_request: dict[str, object],
+    ai_upstream_status: int,
+    data: dict[str, Any],
+) -> DpmProofPackMemoGatewayResponse:
+    return DpmProofPackMemoGatewayResponse(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        manage_upstream_status=ai_evidence_input.upstream_status,
+        ai_upstream_status=ai_upstream_status,
+        supportability=ai_evidence_input.supportability,
+        ai_evidence_input=ai_evidence_input.payload,
+        memo_request=memo_request,
+        data=data,
     )
 
 

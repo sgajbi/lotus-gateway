@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.contracts.dpm_command_center import DpmOutcomeReviewGatewayResponse
 from app.middleware.correlation import correlation_id_var
@@ -43,6 +43,100 @@ class OutcomeReviewListFilters:
         }
 
 
+OutcomeReviewPortfolioId = Annotated[
+    str | None,
+    Query(
+        description="Optional portfolio identifier filter for the outcome-review queue.",
+        examples=["PB_SG_GLOBAL_BAL_001"],
+    ),
+]
+OutcomeReviewRunId = Annotated[
+    str | None,
+    Query(description="Optional rebalance-run identifier filter.", examples=["rr_20260415_001"]),
+]
+OutcomeReviewWaveId = Annotated[
+    str | None,
+    Query(
+        description="Optional rebalance-wave identifier filter.",
+        examples=["wave_20260415_sg_balanced"],
+    ),
+]
+OutcomeReviewState = Annotated[
+    str | None,
+    Query(description="Optional manage-published outcome-review state filter.", examples=["READY"]),
+]
+OutcomeReviewSourceSystem = Annotated[
+    str | None,
+    Query(
+        description="Optional persisted source-system filter for Manage-local lineage facets.",
+        examples=["lotus-performance"],
+    ),
+]
+OutcomeReviewSourceType = Annotated[
+    str | None,
+    Query(
+        description="Optional persisted source-type filter for Manage-local lineage facets.",
+        examples=["PortfolioCashMovementSummary:v1"],
+    ),
+]
+OutcomeReviewLimit = Annotated[
+    int,
+    Query(
+        ge=1,
+        le=200,
+        description="Maximum number of outcome-review records to return.",
+        examples=[25],
+    ),
+]
+OutcomeReviewOffset = Annotated[
+    int | None,
+    Query(
+        ge=0,
+        description="Optional Manage-local offset for outcome-review source-lineage search.",
+        examples=[0],
+    ),
+]
+OutcomeReviewSourceScanLimit = Annotated[
+    int | None,
+    Query(
+        ge=1,
+        le=1000,
+        description="Optional Manage-local scan cap for outcome-review source-lineage facets.",
+        examples=[250],
+    ),
+]
+OutcomeReviewCursor = Annotated[
+    str | None,
+    Query(description="Opaque pagination cursor returned by manage.", examples=["or_cursor_0025"]),
+]
+
+
+def build_outcome_review_list_filters(
+    portfolio_id: OutcomeReviewPortfolioId = None,
+    rebalance_run_id: OutcomeReviewRunId = None,
+    wave_id: OutcomeReviewWaveId = None,
+    state: OutcomeReviewState = None,
+    source_system: OutcomeReviewSourceSystem = None,
+    source_type: OutcomeReviewSourceType = None,
+    limit: OutcomeReviewLimit = 25,
+    offset: OutcomeReviewOffset = None,
+    source_scan_limit: OutcomeReviewSourceScanLimit = None,
+    cursor: OutcomeReviewCursor = None,
+) -> OutcomeReviewListFilters:
+    return OutcomeReviewListFilters(
+        portfolio_id=portfolio_id,
+        rebalance_run_id=rebalance_run_id,
+        wave_id=wave_id,
+        state=state,
+        source_system=source_system,
+        source_type=source_type,
+        limit=limit,
+        offset=offset,
+        source_scan_limit=source_scan_limit,
+        cursor=cursor,
+    )
+
+
 async def _list_outcome_reviews(
     filters: OutcomeReviewListFilters,
 ) -> DpmOutcomeReviewGatewayResponse:
@@ -64,73 +158,6 @@ async def _list_outcome_reviews(
     ),
 )
 async def list_outcome_reviews(
-    portfolio_id: str | None = Query(
-        default=None,
-        description="Optional portfolio identifier filter for the outcome-review queue.",
-        examples=["PB_SG_GLOBAL_BAL_001"],
-    ),
-    rebalance_run_id: str | None = Query(
-        default=None,
-        description="Optional rebalance-run identifier filter.",
-        examples=["rr_20260415_001"],
-    ),
-    wave_id: str | None = Query(
-        default=None,
-        description="Optional rebalance-wave identifier filter.",
-        examples=["wave_20260415_sg_balanced"],
-    ),
-    state: str | None = Query(
-        default=None,
-        description="Optional manage-published outcome-review state filter.",
-        examples=["READY"],
-    ),
-    source_system: str | None = Query(
-        default=None,
-        description="Optional persisted source-system filter for Manage-local lineage facets.",
-        examples=["lotus-performance"],
-    ),
-    source_type: str | None = Query(
-        default=None,
-        description="Optional persisted source-type filter for Manage-local lineage facets.",
-        examples=["PortfolioCashMovementSummary:v1"],
-    ),
-    limit: int = Query(
-        default=25,
-        ge=1,
-        le=200,
-        description="Maximum number of outcome-review records to return.",
-        examples=[25],
-    ),
-    offset: int | None = Query(
-        default=None,
-        ge=0,
-        description="Optional Manage-local offset for outcome-review source-lineage search.",
-        examples=[0],
-    ),
-    source_scan_limit: int | None = Query(
-        default=None,
-        ge=1,
-        le=1000,
-        description="Optional Manage-local scan cap for outcome-review source-lineage facets.",
-        examples=[250],
-    ),
-    cursor: str | None = Query(
-        default=None,
-        description="Opaque pagination cursor returned by manage.",
-        examples=["or_cursor_0025"],
-    ),
+    filters: OutcomeReviewListFilters = Depends(build_outcome_review_list_filters),
 ) -> DpmOutcomeReviewGatewayResponse:
-    return await _list_outcome_reviews(
-        OutcomeReviewListFilters(
-            portfolio_id=portfolio_id,
-            rebalance_run_id=rebalance_run_id,
-            wave_id=wave_id,
-            state=state,
-            source_system=source_system,
-            source_type=source_type,
-            limit=limit,
-            offset=offset,
-            source_scan_limit=source_scan_limit,
-            cursor=cursor,
-        )
-    )
+    return await _list_outcome_reviews(filters)

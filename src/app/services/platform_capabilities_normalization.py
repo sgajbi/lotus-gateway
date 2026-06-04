@@ -22,6 +22,46 @@ RISK_ANALYTICS_FEATURE_KEYS = (
     "risk.analytics.historical_attribution",
     "risk.analytics.metrics",
 )
+CORE_SNAPSHOT_FEATURE_KEYS = (
+    "lotus_core.integration.core_snapshot",
+    "lotus_core.support.overview_api",
+    "lotus_core.ingestion.portfolio_bundle_adapter",
+    "pas.integration.core_snapshot",
+)
+CORE_INTAKE_FEATURE_KEYS = (
+    "lotus_core.ingestion.bulk_upload",
+    "lotus_core.ingestion.bulk_upload_adapter",
+    "lotus_core.ingestion.portfolio_bundle_adapter",
+    "pas.ingestion.bulk_upload",
+)
+PERFORMANCE_ANALYTICS_FEATURE_KEYS = (
+    "lotus_performance.analytics.twr",
+    "performance.analytics.twr",
+    "lotus_performance.analytics.mwr",
+    "performance.analytics.mwr",
+    "lotus_performance.analytics.contribution",
+    "performance.analytics.contribution",
+    "lotus_performance.analytics.attribution",
+    "performance.analytics.attribution",
+)
+ADVISE_LIFECYCLE_FEATURE_KEYS = (
+    "advisory.proposals.lifecycle",
+    "lotus_advise.proposals.lifecycle",
+    "advise.proposals.lifecycle",
+    "dpm.proposals.lifecycle",
+)
+MANAGE_SUPPORT_FEATURE_KEYS = (
+    "lotus_manage.support.run_apis",
+    "dpm.support.run_apis",
+)
+REPORTING_FEATURE_KEYS = (
+    "lotus_report.reporting.portfolio_summary",
+    "ras.reporting.portfolio_summary",
+    "lotus_report.reporting.portfolio_review",
+    "ras.reporting.portfolio_review",
+    "lotus_report.aggregation.portfolio_snapshot",
+    "ras.aggregation.portfolio_snapshot",
+)
 
 
 def build_normalized_capabilities(
@@ -97,73 +137,70 @@ def source_input_modes_and_policy_versions(
 
 def feature_enablement(sources: dict[str, dict[str, Any]]) -> dict[str, bool]:
     return {
-        "lotus_core_snapshot": feature_enabled(
-            sources=sources,
-            source_name="lotus_core",
-            feature_keys=(
-                "lotus_core.integration.core_snapshot",
-                "lotus_core.support.overview_api",
-                "lotus_core.ingestion.portfolio_bundle_adapter",
-                "pas.integration.core_snapshot",
-            ),
-        ),
-        "lotus_core_intake": feature_enabled(
-            sources=sources,
-            source_name="lotus_core",
-            feature_keys=(
-                "lotus_core.ingestion.bulk_upload",
-                "lotus_core.ingestion.bulk_upload_adapter",
-                "lotus_core.ingestion.portfolio_bundle_adapter",
-                "pas.ingestion.bulk_upload",
-            ),
-        ),
-        "lotus_performance_analytics": any(
-            feature_enabled(sources=sources, source_name="lotus_performance", feature_keys=(key,))
-            for key in (
-                "lotus_performance.analytics.twr",
-                "performance.analytics.twr",
-                "lotus_performance.analytics.mwr",
-                "performance.analytics.mwr",
-                "lotus_performance.analytics.contribution",
-                "performance.analytics.contribution",
-                "lotus_performance.analytics.attribution",
-                "performance.analytics.attribution",
-            )
-        ),
-        "lotus_advise_lifecycle": feature_enabled(
-            sources=sources,
-            source_name="lotus_advise",
-            feature_keys=(
-                "advisory.proposals.lifecycle",
-                "lotus_advise.proposals.lifecycle",
-                "advise.proposals.lifecycle",
-                "dpm.proposals.lifecycle",
-            ),
-        ),
-        "lotus_manage_support": feature_enabled(
-            sources=sources,
-            source_name="lotus_manage",
-            feature_keys=(
-                "lotus_manage.support.run_apis",
-                "dpm.support.run_apis",
-            ),
-        ),
-        "lotus_report_reporting": any(
-            feature_enabled(sources=sources, source_name="lotus_report", feature_keys=(key,))
-            for key in (
-                "lotus_report.reporting.portfolio_summary",
-                "ras.reporting.portfolio_summary",
-                "lotus_report.reporting.portfolio_review",
-                "ras.reporting.portfolio_review",
-                "lotus_report.aggregation.portfolio_snapshot",
-                "ras.aggregation.portfolio_snapshot",
-            )
-        ),
-        "lotus_risk_analytics": any(
-            feature_enabled(sources=sources, source_name="lotus_risk", feature_keys=(key,))
-            for key in RISK_ANALYTICS_FEATURE_KEYS
-        ),
+        "lotus_core_snapshot": core_snapshot_enabled(sources),
+        "lotus_core_intake": core_intake_enabled(sources),
+        "lotus_performance_analytics": performance_analytics_enabled(sources),
+        "lotus_advise_lifecycle": advise_lifecycle_enabled(sources),
+        "lotus_manage_support": manage_support_enabled(sources),
+        "lotus_report_reporting": reporting_enabled(sources),
+        "lotus_risk_analytics": risk_analytics_enabled(sources),
     }
+
+
+def core_snapshot_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return feature_enabled(
+        sources=sources,
+        source_name="lotus_core",
+        feature_keys=CORE_SNAPSHOT_FEATURE_KEYS,
+    )
+
+
+def core_intake_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return feature_enabled(
+        sources=sources,
+        source_name="lotus_core",
+        feature_keys=CORE_INTAKE_FEATURE_KEYS,
+    )
+
+
+def performance_analytics_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return any_feature_enabled(
+        sources=sources,
+        source_name="lotus_performance",
+        feature_keys=PERFORMANCE_ANALYTICS_FEATURE_KEYS,
+    )
+
+
+def advise_lifecycle_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return feature_enabled(
+        sources=sources,
+        source_name="lotus_advise",
+        feature_keys=ADVISE_LIFECYCLE_FEATURE_KEYS,
+    )
+
+
+def manage_support_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return feature_enabled(
+        sources=sources,
+        source_name="lotus_manage",
+        feature_keys=MANAGE_SUPPORT_FEATURE_KEYS,
+    )
+
+
+def reporting_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return any_feature_enabled(
+        sources=sources,
+        source_name="lotus_report",
+        feature_keys=REPORTING_FEATURE_KEYS,
+    )
+
+
+def risk_analytics_enabled(sources: dict[str, dict[str, Any]]) -> bool:
+    return any_feature_enabled(
+        sources=sources,
+        source_name="lotus_risk",
+        feature_keys=RISK_ANALYTICS_FEATURE_KEYS,
+    )
 
 
 def navigation_flags(feature_enabled_by_key: dict[str, bool]) -> dict[str, bool]:
@@ -244,6 +281,18 @@ def feature_enabled(
         if str(feature.get("key")) in feature_keys:
             return bool(feature.get("enabled"))
     return False
+
+
+def any_feature_enabled(
+    *,
+    sources: dict[str, dict[str, Any]],
+    source_name: str,
+    feature_keys: tuple[str, ...],
+) -> bool:
+    return any(
+        feature_enabled(sources=sources, source_name=source_name, feature_keys=(feature_key,))
+        for feature_key in feature_keys
+    )
 
 
 def payload_value(

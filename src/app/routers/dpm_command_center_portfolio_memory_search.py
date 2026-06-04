@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.contracts.dpm_command_center import (
     DpmOutcomeReviewErrorDetail,
@@ -50,30 +50,7 @@ class PortfolioMemorySearchFilters:
         }
 
 
-async def _search_portfolio_memory(
-    filters: PortfolioMemorySearchFilters,
-) -> DpmPortfolioMemoryGatewayResponse:
-    return await dpm_command_center_service().search_portfolio_memory(
-        filters=filters.as_filters(),
-        correlation_id=correlation_id_var.get(),
-    )
-
-
-@router.get(
-    "/portfolio-memory/search",
-    response_model=DpmPortfolioMemoryGatewayResponse,
-    summary="Search DPM portfolio memory by persisted source lineage",
-    description=(
-        "What: forwards bounded manage-local portfolio-memory search filters, including source "
-        "system and source type, to lotus-manage. When: use this for source-family posture over "
-        "persisted memory evidence before selecting a portfolio timeline. How: Gateway preserves "
-        "the Manage search payload, applied filters, source counts, reason codes, boundaries, and "
-        "content hashes without querying source-owner stores, discovering the global portfolio "
-        "universe, reconstructing raw source payloads, or claiming OMS, execution, client "
-        "communication, fill, or settlement truth."
-    ),
-)
-async def search_portfolio_memory(
+def build_portfolio_memory_search_filters(
     portfolio_ids: list[str] | None = Query(
         default=None,
         description="Optional repeated portfolio identifiers for bounded persisted memory search.",
@@ -119,16 +96,43 @@ async def search_portfolio_memory(
         description="Optional Manage-local scan cap for source-lineage facet derivation.",
         examples=[250],
     ),
-) -> DpmPortfolioMemoryGatewayResponse:
-    return await _search_portfolio_memory(
-        PortfolioMemorySearchFilters(
-            portfolio_ids=portfolio_ids,
-            event_type=event_type,
-            supportability_state=supportability_state,
-            source_system=source_system,
-            source_type=source_type,
-            limit=limit,
-            offset=offset,
-            source_scan_limit=source_scan_limit,
-        )
+) -> PortfolioMemorySearchFilters:
+    return PortfolioMemorySearchFilters(
+        portfolio_ids=portfolio_ids,
+        event_type=event_type,
+        supportability_state=supportability_state,
+        source_system=source_system,
+        source_type=source_type,
+        limit=limit,
+        offset=offset,
+        source_scan_limit=source_scan_limit,
     )
+
+
+async def _search_portfolio_memory(
+    filters: PortfolioMemorySearchFilters,
+) -> DpmPortfolioMemoryGatewayResponse:
+    return await dpm_command_center_service().search_portfolio_memory(
+        filters=filters.as_filters(),
+        correlation_id=correlation_id_var.get(),
+    )
+
+
+@router.get(
+    "/portfolio-memory/search",
+    response_model=DpmPortfolioMemoryGatewayResponse,
+    summary="Search DPM portfolio memory by persisted source lineage",
+    description=(
+        "What: forwards bounded manage-local portfolio-memory search filters, including source "
+        "system and source type, to lotus-manage. When: use this for source-family posture over "
+        "persisted memory evidence before selecting a portfolio timeline. How: Gateway preserves "
+        "the Manage search payload, applied filters, source counts, reason codes, boundaries, and "
+        "content hashes without querying source-owner stores, discovering the global portfolio "
+        "universe, reconstructing raw source payloads, or claiming OMS, execution, client "
+        "communication, fill, or settlement truth."
+    ),
+)
+async def search_portfolio_memory(
+    filters: PortfolioMemorySearchFilters = Depends(build_portfolio_memory_search_filters),
+) -> DpmPortfolioMemoryGatewayResponse:
+    return await _search_portfolio_memory(filters)

@@ -16,6 +16,38 @@ from app.observability.analytics_ui import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
+def _workspace_summary_periods(
+    *,
+    period: str,
+    chart_frequency: str,
+    report_start_date: str | None,
+) -> list[dict[str, Any]]:
+    requested_period = "EXPLICIT" if report_start_date else period
+    return [
+        {
+            "period": requested_period,
+            "frequencies": _dedupe_frequencies([chart_frequency, "monthly", "quarterly", "yearly"]),
+        }
+    ]
+
+
+def _workspace_summary_benchmark(benchmark_id: str) -> dict[str, Any]:
+    return {
+        "benchmark_id": benchmark_id,
+        "input_mode": "stateful",
+        "return_source": "calculated",
+        "stateful_input": {},
+    }
+
+
+def _dedupe_frequencies(frequencies: list[str]) -> list[str]:
+    deduped_frequencies: list[str] = []
+    for frequency in frequencies:
+        if frequency not in deduped_frequencies:
+            deduped_frequencies.append(frequency)
+    return deduped_frequencies
+
+
 class LotusAnalyticsClient:
     def __init__(
         self,
@@ -108,6 +140,79 @@ class LotusAnalyticsClient:
         url = f"{self._base_url}{path}"
         headers = build_upstream_headers(correlation_id)
         resolved_operation = operation or path.strip("/").replace("/", ".")
+        status_code, response_payload = await self._post_observed_analytics_request(
+            url=url,
+            headers=headers,
+            service=service,
+            operation=resolved_operation,
+            payload=payload,
+        )
+        status_code, response_payload = await self._retry_duplicate_calculation_request(
+            status_code=status_code,
+            response_payload=response_payload,
+            request_payload=payload,
+            url=url,
+            headers=headers,
+            service=service,
+            operation=resolved_operation,
+        )
+        async_result = await self._poll_async_response_if_available(
+            status_code=status_code,
+            response_payload=response_payload,
+            correlation_id=correlation_id,
+            service=service,
+            operation=resolved_operation,
+            async_poll_attempts=async_poll_attempts,
+            async_poll_interval_seconds=async_poll_interval_seconds,
+        )
+        if async_result is not None:
+            return async_result
+        self._emit_analytics_read_audit(operation=resolved_operation, status_code=status_code)
+        return status_code, response_payload
+
+    async def _poll_async_response_if_available(
+        self,
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+        correlation_id: str,
+        service: str,
+        operation: str,
+        async_poll_attempts: int,
+        async_poll_interval_seconds: float,
+    ) -> tuple[int, dict[str, Any]] | None:
+        result_path = self._async_result_path(
+            status_code=status_code,
+            response_payload=response_payload,
+        )
+        if result_path is None:
+            return None
+        return await self._poll_async_result(
+            result_path=result_path,
+            correlation_id=correlation_id,
+            service=service,
+            operation=operation,
+            max_attempts=async_poll_attempts,
+            poll_interval_seconds=async_poll_interval_seconds,
+        )
+
+    @staticmethod
+    def _emit_analytics_read_audit(*, operation: str, status_code: int) -> None:
+        emit_gateway_analytics_read_audit_log(
+            logger=logger,
+            operation=operation,
+            status_code=status_code,
+        )
+
+    async def _post_observed_analytics_request(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        service: str,
+        operation: str,
+        payload: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
         started_at = gateway_analytics_fanout_timer()
         status_code, response_payload = await request_with_retry(
             method="POST",
@@ -123,51 +228,36 @@ class LotusAnalyticsClient:
             logger=logger,
             started_at=started_at,
             service=service,
-            operation=resolved_operation,
+            operation=operation,
             status_code=status_code,
             payload=response_payload,
         )
-        if self._should_retry_duplicate_calculation(
-            status_code=status_code, payload=response_payload, request=payload
-        ):
-            replay_payload = dict(payload)
-            replay_payload["calculation_id"] = str(uuid4())
-            replay_started_at = gateway_analytics_fanout_timer()
-            status_code, response_payload = await request_with_retry(
-                method="POST",
-                url=url,
-                timeout_seconds=self._timeout,
-                max_retries=self._max_retries,
-                backoff_seconds=self._retry_backoff_seconds,
-                json_body=replay_payload,
-                headers=headers,
-                retry_timeout_exceptions=False,
-            )
-            emit_gateway_analytics_fanout_log(
-                logger=logger,
-                started_at=replay_started_at,
-                service=service,
-                operation=f"{resolved_operation}.duplicate-retry",
-                status_code=status_code,
-                payload=response_payload,
-            )
-        if status_code == 202 and isinstance(response_payload, dict):
-            result_path = response_payload.get("result_path") or response_payload.get("resultPath")
-            if isinstance(result_path, str) and result_path:
-                return await self._poll_async_result(
-                    result_path=result_path,
-                    correlation_id=correlation_id,
-                    service=service,
-                    operation=resolved_operation,
-                    max_attempts=async_poll_attempts,
-                    poll_interval_seconds=async_poll_interval_seconds,
-                )
-        emit_gateway_analytics_read_audit_log(
-            logger=logger,
-            operation=resolved_operation,
-            status_code=status_code,
-        )
         return status_code, response_payload
+
+    async def _retry_duplicate_calculation_request(
+        self,
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+        request_payload: dict[str, Any],
+        url: str,
+        headers: dict[str, str],
+        service: str,
+        operation: str,
+    ) -> tuple[int, dict[str, Any]]:
+        if not self._should_retry_duplicate_calculation(
+            status_code=status_code, payload=response_payload, request=request_payload
+        ):
+            return status_code, response_payload
+        replay_payload = dict(request_payload)
+        replay_payload["calculation_id"] = str(uuid4())
+        return await self._post_observed_analytics_request(
+            url=url,
+            headers=headers,
+            service=service,
+            operation=f"{operation}.duplicate-retry",
+            payload=replay_payload,
+        )
 
     @staticmethod
     def _should_retry_duplicate_calculation(
@@ -184,6 +274,19 @@ class LotusAnalyticsClient:
         if not isinstance(detail, str):
             return False
         return "calculation_id already exists" in detail.lower()
+
+    @staticmethod
+    def _async_result_path(
+        *,
+        status_code: int,
+        response_payload: dict[str, Any],
+    ) -> str | None:
+        if status_code != 202:
+            return None
+        result_path = response_payload.get("result_path") or response_payload.get("resultPath")
+        if not isinstance(result_path, str):
+            return None
+        return result_path or None
 
     async def get_capabilities(
         self,
@@ -453,25 +556,46 @@ class LotusAnalyticsClient:
         periods: list[dict[str, Any]] | None = None,
         include_detail_blocks: bool = False,
     ) -> tuple[int, dict[str, Any]]:
-        frequencies = [chart_frequency, "monthly", "quarterly", "yearly"]
-        deduped_frequencies: list[str] = []
-        for frequency in frequencies:
-            if frequency not in deduped_frequencies:
-                deduped_frequencies.append(frequency)
+        payload = self._workspace_summary_payload(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            report_start_date=report_start_date,
+            period=period,
+            chart_frequency=chart_frequency,
+            benchmark_id=benchmark_id,
+            reporting_currency=reporting_currency,
+            periods=periods,
+        )
+        status_code, response_payload = await self._post_analytics_request(
+            path="/performance/workspace-summary",
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+        return status_code, response_payload
 
-        requested_period = "EXPLICIT" if report_start_date else period
+    @staticmethod
+    def _workspace_summary_payload(
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        benchmark_id: str | None,
+        reporting_currency: str | None,
+        periods: list[dict[str, Any]] | None,
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "calculation_id": str(uuid4()),
             "input_mode": "stateful",
             "portfolio_id": portfolio_id,
             "report_end_date": report_end_date,
             "periods": periods
-            or [
-                {
-                    "period": requested_period,
-                    "frequencies": deduped_frequencies,
-                }
-            ],
+            or _workspace_summary_periods(
+                period=period,
+                chart_frequency=chart_frequency,
+                report_start_date=report_start_date,
+            ),
             "include_benchmark": benchmark_id is not None,
             "stateful_input": {},
             "mwr_method": "XIRR",
@@ -481,18 +605,8 @@ class LotusAnalyticsClient:
         if report_start_date:
             payload["report_start_date"] = report_start_date
         if benchmark_id:
-            payload["benchmark"] = {
-                "benchmark_id": benchmark_id,
-                "input_mode": "stateful",
-                "return_source": "calculated",
-                "stateful_input": {},
-            }
-        status_code, response_payload = await self._post_analytics_request(
-            path="/performance/workspace-summary",
-            payload=payload,
-            correlation_id=correlation_id,
-        )
-        return status_code, response_payload
+            payload["benchmark"] = _workspace_summary_benchmark(benchmark_id)
+        return payload
 
     async def post_risk_calculate(
         self,

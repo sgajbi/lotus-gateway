@@ -83,9 +83,14 @@ risk drawdown orchestration, core snapshot summary parsing, portfolio workspace 
 risk attribution route query, and performance summary route dependency splits then lowered the
 repository longest-function baseline from 80 lines to 76 lines. Shell workspace descriptor-state
 and rebalance supportability failure-recording splits then lowered the baseline from 76 lines to
-74 lines. `portfolio_service.py` is now
-measured at 2,795 lines after explicit typed workspace component assembly, so it remains the
-largest-file hotspot. Local `make check` remains green with 967 unit/contract tests, and the latest
-focused slices have local router/service/contract, boundary, lint, format, mypy, and
-monetary-float evidence. GitHub Feature Lane and Quality Baseline runs remain the authoritative
-remote evidence and must be rechecked before PR readiness.
+74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
+workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
+page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
+`portfolio_service.py` is now measured at 3,155 lines after explicit typed workspace component,
+transaction-summary, transaction-page, and book assembly helpers, so it remains the largest-file
+hotspot. Local `make check` remains green with 967 unit/contract tests on commit `6836e69`, and
+local `make ci` passes on commit `e1e7980` with 207 integration tests, 1,174 coverage tests,
+93.32 percent total coverage, and `pip-audit` reporting no known vulnerabilities after the
+governed FastAPI/Starlette exception. The latest focused slices have local router/service/contract,
+boundary, lint, format, mypy, and monetary-float evidence. GitHub Feature Lane and Quality
+Baseline runs remain the authoritative remote evidence and must be rechecked before PR readiness.

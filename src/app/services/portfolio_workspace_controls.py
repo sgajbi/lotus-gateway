@@ -1,3 +1,5 @@
+from typing import Literal
+
 from app.contracts.portfolio import (
     PortfolioIdentity,
     PortfolioProfile,
@@ -5,6 +7,87 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceHistoricalSnapshotCapability,
     PortfolioWorkspaceModuleCapability,
     PortfolioWorkspaceReportingCurrencyCapability,
+)
+
+ModuleCapabilityState = Literal["supported", "partial", "unsupported"]
+ModuleCapabilitySpec = tuple[str, ModuleCapabilityState, str]
+
+HISTORICAL_SNAPSHOT_MODULE_CAPABILITY_SPECS: tuple[ModuleCapabilitySpec, ...] = (
+    (
+        "workspace",
+        "supported",
+        "Workspace shell summary, cashflow, and readiness resolve the selected as_of_date.",
+    ),
+    ("book", "supported", "Book accepts and honors as_of_date directly."),
+    ("liquidity", "supported", "Liquidity accepts and honors as_of_date directly."),
+    ("allocations", "supported", "Allocations accept and honor as_of_date directly."),
+    ("positions", "supported", "Positions accept and honor as_of_date directly."),
+    ("transactions", "supported", "Transactions accept and honor as_of_date directly."),
+    ("income_summary", "supported", "Income summary accepts and honors as_of_date directly."),
+    ("activity_summary", "supported", "Activity summary accepts and honors as_of_date directly."),
+    ("readiness", "supported", "Readiness accepts and honors as_of_date directly."),
+    ("workflow", "supported", "Workflow accepts and honors as_of_date directly."),
+    ("insights", "supported", "Insights accept and honor as_of_date directly."),
+    (
+        "performance_snapshot",
+        "partial",
+        (
+            "Performance snapshot aligns through explicit report window controls rather than "
+            "a first-class as_of_date parameter."
+        ),
+    ),
+    (
+        "rebalance",
+        "unsupported",
+        "Rebalance shell summary is always sourced from the latest available run.",
+    ),
+)
+
+REPORTING_CURRENCY_MODULE_CAPABILITY_SPECS: tuple[ModuleCapabilitySpec, ...] = (
+    (
+        "workspace",
+        "partial",
+        (
+            "Workspace shell summary honors reporting_currency for holdings and cash, but "
+            "not for every shell section."
+        ),
+    ),
+    ("book", "supported", "Book accepts and honors reporting_currency directly."),
+    ("liquidity", "supported", "Liquidity accepts and honors reporting_currency directly."),
+    ("allocations", "supported", "Allocations accept and honor reporting_currency directly."),
+    ("positions", "supported", "Positions accept and honor reporting_currency directly."),
+    ("transactions", "supported", "Transactions accept and honor reporting_currency directly."),
+    (
+        "income_summary",
+        "supported",
+        "Income summary accepts and honors reporting_currency directly.",
+    ),
+    (
+        "activity_summary",
+        "supported",
+        "Activity summary accepts and honors reporting_currency directly.",
+    ),
+    ("readiness", "unsupported", "Readiness does not expose reporting_currency-aware semantics."),
+    (
+        "workflow",
+        "unsupported",
+        "Workflow priorities do not expose reporting_currency-aware semantics.",
+    ),
+    (
+        "insights",
+        "unsupported",
+        "Insights do not currently expose reporting_currency-aware semantics.",
+    ),
+    (
+        "performance_snapshot",
+        "unsupported",
+        "Performance snapshot does not expose reporting_currency.",
+    ),
+    (
+        "rebalance",
+        "unsupported",
+        "Rebalance shell summary does not expose reporting_currency-aware state.",
+    ),
 )
 
 
@@ -59,149 +142,18 @@ def supported_reporting_currencies(
     return supported_currencies
 
 
-def historical_snapshot_module_capabilities() -> list[PortfolioWorkspaceModuleCapability]:
+def build_module_capabilities(
+    specs: tuple[ModuleCapabilitySpec, ...],
+) -> list[PortfolioWorkspaceModuleCapability]:
     return [
-        PortfolioWorkspaceModuleCapability(
-            module="workspace",
-            state="supported",
-            reason=(
-                "Workspace shell summary, cashflow, and readiness resolve the selected as_of_date."
-            ),
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="book",
-            state="supported",
-            reason="Book accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="liquidity",
-            state="supported",
-            reason="Liquidity accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="allocations",
-            state="supported",
-            reason="Allocations accept and honor as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="positions",
-            state="supported",
-            reason="Positions accept and honor as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="transactions",
-            state="supported",
-            reason="Transactions accept and honor as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="income_summary",
-            state="supported",
-            reason="Income summary accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="activity_summary",
-            state="supported",
-            reason="Activity summary accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="readiness",
-            state="supported",
-            reason="Readiness accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="workflow",
-            state="supported",
-            reason="Workflow accepts and honors as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="insights",
-            state="supported",
-            reason="Insights accept and honor as_of_date directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="performance_snapshot",
-            state="partial",
-            reason=(
-                "Performance snapshot aligns through explicit report window controls rather than "
-                "a first-class as_of_date parameter."
-            ),
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="rebalance",
-            state="unsupported",
-            reason="Rebalance shell summary is always sourced from the latest available run.",
-        ),
+        PortfolioWorkspaceModuleCapability(module=module, state=state, reason=reason)
+        for module, state, reason in specs
     ]
+
+
+def historical_snapshot_module_capabilities() -> list[PortfolioWorkspaceModuleCapability]:
+    return build_module_capabilities(HISTORICAL_SNAPSHOT_MODULE_CAPABILITY_SPECS)
 
 
 def reporting_currency_module_capabilities() -> list[PortfolioWorkspaceModuleCapability]:
-    return [
-        PortfolioWorkspaceModuleCapability(
-            module="workspace",
-            state="partial",
-            reason=(
-                "Workspace shell summary honors reporting_currency for holdings and cash, but "
-                "not for every shell section."
-            ),
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="book",
-            state="supported",
-            reason="Book accepts and honors reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="liquidity",
-            state="supported",
-            reason="Liquidity accepts and honors reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="allocations",
-            state="supported",
-            reason="Allocations accept and honor reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="positions",
-            state="supported",
-            reason="Positions accept and honor reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="transactions",
-            state="supported",
-            reason="Transactions accept and honor reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="income_summary",
-            state="supported",
-            reason="Income summary accepts and honors reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="activity_summary",
-            state="supported",
-            reason="Activity summary accepts and honors reporting_currency directly.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="readiness",
-            state="unsupported",
-            reason="Readiness does not expose reporting_currency-aware semantics.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="workflow",
-            state="unsupported",
-            reason="Workflow priorities do not expose reporting_currency-aware semantics.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="insights",
-            state="unsupported",
-            reason="Insights do not currently expose reporting_currency-aware semantics.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="performance_snapshot",
-            state="unsupported",
-            reason="Performance snapshot does not expose reporting_currency.",
-        ),
-        PortfolioWorkspaceModuleCapability(
-            module="rebalance",
-            state="unsupported",
-            reason="Rebalance shell summary does not expose reporting_currency-aware state.",
-        ),
-    ]
+    return build_module_capabilities(REPORTING_CURRENCY_MODULE_CAPABILITY_SPECS)
