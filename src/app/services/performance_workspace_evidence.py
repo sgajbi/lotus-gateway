@@ -64,10 +64,54 @@ def build_performance_evidence_view(
     calculations: Sequence[PerformanceCalculationEvidenceView],
     source_supportability: Sequence[PerformanceSourceSupportabilityView],
 ) -> PerformanceEvidenceView:
-    source_services = sorted(
+    return PerformanceEvidenceView(
+        state=state,
+        as_of_date=as_of_date,
+        period=period,
+        basis=basis,
+        benchmark_code=benchmark_code,
+        calculation_scope="performance_workspace",
+        source_services=build_evidence_source_services(
+            calculations=calculations,
+            source_supportability=source_supportability,
+        ),
+        input_freshness=build_evidence_input_freshness(
+            as_of_date=as_of_date,
+            benchmark_code=benchmark_code,
+            calculations=calculations,
+        ),
+        methodology_references=["lotus-performance/docs/methodologies"],
+        calculation_versions=build_evidence_calculation_versions(
+            contract_version=contract_version,
+            calculations=calculations,
+        ),
+        coverage=build_evidence_coverage(),
+        fallbacks=build_evidence_fallbacks(calculations),
+        limitations=limitations,
+        generated_at=None,
+        reason=reason,
+        calculations=list(calculations),
+        source_supportability=list(source_supportability),
+    )
+
+
+def build_evidence_source_services(
+    *,
+    calculations: Sequence[PerformanceCalculationEvidenceView],
+    source_supportability: Sequence[PerformanceSourceSupportabilityView],
+) -> list[str]:
+    return sorted(
         {service for service in ["lotus-performance"] if calculations}
         | {item.source_service for item in source_supportability if item.source_service is not None}
     )
+
+
+def build_evidence_input_freshness(
+    *,
+    as_of_date: str,
+    benchmark_code: str | None,
+    calculations: Sequence[PerformanceCalculationEvidenceView],
+) -> dict[str, str]:
     upstream_dates = {
         snapshot.as_of_date
         for item in calculations
@@ -80,48 +124,41 @@ def build_performance_evidence_view(
     input_freshness = {"performance": performance_freshness}
     if benchmark_code:
         input_freshness["benchmark"] = input_freshness["performance"]
+    return input_freshness
 
-    unsupported_dimensions = [
-        dimension
-        for dimension in ("issuer",)
-        if dimension not in SUPPORTED_CONTRIBUTION_DIMENSIONS
-        and dimension not in SUPPORTED_ATTRIBUTION_DIMENSIONS
-    ]
+
+def build_evidence_calculation_versions(
+    *,
+    contract_version: str,
+    calculations: Sequence[PerformanceCalculationEvidenceView],
+) -> dict[str, str]:
     calculation_versions = {"gateway_contract": contract_version}
     analytics_types = {
         item.analytics_type for item in calculations if item.analytics_type is not None
     }
     if analytics_types:
         calculation_versions["analytics_types"] = ",".join(sorted(analytics_types))
+    return calculation_versions
 
-    fallbacks = [
-        item.reason for item in calculations if item.reason is not None and item.reason.strip()
-    ]
 
-    return PerformanceEvidenceView(
-        state=state,
-        as_of_date=as_of_date,
-        period=period,
-        basis=basis,
-        benchmark_code=benchmark_code,
-        calculation_scope="performance_workspace",
-        source_services=source_services,
-        input_freshness=input_freshness,
-        methodology_references=["lotus-performance/docs/methodologies"],
-        calculation_versions=calculation_versions,
-        coverage={
-            "supported_dimensions": sorted(
-                set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
-            ),
-            "unsupported_dimensions": unsupported_dimensions,
-        },
-        fallbacks=fallbacks,
-        limitations=limitations,
-        generated_at=None,
-        reason=reason,
-        calculations=list(calculations),
-        source_supportability=list(source_supportability),
-    )
+def build_evidence_coverage() -> dict[str, list[str]]:
+    return {
+        "supported_dimensions": sorted(
+            set(SUPPORTED_CONTRIBUTION_DIMENSIONS) | set(SUPPORTED_ATTRIBUTION_DIMENSIONS)
+        ),
+        "unsupported_dimensions": [
+            dimension
+            for dimension in ("issuer",)
+            if dimension not in SUPPORTED_CONTRIBUTION_DIMENSIONS
+            and dimension not in SUPPORTED_ATTRIBUTION_DIMENSIONS
+        ],
+    }
+
+
+def build_evidence_fallbacks(
+    calculations: Sequence[PerformanceCalculationEvidenceView],
+) -> list[str]:
+    return [item.reason for item in calculations if item.reason is not None and item.reason.strip()]
 
 
 def build_source_supportability(
