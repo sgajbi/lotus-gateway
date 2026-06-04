@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.contracts.portfolio import PortfolioPerformanceSnapshotResponse
 from app.middleware.correlation import correlation_id_var
@@ -19,38 +19,7 @@ class PortfolioPerformanceSnapshotQuery:
     explicit_end_date: str | None
 
 
-async def _get_portfolio_performance_snapshot(
-    *,
-    portfolio_id: str,
-    query: PortfolioPerformanceSnapshotQuery,
-) -> PortfolioPerformanceSnapshotResponse:
-    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id_var.get(),
-        period=query.period,
-        chart_frequency=query.chart_frequency,
-        detail_basis=query.detail_basis,
-        benchmark_code=query.benchmark_code,
-        explicit_start_date=query.explicit_start_date,
-        explicit_end_date=query.explicit_end_date,
-    )
-
-
-@router.get(
-    "/portfolios/{portfolio_id}/performance-snapshot",
-    response_model=PortfolioPerformanceSnapshotResponse,
-    summary="Get portfolio performance snapshot",
-    description=(
-        "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
-        "Use this endpoint when the UI needs the current period return, benchmark comparison, "
-        "compact sparkline, and explicit unavailable-state semantics without loading the full "
-        "performance workspace. The response keeps warnings and partial failures explicit so "
-        "downstream clients can render degraded or unavailable states without rebuilding "
-        "snapshot logic locally."
-    ),
-)
-async def get_portfolio_performance_snapshot(
-    portfolio_id: str,
+def build_portfolio_performance_snapshot_query(
     period: str = Query(
         default="YTD",
         description=(
@@ -115,15 +84,52 @@ async def get_portfolio_performance_snapshot(
             "quarter_end": {"summary": "Explicit quarter end", "value": "2026-03-27"}
         },
     ),
+) -> PortfolioPerformanceSnapshotQuery:
+    return PortfolioPerformanceSnapshotQuery(
+        period=period,
+        chart_frequency=chart_frequency,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        explicit_start_date=explicit_start_date,
+        explicit_end_date=explicit_end_date,
+    )
+
+
+async def _get_portfolio_performance_snapshot(
+    *,
+    portfolio_id: str,
+    query: PortfolioPerformanceSnapshotQuery,
+) -> PortfolioPerformanceSnapshotResponse:
+    return await portfolio_performance_workspace_service().get_portfolio_performance_snapshot(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id_var.get(),
+        period=query.period,
+        chart_frequency=query.chart_frequency,
+        detail_basis=query.detail_basis,
+        benchmark_code=query.benchmark_code,
+        explicit_start_date=query.explicit_start_date,
+        explicit_end_date=query.explicit_end_date,
+    )
+
+
+@router.get(
+    "/portfolios/{portfolio_id}/performance-snapshot",
+    response_model=PortfolioPerformanceSnapshotResponse,
+    summary="Get portfolio performance snapshot",
+    description=(
+        "Return a lightweight, source-backed performance snapshot for the portfolio cockpit. "
+        "Use this endpoint when the UI needs the current period return, benchmark comparison, "
+        "compact sparkline, and explicit unavailable-state semantics without loading the full "
+        "performance workspace. The response keeps warnings and partial failures explicit so "
+        "downstream clients can render degraded or unavailable states without rebuilding "
+        "snapshot logic locally."
+    ),
+)
+async def get_portfolio_performance_snapshot(
+    portfolio_id: str,
+    query: PortfolioPerformanceSnapshotQuery = Depends(build_portfolio_performance_snapshot_query),
 ) -> PortfolioPerformanceSnapshotResponse:
     return await _get_portfolio_performance_snapshot(
         portfolio_id=portfolio_id,
-        query=PortfolioPerformanceSnapshotQuery(
-            period=period,
-            chart_frequency=chart_frequency,
-            detail_basis=detail_basis,
-            benchmark_code=benchmark_code,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
-        ),
+        query=query,
     )
