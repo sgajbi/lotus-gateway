@@ -15,10 +15,12 @@ from app.contracts.performance_workspace import (
     MoneyWeightedReturnSummary,
     PerformanceAttributionTrendResponse,
     PerformanceBenchmarkOptionView,
+    PerformanceCalculationEvidenceView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,
+    PerformanceSourceSupportabilityView,
     PerformanceWorkspaceCapabilities,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
@@ -165,6 +167,145 @@ class WorkspaceSummaryViews:
     @property
     def resolved_benchmark_code(self) -> str | None:
         return self.parsed_summary.resolved_benchmark_code
+
+
+@dataclass(frozen=True)
+class EvidenceViewRequestContext:
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    basis: str
+    benchmark_code: str | None
+    contract_version: str
+    correlation_id: str
+    calculations: Sequence[tuple[str, str | None]]
+    source_results: Sequence[GatheredResult | None]
+
+
+@dataclass(frozen=True)
+class EvidenceViewFetchState:
+    source_supportability: list[PerformanceSourceSupportabilityView]
+    requested_items: list[tuple[str, str]]
+    evidence_items: list[PerformanceCalculationEvidenceView]
+
+    @property
+    def backed_count(self) -> int:
+        return sum(
+            1
+            for item in self.evidence_items
+            if item.execution_status is not None or item.lineage_status is not None
+        )
+
+    @property
+    def complete_count(self) -> int:
+        return sum(
+            1
+            for item in self.evidence_items
+            if item.execution_status == "complete" and item.lineage_status == "complete"
+        )
+
+
+def _build_evidence_requested_items(
+    calculations: Sequence[tuple[str, str | None]],
+) -> list[tuple[str, str]]:
+    return [
+        (role, calculation_id)
+        for role, calculation_id in calculations
+        if calculation_id is not None
+    ]
+
+
+def _build_empty_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    source_supportability: Sequence[PerformanceSourceSupportabilityView],
+) -> PerformanceEvidenceView:
+    return build_performance_evidence_view(
+        state="unavailable",
+        reason="No durable calculation evidence is available for the current selection.",
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=["No durable calculation evidence is available."],
+        calculations=[],
+        source_supportability=source_supportability,
+    )
+
+
+def _build_unavailable_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    reason = "Gateway could not resolve execution or lineage evidence from lotus-performance."
+    return build_performance_evidence_view(
+        state="unavailable",
+        reason=reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
+
+
+def _build_supported_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    evidence_state = resolve_evidence_state(
+        evidence_state="supported",
+        source_supportability=fetch_state.source_supportability,
+    )
+    evidence_reason = resolve_evidence_reason(
+        evidence_state=evidence_state,
+        supported_reason=(
+            "Execution status, upstream lineage, and artifact inventory "
+            "are exposed for the current performance view."
+        ),
+        source_supportability=fetch_state.source_supportability,
+    )
+    return build_performance_evidence_view(
+        state=evidence_state,
+        reason=evidence_reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[] if evidence_state == "supported" else [evidence_reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
+
+
+def _build_partial_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    reason = (
+        "One or more performance calculations still have pending, failed, "
+        "or unavailable lineage evidence."
+    )
+    return build_performance_evidence_view(
+        state="partial",
+        reason=reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
 
 
 class PerformanceWorkspaceService:
@@ -1051,96 +1192,34 @@ class PerformanceWorkspaceService:
         warnings: list[str],
         partial_failures: list[WorkbenchPartialFailure],
     ) -> PerformanceEvidenceView | None:
-        source_supportability = build_source_supportability(source_results)
-        requested_items = [
-            (role, calculation_id)
-            for role, calculation_id in calculations
-            if calculation_id is not None
-        ]
-        if not requested_items:
-            return build_performance_evidence_view(
-                state="unavailable",
-                reason="No durable calculation evidence is available for the current selection.",
-                as_of_date=as_of_date,
-                period=period,
-                basis=basis,
-                benchmark_code=benchmark_code,
-                contract_version=contract_version,
-                limitations=["No durable calculation evidence is available."],
-                calculations=[],
-                source_supportability=source_supportability,
+        request_context = EvidenceViewRequestContext(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            period=period,
+            basis=basis,
+            benchmark_code=benchmark_code,
+            contract_version=contract_version,
+            correlation_id=correlation_id,
+            calculations=calculations,
+            source_results=source_results,
+        )
+        fetch_state = await self._fetch_evidence_view_state(request_context)
+        if not fetch_state.requested_items:
+            return _build_empty_evidence_view_response(
+                context=request_context,
+                source_supportability=fetch_state.source_supportability,
             )
-
-        evidence_items = await asyncio.gather(
-            *[
-                fetch_calculation_evidence(
-                    analytics_client=self._analytics_client,
-                    portfolio_id=portfolio_id,
-                    calculation_role=role,
-                    calculation_id=calculation_id,
-                    correlation_id=correlation_id,
-                    poll_interval_seconds=LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
-                )
-                for role, calculation_id in requested_items
-            ]
-        )
-
-        backed_count = sum(
-            1
-            for item in evidence_items
-            if item.execution_status is not None or item.lineage_status is not None
-        )
-        complete_count = sum(
-            1
-            for item in evidence_items
-            if item.execution_status == "complete" and item.lineage_status == "complete"
-        )
-        if backed_count == 0:
+        if fetch_state.backed_count == 0:
             warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
-            return build_performance_evidence_view(
-                state="unavailable",
-                reason=(
-                    "Gateway could not resolve execution or lineage evidence "
-                    "from lotus-performance."
-                ),
-                as_of_date=as_of_date,
-                period=period,
-                basis=basis,
-                benchmark_code=benchmark_code,
-                contract_version=contract_version,
-                limitations=[
-                    "Gateway could not resolve execution or lineage evidence "
-                    "from lotus-performance."
-                ],
-                calculations=evidence_items,
-                source_supportability=source_supportability,
+            return _build_unavailable_evidence_view_response(
+                context=request_context,
+                fetch_state=fetch_state,
             )
-        if complete_count == len(evidence_items):
-            evidence_state = resolve_evidence_state(
-                evidence_state="supported",
-                source_supportability=source_supportability,
+        if fetch_state.complete_count == len(fetch_state.evidence_items):
+            return _build_supported_evidence_view_response(
+                context=request_context,
+                fetch_state=fetch_state,
             )
-            evidence_reason = resolve_evidence_reason(
-                evidence_state=evidence_state,
-                supported_reason=(
-                    "Execution status, upstream lineage, and artifact inventory "
-                    "are exposed for the current performance view."
-                ),
-                source_supportability=source_supportability,
-            )
-            return build_performance_evidence_view(
-                state=evidence_state,
-                reason=evidence_reason,
-                as_of_date=as_of_date,
-                period=period,
-                basis=basis,
-                benchmark_code=benchmark_code,
-                contract_version=contract_version,
-                limitations=[] if evidence_state == "supported" else [evidence_reason],
-                calculations=evidence_items,
-                source_supportability=source_supportability,
-            )
-
         warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
         partial_failures.append(
             build_performance_failure(
@@ -1152,23 +1231,39 @@ class PerformanceWorkspaceService:
                 ),
             )
         )
-        return build_performance_evidence_view(
-            state="partial",
-            reason=(
-                "One or more performance calculations still have pending, failed, "
-                "or unavailable lineage evidence."
-            ),
-            as_of_date=as_of_date,
-            period=period,
-            basis=basis,
-            benchmark_code=benchmark_code,
-            contract_version=contract_version,
-            limitations=[
-                "One or more performance calculations still have pending, failed, "
-                "or unavailable lineage evidence."
-            ],
-            calculations=evidence_items,
-            source_supportability=source_supportability,
+        return _build_partial_evidence_view_response(
+            context=request_context,
+            fetch_state=fetch_state,
+        )
+
+    async def _fetch_evidence_view_state(
+        self,
+        context: EvidenceViewRequestContext,
+    ) -> EvidenceViewFetchState:
+        requested_items = _build_evidence_requested_items(context.calculations)
+        if not requested_items:
+            return EvidenceViewFetchState(
+                source_supportability=build_source_supportability(context.source_results),
+                requested_items=[],
+                evidence_items=[],
+            )
+        evidence_items = await asyncio.gather(
+            *[
+                fetch_calculation_evidence(
+                    analytics_client=self._analytics_client,
+                    portfolio_id=context.portfolio_id,
+                    calculation_role=role,
+                    calculation_id=calculation_id,
+                    correlation_id=context.correlation_id,
+                    poll_interval_seconds=LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
+                )
+                for role, calculation_id in requested_items
+            ]
+        )
+        return EvidenceViewFetchState(
+            source_supportability=build_source_supportability(context.source_results),
+            requested_items=requested_items,
+            evidence_items=list(evidence_items),
         )
 
     async def _determine_report_end_date(
