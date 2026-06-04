@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, TypeAlias
 
 from app.contracts.performance_workspace import (
@@ -28,6 +29,14 @@ GatheredResult: TypeAlias = UpstreamResult | BaseException
 
 DEFAULT_LINEAGE_COMPLETION_POLL_ATTEMPTS = 3
 DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS = 0.25
+
+
+@dataclass(frozen=True)
+class CalculationEvidencePayloads:
+    execution_status_code: int
+    lineage_status_code: int
+    execution_data: dict[str, Any]
+    lineage_data: dict[str, Any]
 
 
 def extract_calculation_id_from_result(result: GatheredResult | None) -> str | None:
@@ -325,83 +334,121 @@ def build_calculation_evidence_view(
     execution_result: UpstreamResult,
     lineage_result: UpstreamResult,
 ) -> PerformanceCalculationEvidenceView:
-    execution_status_code, execution_payload = execution_result
-    lineage_status_code, lineage_payload = lineage_result
-
-    execution_data = execution_payload if isinstance(execution_payload, dict) else {}
-    lineage_data = lineage_payload if isinstance(lineage_payload, dict) else {}
-
-    execution_available = execution_status_code < 400 and bool(execution_data)
-    lineage_available = lineage_status_code < 400 and bool(lineage_data)
-    reason_parts: list[str] = []
-    if not execution_available:
-        reason_parts.append(
-            "Execution evidence unavailable "
-            f"({evidence_status_reason(execution_status_code, execution_data)})."
-        )
-    if not lineage_available:
-        reason_parts.append(
-            "Lineage evidence unavailable "
-            f"({evidence_status_reason(lineage_status_code, lineage_data)})."
-        )
-    elif str(lineage_data.get("status")) != "complete":
-        reason_parts.append(
-            f"Lineage is {str(lineage_data.get('status', 'unavailable'))} in lotus-performance."
-        )
-
-    stages_payload = execution_data.get("stages", [])
-    snapshots_payload = execution_data.get("upstream_snapshots", [])
-    artifacts_payload = lineage_data.get("artifacts", {})
-
-    stage_statuses = []
-    if isinstance(stages_payload, list):
-        stage_statuses = [
-            PerformanceEvidenceStageView(
-                stage_name=str(stage_payload.get("stage_name", "")),
-                status=str(stage_payload.get("status", "")),
-                completed_at_utc=_safe_str(stage_payload.get("completed_at_utc")),
-            )
-            for stage_payload in stages_payload
-            if isinstance(stage_payload, dict)
-        ]
-    upstream_snapshots = []
-    if isinstance(snapshots_payload, list):
-        upstream_snapshots = [
-            PerformanceEvidenceUpstreamSnapshotView(
-                upstream_endpoint=str(snapshot_payload.get("upstream_endpoint", "")),
-                source_identifier=str(snapshot_payload.get("source_identifier", "")),
-                as_of_date=str(snapshot_payload.get("as_of_date", "")),
-                retrieval_status=str(snapshot_payload.get("retrieval_status", "")),
-            )
-            for snapshot_payload in snapshots_payload
-            if isinstance(snapshot_payload, dict)
-        ]
-    artifacts = []
-    if isinstance(artifacts_payload, Mapping):
-        artifacts = [
-            PerformanceEvidenceArtifactView(
-                artifact_name=artifact_name,
-                url=gateway_evidence_artifact_url(
-                    portfolio_id=portfolio_id,
-                    calculation_id=calculation_id,
-                    artifact_name=artifact_name,
-                ),
-            )
-            for artifact_name in sorted(str(name) for name in artifacts_payload)
-        ]
+    payloads = calculation_evidence_payloads(
+        execution_result=execution_result,
+        lineage_result=lineage_result,
+    )
 
     return PerformanceCalculationEvidenceView(
         calculation_role=calculation_role,
         calculation_id=calculation_id,
-        analytics_type=_safe_str(execution_data.get("analytics_type")),
-        execution_status=_safe_str(execution_data.get("status")),
-        execution_mode=_safe_str(execution_data.get("execution_mode")),
-        lineage_status=_safe_str(lineage_data.get("status")),
-        stage_statuses=stage_statuses,
-        upstream_snapshots=upstream_snapshots,
-        artifacts=artifacts,
-        reason=" ".join(reason_parts) if reason_parts else None,
+        analytics_type=_safe_str(payloads.execution_data.get("analytics_type")),
+        execution_status=_safe_str(payloads.execution_data.get("status")),
+        execution_mode=_safe_str(payloads.execution_data.get("execution_mode")),
+        lineage_status=_safe_str(payloads.lineage_data.get("status")),
+        stage_statuses=build_evidence_stage_views(payloads.execution_data),
+        upstream_snapshots=build_evidence_upstream_snapshot_views(payloads.execution_data),
+        artifacts=build_evidence_artifact_views(
+            portfolio_id=portfolio_id,
+            calculation_id=calculation_id,
+            lineage_data=payloads.lineage_data,
+        ),
+        reason=calculation_evidence_reason(payloads),
     )
+
+
+def calculation_evidence_payloads(
+    *,
+    execution_result: UpstreamResult,
+    lineage_result: UpstreamResult,
+) -> CalculationEvidencePayloads:
+    execution_status_code, execution_payload = execution_result
+    lineage_status_code, lineage_payload = lineage_result
+    return CalculationEvidencePayloads(
+        execution_status_code=execution_status_code,
+        lineage_status_code=lineage_status_code,
+        execution_data=execution_payload if isinstance(execution_payload, dict) else {},
+        lineage_data=lineage_payload if isinstance(lineage_payload, dict) else {},
+    )
+
+
+def calculation_evidence_reason(payloads: CalculationEvidencePayloads) -> str | None:
+    execution_available = payloads.execution_status_code < 400 and bool(payloads.execution_data)
+    lineage_available = payloads.lineage_status_code < 400 and bool(payloads.lineage_data)
+    reason_parts: list[str] = []
+    if not execution_available:
+        reason_parts.append(
+            "Execution evidence unavailable "
+            f"({evidence_status_reason(payloads.execution_status_code, payloads.execution_data)})."
+        )
+    if not lineage_available:
+        reason_parts.append(
+            "Lineage evidence unavailable "
+            f"({evidence_status_reason(payloads.lineage_status_code, payloads.lineage_data)})."
+        )
+    elif str(payloads.lineage_data.get("status")) != "complete":
+        reason_parts.append(
+            "Lineage is "
+            f"{str(payloads.lineage_data.get('status', 'unavailable'))} in lotus-performance."
+        )
+    return " ".join(reason_parts) if reason_parts else None
+
+
+def build_evidence_stage_views(
+    execution_data: Mapping[str, Any],
+) -> list[PerformanceEvidenceStageView]:
+    stages_payload = execution_data.get("stages", [])
+    if not isinstance(stages_payload, list):
+        return []
+    return [
+        PerformanceEvidenceStageView(
+            stage_name=str(stage_payload.get("stage_name", "")),
+            status=str(stage_payload.get("status", "")),
+            completed_at_utc=_safe_str(stage_payload.get("completed_at_utc")),
+        )
+        for stage_payload in stages_payload
+        if isinstance(stage_payload, dict)
+    ]
+
+
+def build_evidence_upstream_snapshot_views(
+    execution_data: Mapping[str, Any],
+) -> list[PerformanceEvidenceUpstreamSnapshotView]:
+    snapshots_payload = execution_data.get("upstream_snapshots", [])
+    if not isinstance(snapshots_payload, list):
+        return []
+    return [
+        PerformanceEvidenceUpstreamSnapshotView(
+            upstream_endpoint=str(snapshot_payload.get("upstream_endpoint", "")),
+            source_identifier=str(snapshot_payload.get("source_identifier", "")),
+            as_of_date=str(snapshot_payload.get("as_of_date", "")),
+            retrieval_status=str(snapshot_payload.get("retrieval_status", "")),
+        )
+        for snapshot_payload in snapshots_payload
+        if isinstance(snapshot_payload, dict)
+    ]
+
+
+def build_evidence_artifact_views(
+    *,
+    portfolio_id: str,
+    calculation_id: str,
+    lineage_data: Mapping[str, Any],
+) -> list[PerformanceEvidenceArtifactView]:
+    artifacts_payload = lineage_data.get("artifacts", {})
+    if not isinstance(artifacts_payload, Mapping):
+        return []
+    return [
+        PerformanceEvidenceArtifactView(
+            artifact_name=artifact_name,
+            url=gateway_evidence_artifact_url(
+                portfolio_id=portfolio_id,
+                calculation_id=calculation_id,
+                artifact_name=artifact_name,
+            ),
+        )
+        for artifact_name in sorted(str(name) for name in artifacts_payload)
+    ]
 
 
 def gateway_evidence_artifact_url(
