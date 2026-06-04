@@ -61,16 +61,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 76 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 2 | 75 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 3 | 74 | `list_report_jobs` | `src/app/routers/reporting_job_search.py` |
-| 4 | 74 | `build_portfolio_performance_snapshot_query` | `src/app/routers/portfolio_performance.py` |
-| 5 | 74 | `_post_analytics_request` | `src/app/clients/lotus_analytics_client.py` |
-| 6 | 73 | `historical_snapshot_module_capabilities` | `src/app/services/portfolio_workspace_controls.py` |
-| 7 | 73 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 8 | 73 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 9 | 72 | `get_summary` | `src/app/services/risk_workspace_service.py` |
-| 10 | 72 | `get_performance_attribution_trend` | `src/app/routers/workbench_performance_attribution_trend.py` |
+| 1 | 74 | `list_report_jobs` | `src/app/routers/reporting_job_search.py` |
+| 2 | 74 | `build_portfolio_performance_snapshot_query` | `src/app/routers/portfolio_performance.py` |
+| 3 | 74 | `_post_analytics_request` | `src/app/clients/lotus_analytics_client.py` |
+| 4 | 73 | `historical_snapshot_module_capabilities` | `src/app/services/portfolio_workspace_controls.py` |
+| 5 | 73 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
+| 6 | 73 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 7 | 72 | `get_summary` | `src/app/services/risk_workspace_service.py` |
+| 8 | 72 | `get_performance_attribution_trend` | `src/app/routers/workbench_performance_attribution_trend.py` |
+| 9 | 72 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 10 | 71 | `reporting_currency_module_capabilities` | `src/app/services/portfolio_workspace_controls.py` |
 
 ## Existing Blocking Gates
 
@@ -109,7 +109,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 76 lines,
+2. no new function above the current longest-function baseline of 74 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

@@ -114,8 +114,10 @@ orchestration, risk attribution supportability construction, attribution trend r
 portfolio position parsing, performance workspace request-context assembly, advisor-brief and
 portfolio performance route dependencies, risk drawdown orchestration, core snapshot summary
 parsing, portfolio workspace response-component assembly, risk attribution route query extraction,
-and performance summary route dependency extraction. The current longest function is
-`build_workspace_descriptor` in `src/app/services/platform_capabilities_shell.py` at 76 lines.
+performance summary route dependency extraction, shell workspace descriptor-state extraction, and
+rebalance supportability failure-recording extraction. The current longest functions are
+`list_report_jobs`, `build_portfolio_performance_snapshot_query`, and `_post_analytics_request` at
+74 lines.
 
 ## Progressive Enforcement
 

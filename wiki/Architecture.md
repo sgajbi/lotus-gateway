@@ -12,7 +12,7 @@
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records `portfolio_service.py` at 2,795 lines after the
   portfolio workspace, insight-rule, workflow-action, and typed response-component extractions,
-  with the repository longest-function baseline reduced to 76 lines
+  with the repository longest-function baseline reduced to 74 lines
 
 ## Route-family map
 
@@ -86,6 +86,7 @@
     parsing, foundation workspace assembly and response composition, performance workspace
     summary/detail, horizon, attribution-trend, request contexts, and summary route dependencies,
     risk drawdown/rolling/attribution orchestration and attribution supportability, risk
-    attribution route queries, shell workspace descriptor specs, DPM PM quality summary
-    orchestration, advisor-brief route dependencies, and portfolio transaction query contracts now
-    sit behind focused helpers so public route/service methods stay orchestration-oriented.
+    attribution route queries, shell workspace descriptor specs and descriptor state, DPM PM
+    quality summary orchestration, advisor-brief route dependencies, rebalance supportability
+    failure recording, and portfolio transaction query contracts now sit behind focused helpers so
+    public route/service methods stay orchestration-oriented.

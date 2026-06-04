@@ -81,7 +81,9 @@ longest-function baseline from 82 lines to 80 lines, with `portfolio_service.py`
 measured at 2,617 lines. Advisor-brief route dependency, portfolio performance snapshot query,
 risk drawdown orchestration, core snapshot summary parsing, portfolio workspace response-component,
 risk attribution route query, and performance summary route dependency splits then lowered the
-repository longest-function baseline from 80 lines to 76 lines. `portfolio_service.py` is now
+repository longest-function baseline from 80 lines to 76 lines. Shell workspace descriptor-state
+and rebalance supportability failure-recording splits then lowered the baseline from 76 lines to
+74 lines. `portfolio_service.py` is now
 measured at 2,795 lines after explicit typed workspace component assembly, so it remains the
 largest-file hotspot. Local `make check` remains green with 967 unit/contract tests, and the latest
 focused slices have local router/service/contract, boundary, lint, format, mypy, and
