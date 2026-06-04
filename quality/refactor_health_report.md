@@ -54,20 +54,24 @@ extracted to `portfolio_exception_summaries.py`, reducing `portfolio_service.py`
 to 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
 readiness delegation. Performance workspace capability-input derivation has now been split into
 explicit capability input and history-date helpers, reducing `build_workspace_capabilities` from
-127 lines to 99 lines. The repository longest-function baseline is now 119 lines. The remaining
-work is still substantial: large portfolio, performance workspace, advisor-brief orchestration,
-contract, and client modules remain.
+127 lines to 99 lines. The current branch has further split portfolio workspace source/analytics
+assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts,
+foundation workspace assembly, risk rolling and attribution orchestration, shell workspace
+descriptor specs, and transaction query contracts. `portfolio_service.py` is now 2,700 lines, and
+the repository longest-function baseline is now 99 lines. The remaining work is still substantial:
+large portfolio, performance workspace, advisor-brief orchestration, contract, and client modules
+remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | clean `main` before the router-registry split |
-| Unit/contract coverage | Healthy | 964 tests passed in latest `make check` evidence |
+| Unit/contract coverage | Healthy | 967 tests passed in latest `make check` evidence |
 | Integration coverage | Healthy | 207 integration tests passed in recent `make ci` evidence |
 | Total coverage | Healthy | 92.84%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception |
-| Modularity | Improving, incomplete | Performance workspace capability inputs, portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling/attribution orchestration, shell workspace descriptor specs, transaction query contracts, performance workspace capability inputs, portfolio exception summaries, performance evidence-view orchestration, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, and shell bootstrap extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Generated OpenAPI has only small description/tag/error gaps |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |

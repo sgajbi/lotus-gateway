@@ -58,4 +58,7 @@ repository longest-function baseline from 133 lines to 127 lines and reduced
 `portfolio_service.py` from 2,839 lines to 2,744 lines while preserving focused portfolio insight
 and router contract tests. The performance workspace capability-input extraction then lowered the
 repository longest-function baseline from 127 lines to 119 lines while adding focused capability
-input, history-date, and aggregate-only fallback tests.
+input, history-date, and aggregate-only fallback tests. The current branch batch further lowered
+the repository longest-function baseline from 119 lines to 99 lines, reduced
+`portfolio_service.py` from 2,744 lines to 2,700 lines, added focused portfolio insight-rule tests,
+and passed `make check` with 967 unit/contract tests.
