@@ -71,12 +71,49 @@ def parse_lotus_core_snapshot(
     snapshot_payload: dict[str, Any],
     fallback_as_of_date: str,
 ) -> tuple[WorkbenchPortfolioSummary, WorkbenchOverviewSummary, str]:
+    _validate_core_snapshot_payloads(
+        portfolio_payload=portfolio_payload,
+        snapshot_payload=snapshot_payload,
+    )
+    baseline_rows, portfolio_totals = _snapshot_position_inputs(snapshot_payload)
+    total_market_value = _snapshot_market_value(
+        portfolio_totals=portfolio_totals,
+        baseline_rows=baseline_rows,
+    )
+    total_cash = _snapshot_cash_total(baseline_rows)
+    cash_weight = _cash_weight_pct(
+        total_cash=total_cash,
+        total_market_value=total_market_value,
+    )
+
+    as_of_date = str(snapshot_payload.get("as_of_date", fallback_as_of_date))
+    portfolio = _build_workbench_portfolio_summary(
+        fallback_portfolio_id=fallback_portfolio_id,
+        portfolio_payload=portfolio_payload,
+    )
+    overview = WorkbenchOverviewSummary(
+        market_value_base=total_market_value,
+        cash_weight_pct=cash_weight,
+        position_count=len(baseline_rows),
+    )
+    return portfolio, overview, as_of_date
+
+
+def _validate_core_snapshot_payloads(
+    *,
+    portfolio_payload: dict[str, Any],
+    snapshot_payload: dict[str, Any],
+) -> None:
     if not isinstance(portfolio_payload, dict) or not isinstance(snapshot_payload, dict):
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Invalid lotus-core core snapshot payload structure.",
         )
 
+
+def _snapshot_position_inputs(
+    snapshot_payload: dict[str, Any],
+) -> tuple[list[Any], dict[str, Any]]:
     sections_payload = snapshot_payload.get("sections", {})
     if not isinstance(sections_payload, dict):
         sections_payload = {}
@@ -86,22 +123,30 @@ def parse_lotus_core_snapshot(
     portfolio_totals = sections_payload.get("portfolio_totals", {})
     if not isinstance(portfolio_totals, dict):
         portfolio_totals = {}
+    return baseline_rows, portfolio_totals
 
+
+def _snapshot_market_value(
+    *,
+    portfolio_totals: dict[str, Any],
+    baseline_rows: list[Any],
+):
     total_market_value_value = portfolio_totals.get("baseline_total_market_value_base")
-    total_market_value = (
-        _as_number(quantize_money(total_market_value_value))
-        if total_market_value_value is not None
-        else _as_number(
-            quantize_money(
-                sum(
-                    _as_number(row.get("market_value_base", 0.0))
-                    for row in baseline_rows
-                    if isinstance(row, dict)
-                )
+    if total_market_value_value is not None:
+        return _as_number(quantize_money(total_market_value_value))
+    return _as_number(
+        quantize_money(
+            sum(
+                _as_number(row.get("market_value_base", 0.0))
+                for row in baseline_rows
+                if isinstance(row, dict)
             )
         )
     )
-    total_cash = _as_number(
+
+
+def _snapshot_cash_total(baseline_rows: list[Any]):
+    return _as_number(
         quantize_money(
             sum(
                 _as_number(row.get("market_value_base", 0.0))
@@ -110,14 +155,23 @@ def parse_lotus_core_snapshot(
             )
         )
     )
+
+
+def _cash_weight_pct(*, total_cash, total_market_value):
     cash_weight = 0.0
     if total_market_value > 0:
         cash_weight = _as_number(
             quantize_performance(max(0.0, (total_cash / total_market_value) * 100.0))
         )
+    return cash_weight
 
-    as_of_date = str(snapshot_payload.get("as_of_date", fallback_as_of_date))
-    portfolio = WorkbenchPortfolioSummary(
+
+def _build_workbench_portfolio_summary(
+    *,
+    fallback_portfolio_id: str,
+    portfolio_payload: dict[str, Any],
+) -> WorkbenchPortfolioSummary:
+    return WorkbenchPortfolioSummary(
         portfolio_id=str(portfolio_payload.get("portfolio_id", fallback_portfolio_id)).strip()
         or fallback_portfolio_id,
         client_id=(
@@ -136,12 +190,6 @@ def parse_lotus_core_snapshot(
             else None
         ),
     )
-    overview = WorkbenchOverviewSummary(
-        market_value_base=total_market_value,
-        cash_weight_pct=cash_weight,
-        position_count=len(baseline_rows),
-    )
-    return portfolio, overview, as_of_date
 
 
 def _optional_money(raw: Any) -> float | None:
