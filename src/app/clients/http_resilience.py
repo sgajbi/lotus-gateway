@@ -45,6 +45,31 @@ def _binary_communication_failure_result(
     return 503, b"", {}, _communication_failure_payload(reason)
 
 
+async def _send_json_request(
+    *,
+    client: httpx.AsyncClient,
+    request_method: str,
+    url: str,
+    params: dict[str, Any] | None,
+    headers: dict[str, str] | None,
+    json_body: dict[str, Any] | None,
+    data: dict[str, Any] | None,
+    files: dict[str, Any] | None,
+) -> httpx.Response:
+    if request_method == "GET":
+        return await client.get(url, params=params, headers=headers)
+    if request_method == "PUT":
+        return await client.put(url, headers=headers, json=json_body)
+    return await client.post(
+        url,
+        params=params,
+        headers=headers,
+        json=json_body,
+        data=data,
+        files=files,
+    )
+
+
 async def request_with_retry(
     *,
     method: str,
@@ -71,19 +96,16 @@ async def request_with_retry(
                 timeout=timeout_seconds,
                 follow_redirects=True,
             ) as client:
-                if request_method == "GET":
-                    response = await client.get(url, params=params, headers=headers)
-                elif request_method == "PUT":
-                    response = await client.put(url, headers=headers, json=json_body)
-                else:
-                    response = await client.post(
-                        url,
-                        params=params,
-                        headers=headers,
-                        json=json_body,
-                        data=data,
-                        files=files,
-                    )
+                response = await _send_json_request(
+                    client=client,
+                    request_method=request_method,
+                    url=url,
+                    params=params,
+                    headers=headers,
+                    json_body=json_body,
+                    data=data,
+                    files=files,
+                )
 
             should_retry_status = retry_status_codes and response.status_code in retry_status_codes
             if should_retry_status and attempt < max_retries:
