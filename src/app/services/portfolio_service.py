@@ -91,6 +91,59 @@ class PortfolioWorkspaceAnalyticsResults:
     rebalance_supportability_result: UpstreamResult | None
 
 
+@dataclass(frozen=True)
+class PortfolioWorkflowActionSpec:
+    title: str
+    impact: str
+    target: str
+    href: str
+    cta_label: str
+    recommended: bool = False
+
+
+EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS: tuple[PortfolioWorkflowActionSpec, ...] = (
+    PortfolioWorkflowActionSpec(
+        title="Fund portfolio",
+        impact=(
+            "Create opening liquidity so balances, allocation, and readiness checks become "
+            "meaningful."
+        ),
+        target="Target: cash funding and opening balance setup",
+        href="operations",
+        cta_label="Fund now",
+        recommended=True,
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Book first trade",
+        impact="Activate the holdings book and create the first investable position.",
+        target="Target: transaction entry and execution workflow",
+        href="operations",
+        cta_label="Book trade",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Publish pricing",
+        impact="Enable valuation, allocation, and downstream reporting coverage.",
+        target="Target: pricing publication and valuation refresh",
+        href="operations",
+        cta_label="Publish prices",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Review holdings",
+        impact="Confirm the funded book, position weights, and coverage after valuation.",
+        target="Target: holdings and allocation review",
+        href="#portfolio-insights",
+        cta_label="Open holdings",
+    ),
+    PortfolioWorkflowActionSpec(
+        title="Open performance",
+        impact="Review return analytics once holdings are funded and valued.",
+        target="Target: performance workspace after valuation is available",
+        href="performance",
+        cta_label="Open performance",
+    ),
+)
+
+
 class PortfolioService:
     _WORKFLOW_DEFINITIONS: dict[str, dict[str, str | int]] = {
         "performance": {
@@ -2311,85 +2364,82 @@ class PortfolioService:
         workflow_cues: list[PortfolioWorkflowLaunchCue],
         transaction_total: int,
     ) -> list[PortfolioWorkflowAction]:
-        portfolio_operations_href = f"/workbench?portfolioId={portfolio_id}"
-        is_empty_portfolio = (
-            summary.position_count == 0
-            and summary.cash_balance_count == 0
-            and transaction_total == 0
-        )
+        if self._is_empty_portfolio_workflow(summary, transaction_total):
+            return self._build_empty_portfolio_workflow_actions(portfolio_id)
+        return self._build_supported_cue_workflow_actions(workflow_cues)
 
-        if is_empty_portfolio:
-            return [
-                PortfolioWorkflowAction(
-                    sequence=1,
-                    title="Fund portfolio",
-                    impact=(
-                        "Create opening liquidity so balances, allocation, and readiness "
-                        "checks become meaningful."
-                    ),
-                    target="Target: cash funding and opening balance setup",
-                    href=portfolio_operations_href,
-                    cta_label="Fund now",
-                    recommended=True,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=2,
-                    title="Book first trade",
-                    impact="Activate the holdings book and create the first investable position.",
-                    target="Target: transaction entry and execution workflow",
-                    href=portfolio_operations_href,
-                    cta_label="Book trade",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=3,
-                    title="Publish pricing",
-                    impact="Enable valuation, allocation, and downstream reporting coverage.",
-                    target="Target: pricing publication and valuation refresh",
-                    href=portfolio_operations_href,
-                    cta_label="Publish prices",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=4,
-                    title="Review holdings",
-                    impact=(
-                        "Confirm the funded book, position weights, and coverage after valuation."
-                    ),
-                    target="Target: holdings and allocation review",
-                    href="#portfolio-insights",
-                    cta_label="Open holdings",
-                    recommended=False,
-                ),
-                PortfolioWorkflowAction(
-                    sequence=5,
-                    title="Open performance",
-                    impact="Review return analytics once holdings are funded and valued.",
-                    target="Target: performance workspace after valuation is available",
-                    href=f"/performance?portfolioId={portfolio_id}",
-                    cta_label="Open performance",
-                    recommended=False,
-                ),
-            ]
+    def _build_empty_portfolio_workflow_actions(
+        self,
+        portfolio_id: str,
+    ) -> list[PortfolioWorkflowAction]:
+        return [
+            PortfolioWorkflowAction(
+                sequence=index + 1,
+                title=spec.title,
+                impact=spec.impact,
+                target=spec.target,
+                href=self._workflow_action_spec_href(spec, portfolio_id),
+                cta_label=spec.cta_label,
+                recommended=spec.recommended,
+            )
+            for index, spec in enumerate(EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS)
+        ]
 
+    def _build_supported_cue_workflow_actions(
+        self,
+        workflow_cues: list[PortfolioWorkflowLaunchCue],
+    ) -> list[PortfolioWorkflowAction]:
         ordered_cues = sorted(
             self._supported_workflow_cues(self._dedupe_workflow_cues(workflow_cues)),
             key=lambda cue: self._workflow_order_rank(cue.key),
         )
         return [
-            PortfolioWorkflowAction(
+            self._build_supported_cue_workflow_action(
+                cue=cue,
                 sequence=index + 1,
-                title=self._workflow_task_label(cue.key),
-                impact=self._workflow_impact_label(cue.key),
-                target=(
-                    f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio"
-                ),
-                href=cue.href,
-                cta_label=self._workflow_cta_label(cue.key),
                 recommended=index == 0,
             )
             for index, cue in enumerate(ordered_cues)
         ]
+
+    def _build_supported_cue_workflow_action(
+        self,
+        *,
+        cue: PortfolioWorkflowLaunchCue,
+        sequence: int,
+        recommended: bool,
+    ) -> PortfolioWorkflowAction:
+        return PortfolioWorkflowAction(
+            sequence=sequence,
+            title=self._workflow_task_label(cue.key),
+            impact=self._workflow_impact_label(cue.key),
+            target=f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio",
+            href=cue.href,
+            cta_label=self._workflow_cta_label(cue.key),
+            recommended=recommended,
+        )
+
+    def _is_empty_portfolio_workflow(
+        self,
+        summary: PortfolioSummary,
+        transaction_total: int,
+    ) -> bool:
+        return (
+            summary.position_count == 0
+            and summary.cash_balance_count == 0
+            and transaction_total == 0
+        )
+
+    def _workflow_action_spec_href(
+        self,
+        spec: PortfolioWorkflowActionSpec,
+        portfolio_id: str,
+    ) -> str:
+        if spec.href == "operations":
+            return f"/workbench?portfolioId={portfolio_id}"
+        if spec.href == "performance":
+            return f"/performance?portfolioId={portfolio_id}"
+        return spec.href
 
     def _holdings_readiness_status(
         self, *, position_count: int, positions: list[PortfolioPositionView]
