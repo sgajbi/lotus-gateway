@@ -93,8 +93,11 @@ classification, policy-result extraction, optional-source merging, shared source
 and response construction helpers, reducing `get_platform_capabilities` from 143 lines to 32
 lines. The performance attribution trend orchestrator has been split into request-context,
 window-pair construction, attribution fan-out, and response assembly helpers, reducing
-`get_performance_attribution_trend` from 135 lines to 56 lines. The current longest function is
-`_build_evidence_view` in `src/app/services/performance_workspace_service.py` at 134 lines.
+`get_performance_attribution_trend` from 135 lines to 56 lines. The performance evidence-view
+orchestrator has now been split into request context, fetch state, requested-calculation
+selection, and explicit response builders, reducing `_build_evidence_view` from 134 lines to
+58 lines. The current longest function is `_build_portfolio_exception_summaries` in
+`src/app/services/portfolio_service.py` at 133 lines.
 
 ## Progressive Enforcement
 
