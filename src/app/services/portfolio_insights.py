@@ -146,16 +146,14 @@ def has_cash_funding_evidence(
 def requested_window_activity_amount(
     activity_summary: PortfolioActivitySummaryResponse,
 ) -> float:
-    return float(
-        sum(
-            bucket.requested_window.reporting_currency_amount
-            * (
-                1
-                if bucket.bucket.upper() == "INFLOWS"
-                else -1
-                if bucket.bucket.upper() in {"OUTFLOWS", "FEES", "TAXES"}
-                else 0
-            )
-            for bucket in activity_summary.buckets
+    return sum(
+        bucket.requested_window.reporting_currency_amount
+        * (
+            1
+            if bucket.bucket.upper() == "INFLOWS"
+            else -1
+            if bucket.bucket.upper() in {"OUTFLOWS", "FEES", "TAXES"}
+            else 0
         )
+        for bucket in activity_summary.buckets
     )
