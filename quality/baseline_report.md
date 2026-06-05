@@ -75,6 +75,9 @@ and `extract_current_positions` to 19 lines while keeping the current longest-fu
 The latest performance router slice split horizon-comparison query metadata out of the public
 dependency function, reducing `build_performance_horizon_comparison_query` to 16 lines while
 keeping the current longest-function baseline at 53 lines.
+The latest advisor-brief slice split repeated source-metric construction into a shared helper,
+reducing `_build_source_metrics` to 48 lines and lowering the repository longest-function baseline
+to 52 lines.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -107,16 +110,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
-| 2 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 3 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
-| 4 | 52 | `get_workbench_analytics` | `src/app/services/workbench_service.py` |
-| 5 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 6 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 7 | 52 | `_build_readiness_indicators` | `src/app/services/portfolio_service.py` |
-| 8 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
-| 9 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
-| 10 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 1 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 2 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
+| 3 | 52 | `get_workbench_analytics` | `src/app/services/workbench_service.py` |
+| 4 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 5 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
+| 6 | 52 | `_build_readiness_indicators` | `src/app/services/portfolio_service.py` |
+| 7 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
+| 8 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
+| 9 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 10 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
 
 ## Existing Blocking Gates
 
@@ -158,10 +161,11 @@ Most recent local evidence:
 19. Current focused branch: current-position unit tests passed with 5 selected tests.
 20. Current focused branch: current-position router tests passed with 2 selected tests.
 21. Current focused branch: performance horizon comparison router tests passed with 3 selected tests.
-22. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-23. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-24. Coverage: 93.36%.
-25. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+22. Current focused branch: advisor brief service/router tests passed with 24 selected tests.
+23. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+24. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+25. Coverage: 93.36%.
+26. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -177,7 +181,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 53 lines,
+2. no new function above the current longest-function baseline of 52 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
