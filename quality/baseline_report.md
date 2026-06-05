@@ -86,6 +86,9 @@ The latest rebalance and readiness slice split Workbench rebalance unavailable r
 portfolio readiness indicator assembly out of tied 52-line helpers, reducing
 `_unpack_rebalance_payload` to 44 lines and `_build_readiness_indicators` to 32 lines while
 keeping the current longest-function baseline at 52 lines.
+The latest HTTP resilience slice split JSON retry response handling, request-error handling, and
+attempt orchestration out of `request_with_retry`, lowering the repository longest-function
+baseline to 51 lines while preserving focused retry behavior tests.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -118,16 +121,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 3 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
-| 4 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
-| 5 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 6 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
-| 7 | 51 | `_load_portfolio_allocation_payloads` | `src/app/services/portfolio_service.py` |
-| 8 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 9 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 10 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 1 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
+| 2 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
+| 3 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 4 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
+| 5 | 51 | `_load_portfolio_allocation_payloads` | `src/app/services/portfolio_service.py` |
+| 6 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 7 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 8 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 9 | 49 | `request_binary_with_retry` | `src/app/clients/http_resilience.py` |
+| 10 | 49 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
 
 ## Existing Blocking Gates
 
@@ -149,7 +152,8 @@ Most recent local evidence:
 1. Current branch: `make check` passed after commit `72df0aa` with ruff, format check,
    monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
    unit/contract tests.
-2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests.
+2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
+   retry attempt extraction.
 3. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
 4. Current focused branch: portfolio workspace tests passed with 7 selected tests.
 5. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
@@ -193,7 +197,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 52 lines,
+2. no new function above the current longest-function baseline of 51 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
