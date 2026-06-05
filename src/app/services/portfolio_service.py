@@ -72,6 +72,14 @@ from app.services.workspace_client_protocols import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
+PortfolioWorkspaceSourceResultSet = tuple[
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+]
 
 
 @dataclass(frozen=True)
@@ -742,7 +750,30 @@ class PortfolioService:
             cashflow_result,
             cash_balance_result,
             readiness_result,
-        ) = await asyncio.gather(
+        ) = await self._gather_portfolio_workspace_source_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        return PortfolioWorkspaceSourceResults(
+            portfolio_result=portfolio_result,
+            aum_result=aum_result,
+            support_result=support_result,
+            cashflow_result=cashflow_result,
+            cash_balance_result=cash_balance_result,
+            readiness_result=readiness_result,
+        )
+
+    async def _gather_portfolio_workspace_source_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        reporting_currency: str | None,
+    ) -> PortfolioWorkspaceSourceResultSet:
+        return await asyncio.gather(
             self._get_portfolio_result(portfolio_id=portfolio_id, correlation_id=correlation_id),
             self._query_aum_result(
                 correlation_id=correlation_id,
@@ -772,14 +803,6 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=effective_as_of_date,
             ),
-        )
-        return PortfolioWorkspaceSourceResults(
-            portfolio_result=portfolio_result,
-            aum_result=aum_result,
-            support_result=support_result,
-            cashflow_result=cashflow_result,
-            cash_balance_result=cash_balance_result,
-            readiness_result=readiness_result,
         )
 
     async def _load_portfolio_workspace_analytics(
