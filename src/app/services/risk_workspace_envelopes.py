@@ -6,6 +6,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskSupportabilityItem,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 def risk_upstream_failure(
@@ -14,7 +15,7 @@ def risk_upstream_failure(
     upstream_payload: Any,
 ) -> WorkbenchPartialFailure:
     detail = (
-        str(upstream_payload.get("detail", upstream_payload))
+        safe_upstream_detail(upstream_payload, default_detail="risk request failed")
         if isinstance(upstream_payload, dict)
         else str(upstream_payload)
     )

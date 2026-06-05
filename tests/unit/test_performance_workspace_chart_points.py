@@ -125,3 +125,24 @@ def test_parse_chart_points_tolerates_missing_peer_rows():
     assert points[0].label == "point-1"
     assert points[0].benchmark_return_pct is None
     assert points[0].active_return_pct is None
+
+
+def test_parse_chart_points_fails_closed_for_invalid_portfolio_breakdowns():
+    assert (
+        parse_chart_points(
+            portfolio_block={"breakdowns": []},
+            benchmark_block={},
+            relative_block={},
+            chart_frequency="monthly",
+        )
+        == []
+    )
+    assert (
+        parse_chart_points(
+            portfolio_block={"breakdowns": {"monthly": {}}},
+            benchmark_block={},
+            relative_block={},
+            chart_frequency="monthly",
+        )
+        == []
+    )

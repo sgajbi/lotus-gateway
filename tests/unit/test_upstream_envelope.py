@@ -187,10 +187,20 @@ def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
         )
         == "DPM_WAVE_INVALID_TRANSITION: Wave dwv_001 cannot be approved from state DRAFT."
     )
-    assert safe_upstream_detail(
-        {"detail": {"reason": "blocked"}},
-        default_detail="fallback",
-    ) == str({"reason": "blocked"})
+    assert (
+        safe_upstream_detail(
+            {"detail": {"reason": "blocked"}},
+            default_detail="fallback",
+        )
+        == "blocked"
+    )
+    assert (
+        safe_upstream_detail(
+            {"detail": {"portfolio_id": "PB_SENSITIVE", "stack_trace": "raw traceback"}},
+            default_detail="fallback",
+        )
+        == "fallback"
+    )
     assert safe_upstream_detail({}, default_detail="fallback") == "fallback"
 
 
@@ -248,7 +258,7 @@ def test_raise_gateway_mapped_service_error_maps_status(
     with pytest.raises(HTTPException) as exc_info:
         raise_gateway_mapped_service_error(
             upstream_status,
-            {"detail": "upstream failed"},
+            {"detail": "upstream failed", "portfolio_id": "PB_SENSITIVE"},
             source_service="lotus-core",
         )
 
@@ -256,5 +266,6 @@ def test_raise_gateway_mapped_service_error_maps_status(
     assert exc_info.value.detail == {
         "source_service": "lotus-core",
         "upstream_status": upstream_status,
-        "error": {"detail": "upstream failed"},
+        "error_code": "UPSTREAM_SERVICE_ERROR",
+        "detail": "upstream failed",
     }

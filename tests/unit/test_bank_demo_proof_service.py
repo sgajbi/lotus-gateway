@@ -102,11 +102,13 @@ async def test_bank_demo_proof_service_forwards_sanitized_capture_request() -> N
 
 
 @pytest.mark.asyncio
-async def test_bank_demo_proof_service_propagates_advise_material_drift_conflict() -> None:
+async def test_bank_demo_proof_service_maps_advise_material_drift_conflict() -> None:
     advise_client = _FakeAdviseClient()
     advise_client.status = 409
     advise_client.payload = {
-        "detail": "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'"
+        "detail": "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'",
+        "primary_portfolio_id": "PB_SENSITIVE",
+        "runtime_payload": {"client_name": "Sensitive Client"},
     }
     service = BankDemoProofService(advise_client=advise_client)
 
@@ -114,4 +116,9 @@ async def test_bank_demo_proof_service_propagates_advise_material_drift_conflict
         await service.build_proof_pack(body={}, correlation_id="corr-rfc0028-proof")
 
     assert exc_info.value.status_code == 409
-    assert exc_info.value.detail == advise_client.payload
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_BANK_DEMO_PROOF_UPSTREAM_ERROR",
+        "detail": "RFC0028_BACKEND_PROOF_MATERIAL_REVIEW_BLOCKED: policy_evaluation='APPROVED'",
+    }

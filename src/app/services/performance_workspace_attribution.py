@@ -26,6 +26,7 @@ from app.services.performance_workspace_parsing import (
     weight_to_pct,
 )
 from app.services.performance_workspace_returns import resolve_results_period_key
+from app.services.upstream_envelope import safe_upstream_detail
 
 AttributionResult = tuple[int, dict[str, Any]] | BaseException
 AttributionTrendResult = tuple[int, dict[str, Any]] | BaseException
@@ -37,6 +38,14 @@ class AttributionTrendPeriodPayload:
     reconciliation_payload: dict[str, Any]
     totals_payload: dict[str, Any]
     supportability_evidence_payload: Any
+
+
+@dataclass(frozen=True)
+class AttributionDetailPayload:
+    period_payload: dict[str, Any]
+    benchmark_context: dict[str, Any]
+    model: Any
+    linking: Any
 
 
 def build_workspace_attribution_summary(
@@ -127,6 +136,66 @@ def parse_attribution_result(
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
 ) -> AttributionSummaryView | None:
+    detail_payload = _extract_attribution_detail_payload(
+        result=result,
+        requested_period=requested_period,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    if detail_payload is None:
+        return None
+
+    return build_detail_attribution_summary(
+        period_payload=detail_payload.period_payload,
+        metric_basis=metric_basis,
+        benchmark_context=detail_payload.benchmark_context,
+        model=detail_payload.model,
+        linking=detail_payload.linking,
+    )
+
+
+def _extract_attribution_detail_payload(
+    *,
+    result: AttributionResult,
+    requested_period: str,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> AttributionDetailPayload | None:
+    payload = _attribution_payload_from_result(
+        result=result,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    if payload is None:
+        return None
+
+    results_by_period = payload.get("results_by_period", {})
+    if not isinstance(results_by_period, dict) or not results_by_period:
+        return None
+    period_key = resolve_results_period_key(
+        requested_period=requested_period,
+        results_by_period=results_by_period,
+    )
+    period_payload = results_by_period.get(period_key, {})
+    if not isinstance(period_payload, dict):
+        return None
+    benchmark_context = payload.get("benchmark_context", {})
+    if not isinstance(benchmark_context, dict):
+        benchmark_context = {}
+    return AttributionDetailPayload(
+        period_payload=period_payload,
+        benchmark_context=benchmark_context,
+        model=payload.get("model"),
+        linking=payload.get("linking"),
+    )
+
+
+def _attribution_payload_from_result(
+    *,
+    result: AttributionResult,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> dict[str, Any] | None:
     if isinstance(result, BaseException):
         warnings.append("ATTRIBUTION_UNAVAILABLE")
         partial_failures.append(
@@ -143,30 +212,11 @@ def parse_attribution_result(
             build_performance_failure(
                 "lotus-performance",
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="attribution unavailable"),
             )
         )
         return None
-    results_by_period = payload.get("results_by_period", {})
-    if not isinstance(results_by_period, dict) or not results_by_period:
-        return None
-    period_key = resolve_results_period_key(
-        requested_period=requested_period,
-        results_by_period=results_by_period,
-    )
-    period_payload = results_by_period.get(period_key, {})
-    if not isinstance(period_payload, dict):
-        return None
-    benchmark_context = payload.get("benchmark_context", {})
-    if not isinstance(benchmark_context, dict):
-        benchmark_context = {}
-    return build_detail_attribution_summary(
-        period_payload=period_payload,
-        metric_basis=metric_basis,
-        benchmark_context=benchmark_context,
-        model=payload.get("model"),
-        linking=payload.get("linking"),
-    )
+    return payload
 
 
 def parse_attribution_trend_results(

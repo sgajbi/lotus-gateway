@@ -24,6 +24,7 @@ from app.services.platform_capabilities_normalization import (
 from app.services.platform_capabilities_normalization import (
     workflow_enabled as _normalized_workflow_enabled,
 )
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PlatformCapabilitiesCoreClient,
     PlatformCapabilitiesRiskClient,
@@ -305,7 +306,10 @@ class PlatformCapabilitiesService:
                 CapabilitySourceError(
                     service=service_name,
                     status_code=status_code,
-                    detail=str(payload.get("detail", payload)),
+                    detail=safe_upstream_detail(
+                        payload,
+                        default_detail="capability source unavailable",
+                    ),
                 )
             )
             return None

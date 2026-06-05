@@ -42,6 +42,23 @@ class DrawdownMappingResult:
     underwater_supportability_reason: str | None
 
 
+@dataclass(frozen=True)
+class DrawdownPeriodSupportability:
+    benchmark_state: RiskSupportabilityState
+    benchmark_reason: str | None
+    underwater_state: RiskSupportabilityState
+    underwater_reason: str | None
+
+
+@dataclass(frozen=True)
+class DrawdownResponseParts:
+    state: RiskModuleState
+    payload: WorkbenchRiskDrawdownPayload | None
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    metadata: WorkbenchRiskMetadata
+
+
 def map_drawdown_response(
     *,
     correlation_id: str,
@@ -68,11 +85,10 @@ def map_drawdown_response(
     )
 
     upstream_metadata = upstream_payload.get("metadata")
-    state, warnings, partial_failures = _resolve_drawdown_state(
-        period_results=mapping.periods,
+    response_parts = _build_drawdown_response_parts(
+        mapping=mapping,
         supportability=supportability,
-        warnings=mapping.warnings,
-        partial_failures=mapping.partial_failures,
+        upstream_metadata=upstream_metadata,
     )
 
     return WorkbenchRiskDrawdownResponse(
@@ -81,15 +97,12 @@ def map_drawdown_response(
         period=period,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
-        state=state,
-        payload=_build_drawdown_payload(
-            period_results=mapping.periods,
-            upstream_metadata=upstream_metadata,
-        ),
+        state=response_parts.state,
+        payload=response_parts.payload,
         supportability=supportability,
-        warnings=sorted(set(warnings)),
-        partial_failures=partial_failures,
-        metadata=_build_drawdown_metadata(upstream_metadata=upstream_metadata),
+        warnings=response_parts.warnings,
+        partial_failures=response_parts.partial_failures,
+        metadata=response_parts.metadata,
     )
 
 
@@ -138,28 +151,19 @@ def _map_drawdown_period_results(
     warnings: list[str] = []
     partial_failures: list[WorkbenchPartialFailure] = []
     period_results: list[WorkbenchRiskDrawdownPeriodResult] = []
-    benchmark_state: RiskSupportabilityState = "unavailable"
-    benchmark_reason: str | None = None
-    underwater_state: RiskSupportabilityState = (
-        "partial" if not include_underwater_series else "unavailable"
-    )
-    underwater_reason = (
-        "Underwater series is available on demand and is not included in first paint."
-        if not include_underwater_series
-        else None
+    supportability = _initial_drawdown_period_supportability(
+        include_underwater_series=include_underwater_series
     )
 
     for key, value in _iter_drawdown_result_items(results):
         period = _map_drawdown_period_result(key=key, value=value)
-        benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
+        supportability = _resolve_drawdown_period_supportability(
             benchmark_code=benchmark_code,
-            relative_to_benchmark=period.relative_to_benchmark,
+            include_underwater_series=include_underwater_series,
+            current=supportability,
+            period=period,
             error=value.get("error"),
         )
-        if include_underwater_series:
-            underwater_state, underwater_reason = _resolve_underwater_supportability(
-                underwater_series=period.underwater_series,
-            )
         if period.error:
             _record_drawdown_period_failure(
                 key=key,
@@ -173,10 +177,57 @@ def _map_drawdown_period_results(
         periods=period_results,
         warnings=warnings,
         partial_failures=partial_failures,
-        benchmark_supportability_state=benchmark_state,
-        benchmark_supportability_reason=benchmark_reason,
-        underwater_supportability_state=underwater_state,
-        underwater_supportability_reason=underwater_reason,
+        benchmark_supportability_state=supportability.benchmark_state,
+        benchmark_supportability_reason=supportability.benchmark_reason,
+        underwater_supportability_state=supportability.underwater_state,
+        underwater_supportability_reason=supportability.underwater_reason,
+    )
+
+
+def _initial_drawdown_period_supportability(
+    *,
+    include_underwater_series: bool,
+) -> DrawdownPeriodSupportability:
+    underwater_state: RiskSupportabilityState = (
+        "partial" if not include_underwater_series else "unavailable"
+    )
+    underwater_reason = (
+        "Underwater series is available on demand and is not included in first paint."
+        if not include_underwater_series
+        else None
+    )
+    return DrawdownPeriodSupportability(
+        benchmark_state="unavailable",
+        benchmark_reason=None,
+        underwater_state=underwater_state,
+        underwater_reason=underwater_reason,
+    )
+
+
+def _resolve_drawdown_period_supportability(
+    *,
+    benchmark_code: str | None,
+    include_underwater_series: bool,
+    current: DrawdownPeriodSupportability,
+    period: WorkbenchRiskDrawdownPeriodResult,
+    error: Any,
+) -> DrawdownPeriodSupportability:
+    benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
+        benchmark_code=benchmark_code,
+        relative_to_benchmark=period.relative_to_benchmark,
+        error=error,
+    )
+    underwater_state = current.underwater_state
+    underwater_reason = current.underwater_reason
+    if include_underwater_series:
+        underwater_state, underwater_reason = _resolve_underwater_supportability(
+            underwater_series=period.underwater_series,
+        )
+    return DrawdownPeriodSupportability(
+        benchmark_state=benchmark_state,
+        benchmark_reason=benchmark_reason,
+        underwater_state=underwater_state,
+        underwater_reason=underwater_reason,
     )
 
 
@@ -328,6 +379,30 @@ def _resolve_drawdown_state(
     elif all(period.summary is None for period in period_results):
         state = "unavailable"
     return state, resolved_warnings, resolved_partial_failures
+
+
+def _build_drawdown_response_parts(
+    *,
+    mapping: DrawdownMappingResult,
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    upstream_metadata: Any,
+) -> DrawdownResponseParts:
+    state, warnings, partial_failures = _resolve_drawdown_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=mapping.warnings,
+        partial_failures=mapping.partial_failures,
+    )
+    return DrawdownResponseParts(
+        state=state,
+        payload=_build_drawdown_payload(
+            period_results=mapping.periods,
+            upstream_metadata=upstream_metadata,
+        ),
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=_build_drawdown_metadata(upstream_metadata=upstream_metadata),
+    )
 
 
 def _build_drawdown_metadata(*, upstream_metadata: Any) -> WorkbenchRiskMetadata:

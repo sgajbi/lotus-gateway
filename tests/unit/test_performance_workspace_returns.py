@@ -86,6 +86,25 @@ def test_build_workspace_comparative_summary_tolerates_missing_nested_blocks():
     assert summary.begin_market_value is None
 
 
+def test_build_workspace_comparative_summary_tolerates_invalid_economics_block():
+    summary = build_workspace_comparative_summary(
+        metric_basis="NET",
+        portfolio_block={
+            "summary": {
+                "period_return": {"base": 1.25},
+                "economics": [],
+            }
+        },
+        benchmark_block={},
+        active_basis_block={},
+    )
+
+    assert summary.portfolio_return_pct == 1.25
+    assert summary.begin_market_value is None
+    assert summary.net_cash_flow is None
+    assert summary.fees is None
+
+
 def test_resolve_results_period_key_matches_case_insensitively():
     assert (
         resolve_results_period_key(

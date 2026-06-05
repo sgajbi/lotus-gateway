@@ -37,6 +37,15 @@ class RollingMappingResult:
     partial_failures: list[WorkbenchPartialFailure]
 
 
+@dataclass(frozen=True)
+class RollingResponseParts:
+    state: RiskModuleState
+    payload: WorkbenchRiskRollingPayload | None
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    metadata: WorkbenchRiskMetadata
+
+
 def map_rolling_response(
     *,
     correlation_id: str,
@@ -58,15 +67,11 @@ def map_rolling_response(
         upstream_payload=upstream_payload,
     )
     upstream_metadata = upstream_payload.get("metadata")
-    warnings, partial_failures = _rolling_warnings_and_failures(
+    response_parts = _build_rolling_response_parts(
         mapping=mapping,
-        sharpe_fallback_reason=sharpe_fallback_reason,
-    )
-    state, warnings, partial_failures = _resolve_rolling_state(
-        period_results=mapping.periods,
         supportability=supportability,
-        warnings=warnings,
-        partial_failures=partial_failures,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+        upstream_metadata=upstream_metadata,
     )
 
     return WorkbenchRiskRollingResponse(
@@ -75,15 +80,12 @@ def map_rolling_response(
         period=period,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
-        state=state,
-        payload=_build_rolling_payload(
-            period_results=mapping.periods,
-            upstream_metadata=upstream_metadata,
-        ),
+        state=response_parts.state,
+        payload=response_parts.payload,
         supportability=supportability,
-        warnings=sorted(set(warnings)),
-        partial_failures=partial_failures,
-        metadata=_build_rolling_metadata(upstream_metadata=upstream_metadata),
+        warnings=response_parts.warnings,
+        partial_failures=response_parts.partial_failures,
+        metadata=response_parts.metadata,
     )
 
 
@@ -363,6 +365,35 @@ def _resolve_rolling_state(
     elif all(not period.window_results for period in period_results):
         state = "unavailable"
     return state, resolved_warnings, resolved_partial_failures
+
+
+def _build_rolling_response_parts(
+    *,
+    mapping: RollingMappingResult,
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    sharpe_fallback_reason: str | None,
+    upstream_metadata: Any,
+) -> RollingResponseParts:
+    warnings, partial_failures = _rolling_warnings_and_failures(
+        mapping=mapping,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+    )
+    state, warnings, partial_failures = _resolve_rolling_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    return RollingResponseParts(
+        state=state,
+        payload=_build_rolling_payload(
+            period_results=mapping.periods,
+            upstream_metadata=upstream_metadata,
+        ),
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=_build_rolling_metadata(upstream_metadata=upstream_metadata),
+    )
 
 
 def _build_rolling_metadata(*, upstream_metadata: Any) -> WorkbenchRiskMetadata:

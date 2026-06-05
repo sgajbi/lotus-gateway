@@ -2,7 +2,7 @@ from typing import Any
 
 from app.contracts.advisory_policy import AdvisoryPolicyEnvelopeResponse
 from app.services.advisory_client_protocols import AdvisoryPolicyClient
-from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
+from app.services.upstream_envelope import build_gateway_envelope, raise_product_safe_service_error
 
 
 class AdvisoryPolicyService:
@@ -269,4 +269,10 @@ class AdvisoryPolicyService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        raise_for_upstream_error(upstream_status, upstream_payload, stringify_payload=True)
+        raise_product_safe_service_error(
+            upstream_status,
+            upstream_payload,
+            source_service="lotus-advise",
+            error_code="ADVISE_POLICY_UPSTREAM_ERROR",
+            default_detail="lotus-advise advisory policy request failed.",
+        )

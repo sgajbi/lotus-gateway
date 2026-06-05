@@ -249,7 +249,19 @@ def test_parse_benchmark_catalog_result_records_upstream_failure():
     partial_failures = []
 
     options = parse_benchmark_catalog_result(
-        result=(503, {"detail": "catalog unavailable"}),
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "CATALOG_UNAVAILABLE",
+                    "message": "catalog unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
         assigned_benchmark_code=None,
         warnings=warnings,
         partial_failures=partial_failures,
@@ -260,4 +272,25 @@ def test_parse_benchmark_catalog_result_records_upstream_failure():
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-core"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "{'detail': 'catalog unavailable'}"
+    assert partial_failures[0].detail == "CATALOG_UNAVAILABLE: catalog unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
+
+
+def test_parse_benchmark_catalog_result_records_exception_failure():
+    warnings: list[str] = []
+    partial_failures = []
+
+    options = parse_benchmark_catalog_result(
+        result=TimeoutError("benchmark catalog timed out"),
+        assigned_benchmark_code=None,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert options == []
+    assert warnings == ["BENCHMARK_CATALOG_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-core"
+    assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
+    assert partial_failures[0].detail == "benchmark catalog timed out"

@@ -10,6 +10,7 @@ from app.contracts.reporting import (
     ReportingSummaryResponse,
 )
 from app.services.reporting_client_protocols import ReportingPortfolioClient
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 class ReportingPortfolioService:
@@ -122,5 +123,8 @@ class ReportingPortfolioService:
             return
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"{unavailable_message}: {payload}",
+            detail=(
+                f"{unavailable_message}: "
+                f"{safe_upstream_detail(payload, default_detail='upstream request failed')}"
+            ),
         )

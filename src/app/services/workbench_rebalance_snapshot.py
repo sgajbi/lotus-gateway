@@ -9,6 +9,7 @@ from app.contracts.workbench import (
     WorkbenchRebalanceRunSummary,
     WorkbenchRebalanceSnapshot,
 )
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 def parse_rebalance_snapshot(
@@ -50,43 +51,58 @@ def _unpack_rebalance_payload(
     warnings: list[str],
 ) -> dict[str, Any] | None:
     if isinstance(result, Exception):
-        _record_rebalance_unavailable(
+        return _rebalance_unavailable_payload(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code="UPSTREAM_EXCEPTION",
             detail=str(result),
         )
-        return None
 
     if not isinstance(result, tuple) or len(result) != 2:
-        _record_rebalance_unavailable(
+        return _rebalance_unavailable_payload(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code="INVALID_UPSTREAM_RESPONSE",
             detail=f"unexpected result type: {type(result)}",
         )
-        return None
 
     dpm_status, dpm_payload = result
     if not isinstance(dpm_payload, dict):
-        _record_rebalance_unavailable(
+        return _rebalance_unavailable_payload(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code="INVALID_UPSTREAM_PAYLOAD",
             detail=f"unexpected payload type: {type(dpm_payload)}",
         )
-        return None
 
     if dpm_status >= status.HTTP_400_BAD_REQUEST:
-        _record_rebalance_unavailable(
+        return _rebalance_unavailable_payload(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code=f"HTTP_{dpm_status}",
-            detail=str(dpm_payload.get("detail", dpm_payload)),
+            detail=safe_upstream_detail(
+                dpm_payload,
+                default_detail="rebalance snapshot unavailable",
+            ),
         )
-        return None
 
     return dpm_payload
+
+
+def _rebalance_unavailable_payload(
+    *,
+    partial_failures: list[WorkbenchPartialFailure],
+    warnings: list[str],
+    error_code: str,
+    detail: str,
+) -> dict[str, Any] | None:
+    _record_rebalance_unavailable(
+        partial_failures=partial_failures,
+        warnings=warnings,
+        error_code=error_code,
+        detail=detail,
+    )
+    return None
 
 
 def _record_rebalance_unavailable(
@@ -247,7 +263,10 @@ def _unpack_rebalance_supportability_summary(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code=f"SUPPORTABILITY_HTTP_{supportability_status}",
-            detail=str(supportability_summary.get("detail", supportability_summary)),
+            detail=safe_upstream_detail(
+                supportability_summary,
+                default_detail="rebalance supportability unavailable",
+            ),
         )
         return None
     return supportability_summary

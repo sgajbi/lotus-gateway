@@ -114,7 +114,19 @@ def test_parse_workspace_summary_result_records_upstream_failure():
     partial_failures = []
 
     parsed = parse_workspace_summary_result(
-        result=(503, {"detail": "workspace summary unavailable"}),
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "SUMMARY_UNAVAILABLE",
+                    "message": "workspace summary unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
         requested_period="YTD",
         chart_frequency="monthly",
         warnings=warnings,
@@ -130,4 +142,6 @@ def test_parse_workspace_summary_result_records_upstream_failure():
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-performance"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "workspace summary unavailable"
+    assert partial_failures[0].detail == "SUMMARY_UNAVAILABLE: workspace summary unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])

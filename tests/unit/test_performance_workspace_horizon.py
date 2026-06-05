@@ -147,7 +147,19 @@ def test_merge_standard_horizon_results_records_partial_failures():
     result = merge_standard_horizon_results(
         gathered_results=[
             RuntimeError("mtd timeout"),
-            (503, {"detail": "qtd unavailable"}),
+            (
+                503,
+                {
+                    "detail": {
+                        "code": "QTD_UNAVAILABLE",
+                        "message": "qtd unavailable",
+                        "debug_payload": {
+                            "client_name": "Private Client",
+                            "token": "secret-token",
+                        },
+                    }
+                },
+            ),
             (200, {"results_by_period": {"YTD": {"value": "YTD"}}}),
         ],
         month_start="2026-03-01",
@@ -172,11 +184,13 @@ def test_merge_standard_horizon_results_records_partial_failures():
                 {
                     "source_service": "lotus-performance",
                     "error_code": "HTTP_503",
-                    "detail": "qtd unavailable",
+                    "detail": "QTD_UNAVAILABLE: qtd unavailable",
                 },
             ],
         },
     )
+    assert "Private Client" not in str(result)
+    assert "secret-token" not in str(result)
 
 
 def test_parse_horizon_comparison_result_returns_row_and_benchmark_code():
@@ -347,3 +361,38 @@ def test_parse_horizon_comparison_result_propagates_gateway_failures():
     assert partial_failures[0].source_service == "lotus-performance"
     assert partial_failures[0].error_code == "HTTP_503"
     assert partial_failures[0].detail == "mtd unavailable"
+
+
+def test_parse_horizon_comparison_result_bounds_upstream_failure_detail():
+    warnings: list[str] = []
+    partial_failures = []
+
+    rows, benchmark_code = parse_horizon_comparison_result(
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "HORIZON_UNAVAILABLE",
+                    "message": "horizon comparison unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        requested_period="YTD",
+        requested_report_start_date=None,
+        requested_report_end_date="2026-03-27",
+        detail_basis="NET",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert rows == []
+    assert benchmark_code is None
+    assert warnings == ["PERFORMANCE_HORIZON_COMPARISON_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].detail == ("HORIZON_UNAVAILABLE: horizon comparison unavailable")
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])

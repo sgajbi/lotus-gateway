@@ -32,7 +32,19 @@ def test_resolve_performance_report_end_date_falls_back_for_http_failure() -> No
     partial_failures = []
 
     report_end_date = resolve_performance_report_end_date(
-        result=(503, {"detail": "analytics reference unavailable"}),
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "REFERENCE_UNAVAILABLE",
+                    "message": "analytics reference unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
         fallback_as_of_date="2026-03-27",
         warnings=warnings,
         partial_failures=partial_failures,
@@ -43,7 +55,9 @@ def test_resolve_performance_report_end_date_falls_back_for_http_failure() -> No
     assert len(partial_failures) == 1
     assert partial_failures[0].source_service == "lotus-core"
     assert partial_failures[0].error_code == "HTTP_503"
-    assert partial_failures[0].detail == "analytics reference unavailable"
+    assert partial_failures[0].detail == "REFERENCE_UNAVAILABLE: analytics reference unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_resolve_performance_report_end_date_falls_back_for_missing_date() -> None:

@@ -185,9 +185,15 @@ lines while preserving focused unit and router integration behavior.
 Performance evidence-view orchestration now delegates response-state resolution and warning or
 partial-failure recording to a focused helper, reducing `_build_evidence_view` from 51 lines to 33
 lines and lowering the repository longest-function baseline to 50 lines.
-`portfolio_service.py` is now 3,183 lines after explicit typed workspace component, transaction
-summary, transaction page, book assembly, transaction-ledger payload, and workspace source
-gathering helpers; it remains the largest-file hotspot even though individual portfolio
+The final PR-readiness batch then split proposal list query metadata, Workbench rebalance
+unavailable payload recording, render output-format supportability, workspace-summary request
+context, benchmark catalog result parsing, chart-point row normalization, attribution result
+payload parsing, comparative-summary economics normalization, analytics async poll-attempt
+handling, and rolling risk request-context construction. The tracked longest-function baseline is
+now 49 lines at branch head `1b2a4e5`, down from 50 lines on `origin/main` at `e7260c1`.
+`portfolio_service.py` is now 3,337 tracked lines after explicit typed workspace component,
+transaction summary, transaction page, book assembly, transaction-ledger payload, and workspace
+source gathering helpers; it remains the largest-file hotspot even though individual portfolio
 orchestration functions are smaller. The remaining work is still substantial: large portfolio,
 performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
@@ -195,13 +201,13 @@ performance workspace, advisor-brief orchestration, contract, and client modules
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | active focused feature branch over `origin/main` |
-| Unit/contract coverage | Healthy | 969 tests passed in current-branch `make check` evidence after commit `3237e05` |
-| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` evidence on commit `1578c98` |
-| Total coverage | Healthy | 93.47%, above the 84% floor |
-| Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `1578c98` |
-| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, portfolio readiness source loading and indicator assembly, portfolio allocation query-result loading, Workbench sandbox policy-state assembly, performance workspace evidence response resolution, performance workspace capability detail assembly, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, advisor-brief source metric construction, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, Workbench analytics response-part construction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, risk concentration query metadata, rebalance supportability failure recording, Workbench rebalance unavailable recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, shell bootstrap, shared analytics request polling, workspace-summary payload assembly, portfolio transaction-summary context, transaction page loading, portfolio book response assembly, performance horizon-comparison dependency phases, performance horizon-comparison query metadata, performance summary/detail route query metadata, DPM wave PM memo payload/response construction, DPM proof-pack PM memo workflow execution, risk summary period/metric-state mapping, advisor-brief workflow-pack run profile extraction, attribution-trend row orchestration and context assembly, benchmark-context task/result handling, shell descriptor contract construction, rebalance supportability result validation, performance chart-point construction, shell-bootstrap section assembly, performance snapshot projection, contribution summary merge policy, risk rolling response supportability orchestration, risk drawdown route query metadata and result iteration, HTTP retry control helpers and JSON retry-attempt dispatch, portfolio transaction-ledger payload loading, portfolio workspace source gathering, portfolio insight source loading, core transaction query-parameter construction, core snapshot position projection, foundation optional-upstream failure mapping, archive error response mapping, performance workspace response-part construction, benchmark catalog parsing, and risk attribution response assembly extracted; several service files remain above 1,000 lines |
-| API governance | Improving, incomplete | Operation-level OpenAPI description, tag, error-response, and global tag-catalog gaps are closed and contract-tested; Spectral remains report-only |
+| Branch hygiene | Healthy | active focused feature branch over `origin/main`; 50 commits over `e7260c1` |
+| Unit/contract coverage | Healthy | 986 tests passed in current-branch `make check` evidence through commit `1b2a4e5` |
+| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` evidence on commit `1b2a4e5` |
+| Total coverage | Healthy | 93.67%, above the 84% floor |
+| Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `1b2a4e5` |
+| Modularity | Improving, incomplete | Longest-function baseline reduced from 50 lines on `origin/main` to 49 lines on branch head; proposal query metadata, Workbench rebalance unavailable recording, render supportability, workspace-summary context, benchmark catalog parsing, chart-row normalization, attribution payload parsing, comparative economics, analytics polling, and rolling request-context helpers were added in the final batch; several service files remain above 1,000 lines |
+| API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
 

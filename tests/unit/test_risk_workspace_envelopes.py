@@ -16,6 +16,28 @@ def test_risk_upstream_failure_preserves_dict_detail() -> None:
     assert failure.detail == "risk service unavailable"
 
 
+def test_risk_upstream_failure_bounds_structured_detail() -> None:
+    failure = risk_upstream_failure(
+        upstream_status=503,
+        upstream_payload={
+            "detail": {
+                "code": "RISK_DOWN",
+                "message": "risk service unavailable",
+                "debug_payload": {
+                    "client_name": "Private Client",
+                    "token": "secret-token",
+                },
+            }
+        },
+    )
+
+    assert failure.source_service == "risk"
+    assert failure.error_code == "HTTP_503"
+    assert failure.detail == "RISK_DOWN: risk service unavailable"
+    assert "Private Client" not in str(failure)
+    assert "secret-token" not in str(failure)
+
+
 def test_risk_upstream_failure_handles_non_dict_payload() -> None:
     failure = risk_upstream_failure(
         upstream_status=502,

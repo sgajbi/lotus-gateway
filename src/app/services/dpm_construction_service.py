@@ -96,45 +96,44 @@ def _reason_codes_from_payload(payload: dict[str, Any]) -> list[str]:
             diagnostics = alternative.get("diagnostics")
             if not isinstance(diagnostics, dict):
                 continue
-            enrichment_summary = diagnostics.get("enrichment_summary")
-            if isinstance(enrichment_summary, dict):
-                reason_codes.extend(
-                    _list_of_strings(
-                        enrichment_summary.get("reason_codes")
-                        or enrichment_summary.get("reasonCodes")
-                        or []
-                    )
-                )
-            method_plan = diagnostics.get("method_plan")
-            if isinstance(method_plan, dict):
-                reason_codes.extend(
-                    _list_of_strings(
-                        method_plan.get("reason_codes") or method_plan.get("reasonCodes") or []
-                    )
-                )
-            authority_context = diagnostics.get("authority_context")
-            if isinstance(authority_context, dict):
-                currency_overlay_context = authority_context.get("currency_overlay_context")
-                if isinstance(currency_overlay_context, dict):
-                    reason_codes.extend(
-                        _list_of_strings(
-                            currency_overlay_context.get("reason_codes")
-                            or currency_overlay_context.get("reasonCodes")
-                            or []
-                        )
-                    )
-                execution_acknowledgement_context = authority_context.get(
-                    "execution_acknowledgement_context"
-                )
-                if isinstance(execution_acknowledgement_context, dict):
-                    reason_codes.extend(
-                        _list_of_strings(
-                            execution_acknowledgement_context.get("reason_codes")
-                            or execution_acknowledgement_context.get("reasonCodes")
-                            or []
-                        )
-                    )
+            reason_codes.extend(_enrichment_reason_codes(diagnostics))
+            reason_codes.extend(_method_plan_reason_codes(diagnostics))
+            reason_codes.extend(_authority_context_reason_codes(diagnostics))
     return reason_codes
+
+
+def _enrichment_reason_codes(diagnostics: dict[str, Any]) -> list[str]:
+    enrichment_summary = diagnostics.get("enrichment_summary")
+    if not isinstance(enrichment_summary, dict):
+        return []
+    return _embedded_reason_codes(enrichment_summary)
+
+
+def _method_plan_reason_codes(diagnostics: dict[str, Any]) -> list[str]:
+    method_plan = diagnostics.get("method_plan")
+    if not isinstance(method_plan, dict):
+        return []
+    return _embedded_reason_codes(method_plan)
+
+
+def _authority_context_reason_codes(diagnostics: dict[str, Any]) -> list[str]:
+    reason_codes: list[str] = []
+    authority_context = diagnostics.get("authority_context")
+    if not isinstance(authority_context, dict):
+        return reason_codes
+
+    currency_overlay_context = authority_context.get("currency_overlay_context")
+    if isinstance(currency_overlay_context, dict):
+        reason_codes.extend(_embedded_reason_codes(currency_overlay_context))
+
+    execution_acknowledgement_context = authority_context.get("execution_acknowledgement_context")
+    if isinstance(execution_acknowledgement_context, dict):
+        reason_codes.extend(_embedded_reason_codes(execution_acknowledgement_context))
+    return reason_codes
+
+
+def _embedded_reason_codes(payload: dict[str, Any]) -> list[str]:
+    return _list_of_strings(payload.get("reason_codes") or payload.get("reasonCodes") or [])
 
 
 def _list_of_strings(value: object) -> list[str]:

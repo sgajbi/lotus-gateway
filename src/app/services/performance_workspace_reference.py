@@ -4,6 +4,7 @@ from typing import Any, TypeAlias
 
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_failures import build_performance_failure
+from app.services.upstream_envelope import safe_upstream_detail
 
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
@@ -31,7 +32,14 @@ def resolve_performance_report_end_date(
             build_performance_failure(
                 "lotus-core",
                 (f"HTTP_{status_code}" if isinstance(status_code, int) else "INVALID_RESPONSE"),
-                str(payload.get("detail", payload)) if isinstance(payload, dict) else str(payload),
+                (
+                    safe_upstream_detail(
+                        payload,
+                        default_detail="performance reference unavailable",
+                    )
+                    if isinstance(payload, dict)
+                    else str(payload)
+                ),
             )
         )
         return fallback_as_of_date

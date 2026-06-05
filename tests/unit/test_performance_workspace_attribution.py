@@ -214,6 +214,57 @@ def test_parse_attribution_result_records_upstream_failure():
     assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
 
 
+def test_parse_attribution_result_bounds_http_failure_detail():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "ATTRIBUTION_UNAVAILABLE",
+                    "message": "attribution unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["ATTRIBUTION_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "ATTRIBUTION_UNAVAILABLE: attribution unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
+
+
+def test_parse_attribution_result_records_invalid_payload_warning():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=(200, []),  # type: ignore[arg-type]
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["ATTRIBUTION_INVALID"]
+    assert partial_failures == []
+
+
 def test_parse_attribution_trend_results_builds_cumulative_rows():
     warnings: list[str] = []
     partial_failures = []

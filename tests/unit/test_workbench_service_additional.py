@@ -188,9 +188,21 @@ def _build_service() -> tuple[
 def test_raise_for_lotus_core_error_includes_upstream_detail():
     service, _, _, _ = _build_service()
     with pytest.raises(HTTPException) as exc:
-        service._raise_for_lotus_core_error(500, {"detail": "downstream unavailable"})
+        service._raise_for_lotus_core_error(
+            500,
+            {
+                "detail": "downstream unavailable",
+                "portfolio_id": "PB_SENSITIVE",
+                "stack_trace": "internal traceback",
+            },
+        )
     assert exc.value.status_code == 502
-    assert "downstream unavailable" in str(exc.value.detail)
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
+        "detail": "downstream unavailable",
+    }
 
 
 def test_parse_lotus_core_snapshot_invalid_structure_raises():
@@ -240,12 +252,27 @@ def test_parse_performance_snapshot_handles_http_error_payload():
     partial_failures = []
     warnings = []
     parsed = parse_performance_snapshot(
-        (503, {"detail": "lotus-performance down"}),
+        (
+            503,
+            {
+                "detail": {
+                    "code": "PERFORMANCE_DOWN",
+                    "message": "lotus-performance down",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
         partial_failures,
         warnings,
     )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "PERFORMANCE_DOWN: lotus-performance down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_performance_snapshot_handles_non_dict_period_map():
@@ -307,9 +334,28 @@ def test_parse_dpm_snapshot_handles_invalid_payload_type():
 def test_parse_dpm_snapshot_handles_http_error():
     partial_failures = []
     warnings = []
-    parsed = parse_rebalance_snapshot((500, {"detail": "dpm down"}), partial_failures, warnings)
+    parsed = parse_rebalance_snapshot(
+        (
+            500,
+            {
+                "detail": {
+                    "code": "DPM_DOWN",
+                    "message": "dpm down",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        partial_failures,
+        warnings,
+    )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_500"
+    assert partial_failures[0].detail == "DPM_DOWN: dpm down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_dpm_snapshot_with_no_items_returns_not_available():
@@ -379,12 +425,27 @@ def test_parse_dpm_snapshot_records_supportability_summary_failure():
         (200, {"items": [{"status": "READY"}]}),
         partial_failures,
         warnings,
-        supportability_result=(503, {"detail": "summary unavailable"}),
+        supportability_result=(
+            503,
+            {
+                "detail": {
+                    "code": "SUPPORTABILITY_DOWN",
+                    "message": "summary unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
     )
     assert parsed is not None
     assert parsed.supportability is None
     assert warnings == ["MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE"]
     assert partial_failures[0].error_code == "SUPPORTABILITY_HTTP_503"
+    assert partial_failures[0].detail == "SUPPORTABILITY_DOWN: summary unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_dpm_snapshot_merges_supportability_counts_from_summary_root():
@@ -461,18 +522,36 @@ def test_extract_current_positions_computes_weight_and_sorts():
 async def test_load_projected_state_raises_when_positions_unavailable():
     service, pas, _, _ = _build_service()
     pas.positions_status = 503
+    pas.positions_payload = {
+        "detail": "projection failed",
+        "account_number": "ACC-SENSITIVE",
+        "raw_positions": [{"security_id": "EQ_1"}],
+    }
     with pytest.raises(HTTPException) as exc:
         await service._load_projected_state("sess-1", "corr-1")
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 503,
+        "error_code": "LOTUS_CORE_PROJECTED_POSITIONS_UNAVAILABLE",
+        "detail": "projection failed",
+    }
 
 
 @pytest.mark.asyncio
 async def test_load_projected_state_raises_when_summary_unavailable():
     service, pas, _, _ = _build_service()
     pas.summary_status = 503
+    pas.summary_payload = {"message": "summary failed", "client_name": "Sensitive Client"}
     with pytest.raises(HTTPException) as exc:
         await service._load_projected_state("sess-1", "corr-1")
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 503,
+        "error_code": "LOTUS_CORE_PROJECTED_SUMMARY_UNAVAILABLE",
+        "detail": "summary failed",
+    }
 
 
 @pytest.mark.asyncio
@@ -537,15 +616,29 @@ def test_parse_projected_state_handles_non_list_positions_payload():
 async def test_create_sandbox_session_raises_on_pas_error():
     service, pas, _, _ = _build_service()
     pas.create_status = 500
+    pas.create_payload = {
+        "error": "session create failed",
+        "session": {"session_id": "sess-sensitive"},
+    }
     with pytest.raises(HTTPException) as exc:
         await service.create_sandbox_session("P1", "corr-1", created_by=None, ttl_hours=1)
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SIMULATION_SESSION_CREATE_FAILED",
+        "detail": "session create failed",
+    }
 
 
 @pytest.mark.asyncio
 async def test_apply_sandbox_changes_raises_on_pas_error():
     service, pas, _, _ = _build_service()
     pas.change_status = 500
+    pas.change_payload = {
+        "detail": {"code": "change_failed", "message": "change apply failed"},
+        "changes": [{"security_id": "EQ_SENSITIVE"}],
+    }
     with pytest.raises(HTTPException) as exc:
         await service.apply_sandbox_changes(
             portfolio_id="P1",
@@ -555,6 +648,12 @@ async def test_apply_sandbox_changes_raises_on_pas_error():
             evaluate_policy=False,
         )
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
+        "detail": "change_failed: change apply failed",
+    }
 
 
 @pytest.mark.asyncio
@@ -665,7 +764,16 @@ async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
 async def test_evaluate_policy_feedback_handles_dpm_failure():
     service, _, _, dpm = _build_service()
     dpm.simulate_status = 503
-    dpm.simulate_payload = {"detail": "policy engine down"}
+    dpm.simulate_payload = {
+        "detail": {
+            "code": "POLICY_ENGINE_DOWN",
+            "message": "policy engine down",
+            "debug_payload": {
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
+        }
+    }
     warnings: list[str] = []
     partial_failures = []
     feedback = await service._evaluate_policy_feedback(
@@ -680,6 +788,10 @@ async def test_evaluate_policy_feedback_handles_dpm_failure():
     assert feedback.status == "UNAVAILABLE"
     assert warnings == ["ADVISE_PROPOSAL_SIMULATION_UNAVAILABLE"]
     assert partial_failures[0].source_service == "lotus-advise"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "POLICY_ENGINE_DOWN: policy engine down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 @pytest.mark.asyncio

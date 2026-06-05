@@ -4,7 +4,15 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.contracts.risk_workspace import WorkbenchRiskAttributionResponse
 from app.middleware.correlation import correlation_id_var
-from app.routers.workbench_risk_common import RISK_PERIOD_QUERY_DESCRIPTION
+from app.routers.workbench_risk_common import (
+    RiskAsOfDateQuery,
+    RiskAttributionBenchmarkCodeQuery,
+    RiskAttributionDetailBasisQuery,
+    RiskAttributionReportingCurrencyQuery,
+    RiskPeriodQuery,
+    RiskReportEndDateQuery,
+    RiskReportStartDateQuery,
+)
 from app.services.workbench_service_provider import risk_workspace_service
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
@@ -41,43 +49,13 @@ class RiskAttributionControlQuery:
 
 
 def build_risk_attribution_window_query(
-    period: str = Query(
-        default="YTD",
-        description=RISK_PERIOD_QUERY_DESCRIPTION,
-        examples=["YTD"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Requested net or gross basis for risk attribution metrics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description="Optional benchmark override used for relative attribution context.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    as_of_date: str | None = Query(
-        default=None,
-        description="Optional business as-of date in YYYY-MM-DD format.",
-        examples=["2026-02-24"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller requests an explicit risk window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date when the caller requests an explicit risk window.",
-        examples=["2026-03-27"],
-    ),
-    reporting_currency: str = Query(
-        default="USD",
-        description="Reporting currency used for stateful risk attribution analytics.",
-        examples=["USD"],
-    ),
+    period: RiskPeriodQuery = "YTD",
+    detail_basis: RiskAttributionDetailBasisQuery = "NET",
+    benchmark_code: RiskAttributionBenchmarkCodeQuery = None,
+    as_of_date: RiskAsOfDateQuery = None,
+    report_start_date: RiskReportStartDateQuery = None,
+    report_end_date: RiskReportEndDateQuery = None,
+    reporting_currency: RiskAttributionReportingCurrencyQuery = "USD",
 ) -> RiskAttributionWindowQuery:
     return RiskAttributionWindowQuery(
         period=period,

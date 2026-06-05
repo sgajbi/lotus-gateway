@@ -5,6 +5,7 @@ from typing import Any, cast
 from fastapi import status
 
 from app.contracts.workbench import WorkbenchPartialFailure, WorkbenchPerformanceSnapshot
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 def parse_performance_snapshot(
@@ -72,7 +73,10 @@ def _performance_payload_from_result(
         _append_performance_snapshot_failure(
             partial_failures,
             error_code=f"HTTP_{performance_status}",
-            detail=str(performance_payload.get("detail", performance_payload)),
+            detail=safe_upstream_detail(
+                performance_payload,
+                default_detail="performance snapshot unavailable",
+            ),
         )
         warnings.append("PERFORMANCE_SNAPSHOT_UNAVAILABLE")
         return None

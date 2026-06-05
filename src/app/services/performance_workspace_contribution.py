@@ -23,6 +23,7 @@ from app.services.performance_workspace_parsing import (
     weight_to_pct,
 )
 from app.services.performance_workspace_returns import resolve_results_period_key
+from app.services.upstream_envelope import safe_upstream_detail
 
 ContributionResult = tuple[int, dict[str, Any]] | BaseException
 
@@ -123,7 +124,7 @@ def parse_contribution_result(
             build_performance_failure(
                 "lotus-performance",
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="contribution unavailable"),
             )
         )
         return None
@@ -155,45 +156,71 @@ def merge_contribution_summary_views(
         return detail_contribution
 
     return ContributionSummaryView(
-        metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
-        weighting_scheme=_prefer_populated(
+        **_merged_contribution_metric_fields(
+            detail_contribution=detail_contribution,
+            summary_contribution=summary_contribution,
+        ),
+        **_merged_contribution_detail_fields(
+            detail_contribution=detail_contribution,
+            summary_contribution=summary_contribution,
+        ),
+    )
+
+
+def _merged_contribution_metric_fields(
+    *,
+    detail_contribution: ContributionSummaryView,
+    summary_contribution: ContributionSummaryView,
+) -> dict[str, Any]:
+    return {
+        "metric_basis": detail_contribution.metric_basis or summary_contribution.metric_basis,
+        "weighting_scheme": _prefer_populated(
             detail_contribution.weighting_scheme,
             summary_contribution.weighting_scheme,
         ),
-        portfolio_contribution_pct=_prefer_present(
+        "portfolio_contribution_pct": _prefer_present(
             detail_contribution.portfolio_contribution_pct,
             summary_contribution.portfolio_contribution_pct,
         ),
-        total_portfolio_return_pct=_prefer_present(
+        "total_portfolio_return_pct": _prefer_present(
             detail_contribution.total_portfolio_return_pct,
             summary_contribution.total_portfolio_return_pct,
         ),
-        coverage_mv_pct=_prefer_present(
+        "coverage_mv_pct": _prefer_present(
             detail_contribution.coverage_mv_pct,
             summary_contribution.coverage_mv_pct,
         ),
-        portfolio_local_contribution_pct=_prefer_present(
+        "portfolio_local_contribution_pct": _prefer_present(
             detail_contribution.portfolio_local_contribution_pct,
             summary_contribution.portfolio_local_contribution_pct,
         ),
-        portfolio_fx_contribution_pct=_prefer_present(
+        "portfolio_fx_contribution_pct": _prefer_present(
             detail_contribution.portfolio_fx_contribution_pct,
             summary_contribution.portfolio_fx_contribution_pct,
         ),
-        position_rows=_prefer_populated(
+    }
+
+
+def _merged_contribution_detail_fields(
+    *,
+    detail_contribution: ContributionSummaryView,
+    summary_contribution: ContributionSummaryView,
+) -> dict[str, Any]:
+    return {
+        "position_rows": _prefer_populated(
             detail_contribution.position_rows,
             summary_contribution.position_rows,
         ),
-        levels=_prefer_populated(detail_contribution.levels, summary_contribution.levels),
-        smoothing_evidence=_prefer_populated(
+        "levels": _prefer_populated(detail_contribution.levels, summary_contribution.levels),
+        "smoothing_evidence": _prefer_populated(
             detail_contribution.smoothing_evidence,
             summary_contribution.smoothing_evidence,
         ),
-        source_economics_evidence=_prefer_populated(
+        "source_economics_evidence": _prefer_populated(
             detail_contribution.source_economics_evidence,
             summary_contribution.source_economics_evidence,
         ),
-    )
+    }
 
 
 def _prefer_present(detail_value: Any, summary_value: Any) -> Any:

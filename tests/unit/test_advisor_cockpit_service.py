@@ -249,10 +249,14 @@ async def test_advisor_cockpit_service_preserves_house_view_cohort_product() -> 
 
 
 @pytest.mark.asyncio
-async def test_advisor_cockpit_service_propagates_acknowledgement_conflict() -> None:
+async def test_advisor_cockpit_service_maps_acknowledgement_conflict_to_safe_detail() -> None:
     advise_client = _FakeAdviseClient()
     advise_client.status = 409
-    advise_client.payload = {"detail": "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT"}
+    advise_client.payload = {
+        "detail": "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT",
+        "portfolio_id": "PB_SENSITIVE",
+        "advisor_id": "advisor_sensitive",
+    }
     service = AdvisorCockpitService(advise_client=advise_client)
 
     with pytest.raises(HTTPException) as exc:
@@ -265,7 +269,12 @@ async def test_advisor_cockpit_service_propagates_acknowledgement_conflict() -> 
         )
 
     assert exc.value.status_code == 409
-    assert exc.value.detail == {"detail": "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT"}
+    assert exc.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_COCKPIT_UPSTREAM_ERROR",
+        "detail": "ADVISOR_COCKPIT_ACKNOWLEDGEMENT_IDEMPOTENCY_CONFLICT",
+    }
     assert advise_client.calls == [
         (
             "acknowledge_advisor_cockpit_action",

@@ -50,13 +50,6 @@ def normalize_render_supportability(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(raw_supportability, dict):
         return fallback_render_supportability("render_supportability_missing")
 
-    supported_output_formats: list[str] = []
-    raw_supported_output_formats = raw_supportability.get("supportedOutputFormats")
-    if not isinstance(raw_supported_output_formats, list):
-        raw_supported_output_formats = raw_supportability.get("supported_output_formats")
-    if isinstance(raw_supported_output_formats, list):
-        supported_output_formats = [str(item) for item in raw_supported_output_formats]
-
     return {
         **fallback_render_supportability("render_supportability_unknown"),
         "feature_key": str(
@@ -90,8 +83,17 @@ def normalize_render_supportability(payload: dict[str, Any]) -> dict[str, Any]:
         ),
         "default_output_format": raw_supportability.get("defaultOutputFormat")
         or raw_supportability.get("default_output_format"),
-        "supported_output_formats": supported_output_formats,
+        "supported_output_formats": _supported_output_formats(raw_supportability),
     }
+
+
+def _supported_output_formats(raw_supportability: dict[str, Any]) -> list[str]:
+    raw_supported_output_formats = raw_supportability.get("supportedOutputFormats")
+    if not isinstance(raw_supported_output_formats, list):
+        raw_supported_output_formats = raw_supportability.get("supported_output_formats")
+    if not isinstance(raw_supported_output_formats, list):
+        return []
+    return [str(item) for item in raw_supported_output_formats]
 
 
 def normalize_evidence_surface_supportability(payload: dict[str, Any]) -> dict[str, Any]:

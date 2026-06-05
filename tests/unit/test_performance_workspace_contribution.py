@@ -179,6 +179,40 @@ def test_parse_contribution_result_records_upstream_failure():
     assert partial_failures[0].error_code == "UPSTREAM_EXCEPTION"
 
 
+def test_parse_contribution_result_bounds_http_failure_detail():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_contribution_result(
+        result=(
+            503,
+            {
+                "detail": {
+                    "code": "CONTRIBUTION_UNAVAILABLE",
+                    "message": "contribution unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["CONTRIBUTION_UNAVAILABLE"]
+    assert len(partial_failures) == 1
+    assert partial_failures[0].source_service == "lotus-performance"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "CONTRIBUTION_UNAVAILABLE: contribution unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
+
+
 def test_merge_contribution_summary_views_prefers_detail_when_present():
     summary = build_workspace_contribution_summary(
         {

@@ -273,7 +273,7 @@ async def test_policy_service_preserves_source_owned_policy_posture() -> None:
 
 
 @pytest.mark.asyncio
-async def test_policy_service_propagates_advise_rejections_without_rewriting() -> None:
+async def test_policy_service_maps_advise_rejections_to_product_safe_detail() -> None:
     advise_client = _FakeAdviseClient()
     advise_client.status = 409
     advise_client.payload = {
@@ -293,7 +293,12 @@ async def test_policy_service_propagates_advise_rejections_without_rewriting() -
         )
 
     assert exc.value.status_code == 409
-    assert "client_ready_blocked" in str(exc.value.detail)
+    assert exc.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_POLICY_UPSTREAM_ERROR",
+        "detail": "client_ready_blocked",
+    }
     assert advise_client.calls == [
         (
             "record_policy_sign_off_decision",

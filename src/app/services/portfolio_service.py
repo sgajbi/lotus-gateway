@@ -41,6 +41,7 @@ from app.contracts.portfolio import (
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
+    PortfolioReportingReadiness,
     PortfolioSummary,
     PortfolioSupportabilitySummary,
     PortfolioTopPosition,
@@ -65,6 +66,7 @@ from app.services.portfolio_exception_summaries import (
 )
 from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
@@ -132,6 +134,15 @@ class PortfolioWorkspaceComponents:
     performance: PortfolioPerformanceSummary | None
     rebalance: PortfolioRebalanceSummary | None
     operations: PortfolioOperationalReadiness | None
+    warnings: list[str]
+    partial_failures: list[PortfolioPartialFailure]
+
+
+@dataclass(frozen=True)
+class PortfolioWorkspaceResponseParts:
+    reporting: PortfolioReportingReadiness
+    control_capabilities: PortfolioWorkspaceControlCapabilities
+    workflow_cues: list[PortfolioWorkflowLaunchCue]
     warnings: list[str]
     partial_failures: list[PortfolioPartialFailure]
 
@@ -880,16 +891,14 @@ class PortfolioService:
         portfolio = components.portfolio
         profile = components.profile
         summary = components.summary
-        warnings = components.warnings
-        partial_failures = components.partial_failures
 
-        reporting = self._reporting_readiness(summary, source_results.readiness_result)
-        control_capabilities = self._build_workspace_control_capabilities(
-            portfolio=portfolio,
-            profile=profile,
-            requested_as_of_date=effective_as_of_date,
-            effective_as_of_date=resolved_as_of_date,
-            requested_reporting_currency=reporting_currency,
+        response_parts = self._build_portfolio_workspace_response_parts(
+            portfolio_id=portfolio_id,
+            components=components,
+            source_results=source_results,
+            effective_as_of_date=effective_as_of_date,
+            resolved_as_of_date=resolved_as_of_date,
+            reporting_currency=reporting_currency,
         )
 
         return PortfolioWorkspaceResponse(
@@ -902,12 +911,39 @@ class PortfolioService:
             cashflow_outlook=components.cashflow_outlook,
             performance=components.performance,
             rebalance=components.rebalance,
-            reporting=reporting,
+            reporting=response_parts.reporting,
             operations=components.operations,
-            control_capabilities=control_capabilities,
+            control_capabilities=response_parts.control_capabilities,
+            workflow_cues=response_parts.workflow_cues,
+            warnings=response_parts.warnings,
+            partial_failures=response_parts.partial_failures,
+        )
+
+    def _build_portfolio_workspace_response_parts(
+        self,
+        *,
+        portfolio_id: str,
+        components: PortfolioWorkspaceComponents,
+        source_results: PortfolioWorkspaceSourceResults,
+        effective_as_of_date: str,
+        resolved_as_of_date: str,
+        reporting_currency: str | None,
+    ) -> PortfolioWorkspaceResponseParts:
+        return PortfolioWorkspaceResponseParts(
+            reporting=self._reporting_readiness(
+                components.summary,
+                source_results.readiness_result,
+            ),
+            control_capabilities=self._build_workspace_control_capabilities(
+                portfolio=components.portfolio,
+                profile=components.profile,
+                requested_as_of_date=effective_as_of_date,
+                effective_as_of_date=resolved_as_of_date,
+                requested_reporting_currency=reporting_currency,
+            ),
             workflow_cues=self._build_workflow_cues(portfolio_id),
-            warnings=warnings,
-            partial_failures=partial_failures,
+            warnings=components.warnings,
+            partial_failures=components.partial_failures,
         )
 
     def _build_portfolio_workspace_components(
@@ -1829,7 +1865,10 @@ class PortfolioService:
         if status_code >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"{unavailable_detail_prefix}: {payload}",
+                detail=self._build_safe_upstream_error_detail(
+                    unavailable_detail_prefix,
+                    payload,
+                ),
             )
         if not isinstance(payload, dict):
             raise HTTPException(
@@ -1846,7 +1885,18 @@ class PortfolioService:
     ) -> None:
         status_code, payload = result
         if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
-            raise HTTPException(status_code=status_code, detail=f"{detail_prefix}: {payload}")
+            raise HTTPException(
+                status_code=status_code,
+                detail=self._build_safe_upstream_error_detail(detail_prefix, payload),
+            )
+
+    def _build_safe_upstream_error_detail(
+        self,
+        detail_prefix: str,
+        payload: dict[str, Any],
+    ) -> str:
+        detail = safe_upstream_detail(payload, default_detail="upstream request failed")
+        return f"{detail_prefix}: {detail}"
 
     def _parse_catalog_item(self, item: dict[str, Any]) -> PortfolioCatalogItem:
         portfolio_id = str(item.get("portfolio_id", "")).strip()
@@ -2712,8 +2762,6 @@ class PortfolioService:
         summary: PortfolioSummary,
         readiness_result: tuple[int, dict[str, Any]] | None = None,
     ):
-        from app.contracts.portfolio import PortfolioReportingReadiness
-
         if readiness_result is not None:
             payload = self._optional_payload(
                 readiness_result,

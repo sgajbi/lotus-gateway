@@ -431,6 +431,34 @@ async def test_lotus_analytics_client_allows_slow_stateful_attribution_to_materi
 
 
 @pytest.mark.asyncio
+async def test_lotus_analytics_client_preserves_absolute_async_result_url(monkeypatch):
+    async def _no_sleep(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr("app.clients.lotus_analytics_client.asyncio.sleep", _no_sleep)
+
+    client = LotusAnalyticsClient(base_url="http://analytics", timeout_seconds=2.0)
+    _FakeAsyncClient.queue_json(202, {"detail": "pending"})
+    _FakeAsyncClient.queue_json(200, {"status": "ready"})
+
+    status, payload = await client._poll_async_result(
+        result_path="https://analytics-results.example.com/results/calc-1",
+        correlation_id="corr-performance",
+        service="lotus-performance",
+        operation="performance.attribution",
+        max_attempts=2,
+        poll_interval_seconds=0.01,
+    )
+
+    assert status == 200
+    assert payload == {"status": "ready"}
+    assert [call["url"] for call in _FakeAsyncClient.calls] == [
+        "https://analytics-results.example.com/results/calc-1",
+        "https://analytics-results.example.com/results/calc-1",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_lotus_analytics_client_uses_canonical_risk_routes() -> None:
     client = LotusAnalyticsClient(base_url="http://risk", timeout_seconds=2.0)
     _FakeAsyncClient.queue_json(200, {"results": {}})

@@ -172,6 +172,35 @@ def test_validate_gateway_analytics_ui_log_fields_accepts_structured_runtime_fie
     assert "error_category" not in fields
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("event", "gateway.analytics.custom", "unsupported event"),
+        ("state", "blocked", "unsupported state"),
+        ("status_class", "200", "unsupported status_class"),
+    ],
+)
+def test_validate_gateway_analytics_ui_log_fields_rejects_value_drift(
+    field: str,
+    value: str,
+    match: str,
+) -> None:
+    fields = {
+        "event": "gateway.analytics.fanout.degraded",
+        "route": "workbench-analytics",
+        "service": "lotus-risk",
+        "operation": "analytics.risk.calculate",
+        "state": "degraded",
+        "reason": "UPSTREAM_UNAVAILABLE",
+        "status_class": "5xx",
+        "duration_ms": 125.0,
+    }
+    fields[field] = value
+
+    with pytest.raises(ValueError, match=match):
+        validate_gateway_analytics_ui_log_fields(fields)
+
+
 def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_fields() -> None:
     fields = validate_gateway_analytics_ui_audit_log_fields(
         {
@@ -191,6 +220,36 @@ def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_
     assert fields["state"] == "permission_blocked"
     assert "portfolio_id" not in fields
     assert "raw_entitlement_failure" not in fields
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("event", "gateway.analytics.audit.custom", "unsupported event"),
+        ("state", "denied", "unsupported state"),
+        ("status_class", "403", "unsupported status_class"),
+    ],
+)
+def test_validate_gateway_analytics_ui_audit_log_fields_rejects_value_drift(
+    field: str,
+    value: str,
+    match: str,
+) -> None:
+    fields = {
+        "event": "gateway.analytics.audit.analytics_read_denied",
+        "route": "workbench-analytics",
+        "panel": "risk-summary",
+        "operation": "analytics.risk.calculate",
+        "state": "permission_blocked",
+        "reason": "upstream_authorization_denied",
+        "status_class": "4xx",
+        "region": "ap-southeast-1",
+        "environment": "local",
+    }
+    fields[field] = value
+
+    with pytest.raises(ValueError, match=match):
+        validate_gateway_analytics_ui_audit_log_fields(fields)
 
 
 def test_protected_diagnostics_audit_log_uses_bounded_fields(caplog) -> None:

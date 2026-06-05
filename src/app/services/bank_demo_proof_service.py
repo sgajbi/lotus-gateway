@@ -2,7 +2,7 @@ from typing import Any
 
 from app.contracts.bank_demo_proof import BankDemoProofEnvelopeResponse
 from app.services.advisory_client_protocols import BankDemoProofClient
-from app.services.upstream_envelope import build_gateway_envelope, raise_for_upstream_error
+from app.services.upstream_envelope import build_gateway_envelope, raise_product_safe_service_error
 
 
 class BankDemoProofService:
@@ -61,4 +61,10 @@ class BankDemoProofService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        raise_for_upstream_error(upstream_status, upstream_payload)
+        raise_product_safe_service_error(
+            upstream_status,
+            upstream_payload,
+            source_service="lotus-advise",
+            error_code="ADVISE_BANK_DEMO_PROOF_UPSTREAM_ERROR",
+            default_detail="lotus-advise bank-demo proof request failed.",
+        )

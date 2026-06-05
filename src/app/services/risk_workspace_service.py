@@ -429,14 +429,13 @@ class RiskWorkspaceService:
         reporting_currency: str | None,
         include_time_series: bool,
     ) -> WorkbenchRiskRollingResponse:
-        resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        context = RiskRollingRequestContext(
+        context = _rolling_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            as_of_date=resolved_as_of_date,
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
@@ -572,6 +571,12 @@ class RiskWorkspaceService:
         if blocked_response is not None:
             return blocked_response
 
+        return await self._cached_attribution_response(context)
+
+    async def _cached_attribution_response(
+        self,
+        context: RiskAttributionRequestContext,
+    ) -> WorkbenchRiskAttributionResponse:
         async def _load() -> WorkbenchRiskAttributionResponse:
             return await self._load_attribution_response(context)
 
@@ -582,7 +587,7 @@ class RiskWorkspaceService:
         typed_response = cast(WorkbenchRiskAttributionResponse, response)
         return typed_response.model_copy(
             update={
-                "correlation_id": correlation_id,
+                "correlation_id": context.correlation_id,
                 "metadata": typed_response.metadata.model_copy(
                     update={"cache_status": "hit" if cache_hit else "miss"}
                 ),
@@ -718,6 +723,33 @@ def _latest_business_day(today: date | None = None) -> date:
 
 def _resolve_as_of_date(value: str | None) -> str:
     return value or _latest_business_day().isoformat()
+
+
+def _rolling_request_context(
+    *,
+    portfolio_id: str,
+    correlation_id: str,
+    period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    as_of_date: str | None,
+    report_start_date: str | None,
+    report_end_date: str | None,
+    reporting_currency: str | None,
+    include_time_series: bool,
+) -> RiskRollingRequestContext:
+    return RiskRollingRequestContext(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        as_of_date=_resolve_as_of_date(as_of_date),
+        report_start_date=report_start_date,
+        report_end_date=report_end_date,
+        reporting_currency=reporting_currency,
+        include_time_series=include_time_series,
+    )
 
 
 def _normalize_period(value: str) -> str:

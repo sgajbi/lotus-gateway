@@ -36,7 +36,7 @@ from app.services.advisory_client_protocols import ProposalClient
 from app.services.upstream_envelope import (
     build_gateway_envelope,
     build_typed_gateway_envelope,
-    raise_for_upstream_error,
+    raise_product_safe_service_error,
 )
 
 
@@ -845,4 +845,10 @@ class ProposalService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        raise_for_upstream_error(upstream_status, upstream_payload, stringify_payload=True)
+        raise_product_safe_service_error(
+            upstream_status,
+            upstream_payload,
+            source_service="lotus-advise",
+            error_code="ADVISE_PROPOSAL_UPSTREAM_ERROR",
+            default_detail="lotus-advise proposal request failed.",
+        )

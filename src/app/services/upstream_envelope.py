@@ -161,6 +161,14 @@ def safe_upstream_detail(payload: dict[str, Any], *, default_detail: str) -> str
         message = detail.get("message")
         if code and message:
             return f"{code}: {message}"
+        if message:
+            return str(message)
+        reason = detail.get("reason")
+        if reason:
+            return str(reason)
+        if code:
+            return str(code)
+        return default_detail
     if isinstance(detail, str):
         return detail
     if detail is not None:
@@ -215,11 +223,37 @@ def raise_product_safe_service_error(
     )
 
 
+def raise_product_safe_gateway_unavailable_error(
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    *,
+    source_service: str,
+    error_code: str,
+    default_detail: str,
+) -> None:
+    """Raise a product-safe 502 for unavailable upstream-backed Gateway routes."""
+
+    if upstream_status < status.HTTP_400_BAD_REQUEST:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail={
+            "source_service": source_service,
+            "upstream_status": upstream_status,
+            "error_code": error_code,
+            "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
+        },
+    )
+
+
 def raise_gateway_mapped_service_error(
     upstream_status: int,
     upstream_payload: dict[str, Any],
     *,
     source_service: str,
+    error_code: str = "UPSTREAM_SERVICE_ERROR",
+    default_detail: str = "Upstream service request failed.",
 ) -> None:
     """Raise an upstream service error using Gateway's canonical status mapping."""
 
@@ -240,6 +274,7 @@ def raise_gateway_mapped_service_error(
         detail={
             "source_service": source_service,
             "upstream_status": upstream_status,
-            "error": upstream_payload,
+            "error_code": error_code,
+            "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
         },
     )

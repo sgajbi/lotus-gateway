@@ -203,7 +203,11 @@ class _ErrorAdvisoryWorkspaceClient(_FakeAdvisoryWorkspaceClient):
         correlation_id: str,
     ) -> tuple[int, dict[str, object]]:
         _ = workspace_id, correlation_id
-        return 409, {"detail": "WORKSPACE_LOCKED"}
+        return 409, {
+            "detail": "WORKSPACE_LOCKED",
+            "workspace_id": "aws_sensitive",
+            "client_name": "Sensitive Client",
+        }
 
 
 @pytest.mark.asyncio
@@ -247,7 +251,7 @@ async def test_advisory_workspace_handoff_forwards_idempotency_key() -> None:
 
 
 @pytest.mark.asyncio
-async def test_advisory_workspace_upstream_error_passthrough() -> None:
+async def test_advisory_workspace_upstream_error_is_product_safe() -> None:
     service = AdvisoryWorkspaceService(advise_client=_ErrorAdvisoryWorkspaceClient())
 
     with pytest.raises(HTTPException) as exc_info:
@@ -257,4 +261,9 @@ async def test_advisory_workspace_upstream_error_passthrough() -> None:
         )
 
     assert exc_info.value.status_code == 409
-    assert "WORKSPACE_LOCKED" in str(exc_info.value.detail)
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_WORKSPACE_UPSTREAM_ERROR",
+        "detail": "WORKSPACE_LOCKED",
+    }

@@ -23,6 +23,7 @@ from app.contracts.foundation import (
     FoundationWorkspaceResponse,
 )
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     FoundationCoreClient,
     FoundationManageClient,
@@ -109,7 +110,10 @@ class FoundationService:
         if status_code >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core portfolio catalog unavailable: {payload}",
+                detail=self._build_safe_upstream_error_detail(
+                    "lotus-core portfolio catalog unavailable",
+                    payload,
+                ),
             )
 
         items_payload = payload.get("items", [])
@@ -214,14 +218,20 @@ class FoundationService:
         if identity_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core portfolio identity unavailable: {identity_payload}",
+                detail=self._build_safe_upstream_error_detail(
+                    "lotus-core portfolio identity unavailable",
+                    identity_payload,
+                ),
             )
 
         pas_status, pas_payload = source_results.snapshot_result
         if pas_status >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core foundation snapshot unavailable: {pas_payload}",
+                detail=self._build_safe_upstream_error_detail(
+                    "lotus-core foundation snapshot unavailable",
+                    pas_payload,
+                ),
             )
 
         portfolio, summary, allocations, top_positions, as_of_date = self._parse_core_snapshot(
@@ -237,6 +247,14 @@ class FoundationService:
             top_positions=top_positions,
             as_of_date=as_of_date,
         )
+
+    def _build_safe_upstream_error_detail(
+        self,
+        detail_prefix: str,
+        payload: dict[str, Any],
+    ) -> str:
+        detail = safe_upstream_detail(payload, default_detail="upstream request failed")
+        return f"{detail_prefix}: {detail}"
 
     def _build_foundation_workspace_optional_views(
         self,
@@ -825,7 +843,7 @@ class FoundationService:
             return self._unavailable_optional_upstream(
                 status_code,
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="optional upstream unavailable"),
                 failure_context,
             )
 

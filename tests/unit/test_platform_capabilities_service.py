@@ -332,9 +332,35 @@ async def test_platform_capabilities_partial_failure_on_error():
             policy_status_code=503,
             policy_payload={"detail": "service unavailable"},
         ),
-        analytics_client=_StubClient(502, {"detail": "bad gateway"}),
-        reporting_client=_StubClient(503, {"detail": "upstream failed"}),
-        risk_client=_StubClient(504, {"detail": "risk timeout"}),
+        analytics_client=_StubClient(
+            502,
+            {
+                "detail": {
+                    "code": "PERFORMANCE_CAPABILITIES_UNAVAILABLE",
+                    "message": "bad gateway",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        reporting_client=_StubClient(
+            503,
+            {
+                "detail": "upstream failed",
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
+        ),
+        risk_client=_StubClient(
+            504,
+            {
+                "message": "risk timeout",
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
+        ),
         contract_version="v1",
     )
 
@@ -359,6 +385,14 @@ async def test_platform_capabilities_partial_failure_on_error():
     assert response.data.normalized.module_health["lotus_advise"] == "unavailable"
     assert response.data.normalized.module_health["lotus_manage"] == "unavailable"
     assert response.data.normalized.module_health["lotus_report"] == "unavailable"
+    assert any(
+        error.detail == "PERFORMANCE_CAPABILITIES_UNAVAILABLE: bad gateway"
+        for error in response.data.errors
+    )
+    assert any(error.detail == "upstream failed" for error in response.data.errors)
+    assert any(error.detail == "risk timeout" for error in response.data.errors)
+    assert "Private Client" not in str(response.data.errors)
+    assert "secret-token" not in str(response.data.errors)
     assert response.data.normalized.policy_versions_by_source == {
         "lotus_core": "pas-tenant-default-v1",
         "lotus_performance": "unknown",
