@@ -61,6 +61,9 @@ document error response mapping into smaller, reusable helpers while preserving 
 contracts.
 The latest risk drawdown slice split valid result iteration and period partial-failure recording
 out of the drawdown period-result mapper.
+The latest performance workspace slice split response-part construction and attribution-trend
+context assembly out of the remaining 54-line performance workspace orchestration helpers,
+lowering the repository longest-function baseline to 53 lines.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -82,7 +85,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,712 | `src/app/services/performance_workspace_service.py` |
+| 5 | 1,760 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
@@ -93,16 +96,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 2 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 3 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
-| 4 | 53 | `map_attribution_response` | `src/app/services/risk_workspace_attribution.py` |
-| 5 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
-| 6 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
-| 7 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
-| 8 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
-| 9 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 10 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
+| 1 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
+| 2 | 53 | `map_attribution_response` | `src/app/services/risk_workspace_attribution.py` |
+| 3 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
+| 4 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
+| 5 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
+| 6 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
+| 7 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 8 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
+| 9 | 52 | `get_workbench_analytics` | `src/app/services/workbench_service.py` |
+| 10 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
 
 ## Existing Blocking Gates
 
@@ -121,7 +124,7 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current branch: `make check` passed after commit `4db5e24` with ruff, format check,
+1. Current branch: `make check` passed after commit `8eefb74` with ruff, format check,
    monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
    unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests.
@@ -132,10 +135,13 @@ Most recent local evidence:
 7. Current focused branch: archive document service tests passed with 8 tests.
 8. Current focused branch: risk drawdown unit tests passed with 4 selected tests.
 9. Current focused branch: risk drawdown router integration test passed with 1 selected test.
-10. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-11. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-12. Coverage: 93.36%.
-13. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+10. Current focused branch: performance workspace response tests passed with 5 selected tests.
+11. Current focused branch: attribution-trend unit tests passed with 3 selected tests.
+12. Current focused branch: attribution-trend router integration tests passed with 3 selected tests.
+13. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+14. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+15. Coverage: 93.36%.
+16. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -151,7 +157,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 54 lines,
+2. no new function above the current longest-function baseline of 53 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
