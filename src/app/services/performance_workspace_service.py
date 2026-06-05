@@ -121,6 +121,19 @@ class WorkspaceRequestContext:
 
 
 @dataclass(frozen=True)
+class WorkspaceRequestParameters:
+    period: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    benchmark_code: str | None
+    explicit_start_date: str | None
+    explicit_end_date: str | None
+    include_benchmark_catalog: bool
+
+
+@dataclass(frozen=True)
 class WorkspaceDimensionContext:
     chart_frequency: str
     contribution_dimension: str
@@ -1100,9 +1113,7 @@ class PerformanceWorkspaceService:
         include_detail_blocks: bool = True,
         prefer_independent_detail_analytics: bool = False,
     ) -> PerformanceWorkspaceResponse:
-        context = await self._build_workspace_request_context(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
+        request_parameters = WorkspaceRequestParameters(
             period=period,
             chart_frequency=chart_frequency,
             contribution_dimension=contribution_dimension,
@@ -1112,6 +1123,11 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=include_benchmark_catalog,
+        )
+        context = await self._build_workspace_request_context(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            request_parameters=request_parameters,
         )
         summary_views, response_components = await self._build_workspace_response_parts(
             context=context,
@@ -1197,15 +1213,7 @@ class PerformanceWorkspaceService:
         *,
         portfolio_id: str,
         correlation_id: str,
-        period: str,
-        chart_frequency: str,
-        contribution_dimension: str,
-        attribution_dimension: str,
-        detail_basis: str,
-        benchmark_code: str | None,
-        explicit_start_date: str | None,
-        explicit_end_date: str | None,
-        include_benchmark_catalog: bool,
+        request_parameters: WorkspaceRequestParameters,
     ) -> WorkspaceRequestContext:
         overview_state = await self._load_workspace_overview_state(
             portfolio_id=portfolio_id,
@@ -1215,14 +1223,14 @@ class PerformanceWorkspaceService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             overview_state=overview_state,
-            period=period,
-            explicit_start_date=explicit_start_date,
-            explicit_end_date=explicit_end_date,
+            period=request_parameters.period,
+            explicit_start_date=request_parameters.explicit_start_date,
+            explicit_end_date=request_parameters.explicit_end_date,
         )
         dimension_context = self._build_workspace_dimension_context(
-            chart_frequency=chart_frequency,
-            contribution_dimension=contribution_dimension,
-            attribution_dimension=attribution_dimension,
+            chart_frequency=request_parameters.chart_frequency,
+            contribution_dimension=request_parameters.contribution_dimension,
+            attribution_dimension=request_parameters.attribution_dimension,
             warnings=overview_state.warnings,
         )
         benchmark_context = await self._build_workspace_benchmark_context(
@@ -1230,14 +1238,14 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             report_end_date=report_window.report_end_date,
             portfolio_currency=overview_state.overview.portfolio.base_currency,
-            benchmark_code=benchmark_code,
-            include_benchmark_catalog=include_benchmark_catalog,
+            benchmark_code=request_parameters.benchmark_code,
+            include_benchmark_catalog=request_parameters.include_benchmark_catalog,
         )
         return self._assemble_workspace_request_context(
             overview_state=overview_state,
             report_window=report_window,
             dimension_context=dimension_context,
-            detail_basis=detail_basis,
+            detail_basis=request_parameters.detail_basis,
             benchmark_context=benchmark_context,
         )
 
