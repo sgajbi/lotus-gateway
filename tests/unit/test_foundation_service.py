@@ -595,7 +595,11 @@ async def test_foundation_workspace_records_optional_upstream_exception():
 async def test_foundation_catalog_rejects_upstream_error():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
-            list_payload={"detail": "catalog unavailable"},
+            list_payload={
+                "detail": "catalog unavailable",
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
             snapshot_payload={},
             list_status_code=503,
         ),
@@ -608,7 +612,9 @@ async def test_foundation_catalog_rejects_upstream_error():
         await service.get_portfolio_catalog(correlation_id="corr-catalog-503")
 
     assert exc_info.value.status_code == 502
-    assert "lotus-core portfolio catalog unavailable" in exc_info.value.detail
+    assert exc_info.value.detail == "lotus-core portfolio catalog unavailable: catalog unavailable"
+    assert "Private Client" not in exc_info.value.detail
+    assert "secret-token" not in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -616,7 +622,16 @@ async def test_foundation_workspace_rejects_snapshot_upstream_error():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
-            snapshot_payload={"detail": "snapshot unavailable"},
+            snapshot_payload={
+                "detail": {
+                    "code": "SNAPSHOT_UNAVAILABLE",
+                    "message": "Foundation snapshot unavailable.",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
             snapshot_status_code=503,
         ),
         analytics_client=_StubAnalyticsClient(200, {}),
@@ -631,7 +646,12 @@ async def test_foundation_workspace_rejects_snapshot_upstream_error():
         )
 
     assert exc_info.value.status_code == 502
-    assert "lotus-core foundation snapshot unavailable" in exc_info.value.detail
+    assert exc_info.value.detail == (
+        "lotus-core foundation snapshot unavailable: "
+        "SNAPSHOT_UNAVAILABLE: Foundation snapshot unavailable."
+    )
+    assert "Private Client" not in exc_info.value.detail
+    assert "secret-token" not in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -639,7 +659,11 @@ async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
     service = FoundationService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             list_payload={"items": []},
-            portfolio_payload={"detail": "portfolio unavailable"},
+            portfolio_payload={
+                "message": "portfolio unavailable",
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
             snapshot_payload={"portfolio_id": "PF_503", "sections": {}},
             portfolio_status_code=503,
         ),
@@ -655,7 +679,11 @@ async def test_foundation_workspace_rejects_portfolio_identity_upstream_error():
         )
 
     assert exc_info.value.status_code == 502
-    assert "lotus-core portfolio identity unavailable" in exc_info.value.detail
+    assert exc_info.value.detail == (
+        "lotus-core portfolio identity unavailable: portfolio unavailable"
+    )
+    assert "Private Client" not in exc_info.value.detail
+    assert "secret-token" not in exc_info.value.detail
 
 
 def test_foundation_parses_defensive_snapshot_branches():
