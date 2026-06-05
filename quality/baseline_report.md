@@ -59,6 +59,8 @@ transaction query-parameter construction out of previously tied hotspot function
 The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
 document error response mapping into smaller, reusable helpers while preserving safe error payload
 contracts.
+The latest risk drawdown slice split valid result iteration and period partial-failure recording
+out of the drawdown period-result mapper.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -91,16 +93,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
-| 2 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 3 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 4 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
-| 5 | 53 | `map_attribution_response` | `src/app/services/risk_workspace_attribution.py` |
-| 6 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
-| 7 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
-| 8 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
-| 9 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
-| 10 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 1 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 2 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 3 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
+| 4 | 53 | `map_attribution_response` | `src/app/services/risk_workspace_attribution.py` |
+| 5 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
+| 6 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
+| 7 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
+| 8 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
+| 9 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 10 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
 
 ## Existing Blocking Gates
 
@@ -128,10 +130,12 @@ Most recent local evidence:
 5. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
 6. Current focused branch: foundation optional-upstream tests passed with 4 selected tests.
 7. Current focused branch: archive document service tests passed with 8 tests.
-8. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-9. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-10. Coverage: 93.36%.
-11. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+8. Current focused branch: risk drawdown unit tests passed with 4 selected tests.
+9. Current focused branch: risk drawdown router integration test passed with 1 selected test.
+10. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+11. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+12. Coverage: 93.36%.
+13. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
