@@ -243,7 +243,36 @@ def _validate_gateway_analytics_ui_fields(
     if unsupported:
         raise ValueError(f"{error_prefix} include unsupported field(s): {', '.join(unsupported)}")
 
+    _validate_gateway_analytics_ui_field_values(fields=fields, error_prefix=error_prefix)
     return {key: value for key, value in fields.items() if value is not None and value != ""}
+
+
+def _validate_gateway_analytics_ui_field_values(
+    *,
+    fields: Mapping[str, object],
+    error_prefix: str,
+) -> None:
+    event = fields.get("event")
+    if event is not None and event not in {
+        *GATEWAY_ANALYTICS_UI_LOG_EVENTS,
+        *GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
+    }:
+        raise ValueError(f"{error_prefix} include unsupported event: {event}")
+
+    state = fields.get("state")
+    if state is not None and not is_analytics_ui_state(str(state)):
+        raise ValueError(f"{error_prefix} include unsupported state: {state}")
+
+    status_class = fields.get("status_class")
+    if status_class is not None and str(status_class) not in {
+        "1xx",
+        "2xx",
+        "3xx",
+        "4xx",
+        "5xx",
+        "unknown",
+    }:
+        raise ValueError(f"{error_prefix} include unsupported status_class: {status_class}")
 
 
 def gateway_analytics_fanout_timer() -> float:
