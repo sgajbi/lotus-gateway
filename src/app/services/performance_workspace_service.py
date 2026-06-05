@@ -383,6 +383,24 @@ def _build_partial_evidence_view_response(
     )
 
 
+def _record_partial_evidence_view(
+    *,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> None:
+    warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
+    partial_failures.append(
+        build_performance_failure(
+            "lotus-performance",
+            "PERFORMANCE_EVIDENCE_PARTIAL",
+            (
+                "Gateway resolved only partial execution or lineage evidence "
+                "for one or more performance calculations."
+            ),
+        )
+    )
+
+
 class PerformanceWorkspaceService:
     def __init__(
         self,
@@ -566,8 +584,36 @@ class PerformanceWorkspaceService:
             explicit_start_date=explicit_start_date,
             explicit_end_date=explicit_end_date,
         )
+        workspace_summary_result = await self._fetch_horizon_comparison_dependencies(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+        )
+        rows, resolved_benchmark_code = self._parse_horizon_comparison_rows(
+            detail_basis=detail_basis,
+            context=context,
+            workspace_summary_result=workspace_summary_result,
+        )
+        return self._build_horizon_comparison_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+            benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
+            rows=rows,
+        )
+
+    async def _fetch_horizon_comparison_dependencies(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        context: HorizonComparisonRequestContext,
+    ) -> GatheredResult:
         async with server_timing_span("perf-horizon"):
-            workspace_summary_result = await fetch_workspace_horizon_dependencies(
+            return await fetch_workspace_horizon_dependencies(
                 analytics_client=self._analytics_client,
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
@@ -581,7 +627,15 @@ class PerformanceWorkspaceService:
                 portfolio_currency=context.overview.portfolio.base_currency,
                 chart_frequency=context.chart_frequency,
             )
-        rows, resolved_benchmark_code = parse_horizon_comparison_result(
+
+    def _parse_horizon_comparison_rows(
+        self,
+        *,
+        detail_basis: str,
+        context: HorizonComparisonRequestContext,
+        workspace_summary_result: GatheredResult,
+    ) -> tuple[list[Any], str | None]:
+        return parse_horizon_comparison_result(
             result=workspace_summary_result,
             requested_period=context.effective_period,
             requested_report_start_date=context.report_start_date.isoformat()
@@ -593,14 +647,6 @@ class PerformanceWorkspaceService:
             detail_basis=detail_basis,
             warnings=context.warnings,
             partial_failures=context.partial_failures,
-        )
-        return self._build_horizon_comparison_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            detail_basis=detail_basis,
-            context=context,
-            benchmark_code=resolved_benchmark_code or context.benchmark_code or benchmark_code,
-            rows=rows,
         )
 
     async def _build_horizon_comparison_request_context(
@@ -740,6 +786,28 @@ class PerformanceWorkspaceService:
                 rows=[],
             )
 
+        rows = await self._build_attribution_trend_rows(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+        )
+        return self._build_attribution_trend_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+            rows=rows,
+        )
+
+    async def _build_attribution_trend_rows(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        context: AttributionTrendRequestContext,
+    ) -> Sequence[Any]:
         window_pairs = self._build_attribution_trend_window_pairs(context)
         attribution_results = await self._fetch_attribution_trend_results(
             portfolio_id=portfolio_id,
@@ -748,20 +816,13 @@ class PerformanceWorkspaceService:
             context=context,
             window_pairs=window_pairs,
         )
-        rows = parse_attribution_trend_results(
+        return parse_attribution_trend_results(
             results=attribution_results,
             window_pairs=window_pairs,
             chart_frequency=context.chart_frequency,
             requested_period="EXPLICIT",
             warnings=context.warnings,
             partial_failures=context.partial_failures,
-        )
-        return self._build_attribution_trend_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            detail_basis=detail_basis,
-            context=context,
-            rows=rows,
         )
 
     async def _build_attribution_trend_request_context(
@@ -1566,16 +1627,9 @@ class PerformanceWorkspaceService:
                 context=request_context,
                 fetch_state=fetch_state,
             )
-        warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
-        partial_failures.append(
-            build_performance_failure(
-                "lotus-performance",
-                "PERFORMANCE_EVIDENCE_PARTIAL",
-                (
-                    "Gateway resolved only partial execution or lineage evidence "
-                    "for one or more performance calculations."
-                ),
-            )
+        _record_partial_evidence_view(
+            warnings=warnings,
+            partial_failures=partial_failures,
         )
         return _build_partial_evidence_view_response(
             context=request_context,

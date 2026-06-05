@@ -189,6 +189,22 @@ def _extract_rebalance_supportability_payload(
         return supportability_payload
     if supportability_result is None:
         return None
+    supportability_summary = _unpack_rebalance_supportability_summary(
+        supportability_result=supportability_result,
+        partial_failures=partial_failures,
+        warnings=warnings,
+    )
+    if supportability_summary is None:
+        return None
+    return _supportability_payload_from_summary(supportability_summary)
+
+
+def _unpack_rebalance_supportability_summary(
+    *,
+    supportability_result: object,
+    partial_failures: list[WorkbenchPartialFailure] | None,
+    warnings: list[str] | None,
+) -> dict[str, Any] | None:
     if isinstance(supportability_result, BaseException):
         _record_rebalance_supportability_unavailable(
             partial_failures=partial_failures,
@@ -225,14 +241,31 @@ def _extract_rebalance_supportability_payload(
             detail=str(supportability_summary.get("detail", supportability_summary)),
         )
         return None
+    return supportability_summary
+
+
+def _supportability_payload_from_summary(
+    supportability_summary: dict[str, Any],
+) -> dict[str, Any] | None:
     supportability_payload = supportability_summary.get("supportability")
     if isinstance(supportability_payload, dict):
         merged_payload = dict(supportability_payload)
-        for summary_key in ("run_count", "operation_count", "workflow_decision_count"):
-            if summary_key not in merged_payload and summary_key in supportability_summary:
-                merged_payload[summary_key] = supportability_summary[summary_key]
+        _merge_supportability_summary_counts(
+            merged_payload=merged_payload,
+            supportability_summary=supportability_summary,
+        )
         return merged_payload
     return None
+
+
+def _merge_supportability_summary_counts(
+    *,
+    merged_payload: dict[str, Any],
+    supportability_summary: dict[str, Any],
+) -> None:
+    for summary_key in ("run_count", "operation_count", "workflow_decision_count"):
+        if summary_key not in merged_payload and summary_key in supportability_summary:
+            merged_payload[summary_key] = supportability_summary[summary_key]
 
 
 def _record_rebalance_supportability_unavailable(

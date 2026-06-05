@@ -95,8 +95,9 @@ lines. The performance attribution trend orchestrator has been split into reques
 window-pair construction, attribution fan-out, and response assembly helpers, reducing
 `get_performance_attribution_trend` from 135 lines to 56 lines. The performance evidence-view
 orchestrator has now been split into request context, fetch state, requested-calculation
-selection, and explicit response builders, reducing `_build_evidence_view` from 134 lines to
-58 lines. Portfolio exception-summary construction has been extracted to
+selection, explicit response builders, and partial-failure recording, reducing
+`_build_evidence_view` from 134 lines to 51 lines. Portfolio exception-summary construction has
+been extracted to
 `src/app/services/portfolio_exception_summaries.py`, reducing `portfolio_service.py` from 2,839 to
 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
 delegation over readiness status. Performance workspace capability-input derivation has been
@@ -117,8 +118,29 @@ parsing, portfolio workspace response-component assembly, risk attribution route
 performance summary route dependency extraction, shell workspace descriptor-state extraction, and
 rebalance supportability failure-recording extraction. The latest hardening branch further splits
 shared analytics async polling, workspace-summary payload assembly, portfolio transaction-summary
-context loading, transaction page loading, and portfolio book response assembly. The current
-longest function is `build_performance_attribution_trend_query` at 62 lines.
+context loading, transaction page loading, portfolio book response assembly, performance
+attribution trend query metadata extraction, risk rolling query metadata extraction,
+advisor-brief query metadata extraction, and performance evidence-view partial-failure recording
+extraction, DPM portfolio-memory search query metadata extraction, performance chart-point row
+projection extraction, HTTP resilience JSON dispatch extraction, and performance
+horizon-comparison dependency-phase extraction, followed by performance summary/detail route
+query metadata extraction and DPM wave PM memo payload/response construction extraction. The
+latest risk summary mapper slice split period and metric-state mapping out of the response
+composer. Advisor-brief workflow-pack run loading now separates source-profile retrieval from
+run-posture projection. Performance attribution trend now delegates row orchestration to a
+focused helper. Benchmark-context loading now separates concurrent task construction from
+gathered-result resolution. Shell workspace descriptor assembly now delegates contract
+construction behind the public descriptor helper. Rebalance supportability result validation and
+summary-count merging are now separate from payload selection. Performance chart-point mapping now
+separates frequency-row selection, peer-row validation, point construction, and active-return
+calculation. Shell-bootstrap section construction now delegates supportability, freshness,
+evidence, versioning, and caching assembly to focused helpers. Portfolio performance snapshot
+projection now delegates sparkline, unavailable-state, and partial-failure mapping to focused
+helpers. Contribution summary merging now delegates detail-vs-summary selection policy to reusable
+helpers. Risk rolling response mapping now delegates supportability enrichment and fallback warning
+assembly to focused helpers. Risk drawdown routing now keeps OpenAPI query metadata in named
+descriptors separate from the public query dependency. The current longest functions are 54-line
+orchestration and mapper helpers.
 
 ## Progressive Enforcement
 

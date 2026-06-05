@@ -22,49 +22,57 @@ class RiskDrawdownQuery:
     include_underwater_series: bool
 
 
+RISK_DRAWDOWN_PERIOD_QUERY = Query(
+    default="YTD",
+    description=RISK_PERIOD_QUERY_DESCRIPTION,
+    examples=["YTD"],
+)
+RISK_DRAWDOWN_DETAIL_BASIS_QUERY = Query(
+    default="NET",
+    description="Requested net or gross basis for drawdown metrics.",
+    examples=["NET"],
+)
+RISK_DRAWDOWN_BENCHMARK_QUERY = Query(
+    default=None,
+    description="Optional benchmark override used for relative drawdown context.",
+    examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+)
+RISK_DRAWDOWN_AS_OF_DATE_QUERY = Query(
+    default=None,
+    description="Optional business as-of date in YYYY-MM-DD format.",
+    examples=["2026-02-24"],
+)
+RISK_DRAWDOWN_REPORT_START_QUERY = Query(
+    default=None,
+    description="Inclusive explicit start date when the caller requests an explicit risk window.",
+    examples=["2026-01-01"],
+)
+RISK_DRAWDOWN_REPORT_END_QUERY = Query(
+    default=None,
+    description="Inclusive explicit end date when the caller requests an explicit risk window.",
+    examples=["2026-03-27"],
+)
+RISK_DRAWDOWN_REPORTING_CURRENCY_QUERY = Query(
+    default="USD",
+    description="Reporting currency used for stateful drawdown analytics.",
+    examples=["USD"],
+)
+RISK_DRAWDOWN_UNDERWATER_SERIES_QUERY = Query(
+    default=False,
+    description="Whether to include the heavier underwater-series detail for drill-down flows.",
+    examples=[True],
+)
+
+
 def build_risk_drawdown_query(
-    period: str = Query(
-        default="YTD",
-        description=RISK_PERIOD_QUERY_DESCRIPTION,
-        examples=["YTD"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Requested net or gross basis for drawdown metrics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description="Optional benchmark override used for relative drawdown context.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    as_of_date: str | None = Query(
-        default=None,
-        description="Optional business as-of date in YYYY-MM-DD format.",
-        examples=["2026-02-24"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller requests an explicit risk window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date when the caller requests an explicit risk window.",
-        examples=["2026-03-27"],
-    ),
-    reporting_currency: str = Query(
-        default="USD",
-        description="Reporting currency used for stateful drawdown analytics.",
-        examples=["USD"],
-    ),
-    include_underwater_series: bool = Query(
-        default=False,
-        description="Whether to include the heavier underwater-series detail for drill-down flows.",
-        examples=[True],
-    ),
+    period: str = RISK_DRAWDOWN_PERIOD_QUERY,
+    detail_basis: str = RISK_DRAWDOWN_DETAIL_BASIS_QUERY,
+    benchmark_code: str | None = RISK_DRAWDOWN_BENCHMARK_QUERY,
+    as_of_date: str | None = RISK_DRAWDOWN_AS_OF_DATE_QUERY,
+    report_start_date: str | None = RISK_DRAWDOWN_REPORT_START_QUERY,
+    report_end_date: str | None = RISK_DRAWDOWN_REPORT_END_QUERY,
+    reporting_currency: str = RISK_DRAWDOWN_REPORTING_CURRENCY_QUERY,
+    include_underwater_series: bool = RISK_DRAWDOWN_UNDERWATER_SERIES_QUERY,
 ) -> RiskDrawdownQuery:
     return RiskDrawdownQuery(
         period=period,

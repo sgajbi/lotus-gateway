@@ -14,7 +14,8 @@ The current local and PR-grade blocking gates are:
 1. `ruff` lint and format checks,
 2. monetary-float governance,
 3. `mypy` over `src`,
-4. Workbench OpenAPI contract smoke,
+4. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+   coverage,
 5. migration contract smoke,
 6. unit and contract tests,
 7. integration tests,
@@ -47,16 +48,17 @@ Report-only quality checks should remain advisory until findings are classified:
 
 Most recent local PR-grade evidence:
 
-1. `make check`: 958 unit/contract tests passed.
+1. `make check`: 969 unit/contract tests passed.
 2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,165 coverage tests passed.
-4. Total coverage: 92.80%, above the 84% floor.
+3. `make ci`: 1,176 coverage tests passed.
+4. Total coverage: 93.36%, above the 84% floor.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
 1. Keep the quality baseline workflow report-only while findings are classified.
-2. Add no-new-regression checks for OpenAPI missing descriptions, tags, and standard errors.
+2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
+   whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Add no-new-file/function-above-baseline checks for refactor slices.
 5. Add static no-sensitive-observability checks for logs, metrics labels, and diagnostics fields.

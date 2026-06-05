@@ -18,10 +18,12 @@ Every public operation should define:
 8. standard error responses.
 
 `.spectral.yaml` records these expectations as warning-level baseline checks. The current FastAPI
-OpenAPI export contains 170 paths and 170 operations. Current generated OpenAPI has no missing
-summaries or operation IDs, but it has baseline gaps for 3 descriptions, 4 tags, and 4 documented
-4xx/5xx responses. A Spectral smoke using `.spectral.yaml` plus the inherited `spectral:oas`
-rules reports 186 warnings and no errors; most warnings are missing global tag declarations.
+OpenAPI export contains 233 paths and 247 operations. Current generated OpenAPI has no missing
+summaries, descriptions, operation IDs, tags, documented 4xx/5xx responses, or operation tags
+missing global descriptions. The operation-level checks are now pinned by a contract test. The
+last Spectral smoke using `.spectral.yaml` plus the inherited `spectral:oas` rules reported 186
+warnings and no errors; Spectral was not available in the local shell for the latest tag-catalog
+update, so the warning count should be refreshed from the GitHub quality-baseline workflow.
 
 ## Error Model
 

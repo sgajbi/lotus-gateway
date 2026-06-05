@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from app.contracts.portfolio import PortfolioCatalogResponse
 from app.middleware.correlation import correlation_id_var
@@ -22,6 +22,11 @@ async def _get_portfolios() -> PortfolioCatalogResponse:
         "portfolio-picker feed and preserves routing metadata such as client, booking-center, "
         "mandate type, and upstream status when the source publishes them."
     ),
+    responses={
+        status.HTTP_502_BAD_GATEWAY: {
+            "description": "A portfolio catalog source is unavailable or returned invalid data.",
+        },
+    },
 )
 async def get_portfolios() -> PortfolioCatalogResponse:
     return await _get_portfolios()

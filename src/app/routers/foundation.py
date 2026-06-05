@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from app.contracts.foundation import FoundationPortfolioCatalogResponse
 from app.middleware.correlation import correlation_id_var
@@ -24,6 +24,11 @@ async def _get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
         "identity metadata such as client and booking-center codes when the source "
         "publishes them."
     ),
+    responses={
+        status.HTTP_502_BAD_GATEWAY: {
+            "description": "A foundation portfolio-catalog source is unavailable or invalid.",
+        },
+    },
 )
 async def get_foundation_portfolios() -> FoundationPortfolioCatalogResponse:
     return await _get_foundation_portfolios()

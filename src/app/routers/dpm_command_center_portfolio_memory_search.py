@@ -25,6 +25,52 @@ router = APIRouter(
     responses=_UPSTREAM_ERROR_RESPONSES,
 )
 
+PORTFOLIO_IDS_QUERY = Query(
+    default=None,
+    description="Optional repeated portfolio identifiers for bounded persisted memory search.",
+    examples=[["PB_SG_GLOBAL_BAL_001", "PB_SG_GLOBAL_INC_002"]],
+)
+EVENT_TYPE_QUERY = Query(
+    default=None,
+    description="Optional manage-owned portfolio-memory event type filter.",
+    examples=["OUTCOME_REVIEW_CREATED"],
+)
+SUPPORTABILITY_STATE_QUERY = Query(
+    default=None,
+    description="Optional manage-published supportability state filter.",
+    examples=["READY"],
+)
+SOURCE_SYSTEM_QUERY = Query(
+    default=None,
+    description="Optional persisted source-system filter.",
+    examples=["lotus-performance"],
+)
+SOURCE_TYPE_QUERY = Query(
+    default=None,
+    description="Optional persisted source-type filter.",
+    examples=["PortfolioRealizedTaxSummary:v1"],
+)
+LIMIT_QUERY = Query(
+    default=25,
+    ge=1,
+    le=200,
+    description="Maximum number of persisted memory events to return.",
+    examples=[25],
+)
+OFFSET_QUERY = Query(
+    default=0,
+    ge=0,
+    description="Manage-local offset for bounded persisted memory search.",
+    examples=[0],
+)
+SOURCE_SCAN_LIMIT_QUERY = Query(
+    default=None,
+    ge=1,
+    le=1000,
+    description="Optional Manage-local scan cap for source-lineage facet derivation.",
+    examples=[250],
+)
+
 
 @dataclass(frozen=True)
 class PortfolioMemorySearchFilters:
@@ -51,51 +97,14 @@ class PortfolioMemorySearchFilters:
 
 
 def build_portfolio_memory_search_filters(
-    portfolio_ids: list[str] | None = Query(
-        default=None,
-        description="Optional repeated portfolio identifiers for bounded persisted memory search.",
-        examples=[["PB_SG_GLOBAL_BAL_001", "PB_SG_GLOBAL_INC_002"]],
-    ),
-    event_type: str | None = Query(
-        default=None,
-        description="Optional manage-owned portfolio-memory event type filter.",
-        examples=["OUTCOME_REVIEW_CREATED"],
-    ),
-    supportability_state: str | None = Query(
-        default=None,
-        description="Optional manage-published supportability state filter.",
-        examples=["READY"],
-    ),
-    source_system: str | None = Query(
-        default=None,
-        description="Optional persisted source-system filter.",
-        examples=["lotus-performance"],
-    ),
-    source_type: str | None = Query(
-        default=None,
-        description="Optional persisted source-type filter.",
-        examples=["PortfolioRealizedTaxSummary:v1"],
-    ),
-    limit: int = Query(
-        default=25,
-        ge=1,
-        le=200,
-        description="Maximum number of persisted memory events to return.",
-        examples=[25],
-    ),
-    offset: int = Query(
-        default=0,
-        ge=0,
-        description="Manage-local offset for bounded persisted memory search.",
-        examples=[0],
-    ),
-    source_scan_limit: int | None = Query(
-        default=None,
-        ge=1,
-        le=1000,
-        description="Optional Manage-local scan cap for source-lineage facet derivation.",
-        examples=[250],
-    ),
+    portfolio_ids: list[str] | None = PORTFOLIO_IDS_QUERY,
+    event_type: str | None = EVENT_TYPE_QUERY,
+    supportability_state: str | None = SUPPORTABILITY_STATE_QUERY,
+    source_system: str | None = SOURCE_SYSTEM_QUERY,
+    source_type: str | None = SOURCE_TYPE_QUERY,
+    limit: int = LIMIT_QUERY,
+    offset: int = OFFSET_QUERY,
+    source_scan_limit: int | None = SOURCE_SCAN_LIMIT_QUERY,
 ) -> PortfolioMemorySearchFilters:
     return PortfolioMemorySearchFilters(
         portfolio_ids=portfolio_ids,

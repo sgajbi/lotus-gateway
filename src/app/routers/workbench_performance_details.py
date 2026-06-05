@@ -8,6 +8,49 @@ from app.services.workbench_service_provider import performance_workspace_servic
 
 router = APIRouter(prefix="/api/v1/workbench", tags=["workbench"])
 
+PERIOD_QUERY = Query(
+    default="YTD",
+    description="Requested performance horizon for the analytical detail workspace.",
+    examples=["YTD"],
+)
+CHART_FREQUENCY_QUERY = Query(
+    default="monthly",
+    description="Requested chart frequency for detail charts and time-series modules.",
+    examples=["monthly"],
+)
+CONTRIBUTION_DIMENSION_QUERY = Query(
+    default="asset_class",
+    description="Requested grouping dimension for detailed contribution analytics.",
+    examples=["asset_class"],
+)
+ATTRIBUTION_DIMENSION_QUERY = Query(
+    default="asset_class",
+    description="Requested grouping dimension for detailed attribution analytics.",
+    examples=["asset_class"],
+)
+DETAIL_BASIS_QUERY = Query(
+    default="NET",
+    description="Requested net or gross basis for detailed performance analytics.",
+    examples=["NET"],
+)
+BENCHMARK_CODE_QUERY = Query(
+    default=None,
+    description="Optional benchmark override used for detailed relative performance context.",
+    examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+)
+REPORT_START_DATE_QUERY = Query(
+    default=None,
+    description=(
+        "Inclusive explicit start date when the caller requests an explicit detail window."
+    ),
+    examples=["2026-01-01"],
+)
+REPORT_END_DATE_QUERY = Query(
+    default=None,
+    description=("Inclusive explicit end date when the caller requests an explicit detail window."),
+    examples=["2026-03-27"],
+)
+
 
 @dataclass(frozen=True)
 class PerformanceDetailsQuery:
@@ -22,50 +65,14 @@ class PerformanceDetailsQuery:
 
 
 def build_performance_details_query(
-    period: str = Query(
-        default="YTD",
-        description="Requested performance horizon for the analytical detail workspace.",
-        examples=["YTD"],
-    ),
-    chart_frequency: str = Query(
-        default="monthly",
-        description="Requested chart frequency for detail charts and time-series modules.",
-        examples=["monthly"],
-    ),
-    contribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested grouping dimension for detailed contribution analytics.",
-        examples=["asset_class"],
-    ),
-    attribution_dimension: str = Query(
-        default="asset_class",
-        description="Requested grouping dimension for detailed attribution analytics.",
-        examples=["asset_class"],
-    ),
-    detail_basis: str = Query(
-        default="NET",
-        description="Requested net or gross basis for detailed performance analytics.",
-        examples=["NET"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description="Optional benchmark override used for detailed relative performance context.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller requests an explicit detail window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit end date when the caller requests an explicit detail window."
-        ),
-        examples=["2026-03-27"],
-    ),
+    period: str = PERIOD_QUERY,
+    chart_frequency: str = CHART_FREQUENCY_QUERY,
+    contribution_dimension: str = CONTRIBUTION_DIMENSION_QUERY,
+    attribution_dimension: str = ATTRIBUTION_DIMENSION_QUERY,
+    detail_basis: str = DETAIL_BASIS_QUERY,
+    benchmark_code: str | None = BENCHMARK_CODE_QUERY,
+    report_start_date: str | None = REPORT_START_DATE_QUERY,
+    report_end_date: str | None = REPORT_END_DATE_QUERY,
 ) -> PerformanceDetailsQuery:
     return PerformanceDetailsQuery(
         period=period,

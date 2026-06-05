@@ -31,7 +31,28 @@ orchestration, core snapshot summary parsing, portfolio workspace response compo
 and risk/performance Workbench route dependency handling. The latest 50-commit hardening branch
 then split shared analytics async polling, workspace-summary payload assembly, portfolio
 transaction-summary context loading, transaction page loading, and portfolio book response
-assembly.
+assembly, then split performance horizon-comparison dependency fetching and row parsing out of
+the top-level service method, followed by performance summary/detail route query metadata
+extraction, DPM wave PM memo payload/response extraction, and risk summary period/metric-state
+extraction, followed by advisor-brief workflow-pack run profile extraction.
+The latest performance slice split attribution-trend row orchestration out of the public service
+method, then split benchmark-context task construction and gathered-result resolution.
+The latest platform-capabilities slice split shell workspace descriptor contract construction out
+of the public descriptor helper.
+The latest rebalance slice split supportability result validation and summary-count merging out of
+the supportability payload extractor.
+The latest performance chart slice split frequency-row selection, peer-row validation, point
+construction, and active-return calculation out of the public chart-point mapper.
+The latest shell-bootstrap slice split supportability, freshness, evidence, versioning, and
+caching section construction out of the public bootstrap helper.
+The latest performance projection slice split sparkline, unavailable-state, and partial-failure
+projection out of the portfolio performance snapshot mapper.
+The latest contribution slice split detail-vs-summary merge selection policy out of the public
+contribution summary merge mapper.
+The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
+the public rolling response mapper.
+The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
+drawdown query dependency.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -42,8 +63,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 676 |
 | Python source files under `src/app` | 442 |
 | Python test files under `tests` | 158 |
-| OpenAPI paths | 170 |
-| OpenAPI operations | 170 |
+| OpenAPI paths | 233 |
+| OpenAPI operations | 247 |
 
 ## Largest Source Files
 
@@ -53,7 +74,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,673 | `src/app/services/performance_workspace_service.py` |
+| 5 | 1,712 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
@@ -64,16 +85,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 62 | `build_performance_attribution_trend_query` | `src/app/routers/workbench_performance_attribution_trend.py` |
-| 2 | 58 | `build_risk_rolling_query` | `src/app/routers/workbench_risk_rolling.py` |
-| 3 | 58 | `build_advisor_brief_query` | `src/app/routers/workbench_performance_advisor_brief_common.py` |
-| 4 | 58 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 5 | 57 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 6 | 57 | `parse_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
-| 7 | 57 | `get_performance_horizon_comparison` | `src/app/services/performance_workspace_service.py` |
-| 8 | 57 | `build_portfolio_memory_search_filters` | `src/app/routers/dpm_command_center_portfolio_memory_search.py` |
-| 9 | 56 | `request_wave_pm_memo` | `src/app/services/dpm_wave_service.py` |
-| 10 | 56 | `map_summary_response` | `src/app/services/risk_workspace_summary.py` |
+| 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 2 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 3 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 4 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
+| 5 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 6 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 7 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
+| 8 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 9 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 10 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
 
 ## Existing Blocking Gates
 
@@ -82,7 +103,7 @@ Current repo-native gates already cover:
 1. ruff lint and format check,
 2. monetary-float governance,
 3. mypy on `src`,
-4. Workbench OpenAPI contract smoke,
+4. Workbench OpenAPI contract smoke and operation-governance contract checks,
 5. migration contract smoke,
 6. unit and contract tests,
 7. integration tests,
@@ -92,10 +113,10 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 967 unit/contract tests passed on commit `6836e69`.
-2. `make ci`: 207 integration tests passed on commit `e1e7980`.
-3. `make ci`: 1,174 coverage tests passed on commit `e1e7980`.
-4. Coverage: 93.32%.
+1. `make check`: 969 unit/contract tests passed on commit `21568c5`.
+2. `make ci`: 207 integration tests passed on commit `b8f01c4`.
+3. `make ci`: 1,176 coverage tests passed on commit `b8f01c4`.
+4. Coverage: 93.36%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
@@ -112,7 +133,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 62 lines,
+2. no new function above the current longest-function baseline of 54 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
@@ -136,19 +157,22 @@ Current generated OpenAPI evidence:
 | Paths | 170 |
 | Operations | 170 |
 | Missing summary | 0 |
-| Missing description | 3 |
+| Missing description | 0 |
 | Missing operation ID | 0 |
-| Missing tags | 4 |
-| Missing 4xx/5xx response | 4 |
-| Spectral warnings from `.spectral.yaml` plus `spectral:oas` | 186 |
+| Missing tags | 0 |
+| Missing 4xx/5xx response | 0 |
+| Operation tags missing global description | 0 |
+| Spectral warnings from `.spectral.yaml` plus `spectral:oas` | 186, not rerun locally |
 
 Important nuance: operation IDs are present in generated OpenAPI, but only two explicit router
 `operation_id=` declarations were found. Future governance should decide whether generated IDs are
 acceptable or whether stable explicit operation IDs are required for all public endpoints.
 
-The first Spectral smoke found no errors. Most warnings are generated by the inherited
-`spectral:oas` baseline for missing global tag declarations; the custom Lotus rules highlight the
-same health and metrics documentation gaps listed above.
+The OpenAPI operation-governance contract test now fails if any public operation is missing a
+description, tags, at least one documented 4xx/5xx response, or a global tag declaration with a
+description. The first Spectral smoke found no errors. Spectral was not available in the local
+shell for this update, so the warning count remains the last collected report-only baseline until
+the GitHub quality-baseline workflow reruns.
 
 ## Architecture Violations And Watchlist
 
@@ -186,5 +210,6 @@ logs, and diagnostics lookup. Remaining baseline gaps:
 1. Keep Quality Baseline workflow report-only.
 2. Classify baseline findings and false positives.
 3. Review uploaded quality log artifacts from GitHub Actions.
-4. Fail only new regressions.
-5. Promote agreed thresholds into blocking Feature Lane and PR Merge Gate checks.
+4. Promote the OpenAPI operation-governance contract test through Feature Lane evidence.
+5. Fail only new regressions for remaining report-only findings.
+6. Promote agreed thresholds into blocking Feature Lane and PR Merge Gate checks.

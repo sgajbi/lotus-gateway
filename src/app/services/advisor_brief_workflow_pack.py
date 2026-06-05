@@ -27,6 +27,13 @@ class _TaskFlowRequiredFields:
     updated_at: str
 
 
+@dataclass(frozen=True)
+class _WorkflowPackRunProfile:
+    run_id: str
+    consumer_payload: dict[str, Any]
+    operator_payload: dict[str, Any]
+
+
 def assert_advisor_brief_review_action_allowed(
     *,
     workflow_pack_run: AdvisorBriefWorkflowPackRun | None,
@@ -64,6 +71,22 @@ async def load_advisor_brief_workflow_pack_run(
     if run_id is None:
         return None
 
+    profile = await _load_workflow_pack_run_profile(
+        lotus_ai_client=lotus_ai_client,
+        run_id=run_id,
+        correlation_id=correlation_id,
+    )
+    if profile is None:
+        return None
+    return _parse_workflow_pack_run_profile(profile=profile)
+
+
+async def _load_workflow_pack_run_profile(
+    *,
+    lotus_ai_client: AdvisorBriefAiClient,
+    run_id: str,
+    correlation_id: str,
+) -> _WorkflowPackRunProfile | None:
     consumer_status, consumer_payload = await lotus_ai_client.get_workflow_pack_run_consumer_view(
         run_id=run_id,
         correlation_id=correlation_id,
@@ -80,9 +103,20 @@ async def load_advisor_brief_workflow_pack_run(
     )
     if operator_status != 200:
         return None
+    return _WorkflowPackRunProfile(
+        run_id=run_id,
+        consumer_payload=consumer_payload,
+        operator_payload=operator_payload,
+    )
 
-    review = _safe_dict(consumer_payload.get("review"))
-    lineage = _safe_dict(consumer_payload.get("lineage"))
+
+def _parse_workflow_pack_run_profile(
+    *,
+    profile: _WorkflowPackRunProfile,
+) -> AdvisorBriefWorkflowPackRun:
+    review = _safe_dict(profile.consumer_payload.get("review"))
+    lineage = _safe_dict(profile.consumer_payload.get("lineage"))
+    operator_payload = profile.operator_payload
     findings = [
         finding
         for finding in (
@@ -92,7 +126,7 @@ async def load_advisor_brief_workflow_pack_run(
         if finding is not None
     ]
     return AdvisorBriefWorkflowPackRun(
-        run_id=_safe_str(operator_payload.get("run_id")) or run_id,
+        run_id=_safe_str(operator_payload.get("run_id")) or profile.run_id,
         runtime_state=_safe_str(operator_payload.get("runtime_state")) or "UNKNOWN",
         review_state=_safe_str(operator_payload.get("review_state")) or "UNKNOWN",
         allowed_review_actions=[
