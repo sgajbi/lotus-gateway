@@ -572,6 +572,12 @@ class RiskWorkspaceService:
         if blocked_response is not None:
             return blocked_response
 
+        return await self._cached_attribution_response(context)
+
+    async def _cached_attribution_response(
+        self,
+        context: RiskAttributionRequestContext,
+    ) -> WorkbenchRiskAttributionResponse:
         async def _load() -> WorkbenchRiskAttributionResponse:
             return await self._load_attribution_response(context)
 
@@ -582,7 +588,7 @@ class RiskWorkspaceService:
         typed_response = cast(WorkbenchRiskAttributionResponse, response)
         return typed_response.model_copy(
             update={
-                "correlation_id": correlation_id,
+                "correlation_id": context.correlation_id,
                 "metadata": typed_response.metadata.model_copy(
                     update={"cache_status": "hit" if cache_hit else "miss"}
                 ),
