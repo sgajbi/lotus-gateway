@@ -286,19 +286,11 @@ class WorkbenchService:
         changes: list[dict[str, Any]],
         evaluate_policy: bool,
     ) -> WorkbenchSandboxStateResponse:
-        status_code, payload = await self._lotus_core_query_client.add_simulation_changes(
+        payload = await self._apply_sandbox_changes_payload(
             session_id=session_id,
             changes=changes,
             correlation_id=correlation_id,
         )
-        raise_product_safe_gateway_unavailable_error(
-            status_code,
-            payload,
-            source_service="lotus-core",
-            error_code="LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
-            default_detail="Lotus Core simulation change application failed.",
-        )
-
         session_version = int(payload.get("version", 1))
         projected_positions, projected_summary = await self._load_projected_state(
             session_id=session_id,
@@ -326,6 +318,27 @@ class WorkbenchService:
             warnings=policy_state.warnings,
             partial_failures=policy_state.partial_failures,
         )
+
+    async def _apply_sandbox_changes_payload(
+        self,
+        *,
+        session_id: str,
+        changes: list[dict[str, Any]],
+        correlation_id: str,
+    ) -> dict[str, Any]:
+        status_code, payload = await self._lotus_core_query_client.add_simulation_changes(
+            session_id=session_id,
+            changes=changes,
+            correlation_id=correlation_id,
+        )
+        raise_product_safe_gateway_unavailable_error(
+            status_code,
+            payload,
+            source_service="lotus-core",
+            error_code="LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
+            default_detail="Lotus Core simulation change application failed.",
+        )
+        return payload
 
     async def _build_sandbox_policy_state(
         self,
