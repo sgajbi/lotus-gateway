@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 
 from app.config import settings
 from app.contracts.workbench import (
+    WorkbenchAnalyticsBucket,
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
     WorkbenchOverviewSummary,
@@ -21,6 +22,7 @@ from app.contracts.workbench import (
     WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
     WorkbenchSandboxStateResponse,
+    WorkbenchTopChange,
 )
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
@@ -47,6 +49,65 @@ from app.services.workspace_client_protocols import (
     WorkbenchManageClient,
     WorkbenchPerformanceClient,
 )
+
+
+@dataclass(frozen=True)
+class WorkbenchAnalyticsParts:
+    portfolio_360: WorkbenchPortfolio360Response
+    allocation_buckets: list[WorkbenchAnalyticsBucket]
+    top_changes: list[WorkbenchTopChange]
+    portfolio_return_pct: Any
+    benchmark_return_pct: Any
+    active_return_pct: Any
+
+
+@dataclass(frozen=True)
+class WorkbenchOverviewEnrichmentResults:
+    performance_result: object
+    rebalance_result: object
+    rebalance_supportability_result: object
+
+
+@dataclass(frozen=True)
+class WorkbenchSandboxPolicyState:
+    policy_feedback: WorkbenchPolicyFeedback | None
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+
+
+def _build_workbench_analytics_parts(
+    *,
+    portfolio_360: WorkbenchPortfolio360Response,
+    group_by: str,
+) -> WorkbenchAnalyticsParts:
+    try:
+        allocation_buckets = build_workbench_allocation_buckets(
+            group_by=group_by,
+            current_positions=portfolio_360.current_positions,
+            projected_positions=portfolio_360.projected_positions,
+        )
+        top_changes = build_workbench_top_changes(portfolio_360.projected_positions)
+        controlled_portfolio_360 = with_controlled_risk_bff_gap(portfolio_360)
+        (
+            portfolio_return_pct,
+            benchmark_return_pct,
+            active_return_pct,
+        ) = build_workbench_return_metrics(
+            controlled_portfolio_360.performance_snapshot,
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Invalid workbench analytics source payload: {exc}",
+        ) from exc
+    return WorkbenchAnalyticsParts(
+        portfolio_360=controlled_portfolio_360,
+        allocation_buckets=allocation_buckets,
+        top_changes=top_changes,
+        portfolio_return_pct=portfolio_return_pct,
+        benchmark_return_pct=benchmark_return_pct,
+        active_return_pct=active_return_pct,
+    )
 
 
 class WorkbenchService:
@@ -236,19 +297,14 @@ class WorkbenchService:
             correlation_id=correlation_id,
         )
 
-        warnings: list[str] = []
-        partial_failures: list[WorkbenchPartialFailure] = []
-        policy_feedback: WorkbenchPolicyFeedback | None = None
-        if evaluate_policy:
-            policy_feedback = await self._evaluate_policy_feedback(
-                portfolio_id=portfolio_id,
-                session_id=session_id,
-                session_version=session_version,
-                projected_positions=projected_positions,
-                correlation_id=correlation_id,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
+        policy_state = await self._build_sandbox_policy_state(
+            portfolio_id=portfolio_id,
+            session_id=session_id,
+            session_version=session_version,
+            projected_positions=projected_positions,
+            correlation_id=correlation_id,
+            evaluate_policy=evaluate_policy,
+        )
 
         return WorkbenchSandboxStateResponse(
             correlation_id=correlation_id,
@@ -258,6 +314,39 @@ class WorkbenchService:
             session_version=session_version,
             projected_positions=projected_positions,
             projected_summary=projected_summary,
+            policy_feedback=policy_state.policy_feedback,
+            warnings=policy_state.warnings,
+            partial_failures=policy_state.partial_failures,
+        )
+
+    async def _build_sandbox_policy_state(
+        self,
+        *,
+        portfolio_id: str,
+        session_id: str,
+        session_version: int,
+        projected_positions: list[WorkbenchProjectedPositionView],
+        correlation_id: str,
+        evaluate_policy: bool,
+    ) -> WorkbenchSandboxPolicyState:
+        warnings: list[str] = []
+        partial_failures: list[WorkbenchPartialFailure] = []
+        if not evaluate_policy:
+            return WorkbenchSandboxPolicyState(
+                policy_feedback=None,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+        policy_feedback = await self._evaluate_policy_feedback(
+            portfolio_id=portfolio_id,
+            session_id=session_id,
+            session_version=session_version,
+            projected_positions=projected_positions,
+            correlation_id=correlation_id,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        return WorkbenchSandboxPolicyState(
             policy_feedback=policy_feedback,
             warnings=warnings,
             partial_failures=partial_failures,
@@ -277,27 +366,10 @@ class WorkbenchService:
             correlation_id=correlation_id,
             session_id=session_id,
         )
-
-        try:
-            allocation_buckets = build_workbench_allocation_buckets(
-                group_by=group_by,
-                current_positions=portfolio_360.current_positions,
-                projected_positions=portfolio_360.projected_positions,
-            )
-            top_changes = build_workbench_top_changes(portfolio_360.projected_positions)
-            portfolio_360 = with_controlled_risk_bff_gap(portfolio_360)
-            (
-                portfolio_return_pct,
-                benchmark_return_pct,
-                active_return_pct,
-            ) = build_workbench_return_metrics(
-                portfolio_360.performance_snapshot,
-            )
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Invalid workbench analytics source payload: {exc}",
-            ) from exc
+        analytics_parts = _build_workbench_analytics_parts(
+            portfolio_360=portfolio_360,
+            group_by=group_by,
+        )
 
         return WorkbenchAnalyticsResponse(
             correlation_id=correlation_id,
@@ -307,13 +379,13 @@ class WorkbenchService:
             period=period,
             group_by=group_by,
             benchmark_code=benchmark_code,
-            portfolio_return_pct=portfolio_return_pct,
-            benchmark_return_pct=benchmark_return_pct,
-            active_return_pct=active_return_pct,
-            allocation_buckets=allocation_buckets,
-            top_changes=top_changes,
-            warnings=portfolio_360.warnings,
-            partial_failures=portfolio_360.partial_failures,
+            portfolio_return_pct=analytics_parts.portfolio_return_pct,
+            benchmark_return_pct=analytics_parts.benchmark_return_pct,
+            active_return_pct=analytics_parts.active_return_pct,
+            allocation_buckets=analytics_parts.allocation_buckets,
+            top_changes=analytics_parts.top_changes,
+            warnings=analytics_parts.portfolio_360.warnings,
+            partial_failures=analytics_parts.portfolio_360.partial_failures,
         )
 
     async def _load_workbench_snapshot_context(
@@ -377,38 +449,63 @@ class WorkbenchService:
         rebalance_snapshot = None
 
         if include_performance_snapshot or include_rebalance_snapshot:
-            performance_task = await self._build_performance_snapshot_task(
+            gathered = await self._gather_overview_enrichment_results(
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
                 correlation_id=correlation_id,
                 include_performance_snapshot=include_performance_snapshot,
-            )
-            dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
                 include_rebalance_snapshot=include_rebalance_snapshot,
-            )
-            gathered = await asyncio.gather(
-                performance_task,
-                dpm_runs_task,
-                dpm_supportability_task,
-                return_exceptions=True,
             )
             if include_performance_snapshot:
                 performance_snapshot = parse_performance_snapshot(
-                    result=cast(object, gathered[0]),
+                    result=gathered.performance_result,
                     partial_failures=partial_failures,
                     warnings=warnings,
                 )
             if include_rebalance_snapshot:
                 rebalance_snapshot = parse_rebalance_snapshot(
-                    result=cast(object, gathered[1]),
-                    supportability_result=cast(object, gathered[2]),
+                    result=gathered.rebalance_result,
+                    supportability_result=gathered.rebalance_supportability_result,
                     partial_failures=partial_failures,
                     warnings=warnings,
                 )
 
         return performance_snapshot, rebalance_snapshot, warnings, partial_failures
+
+    async def _gather_overview_enrichment_results(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        include_performance_snapshot: bool,
+        include_rebalance_snapshot: bool,
+    ) -> WorkbenchOverviewEnrichmentResults:
+        performance_task = await self._build_performance_snapshot_task(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            correlation_id=correlation_id,
+            include_performance_snapshot=include_performance_snapshot,
+        )
+        dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            include_rebalance_snapshot=include_rebalance_snapshot,
+        )
+        performance_result, rebalance_result, supportability_result = cast(
+            tuple[object, object, object],
+            await asyncio.gather(
+                performance_task,
+                dpm_runs_task,
+                dpm_supportability_task,
+                return_exceptions=True,
+            ),
+        )
+        return WorkbenchOverviewEnrichmentResults(
+            performance_result=performance_result,
+            rebalance_result=rebalance_result,
+            rebalance_supportability_result=supportability_result,
+        )
 
     async def _build_performance_snapshot_task(
         self,

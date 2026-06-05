@@ -53,6 +53,60 @@ The latest risk rolling slice split supportability enrichment and fallback warni
 the public rolling response mapper.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
+The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
+transaction-ledger payload loading, portfolio workspace source gathering, and Lotus Core
+transaction query-parameter construction out of previously tied hotspot functions.
+The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
+document error response mapping into smaller, reusable helpers while preserving safe error payload
+contracts.
+The latest risk drawdown slice split valid result iteration and period partial-failure recording
+out of the drawdown period-result mapper.
+The latest performance workspace slice split response-part construction and attribution-trend
+context assembly out of the remaining 54-line performance workspace orchestration helpers,
+lowering the repository longest-function baseline to 53 lines.
+The latest benchmark and risk attribution slice split benchmark catalog failure/option parsing
+helpers and risk attribution response-part assembly out of tied 53-line mappers, reducing
+`parse_benchmark_catalog_result` to 43 lines and `map_attribution_response` to 36 lines while
+keeping the current longest-function baseline at 53 lines.
+The latest portfolio and core snapshot slice split portfolio insight source loading and current
+position projection out of tied 53-line functions, reducing `get_portfolio_insights` to 27 lines
+and `extract_current_positions` to 19 lines while keeping the current longest-function baseline at
+53 lines.
+The latest performance router slice split horizon-comparison query metadata out of the public
+dependency function, reducing `build_performance_horizon_comparison_query` to 16 lines while
+keeping the current longest-function baseline at 53 lines.
+The latest advisor-brief slice split repeated source-metric construction into a shared helper,
+reducing `_build_source_metrics` to 48 lines and lowering the repository longest-function baseline
+to 52 lines.
+The latest Workbench route and analytics slice split risk concentration query metadata and
+Workbench analytics response-part construction out of tied 52-line functions, reducing
+`get_workbench_risk_concentration` to 26 lines and `get_workbench_analytics` to 35 lines while
+keeping the current longest-function baseline at 52 lines.
+The latest rebalance and readiness slice split Workbench rebalance unavailable recording and
+portfolio readiness indicator assembly out of tied 52-line helpers, reducing
+`_unpack_rebalance_payload` to 44 lines and `_build_readiness_indicators` to 32 lines while
+keeping the current longest-function baseline at 52 lines.
+The latest HTTP resilience slice split JSON retry response handling, request-error handling, and
+attempt orchestration out of `request_with_retry`, lowering the repository longest-function
+baseline to 51 lines while preserving focused retry behavior tests.
+The latest DPM proof-pack slice split Lotus AI PM memo workflow execution and product-safe AI error
+mapping out of `request_proof_pack_pm_memo`, reducing that public service method from 51 lines to
+27 lines while preserving focused unit and router integration tests.
+The latest portfolio readiness slice split concurrent readiness source loading into a typed
+`PortfolioReadinessSources` helper, reducing `get_portfolio_readiness` from 51 lines to 28 lines
+while preserving focused unit and router integration tests.
+The latest performance capability slice split detail-capability assembly into a typed helper,
+reducing `build_workspace_capabilities` from 51 lines to 35 lines while preserving capability
+contract tests.
+The latest portfolio allocation slice split raw AUM, positions, and allocation query result loading
+into a typed helper, reducing `_load_portfolio_allocation_payloads` from 51 lines to 31 lines while
+preserving focused unit and router integration tests.
+The latest Workbench sandbox slice split optional policy feedback state assembly into a typed helper,
+reducing `apply_sandbox_changes` from 51 lines to 46 lines while preserving focused unit and router
+integration tests.
+The latest performance evidence slice split evidence-view response resolution into a focused helper,
+reducing `_build_evidence_view` from 51 lines to 33 lines and lowering the repository
+longest-function baseline to 50 lines while preserving focused evidence-view tests.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -61,7 +115,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Measure | Current value |
 | --- | ---: |
 | Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 676 |
-| Python source files under `src/app` | 442 |
+| Python source files under `src/app` | 443 |
 | Python test files under `tests` | 158 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
@@ -70,11 +124,11 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,155 | `src/app/services/portfolio_service.py` |
+| 1 | 3,183 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,712 | `src/app/services/performance_workspace_service.py` |
+| 5 | 1,760 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
@@ -85,16 +139,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 3 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
-| 5 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
-| 6 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
-| 7 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
-| 8 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 9 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 10 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
+| 1 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 2 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 3 | 49 | `request_binary_with_retry` | `src/app/clients/http_resilience.py` |
+| 4 | 49 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
+| 5 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 6 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 7 | 49 | `get_attribution` | `src/app/services/risk_workspace_service.py` |
+| 8 | 49 | `_reason_codes_from_payload` | `src/app/services/dpm_construction_service.py` |
+| 9 | 49 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 10 | 49 | `_build_horizon_comparison_request_context` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -113,11 +167,61 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 969 unit/contract tests passed on commit `21568c5`.
-2. `make ci`: 207 integration tests passed on commit `b8f01c4`.
-3. `make ci`: 1,176 coverage tests passed on commit `b8f01c4`.
-4. Coverage: 93.36%.
-5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+1. Current branch: `make check` passed after commit `3237e05` with ruff, format check,
+   monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
+   unit/contract tests.
+2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
+   retry attempt extraction.
+3. Current focused branch: DPM proof-pack service tests passed with 8 tests after PM memo workflow
+   execution extraction.
+4. Current focused branch: DPM proof-pack router PM memo integration test passed with 1 selected
+   test after PM memo workflow execution extraction.
+5. Current focused branch: portfolio readiness unit tests passed with 2 selected tests after source
+   loading extraction.
+6. Current focused branch: portfolio readiness router integration tests passed with 2 selected
+   tests after source loading extraction.
+7. Current focused branch: performance workspace capability tests passed with 5 tests after detail
+   capability extraction.
+8. Current focused branch: portfolio allocation unit tests passed with 3 selected tests after
+   query-result extraction.
+9. Current focused branch: portfolio allocation router integration test passed with 1 selected test
+   after query-result extraction.
+10. Current focused branch: Workbench sandbox unit tests passed with 5 selected tests after policy
+    state extraction.
+11. Current focused branch: Workbench sandbox router integration test passed with 1 selected test
+    after policy state extraction.
+12. Current focused branch: performance workspace evidence-view tests passed with 3 selected tests
+    after response-resolution extraction.
+13. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
+14. Current focused branch: portfolio workspace tests passed with 7 selected tests.
+15. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
+16. Current focused branch: foundation optional-upstream tests passed with 4 selected tests.
+17. Current focused branch: archive document service tests passed with 8 tests.
+18. Current focused branch: risk drawdown unit tests passed with 4 selected tests.
+19. Current focused branch: risk drawdown router integration test passed with 1 selected test.
+20. Current focused branch: performance workspace response tests passed with 5 selected tests.
+21. Current focused branch: attribution-trend unit tests passed with 3 selected tests.
+22. Current focused branch: attribution-trend router integration tests passed with 3 selected tests.
+23. Current focused branch: benchmark catalog module tests passed with 8 tests.
+24. Current focused branch: risk attribution module tests passed with 4 tests.
+25. Current focused branch: risk attribution service tests passed with 5 selected tests.
+26. Current focused branch: risk attribution router integration test passed with 1 selected test.
+27. Current focused branch: portfolio insight service tests passed with 6 selected tests.
+28. Current focused branch: portfolio insight service/router tests passed with 8 selected tests.
+29. Current focused branch: current-position unit tests passed with 5 selected tests.
+30. Current focused branch: current-position router tests passed with 2 selected tests.
+31. Current focused branch: performance horizon comparison router tests passed with 3 selected tests.
+32. Current focused branch: advisor brief service/router tests passed with 24 selected tests.
+33. Current focused branch: risk concentration router test passed with 1 selected test.
+34. Current focused branch: Workbench analytics tests passed with 7 selected tests.
+35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
+36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
+37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests on commit
+    `1578c98`.
+38. Current branch PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit
+    `1578c98`.
+39. Coverage: 93.47%.
+40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -133,7 +237,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 54 lines,
+2. no new function above the current longest-function baseline of 50 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 

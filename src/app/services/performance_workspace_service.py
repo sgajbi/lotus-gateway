@@ -401,6 +401,39 @@ def _record_partial_evidence_view(
     )
 
 
+def _resolve_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> PerformanceEvidenceView:
+    if not fetch_state.requested_items:
+        return _build_empty_evidence_view_response(
+            context=context,
+            source_supportability=fetch_state.source_supportability,
+        )
+    if fetch_state.backed_count == 0:
+        warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
+        return _build_unavailable_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    if fetch_state.complete_count == len(fetch_state.evidence_items):
+        return _build_supported_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    _record_partial_evidence_view(
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    return _build_partial_evidence_view_response(
+        context=context,
+        fetch_state=fetch_state,
+    )
+
+
 class PerformanceWorkspaceService:
     def __init__(
         self,
@@ -862,6 +895,21 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             include_benchmark_catalog=False,
         )
+        return self._assemble_attribution_trend_request_context(
+            overview_state=overview_state,
+            report_window=report_window,
+            dimension_context=dimension_context,
+            benchmark_context=benchmark_context,
+        )
+
+    def _assemble_attribution_trend_request_context(
+        self,
+        *,
+        overview_state: WorkspaceOverviewState,
+        report_window: WorkspaceReportWindow,
+        dimension_context: AttributionTrendDimensionContext,
+        benchmark_context: WorkspaceBenchmarkContext,
+    ) -> AttributionTrendRequestContext:
         return AttributionTrendRequestContext(
             overview=overview_state.overview,
             warnings=overview_state.warnings,
@@ -1009,6 +1057,33 @@ class PerformanceWorkspaceService:
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=include_benchmark_catalog,
         )
+        summary_views, response_components = await self._build_workspace_response_parts(
+            context=context,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        )
+        return self._assemble_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            summary_views=summary_views,
+            benchmark_code=response_components.benchmark_code,
+            benchmark_options=response_components.benchmark_options,
+            evidence_view=response_components.evidence_view,
+            capabilities=response_components.capabilities,
+        )
+
+    async def _build_workspace_response_parts(
+        self,
+        *,
+        context: WorkspaceRequestContext,
+        portfolio_id: str,
+        correlation_id: str,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> tuple[WorkspaceSummaryViews, WorkspaceResponseComponents]:
         summary_views = await self._build_workspace_summary_views(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -1023,16 +1098,7 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             include_detail_blocks=include_detail_blocks,
         )
-        return self._assemble_workspace_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            summary_views=summary_views,
-            benchmark_code=response_components.benchmark_code,
-            benchmark_options=response_components.benchmark_options,
-            evidence_view=response_components.evidence_view,
-            capabilities=response_components.capabilities,
-        )
+        return summary_views, response_components
 
     async def _build_workspace_response_components(
         self,
@@ -1611,29 +1677,11 @@ class PerformanceWorkspaceService:
             source_results=source_results,
         )
         fetch_state = await self._fetch_evidence_view_state(request_context)
-        if not fetch_state.requested_items:
-            return _build_empty_evidence_view_response(
-                context=request_context,
-                source_supportability=fetch_state.source_supportability,
-            )
-        if fetch_state.backed_count == 0:
-            warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
-            return _build_unavailable_evidence_view_response(
-                context=request_context,
-                fetch_state=fetch_state,
-            )
-        if fetch_state.complete_count == len(fetch_state.evidence_items):
-            return _build_supported_evidence_view_response(
-                context=request_context,
-                fetch_state=fetch_state,
-            )
-        _record_partial_evidence_view(
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        return _build_partial_evidence_view_response(
+        return _resolve_evidence_view_response(
             context=request_context,
             fetch_state=fetch_state,
+            warnings=warnings,
+            partial_failures=partial_failures,
         )
 
     async def _fetch_evidence_view_state(

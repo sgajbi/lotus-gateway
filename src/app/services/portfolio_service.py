@@ -72,6 +72,14 @@ from app.services.workspace_client_protocols import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
+PortfolioWorkspaceSourceResultSet = tuple[
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+    UpstreamResult,
+]
 
 
 @dataclass(frozen=True)
@@ -100,6 +108,13 @@ class PortfolioAllocationPayloads:
 
 
 @dataclass(frozen=True)
+class PortfolioAllocationResults:
+    aum_result: UpstreamResult
+    positions_result: UpstreamResult
+    allocation_result: UpstreamResult
+
+
+@dataclass(frozen=True)
 class PortfolioLiquidityPayloads:
     aum_result: UpstreamResult
     cash_balances_result: UpstreamResult
@@ -119,6 +134,24 @@ class PortfolioWorkspaceComponents:
     operations: PortfolioOperationalReadiness | None
     warnings: list[str]
     partial_failures: list[PortfolioPartialFailure]
+
+
+@dataclass(frozen=True)
+class PortfolioInsightSources:
+    workspace: PortfolioWorkspaceResponse
+    positions: PortfolioPositionBookResponse
+    allocations: PortfolioAllocationResponse
+    transactions: PortfolioTransactionLedgerResponse
+    activity: PortfolioActivitySummaryResponse
+
+
+@dataclass(frozen=True)
+class PortfolioReadinessSources:
+    workspace: PortfolioWorkspaceResponse
+    source_readiness: UpstreamResult
+    positions: PortfolioPositionBookResponse
+    allocations: PortfolioAllocationResponse
+    transactions: PortfolioTransactionLedgerResponse
 
 
 @dataclass(frozen=True)
@@ -742,7 +775,30 @@ class PortfolioService:
             cashflow_result,
             cash_balance_result,
             readiness_result,
-        ) = await asyncio.gather(
+        ) = await self._gather_portfolio_workspace_source_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            effective_as_of_date=effective_as_of_date,
+            reporting_currency=reporting_currency,
+        )
+        return PortfolioWorkspaceSourceResults(
+            portfolio_result=portfolio_result,
+            aum_result=aum_result,
+            support_result=support_result,
+            cashflow_result=cashflow_result,
+            cash_balance_result=cash_balance_result,
+            readiness_result=readiness_result,
+        )
+
+    async def _gather_portfolio_workspace_source_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        effective_as_of_date: str,
+        reporting_currency: str | None,
+    ) -> PortfolioWorkspaceSourceResultSet:
+        return await asyncio.gather(
             self._get_portfolio_result(portfolio_id=portfolio_id, correlation_id=correlation_id),
             self._query_aum_result(
                 correlation_id=correlation_id,
@@ -772,14 +828,6 @@ class PortfolioService:
                 correlation_id=correlation_id,
                 as_of_date=effective_as_of_date,
             ),
-        )
-        return PortfolioWorkspaceSourceResults(
-            portfolio_result=portfolio_result,
-            aum_result=aum_result,
-            support_result=support_result,
-            cashflow_result=cashflow_result,
-            cash_balance_result=cash_balance_result,
-            readiness_result=readiness_result,
         )
 
     async def _load_portfolio_workspace_analytics(
@@ -950,6 +998,39 @@ class PortfolioService:
     async def get_portfolio_readiness(
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioReadinessResponse:
+        readiness_sources = await self._load_portfolio_readiness_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        self._raise_on_upstream_client_error(
+            readiness_sources.source_readiness,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
+        )
+        source_payload = self._optional_payload(
+            readiness_sources.source_readiness,
+            "lotus-core",
+            "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
+            [],
+            [],
+        )
+        return self._build_portfolio_readiness_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            workspace=readiness_sources.workspace,
+            positions=readiness_sources.positions,
+            allocations=readiness_sources.allocations,
+            transactions=readiness_sources.transactions,
+            source_payload=source_payload,
+        )
+
+    async def _load_portfolio_readiness_sources(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> PortfolioReadinessSources:
         workspace, source_readiness, positions, allocations, transactions = await asyncio.gather(
             self.get_portfolio_workspace(
                 portfolio_id=portfolio_id,
@@ -978,25 +1059,12 @@ class PortfolioService:
                 as_of_date=as_of_date,
             ),
         )
-        self._raise_on_upstream_client_error(
-            source_readiness,
-            detail_prefix="lotus-core portfolio readiness rejected the request",
-        )
-        source_payload = self._optional_payload(
-            source_readiness,
-            "lotus-core",
-            "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
-            [],
-            [],
-        )
-        return self._build_portfolio_readiness_response(
-            correlation_id=correlation_id,
-            portfolio_id=portfolio_id,
+        return PortfolioReadinessSources(
             workspace=workspace,
+            source_readiness=source_readiness,
             positions=positions,
             allocations=allocations,
             transactions=transactions,
-            source_payload=source_payload,
         )
 
     def _build_portfolio_readiness_response(
@@ -1041,6 +1109,34 @@ class PortfolioService:
     async def get_portfolio_insights(
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioInsightsResponse:
+        sources = await self._load_portfolio_insight_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        return PortfolioInsightsResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=sources.workspace.as_of_date,
+            insights=self._build_portfolio_insights(
+                workspace=sources.workspace,
+                positions=sources.positions.positions,
+                top_positions=sources.positions.top_positions,
+                allocation_views=sources.allocations.views,
+                activity_summary=sources.activity,
+            ),
+            exception_summaries=self._build_portfolio_exception_summaries(
+                workspace=sources.workspace,
+                positions=sources.positions.positions,
+                allocation_views=sources.allocations.views,
+                transaction_total=sources.transactions.total,
+            ),
+        )
+
+    async def _load_portfolio_insight_sources(
+        self, *, portfolio_id: str, correlation_id: str, as_of_date: str | None
+    ) -> PortfolioInsightSources:
         workspace, positions, allocations, transactions, activity = await asyncio.gather(
             self.get_portfolio_workspace(
                 portfolio_id=portfolio_id,
@@ -1071,25 +1167,12 @@ class PortfolioService:
                 end_date=None,
             ),
         )
-
-        return PortfolioInsightsResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=workspace.as_of_date,
-            insights=self._build_portfolio_insights(
-                workspace=workspace,
-                positions=positions.positions,
-                top_positions=positions.top_positions,
-                allocation_views=allocations.views,
-                activity_summary=activity,
-            ),
-            exception_summaries=self._build_portfolio_exception_summaries(
-                workspace=workspace,
-                positions=positions.positions,
-                allocation_views=allocations.views,
-                transaction_total=transactions.total,
-            ),
+        return PortfolioInsightSources(
+            workspace=workspace,
+            positions=positions,
+            allocations=allocations,
+            transactions=transactions,
+            activity=activity,
         )
 
     async def get_portfolio_workflow(
@@ -1398,11 +1481,39 @@ class PortfolioService:
         reporting_currency: str | None,
         look_through_mode: str | None,
     ) -> PortfolioAllocationPayloads:
-        (
-            aum_result,
-            positions_result,
-            allocation_result,
-        ) = await asyncio.gather(
+        results = await self._query_portfolio_allocation_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+            look_through_mode=look_through_mode,
+        )
+        return PortfolioAllocationPayloads(
+            aum_result=results.aum_result,
+            aum_payload=self._require_payload(
+                result=results.aum_result,
+                unavailable_detail_prefix="lotus-core aum unavailable",
+            ),
+            allocation_payload=self._require_payload(
+                result=results.allocation_result,
+                unavailable_detail_prefix="lotus-core allocation unavailable",
+            ),
+            positions_payload=self._require_payload(
+                result=results.positions_result,
+                unavailable_detail_prefix="lotus-core positions unavailable",
+            ),
+        )
+
+    async def _query_portfolio_allocation_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+        look_through_mode: str | None,
+    ) -> PortfolioAllocationResults:
+        aum_result, positions_result, allocation_result = await asyncio.gather(
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
@@ -1425,20 +1536,10 @@ class PortfolioService:
                 look_through_mode=look_through_mode,
             ),
         )
-        return PortfolioAllocationPayloads(
+        return PortfolioAllocationResults(
             aum_result=aum_result,
-            aum_payload=self._require_payload(
-                result=aum_result,
-                unavailable_detail_prefix="lotus-core aum unavailable",
-            ),
-            allocation_payload=self._require_payload(
-                result=allocation_result,
-                unavailable_detail_prefix="lotus-core allocation unavailable",
-            ),
-            positions_payload=self._require_payload(
-                result=positions_result,
-                unavailable_detail_prefix="lotus-core positions unavailable",
-            ),
+            positions_result=positions_result,
+            allocation_result=allocation_result,
         )
 
     async def get_portfolio_positions(
@@ -1534,14 +1635,19 @@ class PortfolioService:
             end_date=end_date,
             reporting_currency=reporting_currency,
         )
-        status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
-        result_payload = self._require_payload(
-            result=(status_code, payload),
-            unavailable_detail_prefix="lotus-core transactions unavailable",
-        )
         return self._build_transaction_ledger_response(
             context=context,
-            result_payload=result_payload,
+            result_payload=await self._load_transaction_ledger_payload(context),
+        )
+
+    async def _load_transaction_ledger_payload(
+        self,
+        context: PortfolioTransactionsRequestContext,
+    ) -> dict[str, Any]:
+        status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
+        return self._require_payload(
+            result=(status_code, payload),
+            unavailable_detail_prefix="lotus-core transactions unavailable",
         )
 
     def _build_transaction_ledger_response(
@@ -2672,33 +2778,61 @@ class PortfolioService:
             workspace.reporting.status,
             workspace.reporting.row_count,
         )
+        return self._readiness_indicators_from_statuses(
+            holdings_status=holdings_status,
+            pricing_status=pricing_status,
+            transactions_status=transactions_status,
+            reporting_status=reporting_status,
+            detailed_view=detailed_view,
+        )
+
+    def _readiness_indicators_from_statuses(
+        self,
+        *,
+        holdings_status: str,
+        pricing_status: str,
+        transactions_status: str,
+        reporting_status: str,
+        detailed_view: bool,
+    ) -> list[PortfolioReadinessIndicator]:
+        insights_href = "#portfolio-drilldown" if detailed_view else "#portfolio-insights"
 
         return [
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="holdings",
                 label="Holdings",
                 status=holdings_status,
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+                href=insights_href,
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="pricing",
                 label="Pricing",
                 status=pricing_status,
                 href="#portfolio-attention",
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="transactions",
                 label="Transactions",
                 status=transactions_status,
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+                href=insights_href,
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="reporting",
                 label="Reporting",
                 status=reporting_status,
                 href="#portfolio-health",
             ),
         ]
+
+    def _readiness_indicator(
+        self, *, key: str, label: str, status: str, href: str
+    ) -> PortfolioReadinessIndicator:
+        return PortfolioReadinessIndicator(
+            key=key,
+            label=label,
+            status=status,
+            href=href,
+        )
 
     def _build_portfolio_exception_summaries(
         self,

@@ -6,6 +6,8 @@ from fastapi import HTTPException, status
 from app.contracts.archive_documents import ArchivedDocumentMetadataResponse
 from app.services.domain_client_protocols import ArchiveDocumentClient
 
+ArchiveErrorSpec = tuple[int, str, str]
+
 
 @dataclass(frozen=True)
 class ArchivedDocumentDownload:
@@ -98,49 +100,58 @@ class ArchiveDocumentService:
         downloading: bool,
     ) -> None:
         error_code = self._archive_error_code(payload)
+        if specific_error := self._specific_archive_error(status_code, error_code):
+            raise self._archive_http_exception(specific_error)
+        if status_code >= status.HTTP_400_BAD_REQUEST:
+            raise self._archive_http_exception(self._fallback_archive_error(downloading))
 
+    def _specific_archive_error(
+        self,
+        status_code: int,
+        error_code: str | None,
+    ) -> ArchiveErrorSpec | None:
         if status_code == status.HTTP_403_FORBIDDEN:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "code": "document_access_unauthorized",
-                    "message": "Caller is not authorized to access this archived document.",
-                },
+            return (
+                status.HTTP_403_FORBIDDEN,
+                "document_access_unauthorized",
+                "Caller is not authorized to access this archived document.",
             )
         if status_code == status.HTTP_404_NOT_FOUND and error_code == "document_not_found":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "code": "archived_document_not_found",
-                    "message": "Archived document was not found.",
-                },
+            return (
+                status.HTTP_404_NOT_FOUND,
+                "archived_document_not_found",
+                "Archived document was not found.",
             )
         if status_code == status.HTTP_404_NOT_FOUND and error_code == "document_binary_missing":
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={
-                    "code": "document_download_failed",
-                    "message": "Archived document download is unavailable.",
-                },
+            return (
+                status.HTTP_502_BAD_GATEWAY,
+                "document_download_failed",
+                "Archived document download is unavailable.",
             )
         if status_code == status.HTTP_409_CONFLICT and error_code == "document_checksum_mismatch":
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={
-                    "code": "document_download_failed",
-                    "message": "Archived document failed integrity verification.",
-                },
+            return (
+                status.HTTP_502_BAD_GATEWAY,
+                "document_download_failed",
+                "Archived document failed integrity verification.",
             )
-        if status_code >= status.HTTP_400_BAD_REQUEST:
-            fallback_code = (
-                "document_download_failed" if downloading else "archive_upstream_unavailable"
+        return None
+
+    def _fallback_archive_error(self, downloading: bool) -> ArchiveErrorSpec:
+        if downloading:
+            return (
+                status.HTTP_502_BAD_GATEWAY,
+                "document_download_failed",
+                "Archived document download is unavailable.",
             )
-            fallback_message = (
-                "Archived document download is unavailable."
-                if downloading
-                else "Archived document service is unavailable."
-            )
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail={"code": fallback_code, "message": fallback_message},
-            )
+        return (
+            status.HTTP_502_BAD_GATEWAY,
+            "archive_upstream_unavailable",
+            "Archived document service is unavailable.",
+        )
+
+    def _archive_http_exception(self, error: ArchiveErrorSpec) -> HTTPException:
+        status_code, code, message = error
+        return HTTPException(
+            status_code=status_code,
+            detail={"code": code, "message": message},
+        )

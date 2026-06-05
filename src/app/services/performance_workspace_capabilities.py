@@ -31,6 +31,13 @@ class PerformanceCapabilityInputs:
     latest_history_date: str | None
 
 
+@dataclass(frozen=True)
+class PerformanceDetailCapabilities:
+    contribution_ranking: PerformanceModuleCapability
+    attribution_detail: PerformanceModuleCapability
+    contribution_detail: PerformanceModuleCapability
+
+
 def build_module_capability(
     state: str,
     reason: str | None = None,
@@ -71,6 +78,10 @@ def build_workspace_capabilities(
         contribution=contribution,
         attribution=attribution,
     )
+    detail_capabilities = build_detail_capabilities(
+        inputs=inputs,
+        include_detail_blocks=include_detail_blocks,
+    )
 
     return PerformanceWorkspaceCapabilities(
         summary_kpis=build_module_capability(
@@ -80,6 +91,19 @@ def build_workspace_capabilities(
         return_path=build_return_path_capability(inputs),
         benchmark_comparison=build_benchmark_comparison_capability(inputs),
         multi_horizon_returns=build_multi_horizon_capability(inputs),
+        contribution_ranking=detail_capabilities.contribution_ranking,
+        attribution_detail=detail_capabilities.attribution_detail,
+        contribution_detail=detail_capabilities.contribution_detail,
+        evidence=build_evidence_capability(evidence_view=evidence_view),
+    )
+
+
+def build_detail_capabilities(
+    *,
+    inputs: PerformanceCapabilityInputs,
+    include_detail_blocks: bool,
+) -> PerformanceDetailCapabilities:
+    return PerformanceDetailCapabilities(
         contribution_ranking=build_contribution_capability(
             include_detail_blocks=include_detail_blocks,
             has_position_ranking=inputs.has_position_ranking,
@@ -103,7 +127,6 @@ def build_workspace_capabilities(
             aggregate_reason="Contribution exists, but only aggregate rows are available.",
             unavailable_reason="Contribution detail is not available for the current selection.",
         ),
-        evidence=build_evidence_capability(evidence_view=evidence_view),
     )
 
 

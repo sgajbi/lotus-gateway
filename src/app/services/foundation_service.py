@@ -33,6 +33,12 @@ from app.services.workspace_client_protocols import (
 Number = int | float
 UpstreamResult = tuple[int, dict[str, Any]]
 GatheredResult = UpstreamResult | BaseException
+OptionalUpstreamFailureContext = tuple[
+    str,
+    str,
+    list[str],
+    list[FoundationPartialFailure],
+]
 
 
 @dataclass(frozen=True)
@@ -789,52 +795,59 @@ class FoundationService:
         warnings: list[str],
         partial_failures: list[FoundationPartialFailure],
     ) -> tuple[int | None, dict[str, Any] | None]:
+        failure_context = (source_service, unavailable_warning, warnings, partial_failures)
         if isinstance(result, Exception):
-            partial_failures.append(
-                FoundationPartialFailure(
-                    source_service=source_service,
-                    error_code="UPSTREAM_EXCEPTION",
-                    detail=str(result),
-                )
+            return self._unavailable_optional_upstream(
+                None,
+                "UPSTREAM_EXCEPTION",
+                str(result),
+                failure_context,
             )
-            warnings.append(unavailable_warning)
-            return None, None
 
         if not isinstance(result, tuple) or len(result) != 2:
-            partial_failures.append(
-                FoundationPartialFailure(
-                    source_service=source_service,
-                    error_code="INVALID_UPSTREAM_RESPONSE",
-                    detail=f"unexpected result type: {type(result)}",
-                )
+            return self._unavailable_optional_upstream(
+                None,
+                "INVALID_UPSTREAM_RESPONSE",
+                f"unexpected result type: {type(result)}",
+                failure_context,
             )
-            warnings.append(unavailable_warning)
-            return None, None
 
         status_code, payload = result
         if not isinstance(payload, dict):
-            partial_failures.append(
-                FoundationPartialFailure(
-                    source_service=source_service,
-                    error_code="INVALID_UPSTREAM_PAYLOAD",
-                    detail=f"unexpected payload type: {type(payload)}",
-                )
+            return self._unavailable_optional_upstream(
+                status_code,
+                "INVALID_UPSTREAM_PAYLOAD",
+                f"unexpected payload type: {type(payload)}",
+                failure_context,
             )
-            warnings.append(unavailable_warning)
-            return status_code, None
 
         if status_code >= status.HTTP_400_BAD_REQUEST:
-            partial_failures.append(
-                FoundationPartialFailure(
-                    source_service=source_service,
-                    error_code=f"HTTP_{status_code}",
-                    detail=str(payload.get("detail", payload)),
-                )
+            return self._unavailable_optional_upstream(
+                status_code,
+                f"HTTP_{status_code}",
+                str(payload.get("detail", payload)),
+                failure_context,
             )
-            warnings.append(unavailable_warning)
-            return status_code, None
 
         return status_code, payload
+
+    def _unavailable_optional_upstream(
+        self,
+        status_code: int | None,
+        error_code: str,
+        detail: str,
+        failure_context: OptionalUpstreamFailureContext,
+    ) -> tuple[int | None, None]:
+        source_service, unavailable_warning, warnings, partial_failures = failure_context
+        partial_failures.append(
+            FoundationPartialFailure(
+                source_service=source_service,
+                error_code=error_code,
+                detail=detail,
+            )
+        )
+        warnings.append(unavailable_warning)
+        return status_code, None
 
     def _extract_market_value(self, item: dict[str, Any]) -> float | None:
         valuation = item.get("valuation")
