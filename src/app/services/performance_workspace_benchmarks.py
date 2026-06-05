@@ -242,6 +242,23 @@ def parse_benchmark_catalog_result(
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
 ) -> list[PerformanceBenchmarkOptionView]:
+    records = _benchmark_catalog_records_from_result(
+        result=result,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    return _benchmark_options_from_records(
+        records=records,
+        assigned_benchmark_code=assigned_benchmark_code,
+    )
+
+
+def _benchmark_catalog_records_from_result(
+    *,
+    result: GatheredResult,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> list[object]:
     if isinstance(result, BaseException):
         _record_benchmark_catalog_failure(
             warnings=warnings,
@@ -270,6 +287,14 @@ def parse_benchmark_catalog_result(
     records = payload.get("records", [])
     if not isinstance(records, list):
         return []
+    return records
+
+
+def _benchmark_options_from_records(
+    *,
+    records: list[object],
+    assigned_benchmark_code: str | None,
+) -> list[PerformanceBenchmarkOptionView]:
     options_by_code: dict[str, PerformanceBenchmarkOptionView] = {}
     for record in records:
         option = _benchmark_option_from_record(
