@@ -130,8 +130,9 @@ composer. Advisor-brief workflow-pack run loading now separates source-profile r
 run-posture projection. Performance attribution trend now delegates row orchestration to a
 focused helper. Benchmark-context loading now separates concurrent task construction from
 gathered-result resolution. Shell workspace descriptor assembly now delegates contract
-construction behind the public descriptor helper. The current longest functions are 56-line
-orchestration and mapper helpers.
+construction behind the public descriptor helper. Rebalance supportability result validation and
+summary-count merging are now separate from payload selection. The current longest functions are
+55-line orchestration and mapper helpers.
 
 ## Progressive Enforcement
 
