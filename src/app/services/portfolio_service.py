@@ -1534,14 +1534,19 @@ class PortfolioService:
             end_date=end_date,
             reporting_currency=reporting_currency,
         )
-        status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
-        result_payload = self._require_payload(
-            result=(status_code, payload),
-            unavailable_detail_prefix="lotus-core transactions unavailable",
-        )
         return self._build_transaction_ledger_response(
             context=context,
-            result_payload=result_payload,
+            result_payload=await self._load_transaction_ledger_payload(context),
+        )
+
+    async def _load_transaction_ledger_payload(
+        self,
+        context: PortfolioTransactionsRequestContext,
+    ) -> dict[str, Any]:
+        status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
+        return self._require_payload(
+            result=(status_code, payload),
+            unavailable_detail_prefix="lotus-core transactions unavailable",
         )
 
     def _build_transaction_ledger_response(
