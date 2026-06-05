@@ -43,6 +43,8 @@ The latest rebalance slice split supportability result validation and summary-co
 the supportability payload extractor.
 The latest performance chart slice split frequency-row selection, peer-row validation, point
 construction, and active-return calculation out of the public chart-point mapper.
+The latest shell-bootstrap slice split supportability, freshness, evidence, versioning, and
+caching section construction out of the public bootstrap helper.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -75,16 +77,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
-| 2 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 3 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
-| 4 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
-| 5 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
-| 6 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 7 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 8 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
-| 9 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
-| 10 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 2 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
+| 3 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 4 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
+| 5 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 6 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 7 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
+| 8 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
+| 9 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 10 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
 
 ## Existing Blocking Gates
 
@@ -123,7 +125,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 55 lines,
+2. no new function above the current longest-function baseline of 54 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
