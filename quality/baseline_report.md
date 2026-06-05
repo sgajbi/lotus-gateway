@@ -45,6 +45,8 @@ The latest performance chart slice split frequency-row selection, peer-row valid
 construction, and active-return calculation out of the public chart-point mapper.
 The latest shell-bootstrap slice split supportability, freshness, evidence, versioning, and
 caching section construction out of the public bootstrap helper.
+The latest performance projection slice split sparkline, unavailable-state, and partial-failure
+projection out of the portfolio performance snapshot mapper.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -78,15 +80,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
 | 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
-| 3 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
-| 4 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
-| 5 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 6 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 7 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
-| 8 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
-| 9 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
-| 10 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 2 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 3 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
+| 4 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 5 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 6 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
+| 7 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
+| 8 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 9 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 10 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
 
 ## Existing Blocking Gates
 

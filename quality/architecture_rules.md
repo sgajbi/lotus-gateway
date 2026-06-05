@@ -134,8 +134,9 @@ construction behind the public descriptor helper. Rebalance supportability resul
 summary-count merging are now separate from payload selection. Performance chart-point mapping now
 separates frequency-row selection, peer-row validation, point construction, and active-return
 calculation. Shell-bootstrap section construction now delegates supportability, freshness,
-evidence, versioning, and caching assembly to focused helpers. The current longest functions are
-54-line orchestration and mapper helpers.
+evidence, versioning, and caching assembly to focused helpers. Portfolio performance snapshot
+projection now delegates sparkline, unavailable-state, and partial-failure mapping to focused
+helpers. The current longest functions are 54-line orchestration and mapper helpers.
 
 ## Progressive Enforcement
 
