@@ -1009,6 +1009,33 @@ class PerformanceWorkspaceService:
             explicit_end_date=explicit_end_date,
             include_benchmark_catalog=include_benchmark_catalog,
         )
+        summary_views, response_components = await self._build_workspace_response_parts(
+            context=context,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            include_detail_blocks=include_detail_blocks,
+            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
+        )
+        return self._assemble_workspace_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            context=context,
+            summary_views=summary_views,
+            benchmark_code=response_components.benchmark_code,
+            benchmark_options=response_components.benchmark_options,
+            evidence_view=response_components.evidence_view,
+            capabilities=response_components.capabilities,
+        )
+
+    async def _build_workspace_response_parts(
+        self,
+        *,
+        context: WorkspaceRequestContext,
+        portfolio_id: str,
+        correlation_id: str,
+        include_detail_blocks: bool,
+        prefer_independent_detail_analytics: bool,
+    ) -> tuple[WorkspaceSummaryViews, WorkspaceResponseComponents]:
         summary_views = await self._build_workspace_summary_views(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -1023,16 +1050,7 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             include_detail_blocks=include_detail_blocks,
         )
-        return self._assemble_workspace_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            summary_views=summary_views,
-            benchmark_code=response_components.benchmark_code,
-            benchmark_options=response_components.benchmark_options,
-            evidence_view=response_components.evidence_view,
-            capabilities=response_components.capabilities,
-        )
+        return summary_views, response_components
 
     async def _build_workspace_response_components(
         self,
