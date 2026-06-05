@@ -786,6 +786,28 @@ class PerformanceWorkspaceService:
                 rows=[],
             )
 
+        rows = await self._build_attribution_trend_rows(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+        )
+        return self._build_attribution_trend_response(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            detail_basis=detail_basis,
+            context=context,
+            rows=rows,
+        )
+
+    async def _build_attribution_trend_rows(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        detail_basis: str,
+        context: AttributionTrendRequestContext,
+    ) -> Sequence[Any]:
         window_pairs = self._build_attribution_trend_window_pairs(context)
         attribution_results = await self._fetch_attribution_trend_results(
             portfolio_id=portfolio_id,
@@ -794,20 +816,13 @@ class PerformanceWorkspaceService:
             context=context,
             window_pairs=window_pairs,
         )
-        rows = parse_attribution_trend_results(
+        return parse_attribution_trend_results(
             results=attribution_results,
             window_pairs=window_pairs,
             chart_frequency=context.chart_frequency,
             requested_period="EXPLICIT",
             warnings=context.warnings,
             partial_failures=context.partial_failures,
-        )
-        return self._build_attribution_trend_response(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            detail_basis=detail_basis,
-            context=context,
-            rows=rows,
         )
 
     async def _build_attribution_trend_request_context(
