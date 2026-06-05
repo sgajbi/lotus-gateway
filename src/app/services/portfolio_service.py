@@ -139,6 +139,15 @@ class PortfolioInsightSources:
 
 
 @dataclass(frozen=True)
+class PortfolioReadinessSources:
+    workspace: PortfolioWorkspaceResponse
+    source_readiness: UpstreamResult
+    positions: PortfolioPositionBookResponse
+    allocations: PortfolioAllocationResponse
+    transactions: PortfolioTransactionLedgerResponse
+
+
+@dataclass(frozen=True)
 class PortfolioWorkspaceAssemblyState:
     portfolio_payload: dict[str, Any]
     warnings: list[str]
@@ -982,6 +991,39 @@ class PortfolioService:
     async def get_portfolio_readiness(
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioReadinessResponse:
+        readiness_sources = await self._load_portfolio_readiness_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        self._raise_on_upstream_client_error(
+            readiness_sources.source_readiness,
+            detail_prefix="lotus-core portfolio readiness rejected the request",
+        )
+        source_payload = self._optional_payload(
+            readiness_sources.source_readiness,
+            "lotus-core",
+            "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
+            [],
+            [],
+        )
+        return self._build_portfolio_readiness_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            workspace=readiness_sources.workspace,
+            positions=readiness_sources.positions,
+            allocations=readiness_sources.allocations,
+            transactions=readiness_sources.transactions,
+            source_payload=source_payload,
+        )
+
+    async def _load_portfolio_readiness_sources(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+    ) -> PortfolioReadinessSources:
         workspace, source_readiness, positions, allocations, transactions = await asyncio.gather(
             self.get_portfolio_workspace(
                 portfolio_id=portfolio_id,
@@ -1010,25 +1052,12 @@ class PortfolioService:
                 as_of_date=as_of_date,
             ),
         )
-        self._raise_on_upstream_client_error(
-            source_readiness,
-            detail_prefix="lotus-core portfolio readiness rejected the request",
-        )
-        source_payload = self._optional_payload(
-            source_readiness,
-            "lotus-core",
-            "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
-            [],
-            [],
-        )
-        return self._build_portfolio_readiness_response(
-            correlation_id=correlation_id,
-            portfolio_id=portfolio_id,
+        return PortfolioReadinessSources(
             workspace=workspace,
+            source_readiness=source_readiness,
             positions=positions,
             allocations=allocations,
             transactions=transactions,
-            source_payload=source_payload,
         )
 
     def _build_portfolio_readiness_response(
