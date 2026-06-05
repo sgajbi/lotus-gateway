@@ -862,6 +862,21 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             include_benchmark_catalog=False,
         )
+        return self._assemble_attribution_trend_request_context(
+            overview_state=overview_state,
+            report_window=report_window,
+            dimension_context=dimension_context,
+            benchmark_context=benchmark_context,
+        )
+
+    def _assemble_attribution_trend_request_context(
+        self,
+        *,
+        overview_state: WorkspaceOverviewState,
+        report_window: WorkspaceReportWindow,
+        dimension_context: AttributionTrendDimensionContext,
+        benchmark_context: WorkspaceBenchmarkContext,
+    ) -> AttributionTrendRequestContext:
         return AttributionTrendRequestContext(
             overview=overview_state.overview,
             warnings=overview_state.warnings,
