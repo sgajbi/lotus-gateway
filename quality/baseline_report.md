@@ -37,6 +37,8 @@ extraction, DPM wave PM memo payload/response extraction, and risk summary perio
 extraction, followed by advisor-brief workflow-pack run profile extraction.
 The latest performance slice split attribution-trend row orchestration out of the public service
 method, then split benchmark-context task construction and gathered-result resolution.
+The latest platform-capabilities slice split shell workspace descriptor contract construction out
+of the public descriptor helper.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -69,16 +71,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 56 | `build_workspace_descriptor` | `src/app/services/platform_capabilities_shell.py` |
-| 2 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 3 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
-| 4 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
-| 5 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 6 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
-| 7 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
-| 8 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
-| 9 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 10 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 1 | 56 | `_extract_rebalance_supportability_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 2 | 55 | `build_workspace_chart_points` | `src/app/services/performance_workspace_chart_points.py` |
+| 3 | 55 | `build_shell_bootstrap` | `src/app/services/platform_capabilities_shell.py` |
+| 4 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 5 | 54 | `project_portfolio_performance_snapshot` | `src/app/services/performance_workspace_projection.py` |
+| 6 | 54 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 7 | 54 | `map_rolling_response` | `src/app/services/risk_workspace_rolling.py` |
+| 8 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 9 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 10 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
 
 ## Existing Blocking Gates
 
