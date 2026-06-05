@@ -1272,6 +1272,19 @@ def _build_source_metrics(
         basis=workspace.detail_basis,
         benchmark_code=workspace.benchmark_code,
     )
+    return _build_return_source_metrics(
+        workspace=workspace,
+        selected_performance=selected_performance,
+        route=route,
+    )
+
+
+def _build_return_source_metrics(
+    *,
+    workspace: PerformanceWorkspaceResponse,
+    selected_performance: PerformanceComparativeSummary,
+    route: str,
+) -> list[AdvisorBriefSourceMetric]:
     return [
         _source_metric(
             label="Portfolio Return",
