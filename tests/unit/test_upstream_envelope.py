@@ -187,10 +187,13 @@ def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
         )
         == "DPM_WAVE_INVALID_TRANSITION: Wave dwv_001 cannot be approved from state DRAFT."
     )
-    assert safe_upstream_detail(
-        {"detail": {"reason": "blocked"}},
-        default_detail="fallback",
-    ) == "blocked"
+    assert (
+        safe_upstream_detail(
+            {"detail": {"reason": "blocked"}},
+            default_detail="fallback",
+        )
+        == "blocked"
+    )
     assert (
         safe_upstream_detail(
             {"detail": {"portfolio_id": "PB_SENSITIVE", "stack_trace": "raw traceback"}},
