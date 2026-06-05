@@ -131,8 +131,9 @@ run-posture projection. Performance attribution trend now delegates row orchestr
 focused helper. Benchmark-context loading now separates concurrent task construction from
 gathered-result resolution. Shell workspace descriptor assembly now delegates contract
 construction behind the public descriptor helper. Rebalance supportability result validation and
-summary-count merging are now separate from payload selection. The current longest functions are
-55-line orchestration and mapper helpers.
+summary-count merging are now separate from payload selection. Performance chart-point mapping now
+separates frequency-row selection, peer-row validation, point construction, and active-return
+calculation. The current longest function is a 55-line shell-bootstrap helper.
 
 ## Progressive Enforcement
 
