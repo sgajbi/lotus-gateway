@@ -82,6 +82,10 @@ The latest Workbench route and analytics slice split risk concentration query me
 Workbench analytics response-part construction out of tied 52-line functions, reducing
 `get_workbench_risk_concentration` to 26 lines and `get_workbench_analytics` to 35 lines while
 keeping the current longest-function baseline at 52 lines.
+The latest rebalance and readiness slice split Workbench rebalance unavailable recording and
+portfolio readiness indicator assembly out of tied 52-line helpers, reducing
+`_unpack_rebalance_payload` to 44 lines and `_build_readiness_indicators` to 32 lines while
+keeping the current longest-function baseline at 52 lines.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -115,15 +119,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
 | 1 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 3 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 4 | 52 | `_build_readiness_indicators` | `src/app/services/portfolio_service.py` |
-| 5 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
-| 6 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
-| 7 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
-| 8 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
-| 9 | 51 | `_load_portfolio_allocation_payloads` | `src/app/services/portfolio_service.py` |
-| 10 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 2 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
+| 3 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
+| 4 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
+| 5 | 51 | `build_workspace_capabilities` | `src/app/services/performance_workspace_capabilities.py` |
+| 6 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
+| 7 | 51 | `_load_portfolio_allocation_payloads` | `src/app/services/portfolio_service.py` |
+| 8 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 9 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 10 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
 
 ## Existing Blocking Gates
 
@@ -168,10 +172,12 @@ Most recent local evidence:
 22. Current focused branch: advisor brief service/router tests passed with 24 selected tests.
 23. Current focused branch: risk concentration router test passed with 1 selected test.
 24. Current focused branch: Workbench analytics tests passed with 7 selected tests.
-25. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-26. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-27. Coverage: 93.36%.
-28. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+25. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
+26. Current focused branch: portfolio readiness tests passed with 4 selected tests.
+27. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+28. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+29. Coverage: 93.36%.
+30. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
