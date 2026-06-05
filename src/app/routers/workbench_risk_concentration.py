@@ -20,6 +20,38 @@ class RiskConcentrationQuery:
     reporting_currency: str
 
 
+RISK_CONCENTRATION_PERIOD_QUERY = Query(
+    default="YTD",
+    description=RISK_PERIOD_QUERY_DESCRIPTION,
+    examples=["YTD"],
+)
+RISK_CONCENTRATION_BENCHMARK_QUERY = Query(
+    default=None,
+    description="Optional benchmark override used for relative concentration context.",
+    examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
+)
+RISK_CONCENTRATION_AS_OF_DATE_QUERY = Query(
+    default=None,
+    description="Optional business as-of date in YYYY-MM-DD format.",
+    examples=["2026-02-24"],
+)
+RISK_CONCENTRATION_START_DATE_QUERY = Query(
+    default=None,
+    description="Inclusive explicit start date when the caller requests an explicit risk window.",
+    examples=["2026-01-01"],
+)
+RISK_CONCENTRATION_END_DATE_QUERY = Query(
+    default=None,
+    description="Inclusive explicit end date when the caller requests an explicit risk window.",
+    examples=["2026-03-27"],
+)
+RISK_CONCENTRATION_CURRENCY_QUERY = Query(
+    default="USD",
+    description="Reporting currency used for stateful concentration analytics.",
+    examples=["USD"],
+)
+
+
 async def _get_risk_concentration(
     *,
     portfolio_id: str,
@@ -59,38 +91,12 @@ async def get_workbench_risk_concentration(
         ),
         examples=["PF_1001"],
     ),
-    period: str = Query(
-        default="YTD",
-        description=RISK_PERIOD_QUERY_DESCRIPTION,
-        examples=["YTD"],
-    ),
-    benchmark_code: str | None = Query(
-        default=None,
-        description="Optional benchmark override used for relative concentration context.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    ),
-    as_of_date: str | None = Query(
-        default=None,
-        description="Optional business as-of date in YYYY-MM-DD format.",
-        examples=["2026-02-24"],
-    ),
-    report_start_date: str | None = Query(
-        default=None,
-        description=(
-            "Inclusive explicit start date when the caller requests an explicit risk window."
-        ),
-        examples=["2026-01-01"],
-    ),
-    report_end_date: str | None = Query(
-        default=None,
-        description="Inclusive explicit end date when the caller requests an explicit risk window.",
-        examples=["2026-03-27"],
-    ),
-    reporting_currency: str = Query(
-        default="USD",
-        description="Reporting currency used for stateful concentration analytics.",
-        examples=["USD"],
-    ),
+    period: str = RISK_CONCENTRATION_PERIOD_QUERY,
+    benchmark_code: str | None = RISK_CONCENTRATION_BENCHMARK_QUERY,
+    as_of_date: str | None = RISK_CONCENTRATION_AS_OF_DATE_QUERY,
+    report_start_date: str | None = RISK_CONCENTRATION_START_DATE_QUERY,
+    report_end_date: str | None = RISK_CONCENTRATION_END_DATE_QUERY,
+    reporting_currency: str = RISK_CONCENTRATION_CURRENCY_QUERY,
 ) -> WorkbenchRiskConcentrationResponse:
     return await _get_risk_concentration(
         portfolio_id=portfolio_id,
