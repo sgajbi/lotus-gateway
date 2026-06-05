@@ -248,6 +248,23 @@ def test_parse_attribution_result_bounds_http_failure_detail():
     assert "secret-token" not in str(partial_failures[0])
 
 
+def test_parse_attribution_result_records_invalid_payload_warning():
+    warnings: list[str] = []
+    partial_failures = []
+
+    summary = parse_attribution_result(
+        result=(200, []),  # type: ignore[arg-type]
+        metric_basis="NET",
+        requested_period="YTD",
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert summary is None
+    assert warnings == ["ATTRIBUTION_INVALID"]
+    assert partial_failures == []
+
+
 def test_parse_attribution_trend_results_builds_cumulative_rows():
     warnings: list[str] = []
     partial_failures = []

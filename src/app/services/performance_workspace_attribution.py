@@ -161,6 +161,41 @@ def _extract_attribution_detail_payload(
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
 ) -> AttributionDetailPayload | None:
+    payload = _attribution_payload_from_result(
+        result=result,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    if payload is None:
+        return None
+
+    results_by_period = payload.get("results_by_period", {})
+    if not isinstance(results_by_period, dict) or not results_by_period:
+        return None
+    period_key = resolve_results_period_key(
+        requested_period=requested_period,
+        results_by_period=results_by_period,
+    )
+    period_payload = results_by_period.get(period_key, {})
+    if not isinstance(period_payload, dict):
+        return None
+    benchmark_context = payload.get("benchmark_context", {})
+    if not isinstance(benchmark_context, dict):
+        benchmark_context = {}
+    return AttributionDetailPayload(
+        period_payload=period_payload,
+        benchmark_context=benchmark_context,
+        model=payload.get("model"),
+        linking=payload.get("linking"),
+    )
+
+
+def _attribution_payload_from_result(
+    *,
+    result: AttributionResult,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> dict[str, Any] | None:
     if isinstance(result, BaseException):
         warnings.append("ATTRIBUTION_UNAVAILABLE")
         partial_failures.append(
@@ -181,25 +216,7 @@ def _extract_attribution_detail_payload(
             )
         )
         return None
-    results_by_period = payload.get("results_by_period", {})
-    if not isinstance(results_by_period, dict) or not results_by_period:
-        return None
-    period_key = resolve_results_period_key(
-        requested_period=requested_period,
-        results_by_period=results_by_period,
-    )
-    period_payload = results_by_period.get(period_key, {})
-    if not isinstance(period_payload, dict):
-        return None
-    benchmark_context = payload.get("benchmark_context", {})
-    if not isinstance(benchmark_context, dict):
-        benchmark_context = {}
-    return AttributionDetailPayload(
-        period_payload=period_payload,
-        benchmark_context=benchmark_context,
-        model=payload.get("model"),
-        linking=payload.get("linking"),
-    )
+    return payload
 
 
 def parse_attribution_trend_results(
