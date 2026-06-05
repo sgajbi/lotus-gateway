@@ -163,7 +163,7 @@ performance workspace, advisor-brief orchestration, contract, and client modules
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | active focused feature branch over `origin/main` |
-| Unit/contract coverage | Healthy | 969 tests passed in current-branch `make check` evidence after commit `ab7c19d` |
+| Unit/contract coverage | Healthy | 969 tests passed in current-branch `make check` evidence after commit `f48a778` |
 | Integration coverage | Healthy | 207 integration tests passed in latest `make ci` evidence on commit `b8f01c4` |
 | Total coverage | Healthy | 93.36%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `b8f01c4` |
