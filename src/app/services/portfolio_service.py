@@ -65,6 +65,7 @@ from app.services.portfolio_exception_summaries import (
 )
 from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
@@ -1829,7 +1830,10 @@ class PortfolioService:
         if status_code >= status.HTTP_400_BAD_REQUEST:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"{unavailable_detail_prefix}: {payload}",
+                detail=self._build_safe_upstream_error_detail(
+                    unavailable_detail_prefix,
+                    payload,
+                ),
             )
         if not isinstance(payload, dict):
             raise HTTPException(
@@ -1846,7 +1850,18 @@ class PortfolioService:
     ) -> None:
         status_code, payload = result
         if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
-            raise HTTPException(status_code=status_code, detail=f"{detail_prefix}: {payload}")
+            raise HTTPException(
+                status_code=status_code,
+                detail=self._build_safe_upstream_error_detail(detail_prefix, payload),
+            )
+
+    def _build_safe_upstream_error_detail(
+        self,
+        detail_prefix: str,
+        payload: dict[str, Any],
+    ) -> str:
+        detail = safe_upstream_detail(payload, default_detail="upstream request failed")
+        return f"{detail_prefix}: {detail}"
 
     def _parse_catalog_item(self, item: dict[str, Any]) -> PortfolioCatalogItem:
         portfolio_id = str(item.get("portfolio_id", "")).strip()

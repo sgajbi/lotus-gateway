@@ -2216,7 +2216,11 @@ async def test_portfolio_service_reuses_support_overview_cache_across_workspace_
 async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
     class _InvalidReadinessClient(_StubLotusCoreQueryClient):
         async def get_portfolio_readiness(self, portfolio_id: str, correlation_id: str, **kwargs):
-            return 400, {"detail": "as_of_date must be YYYY-MM-DD"}
+            return 400, {
+                "detail": "as_of_date must be YYYY-MM-DD",
+                "client_name": "Private Client",
+                "token": "secret-token",
+            }
 
     service = PortfolioService(_InvalidReadinessClient())
 
@@ -2228,7 +2232,44 @@ async def test_portfolio_readiness_surfaces_upstream_client_errors() -> None:
         )
 
     assert exc_info.value.status_code == 400
-    assert "readiness rejected the request" in str(exc_info.value.detail)
+    assert exc_info.value.detail == (
+        "lotus-core portfolio readiness rejected the request: as_of_date must be YYYY-MM-DD"
+    )
+    assert "Private Client" not in str(exc_info.value.detail)
+    assert "secret-token" not in str(exc_info.value.detail)
+
+
+@pytest.mark.asyncio
+async def test_portfolio_readiness_unavailable_error_excludes_raw_upstream_payload() -> None:
+    class _UnavailablePortfolioClient(_StubLotusCoreQueryClient):
+        async def get_portfolio(self, portfolio_id: str, correlation_id: str):
+            _ = portfolio_id, correlation_id
+            return 503, {
+                "detail": {
+                    "code": "CORE_UNAVAILABLE",
+                    "message": "Portfolio source unavailable.",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            }
+
+    service = PortfolioService(_UnavailablePortfolioClient())
+
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_portfolio_readiness(
+            portfolio_id="PF_1001",
+            correlation_id="corr-503",
+            as_of_date="2026-03-27",
+        )
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == (
+        "lotus-core portfolio unavailable: CORE_UNAVAILABLE: Portfolio source unavailable."
+    )
+    assert "Private Client" not in str(exc_info.value.detail)
+    assert "secret-token" not in str(exc_info.value.detail)
 
 
 @pytest.mark.asyncio
