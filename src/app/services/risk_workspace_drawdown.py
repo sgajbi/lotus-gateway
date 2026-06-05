@@ -50,6 +50,15 @@ class DrawdownPeriodSupportability:
     underwater_reason: str | None
 
 
+@dataclass(frozen=True)
+class DrawdownResponseParts:
+    state: RiskModuleState
+    payload: WorkbenchRiskDrawdownPayload | None
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    metadata: WorkbenchRiskMetadata
+
+
 def map_drawdown_response(
     *,
     correlation_id: str,
@@ -76,11 +85,10 @@ def map_drawdown_response(
     )
 
     upstream_metadata = upstream_payload.get("metadata")
-    state, warnings, partial_failures = _resolve_drawdown_state(
-        period_results=mapping.periods,
+    response_parts = _build_drawdown_response_parts(
+        mapping=mapping,
         supportability=supportability,
-        warnings=mapping.warnings,
-        partial_failures=mapping.partial_failures,
+        upstream_metadata=upstream_metadata,
     )
 
     return WorkbenchRiskDrawdownResponse(
@@ -89,15 +97,12 @@ def map_drawdown_response(
         period=period,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
-        state=state,
-        payload=_build_drawdown_payload(
-            period_results=mapping.periods,
-            upstream_metadata=upstream_metadata,
-        ),
+        state=response_parts.state,
+        payload=response_parts.payload,
         supportability=supportability,
-        warnings=sorted(set(warnings)),
-        partial_failures=partial_failures,
-        metadata=_build_drawdown_metadata(upstream_metadata=upstream_metadata),
+        warnings=response_parts.warnings,
+        partial_failures=response_parts.partial_failures,
+        metadata=response_parts.metadata,
     )
 
 
@@ -374,6 +379,30 @@ def _resolve_drawdown_state(
     elif all(period.summary is None for period in period_results):
         state = "unavailable"
     return state, resolved_warnings, resolved_partial_failures
+
+
+def _build_drawdown_response_parts(
+    *,
+    mapping: DrawdownMappingResult,
+    supportability: list[WorkbenchRiskSupportabilityItem],
+    upstream_metadata: Any,
+) -> DrawdownResponseParts:
+    state, warnings, partial_failures = _resolve_drawdown_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=mapping.warnings,
+        partial_failures=mapping.partial_failures,
+    )
+    return DrawdownResponseParts(
+        state=state,
+        payload=_build_drawdown_payload(
+            period_results=mapping.periods,
+            upstream_metadata=upstream_metadata,
+        ),
+        warnings=sorted(set(warnings)),
+        partial_failures=partial_failures,
+        metadata=_build_drawdown_metadata(upstream_metadata=upstream_metadata),
+    )
 
 
 def _build_drawdown_metadata(*, upstream_metadata: Any) -> WorkbenchRiskMetadata:
