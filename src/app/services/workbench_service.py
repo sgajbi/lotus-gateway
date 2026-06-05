@@ -24,7 +24,10 @@ from app.contracts.workbench import (
     WorkbenchSandboxStateResponse,
     WorkbenchTopChange,
 )
-from app.services.upstream_envelope import raise_product_safe_gateway_unavailable_error
+from app.services.upstream_envelope import (
+    raise_product_safe_gateway_unavailable_error,
+    safe_upstream_detail,
+)
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
     build_workbench_return_metrics,
@@ -636,7 +639,10 @@ class WorkbenchService:
                 WorkbenchPartialFailure(
                     source_service="lotus-advise",
                     error_code=f"HTTP_{advise_status}",
-                    detail=str(advise_payload.get("detail", advise_payload)),
+                    detail=safe_upstream_detail(
+                        advise_payload,
+                        default_detail="proposal simulation unavailable",
+                    ),
                 )
             )
             return parse_policy_feedback_unavailable(advise_payload)

@@ -764,7 +764,16 @@ async def test_get_workbench_analytics_ignores_legacy_risk_proxy_payload():
 async def test_evaluate_policy_feedback_handles_dpm_failure():
     service, _, _, dpm = _build_service()
     dpm.simulate_status = 503
-    dpm.simulate_payload = {"detail": "policy engine down"}
+    dpm.simulate_payload = {
+        "detail": {
+            "code": "POLICY_ENGINE_DOWN",
+            "message": "policy engine down",
+            "debug_payload": {
+                "client_name": "Private Client",
+                "token": "secret-token",
+            },
+        }
+    }
     warnings: list[str] = []
     partial_failures = []
     feedback = await service._evaluate_policy_feedback(
@@ -779,6 +788,10 @@ async def test_evaluate_policy_feedback_handles_dpm_failure():
     assert feedback.status == "UNAVAILABLE"
     assert warnings == ["ADVISE_PROPOSAL_SIMULATION_UNAVAILABLE"]
     assert partial_failures[0].source_service == "lotus-advise"
+    assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "POLICY_ENGINE_DOWN: policy engine down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 @pytest.mark.asyncio
