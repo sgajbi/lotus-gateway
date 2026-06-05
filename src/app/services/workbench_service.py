@@ -61,6 +61,13 @@ class WorkbenchAnalyticsParts:
     active_return_pct: Any
 
 
+@dataclass(frozen=True)
+class WorkbenchOverviewEnrichmentResults:
+    performance_result: object
+    rebalance_result: object
+    rebalance_supportability_result: object
+
+
 def _build_workbench_analytics_parts(
     *,
     portfolio_360: WorkbenchPortfolio360Response,
@@ -407,38 +414,63 @@ class WorkbenchService:
         rebalance_snapshot = None
 
         if include_performance_snapshot or include_rebalance_snapshot:
-            performance_task = await self._build_performance_snapshot_task(
+            gathered = await self._gather_overview_enrichment_results(
                 portfolio_id=portfolio_id,
                 as_of_date=as_of_date,
                 correlation_id=correlation_id,
                 include_performance_snapshot=include_performance_snapshot,
-            )
-            dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
                 include_rebalance_snapshot=include_rebalance_snapshot,
-            )
-            gathered = await asyncio.gather(
-                performance_task,
-                dpm_runs_task,
-                dpm_supportability_task,
-                return_exceptions=True,
             )
             if include_performance_snapshot:
                 performance_snapshot = parse_performance_snapshot(
-                    result=cast(object, gathered[0]),
+                    result=gathered.performance_result,
                     partial_failures=partial_failures,
                     warnings=warnings,
                 )
             if include_rebalance_snapshot:
                 rebalance_snapshot = parse_rebalance_snapshot(
-                    result=cast(object, gathered[1]),
-                    supportability_result=cast(object, gathered[2]),
+                    result=gathered.rebalance_result,
+                    supportability_result=gathered.rebalance_supportability_result,
                     partial_failures=partial_failures,
                     warnings=warnings,
                 )
 
         return performance_snapshot, rebalance_snapshot, warnings, partial_failures
+
+    async def _gather_overview_enrichment_results(
+        self,
+        *,
+        portfolio_id: str,
+        as_of_date: str,
+        correlation_id: str,
+        include_performance_snapshot: bool,
+        include_rebalance_snapshot: bool,
+    ) -> WorkbenchOverviewEnrichmentResults:
+        performance_task = await self._build_performance_snapshot_task(
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            correlation_id=correlation_id,
+            include_performance_snapshot=include_performance_snapshot,
+        )
+        dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            include_rebalance_snapshot=include_rebalance_snapshot,
+        )
+        performance_result, rebalance_result, supportability_result = cast(
+            tuple[object, object, object],
+            await asyncio.gather(
+                performance_task,
+                dpm_runs_task,
+                dpm_supportability_task,
+                return_exceptions=True,
+            ),
+        )
+        return WorkbenchOverviewEnrichmentResults(
+            performance_result=performance_result,
+            rebalance_result=rebalance_result,
+            rebalance_supportability_result=supportability_result,
+        )
 
     async def _build_performance_snapshot_task(
         self,
