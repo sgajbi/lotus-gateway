@@ -244,6 +244,8 @@ def raise_gateway_mapped_service_error(
     upstream_payload: dict[str, Any],
     *,
     source_service: str,
+    error_code: str = "UPSTREAM_SERVICE_ERROR",
+    default_detail: str = "Upstream service request failed.",
 ) -> None:
     """Raise an upstream service error using Gateway's canonical status mapping."""
 
@@ -264,6 +266,7 @@ def raise_gateway_mapped_service_error(
         detail={
             "source_service": source_service,
             "upstream_status": upstream_status,
-            "error": upstream_payload,
+            "error_code": error_code,
+            "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
         },
     )

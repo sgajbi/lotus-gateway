@@ -248,7 +248,7 @@ def test_raise_gateway_mapped_service_error_maps_status(
     with pytest.raises(HTTPException) as exc_info:
         raise_gateway_mapped_service_error(
             upstream_status,
-            {"detail": "upstream failed"},
+            {"detail": "upstream failed", "portfolio_id": "PB_SENSITIVE"},
             source_service="lotus-core",
         )
 
@@ -256,5 +256,6 @@ def test_raise_gateway_mapped_service_error_maps_status(
     assert exc_info.value.detail == {
         "source_service": "lotus-core",
         "upstream_status": upstream_status,
-        "error": {"detail": "upstream failed"},
+        "error_code": "UPSTREAM_SERVICE_ERROR",
+        "detail": "upstream failed",
     }

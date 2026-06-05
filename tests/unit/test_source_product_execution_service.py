@@ -83,7 +83,14 @@ async def test_source_product_execution_service_maps_core_errors(
     upstream_status: int,
     gateway_status: int,
 ) -> None:
-    core_client = _CoreSourceProductClient(upstream_status, {"detail": "core error"})
+    core_client = _CoreSourceProductClient(
+        upstream_status,
+        {
+            "detail": "core error",
+            "portfolio_id": "PB_SENSITIVE",
+            "execution_intent_id": "exec-sensitive",
+        },
+    )
     service = SourceProductExecutionService(lotus_core_query_client=core_client)
 
     with pytest.raises(HTTPException) as exc_info:
@@ -97,5 +104,6 @@ async def test_source_product_execution_service_maps_core_errors(
     assert exc_info.value.detail == {
         "source_service": "lotus-core",
         "upstream_status": upstream_status,
-        "error": {"detail": "core error"},
+        "error_code": "UPSTREAM_SERVICE_ERROR",
+        "detail": "core error",
     }
