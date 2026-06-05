@@ -216,9 +216,11 @@ Most recent local evidence:
 34. Current focused branch: Workbench analytics tests passed with 7 selected tests.
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
-37. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-38. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-39. Coverage: 93.36%.
+37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests on commit
+    `1578c98`.
+38. Current branch PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit
+    `1578c98`.
+39. Coverage: 93.47%.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
