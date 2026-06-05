@@ -401,6 +401,39 @@ def _record_partial_evidence_view(
     )
 
 
+def _resolve_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> PerformanceEvidenceView:
+    if not fetch_state.requested_items:
+        return _build_empty_evidence_view_response(
+            context=context,
+            source_supportability=fetch_state.source_supportability,
+        )
+    if fetch_state.backed_count == 0:
+        warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
+        return _build_unavailable_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    if fetch_state.complete_count == len(fetch_state.evidence_items):
+        return _build_supported_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    _record_partial_evidence_view(
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    return _build_partial_evidence_view_response(
+        context=context,
+        fetch_state=fetch_state,
+    )
+
+
 class PerformanceWorkspaceService:
     def __init__(
         self,
@@ -1644,29 +1677,11 @@ class PerformanceWorkspaceService:
             source_results=source_results,
         )
         fetch_state = await self._fetch_evidence_view_state(request_context)
-        if not fetch_state.requested_items:
-            return _build_empty_evidence_view_response(
-                context=request_context,
-                source_supportability=fetch_state.source_supportability,
-            )
-        if fetch_state.backed_count == 0:
-            warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
-            return _build_unavailable_evidence_view_response(
-                context=request_context,
-                fetch_state=fetch_state,
-            )
-        if fetch_state.complete_count == len(fetch_state.evidence_items):
-            return _build_supported_evidence_view_response(
-                context=request_context,
-                fetch_state=fetch_state,
-            )
-        _record_partial_evidence_view(
-            warnings=warnings,
-            partial_failures=partial_failures,
-        )
-        return _build_partial_evidence_view_response(
+        return _resolve_evidence_view_response(
             context=request_context,
             fetch_state=fetch_state,
+            warnings=warnings,
+            partial_failures=partial_failures,
         )
 
     async def _fetch_evidence_view_state(
