@@ -22,6 +22,7 @@ from app.services.performance_workspace_returns import (
     extract_twr_workspace_block,
     resolve_results_period_key,
 )
+from app.services.upstream_envelope import safe_upstream_detail
 
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
@@ -116,7 +117,7 @@ def workspace_summary_payload_from_result(
             build_performance_failure(
                 "lotus-performance",
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="workspace summary unavailable"),
             )
         )
         return None

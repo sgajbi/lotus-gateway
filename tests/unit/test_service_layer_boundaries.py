@@ -188,6 +188,26 @@ def test_service_tests_do_not_need_stub_method_suppressions() -> None:
     assert offenders == {}
 
 
+def test_services_do_not_emit_raw_upstream_payload_details() -> None:
+    forbidden_patterns = (
+        "stringify_payload=True",
+        'payload.get("detail", payload)',
+        'upstream_payload.get("detail", upstream_payload)',
+        "detail=upstream_payload",
+        '"error": upstream_payload',
+    )
+    offenders: dict[str, list[str]] = {}
+    for path in _SERVICE_ROOT.rglob("*.py"):
+        if path.name == "upstream_envelope.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        matches = [pattern for pattern in forbidden_patterns if pattern in text]
+        if matches:
+            offenders[path.relative_to(_SERVICE_ROOT).as_posix()] = matches
+
+    assert offenders == {}
+
+
 def test_non_client_service_factories_do_not_repeat_upstream_routing_settings() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _SERVICE_ROOT.glob("*_service_factory.py"):

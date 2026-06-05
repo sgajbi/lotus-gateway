@@ -421,9 +421,45 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
                 },
             },
         ),
-        analytics_client=_StubAnalyticsClient(503, {"detail": "lotus-performance unavailable"}),
-        dpm_client=_StubDpmClient(500, {"detail": "dpm unavailable"}),
-        reporting_client=_StubReportingClient(503, {"detail": "reporting unavailable"}),
+        analytics_client=_StubAnalyticsClient(
+            503,
+            {
+                "detail": {
+                    "code": "PERFORMANCE_UNAVAILABLE",
+                    "message": "lotus-performance unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        dpm_client=_StubDpmClient(
+            500,
+            {
+                "detail": {
+                    "code": "DPM_UNAVAILABLE",
+                    "message": "dpm unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        reporting_client=_StubReportingClient(
+            503,
+            {
+                "detail": {
+                    "code": "REPORTING_UNAVAILABLE",
+                    "message": "reporting unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
     )
 
     response = await service.get_portfolio_workspace(
@@ -440,6 +476,13 @@ async def test_foundation_workspace_degrades_when_optional_upstreams_fail():
         "FOUNDATION_REPORTING_UNAVAILABLE",
     ]
     assert len(response.partial_failures) == 3
+    assert [failure.detail for failure in response.partial_failures] == [
+        "PERFORMANCE_UNAVAILABLE: lotus-performance unavailable",
+        "DPM_UNAVAILABLE: dpm unavailable",
+        "REPORTING_UNAVAILABLE: reporting unavailable",
+    ]
+    assert "Private Client" not in str(response.partial_failures)
+    assert "secret-token" not in str(response.partial_failures)
 
 
 @pytest.mark.asyncio

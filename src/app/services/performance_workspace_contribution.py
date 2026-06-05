@@ -23,6 +23,7 @@ from app.services.performance_workspace_parsing import (
     weight_to_pct,
 )
 from app.services.performance_workspace_returns import resolve_results_period_key
+from app.services.upstream_envelope import safe_upstream_detail
 
 ContributionResult = tuple[int, dict[str, Any]] | BaseException
 
@@ -123,7 +124,7 @@ def parse_contribution_result(
             build_performance_failure(
                 "lotus-performance",
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="contribution unavailable"),
             )
         )
         return None

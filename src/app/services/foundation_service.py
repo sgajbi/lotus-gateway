@@ -843,7 +843,7 @@ class FoundationService:
             return self._unavailable_optional_upstream(
                 status_code,
                 f"HTTP_{status_code}",
-                str(payload.get("detail", payload)),
+                safe_upstream_detail(payload, default_detail="optional upstream unavailable"),
                 failure_context,
             )
 
