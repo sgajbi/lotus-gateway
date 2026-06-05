@@ -130,6 +130,15 @@ class PortfolioWorkspaceComponents:
 
 
 @dataclass(frozen=True)
+class PortfolioInsightSources:
+    workspace: PortfolioWorkspaceResponse
+    positions: PortfolioPositionBookResponse
+    allocations: PortfolioAllocationResponse
+    transactions: PortfolioTransactionLedgerResponse
+    activity: PortfolioActivitySummaryResponse
+
+
+@dataclass(frozen=True)
 class PortfolioWorkspaceAssemblyState:
     portfolio_payload: dict[str, Any]
     warnings: list[str]
@@ -1064,6 +1073,34 @@ class PortfolioService:
     async def get_portfolio_insights(
         self, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioInsightsResponse:
+        sources = await self._load_portfolio_insight_sources(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+        )
+        return PortfolioInsightsResponse(
+            correlation_id=correlation_id,
+            contract_version=settings.contract_version,
+            portfolio_id=portfolio_id,
+            as_of_date=sources.workspace.as_of_date,
+            insights=self._build_portfolio_insights(
+                workspace=sources.workspace,
+                positions=sources.positions.positions,
+                top_positions=sources.positions.top_positions,
+                allocation_views=sources.allocations.views,
+                activity_summary=sources.activity,
+            ),
+            exception_summaries=self._build_portfolio_exception_summaries(
+                workspace=sources.workspace,
+                positions=sources.positions.positions,
+                allocation_views=sources.allocations.views,
+                transaction_total=sources.transactions.total,
+            ),
+        )
+
+    async def _load_portfolio_insight_sources(
+        self, *, portfolio_id: str, correlation_id: str, as_of_date: str | None
+    ) -> PortfolioInsightSources:
         workspace, positions, allocations, transactions, activity = await asyncio.gather(
             self.get_portfolio_workspace(
                 portfolio_id=portfolio_id,
@@ -1094,25 +1131,12 @@ class PortfolioService:
                 end_date=None,
             ),
         )
-
-        return PortfolioInsightsResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=workspace.as_of_date,
-            insights=self._build_portfolio_insights(
-                workspace=workspace,
-                positions=positions.positions,
-                top_positions=positions.top_positions,
-                allocation_views=allocations.views,
-                activity_summary=activity,
-            ),
-            exception_summaries=self._build_portfolio_exception_summaries(
-                workspace=workspace,
-                positions=positions.positions,
-                allocation_views=allocations.views,
-                transaction_total=transactions.total,
-            ),
+        return PortfolioInsightSources(
+            workspace=workspace,
+            positions=positions,
+            allocations=allocations,
+            transactions=transactions,
+            activity=activity,
         )
 
     async def get_portfolio_workflow(
