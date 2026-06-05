@@ -116,11 +116,13 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests.
-2. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
-3. Current focused branch: portfolio workspace tests passed with 7 selected tests.
-4. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
-5. Latest merged PR-grade evidence: `make check` passed with 969 unit/contract tests.
+1. Current branch: `make check` passed on commit `3c3daff` with ruff, format check,
+   monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
+   unit/contract tests.
+2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests.
+3. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
+4. Current focused branch: portfolio workspace tests passed with 7 selected tests.
+5. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
 6. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
 7. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
 8. Coverage: 93.36%.
