@@ -22,11 +22,7 @@ def build_workspace_comparative_summary(
     active_basis_block: Any,
 ) -> PerformanceComparativeSummary:
     active_payload = active_basis_block if isinstance(active_basis_block, dict) else {}
-    economics = (
-        portfolio_block.get("summary", {}).get("economics", {})
-        if isinstance(portfolio_block.get("summary"), dict)
-        else {}
-    )
+    economics = _portfolio_summary_economics(portfolio_block)
     return PerformanceComparativeSummary(
         metric_basis=metric_basis,
         portfolio_return_pct=extract_return(portfolio_block, "summary", "period_return", "base"),
@@ -38,28 +34,24 @@ def build_workspace_comparative_summary(
         benchmark_id=safe_str(benchmark_block.get("benchmark_id")),
         benchmark_return_source=safe_str(benchmark_block.get("return_source")),
         benchmark_input_mode=safe_str(benchmark_block.get("input_mode")),
-        begin_market_value=quantize_optional(economics.get("begin_market_value"))
-        if isinstance(economics, dict)
-        else None,
-        end_market_value=quantize_optional(economics.get("end_market_value"))
-        if isinstance(economics, dict)
-        else None,
-        beginning_cash_flow=quantize_optional(economics.get("beginning_cash_flow"))
-        if isinstance(economics, dict)
-        else None,
-        ending_cash_flow=quantize_optional(economics.get("ending_cash_flow"))
-        if isinstance(economics, dict)
-        else None,
+        begin_market_value=quantize_optional(economics.get("begin_market_value")),
+        end_market_value=quantize_optional(economics.get("end_market_value")),
+        beginning_cash_flow=quantize_optional(economics.get("beginning_cash_flow")),
+        ending_cash_flow=quantize_optional(economics.get("ending_cash_flow")),
         flow_adjusted_end_market_value=quantize_optional(
             economics.get("flow_adjusted_end_market_value")
-        )
-        if isinstance(economics, dict)
-        else None,
-        net_cash_flow=quantize_optional(economics.get("net_cash_flow"))
-        if isinstance(economics, dict)
-        else None,
-        fees=quantize_optional(economics.get("fees")) if isinstance(economics, dict) else None,
+        ),
+        net_cash_flow=quantize_optional(economics.get("net_cash_flow")),
+        fees=quantize_optional(economics.get("fees")),
     )
+
+
+def _portfolio_summary_economics(portfolio_block: dict[str, Any]) -> dict[str, Any]:
+    summary = portfolio_block.get("summary", {})
+    if not isinstance(summary, dict):
+        return {}
+    economics = summary.get("economics", {})
+    return economics if isinstance(economics, dict) else {}
 
 
 def resolve_results_period_key(
