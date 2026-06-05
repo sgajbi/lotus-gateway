@@ -9,6 +9,7 @@ from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_failures import build_performance_failure
 from app.services.performance_workspace_parsing import safe_str
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import PerformanceWorkspaceCoreClient
 
 UpstreamPayload: TypeAlias = dict[str, Any]
@@ -259,7 +260,11 @@ def parse_benchmark_catalog_result(
                 if isinstance(status_code, int)
                 else "INVALID_UPSTREAM_PAYLOAD"
             ),
-            detail=str(payload),
+            detail=(
+                safe_upstream_detail(payload, default_detail="benchmark catalog unavailable")
+                if isinstance(payload, dict)
+                else str(payload)
+            ),
         )
         return []
     records = payload.get("records", [])

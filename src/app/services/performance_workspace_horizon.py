@@ -19,6 +19,7 @@ from app.services.performance_workspace_returns import (
     extract_twr_workspace_block,
     resolve_results_period_key,
 )
+from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import PerformanceWorkspaceAnalyticsClient
 
 STANDARD_HORIZON_COMPARISON_PERIODS = ("MTD", "QTD", "YTD")
@@ -282,7 +283,9 @@ def standard_horizon_error_code(status_code: int) -> str:
 
 
 def standard_horizon_error_detail(payload: UpstreamPayload) -> str:
-    return str(payload.get("detail", payload)) if isinstance(payload, dict) else str(payload)
+    if isinstance(payload, dict):
+        return safe_upstream_detail(payload, default_detail="horizon request failed")
+    return str(payload)
 
 
 def merge_standard_horizon_period_payload(
@@ -362,7 +365,7 @@ def parse_horizon_comparison_result(
             warnings=warnings,
             partial_failures=partial_failures,
             error_code=f"HTTP_{status_code}",
-            detail=str(payload.get("detail", payload)),
+            detail=safe_upstream_detail(payload, default_detail="horizon comparison failed"),
         )
         return [], None
 
