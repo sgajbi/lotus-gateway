@@ -68,6 +68,13 @@ class WorkbenchOverviewEnrichmentResults:
     rebalance_supportability_result: object
 
 
+@dataclass(frozen=True)
+class WorkbenchSandboxPolicyState:
+    policy_feedback: WorkbenchPolicyFeedback | None
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+
+
 def _build_workbench_analytics_parts(
     *,
     portfolio_360: WorkbenchPortfolio360Response,
@@ -290,19 +297,14 @@ class WorkbenchService:
             correlation_id=correlation_id,
         )
 
-        warnings: list[str] = []
-        partial_failures: list[WorkbenchPartialFailure] = []
-        policy_feedback: WorkbenchPolicyFeedback | None = None
-        if evaluate_policy:
-            policy_feedback = await self._evaluate_policy_feedback(
-                portfolio_id=portfolio_id,
-                session_id=session_id,
-                session_version=session_version,
-                projected_positions=projected_positions,
-                correlation_id=correlation_id,
-                warnings=warnings,
-                partial_failures=partial_failures,
-            )
+        policy_state = await self._build_sandbox_policy_state(
+            portfolio_id=portfolio_id,
+            session_id=session_id,
+            session_version=session_version,
+            projected_positions=projected_positions,
+            correlation_id=correlation_id,
+            evaluate_policy=evaluate_policy,
+        )
 
         return WorkbenchSandboxStateResponse(
             correlation_id=correlation_id,
@@ -312,6 +314,39 @@ class WorkbenchService:
             session_version=session_version,
             projected_positions=projected_positions,
             projected_summary=projected_summary,
+            policy_feedback=policy_state.policy_feedback,
+            warnings=policy_state.warnings,
+            partial_failures=policy_state.partial_failures,
+        )
+
+    async def _build_sandbox_policy_state(
+        self,
+        *,
+        portfolio_id: str,
+        session_id: str,
+        session_version: int,
+        projected_positions: list[WorkbenchProjectedPositionView],
+        correlation_id: str,
+        evaluate_policy: bool,
+    ) -> WorkbenchSandboxPolicyState:
+        warnings: list[str] = []
+        partial_failures: list[WorkbenchPartialFailure] = []
+        if not evaluate_policy:
+            return WorkbenchSandboxPolicyState(
+                policy_feedback=None,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+        policy_feedback = await self._evaluate_policy_feedback(
+            portfolio_id=portfolio_id,
+            session_id=session_id,
+            session_version=session_version,
+            projected_positions=projected_positions,
+            correlation_id=correlation_id,
+            warnings=warnings,
+            partial_failures=partial_failures,
+        )
+        return WorkbenchSandboxPolicyState(
             policy_feedback=policy_feedback,
             warnings=warnings,
             partial_failures=partial_failures,
