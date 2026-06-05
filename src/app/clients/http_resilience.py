@@ -70,6 +70,80 @@ async def _send_json_request(
     )
 
 
+async def _send_json_request_once(
+    *,
+    request_method: str,
+    url: str,
+    timeout_seconds: float,
+    params: dict[str, Any] | None,
+    headers: dict[str, str] | None,
+    json_body: dict[str, Any] | None,
+    data: dict[str, Any] | None,
+    files: dict[str, Any] | None,
+) -> httpx.Response:
+    async with httpx.AsyncClient(
+        timeout=timeout_seconds,
+        follow_redirects=True,
+    ) as client:
+        return await _send_json_request(
+            client=client,
+            request_method=request_method,
+            url=url,
+            params=params,
+            headers=headers,
+            json_body=json_body,
+            data=data,
+            files=files,
+        )
+
+
+async def _send_binary_request_once(
+    *,
+    request_method: str,
+    url: str,
+    timeout_seconds: float,
+    params: dict[str, Any] | None,
+    headers: dict[str, str] | None,
+) -> httpx.Response:
+    async with httpx.AsyncClient(
+        timeout=timeout_seconds,
+        follow_redirects=True,
+    ) as client:
+        if request_method == "GET":
+            return await client.get(url, params=params, headers=headers)
+        return await client.post(url, headers=headers)
+
+
+def _should_retry_status(
+    *,
+    response_status_code: int,
+    retry_status_codes: set[int] | None,
+    attempt: int,
+    max_retries: int,
+) -> bool:
+    return (
+        retry_status_codes is not None
+        and response_status_code in retry_status_codes
+        and attempt < max_retries
+    )
+
+
+def _should_retry_request_error(
+    *,
+    exc: httpx.RequestError,
+    retry_timeout_exceptions: bool,
+    attempt: int,
+    max_retries: int,
+) -> bool:
+    if isinstance(exc, httpx.TimeoutException) and not retry_timeout_exceptions:
+        return False
+    return attempt < max_retries
+
+
+async def _sleep_before_retry(backoff_seconds: float, attempt: int) -> None:
+    await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+
+
 async def request_with_retry(
     *,
     method: str,
@@ -92,36 +166,34 @@ async def request_with_retry(
     attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
-            async with httpx.AsyncClient(
-                timeout=timeout_seconds,
-                follow_redirects=True,
-            ) as client:
-                response = await _send_json_request(
-                    client=client,
-                    request_method=request_method,
-                    url=url,
-                    params=params,
-                    headers=headers,
-                    json_body=json_body,
-                    data=data,
-                    files=files,
-                )
-
-            should_retry_status = retry_status_codes and response.status_code in retry_status_codes
-            if should_retry_status and attempt < max_retries:
-                await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+            response = await _send_json_request_once(
+                request_method=request_method,
+                url=url,
+                timeout_seconds=timeout_seconds,
+                params=params,
+                headers=headers,
+                json_body=json_body,
+                data=data,
+                files=files,
+            )
+            if _should_retry_status(
+                response_status_code=response.status_code,
+                retry_status_codes=retry_status_codes,
+                attempt=attempt,
+                max_retries=max_retries,
+            ):
+                await _sleep_before_retry(backoff_seconds, attempt)
                 continue
             return response.status_code, _response_payload(response)
-        except httpx.TimeoutException as exc:
-            if not retry_timeout_exceptions:
-                return _communication_failure_result(exc.__class__.__name__)
-            if attempt >= max_retries:
-                return _communication_failure_result(exc.__class__.__name__)
-            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
-            if attempt >= max_retries:
+            if not _should_retry_request_error(
+                exc=exc,
+                retry_timeout_exceptions=retry_timeout_exceptions,
+                attempt=attempt,
+                max_retries=max_retries,
+            ):
                 return _communication_failure_result(exc.__class__.__name__)
-            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+            await _sleep_before_retry(backoff_seconds, attempt)
 
     return _communication_failure_result("exhausted retries")
 
@@ -145,32 +217,33 @@ async def request_binary_with_retry(
     attempts = _retry_attempts(max_retries)
     for attempt in range(attempts):
         try:
-            async with httpx.AsyncClient(
-                timeout=timeout_seconds,
-                follow_redirects=True,
-            ) as client:
-                if request_method == "GET":
-                    response = await client.get(url, params=params, headers=headers)
-                else:
-                    response = await client.post(url, headers=headers)
-
-            should_retry_status = retry_status_codes and response.status_code in retry_status_codes
-            if should_retry_status and attempt < max_retries:
-                await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+            response = await _send_binary_request_once(
+                request_method=request_method,
+                url=url,
+                timeout_seconds=timeout_seconds,
+                params=params,
+                headers=headers,
+            )
+            if _should_retry_status(
+                response_status_code=response.status_code,
+                retry_status_codes=retry_status_codes,
+                attempt=attempt,
+                max_retries=max_retries,
+            ):
+                await _sleep_before_retry(backoff_seconds, attempt)
                 continue
             error_payload: dict[str, Any] = {}
             if response.status_code >= 400:
                 error_payload = _response_payload(response)
             return response.status_code, response.content, dict(response.headers), error_payload
-        except httpx.TimeoutException as exc:
-            if not retry_timeout_exceptions:
-                return _binary_communication_failure_result(exc.__class__.__name__)
-            if attempt >= max_retries:
-                return _binary_communication_failure_result(exc.__class__.__name__)
-            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
         except httpx.RequestError as exc:
-            if attempt >= max_retries:
+            if not _should_retry_request_error(
+                exc=exc,
+                retry_timeout_exceptions=retry_timeout_exceptions,
+                attempt=attempt,
+                max_retries=max_retries,
+            ):
                 return _binary_communication_failure_result(exc.__class__.__name__)
-            await asyncio.sleep(_retry_delay(backoff_seconds, attempt))
+            await _sleep_before_retry(backoff_seconds, attempt)
 
     return _binary_communication_failure_result("exhausted retries")
