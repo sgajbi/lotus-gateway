@@ -89,42 +89,57 @@ class LotusAnalyticsClient:
         poll_interval_seconds: float = 0.35,
     ) -> tuple[int, dict[str, Any]]:
         headers = build_upstream_headers(correlation_id)
-        url = (
-            result_path
-            if result_path.startswith("http://") or result_path.startswith("https://")
-            else f"{self._base_url}{result_path}"
-        )
+        url = self._async_result_url(result_path)
         last_status = 202
         last_payload: dict[str, Any] = {"detail": "async analytics result still pending"}
         for _ in range(max_attempts):
-            started_at = gateway_analytics_fanout_timer()
-            status_code, payload = await request_with_retry(
-                method="GET",
+            status_code, payload = await self._poll_analytics_result_once(
                 url=url,
-                timeout_seconds=self._timeout,
-                max_retries=self._max_retries,
-                backoff_seconds=self._retry_backoff_seconds,
                 headers=headers,
-            )
-            emit_gateway_analytics_fanout_log(
-                logger=logger,
-                started_at=started_at,
                 service=service,
-                operation=f"{operation}.poll",
-                status_code=status_code,
-                payload=payload,
+                operation=operation,
             )
             last_status = status_code
             last_payload = payload
             if status_code != 202:
-                emit_gateway_analytics_read_audit_log(
-                    logger=logger,
-                    operation=f"{operation}.poll",
-                    status_code=status_code,
+                self._emit_analytics_read_audit(
+                    operation=f"{operation}.poll", status_code=status_code
                 )
                 return status_code, payload
             await asyncio.sleep(poll_interval_seconds)
         return last_status, last_payload
+
+    def _async_result_url(self, result_path: str) -> str:
+        if result_path.startswith("http://") or result_path.startswith("https://"):
+            return result_path
+        return f"{self._base_url}{result_path}"
+
+    async def _poll_analytics_result_once(
+        self,
+        *,
+        url: str,
+        headers: dict[str, str],
+        service: str,
+        operation: str,
+    ) -> tuple[int, dict[str, Any]]:
+        started_at = gateway_analytics_fanout_timer()
+        status_code, payload = await request_with_retry(
+            method="GET",
+            url=url,
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            headers=headers,
+        )
+        emit_gateway_analytics_fanout_log(
+            logger=logger,
+            started_at=started_at,
+            service=service,
+            operation=f"{operation}.poll",
+            status_code=status_code,
+            payload=payload,
+        )
+        return status_code, payload
 
     async def _post_analytics_request(
         self,
