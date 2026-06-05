@@ -101,6 +101,9 @@ contract tests.
 The latest portfolio allocation slice split raw AUM, positions, and allocation query result loading
 into a typed helper, reducing `_load_portfolio_allocation_payloads` from 51 lines to 31 lines while
 preserving focused unit and router integration tests.
+The latest Workbench sandbox slice split optional policy feedback state assembly into a typed helper,
+reducing `apply_sandbox_changes` from 51 lines to 46 lines while preserving focused unit and router
+integration tests.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -133,16 +136,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 51 | `apply_sandbox_changes` | `src/app/services/workbench_service.py` |
-| 2 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
-| 3 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 4 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
-| 5 | 49 | `request_binary_with_retry` | `src/app/clients/http_resilience.py` |
-| 6 | 49 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
-| 7 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 8 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 9 | 49 | `get_attribution` | `src/app/services/risk_workspace_service.py` |
-| 10 | 49 | `_reason_codes_from_payload` | `src/app/services/dpm_construction_service.py` |
+| 1 | 51 | `_build_evidence_view` | `src/app/services/performance_workspace_service.py` |
+| 2 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
+| 3 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
+| 4 | 49 | `request_binary_with_retry` | `src/app/clients/http_resilience.py` |
+| 5 | 49 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
+| 6 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 7 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 8 | 49 | `get_attribution` | `src/app/services/risk_workspace_service.py` |
+| 9 | 49 | `_reason_codes_from_payload` | `src/app/services/dpm_construction_service.py` |
+| 10 | 49 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
 
 ## Existing Blocking Gates
 
@@ -180,34 +183,38 @@ Most recent local evidence:
    query-result extraction.
 9. Current focused branch: portfolio allocation router integration test passed with 1 selected test
    after query-result extraction.
-10. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
-11. Current focused branch: portfolio workspace tests passed with 7 selected tests.
-12. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
-13. Current focused branch: foundation optional-upstream tests passed with 4 selected tests.
-14. Current focused branch: archive document service tests passed with 8 tests.
-15. Current focused branch: risk drawdown unit tests passed with 4 selected tests.
-16. Current focused branch: risk drawdown router integration test passed with 1 selected test.
-17. Current focused branch: performance workspace response tests passed with 5 selected tests.
-18. Current focused branch: attribution-trend unit tests passed with 3 selected tests.
-19. Current focused branch: attribution-trend router integration tests passed with 3 selected tests.
-20. Current focused branch: benchmark catalog module tests passed with 8 tests.
-21. Current focused branch: risk attribution module tests passed with 4 tests.
-22. Current focused branch: risk attribution service tests passed with 5 selected tests.
-23. Current focused branch: risk attribution router integration test passed with 1 selected test.
-24. Current focused branch: portfolio insight service tests passed with 6 selected tests.
-25. Current focused branch: portfolio insight service/router tests passed with 8 selected tests.
-26. Current focused branch: current-position unit tests passed with 5 selected tests.
-27. Current focused branch: current-position router tests passed with 2 selected tests.
-28. Current focused branch: performance horizon comparison router tests passed with 3 selected tests.
-29. Current focused branch: advisor brief service/router tests passed with 24 selected tests.
-30. Current focused branch: risk concentration router test passed with 1 selected test.
-31. Current focused branch: Workbench analytics tests passed with 7 selected tests.
-32. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
-33. Current focused branch: portfolio readiness tests passed with 4 selected tests.
-34. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-35. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-36. Coverage: 93.36%.
-37. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+10. Current focused branch: Workbench sandbox unit tests passed with 5 selected tests after policy
+    state extraction.
+11. Current focused branch: Workbench sandbox router integration test passed with 1 selected test
+    after policy state extraction.
+12. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
+13. Current focused branch: portfolio workspace tests passed with 7 selected tests.
+14. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
+15. Current focused branch: foundation optional-upstream tests passed with 4 selected tests.
+16. Current focused branch: archive document service tests passed with 8 tests.
+17. Current focused branch: risk drawdown unit tests passed with 4 selected tests.
+18. Current focused branch: risk drawdown router integration test passed with 1 selected test.
+19. Current focused branch: performance workspace response tests passed with 5 selected tests.
+20. Current focused branch: attribution-trend unit tests passed with 3 selected tests.
+21. Current focused branch: attribution-trend router integration tests passed with 3 selected tests.
+22. Current focused branch: benchmark catalog module tests passed with 8 tests.
+23. Current focused branch: risk attribution module tests passed with 4 tests.
+24. Current focused branch: risk attribution service tests passed with 5 selected tests.
+25. Current focused branch: risk attribution router integration test passed with 1 selected test.
+26. Current focused branch: portfolio insight service tests passed with 6 selected tests.
+27. Current focused branch: portfolio insight service/router tests passed with 8 selected tests.
+28. Current focused branch: current-position unit tests passed with 5 selected tests.
+29. Current focused branch: current-position router tests passed with 2 selected tests.
+30. Current focused branch: performance horizon comparison router tests passed with 3 selected tests.
+31. Current focused branch: advisor brief service/router tests passed with 24 selected tests.
+32. Current focused branch: risk concentration router test passed with 1 selected test.
+33. Current focused branch: Workbench analytics tests passed with 7 selected tests.
+34. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
+35. Current focused branch: portfolio readiness tests passed with 4 selected tests.
+36. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+37. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+38. Coverage: 93.36%.
+39. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
