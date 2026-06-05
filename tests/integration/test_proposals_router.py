@@ -73,7 +73,7 @@ def test_proposal_simulate_success(monkeypatch):
 def test_proposal_simulate_forwards_upstream_error(monkeypatch):
     async def _fake_simulate_proposal(self, body, idempotency_key, correlation_id):  # noqa: ANN001
         _ = self, body, idempotency_key, correlation_id
-        return 409, {"detail": "conflict"}
+        return 409, {"detail": "conflict", "client_name": "Private Client"}
 
     monkeypatch.setattr(
         "app.clients.advise_client.AdviseClient.simulate_proposal",
@@ -88,6 +88,13 @@ def test_proposal_simulate_forwards_upstream_error(monkeypatch):
     )
 
     assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_PROPOSAL_UPSTREAM_ERROR",
+        "detail": "conflict",
+    }
+    assert "Private Client" not in response.text
 
 
 def test_proposal_simulate_requires_idempotency_header():

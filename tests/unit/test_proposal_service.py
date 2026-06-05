@@ -898,7 +898,13 @@ class _FakeAdviseErrorClient(_FakeAdviseClient):
         self, proposal_id: str, body: dict, idempotency_key: str, correlation_id: str
     ):
         _ = proposal_id, body, idempotency_key, correlation_id
-        return 409, {"detail": "STATE_CONFLICT"}
+        return 409, {
+            "detail": {
+                "code": "STATE_CONFLICT",
+                "message": "Proposal state conflict.",
+                "debug_payload": {"client_name": "Private Client", "token": "secret-token"},
+            }
+        }
 
 
 @pytest.mark.asyncio
@@ -1270,7 +1276,7 @@ async def test_proposal_memo_routes_wrap_source_owned_payloads() -> None:
 
 
 @pytest.mark.asyncio
-async def test_approval_upstream_error_passthrough() -> None:
+async def test_approval_upstream_error_uses_product_safe_envelope() -> None:
     service = ProposalService(advise_client=_FakeAdviseErrorClient())
 
     try:
@@ -1285,7 +1291,14 @@ async def test_approval_upstream_error_passthrough() -> None:
         )
     except HTTPException as exc:
         assert exc.status_code == 409
-        assert "STATE_CONFLICT" in str(exc.detail)
+        assert exc.detail == {
+            "source_service": "lotus-advise",
+            "upstream_status": 409,
+            "error_code": "ADVISE_PROPOSAL_UPSTREAM_ERROR",
+            "detail": "STATE_CONFLICT: Proposal state conflict.",
+        }
+        assert "secret-token" not in str(exc.detail)
+        assert "Private Client" not in str(exc.detail)
         return
 
     raise AssertionError("Expected HTTPException")
