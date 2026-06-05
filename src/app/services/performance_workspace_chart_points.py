@@ -14,54 +14,89 @@ def build_workspace_chart_points(
     chart_frequency: str,
 ) -> list[PerformanceChartPoint]:
     normalized_frequency = chart_frequency.lower()
-    portfolio_breakdowns = portfolio_block.get("breakdowns", {})
-    benchmark_breakdowns = benchmark_block.get("breakdowns", {})
-    if not isinstance(portfolio_breakdowns, dict):
-        return []
-    portfolio_rows = portfolio_breakdowns.get(normalized_frequency, [])
-    benchmark_rows = (
-        benchmark_breakdowns.get(normalized_frequency, [])
-        if isinstance(benchmark_breakdowns, dict)
-        else []
+    portfolio_rows = _frequency_rows(
+        block=portfolio_block,
+        normalized_frequency=normalized_frequency,
     )
-    if not isinstance(portfolio_rows, list):
+    if portfolio_rows is None:
         return []
+    benchmark_rows = _frequency_rows(
+        block=benchmark_block,
+        normalized_frequency=normalized_frequency,
+    )
     points: list[PerformanceChartPoint] = []
     for index, portfolio_row in enumerate(portfolio_rows):
         if not isinstance(portfolio_row, dict):
             continue
-        benchmark_row = (
-            benchmark_rows[index]
-            if index < len(benchmark_rows) and isinstance(benchmark_rows[index], dict)
-            else {}
-        )
-        portfolio_period = extract_return(portfolio_row, "period_return", "base")
-        benchmark_period = extract_return(benchmark_row, "period_return", "base")
-        portfolio_cumulative = extract_return(portfolio_row, "cumulative_return", "base")
-        benchmark_cumulative = extract_return(benchmark_row, "cumulative_return", "base")
-        active_period = None
-        active_cumulative = None
-        if portfolio_period is not None and benchmark_period is not None:
-            active_period = float(quantize_performance(portfolio_period - benchmark_period))
-        if portfolio_cumulative is not None and benchmark_cumulative is not None:
-            active_cumulative = float(
-                quantize_performance(portfolio_cumulative - benchmark_cumulative)
-            )
         points.append(
-            PerformanceChartPoint(
-                label=str(portfolio_row.get("period", f"point-{index + 1}")),
-                frequency=normalized_frequency,
-                period_start=safe_str(portfolio_row.get("period_start")),
-                period_end=safe_str(portfolio_row.get("period_end")),
-                portfolio_return_pct=portfolio_period,
-                benchmark_return_pct=benchmark_period,
-                active_return_pct=active_period,
-                cumulative_portfolio_return_pct=portfolio_cumulative,
-                cumulative_benchmark_return_pct=benchmark_cumulative,
-                cumulative_active_return_pct=active_cumulative,
+            _build_active_chart_point(
+                index=index,
+                normalized_frequency=normalized_frequency,
+                portfolio_row=portfolio_row,
+                benchmark_row=_peer_row_at(benchmark_rows, index),
             )
         )
     return points
+
+
+def _frequency_rows(
+    *,
+    block: dict[str, Any],
+    normalized_frequency: str,
+) -> list[Any] | None:
+    breakdowns = block.get("breakdowns", {})
+    if not isinstance(breakdowns, dict):
+        return None
+    rows = breakdowns.get(normalized_frequency, [])
+    if isinstance(rows, list):
+        return rows
+    return None
+
+
+def _peer_row_at(rows: list[Any] | None, index: int) -> dict[str, Any]:
+    if rows is None or index >= len(rows):
+        return {}
+    row = rows[index]
+    if isinstance(row, dict):
+        return row
+    return {}
+
+
+def _build_active_chart_point(
+    *,
+    index: int,
+    normalized_frequency: str,
+    portfolio_row: dict[str, Any],
+    benchmark_row: dict[str, Any],
+) -> PerformanceChartPoint:
+    portfolio_period = extract_return(portfolio_row, "period_return", "base")
+    benchmark_period = extract_return(benchmark_row, "period_return", "base")
+    portfolio_cumulative = extract_return(portfolio_row, "cumulative_return", "base")
+    benchmark_cumulative = extract_return(benchmark_row, "cumulative_return", "base")
+    return PerformanceChartPoint(
+        label=str(portfolio_row.get("period", f"point-{index + 1}")),
+        frequency=normalized_frequency,
+        period_start=safe_str(portfolio_row.get("period_start")),
+        period_end=safe_str(portfolio_row.get("period_end")),
+        portfolio_return_pct=portfolio_period,
+        benchmark_return_pct=benchmark_period,
+        active_return_pct=_active_return(portfolio_period, benchmark_period),
+        cumulative_portfolio_return_pct=portfolio_cumulative,
+        cumulative_benchmark_return_pct=benchmark_cumulative,
+        cumulative_active_return_pct=_active_return(
+            portfolio_cumulative,
+            benchmark_cumulative,
+        ),
+    )
+
+
+def _active_return(
+    portfolio_return: float | None,
+    benchmark_return: float | None,
+) -> float | None:
+    if portfolio_return is None or benchmark_return is None:
+        return None
+    return float(quantize_performance(portfolio_return - benchmark_return))
 
 
 def _build_parsed_chart_point(
