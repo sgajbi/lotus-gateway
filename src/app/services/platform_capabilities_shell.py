@@ -243,17 +243,52 @@ def build_workspace_descriptor(
         source_health=module_health_by_source.get(dependency_source, "unknown"),
     )
 
+    return _build_workspace_descriptor_contract(
+        workspace_id=workspace_id,
+        label=label,
+        href=href,
+        enabled=enabled,
+        dependency_source=dependency_source,
+        descriptor_state=descriptor_state,
+        policy_versions_by_source=policy_versions_by_source,
+        error_services=error_services,
+        evaluated_at=evaluated_at,
+        contract_version=contract_version,
+        freshness_class=freshness_class,
+        max_age_seconds=max_age_seconds,
+        cache_mode=cache_mode,
+        stale_read_tolerance=stale_read_tolerance,
+    )
+
+
+def _build_workspace_descriptor_contract(
+    *,
+    workspace_id: str,
+    label: str,
+    href: str,
+    enabled: bool,
+    dependency_source: str,
+    descriptor_state: WorkspaceDescriptorState,
+    policy_versions_by_source: dict[str, str],
+    error_services: list[str],
+    evaluated_at: str,
+    contract_version: str,
+    freshness_class: str,
+    max_age_seconds: int,
+    cache_mode: str,
+    stale_read_tolerance: str,
+) -> PlatformShellWorkspaceDescriptor:
     return PlatformShellWorkspaceDescriptor(
         id=workspace_id,
         label=label,
         href=href,
         enabled=enabled,
         supportability=workspace_supportability(descriptor_state=descriptor_state),
-        freshness=PlatformBootstrapFreshness(
-            state=descriptor_state.freshness_state,
-            freshnessClass=freshness_class,
-            evaluatedAt=evaluated_at,
-            maxAgeSeconds=max_age_seconds,
+        freshness=workspace_freshness(
+            descriptor_state=descriptor_state,
+            freshness_class=freshness_class,
+            evaluated_at=evaluated_at,
+            max_age_seconds=max_age_seconds,
         ),
         evidence=workspace_evidence(
             descriptor_state=descriptor_state,
@@ -272,6 +307,21 @@ def build_workspace_descriptor(
             cache_mode=cache_mode,
             stale_read_tolerance=stale_read_tolerance,
         ),
+    )
+
+
+def workspace_freshness(
+    *,
+    descriptor_state: WorkspaceDescriptorState,
+    freshness_class: str,
+    evaluated_at: str,
+    max_age_seconds: int,
+) -> PlatformBootstrapFreshness:
+    return PlatformBootstrapFreshness(
+        state=descriptor_state.freshness_state,
+        freshnessClass=freshness_class,
+        evaluatedAt=evaluated_at,
+        maxAgeSeconds=max_age_seconds,
     )
 
 
