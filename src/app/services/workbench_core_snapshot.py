@@ -61,7 +61,7 @@ def _current_position_from_baseline_row(
     *,
     item: Any,
     enrichment_by_security_id: dict[str, dict[str, Any]],
-    total_market_value: float,
+    total_market_value: Any,
 ) -> WorkbenchPositionView | None:
     if not isinstance(item, dict):
         return None
@@ -87,8 +87,8 @@ def _current_position_from_baseline_row(
 def _current_position_weight_pct(
     *,
     item: dict[str, Any],
-    market_value_base: float | None,
-    total_market_value: float,
+    market_value_base: Any,
+    total_market_value: Any,
 ) -> float | None:
     weight_pct = _ratio_to_pct(item.get("weight"))
     if weight_pct is None and market_value_base is not None and total_market_value > 0:
