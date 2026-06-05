@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -148,30 +149,25 @@ def _map_drawdown_period_results(
         else None
     )
 
-    if isinstance(results, dict):
-        for key, value in results.items():
-            if not isinstance(value, dict):
-                continue
-            period = _map_drawdown_period_result(key=key, value=value)
-            benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
-                benchmark_code=benchmark_code,
-                relative_to_benchmark=period.relative_to_benchmark,
-                error=value.get("error"),
+    for key, value in _iter_drawdown_result_items(results):
+        period = _map_drawdown_period_result(key=key, value=value)
+        benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
+            benchmark_code=benchmark_code,
+            relative_to_benchmark=period.relative_to_benchmark,
+            error=value.get("error"),
+        )
+        if include_underwater_series:
+            underwater_state, underwater_reason = _resolve_underwater_supportability(
+                underwater_series=period.underwater_series,
             )
-            if include_underwater_series:
-                underwater_state, underwater_reason = _resolve_underwater_supportability(
-                    underwater_series=period.underwater_series,
-                )
-            if period.error:
-                partial_failures.append(
-                    WorkbenchPartialFailure(
-                        source_service="risk",
-                        error_code="DRAWDOWN_PERIOD_ERROR",
-                        detail=f"{key}: {period.error}",
-                    )
-                )
-                warnings.append("RISK_DRAWDOWN_PERIOD_PARTIAL")
-            period_results.append(period)
+        if period.error:
+            _record_drawdown_period_failure(
+                key=key,
+                error=period.error,
+                warnings=warnings,
+                partial_failures=partial_failures,
+            )
+        period_results.append(period)
 
     return DrawdownMappingResult(
         periods=period_results,
@@ -182,6 +178,31 @@ def _map_drawdown_period_results(
         underwater_supportability_state=underwater_state,
         underwater_supportability_reason=underwater_reason,
     )
+
+
+def _iter_drawdown_result_items(results: Any) -> Iterator[tuple[Any, dict[str, Any]]]:
+    if not isinstance(results, dict):
+        return
+    for key, value in results.items():
+        if isinstance(value, dict):
+            yield key, value
+
+
+def _record_drawdown_period_failure(
+    *,
+    key: Any,
+    error: str,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> None:
+    partial_failures.append(
+        WorkbenchPartialFailure(
+            source_service="risk",
+            error_code="DRAWDOWN_PERIOD_ERROR",
+            detail=f"{key}: {error}",
+        )
+    )
+    warnings.append("RISK_DRAWDOWN_PERIOD_PARTIAL")
 
 
 def _map_drawdown_period_result(
