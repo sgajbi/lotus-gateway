@@ -156,48 +156,54 @@ def merge_contribution_summary_views(
 
     return ContributionSummaryView(
         metric_basis=detail_contribution.metric_basis or summary_contribution.metric_basis,
-        weighting_scheme=(
-            detail_contribution.weighting_scheme or summary_contribution.weighting_scheme
+        weighting_scheme=_prefer_populated(
+            detail_contribution.weighting_scheme,
+            summary_contribution.weighting_scheme,
         ),
-        portfolio_contribution_pct=(
-            detail_contribution.portfolio_contribution_pct
-            if detail_contribution.portfolio_contribution_pct is not None
-            else summary_contribution.portfolio_contribution_pct
+        portfolio_contribution_pct=_prefer_present(
+            detail_contribution.portfolio_contribution_pct,
+            summary_contribution.portfolio_contribution_pct,
         ),
-        total_portfolio_return_pct=(
-            detail_contribution.total_portfolio_return_pct
-            if detail_contribution.total_portfolio_return_pct is not None
-            else summary_contribution.total_portfolio_return_pct
+        total_portfolio_return_pct=_prefer_present(
+            detail_contribution.total_portfolio_return_pct,
+            summary_contribution.total_portfolio_return_pct,
         ),
-        coverage_mv_pct=(
-            detail_contribution.coverage_mv_pct
-            if detail_contribution.coverage_mv_pct is not None
-            else summary_contribution.coverage_mv_pct
+        coverage_mv_pct=_prefer_present(
+            detail_contribution.coverage_mv_pct,
+            summary_contribution.coverage_mv_pct,
         ),
-        portfolio_local_contribution_pct=(
-            detail_contribution.portfolio_local_contribution_pct
-            if detail_contribution.portfolio_local_contribution_pct is not None
-            else summary_contribution.portfolio_local_contribution_pct
+        portfolio_local_contribution_pct=_prefer_present(
+            detail_contribution.portfolio_local_contribution_pct,
+            summary_contribution.portfolio_local_contribution_pct,
         ),
-        portfolio_fx_contribution_pct=(
-            detail_contribution.portfolio_fx_contribution_pct
-            if detail_contribution.portfolio_fx_contribution_pct is not None
-            else summary_contribution.portfolio_fx_contribution_pct
+        portfolio_fx_contribution_pct=_prefer_present(
+            detail_contribution.portfolio_fx_contribution_pct,
+            summary_contribution.portfolio_fx_contribution_pct,
         ),
-        position_rows=(
-            detail_contribution.position_rows
-            if detail_contribution.position_rows
-            else summary_contribution.position_rows
+        position_rows=_prefer_populated(
+            detail_contribution.position_rows,
+            summary_contribution.position_rows,
         ),
-        levels=detail_contribution.levels or summary_contribution.levels,
-        smoothing_evidence=(
-            detail_contribution.smoothing_evidence or summary_contribution.smoothing_evidence
+        levels=_prefer_populated(detail_contribution.levels, summary_contribution.levels),
+        smoothing_evidence=_prefer_populated(
+            detail_contribution.smoothing_evidence,
+            summary_contribution.smoothing_evidence,
         ),
-        source_economics_evidence=(
-            detail_contribution.source_economics_evidence
-            or summary_contribution.source_economics_evidence
+        source_economics_evidence=_prefer_populated(
+            detail_contribution.source_economics_evidence,
+            summary_contribution.source_economics_evidence,
         ),
     )
+
+
+def _prefer_present(detail_value: Any, summary_value: Any) -> Any:
+    if detail_value is not None:
+        return detail_value
+    return summary_value
+
+
+def _prefer_populated(detail_value: Any, summary_value: Any) -> Any:
+    return detail_value or summary_value
 
 
 def parse_contribution_smoothing_evidence(
