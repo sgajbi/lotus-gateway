@@ -68,6 +68,10 @@ The latest benchmark and risk attribution slice split benchmark catalog failure/
 helpers and risk attribution response-part assembly out of tied 53-line mappers, reducing
 `parse_benchmark_catalog_result` to 43 lines and `map_attribution_response` to 36 lines while
 keeping the current longest-function baseline at 53 lines.
+The latest portfolio and core snapshot slice split portfolio insight source loading and current
+position projection out of tied 53-line functions, reducing `get_portfolio_insights` to 27 lines
+and `extract_current_positions` to 19 lines while keeping the current longest-function baseline at
+53 lines.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -100,16 +104,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
-| 2 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
-| 3 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
-| 4 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
-| 5 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 6 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
-| 7 | 52 | `get_workbench_analytics` | `src/app/services/workbench_service.py` |
-| 8 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 9 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
-| 10 | 52 | `_build_readiness_indicators` | `src/app/services/portfolio_service.py` |
+| 1 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
+| 2 | 53 | `_build_source_metrics` | `src/app/services/advisor_brief_service.py` |
+| 3 | 52 | `request_with_retry` | `src/app/clients/http_resilience.py` |
+| 4 | 52 | `get_workbench_risk_concentration` | `src/app/routers/workbench_risk_concentration.py` |
+| 5 | 52 | `get_workbench_analytics` | `src/app/services/workbench_service.py` |
+| 6 | 52 | `_unpack_rebalance_payload` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 7 | 52 | `_load_overview_enrichment` | `src/app/services/workbench_service.py` |
+| 8 | 52 | `_build_readiness_indicators` | `src/app/services/portfolio_service.py` |
+| 9 | 51 | `request_proof_pack_pm_memo` | `src/app/services/dpm_proof_pack_service.py` |
+| 10 | 51 | `get_portfolio_readiness` | `src/app/services/portfolio_service.py` |
 
 ## Existing Blocking Gates
 
@@ -146,10 +150,14 @@ Most recent local evidence:
 14. Current focused branch: risk attribution module tests passed with 4 tests.
 15. Current focused branch: risk attribution service tests passed with 5 selected tests.
 16. Current focused branch: risk attribution router integration test passed with 1 selected test.
-17. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
-18. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
-19. Coverage: 93.36%.
-20. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+17. Current focused branch: portfolio insight service tests passed with 6 selected tests.
+18. Current focused branch: portfolio insight service/router tests passed with 8 selected tests.
+19. Current focused branch: current-position unit tests passed with 5 selected tests.
+20. Current focused branch: current-position router tests passed with 2 selected tests.
+21. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+22. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+23. Coverage: 93.36%.
+24. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
