@@ -128,7 +128,9 @@ query metadata extraction and DPM wave PM memo payload/response construction ext
 latest risk summary mapper slice split period and metric-state mapping out of the response
 composer. Advisor-brief workflow-pack run loading now separates source-profile retrieval from
 run-posture projection. Performance attribution trend now delegates row orchestration to a
-focused helper. The current longest functions are 56-line orchestration and mapper helpers.
+focused helper. Benchmark-context loading now separates concurrent task construction from
+gathered-result resolution. The current longest functions are 56-line orchestration and mapper
+helpers.
 
 ## Progressive Enforcement
 
