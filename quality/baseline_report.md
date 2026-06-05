@@ -149,7 +149,7 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current branch: `make check` passed after commit `72df0aa` with ruff, format check,
+1. Current branch: `make check` passed after commit `ec5492a` with ruff, format check,
    monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
    unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
