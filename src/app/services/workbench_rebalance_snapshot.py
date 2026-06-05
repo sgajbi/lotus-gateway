@@ -9,6 +9,7 @@ from app.contracts.workbench import (
     WorkbenchRebalanceRunSummary,
     WorkbenchRebalanceSnapshot,
 )
+from app.services.upstream_envelope import safe_upstream_detail
 
 
 def parse_rebalance_snapshot(
@@ -82,7 +83,10 @@ def _unpack_rebalance_payload(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code=f"HTTP_{dpm_status}",
-            detail=str(dpm_payload.get("detail", dpm_payload)),
+            detail=safe_upstream_detail(
+                dpm_payload,
+                default_detail="rebalance snapshot unavailable",
+            ),
         )
         return None
 
@@ -247,7 +251,10 @@ def _unpack_rebalance_supportability_summary(
             partial_failures=partial_failures,
             warnings=warnings,
             error_code=f"SUPPORTABILITY_HTTP_{supportability_status}",
-            detail=str(supportability_summary.get("detail", supportability_summary)),
+            detail=safe_upstream_detail(
+                supportability_summary,
+                default_detail="rebalance supportability unavailable",
+            ),
         )
         return None
     return supportability_summary

@@ -252,12 +252,27 @@ def test_parse_performance_snapshot_handles_http_error_payload():
     partial_failures = []
     warnings = []
     parsed = parse_performance_snapshot(
-        (503, {"detail": "lotus-performance down"}),
+        (
+            503,
+            {
+                "detail": {
+                    "code": "PERFORMANCE_DOWN",
+                    "message": "lotus-performance down",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
         partial_failures,
         warnings,
     )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_503"
+    assert partial_failures[0].detail == "PERFORMANCE_DOWN: lotus-performance down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_performance_snapshot_handles_non_dict_period_map():
@@ -319,9 +334,28 @@ def test_parse_dpm_snapshot_handles_invalid_payload_type():
 def test_parse_dpm_snapshot_handles_http_error():
     partial_failures = []
     warnings = []
-    parsed = parse_rebalance_snapshot((500, {"detail": "dpm down"}), partial_failures, warnings)
+    parsed = parse_rebalance_snapshot(
+        (
+            500,
+            {
+                "detail": {
+                    "code": "DPM_DOWN",
+                    "message": "dpm down",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
+        partial_failures,
+        warnings,
+    )
     assert parsed is None
     assert partial_failures[0].error_code == "HTTP_500"
+    assert partial_failures[0].detail == "DPM_DOWN: dpm down"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_dpm_snapshot_with_no_items_returns_not_available():
@@ -391,12 +425,27 @@ def test_parse_dpm_snapshot_records_supportability_summary_failure():
         (200, {"items": [{"status": "READY"}]}),
         partial_failures,
         warnings,
-        supportability_result=(503, {"detail": "summary unavailable"}),
+        supportability_result=(
+            503,
+            {
+                "detail": {
+                    "code": "SUPPORTABILITY_DOWN",
+                    "message": "summary unavailable",
+                    "debug_payload": {
+                        "client_name": "Private Client",
+                        "token": "secret-token",
+                    },
+                }
+            },
+        ),
     )
     assert parsed is not None
     assert parsed.supportability is None
     assert warnings == ["MANAGE_REBALANCE_SUPPORTABILITY_UNAVAILABLE"]
     assert partial_failures[0].error_code == "SUPPORTABILITY_HTTP_503"
+    assert partial_failures[0].detail == "SUPPORTABILITY_DOWN: summary unavailable"
+    assert "Private Client" not in str(partial_failures[0])
+    assert "secret-token" not in str(partial_failures[0])
 
 
 def test_parse_dpm_snapshot_merges_supportability_counts_from_summary_root():
