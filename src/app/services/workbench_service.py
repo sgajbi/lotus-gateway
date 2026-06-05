@@ -24,6 +24,7 @@ from app.contracts.workbench import (
     WorkbenchSandboxStateResponse,
     WorkbenchTopChange,
 )
+from app.services.upstream_envelope import raise_product_safe_gateway_unavailable_error
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
     build_workbench_return_metrics,
@@ -246,11 +247,13 @@ class WorkbenchService:
             ttl_hours=ttl_hours,
             correlation_id=correlation_id,
         )
-        if status_code >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core simulation session create failed: {payload}",
-            )
+        raise_product_safe_gateway_unavailable_error(
+            status_code,
+            payload,
+            source_service="lotus-core",
+            error_code="LOTUS_CORE_SIMULATION_SESSION_CREATE_FAILED",
+            default_detail="Lotus Core simulation session creation failed.",
+        )
 
         session_payload = payload.get("session", {})
         session_id = str(session_payload.get("session_id", ""))
@@ -285,11 +288,13 @@ class WorkbenchService:
             changes=changes,
             correlation_id=correlation_id,
         )
-        if status_code >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core simulation change apply failed: {payload}",
-            )
+        raise_product_safe_gateway_unavailable_error(
+            status_code,
+            payload,
+            source_service="lotus-core",
+            error_code="LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
+            default_detail="Lotus Core simulation change application failed.",
+        )
 
         session_version = int(payload.get("version", 1))
         projected_positions, projected_summary = await self._load_projected_state(
@@ -550,12 +555,12 @@ class WorkbenchService:
         )
 
     def _raise_for_lotus_core_error(self, upstream_status: int, payload: dict[str, Any]) -> None:
-        if upstream_status < status.HTTP_400_BAD_REQUEST:
-            return
-        detail = str(payload.get("detail", payload))
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"lotus-core core snapshot unavailable: {detail}",
+        raise_product_safe_gateway_unavailable_error(
+            upstream_status,
+            payload,
+            source_service="lotus-core",
+            error_code="LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
+            default_detail="Lotus Core snapshot is unavailable.",
         )
 
     async def _load_projected_state(
@@ -571,9 +576,12 @@ class WorkbenchService:
             correlation_id=correlation_id,
         )
         if positions_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core projected positions unavailable: {positions_payload}",
+            raise_product_safe_gateway_unavailable_error(
+                positions_status,
+                positions_payload,
+                source_service="lotus-core",
+                error_code="LOTUS_CORE_PROJECTED_POSITIONS_UNAVAILABLE",
+                default_detail="Lotus Core projected positions are unavailable.",
             )
 
         summary_status, summary_payload = await self._lotus_core_query_client.get_projected_summary(
@@ -581,9 +589,12 @@ class WorkbenchService:
             correlation_id=correlation_id,
         )
         if summary_status >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"lotus-core projected summary unavailable: {summary_payload}",
+            raise_product_safe_gateway_unavailable_error(
+                summary_status,
+                summary_payload,
+                source_service="lotus-core",
+                error_code="LOTUS_CORE_PROJECTED_SUMMARY_UNAVAILABLE",
+                default_detail="Lotus Core projected summary is unavailable.",
             )
 
         return parse_projected_state(

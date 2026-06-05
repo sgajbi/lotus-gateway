@@ -215,6 +215,30 @@ def raise_product_safe_service_error(
     )
 
 
+def raise_product_safe_gateway_unavailable_error(
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    *,
+    source_service: str,
+    error_code: str,
+    default_detail: str,
+) -> None:
+    """Raise a product-safe 502 for unavailable upstream-backed Gateway routes."""
+
+    if upstream_status < status.HTTP_400_BAD_REQUEST:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail={
+            "source_service": source_service,
+            "upstream_status": upstream_status,
+            "error_code": error_code,
+            "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
+        },
+    )
+
+
 def raise_gateway_mapped_service_error(
     upstream_status: int,
     upstream_payload: dict[str, Any],

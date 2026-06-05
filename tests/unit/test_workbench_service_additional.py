@@ -188,9 +188,21 @@ def _build_service() -> tuple[
 def test_raise_for_lotus_core_error_includes_upstream_detail():
     service, _, _, _ = _build_service()
     with pytest.raises(HTTPException) as exc:
-        service._raise_for_lotus_core_error(500, {"detail": "downstream unavailable"})
+        service._raise_for_lotus_core_error(
+            500,
+            {
+                "detail": "downstream unavailable",
+                "portfolio_id": "PB_SENSITIVE",
+                "stack_trace": "internal traceback",
+            },
+        )
     assert exc.value.status_code == 502
-    assert "downstream unavailable" in str(exc.value.detail)
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
+        "detail": "downstream unavailable",
+    }
 
 
 def test_parse_lotus_core_snapshot_invalid_structure_raises():
@@ -461,18 +473,36 @@ def test_extract_current_positions_computes_weight_and_sorts():
 async def test_load_projected_state_raises_when_positions_unavailable():
     service, pas, _, _ = _build_service()
     pas.positions_status = 503
+    pas.positions_payload = {
+        "detail": "projection failed",
+        "account_number": "ACC-SENSITIVE",
+        "raw_positions": [{"security_id": "EQ_1"}],
+    }
     with pytest.raises(HTTPException) as exc:
         await service._load_projected_state("sess-1", "corr-1")
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 503,
+        "error_code": "LOTUS_CORE_PROJECTED_POSITIONS_UNAVAILABLE",
+        "detail": "projection failed",
+    }
 
 
 @pytest.mark.asyncio
 async def test_load_projected_state_raises_when_summary_unavailable():
     service, pas, _, _ = _build_service()
     pas.summary_status = 503
+    pas.summary_payload = {"message": "summary failed", "client_name": "Sensitive Client"}
     with pytest.raises(HTTPException) as exc:
         await service._load_projected_state("sess-1", "corr-1")
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 503,
+        "error_code": "LOTUS_CORE_PROJECTED_SUMMARY_UNAVAILABLE",
+        "detail": "summary failed",
+    }
 
 
 @pytest.mark.asyncio
@@ -537,15 +567,29 @@ def test_parse_projected_state_handles_non_list_positions_payload():
 async def test_create_sandbox_session_raises_on_pas_error():
     service, pas, _, _ = _build_service()
     pas.create_status = 500
+    pas.create_payload = {
+        "error": "session create failed",
+        "session": {"session_id": "sess-sensitive"},
+    }
     with pytest.raises(HTTPException) as exc:
         await service.create_sandbox_session("P1", "corr-1", created_by=None, ttl_hours=1)
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SIMULATION_SESSION_CREATE_FAILED",
+        "detail": "session create failed",
+    }
 
 
 @pytest.mark.asyncio
 async def test_apply_sandbox_changes_raises_on_pas_error():
     service, pas, _, _ = _build_service()
     pas.change_status = 500
+    pas.change_payload = {
+        "detail": {"code": "change_failed", "message": "change apply failed"},
+        "changes": [{"security_id": "EQ_SENSITIVE"}],
+    }
     with pytest.raises(HTTPException) as exc:
         await service.apply_sandbox_changes(
             portfolio_id="P1",
@@ -555,6 +599,12 @@ async def test_apply_sandbox_changes_raises_on_pas_error():
             evaluate_policy=False,
         )
     assert exc.value.status_code == 502
+    assert exc.value.detail == {
+        "source_service": "lotus-core",
+        "upstream_status": 500,
+        "error_code": "LOTUS_CORE_SIMULATION_CHANGE_APPLY_FAILED",
+        "detail": "change_failed: change apply failed",
+    }
 
 
 @pytest.mark.asyncio
