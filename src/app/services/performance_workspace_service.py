@@ -717,6 +717,21 @@ class PerformanceWorkspaceService:
             benchmark_code=benchmark_code,
             include_benchmark_catalog=True,
         )
+        return self._assemble_horizon_comparison_request_context(
+            overview_state=overview_state,
+            report_window=report_window,
+            chart_frequency_context=chart_frequency_context,
+            benchmark_context=benchmark_context,
+        )
+
+    def _assemble_horizon_comparison_request_context(
+        self,
+        *,
+        overview_state: WorkspaceOverviewState,
+        report_window: WorkspaceReportWindow,
+        chart_frequency_context: HorizonComparisonChartFrequencyContext,
+        benchmark_context: WorkspaceBenchmarkContext,
+    ) -> HorizonComparisonRequestContext:
         return HorizonComparisonRequestContext(
             overview=overview_state.overview,
             warnings=overview_state.warnings,
