@@ -50,51 +50,60 @@ def _unpack_rebalance_payload(
     warnings: list[str],
 ) -> dict[str, Any] | None:
     if isinstance(result, Exception):
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="lotus-manage",
-                error_code="UPSTREAM_EXCEPTION",
-                detail=str(result),
-            )
+        _record_rebalance_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="UPSTREAM_EXCEPTION",
+            detail=str(result),
         )
-        warnings.append("MANAGE_REBALANCE_UNAVAILABLE")
         return None
 
     if not isinstance(result, tuple) or len(result) != 2:
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="lotus-manage",
-                error_code="INVALID_UPSTREAM_RESPONSE",
-                detail=f"unexpected result type: {type(result)}",
-            )
+        _record_rebalance_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="INVALID_UPSTREAM_RESPONSE",
+            detail=f"unexpected result type: {type(result)}",
         )
-        warnings.append("MANAGE_REBALANCE_UNAVAILABLE")
         return None
 
     dpm_status, dpm_payload = result
     if not isinstance(dpm_payload, dict):
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="lotus-manage",
-                error_code="INVALID_UPSTREAM_PAYLOAD",
-                detail=f"unexpected payload type: {type(dpm_payload)}",
-            )
+        _record_rebalance_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code="INVALID_UPSTREAM_PAYLOAD",
+            detail=f"unexpected payload type: {type(dpm_payload)}",
         )
-        warnings.append("MANAGE_REBALANCE_UNAVAILABLE")
         return None
 
     if dpm_status >= status.HTTP_400_BAD_REQUEST:
-        partial_failures.append(
-            WorkbenchPartialFailure(
-                source_service="lotus-manage",
-                error_code=f"HTTP_{dpm_status}",
-                detail=str(dpm_payload.get("detail", dpm_payload)),
-            )
+        _record_rebalance_unavailable(
+            partial_failures=partial_failures,
+            warnings=warnings,
+            error_code=f"HTTP_{dpm_status}",
+            detail=str(dpm_payload.get("detail", dpm_payload)),
         )
-        warnings.append("MANAGE_REBALANCE_UNAVAILABLE")
         return None
 
     return dpm_payload
+
+
+def _record_rebalance_unavailable(
+    *,
+    partial_failures: list[WorkbenchPartialFailure],
+    warnings: list[str],
+    error_code: str,
+    detail: str,
+) -> None:
+    partial_failures.append(
+        WorkbenchPartialFailure(
+            source_service="lotus-manage",
+            error_code=error_code,
+            detail=detail,
+        )
+    )
+    warnings.append("MANAGE_REBALANCE_UNAVAILABLE")
 
 
 def _latest_rebalance_run(items: list[Any]) -> dict[str, Any] | None:
