@@ -51,6 +51,8 @@ The latest contribution slice split detail-vs-summary merge selection policy out
 contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
+The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
+drawdown query dependency.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -86,13 +88,13 @@ yet enforced unless they are already covered by existing repo-native gates.
 | 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
 | 2 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
 | 3 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 54 | `build_risk_drawdown_query` | `src/app/routers/workbench_risk_drawdown.py` |
-| 5 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
-| 6 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
-| 7 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
-| 8 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
-| 9 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 10 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 4 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
+| 5 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 6 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 7 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
+| 8 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 9 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 10 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
 
 ## Existing Blocking Gates
 
