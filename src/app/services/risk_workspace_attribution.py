@@ -41,6 +41,16 @@ class AttributionMappingResult:
     partial_failures: list[WorkbenchPartialFailure]
 
 
+@dataclass(frozen=True)
+class AttributionResponseParts:
+    period_results: list[WorkbenchRiskAttributionPeriodResult]
+    supportability: list[WorkbenchRiskSupportabilityItem]
+    state: RiskModuleState
+    warnings: list[str]
+    partial_failures: list[WorkbenchPartialFailure]
+    upstream_metadata: Any
+
+
 def normalize_risk_attribution_type(value: str) -> str:
     return _normalize_risk_attribution_type(value)
 
@@ -60,47 +70,30 @@ def map_attribution_response(
     grouping_dimension: str,
     upstream_payload: dict[str, Any],
 ) -> WorkbenchRiskAttributionResponse:
-    results = upstream_payload.get("results")
-    upstream_metadata = upstream_payload.get("metadata")
-    mapping = _map_attribution_period_results(
-        results=results,
-        attribution_type=attribution_type,
-        grouping_dimension=grouping_dimension,
-    )
-    supportability = build_attribution_supportability(
+    parts = _build_attribution_response_parts(
+        upstream_payload=upstream_payload,
         benchmark_code=benchmark_code,
         attribution_type=attribution_type,
         grouping_dimension=grouping_dimension,
     )
-    _append_source_calculation_supportability(
-        supportability=supportability,
-        upstream_payload=upstream_payload,
-    )
-    state, warnings, partial_failures = _resolve_attribution_state(
-        period_results=mapping.periods,
-        supportability=supportability,
-        warnings=mapping.warnings,
-        partial_failures=mapping.partial_failures,
-    )
-
     return WorkbenchRiskAttributionResponse(
         correlation_id=correlation_id,
         portfolio_id=portfolio_id,
         period=period,
         as_of_date=as_of_date,
         benchmark_code=benchmark_code,
-        state=state,
+        state=parts.state,
         payload=_build_attribution_payload(
-            period_results=mapping.periods,
+            period_results=parts.period_results,
             benchmark_code=benchmark_code,
             attribution_type=attribution_type,
             grouping_dimension=grouping_dimension,
-            upstream_metadata=upstream_metadata,
+            upstream_metadata=parts.upstream_metadata,
         ),
-        supportability=supportability,
-        warnings=sorted(set(warnings)),
-        partial_failures=partial_failures,
-        metadata=_build_attribution_metadata(upstream_metadata=upstream_metadata),
+        supportability=parts.supportability,
+        warnings=sorted(set(parts.warnings)),
+        partial_failures=parts.partial_failures,
+        metadata=_build_attribution_metadata(upstream_metadata=parts.upstream_metadata),
     )
 
 
@@ -185,6 +178,43 @@ def unavailable_attribution(
             )
         ],
         metadata=risk_metadata(input_mode="stateful", cache_status="miss"),
+    )
+
+
+def _build_attribution_response_parts(
+    *,
+    upstream_payload: dict[str, Any],
+    benchmark_code: str | None,
+    attribution_type: str,
+    grouping_dimension: str,
+) -> AttributionResponseParts:
+    mapping = _map_attribution_period_results(
+        results=upstream_payload.get("results"),
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+    )
+    supportability = build_attribution_supportability(
+        benchmark_code=benchmark_code,
+        attribution_type=attribution_type,
+        grouping_dimension=grouping_dimension,
+    )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
+    state, warnings, partial_failures = _resolve_attribution_state(
+        period_results=mapping.periods,
+        supportability=supportability,
+        warnings=mapping.warnings,
+        partial_failures=mapping.partial_failures,
+    )
+    return AttributionResponseParts(
+        period_results=mapping.periods,
+        supportability=supportability,
+        state=state,
+        warnings=warnings,
+        partial_failures=partial_failures,
+        upstream_metadata=upstream_payload.get("metadata"),
     )
 
 
