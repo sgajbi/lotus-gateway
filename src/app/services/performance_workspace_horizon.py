@@ -97,6 +97,33 @@ async def fetch_workspace_horizon_dependencies(
             chart_frequency=chart_frequency,
         )
 
+    return await fetch_explicit_horizon_workspace_summary(
+        analytics_client=analytics_client,
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        report_end_date=report_end_date,
+        report_start_date=report_start_date,
+        period=period,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        portfolio_currency=portfolio_currency,
+        chart_frequency=chart_frequency,
+    )
+
+
+async def fetch_explicit_horizon_workspace_summary(
+    *,
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    portfolio_id: str,
+    correlation_id: str,
+    report_end_date: str,
+    report_start_date: str | None,
+    period: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    portfolio_currency: str,
+    chart_frequency: str,
+) -> GatheredResult:
     horizon_periods = [
         {
             "period": period,
