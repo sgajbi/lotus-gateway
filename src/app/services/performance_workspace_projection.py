@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.contracts.performance_workspace import (
     PerformanceChartPoint,
     PerformanceWorkspaceDetailsResponse,
@@ -89,34 +91,7 @@ def project_portfolio_performance_snapshot(
     portfolio_return_pct = workspace.net_performance.portfolio_return_pct
     benchmark_return_pct = workspace.net_performance.benchmark_return_pct
     excess_return_pct = workspace.net_performance.active_return_pct
-    sparkline = [
-        PortfolioPerformanceSnapshotPoint(
-            as_of_date=snapshot_point_as_of_date(point),
-            portfolio_return_pct=point.portfolio_return_pct,
-            benchmark_return_pct=point.benchmark_return_pct,
-            excess_return_pct=point.active_return_pct,
-        )
-        for point in workspace.net_chart
-    ]
-    unavailable = None
-    if (
-        portfolio_return_pct is None
-        and benchmark_return_pct is None
-        and excess_return_pct is None
-        and not sparkline
-    ):
-        unavailable = PortfolioPerformanceSnapshotUnavailable(
-            title="Performance data unavailable",
-            detail=(
-                "Performance snapshot requires valuation history, cashflow history, "
-                "and a selected reporting period."
-            ),
-            requirements=[
-                "valuation history",
-                "cashflow history",
-                "selected reporting period",
-            ],
-        )
+    sparkline = project_performance_snapshot_sparkline(workspace.net_chart)
     return PortfolioPerformanceSnapshotResponse(
         correlation_id=workspace.correlation_id,
         contract_version=workspace.contract_version,
@@ -130,13 +105,63 @@ def project_portfolio_performance_snapshot(
         benchmark_return_pct=benchmark_return_pct,
         excess_return_pct=excess_return_pct,
         sparkline=sparkline,
-        unavailable=unavailable,
+        unavailable=performance_snapshot_unavailable(
+            portfolio_return_pct=portfolio_return_pct,
+            benchmark_return_pct=benchmark_return_pct,
+            excess_return_pct=excess_return_pct,
+            sparkline=sparkline,
+        ),
         warnings=workspace.warnings,
-        partial_failures=[
-            PortfolioPartialFailure(**failure.model_dump())
-            for failure in workspace.partial_failures
+        partial_failures=project_performance_snapshot_failures(workspace.partial_failures),
+    )
+
+
+def project_performance_snapshot_sparkline(
+    chart_points: list[PerformanceChartPoint],
+) -> list[PortfolioPerformanceSnapshotPoint]:
+    return [
+        PortfolioPerformanceSnapshotPoint(
+            as_of_date=snapshot_point_as_of_date(point),
+            portfolio_return_pct=point.portfolio_return_pct,
+            benchmark_return_pct=point.benchmark_return_pct,
+            excess_return_pct=point.active_return_pct,
+        )
+        for point in chart_points
+    ]
+
+
+def performance_snapshot_unavailable(
+    *,
+    portfolio_return_pct: Any,
+    benchmark_return_pct: Any,
+    excess_return_pct: Any,
+    sparkline: list[PortfolioPerformanceSnapshotPoint],
+) -> PortfolioPerformanceSnapshotUnavailable | None:
+    if (
+        portfolio_return_pct is not None
+        or benchmark_return_pct is not None
+        or excess_return_pct is not None
+        or sparkline
+    ):
+        return None
+    return PortfolioPerformanceSnapshotUnavailable(
+        title="Performance data unavailable",
+        detail=(
+            "Performance snapshot requires valuation history, cashflow history, "
+            "and a selected reporting period."
+        ),
+        requirements=[
+            "valuation history",
+            "cashflow history",
+            "selected reporting period",
         ],
     )
+
+
+def project_performance_snapshot_failures(
+    partial_failures: list[Any],
+) -> list[PortfolioPartialFailure]:
+    return [PortfolioPartialFailure(**failure.model_dump()) for failure in partial_failures]
 
 
 def snapshot_point_as_of_date(point: PerformanceChartPoint) -> str:
