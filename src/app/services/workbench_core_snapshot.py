@@ -11,58 +11,89 @@ from app.precision_policy import quantize_money, quantize_performance, quantize_
 
 
 def extract_current_positions(snapshot_payload: dict[str, Any]) -> list[WorkbenchPositionView]:
-    sections_payload = snapshot_payload.get("sections", {})
-    if not isinstance(sections_payload, dict):
+    baseline_rows, enrichment_rows, totals_payload = _current_position_inputs(snapshot_payload)
+    if baseline_rows is None:
         return []
-    baseline_rows = sections_payload.get("positions_baseline", [])
-    enrichment_rows = sections_payload.get("instrument_enrichment", [])
-    totals_payload = sections_payload.get("portfolio_totals", {})
-
-    if not isinstance(baseline_rows, list):
-        return []
-    if not isinstance(enrichment_rows, list):
-        enrichment_rows = []
-    if not isinstance(totals_payload, dict):
-        totals_payload = {}
-
     total_market_value = _optional_money(totals_payload.get("baseline_total_market_value_base"))
     if total_market_value is None:
         total_market_value = 0.0
+    enrichment_by_security_id = _enrichment_by_security_id(enrichment_rows)
+    rows: list[WorkbenchPositionView] = []
+    for item in baseline_rows:
+        position = _current_position_from_baseline_row(
+            item=item,
+            enrichment_by_security_id=enrichment_by_security_id,
+            total_market_value=total_market_value,
+        )
+        if position is not None:
+            rows.append(position)
+    rows.sort(key=lambda row: row.security_id)
+    return rows
 
-    enrichment_by_security_id = {
+
+def _current_position_inputs(
+    snapshot_payload: dict[str, Any],
+) -> tuple[list[Any] | None, list[Any], dict[str, Any]]:
+    sections_payload = snapshot_payload.get("sections", {})
+    if not isinstance(sections_payload, dict):
+        return None, [], {}
+    baseline_rows = sections_payload.get("positions_baseline", [])
+    enrichment_rows = sections_payload.get("instrument_enrichment", [])
+    totals_payload = sections_payload.get("portfolio_totals", {})
+    return (
+        baseline_rows if isinstance(baseline_rows, list) else None,
+        enrichment_rows if isinstance(enrichment_rows, list) else [],
+        totals_payload if isinstance(totals_payload, dict) else {},
+    )
+
+
+def _enrichment_by_security_id(
+    enrichment_rows: list[Any],
+) -> dict[str, dict[str, Any]]:
+    return {
         str(item.get("security_id", "")): item
         for item in enrichment_rows
         if isinstance(item, dict) and item.get("security_id") is not None
     }
-    rows: list[WorkbenchPositionView] = []
-    for item in baseline_rows:
-        if not isinstance(item, dict):
-            continue
-        security_id = str(item.get("security_id", "UNKNOWN"))
-        enrichment = enrichment_by_security_id.get(security_id, {})
-        market_value_base = _optional_money(item.get("market_value_base"))
-        weight_ratio = item.get("weight")
-        weight_pct = _ratio_to_pct(weight_ratio)
-        if weight_pct is None and market_value_base is not None and total_market_value > 0:
-            weight_pct = _as_number(
-                quantize_performance((market_value_base / total_market_value) * 100.0)
-            )
-        rows.append(
-            WorkbenchPositionView(
-                security_id=security_id,
-                instrument_name=str(enrichment.get("instrument_name", security_id)),
-                asset_class=(
-                    str(enrichment["asset_class"])
-                    if enrichment.get("asset_class") is not None
-                    else None
-                ),
-                quantity=_as_number(quantize_quantity(item.get("quantity", 0.0))),
-                market_value_base=market_value_base,
-                weight_pct=weight_pct,
-            )
-        )
-    rows.sort(key=lambda row: row.security_id)
-    return rows
+
+
+def _current_position_from_baseline_row(
+    *,
+    item: Any,
+    enrichment_by_security_id: dict[str, dict[str, Any]],
+    total_market_value: float,
+) -> WorkbenchPositionView | None:
+    if not isinstance(item, dict):
+        return None
+    security_id = str(item.get("security_id", "UNKNOWN"))
+    enrichment = enrichment_by_security_id.get(security_id, {})
+    market_value_base = _optional_money(item.get("market_value_base"))
+    return WorkbenchPositionView(
+        security_id=security_id,
+        instrument_name=str(enrichment.get("instrument_name", security_id)),
+        asset_class=(
+            str(enrichment["asset_class"]) if enrichment.get("asset_class") is not None else None
+        ),
+        quantity=_as_number(quantize_quantity(item.get("quantity", 0.0))),
+        market_value_base=market_value_base,
+        weight_pct=_current_position_weight_pct(
+            item=item,
+            market_value_base=market_value_base,
+            total_market_value=total_market_value,
+        ),
+    )
+
+
+def _current_position_weight_pct(
+    *,
+    item: dict[str, Any],
+    market_value_base: float | None,
+    total_market_value: float,
+) -> float | None:
+    weight_pct = _ratio_to_pct(item.get("weight"))
+    if weight_pct is None and market_value_base is not None and total_market_value > 0:
+        return _as_number(quantize_performance((market_value_base / total_market_value) * 100.0))
+    return weight_pct
 
 
 def parse_lotus_core_snapshot(
