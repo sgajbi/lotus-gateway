@@ -136,6 +136,7 @@ separates frequency-row selection, peer-row validation, point construction, and 
 calculation. Shell-bootstrap section construction now delegates supportability, freshness,
 evidence, versioning, and caching assembly to focused helpers. Portfolio performance snapshot
 projection now delegates sparkline, unavailable-state, and partial-failure mapping to focused
+helpers. Contribution summary merging now delegates detail-vs-summary selection policy to reusable
 helpers. The current longest functions are 54-line orchestration and mapper helpers.
 
 ## Progressive Enforcement
