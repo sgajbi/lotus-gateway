@@ -341,6 +341,29 @@ def parse_horizon_comparison_result(
     warnings: list[str],
     partial_failures: list[WorkbenchPartialFailure],
 ) -> tuple[list[PerformanceHorizonComparisonRow], str | None]:
+    results_by_period = _extract_horizon_results_by_period(
+        result=result,
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    if results_by_period is None:
+        return [], None
+
+    return build_horizon_comparison_rows(
+        results_by_period=results_by_period,
+        requested_period=requested_period,
+        requested_report_start_date=requested_report_start_date,
+        requested_report_end_date=requested_report_end_date,
+        detail_basis=detail_basis,
+    )
+
+
+def _extract_horizon_results_by_period(
+    *,
+    result: GatheredResult,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> dict[str, Any] | None:
     if isinstance(result, BaseException):
         record_horizon_upstream_failure(
             warnings=warnings,
@@ -348,12 +371,12 @@ def parse_horizon_comparison_result(
             error_code="UPSTREAM_EXCEPTION",
             detail=str(result),
         )
-        return [], None
+        return None
 
     status_code, payload = result
     if not isinstance(payload, dict):
         warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-        return [], None
+        return None
 
     propagate_gateway_horizon_diagnostics(
         payload=payload,
@@ -367,20 +390,13 @@ def parse_horizon_comparison_result(
             error_code=f"HTTP_{status_code}",
             detail=safe_upstream_detail(payload, default_detail="horizon comparison failed"),
         )
-        return [], None
+        return None
 
     results_by_period = payload.get("results_by_period", {})
     if not isinstance(results_by_period, dict) or not results_by_period:
         warnings.append("PERFORMANCE_HORIZON_COMPARISON_INVALID")
-        return [], None
-
-    return build_horizon_comparison_rows(
-        results_by_period=results_by_period,
-        requested_period=requested_period,
-        requested_report_start_date=requested_report_start_date,
-        requested_report_end_date=requested_report_end_date,
-        detail_basis=detail_basis,
-    )
+        return None
+    return cast(dict[str, Any], results_by_period)
 
 
 def record_horizon_upstream_failure(
