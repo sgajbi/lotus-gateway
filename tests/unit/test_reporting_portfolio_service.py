@@ -217,9 +217,35 @@ async def test_reporting_portfolio_service_maps_upstream_errors(
     message: str,
 ) -> None:
     reporting_client = _ReportingClient()
-    reporting_client.snapshot_response = (503, {"detail": "snapshot unavailable"})
-    reporting_client.summary_response = (503, {"detail": "summary unavailable"})
-    reporting_client.review_response = (503, {"detail": "review unavailable"})
+    reporting_client.snapshot_response = (
+        503,
+        {
+            "detail": "snapshot unavailable",
+            "client_name": "Private Client",
+            "token": "secret-token",
+        },
+    )
+    reporting_client.summary_response = (
+        503,
+        {
+            "detail": {
+                "code": "SUMMARY_UNAVAILABLE",
+                "message": "summary unavailable",
+                "debug_payload": {
+                    "client_name": "Private Client",
+                    "token": "secret-token",
+                },
+            }
+        },
+    )
+    reporting_client.review_response = (
+        503,
+        {
+            "message": "review unavailable",
+            "client_name": "Private Client",
+            "token": "secret-token",
+        },
+    )
     service = ReportingPortfolioService(
         reporting_client=reporting_client,
         contract_version="contract-test",
@@ -248,3 +274,7 @@ async def test_reporting_portfolio_service_maps_upstream_errors(
 
     assert exc_info.value.status_code == 502
     assert str(exc_info.value.detail).startswith(message)
+    assert "Private Client" not in str(exc_info.value.detail)
+    assert "secret-token" not in str(exc_info.value.detail)
+    if operation == "summary":
+        assert str(exc_info.value.detail).endswith("SUMMARY_UNAVAILABLE: summary unavailable")
