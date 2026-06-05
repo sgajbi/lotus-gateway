@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.config import settings
 from app.contracts.intake import EnvelopeResponse, LookupResponse
 from app.services.domain_client_protocols import IntakeIngestionClient, IntakeLookupClient
+from app.services.upstream_envelope import raise_product_safe_service_error
 
 
 class IntakeService:
@@ -167,8 +168,10 @@ class IntakeService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        if upstream_status >= status.HTTP_400_BAD_REQUEST:
-            detail: str | dict[str, Any] = upstream_payload
-            if not isinstance(detail, str):
-                detail = str(detail)
-            raise HTTPException(status_code=upstream_status, detail=detail)
+        raise_product_safe_service_error(
+            upstream_status,
+            upstream_payload,
+            source_service="lotus-core",
+            error_code="LOTUS_CORE_INTAKE_UPSTREAM_ERROR",
+            default_detail="lotus-core intake request failed.",
+        )

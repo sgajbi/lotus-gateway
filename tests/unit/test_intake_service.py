@@ -122,7 +122,11 @@ async def test_intake_service_raises_upstream_error():
     class _ErrorPasIngestionStub(_PasIngestionStub):
         async def ingest_portfolio_bundle(self, body, correlation_id, idempotency_key=None):  # noqa: ANN001
             _ = body, correlation_id, idempotency_key
-            return 400, {"detail": "bad request"}
+            return 400, {
+                "detail": "bad request",
+                "portfolio_id": "PB_SENSITIVE",
+                "raw_rows": [{"client_name": "Sensitive Client"}],
+            }
 
     service = IntakeService(
         lotus_core_ingestion_client=_ErrorPasIngestionStub(),
@@ -133,6 +137,12 @@ async def test_intake_service_raises_upstream_error():
         await service.ingest_portfolio_bundle(body={"x": 1}, correlation_id="corr-1")
     except HTTPException as exc:
         assert exc.status_code == 400
+        assert exc.detail == {
+            "source_service": "lotus-core",
+            "upstream_status": 400,
+            "error_code": "LOTUS_CORE_INTAKE_UPSTREAM_ERROR",
+            "detail": "bad request",
+        }
     else:
         raise AssertionError("Expected HTTPException")
 
