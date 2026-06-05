@@ -50,22 +50,16 @@ def map_rolling_response(
 ) -> WorkbenchRiskRollingResponse:
     results = upstream_payload.get("results")
     mapping = _map_rolling_period_results(results)
-    supportability = _build_rolling_supportability(
+    supportability = _rolling_supportability_from_payload(
         results=results,
         benchmark_code=benchmark_code,
         include_time_series=include_time_series,
         sharpe_fallback_reason=sharpe_fallback_reason,
-    )
-    _append_source_calculation_supportability(
-        supportability=supportability,
         upstream_payload=upstream_payload,
     )
     upstream_metadata = upstream_payload.get("metadata")
-    warnings = list(mapping.warnings)
-    partial_failures = list(mapping.partial_failures)
-    _append_rolling_sharpe_fallback(
-        warnings=warnings,
-        partial_failures=partial_failures,
+    warnings, partial_failures = _rolling_warnings_and_failures(
+        mapping=mapping,
         sharpe_fallback_reason=sharpe_fallback_reason,
     )
     state, warnings, partial_failures = _resolve_rolling_state(
@@ -91,6 +85,42 @@ def map_rolling_response(
         partial_failures=partial_failures,
         metadata=_build_rolling_metadata(upstream_metadata=upstream_metadata),
     )
+
+
+def _rolling_supportability_from_payload(
+    *,
+    results: Any,
+    benchmark_code: str | None,
+    include_time_series: bool,
+    sharpe_fallback_reason: str | None,
+    upstream_payload: dict[str, Any],
+) -> list[WorkbenchRiskSupportabilityItem]:
+    supportability = _build_rolling_supportability(
+        results=results,
+        benchmark_code=benchmark_code,
+        include_time_series=include_time_series,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+    )
+    _append_source_calculation_supportability(
+        supportability=supportability,
+        upstream_payload=upstream_payload,
+    )
+    return supportability
+
+
+def _rolling_warnings_and_failures(
+    *,
+    mapping: RollingMappingResult,
+    sharpe_fallback_reason: str | None,
+) -> tuple[list[str], list[WorkbenchPartialFailure]]:
+    warnings = list(mapping.warnings)
+    partial_failures = list(mapping.partial_failures)
+    _append_rolling_sharpe_fallback(
+        warnings=warnings,
+        partial_failures=partial_failures,
+        sharpe_fallback_reason=sharpe_fallback_reason,
+    )
+    return warnings, partial_failures
 
 
 def unavailable_rolling(
