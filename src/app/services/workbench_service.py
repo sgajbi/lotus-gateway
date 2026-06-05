@@ -8,6 +8,7 @@ from fastapi import HTTPException, status
 
 from app.config import settings
 from app.contracts.workbench import (
+    WorkbenchAnalyticsBucket,
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
     WorkbenchOverviewSummary,
@@ -21,6 +22,7 @@ from app.contracts.workbench import (
     WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
     WorkbenchSandboxStateResponse,
+    WorkbenchTopChange,
 )
 from app.services.workbench_analytics_projection import (
     build_workbench_allocation_buckets,
@@ -47,6 +49,51 @@ from app.services.workspace_client_protocols import (
     WorkbenchManageClient,
     WorkbenchPerformanceClient,
 )
+
+
+@dataclass(frozen=True)
+class WorkbenchAnalyticsParts:
+    portfolio_360: WorkbenchPortfolio360Response
+    allocation_buckets: list[WorkbenchAnalyticsBucket]
+    top_changes: list[WorkbenchTopChange]
+    portfolio_return_pct: Any
+    benchmark_return_pct: Any
+    active_return_pct: Any
+
+
+def _build_workbench_analytics_parts(
+    *,
+    portfolio_360: WorkbenchPortfolio360Response,
+    group_by: str,
+) -> WorkbenchAnalyticsParts:
+    try:
+        allocation_buckets = build_workbench_allocation_buckets(
+            group_by=group_by,
+            current_positions=portfolio_360.current_positions,
+            projected_positions=portfolio_360.projected_positions,
+        )
+        top_changes = build_workbench_top_changes(portfolio_360.projected_positions)
+        controlled_portfolio_360 = with_controlled_risk_bff_gap(portfolio_360)
+        (
+            portfolio_return_pct,
+            benchmark_return_pct,
+            active_return_pct,
+        ) = build_workbench_return_metrics(
+            controlled_portfolio_360.performance_snapshot,
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Invalid workbench analytics source payload: {exc}",
+        ) from exc
+    return WorkbenchAnalyticsParts(
+        portfolio_360=controlled_portfolio_360,
+        allocation_buckets=allocation_buckets,
+        top_changes=top_changes,
+        portfolio_return_pct=portfolio_return_pct,
+        benchmark_return_pct=benchmark_return_pct,
+        active_return_pct=active_return_pct,
+    )
 
 
 class WorkbenchService:
@@ -277,27 +324,10 @@ class WorkbenchService:
             correlation_id=correlation_id,
             session_id=session_id,
         )
-
-        try:
-            allocation_buckets = build_workbench_allocation_buckets(
-                group_by=group_by,
-                current_positions=portfolio_360.current_positions,
-                projected_positions=portfolio_360.projected_positions,
-            )
-            top_changes = build_workbench_top_changes(portfolio_360.projected_positions)
-            portfolio_360 = with_controlled_risk_bff_gap(portfolio_360)
-            (
-                portfolio_return_pct,
-                benchmark_return_pct,
-                active_return_pct,
-            ) = build_workbench_return_metrics(
-                portfolio_360.performance_snapshot,
-            )
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Invalid workbench analytics source payload: {exc}",
-            ) from exc
+        analytics_parts = _build_workbench_analytics_parts(
+            portfolio_360=portfolio_360,
+            group_by=group_by,
+        )
 
         return WorkbenchAnalyticsResponse(
             correlation_id=correlation_id,
@@ -307,13 +337,13 @@ class WorkbenchService:
             period=period,
             group_by=group_by,
             benchmark_code=benchmark_code,
-            portfolio_return_pct=portfolio_return_pct,
-            benchmark_return_pct=benchmark_return_pct,
-            active_return_pct=active_return_pct,
-            allocation_buckets=allocation_buckets,
-            top_changes=top_changes,
-            warnings=portfolio_360.warnings,
-            partial_failures=portfolio_360.partial_failures,
+            portfolio_return_pct=analytics_parts.portfolio_return_pct,
+            benchmark_return_pct=analytics_parts.benchmark_return_pct,
+            active_return_pct=analytics_parts.active_return_pct,
+            allocation_buckets=analytics_parts.allocation_buckets,
+            top_changes=analytics_parts.top_changes,
+            warnings=analytics_parts.portfolio_360.warnings,
+            partial_failures=analytics_parts.portfolio_360.partial_failures,
         )
 
     async def _load_workbench_snapshot_context(
