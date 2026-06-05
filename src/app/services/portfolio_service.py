@@ -2724,33 +2724,61 @@ class PortfolioService:
             workspace.reporting.status,
             workspace.reporting.row_count,
         )
+        return self._readiness_indicators_from_statuses(
+            holdings_status=holdings_status,
+            pricing_status=pricing_status,
+            transactions_status=transactions_status,
+            reporting_status=reporting_status,
+            detailed_view=detailed_view,
+        )
+
+    def _readiness_indicators_from_statuses(
+        self,
+        *,
+        holdings_status: str,
+        pricing_status: str,
+        transactions_status: str,
+        reporting_status: str,
+        detailed_view: bool,
+    ) -> list[PortfolioReadinessIndicator]:
+        insights_href = "#portfolio-drilldown" if detailed_view else "#portfolio-insights"
 
         return [
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="holdings",
                 label="Holdings",
                 status=holdings_status,
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+                href=insights_href,
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="pricing",
                 label="Pricing",
                 status=pricing_status,
                 href="#portfolio-attention",
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="transactions",
                 label="Transactions",
                 status=transactions_status,
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
+                href=insights_href,
             ),
-            PortfolioReadinessIndicator(
+            self._readiness_indicator(
                 key="reporting",
                 label="Reporting",
                 status=reporting_status,
                 href="#portfolio-health",
             ),
         ]
+
+    def _readiness_indicator(
+        self, *, key: str, label: str, status: str, href: str
+    ) -> PortfolioReadinessIndicator:
+        return PortfolioReadinessIndicator(
+            key=key,
+            label=label,
+            status=status,
+            href=href,
+        )
 
     def _build_portfolio_exception_summaries(
         self,
