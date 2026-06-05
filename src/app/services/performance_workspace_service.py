@@ -237,6 +237,23 @@ class WorkspaceResponseComponents:
 
 
 @dataclass(frozen=True)
+class WorkspaceResponseContextFields:
+    contract_version: str
+    as_of_date: str
+    period: str
+    report_start_date: str
+    report_end_date: str
+    chart_frequency: str
+    contribution_dimension: str
+    attribution_dimension: str
+    detail_basis: str
+    requested_chart_frequency_supported: bool
+    requested_contribution_dimension_supported: bool
+    requested_attribution_dimension_supported: bool
+    segment: str
+
+
+@dataclass(frozen=True)
 class WorkspaceDetailViews:
     contribution: ContributionSummaryView | None
     attribution: AttributionSummaryView | None
@@ -278,6 +295,30 @@ class EvidenceViewFetchState:
             for item in self.evidence_items
             if item.execution_status == "complete" and item.lineage_status == "complete"
         )
+
+
+def _workspace_response_context_fields(
+    context: WorkspaceRequestContext,
+) -> WorkspaceResponseContextFields:
+    return WorkspaceResponseContextFields(
+        contract_version=context.overview.contract_version,
+        as_of_date=context.overview.as_of_date,
+        period=context.effective_period,
+        report_start_date=context.report_start_date.isoformat(),
+        report_end_date=context.report_end_date,
+        chart_frequency=context.chart_frequency,
+        contribution_dimension=context.contribution_dimension,
+        attribution_dimension=context.attribution_dimension,
+        detail_basis=context.detail_basis,
+        requested_chart_frequency_supported=context.requested_chart_frequency_supported,
+        requested_contribution_dimension_supported=(
+            context.requested_contribution_dimension_supported
+        ),
+        requested_attribution_dimension_supported=(
+            context.requested_attribution_dimension_supported
+        ),
+        segment=context.segment,
+    )
 
 
 def _build_evidence_requested_items(
@@ -1084,10 +1125,7 @@ class PerformanceWorkspaceService:
             correlation_id=correlation_id,
             context=context,
             summary_views=summary_views,
-            benchmark_code=response_components.benchmark_code,
-            benchmark_options=response_components.benchmark_options,
-            evidence_view=response_components.evidence_view,
-            capabilities=response_components.capabilities,
+            response_components=response_components,
         )
 
     async def _build_workspace_response_parts(
@@ -1598,35 +1636,35 @@ class PerformanceWorkspaceService:
         correlation_id: str,
         context: WorkspaceRequestContext,
         summary_views: WorkspaceSummaryViews,
-        benchmark_code: str | None,
-        benchmark_options: list[PerformanceBenchmarkOptionView],
-        evidence_view: PerformanceEvidenceView | None,
-        capabilities: PerformanceWorkspaceCapabilities,
+        response_components: WorkspaceResponseComponents,
     ) -> PerformanceWorkspaceResponse:
+        context_fields = _workspace_response_context_fields(context)
         return PerformanceWorkspaceResponse(
             correlation_id=correlation_id,
-            contract_version=context.overview.contract_version,
+            contract_version=context_fields.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=context.overview.as_of_date,
-            period=context.effective_period,
-            report_start_date=context.report_start_date.isoformat(),
-            report_end_date=context.report_end_date,
-            chart_frequency=context.chart_frequency,
-            contribution_dimension=context.contribution_dimension,
-            attribution_dimension=context.attribution_dimension,
-            detail_basis=context.detail_basis,
-            requested_chart_frequency_supported=context.requested_chart_frequency_supported,
+            as_of_date=context_fields.as_of_date,
+            period=context_fields.period,
+            report_start_date=context_fields.report_start_date,
+            report_end_date=context_fields.report_end_date,
+            chart_frequency=context_fields.chart_frequency,
+            contribution_dimension=context_fields.contribution_dimension,
+            attribution_dimension=context_fields.attribution_dimension,
+            detail_basis=context_fields.detail_basis,
+            requested_chart_frequency_supported=(
+                context_fields.requested_chart_frequency_supported
+            ),
             requested_contribution_dimension_supported=(
-                context.requested_contribution_dimension_supported
+                context_fields.requested_contribution_dimension_supported
             ),
             requested_attribution_dimension_supported=(
-                context.requested_attribution_dimension_supported
+                context_fields.requested_attribution_dimension_supported
             ),
-            segment=context.segment,
-            benchmark_code=benchmark_code,
-            benchmark_options=benchmark_options,
-            capabilities=capabilities,
-            evidence_view=evidence_view,
+            segment=context_fields.segment,
+            benchmark_code=response_components.benchmark_code,
+            benchmark_options=response_components.benchmark_options,
+            capabilities=response_components.capabilities,
+            evidence_view=response_components.evidence_view,
             portfolio=context.overview.portfolio,
             overview=context.overview.overview,
             net_performance=summary_views.net_performance,
