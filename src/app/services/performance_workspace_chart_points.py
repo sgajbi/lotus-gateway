@@ -80,23 +80,24 @@ def _build_active_chart_point(
         period_end=safe_str(portfolio_row.get("period_end")),
         portfolio_return_pct=portfolio_period,
         benchmark_return_pct=benchmark_period,
-        active_return_pct=_active_return(portfolio_period, benchmark_period),
+        active_return_pct=_active_delta(portfolio_period, benchmark_period),
         cumulative_portfolio_return_pct=portfolio_cumulative,
         cumulative_benchmark_return_pct=benchmark_cumulative,
-        cumulative_active_return_pct=_active_return(
+        cumulative_active_return_pct=_active_delta(
             portfolio_cumulative,
             benchmark_cumulative,
         ),
     )
 
 
-def _active_return(
-    portfolio_return: float | None,
-    benchmark_return: float | None,
-) -> float | None:
-    if portfolio_return is None or benchmark_return is None:
+def _active_delta(
+    portfolio_value: Any,
+    benchmark_value: Any,
+) -> Any | None:
+    if portfolio_value is None or benchmark_value is None:
         return None
-    return float(quantize_performance(portfolio_return - benchmark_return))
+    quantized_active = quantize_performance(portfolio_value - benchmark_value)
+    return quantized_active.__float__()
 
 
 def _build_parsed_chart_point(
