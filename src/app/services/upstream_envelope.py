@@ -161,6 +161,14 @@ def safe_upstream_detail(payload: dict[str, Any], *, default_detail: str) -> str
         message = detail.get("message")
         if code and message:
             return f"{code}: {message}"
+        if message:
+            return str(message)
+        reason = detail.get("reason")
+        if reason:
+            return str(reason)
+        if code:
+            return str(code)
+        return default_detail
     if isinstance(detail, str):
         return detail
     if detail is not None:

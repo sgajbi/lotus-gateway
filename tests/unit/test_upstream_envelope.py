@@ -190,7 +190,14 @@ def test_safe_upstream_detail_uses_bounded_message_fields() -> None:
     assert safe_upstream_detail(
         {"detail": {"reason": "blocked"}},
         default_detail="fallback",
-    ) == str({"reason": "blocked"})
+    ) == "blocked"
+    assert (
+        safe_upstream_detail(
+            {"detail": {"portfolio_id": "PB_SENSITIVE", "stack_trace": "raw traceback"}},
+            default_detail="fallback",
+        )
+        == "fallback"
+    )
     assert safe_upstream_detail({}, default_detail="fallback") == "fallback"
 
 
