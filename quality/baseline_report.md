@@ -107,6 +107,13 @@ integration tests.
 The latest performance evidence slice split evidence-view response resolution into a focused helper,
 reducing `_build_evidence_view` from 51 lines to 33 lines and lowering the repository
 longest-function baseline to 50 lines while preserving focused evidence-view tests.
+The final PR-readiness batch split proposal list query metadata, Workbench rebalance unavailable
+payload recording, render output-format supportability, workspace-summary request context,
+benchmark catalog result parsing, chart-point row normalization, attribution result payload
+parsing, comparative-summary economics normalization, analytics async poll-attempt handling, and
+rolling risk request-context construction. These slices preserve public behavior, add focused
+tests where new branch coverage was useful, and reduce the tracked longest-function baseline from
+50 lines on `origin/main` to 49 lines at branch head `1b2a4e5`.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -120,17 +127,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
+Tracked-file verification on branch head `1b2a4e5` shows 673 tracked files under `src`, `tests`,
+`docs`, `wiki`, `.github`, and `scripts`; 443 tracked Python source files under `src/app`; and 159
+tracked Python test files under `tests`.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,183 | `src/app/services/portfolio_service.py` |
+| 1 | 3,337 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,760 | `src/app/services/performance_workspace_service.py` |
-| 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 7 | 1,581 | `src/app/services/advisor_brief_service.py` |
+| 5 | 1,836 | `src/app/services/performance_workspace_service.py` |
+| 6 | 1,607 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,606 | `src/app/contracts/performance_workspace.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
 | 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
 | 10 | 1,098 | `src/app/clients/advise_client.py` |
@@ -139,16 +150,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 50 | `parse_horizon_comparison_result` | `src/app/services/performance_workspace_horizon.py` |
-| 2 | 50 | `merge_contribution_summary_views` | `src/app/services/performance_workspace_contribution.py` |
-| 3 | 49 | `request_binary_with_retry` | `src/app/clients/http_resilience.py` |
-| 4 | 49 | `map_drawdown_response` | `src/app/services/risk_workspace_drawdown.py` |
-| 5 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 6 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 7 | 49 | `get_attribution` | `src/app/services/risk_workspace_service.py` |
-| 8 | 49 | `_reason_codes_from_payload` | `src/app/services/dpm_construction_service.py` |
-| 9 | 49 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
-| 10 | 49 | `_build_horizon_comparison_request_context` | `src/app/services/performance_workspace_service.py` |
+| 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
+| 3 | 48 | `_assemble_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 4 | 47 | `get_portfolio_positions` | `src/app/services/portfolio_service.py` |
+| 5 | 47 | `_portfolio_transaction_query_params` | `src/app/clients/lotus_core_query_client.py` |
+| 6 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
+| 7 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
+| 8 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 9 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -167,8 +178,8 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current branch: `make check` passed after commit `3237e05` with ruff, format check,
-   monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 969
+1. Current branch: `make check` passed repeatedly through commit `1b2a4e5` with ruff, format check,
+   monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 986
    unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
    retry attempt extraction.
@@ -217,10 +228,10 @@ Most recent local evidence:
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
 37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests on commit
-    `1578c98`.
-38. Current branch PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit
-    `1578c98`.
-39. Coverage: 93.47%.
+    `1b2a4e5`.
+38. Current branch PR-grade evidence: `make ci` passed with 1,193 unit, contract, and integration
+    coverage tests on commit `1b2a4e5`.
+39. Coverage: 93.67%.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
@@ -254,12 +265,12 @@ report-only quality checks. Baseline findings should be triaged before making th
 
 ## OpenAPI Gaps
 
-Current generated OpenAPI evidence:
+Current generated OpenAPI evidence on branch head `1b2a4e5`:
 
 | Check | Count |
 | --- | ---: |
-| Paths | 170 |
-| Operations | 170 |
+| Paths | 233 |
+| Operations | 247 |
 | Missing summary | 0 |
 | Missing description | 0 |
 | Missing operation ID | 0 |
