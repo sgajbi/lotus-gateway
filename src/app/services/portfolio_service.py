@@ -108,6 +108,13 @@ class PortfolioAllocationPayloads:
 
 
 @dataclass(frozen=True)
+class PortfolioAllocationResults:
+    aum_result: UpstreamResult
+    positions_result: UpstreamResult
+    allocation_result: UpstreamResult
+
+
+@dataclass(frozen=True)
 class PortfolioLiquidityPayloads:
     aum_result: UpstreamResult
     cash_balances_result: UpstreamResult
@@ -1474,11 +1481,39 @@ class PortfolioService:
         reporting_currency: str | None,
         look_through_mode: str | None,
     ) -> PortfolioAllocationPayloads:
-        (
-            aum_result,
-            positions_result,
-            allocation_result,
-        ) = await asyncio.gather(
+        results = await self._query_portfolio_allocation_results(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            reporting_currency=reporting_currency,
+            look_through_mode=look_through_mode,
+        )
+        return PortfolioAllocationPayloads(
+            aum_result=results.aum_result,
+            aum_payload=self._require_payload(
+                result=results.aum_result,
+                unavailable_detail_prefix="lotus-core aum unavailable",
+            ),
+            allocation_payload=self._require_payload(
+                result=results.allocation_result,
+                unavailable_detail_prefix="lotus-core allocation unavailable",
+            ),
+            positions_payload=self._require_payload(
+                result=results.positions_result,
+                unavailable_detail_prefix="lotus-core positions unavailable",
+            ),
+        )
+
+    async def _query_portfolio_allocation_results(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        reporting_currency: str | None,
+        look_through_mode: str | None,
+    ) -> PortfolioAllocationResults:
+        aum_result, positions_result, allocation_result = await asyncio.gather(
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
@@ -1501,20 +1536,10 @@ class PortfolioService:
                 look_through_mode=look_through_mode,
             ),
         )
-        return PortfolioAllocationPayloads(
+        return PortfolioAllocationResults(
             aum_result=aum_result,
-            aum_payload=self._require_payload(
-                result=aum_result,
-                unavailable_detail_prefix="lotus-core aum unavailable",
-            ),
-            allocation_payload=self._require_payload(
-                result=allocation_result,
-                unavailable_detail_prefix="lotus-core allocation unavailable",
-            ),
-            positions_payload=self._require_payload(
-                result=positions_result,
-                unavailable_detail_prefix="lotus-core positions unavailable",
-            ),
+            positions_result=positions_result,
+            allocation_result=allocation_result,
         )
 
     async def get_portfolio_positions(
