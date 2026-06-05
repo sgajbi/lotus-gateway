@@ -136,37 +136,13 @@ class DpmProofPackService:
             correlation_id=correlation_id,
         )
         memo_request = _proof_pack_pm_memo_request_payload(request)
-        ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
-            pack_id="dpm_pm_memo.pack",
-            version="v1",
-            environment="DEVELOPMENT",
-            caller_identity_class="INTERNAL_SERVICE",
-            workflow_surface="dpm-proof-pack-ai-evidence",
-            task_request=build_workflow_pack_task_request(
-                correlation_id=correlation_id,
-                summary=(
-                    "Generate review-gated proof-pack PM memo from bounded AI evidence "
-                    f"for {proof_pack_id}."
-                ),
-                payload=_proof_pack_pm_memo_task_payload(
-                    ai_evidence_input=ai_evidence_input,
-                    memo_request=memo_request,
-                ),
-                source_refs=_proof_pack_ai_source_refs(
-                    ai_evidence_input.payload,
-                    proof_pack_id,
-                ),
-            ),
+        ai_status, ai_payload = await _execute_proof_pack_pm_memo_workflow(
+            lotus_ai_client=lotus_ai_client,
+            proof_pack_id=proof_pack_id,
             correlation_id=correlation_id,
+            ai_evidence_input=ai_evidence_input,
+            memo_request=memo_request,
         )
-        if ai_status >= status.HTTP_400_BAD_REQUEST:
-            raise_product_safe_service_error(
-                ai_status,
-                ai_payload,
-                source_service="lotus-ai",
-                error_code="AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
-                default_detail="lotus-ai proof-pack PM memo request failed",
-            )
 
         return _proof_pack_pm_memo_response(
             correlation_id=correlation_id,
@@ -256,6 +232,48 @@ def _proof_pack_pm_memo_task_payload(
             ai_evidence_input.supportability
         ),
     }
+
+
+async def _execute_proof_pack_pm_memo_workflow(
+    *,
+    lotus_ai_client: LotusAiWorkflowClient,
+    proof_pack_id: str,
+    correlation_id: str,
+    ai_evidence_input: ProofPackAiEvidenceInput,
+    memo_request: dict[str, object],
+) -> tuple[int, dict[str, Any]]:
+    ai_status, ai_payload = await lotus_ai_client.execute_workflow_pack(
+        pack_id="dpm_pm_memo.pack",
+        version="v1",
+        environment="DEVELOPMENT",
+        caller_identity_class="INTERNAL_SERVICE",
+        workflow_surface="dpm-proof-pack-ai-evidence",
+        task_request=build_workflow_pack_task_request(
+            correlation_id=correlation_id,
+            summary=(
+                "Generate review-gated proof-pack PM memo from bounded AI evidence "
+                f"for {proof_pack_id}."
+            ),
+            payload=_proof_pack_pm_memo_task_payload(
+                ai_evidence_input=ai_evidence_input,
+                memo_request=memo_request,
+            ),
+            source_refs=_proof_pack_ai_source_refs(
+                ai_evidence_input.payload,
+                proof_pack_id,
+            ),
+        ),
+        correlation_id=correlation_id,
+    )
+    if ai_status >= status.HTTP_400_BAD_REQUEST:
+        raise_product_safe_service_error(
+            ai_status,
+            ai_payload,
+            source_service="lotus-ai",
+            error_code="AI_PROOF_PACK_PM_MEMO_UPSTREAM_ERROR",
+            default_detail="lotus-ai proof-pack PM memo request failed",
+        )
+    return ai_status, ai_payload
 
 
 def _proof_pack_pm_memo_response(
