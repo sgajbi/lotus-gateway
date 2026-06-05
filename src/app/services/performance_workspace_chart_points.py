@@ -130,41 +130,31 @@ def parse_chart_points(
     chart_frequency: str,
 ) -> list[PerformanceChartPoint]:
     normalized_frequency = chart_frequency.lower()
-    portfolio_breakdowns = portfolio_block.get("breakdowns", {})
-    benchmark_breakdowns = benchmark_block.get("breakdowns", {})
-    relative_breakdowns = relative_block.get("breakdowns", {})
-    if not isinstance(portfolio_breakdowns, dict):
-        return []
-    portfolio_rows = portfolio_breakdowns.get(normalized_frequency, [])
-    benchmark_rows = (
-        benchmark_breakdowns.get(normalized_frequency, [])
-        if isinstance(benchmark_breakdowns, dict)
-        else []
+    portfolio_rows = _frequency_rows(
+        block=portfolio_block,
+        normalized_frequency=normalized_frequency,
     )
-    relative_rows = (
-        relative_breakdowns.get(normalized_frequency, [])
-        if isinstance(relative_breakdowns, dict)
-        else []
-    )
-    if not isinstance(portfolio_rows, list):
+    if portfolio_rows is None:
         return []
+    benchmark_rows = _frequency_rows(
+        block=benchmark_block,
+        normalized_frequency=normalized_frequency,
+    )
+    relative_rows = _frequency_rows(
+        block=relative_block,
+        normalized_frequency=normalized_frequency,
+    )
     points: list[PerformanceChartPoint] = []
     for index, portfolio_row in enumerate(portfolio_rows):
         if not isinstance(portfolio_row, dict):
             continue
-        benchmark_row = benchmark_rows[index] if index < len(benchmark_rows) else {}
-        relative_row = relative_rows[index] if index < len(relative_rows) else {}
-        if not isinstance(benchmark_row, dict):
-            benchmark_row = {}
-        if not isinstance(relative_row, dict):
-            relative_row = {}
         points.append(
             _build_parsed_chart_point(
                 index=index,
                 normalized_frequency=normalized_frequency,
                 portfolio_row=portfolio_row,
-                benchmark_row=benchmark_row,
-                relative_row=relative_row,
+                benchmark_row=_peer_row_at(benchmark_rows, index),
+                relative_row=_peer_row_at(relative_rows, index),
             )
         )
     return points
