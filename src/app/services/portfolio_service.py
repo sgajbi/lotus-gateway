@@ -65,6 +65,11 @@ from app.services.portfolio_exception_summaries import (
     build_portfolio_exception_summaries,
 )
 from app.services.portfolio_insights import build_portfolio_insights
+from app.services.portfolio_position_book import (
+    build_top_positions,
+    parse_position_book_summary,
+    parse_positions,
+)
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
@@ -107,6 +112,12 @@ class PortfolioAllocationPayloads:
     aum_payload: dict[str, Any]
     positions_payload: dict[str, Any]
     allocation_payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PortfolioPositionBookPayloads:
+    aum_payload: dict[str, Any]
+    positions_payload: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -1484,8 +1495,8 @@ class PortfolioService:
             reporting_currency=reporting_currency,
             look_through_mode=look_through_mode,
         )
-        summary = self._parse_summary_from_positions(
-            payloads.aum_result,
+        summary = parse_position_book_summary(
+            payloads.aum_payload,
             payloads.positions_payload,
         )
         return PortfolioAllocationResponse(
@@ -1586,10 +1597,30 @@ class PortfolioService:
         include_projected: bool,
         reporting_currency: str | None = None,
     ) -> PortfolioPositionBookResponse:
-        (
-            aum_result,
-            positions_result,
-        ) = await asyncio.gather(
+        payloads = await self._load_position_book_payloads(
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
+            as_of_date=as_of_date,
+            include_projected=include_projected,
+            reporting_currency=reporting_currency,
+        )
+        return self._build_position_book_response(
+            correlation_id=correlation_id,
+            portfolio_id=portfolio_id,
+            as_of_date=as_of_date,
+            payloads=payloads,
+        )
+
+    async def _load_position_book_payloads(
+        self,
+        *,
+        portfolio_id: str,
+        correlation_id: str,
+        as_of_date: str | None,
+        include_projected: bool,
+        reporting_currency: str | None,
+    ) -> PortfolioPositionBookPayloads:
+        aum_result, positions_result = await asyncio.gather(
             self._query_aum_result(
                 correlation_id=correlation_id,
                 portfolio_id=portfolio_id,
@@ -1612,17 +1643,32 @@ class PortfolioService:
             result=positions_result,
             unavailable_detail_prefix="lotus-core positions unavailable",
         )
-        positions = self._parse_positions(positions_payload)
-        summary = self._parse_summary_from_positions(aum_result, positions_payload)
+        return PortfolioPositionBookPayloads(
+            aum_payload=aum_payload,
+            positions_payload=positions_payload,
+        )
+
+    def _build_position_book_response(
+        self,
+        *,
+        correlation_id: str,
+        portfolio_id: str,
+        as_of_date: str | None,
+        payloads: PortfolioPositionBookPayloads,
+    ) -> PortfolioPositionBookResponse:
+        positions = parse_positions(payloads.positions_payload)
+        summary = parse_position_book_summary(payloads.aum_payload, payloads.positions_payload)
         return PortfolioPositionBookResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=str(
-                aum_payload.get("resolved_as_of_date") or as_of_date or datetime.now(UTC).date()
+                payloads.aum_payload.get("resolved_as_of_date")
+                or as_of_date
+                or datetime.now(UTC).date()
             ),
             summary=summary,
-            top_positions=self._build_top_positions(positions),
+            top_positions=build_top_positions(positions),
             positions=positions,
         )
 
@@ -1984,30 +2030,6 @@ class PortfolioService:
             cash_balance_count=int(cash_payload.get("totals", {}).get("cash_account_count", 0)),
         )
 
-    def _parse_summary_from_positions(
-        self,
-        aum_result: tuple[int, dict[str, Any]],
-        positions_payload: dict[str, Any],
-    ) -> PortfolioSummary:
-        aum_payload = self._require_payload(
-            result=aum_result,
-            unavailable_detail_prefix="lotus-core aum unavailable",
-        )
-        first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
-        total_aum = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
-        cash_total, cash_balance_count = self._summarize_cash_positions(positions_payload)
-        cash_weight = (
-            float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
-        )
-        return PortfolioSummary(
-            assets_under_management_base=total_aum,
-            invested_market_value_base=float(quantize_money(total_aum - cash_total)),
-            cash_market_value_base=cash_total,
-            cash_weight_pct=cash_weight,
-            position_count=int(first_portfolio.get("position_count", 0)),
-            cash_balance_count=cash_balance_count,
-        )
-
     def _parse_cashflow(
         self,
         result: tuple[int, dict[str, Any]],
@@ -2195,89 +2217,6 @@ class PortfolioService:
             **{key: payload.get(key) for key in PortfolioOperationalReadiness.model_fields}
         )
 
-    def _parse_positions(self, payload: dict[str, Any]) -> list[PortfolioPositionView]:
-        return [
-            self._parse_position(item)
-            for item in payload.get("positions", [])
-            if isinstance(item, dict)
-        ]
-
-    def _parse_position(self, item: dict[str, Any]) -> PortfolioPositionView:
-        return PortfolioPositionView(
-            security_id=str(item.get("security_id", "")),
-            instrument_name=str(item.get("instrument_name", "")),
-            asset_class=self._optional_str(item.get("asset_class")),
-            isin=self._optional_str(item.get("isin")),
-            currency=self._optional_str(item.get("currency")),
-            sector=self._optional_str(item.get("sector")),
-            country_of_risk=self._optional_str(item.get("country_of_risk")),
-            held_since_date=(
-                str(item.get("held_since_date")) if item.get("held_since_date") else None
-            ),
-            quantity=float(quantize_quantity(item.get("quantity", 0))),
-            market_price=self._position_quote(item),
-            cost_basis_base=self._position_decimal_number(item.get("cost_basis")),
-            cost_basis_local=self._position_decimal_number(item.get("cost_basis_local")),
-            market_value_base=self._position_valuation_money(
-                item,
-                "market_value_base",
-                fallback_key="market_value",
-            ),
-            market_value_local=self._position_valuation_money(
-                item,
-                "market_value_local",
-                fallback_key="market_value",
-            ),
-            unrealized_gain_loss_base=self._position_valuation_money(
-                item,
-                "unrealized_gain_loss_base",
-                fallback_key="unrealized_gain_loss",
-            ),
-            unrealized_gain_loss_local=self._position_valuation_money(
-                item,
-                "unrealized_gain_loss_local",
-                fallback_key="unrealized_gain_loss",
-            ),
-            weight_pct=self._position_pct(item),
-            reprocessing_status=self._optional_str(item.get("reprocessing_status")),
-        )
-
-    def _position_quote(self, item: dict[str, Any]):
-        valuation = item.get("valuation", {})
-        if not isinstance(valuation, dict):
-            return None
-        raw_quote = valuation.get("market_price")
-        if raw_quote is None:
-            return None
-        quantized = quantize_price(raw_quote)
-        converted = float(quantized)
-        return converted
-
-    def _position_decimal_number(self, raw: Any):
-        if raw is None:
-            return None
-        quantized = quantize_money(raw)
-        converted = float(quantized)
-        return converted
-
-    def _position_valuation_money(
-        self,
-        item: dict[str, Any],
-        primary_key: str,
-        fallback_key: str | None = None,
-    ):
-        value = self._position_valuation_value(item, primary_key, fallback_key=fallback_key)
-        return self._position_decimal_number(value)
-
-    def _position_pct(self, item: dict[str, Any]):
-        raw = item.get("weight")
-        if raw is None:
-            return None
-        raw_number = float(raw or 0)
-        quantized = quantize_performance(raw_number * 100)
-        converted = float(quantized)
-        return converted
-
     def _parse_allocation_views(self, payload: dict[str, Any]) -> list[PortfolioAllocationView]:
         return [
             PortfolioAllocationView(
@@ -2301,19 +2240,6 @@ class PortfolioService:
             if isinstance(view, dict)
         ]
 
-    def _position_valuation_value(
-        self, item: dict[str, Any], primary_key: str, fallback_key: str | None = None
-    ) -> Any:
-        valuation = item.get("valuation", {})
-        if not isinstance(valuation, dict):
-            return None
-        primary_value = valuation.get(primary_key)
-        if primary_value is not None:
-            return primary_value
-        if fallback_key is not None:
-            return valuation.get(fallback_key)
-        return None
-
     def _parse_cash_balances(
         self, payload: dict[str, Any], total_aum: float
     ) -> list[PortfolioCashBalance]:
@@ -2334,28 +2260,6 @@ class PortfolioService:
                 )
             )
         return balances
-
-    def _summarize_cash_positions(self, payload: dict[str, Any]) -> tuple[float, int]:
-        cash_total = 0.0
-        cash_count = 0
-        for item in payload.get("positions", []):
-            if not isinstance(item, dict):
-                continue
-            asset_class = str(item.get("asset_class") or "").strip().upper()
-            if asset_class != "CASH":
-                continue
-            market_value = self._position_valuation_value(
-                item, "market_value_base", fallback_key="market_value"
-            )
-            cash_total += float(quantize_money(market_value or 0))
-            cash_count += 1
-        return float(quantize_money(cash_total)), cash_count
-
-    def _build_top_positions(
-        self, positions: list[PortfolioPositionView]
-    ) -> list[PortfolioTopPosition]:
-        ranked = sorted(positions, key=lambda row: row.market_value_base or 0.0, reverse=True)[:10]
-        return [PortfolioTopPosition(**row.model_dump()) for row in ranked]
 
     def _parse_transaction_view(self, item: dict[str, Any]) -> PortfolioTransactionView:
         return PortfolioTransactionView(

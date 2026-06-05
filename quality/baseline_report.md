@@ -114,6 +114,10 @@ parsing, comparative-summary economics normalization, analytics async poll-attem
 rolling risk request-context construction. These slices preserve public behavior, add focused
 tests where new branch coverage was useful, and reduce the tracked longest-function baseline from
 50 lines on `origin/main` to 49 lines at branch head `1b2a4e5`.
+The current closure slice extracts portfolio position-book summary derivation, position parsing,
+valuation fallback handling, cash-position summarization, and top-position ranking into
+`portfolio_position_book.py`. This preserves allocation and position-book behavior while reducing
+`portfolio_service.py` from 3,337 to 3,241 lines and keeping the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -121,21 +125,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 676 |
-| Python source files under `src/app` | 443 |
-| Python test files under `tests` | 158 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,404 |
+| Python source files under `src/app` | 444 |
+| Python test files under `tests` | 160 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Tracked-file verification on branch head `1b2a4e5` shows 673 tracked files under `src`, `tests`,
-`docs`, `wiki`, `.github`, and `scripts`; 443 tracked Python source files under `src/app`; and 159
-tracked Python test files under `tests`.
+Working-tree verification for the current closure slice shows 1,404 files under `src`, `tests`,
+`docs`, `wiki`, `.github`, and `scripts`; 444 Python source files under `src/app`; and 160 Python
+test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,337 | `src/app/services/portfolio_service.py` |
+| 1 | 3,241 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
@@ -153,9 +157,9 @@ tracked Python test files under `tests`.
 | 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
 | 3 | 48 | `_assemble_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 4 | 47 | `get_portfolio_positions` | `src/app/services/portfolio_service.py` |
+| 4 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
 | 5 | 47 | `_portfolio_transaction_query_params` | `src/app/clients/lotus_core_query_client.py` |
-| 6 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
+| 6 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 7 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 8 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 9 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
@@ -233,6 +237,8 @@ Most recent local evidence:
     coverage tests on commit `1b2a4e5`.
 39. Coverage: 93.67%.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+41. Current closure slice: `tests/unit/test_portfolio_position_book.py` plus focused portfolio
+    service position/allocation tests passed with 9 selected tests after mapper extraction.
 
 ## Tooling Availability Baseline
 

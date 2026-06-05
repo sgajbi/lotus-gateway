@@ -191,22 +191,24 @@ context, benchmark catalog result parsing, chart-point row normalization, attrib
 payload parsing, comparative-summary economics normalization, analytics async poll-attempt
 handling, and rolling risk request-context construction. The tracked longest-function baseline is
 now 49 lines at branch head `1b2a4e5`, down from 50 lines on `origin/main` at `e7260c1`.
-`portfolio_service.py` is now 3,337 tracked lines after explicit typed workspace component,
-transaction summary, transaction page, book assembly, transaction-ledger payload, and workspace
-source gathering helpers; it remains the largest-file hotspot even though individual portfolio
-orchestration functions are smaller. The remaining work is still substantial: large portfolio,
-performance workspace, advisor-brief orchestration, contract, and client modules remain.
+The current closure slice extracts portfolio position-book summary derivation, position parsing,
+valuation fallback handling, cash-position summarization, and top-position ranking into
+`portfolio_position_book.py`, reducing `portfolio_service.py` from 3,337 to 3,241 lines while
+preserving the 49-line longest-function baseline. `portfolio_service.py` remains the largest-file
+hotspot even though the position-book mapper is now separately testable. The remaining work is
+still substantial: large portfolio, performance workspace, advisor-brief orchestration, contract,
+and client modules remain.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | active focused feature branch over `origin/main`; 50 commits over `e7260c1` |
-| Unit/contract coverage | Healthy | 986 tests passed in current-branch `make check` evidence through commit `1b2a4e5` |
-| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` evidence on commit `1b2a4e5` |
+| Branch hygiene | Healthy | active focused closure branch over `origin/main`; intended to merge and delete before handoff |
+| Unit/contract coverage | Healthy | 986 tests passed in current-branch `make check` evidence through commit `1b2a4e5`; focused position-book mapper tests pass in closure slice |
+| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` evidence on commit `1b2a4e5`; closure branch will rerun repo-native gates before merge |
 | Total coverage | Healthy | 93.67%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `1b2a4e5` |
-| Modularity | Improving, incomplete | Longest-function baseline reduced from 50 lines on `origin/main` to 49 lines on branch head; proposal query metadata, Workbench rebalance unavailable recording, render supportability, workspace-summary context, benchmark catalog parsing, chart-row normalization, attribution payload parsing, comparative economics, analytics polling, and rolling request-context helpers were added in the final batch; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; portfolio position-book mapping is extracted and `portfolio_service.py` is reduced to 3,241 lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -216,7 +218,8 @@ performance workspace, advisor-brief orchestration, contract, and client modules
 1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, and
    workflow-cue adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
-   transaction-ledger payload loading, and workspace source gathering are now separately testable.
+   transaction-ledger payload loading, workspace source gathering, and position-book mapping are
+   now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
