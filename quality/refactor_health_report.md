@@ -110,11 +110,20 @@ Risk rolling response mapping now has separate supportability enrichment and fal
 assembly helpers while keeping state resolution and response contract assembly unchanged.
 Risk drawdown routing now has named OpenAPI query parameter descriptors separate from the public
 query dependency, preserving contract metadata while reducing dependency-body size.
-`portfolio_service.py` is now 3,155 lines after explicit typed workspace component, transaction
-summary, transaction page, and book assembly helpers; it remains the largest-file hotspot even
-though individual portfolio orchestration functions are smaller. The remaining work is still
-substantial: large portfolio, performance workspace, advisor-brief orchestration, contract, and
-client modules remain.
+HTTP resilience retry handling now separates one-shot JSON/binary request sending, retryable
+status decisions, retryable exception decisions, and backoff sleeping while preserving existing
+timeout, network-error, status-retry, redirect, and non-JSON payload behavior. Portfolio
+transaction-ledger response orchestration now loads transaction payloads behind a dedicated helper,
+reducing `get_transaction_ledger` from 54 lines to 49 lines. Portfolio workspace source loading
+now separates concurrent source gathering from typed source-result assembly, reducing
+`_load_portfolio_workspace_sources` from 54 lines to 29 lines. Lotus Core transaction query
+parameter construction now has a dedicated helper, reducing `get_portfolio_transactions` from 54
+lines to 49 lines while keeping advanced filter and sorting parameters contract-tested.
+`portfolio_service.py` is now 3,183 lines after explicit typed workspace component, transaction
+summary, transaction page, book assembly, transaction-ledger payload, and workspace source
+gathering helpers; it remains the largest-file hotspot even though individual portfolio
+orchestration functions are smaller. The remaining work is still substantial: large portfolio,
+performance workspace, advisor-brief orchestration, contract, and client modules remain.
 
 ## Health Signals
 
@@ -125,7 +134,7 @@ client modules remain.
 | Integration coverage | Healthy | 207 integration tests passed in latest `make ci` evidence on commit `b8f01c4` |
 | Total coverage | Healthy | 93.36%, above the 84% floor |
 | Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `b8f01c4` |
-| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, rebalance supportability failure recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, shell bootstrap, shared analytics request polling, workspace-summary payload assembly, portfolio transaction-summary context, transaction page loading, portfolio book response assembly, performance horizon-comparison dependency phases, performance summary/detail route query metadata, DPM wave PM memo payload/response construction, risk summary period/metric-state mapping, advisor-brief workflow-pack run profile extraction, attribution-trend row orchestration, benchmark-context task/result handling, shell descriptor contract construction, rebalance supportability result validation, performance chart-point construction, shell-bootstrap section assembly, performance snapshot projection, contribution summary merge policy, risk rolling response supportability orchestration, and risk drawdown route query metadata extracted; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Portfolio workspace assembly, portfolio insight rules, position parsing, performance workspace summary/detail, horizon, attribution-trend, and request contexts, foundation workspace assembly and response composition, risk drawdown/rolling/attribution orchestration and attribution supportability, shell workspace descriptor specs and descriptor state, transaction query contracts, DPM exception-summary and PM quality summary workflow orchestration, advisor-brief talking-point/review-action/route dependency orchestration, portfolio workflow-action and workspace response-component assembly, Workbench performance snapshot parsing and route query extraction, horizon comparison row-field projection, performance workspace summary parsing and route dependencies, risk attribution route query extraction, rebalance supportability failure recording, performance evidence-view mapping, performance workspace capability inputs, core snapshot summary parsing, portfolio exception summaries, performance attribution trend orchestration, platform-capabilities orchestration, advisor-brief narrative state, foundation snapshot parser, performance horizon parser, portfolio workspace controls, platform capability normalization, shell bootstrap, shared analytics request polling, workspace-summary payload assembly, portfolio transaction-summary context, transaction page loading, portfolio book response assembly, performance horizon-comparison dependency phases, performance summary/detail route query metadata, DPM wave PM memo payload/response construction, risk summary period/metric-state mapping, advisor-brief workflow-pack run profile extraction, attribution-trend row orchestration, benchmark-context task/result handling, shell descriptor contract construction, rebalance supportability result validation, performance chart-point construction, shell-bootstrap section assembly, performance snapshot projection, contribution summary merge policy, risk rolling response supportability orchestration, risk drawdown route query metadata, HTTP retry control helpers, portfolio transaction-ledger payload loading, portfolio workspace source gathering, and core transaction query-parameter construction extracted; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | Operation-level OpenAPI description, tag, error-response, and global tag-catalog gaps are closed and contract-tested; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -134,8 +143,8 @@ client modules remain.
 
 1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, and
    workflow-cue adapters. Exception-summary payload construction, workflow-action assembly,
-   transaction-summary context loading, transaction page loading, and book response assembly are
-   now separately testable.
+   transaction-summary context loading, transaction page loading, book response assembly,
+   transaction-ledger payload loading, and workspace source gathering are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes

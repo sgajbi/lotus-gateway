@@ -53,6 +53,9 @@ The latest risk rolling slice split supportability enrichment and fallback warni
 the public rolling response mapper.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
+The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
+transaction-ledger payload loading, portfolio workspace source gathering, and Lotus Core
+transaction query-parameter construction out of previously tied hotspot functions.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -61,7 +64,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Measure | Current value |
 | --- | ---: |
 | Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 676 |
-| Python source files under `src/app` | 442 |
+| Python source files under `src/app` | 443 |
 | Python test files under `tests` | 158 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
@@ -70,7 +73,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,155 | `src/app/services/portfolio_service.py` |
+| 1 | 3,183 | `src/app/services/portfolio_service.py` |
 | 2 | 2,226 | `src/app/contracts/portfolio.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
@@ -85,16 +88,16 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 54 | `request_with_retry` | `src/app/clients/http_resilience.py` |
-| 2 | 54 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
-| 3 | 54 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
-| 5 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
-| 6 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
-| 7 | 54 | `_load_portfolio_workspace_sources` | `src/app/services/portfolio_service.py` |
-| 8 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 9 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
-| 10 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
+| 1 | 54 | `_unpack_optional_upstream` | `src/app/services/foundation_service.py` |
+| 2 | 54 | `_raise_archive_error` | `src/app/services/archive_document_service.py` |
+| 3 | 54 | `_map_drawdown_period_results` | `src/app/services/risk_workspace_drawdown.py` |
+| 4 | 54 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 5 | 54 | `_build_attribution_trend_request_context` | `src/app/services/performance_workspace_service.py` |
+| 6 | 53 | `parse_benchmark_catalog_result` | `src/app/services/performance_workspace_benchmarks.py` |
+| 7 | 53 | `map_attribution_response` | `src/app/services/risk_workspace_attribution.py` |
+| 8 | 53 | `get_portfolio_insights` | `src/app/services/portfolio_service.py` |
+| 9 | 53 | `extract_current_positions` | `src/app/services/workbench_core_snapshot.py` |
+| 10 | 53 | `build_performance_horizon_comparison_query` | `src/app/routers/workbench_performance_modules.py` |
 
 ## Existing Blocking Gates
 
@@ -113,11 +116,15 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. `make check`: 969 unit/contract tests passed on commit `21568c5`.
-2. `make ci`: 207 integration tests passed on commit `b8f01c4`.
-3. `make ci`: 1,176 coverage tests passed on commit `b8f01c4`.
-4. Coverage: 93.36%.
-5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+1. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests.
+2. Current focused branch: portfolio transaction-ledger tests passed with 4 selected tests.
+3. Current focused branch: portfolio workspace tests passed with 7 selected tests.
+4. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
+5. Latest merged PR-grade evidence: `make check` passed with 969 unit/contract tests.
+6. Latest merged PR-grade evidence: `make ci` passed with 207 integration tests on commit `b8f01c4`.
+7. Latest merged PR-grade evidence: `make ci` passed with 1,176 coverage tests on commit `b8f01c4`.
+8. Coverage: 93.36%.
+9. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
