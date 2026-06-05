@@ -114,9 +114,9 @@ Current repo-native gates already cover:
 Most recent local evidence:
 
 1. `make check`: 969 unit/contract tests passed on commit `21568c5`.
-2. `make ci`: 207 integration tests passed on commit `e1e7980`.
-3. `make ci`: 1,174 coverage tests passed on commit `e1e7980`.
-4. Coverage: 93.32%.
+2. `make ci`: 207 integration tests passed on commit `b8f01c4`.
+3. `make ci`: 1,176 coverage tests passed on commit `b8f01c4`.
+4. Coverage: 93.36%.
 5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
