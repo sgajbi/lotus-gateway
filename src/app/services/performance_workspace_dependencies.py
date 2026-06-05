@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 from typing import Any, TypeAlias, cast
 
 from app.services.async_ttl_cache import AsyncTtlCache
@@ -9,6 +10,26 @@ from app.services.workspace_client_protocols import PerformanceWorkspaceAnalytic
 UpstreamPayload: TypeAlias = dict[str, Any]
 UpstreamResult: TypeAlias = tuple[int, UpstreamPayload]
 GatheredResult: TypeAlias = UpstreamResult | BaseException
+
+
+@dataclass(frozen=True)
+class WorkspaceSummaryRequest:
+    portfolio_id: str
+    report_end_date: str
+    report_start_date: str | None
+    effective_period: str
+    chart_frequency: str
+    detail_basis: str
+    benchmark_code: str | None
+    portfolio_currency: str
+    segment: str
+    include_detail_blocks: bool
+
+    @property
+    def effective_report_start_date(self) -> str | None:
+        if self.effective_period != "EXPLICIT":
+            return None
+        return self.report_start_date
 
 
 async def fetch_workspace_summary_result(
@@ -27,64 +48,67 @@ async def fetch_workspace_summary_result(
     segment: str,
     include_detail_blocks: bool = True,
 ) -> GatheredResult:
-    effective_report_start_date = report_start_date if effective_period == "EXPLICIT" else None
+    request = WorkspaceSummaryRequest(
+        portfolio_id=portfolio_id,
+        report_end_date=report_end_date,
+        report_start_date=report_start_date,
+        effective_period=effective_period,
+        chart_frequency=chart_frequency,
+        detail_basis=detail_basis,
+        benchmark_code=benchmark_code,
+        portfolio_currency=portfolio_currency,
+        segment=segment,
+        include_detail_blocks=include_detail_blocks,
+    )
+    return await _fetch_workspace_summary_result(
+        cache=cache,
+        analytics_client=analytics_client,
+        correlation_id=correlation_id,
+        request=request,
+    )
+
+
+async def _fetch_workspace_summary_result(
+    *,
+    cache: AsyncTtlCache[Any],
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    correlation_id: str,
+    request: WorkspaceSummaryRequest,
+) -> GatheredResult:
     return cast(
         GatheredResult,
         await cache.get_or_set(
-            key=_workspace_summary_cache_key(
-                portfolio_id=portfolio_id,
-                report_end_date=report_end_date,
-                effective_report_start_date=effective_report_start_date,
-                effective_period=effective_period,
-                chart_frequency=chart_frequency,
-                detail_basis=detail_basis,
-                benchmark_code=benchmark_code,
-                portfolio_currency=portfolio_currency,
-                segment=segment,
-                include_detail_blocks=include_detail_blocks,
-            ),
+            key=_workspace_summary_cache_key(request),
             factory=lambda: analytics_client.get_workspace_summary(
-                portfolio_id=portfolio_id,
-                report_end_date=report_end_date,
-                report_start_date=effective_report_start_date,
-                period=effective_period,
-                chart_frequency=chart_frequency,
-                detail_basis=detail_basis,
-                benchmark_id=benchmark_code,
-                reporting_currency=portfolio_currency,
-                segment=segment,
+                portfolio_id=request.portfolio_id,
+                report_end_date=request.report_end_date,
+                report_start_date=request.effective_report_start_date,
+                period=request.effective_period,
+                chart_frequency=request.chart_frequency,
+                detail_basis=request.detail_basis,
+                benchmark_id=request.benchmark_code,
+                reporting_currency=request.portfolio_currency,
+                segment=request.segment,
                 correlation_id=correlation_id,
-                include_detail_blocks=include_detail_blocks,
+                include_detail_blocks=request.include_detail_blocks,
             ),
         ),
     )
 
 
-def _workspace_summary_cache_key(
-    *,
-    portfolio_id: str,
-    report_end_date: str,
-    effective_report_start_date: str | None,
-    effective_period: str,
-    chart_frequency: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    portfolio_currency: str,
-    segment: str,
-    include_detail_blocks: bool,
-) -> tuple[object, ...]:
+def _workspace_summary_cache_key(request: WorkspaceSummaryRequest) -> tuple[object, ...]:
     return (
         "workspace_summary",
-        portfolio_id,
-        report_end_date,
-        effective_report_start_date,
-        effective_period,
-        chart_frequency,
-        detail_basis,
-        benchmark_code,
-        portfolio_currency,
-        segment,
-        include_detail_blocks,
+        request.portfolio_id,
+        request.report_end_date,
+        request.effective_report_start_date,
+        request.effective_period,
+        request.chart_frequency,
+        request.detail_basis,
+        request.benchmark_code,
+        request.portfolio_currency,
+        request.segment,
+        request.include_detail_blocks,
     )
 
 
