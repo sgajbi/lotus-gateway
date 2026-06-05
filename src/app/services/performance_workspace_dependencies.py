@@ -31,18 +31,17 @@ async def fetch_workspace_summary_result(
     return cast(
         GatheredResult,
         await cache.get_or_set(
-            key=(
-                "workspace_summary",
-                portfolio_id,
-                report_end_date,
-                effective_report_start_date,
-                effective_period,
-                chart_frequency,
-                detail_basis,
-                benchmark_code,
-                portfolio_currency,
-                segment,
-                include_detail_blocks,
+            key=_workspace_summary_cache_key(
+                portfolio_id=portfolio_id,
+                report_end_date=report_end_date,
+                effective_report_start_date=effective_report_start_date,
+                effective_period=effective_period,
+                chart_frequency=chart_frequency,
+                detail_basis=detail_basis,
+                benchmark_code=benchmark_code,
+                portfolio_currency=portfolio_currency,
+                segment=segment,
+                include_detail_blocks=include_detail_blocks,
             ),
             factory=lambda: analytics_client.get_workspace_summary(
                 portfolio_id=portfolio_id,
@@ -58,6 +57,34 @@ async def fetch_workspace_summary_result(
                 include_detail_blocks=include_detail_blocks,
             ),
         ),
+    )
+
+
+def _workspace_summary_cache_key(
+    *,
+    portfolio_id: str,
+    report_end_date: str,
+    effective_report_start_date: str | None,
+    effective_period: str,
+    chart_frequency: str,
+    detail_basis: str,
+    benchmark_code: str | None,
+    portfolio_currency: str,
+    segment: str,
+    include_detail_blocks: bool,
+) -> tuple[object, ...]:
+    return (
+        "workspace_summary",
+        portfolio_id,
+        report_end_date,
+        effective_report_start_date,
+        effective_period,
+        chart_frequency,
+        detail_basis,
+        benchmark_code,
+        portfolio_currency,
+        segment,
+        include_detail_blocks,
     )
 
 
