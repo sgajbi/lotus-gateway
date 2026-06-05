@@ -109,40 +109,21 @@ def build_shell_bootstrap(
     contract_version: str,
 ) -> PlatformShellBootstrap:
     error_services = [error.service for error in errors]
-    shell_state = "partial" if errors else "ready"
-    shell_reasons = [f"{error.service}:{error.status_code}" for error in errors]
 
     return PlatformShellBootstrap(
         contractVersion=SHELL_BOOTSTRAP_CONTRACT_VERSION,
-        supportability=PlatformBootstrapSupportability(
-            state=shell_state,
-            reasons=shell_reasons,
+        supportability=shell_supportability(errors=errors),
+        freshness=shell_freshness(errors=errors, evaluated_at=evaluated_at),
+        evidence=shell_evidence(
+            errors=errors,
+            error_services=error_services,
+            policy_versions_by_source=policy_versions_by_source,
         ),
-        freshness=PlatformBootstrapFreshness(
-            state="current" if not errors else "partial",
-            freshnessClass="shell_navigation",
-            evaluatedAt=evaluated_at,
-            maxAgeSeconds=60,
+        versioning=shell_versioning(
+            contract_version=contract_version,
+            policy_versions_by_source=policy_versions_by_source,
         ),
-        evidence=PlatformBootstrapEvidence(
-            state="partial" if errors else "source_backed",
-            lineageSources=list(policy_versions_by_source.keys()),
-            partialFailure=bool(errors),
-            sourceErrorServices=error_services,
-        ),
-        versioning=PlatformBootstrapVersioning(
-            shellContractVersion=SHELL_BOOTSTRAP_CONTRACT_VERSION,
-            capabilityContractVersion=contract_version,
-            sourcePolicyVersions=policy_versions_by_source,
-        ),
-        caching=PlatformBootstrapCaching(
-            cacheMode="request_scoped_composition",
-            invalidationOwner="upstream_service",
-            staleReadTolerance="bounded_navigation_refresh",
-            revalidateOnNavigation=True,
-            ttlSeconds=60,
-            correctnessCritical=False,
-        ),
+        caching=shell_caching(),
         workspaces=workspace_descriptors(
             sources=sources,
             navigation=navigation,
@@ -152,6 +133,66 @@ def build_shell_bootstrap(
             evaluated_at=evaluated_at,
             contract_version=contract_version,
         ),
+    )
+
+
+def shell_supportability(
+    *,
+    errors: list[CapabilitySourceError],
+) -> PlatformBootstrapSupportability:
+    return PlatformBootstrapSupportability(
+        state="partial" if errors else "ready",
+        reasons=[f"{error.service}:{error.status_code}" for error in errors],
+    )
+
+
+def shell_freshness(
+    *,
+    errors: list[CapabilitySourceError],
+    evaluated_at: str,
+) -> PlatformBootstrapFreshness:
+    return PlatformBootstrapFreshness(
+        state="current" if not errors else "partial",
+        freshnessClass="shell_navigation",
+        evaluatedAt=evaluated_at,
+        maxAgeSeconds=60,
+    )
+
+
+def shell_evidence(
+    *,
+    errors: list[CapabilitySourceError],
+    error_services: list[str],
+    policy_versions_by_source: dict[str, str],
+) -> PlatformBootstrapEvidence:
+    return PlatformBootstrapEvidence(
+        state="partial" if errors else "source_backed",
+        lineageSources=list(policy_versions_by_source.keys()),
+        partialFailure=bool(errors),
+        sourceErrorServices=error_services,
+    )
+
+
+def shell_versioning(
+    *,
+    contract_version: str,
+    policy_versions_by_source: dict[str, str],
+) -> PlatformBootstrapVersioning:
+    return PlatformBootstrapVersioning(
+        shellContractVersion=SHELL_BOOTSTRAP_CONTRACT_VERSION,
+        capabilityContractVersion=contract_version,
+        sourcePolicyVersions=policy_versions_by_source,
+    )
+
+
+def shell_caching() -> PlatformBootstrapCaching:
+    return PlatformBootstrapCaching(
+        cacheMode="request_scoped_composition",
+        invalidationOwner="upstream_service",
+        staleReadTolerance="bounded_navigation_refresh",
+        revalidateOnNavigation=True,
+        ttlSeconds=60,
+        correctnessCritical=False,
     )
 
 
