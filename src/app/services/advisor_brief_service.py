@@ -1273,47 +1273,60 @@ def _build_source_metrics(
         benchmark_code=workspace.benchmark_code,
     )
     return [
-        AdvisorBriefSourceMetric(
+        _source_metric(
             label="Portfolio Return",
             value=_format_pct(selected_performance.portfolio_return_pct),
             support_label=f"{workspace.period} {workspace.detail_basis}",
-            target_mode="summary",
             route=route,
             state=workspace.capabilities.summary_kpis.state,
         ),
-        AdvisorBriefSourceMetric(
+        _source_metric(
             label="Benchmark Return",
             value=_format_pct(selected_performance.benchmark_return_pct),
             support_label=workspace.benchmark_code or "Unassigned",
-            target_mode="summary",
             route=route,
             state=workspace.capabilities.benchmark_comparison.state,
         ),
-        AdvisorBriefSourceMetric(
+        _source_metric(
             label="Active Return",
             value=_format_pct(selected_performance.active_return_pct),
             support_label=f"{workspace.report_start_date} to {workspace.report_end_date}",
-            target_mode="summary",
             route=route,
             state=workspace.capabilities.benchmark_comparison.state,
         ),
-        AdvisorBriefSourceMetric(
+        _source_metric(
             label="Net Flow",
             value=_format_currency(selected_performance.net_cash_flow),
             support_label=workspace.portfolio.base_currency or "Portfolio currency",
-            target_mode="summary",
             route=route,
             state=workspace.capabilities.summary_kpis.state,
         ),
-        AdvisorBriefSourceMetric(
+        _source_metric(
             label="Ending MV",
             value=_format_currency(selected_performance.end_market_value),
             support_label=workspace.report_end_date,
-            target_mode="summary",
             route=route,
             state=workspace.capabilities.summary_kpis.state,
         ),
     ]
+
+
+def _source_metric(
+    *,
+    label: str,
+    value: str,
+    support_label: str,
+    route: str,
+    state: str,
+) -> AdvisorBriefSourceMetric:
+    return AdvisorBriefSourceMetric(
+        label=label,
+        value=value,
+        support_label=support_label,
+        target_mode="summary",
+        route=route,
+        state=state,
+    )
 
 
 def _build_supportability(
