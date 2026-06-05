@@ -127,8 +127,8 @@ horizon-comparison dependency-phase extraction, followed by performance summary/
 query metadata extraction and DPM wave PM memo payload/response construction extraction. The
 latest risk summary mapper slice split period and metric-state mapping out of the response
 composer. Advisor-brief workflow-pack run loading now separates source-profile retrieval from
-run-posture projection. The current longest functions are 56-line orchestration and mapper
-helpers.
+run-posture projection. Performance attribution trend now delegates row orchestration to a
+focused helper. The current longest functions are 56-line orchestration and mapper helpers.
 
 ## Progressive Enforcement
 
