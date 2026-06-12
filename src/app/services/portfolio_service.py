@@ -75,7 +75,9 @@ from app.services.portfolio_position_book import (
 )
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionsRequestContext,
+    build_portfolio_transactions_request_context,
     build_transaction_ledger_response,
+    portfolio_transactions_cache_key,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.upstream_envelope import safe_upstream_detail
@@ -476,7 +478,7 @@ class PortfolioService:
         end_date: str | None,
         reporting_currency: str | None = None,
     ) -> tuple[int, dict[str, Any]]:
-        context = self._portfolio_transactions_request_context(
+        context = build_portfolio_transactions_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
@@ -500,87 +502,13 @@ class PortfolioService:
         )
         return await self._get_portfolio_transactions_result_for_context(context)
 
-    def _portfolio_transactions_request_context(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None,
-        include_projected: bool,
-        skip: int,
-        limit: int,
-        transaction_type: str | None,
-        security_id: str | None,
-        instrument_id: str | None,
-        component_type: str | None,
-        linked_transaction_group_id: str | None,
-        fx_contract_id: str | None,
-        swap_event_id: str | None,
-        near_leg_group_id: str | None,
-        far_leg_group_id: str | None,
-        sort_by: str,
-        sort_order: str,
-        start_date: str | None,
-        end_date: str | None,
-        reporting_currency: str | None,
-    ) -> PortfolioTransactionsRequestContext:
-        return PortfolioTransactionsRequestContext(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            include_projected=include_projected,
-            skip=skip,
-            limit=limit,
-            transaction_type=transaction_type,
-            security_id=security_id,
-            instrument_id=instrument_id,
-            component_type=component_type,
-            linked_transaction_group_id=linked_transaction_group_id,
-            fx_contract_id=fx_contract_id,
-            swap_event_id=swap_event_id,
-            near_leg_group_id=near_leg_group_id,
-            far_leg_group_id=far_leg_group_id,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            start_date=start_date,
-            end_date=end_date,
-            reporting_currency=reporting_currency,
-        )
-
     async def _get_portfolio_transactions_result_for_context(
         self,
         context: PortfolioTransactionsRequestContext,
     ) -> tuple[int, dict[str, Any]]:
         return await self._get_cached_upstream_result(
-            self._portfolio_transactions_cache_key(context),
+            portfolio_transactions_cache_key(context),
             lambda: self._fetch_portfolio_transactions(context),
-        )
-
-    def _portfolio_transactions_cache_key(
-        self,
-        context: PortfolioTransactionsRequestContext,
-    ) -> tuple[object, ...]:
-        return (
-            "transactions",
-            context.portfolio_id,
-            context.as_of_date,
-            context.include_projected,
-            context.skip,
-            context.limit,
-            context.transaction_type,
-            context.security_id,
-            context.instrument_id,
-            context.component_type,
-            context.linked_transaction_group_id,
-            context.fx_contract_id,
-            context.swap_event_id,
-            context.near_leg_group_id,
-            context.far_leg_group_id,
-            context.sort_by,
-            context.sort_order,
-            context.start_date,
-            context.end_date,
-            context.reporting_currency,
         )
 
     async def _fetch_portfolio_transactions(
@@ -1645,7 +1573,7 @@ class PortfolioService:
         end_date: str | None = None,
         reporting_currency: str | None = None,
     ) -> PortfolioTransactionLedgerResponse:
-        context = self._portfolio_transactions_request_context(
+        context = build_portfolio_transactions_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
