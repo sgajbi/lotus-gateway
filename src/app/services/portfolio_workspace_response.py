@@ -6,7 +6,6 @@ from app.contracts.portfolio import (
     PortfolioCashflowOutlook,
     PortfolioIdentity,
     PortfolioOperationalReadiness,
-    PortfolioPartialFailure,
     PortfolioPerformanceSummary,
     PortfolioProfile,
     PortfolioRebalanceSummary,
@@ -16,6 +15,7 @@ from app.contracts.portfolio import (
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
 )
+from app.contracts.portfolio_common import PortfolioPartialFailure
 
 
 @dataclass(frozen=True)

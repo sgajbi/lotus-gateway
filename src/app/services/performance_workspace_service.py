@@ -21,7 +21,7 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
 )
-from app.contracts.portfolio import (
+from app.contracts.portfolio_performance_snapshot import (
     PortfolioPerformanceSnapshotResponse,
 )
 from app.contracts.workbench import WorkbenchOverviewResponse, WorkbenchPartialFailure
