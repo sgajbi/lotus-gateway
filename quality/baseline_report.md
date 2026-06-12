@@ -322,6 +322,12 @@ Most recent local evidence:
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 55. Current portfolio transaction summary mapper branch: focused validation passed with ruff,
     format, and 57 transaction summary, portfolio service, and transaction ledger unit tests.
+56. Current portfolio transaction summary mapper branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 453 source files, Workbench/OpenAPI contract smoke, and
+    1,029 unit/contract tests.
+57. Current portfolio transaction summary mapper branch: `make ci` passed with 207 integration
+    tests and 1,236 combined coverage tests; total coverage is 93.95%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

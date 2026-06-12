@@ -93,9 +93,9 @@ rebalance parsing, portfolio source-readiness parsing, and portfolio transaction
 extractions, so it remains the largest-file hotspot but is trending down.
 `performance_workspace_service.py` is now measured at 1,607 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-portfolio source-readiness parser branch passed with ruff, format check, monetary-float guard,
-mypy over 452 source files, Workbench/OpenAPI contract smoke, and 1,024 unit/contract tests. Local
-`make ci` passed with 207 integration tests, 1,231 coverage tests, 93.89 percent total coverage,
+portfolio transaction summary mapper branch passed with ruff, format check, monetary-float guard,
+mypy over 453 source files, Workbench/OpenAPI contract smoke, and 1,029 unit/contract tests. Local
+`make ci` passed with 207 integration tests, 1,236 coverage tests, 93.95 percent total coverage,
 and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
 GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
 green before PR #357 merged. The current portfolio transaction summary mapper branch adds focused
