@@ -162,6 +162,11 @@ The current portfolio transaction summary mapper slice moves income/activity res
 money aggregation, tax bucketing, and transaction-date filtering into
 `portfolio_transaction_summary.py`, reducing `portfolio_service.py` from 2,629 to 2,438 measured
 lines while preserving the 49-line longest-function baseline.
+The current portfolio workflow mapper slice moves workflow launch cues, readiness status labels,
+empty-book action sequencing, and supported-cue action ordering into `portfolio_workflow.py`,
+reducing `portfolio_service.py` from 2,438 to 2,076 measured lines while preserving the 49-line
+longest-function baseline. The largest source-file hotspot is now the portfolio contract module,
+not the portfolio orchestration service.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -169,22 +174,22 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,313 |
-| Python source files under `src/app` | 453 |
-| Python test files under `tests` | 168 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,317 |
+| Python source files under `src/app` | 454 |
+| Python test files under `tests` | 169 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio transaction summary mapper branch shows 1,313
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 453 Python source files
-under `src/app`; and 168 Python test files under `tests`.
+Working-tree verification for the current portfolio workflow mapper branch shows 1,317 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 454 Python source files under
+`src/app`; and 169 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,438 | `src/app/services/portfolio_service.py` |
-| 2 | 2,226 | `src/app/contracts/portfolio.py` |
+| 1 | 2,226 | `src/app/contracts/portfolio.py` |
+| 2 | 2,076 | `src/app/services/portfolio_service.py` |
 | 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
 | 5 | 1,704 | `src/app/services/performance_workspace_service.py` |
@@ -203,11 +208,11 @@ under `src/app`; and 168 Python test files under `tests`.
 | 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 6 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 7 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 8 | 46 | `_assemble_portfolio_workspace_components` | `src/app/services/portfolio_service.py` |
-| 9 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
-| 10 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
+| 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
+| 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
+| 10 | 46 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
 
 ## Existing Blocking Gates
 
@@ -328,6 +333,14 @@ Most recent local evidence:
 57. Current portfolio transaction summary mapper branch: `make ci` passed with 207 integration
     tests and 1,236 combined coverage tests; total coverage is 93.95%, and `pip-audit` found no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
+58. Current portfolio workflow mapper branch: focused validation passed with ruff, mypy over the
+    touched service modules, diff whitespace checks, and 46 workflow/portfolio service unit tests.
+59. Current portfolio workflow mapper branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 454 source files, Workbench/OpenAPI contract smoke, and 1,031
+    unit/contract tests.
+60. Current portfolio workflow mapper branch: `make ci` passed with 207 integration tests and
+    1,238 combined coverage tests; total coverage is 94.00%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
