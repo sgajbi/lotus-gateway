@@ -167,6 +167,10 @@ empty-book action sequencing, and supported-cue action ordering into `portfolio_
 reducing `portfolio_service.py` from 2,438 to 2,076 measured lines while preserving the 49-line
 longest-function baseline. The largest source-file hotspot is now the portfolio contract module,
 not the portfolio orchestration service.
+The current portfolio workflow contract slice moves readiness and workflow response contracts into
+`portfolio_workflow.py`, keeps `app.contracts.portfolio` as the compatibility import surface, and
+reduces `portfolio.py` from 2,226 to 1,974 measured lines while preserving OpenAPI schema names and
+the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -174,23 +178,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,317 |
-| Python source files under `src/app` | 454 |
-| Python test files under `tests` | 169 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,321 |
+| Python source files under `src/app` | 455 |
+| Python test files under `tests` | 170 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio workflow mapper branch shows 1,317 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 454 Python source files under
-`src/app`; and 169 Python test files under `tests`.
+Working-tree verification for the current portfolio workflow contract branch shows 1,321 files
+under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 455 Python source files under
+`src/app`; and 170 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,226 | `src/app/contracts/portfolio.py` |
-| 2 | 2,076 | `src/app/services/portfolio_service.py` |
-| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
+| 1 | 2,076 | `src/app/services/portfolio_service.py` |
+| 2 | 2,043 | `src/app/contracts/risk_workspace.py` |
+| 3 | 1,974 | `src/app/contracts/portfolio.py` |
 | 4 | 1,840 | `src/app/contracts/reporting.py` |
 | 5 | 1,704 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,607 | `src/app/services/advisor_brief_service.py` |
@@ -340,6 +344,15 @@ Most recent local evidence:
     unit/contract tests.
 60. Current portfolio workflow mapper branch: `make ci` passed with 207 integration tests and
     1,238 combined coverage tests; total coverage is 94.00%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
+61. Current portfolio workflow contract branch: focused validation passed with ruff, mypy over the
+    touched contract/router/service modules, and 23 workflow contract/source-readiness/OpenAPI
+    contract tests.
+62. Current portfolio workflow contract branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 455 source files, Workbench/OpenAPI contract smoke, and 1,032
+    unit/contract tests.
+63. Current portfolio workflow contract branch: `make ci` passed with 207 integration tests and
+    1,239 combined coverage tests; total coverage is 94.01%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline

@@ -90,14 +90,14 @@ page loading, and portfolio book response assembly, lowering the baseline to 62 
 transaction request-context, transaction page-context, transaction client-kwargs, portfolio
 workspace response assembly, portfolio workspace performance parsing, and portfolio workspace
 rebalance parsing, portfolio source-readiness parsing, portfolio transaction summary mapping, and
-portfolio workflow mapping extractions. The largest-file hotspot has moved to the portfolio
-contract module at 2,226 lines.
+portfolio workflow mapping extractions. `portfolio.py` is now measured at 1,974 lines after
+workflow/readiness contract extraction.
 `performance_workspace_service.py` is now measured at 1,607 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-portfolio workflow mapper branch passed with ruff, format check, monetary-float guard, mypy over
-454 source files, Workbench/OpenAPI contract smoke, and 1,031 unit/contract tests. Local
-`make ci` passed with 207 integration tests, 1,238 coverage tests, 94.00 percent total coverage,
+portfolio workflow contract branch passed with ruff, format check, monetary-float guard, mypy over
+455 source files, Workbench/OpenAPI contract smoke, and 1,032 unit/contract tests. Local
+`make ci` passed with 207 integration tests, 1,239 coverage tests, 94.01 percent total coverage,
 and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
 GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
-green before PR #358 merged. The current portfolio workflow mapper branch adds focused workflow
-mapper and portfolio service evidence with 46 passing unit tests.
+green before PR #359 merged. The current portfolio workflow contract branch adds focused contract
+compatibility and portfolio OpenAPI evidence with 23 passing tests.
