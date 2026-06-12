@@ -4,6 +4,7 @@ from app.services.portfolio_transaction_ledger import (
     build_transaction_ledger_response,
     parse_transaction_views,
     portfolio_transactions_cache_key,
+    portfolio_transactions_client_kwargs,
 )
 
 
@@ -146,6 +147,54 @@ def test_portfolio_transactions_cache_key_includes_all_request_filters():
         "2026-03-31",
         "USD",
     )
+
+
+def test_portfolio_transactions_client_kwargs_include_all_request_filters():
+    context = build_portfolio_transactions_request_context(
+        portfolio_id="PF_1001",
+        correlation_id="corr-ledger",
+        as_of_date="2026-03-27",
+        include_projected=True,
+        skip=20,
+        limit=25,
+        transaction_type="DIVIDEND",
+        security_id="SEC_1",
+        instrument_id="INST_1",
+        component_type="CASH_DIVIDEND",
+        linked_transaction_group_id="LTG-1",
+        fx_contract_id="FXC-1",
+        swap_event_id="SWAP-1",
+        near_leg_group_id="NEAR-1",
+        far_leg_group_id="FAR-1",
+        sort_by="transaction_date",
+        sort_order="desc",
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        reporting_currency="USD",
+    )
+
+    assert portfolio_transactions_client_kwargs(context) == {
+        "portfolio_id": "PF_1001",
+        "correlation_id": "corr-ledger",
+        "as_of_date": "2026-03-27",
+        "include_projected": True,
+        "skip": 20,
+        "limit": 25,
+        "sort_by": "transaction_date",
+        "sort_order": "desc",
+        "transaction_type": "DIVIDEND",
+        "security_id": "SEC_1",
+        "instrument_id": "INST_1",
+        "component_type": "CASH_DIVIDEND",
+        "linked_transaction_group_id": "LTG-1",
+        "fx_contract_id": "FXC-1",
+        "swap_event_id": "SWAP-1",
+        "near_leg_group_id": "NEAR-1",
+        "far_leg_group_id": "FAR-1",
+        "start_date": "2026-01-01",
+        "end_date": "2026-03-31",
+        "reporting_currency": "USD",
+    }
 
 
 def test_build_transaction_ledger_response_falls_back_to_context_metadata():
