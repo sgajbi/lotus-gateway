@@ -35,15 +35,12 @@ from app.contracts.portfolio import (
     PortfolioPositionView,
     PortfolioProfile,
     PortfolioProjectedCashflowResponse,
-    PortfolioReadinessBucket,
     PortfolioReadinessIndicator,
-    PortfolioReadinessReason,
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
     PortfolioReportingReadiness,
     PortfolioSummary,
-    PortfolioSupportabilitySummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
     PortfolioWorkflowAction,
@@ -72,6 +69,12 @@ from app.services.portfolio_position_book import (
     build_top_positions,
     parse_position_book_summary,
     parse_positions,
+)
+from app.services.portfolio_source_readiness import (
+    build_source_readiness_indicators,
+    parse_portfolio_supportability,
+    parse_readiness_bucket,
+    parse_readiness_reasons,
 )
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionsRequestContext,
@@ -937,7 +940,7 @@ class PortfolioService:
         transactions: PortfolioTransactionLedgerResponse,
         source_payload: dict[str, Any] | None,
     ) -> PortfolioReadinessResponse:
-        indicators = self._build_source_readiness_indicators(
+        indicators = build_source_readiness_indicators(
             payload=source_payload,
             detailed_view=False,
         ) or self._build_readiness_indicators(
@@ -952,14 +955,14 @@ class PortfolioService:
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=workspace.as_of_date,
-            holdings=self._parse_readiness_bucket((source_payload or {}).get("holdings")),
-            pricing=self._parse_readiness_bucket((source_payload or {}).get("pricing")),
-            transactions=self._parse_readiness_bucket((source_payload or {}).get("transactions")),
-            reporting=self._parse_readiness_bucket((source_payload or {}).get("reporting")),
-            blocking_reasons=self._parse_readiness_reasons(
+            holdings=parse_readiness_bucket((source_payload or {}).get("holdings")),
+            pricing=parse_readiness_bucket((source_payload or {}).get("pricing")),
+            transactions=parse_readiness_bucket((source_payload or {}).get("transactions")),
+            reporting=parse_readiness_bucket((source_payload or {}).get("reporting")),
+            blocking_reasons=parse_readiness_reasons(
                 (source_payload or {}).get("blocking_reasons")
             ),
-            supportability=self._parse_portfolio_supportability(
+            supportability=parse_portfolio_supportability(
                 (source_payload or {}).get("supportability")
             ),
             indicators=indicators,
@@ -2682,115 +2685,6 @@ class PortfolioService:
             effective_mode=effective_mode,
             applied=bool(payload.get("applied", False)),
         )
-
-    def _parse_readiness_bucket(self, payload: Any) -> PortfolioReadinessBucket | None:
-        if not isinstance(payload, dict):
-            return None
-        status_value = self._optional_str(payload.get("status"))
-        if status_value is None:
-            return None
-        return PortfolioReadinessBucket(
-            status=self._map_source_readiness_status(status_value),
-            reasons=self._parse_readiness_reasons(payload.get("reasons")),
-        )
-
-    def _parse_readiness_reasons(self, payload: Any) -> list[PortfolioReadinessReason]:
-        if not isinstance(payload, list):
-            return []
-        reasons: list[PortfolioReadinessReason] = []
-        for item in payload:
-            if not isinstance(item, dict):
-                continue
-            code = self._optional_str(item.get("code"))
-            if code is None:
-                continue
-            reasons.append(
-                PortfolioReadinessReason(
-                    code=code,
-                    detail=self._optional_str(item.get("detail")),
-                )
-            )
-        return reasons
-
-    def _parse_portfolio_supportability(
-        self, payload: Any
-    ) -> PortfolioSupportabilitySummary | None:
-        if not isinstance(payload, dict):
-            return None
-        state = self._optional_str(payload.get("state"))
-        reason = self._optional_str(payload.get("reason"))
-        if state is None or reason is None:
-            return None
-        return PortfolioSupportabilitySummary(
-            feature_key=(
-                self._optional_str(payload.get("feature_key"))
-                or "core.observability.portfolio_supportability"
-            ),
-            state=state,
-            reason=reason,
-            freshness_bucket=self._map_portfolio_supportability_freshness(
-                payload.get("freshness_bucket")
-            ),
-            ready_domains=self._optional_int(payload.get("ready_domains")) or 0,
-            pending_domains=self._optional_int(payload.get("pending_domains")) or 0,
-            blocked_domains=self._optional_int(payload.get("blocked_domains")) or 0,
-            no_activity_domains=self._optional_int(payload.get("no_activity_domains")) or 0,
-        )
-
-    def _map_portfolio_supportability_freshness(self, value: Any) -> str:
-        normalized = str(value or "").strip().lower()
-        if normalized in {"fresh", "current"}:
-            return "fresh"
-        if normalized == "stale":
-            return "stale"
-        return "unknown"
-
-    def _build_source_readiness_indicators(
-        self, payload: dict[str, Any] | None, detailed_view: bool
-    ) -> list[PortfolioReadinessIndicator]:
-        if payload is None:
-            return []
-        return [
-            PortfolioReadinessIndicator(
-                key="holdings",
-                label="Holdings",
-                status=self._map_source_readiness_status(payload.get("holdings", {}).get("status")),
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
-            ),
-            PortfolioReadinessIndicator(
-                key="pricing",
-                label="Pricing",
-                status=self._map_source_readiness_status(payload.get("pricing", {}).get("status")),
-                href="#portfolio-attention",
-            ),
-            PortfolioReadinessIndicator(
-                key="transactions",
-                label="Transactions",
-                status=self._map_source_readiness_status(
-                    payload.get("transactions", {}).get("status")
-                ),
-                href="#portfolio-drilldown" if detailed_view else "#portfolio-insights",
-            ),
-            PortfolioReadinessIndicator(
-                key="reporting",
-                label="Reporting",
-                status=self._map_source_readiness_status(
-                    payload.get("reporting", {}).get("status")
-                ),
-                href="#portfolio-health",
-            ),
-        ]
-
-    def _map_source_readiness_status(self, status_value: Any) -> str:
-        normalized = str(status_value or "").strip().upper()
-        mapping = {
-            "READY": "Ready",
-            "PENDING": "Pending",
-            "BLOCKED": "Blocked",
-            "FAILED": "Blocked",
-            "EMPTY": "Empty",
-        }
-        return mapping.get(normalized, "Pending" if normalized else "Unknown")
 
     def _optional_payload(
         self,
