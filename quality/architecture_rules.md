@@ -142,7 +142,10 @@ assembly to focused helpers. Risk drawdown routing now keeps OpenAPI query metad
 descriptors separate from the public query dependency. Portfolio position-book mapping now lives in
 `src/app/services/portfolio_position_book.py`, and transaction-ledger request context plus row
 mapping now live in `src/app/services/portfolio_transaction_ledger.py`. `portfolio_service.py` is
-down to 2,993 lines. The current longest functions are 49-line helpers:
+down to 2,993 lines. Lotus Core transaction query-parameter construction now lives in
+`src/app/clients/lotus_core_transaction_params.py`, reducing `lotus_core_query_client.py` to 574
+measured lines and removing `_portfolio_transaction_query_params` from the current top hotspot
+list. The current longest functions are 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.
 
