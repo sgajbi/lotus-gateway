@@ -158,6 +158,10 @@ The current portfolio source-readiness parser slice moves source-readiness bucke
 supportability, and indicator mapping into `portfolio_source_readiness.py`, reducing
 `portfolio_service.py` from 2,729 to 2,629 measured lines while preserving the 49-line
 longest-function baseline.
+The current portfolio transaction summary mapper slice moves income/activity response mapping,
+money aggregation, tax bucketing, and transaction-date filtering into
+`portfolio_transaction_summary.py`, reducing `portfolio_service.py` from 2,629 to 2,438 measured
+lines while preserving the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -165,30 +169,30 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,305 |
-| Python source files under `src/app` | 452 |
-| Python test files under `tests` | 167 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,313 |
+| Python source files under `src/app` | 453 |
+| Python test files under `tests` | 168 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio source-readiness parser branch shows 1,305
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 452 Python source files
-under `src/app`; and 167 Python test files under `tests`.
+Working-tree verification for the current portfolio transaction summary mapper branch shows 1,313
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 453 Python source files
+under `src/app`; and 168 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,629 | `src/app/services/portfolio_service.py` |
-| 2 | 2,123 | `src/app/contracts/portfolio.py` |
-| 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,731 | `src/app/contracts/reporting.py` |
-| 5 | 1,607 | `src/app/services/performance_workspace_service.py` |
-| 6 | 1,539 | `src/app/contracts/performance_workspace.py` |
-| 7 | 1,452 | `src/app/services/advisor_brief_service.py` |
-| 8 | 1,258 | `src/app/clients/dpm_client.py` |
-| 9 | 1,137 | `src/app/services/dpm_command_center_service.py` |
-| 10 | 1,012 | `src/app/clients/advise_client.py` |
+| 1 | 2,438 | `src/app/services/portfolio_service.py` |
+| 2 | 2,226 | `src/app/contracts/portfolio.py` |
+| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
+| 4 | 1,840 | `src/app/contracts/reporting.py` |
+| 5 | 1,704 | `src/app/services/performance_workspace_service.py` |
+| 6 | 1,607 | `src/app/services/advisor_brief_service.py` |
+| 7 | 1,606 | `src/app/contracts/performance_workspace.py` |
+| 8 | 1,362 | `src/app/clients/dpm_client.py` |
+| 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 10 | 1,098 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
@@ -316,6 +320,14 @@ Most recent local evidence:
 54. Current portfolio source-readiness parser branch: `make ci` passed with 207 integration tests
     and 1,231 combined coverage tests; total coverage is 93.89%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+55. Current portfolio transaction summary mapper branch: focused validation passed with ruff,
+    format, and 57 transaction summary, portfolio service, and transaction ledger unit tests.
+56. Current portfolio transaction summary mapper branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 453 source files, Workbench/OpenAPI contract smoke, and
+    1,029 unit/contract tests.
+57. Current portfolio transaction summary mapper branch: `make ci` passed with 207 integration
+    tests and 1,236 combined coverage tests; total coverage is 93.95%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

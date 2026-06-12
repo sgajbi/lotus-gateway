@@ -86,17 +86,17 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 2,629 lines after portfolio liquidity loading,
+`portfolio_service.py` is now measured at 2,438 lines after portfolio liquidity loading,
 transaction request-context, transaction page-context, transaction client-kwargs, portfolio
 workspace response assembly, portfolio workspace performance parsing, and portfolio workspace
-rebalance parsing, and portfolio source-readiness parsing extractions, so it remains the
-largest-file hotspot but is trending down.
+rebalance parsing, portfolio source-readiness parsing, and portfolio transaction summary mapping
+extractions, so it remains the largest-file hotspot but is trending down.
 `performance_workspace_service.py` is now measured at 1,607 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-portfolio source-readiness parser branch passed with ruff, format check, monetary-float guard,
-mypy over 452 source files, Workbench/OpenAPI contract smoke, and 1,024 unit/contract tests. Local
-`make ci` passed with 207 integration tests, 1,231 coverage tests, 93.89 percent total coverage,
+portfolio transaction summary mapper branch passed with ruff, format check, monetary-float guard,
+mypy over 453 source files, Workbench/OpenAPI contract smoke, and 1,029 unit/contract tests. Local
+`make ci` passed with 207 integration tests, 1,236 coverage tests, 93.95 percent total coverage,
 and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
 GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
-green before PR #356 merged. The current portfolio source-readiness parser branch adds focused
-parser and portfolio service evidence with 54 passing unit tests.
+green before PR #357 merged. The current portfolio transaction summary mapper branch adds focused
+transaction summary, portfolio service, and transaction ledger evidence with 57 passing unit tests.
