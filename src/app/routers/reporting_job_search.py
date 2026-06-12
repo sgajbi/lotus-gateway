@@ -3,7 +3,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
-from app.contracts.reporting import (
+from app.contracts.reporting_query import (
     REPORT_JOB_LIST_RESPONSE_EXAMPLE,
     ReportJobListResponse,
 )

@@ -2,11 +2,11 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from app.contracts.reporting import (
+from app.contracts.reporting import ReportJobStatusResponse
+from app.contracts.reporting_query import (
     ReportInputSnapshotRecord,
     ReportJobListResponse,
     ReportJobStatusEventsResponse,
-    ReportJobStatusResponse,
     ReportSnapshotLineageResponse,
 )
 from app.services.reporting_client_protocols import ReportingJobQueryClient
