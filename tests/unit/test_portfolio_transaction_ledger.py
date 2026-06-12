@@ -2,6 +2,7 @@ from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionsRequestContext,
     build_portfolio_transactions_request_context,
     build_transaction_ledger_response,
+    build_transaction_rows_page_request_context,
     parse_transaction_views,
     portfolio_transactions_cache_key,
     portfolio_transactions_client_kwargs,
@@ -195,6 +196,40 @@ def test_portfolio_transactions_client_kwargs_include_all_request_filters():
         "end_date": "2026-03-31",
         "reporting_currency": "USD",
     }
+
+
+def test_build_transaction_rows_page_request_context_uses_summary_page_defaults():
+    context = build_transaction_rows_page_request_context(
+        portfolio_id="PF_1001",
+        correlation_id="corr-summary-page",
+        as_of_date="2026-03-27",
+        skip=100,
+        limit=50,
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        reporting_currency="CHF",
+    )
+
+    assert context.portfolio_id == "PF_1001"
+    assert context.correlation_id == "corr-summary-page"
+    assert context.as_of_date == "2026-03-27"
+    assert context.include_projected is False
+    assert context.skip == 100
+    assert context.limit == 50
+    assert context.sort_by == "transaction_date"
+    assert context.sort_order == "asc"
+    assert context.start_date == "2026-01-01"
+    assert context.end_date == "2026-03-31"
+    assert context.reporting_currency == "CHF"
+    assert context.transaction_type is None
+    assert context.security_id is None
+    assert context.instrument_id is None
+    assert context.component_type is None
+    assert context.linked_transaction_group_id is None
+    assert context.fx_contract_id is None
+    assert context.swap_event_id is None
+    assert context.near_leg_group_id is None
+    assert context.far_leg_group_id is None
 
 
 def test_build_transaction_ledger_response_falls_back_to_context_metadata():
