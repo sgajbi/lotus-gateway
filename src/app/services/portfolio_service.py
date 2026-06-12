@@ -7,7 +7,6 @@ from fastapi import HTTPException, status
 
 from app.config import settings
 from app.contracts.portfolio import (
-    PortfolioActivitySummaryResponse,
     PortfolioAllocationBucket,
     PortfolioAllocationLookThroughCapability,
     PortfolioAllocationResponse,
@@ -20,7 +19,6 @@ from app.contracts.portfolio import (
     PortfolioCatalogResponse,
     PortfolioExceptionSummary,
     PortfolioIdentity,
-    PortfolioIncomeSummaryResponse,
     PortfolioInsight,
     PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
@@ -40,6 +38,10 @@ from app.contracts.portfolio import (
     PortfolioWorkflowResponse,
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
+)
+from app.contracts.portfolio_activity_income import (
+    PortfolioActivitySummaryResponse,
+    PortfolioIncomeSummaryResponse,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.precision_policy import (
