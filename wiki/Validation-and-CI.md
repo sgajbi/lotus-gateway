@@ -111,3 +111,9 @@ format check, monetary-float guard, mypy over 462 source files, Workbench/OpenAP
 and 1,041 unit/contract tests; `make ci` passed with 207 integration tests, 1,248 coverage tests,
 94.03% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
+PR #365 then merged the risk drawdown contract extraction with all GitHub checks green. The current
+reporting batch contract branch moves batch, worker-run, scheduler, and shared reporting
+error-example contracts into `reporting_batches.py` and `reporting_errors.py`, keeps
+`app.contracts.reporting` as the compatibility import surface, reduces `reporting.py` from 1,840
+to 1,184 measured lines, and has focused evidence from ruff, format check, mypy,
+monetary-float guard, and 40 passing reporting batch, contract, and integration tests.
