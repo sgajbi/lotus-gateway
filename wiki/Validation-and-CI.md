@@ -126,4 +126,6 @@ current reporting query contract branch moves report-job list, lifecycle event, 
 upstream-call, and snapshot-lineage contracts into `reporting_query.py`, keeps
 `app.contracts.reporting` as the compatibility import surface, reduces `reporting.py` from 1,184
 to 532 measured lines, and has focused evidence from ruff, mypy, and 7 passing reporting query and
-compatibility contract tests. Full `make check` and `make ci` remain required before PR/merge.
+compatibility contract tests. Local `make check` passed with ruff, format check, monetary-float
+guard, mypy over 465 source files, Workbench/OpenAPI contract smoke, and 1,048 unit/contract
+tests. Full `make ci` remains required before PR/merge.

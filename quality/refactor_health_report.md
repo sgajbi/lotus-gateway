@@ -292,7 +292,7 @@ lines while preserving reporting query contract tests and the 49-line longest-fu
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current reporting query contract branch was created from clean `main` after PR #366; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused reporting query and compatibility contract tests passed locally with 7 tests; full `make check` remains the pre-PR gate for this branch |
+| Unit/contract coverage | Healthy | Current reporting query branch `make check` passed with 1,048 unit/contract tests after focused reporting query and compatibility contract tests passed locally with 7 tests |
 | Integration coverage | Healthy | 207 integration tests passed in latest merged PR #366 `make ci`; full integration validation remains the pre-PR gate for this branch |
 | Total coverage | Healthy | 1,251 coverage tests passed in latest merged PR #366 `make ci`; total coverage was 94.03%, above the 84% floor, and full coverage validation remains the pre-PR gate for this branch |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
