@@ -293,8 +293,8 @@ lines while preserving reporting query contract tests and the 49-line longest-fu
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current reporting query contract branch was created from clean `main` after PR #366; final remote/local cleanup remains a post-merge gate |
 | Unit/contract coverage | Healthy | Current reporting query branch `make check` passed with 1,048 unit/contract tests after focused reporting query and compatibility contract tests passed locally with 7 tests |
-| Integration coverage | Healthy | 207 integration tests passed in latest merged PR #366 `make ci`; full integration validation remains the pre-PR gate for this branch |
-| Total coverage | Healthy | 1,251 coverage tests passed in latest merged PR #366 `make ci`; total coverage was 94.03%, above the 84% floor, and full coverage validation remains the pre-PR gate for this branch |
+| Integration coverage | Healthy | 207 integration tests passed in current reporting query branch `make ci` |
+| Total coverage | Healthy | 1,255 coverage tests passed in current reporting query branch `make ci`; total coverage is 94.03%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 911 measured lines, `risk_workspace.py` to 1,647 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,607 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |

@@ -5,7 +5,7 @@ Mode: feature-branch evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | Latest merged PR #366 evidence includes `make ci` with 207 integration tests, 1,251 coverage tests, and dependency audit; current reporting query branch `make check` passed with ruff, format check, monetary-float guard, mypy over 465 source files, Workbench/OpenAPI contract smoke, and 1,048 unit/contract tests | Run `make ci` before PR/merge |
+| Build and test reliability | 5/5 | Current reporting query branch `make check` passed with ruff, format check, monetary-float guard, mypy over 465 source files, Workbench/OpenAPI contract smoke, and 1,048 unit/contract tests; `make ci` passed with 207 integration tests, 1,255 coverage tests, 94.03% total coverage, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
 | Coverage | 4/5 | 94.03% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
 | Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, portfolio workspace response assembly, portfolio workspace performance parsing, portfolio workspace rebalance parsing, portfolio source-readiness parsing, portfolio transaction summary mapping, portfolio workflow mapping, portfolio workflow contracts, portfolio transaction contracts, portfolio performance snapshot contracts, portfolio income/activity contracts, portfolio holdings/book contracts, risk drawdown contracts, reporting batch contracts, and reporting query contracts; `portfolio_service.py` is now 1,970 measured lines, `portfolio.py` is now 911 measured lines, `risk_workspace.py` is now 1,647 measured lines, and `reporting.py` is now 532 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
@@ -32,8 +32,8 @@ versus the current reporting batch contract branch after PRs #349, #350, #351, #
 | Largest source file | 2,968 lines | 1,970 lines | Improved; `src/app/services/portfolio_service.py` remains the largest residual hotspot after reducing `portfolio.py`, `risk_workspace.py`, and `reporting.py` |
 | `performance_workspace_service.py` | 1,724 lines | 1,704 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 996 | 1,044 | Added focused response/request boundary, workspace parser, source-readiness parser, transaction summary mapper, workflow mapper, workflow contract, transaction contract, performance snapshot contract, income/activity contract, holdings contract, risk drawdown contract, and reporting batch contract tests |
-| Local coverage tests | 1,203 | 1,251 | Added focused coverage while preserving total coverage |
+| Local unit/contract tests | 996 | 1,048 | Added focused response/request boundary, workspace parser, source-readiness parser, transaction summary mapper, workflow mapper, workflow contract, transaction contract, performance snapshot contract, income/activity contract, holdings contract, risk drawdown contract, reporting batch contract, and reporting query contract tests |
+| Local coverage tests | 1,203 | 1,255 | Added focused coverage while preserving total coverage |
 | Total coverage | 93.69% | 94.03% | Improved |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |
 

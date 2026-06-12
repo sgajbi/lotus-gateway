@@ -128,4 +128,5 @@ upstream-call, and snapshot-lineage contracts into `reporting_query.py`, keeps
 to 532 measured lines, and has focused evidence from ruff, mypy, and 7 passing reporting query and
 compatibility contract tests. Local `make check` passed with ruff, format check, monetary-float
 guard, mypy over 465 source files, Workbench/OpenAPI contract smoke, and 1,048 unit/contract
-tests. Full `make ci` remains required before PR/merge.
+tests. Local `make ci` passed with 207 integration tests, 1,255 coverage tests, 94.03% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
