@@ -126,6 +126,10 @@ The current Lotus Core transaction query-parameter slice extracts deterministic 
 parameter construction into `lotus_core_transaction_params.py`. This preserves the public client
 signature and route contract while reducing `lotus_core_query_client.py` from 622 to 574 measured
 lines and removing `_portfolio_transaction_query_params` from the top function-hotspot list.
+The current portfolio liquidity payload slice extracts concurrent AUM, cash-balance, and projected
+cashflow upstream loading into `portfolio_liquidity_payloads.py`. This preserves liquidity endpoint
+behavior while reducing `portfolio_service.py` from 2,993 to 2,968 measured lines and removing
+`_load_portfolio_liquidity_payloads` from the top function-hotspot list.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -133,21 +137,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,263 |
-| Python source files under `src/app` | 446 |
-| Python test files under `tests` | 161 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,265 |
+| Python source files under `src/app` | 447 |
+| Python test files under `tests` | 162 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current Lotus Core transaction query-parameter slice shows 1,263
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 446 Python source files under
-`src/app`; and 161 Python test files under `tests`.
+Working-tree verification for the current portfolio liquidity payload slice shows 1,265 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 447 Python source files under `src/app`;
+and 162 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,993 | `src/app/services/portfolio_service.py` |
+| 1 | 2,968 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
@@ -191,7 +195,7 @@ Current repo-native gates already cover:
 Most recent local evidence:
 
 1. Current branch: `make check` passed with ruff, format check, monetary-float guard, mypy over
-   446 source files, Workbench/OpenAPI contract smoke, and 994 unit/contract tests.
+   447 source files, Workbench/OpenAPI contract smoke, and 996 unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
    retry attempt extraction.
 3. Current focused branch: DPM proof-pack service tests passed with 8 tests after PM memo workflow
@@ -239,7 +243,7 @@ Most recent local evidence:
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
 37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests.
-38. Current branch PR-grade evidence: `make ci` passed with 1,201 unit, contract, and integration
+38. Current branch PR-grade evidence: `make ci` passed with 1,203 unit, contract, and integration
     coverage tests.
 39. Coverage: 93.69%, above the 84% floor.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.

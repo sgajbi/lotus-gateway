@@ -62,6 +62,12 @@ from app.services.portfolio_exception_summaries import (
     build_portfolio_exception_summaries,
 )
 from app.services.portfolio_insights import build_portfolio_insights
+from app.services.portfolio_liquidity_payloads import (
+    PortfolioLiquidityLoadRequest,
+    PortfolioLiquidityPayloadLoaders,
+    PortfolioLiquidityPayloads,
+    load_portfolio_liquidity_payloads,
+)
 from app.services.portfolio_position_book import (
     build_top_positions,
     parse_position_book_summary,
@@ -126,15 +132,6 @@ class PortfolioAllocationResults:
     aum_result: UpstreamResult
     positions_result: UpstreamResult
     allocation_result: UpstreamResult
-
-
-@dataclass(frozen=True)
-class PortfolioLiquidityPayloads:
-    aum_result: UpstreamResult
-    cash_balances_result: UpstreamResult
-    cashflow_result: UpstreamResult
-    aum_payload: dict[str, Any]
-    cash_balances_payload: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -1388,42 +1385,18 @@ class PortfolioService:
         as_of_date: str | None,
         reporting_currency: str | None,
     ) -> PortfolioLiquidityPayloads:
-        (
-            aum_result,
-            cash_balances_result,
-            cashflow_result,
-        ) = await asyncio.gather(
-            self._query_aum_result(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._query_cash_balances_result(
+        return await load_portfolio_liquidity_payloads(
+            PortfolioLiquidityLoadRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 reporting_currency=reporting_currency,
             ),
-            self._get_cashflow_projection_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                include_projected=True,
-                horizon_days=10,
-            ),
-        )
-        return PortfolioLiquidityPayloads(
-            aum_result=aum_result,
-            cash_balances_result=cash_balances_result,
-            cashflow_result=cashflow_result,
-            aum_payload=self._require_payload(
-                result=aum_result,
-                unavailable_detail_prefix="lotus-core aum unavailable",
-            ),
-            cash_balances_payload=self._require_payload(
-                result=cash_balances_result,
-                unavailable_detail_prefix="lotus-core cash balances unavailable",
+            PortfolioLiquidityPayloadLoaders(
+                query_aum_result=self._query_aum_result,
+                query_cash_balances_result=self._query_cash_balances_result,
+                get_cashflow_projection_result=self._get_cashflow_projection_result,
+                require_payload=self._require_payload,
             ),
         )
 
