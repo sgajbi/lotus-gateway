@@ -121,3 +121,9 @@ validation passed with `make check` covering ruff, format check, monetary-float 
 464 source files, Workbench/OpenAPI contract smoke, and 1,044 unit/contract tests; `make ci`
 passed with 207 integration tests, 1,251 coverage tests, 94.03% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
+PR #366 then merged the reporting batch contract extraction with all GitHub checks green. The
+current reporting query contract branch moves report-job list, lifecycle event, input snapshot,
+upstream-call, and snapshot-lineage contracts into `reporting_query.py`, keeps
+`app.contracts.reporting` as the compatibility import surface, reduces `reporting.py` from 1,184
+to 532 measured lines, and has focused evidence from ruff, mypy, and 7 passing reporting query and
+compatibility contract tests. Full `make check` and `make ci` remain required before PR/merge.

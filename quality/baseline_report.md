@@ -201,6 +201,11 @@ reporting error-example contracts into `reporting_batches.py` and `reporting_err
 `app.contracts.reporting` as the compatibility import surface, and reduces `reporting.py` from
 1,840 to 1,184 measured lines while preserving OpenAPI schema names and the 49-line
 longest-function baseline.
+The current reporting query contract slice moves report-job list, lifecycle event, input snapshot,
+upstream-call, and snapshot-lineage contracts into `reporting_query.py`, keeps
+`app.contracts.reporting` as the compatibility import surface, and reduces `reporting.py` from
+1,184 to 532 measured lines while preserving OpenAPI schema names and the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -208,30 +213,30 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,351 |
-| Python source files under `src/app` | 464 |
-| Python test files under `tests` | 176 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,355 |
+| Python source files under `src/app` | 465 |
+| Python test files under `tests` | 177 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current reporting batch contract branch shows 1,351 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 464 Python source files under `src/app`;
-and 176 Python test files under `tests`.
+Working-tree verification for the current reporting query contract branch shows 1,355 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 465 Python source files under `src/app`;
+and 177 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,079 | `src/app/services/portfolio_service.py` |
-| 2 | 1,734 | `src/app/contracts/risk_workspace.py` |
-| 3 | 1,704 | `src/app/services/performance_workspace_service.py` |
-| 4 | 1,607 | `src/app/services/advisor_brief_service.py` |
-| 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 6 | 1,362 | `src/app/clients/dpm_client.py` |
-| 7 | 1,217 | `src/app/services/dpm_command_center_service.py` |
-| 8 | 1,184 | `src/app/contracts/reporting.py` |
-| 9 | 1,098 | `src/app/clients/advise_client.py` |
-| 10 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 1 | 1,970 | `src/app/services/portfolio_service.py` |
+| 2 | 1,647 | `src/app/contracts/risk_workspace.py` |
+| 3 | 1,607 | `src/app/services/performance_workspace_service.py` |
+| 4 | 1,539 | `src/app/contracts/performance_workspace.py` |
+| 5 | 1,452 | `src/app/services/advisor_brief_service.py` |
+| 6 | 1,258 | `src/app/clients/dpm_client.py` |
+| 7 | 1,137 | `src/app/services/dpm_command_center_service.py` |
+| 8 | 1,012 | `src/app/clients/advise_client.py` |
+| 9 | 1,001 | `src/app/services/dpm_wave_service.py` |
+| 10 | 911 | `src/app/contracts/portfolio.py` |
 
 ## Largest Functions
 
