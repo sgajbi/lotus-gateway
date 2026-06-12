@@ -290,6 +290,12 @@ Most recent local evidence:
 48. Current transaction page-context branch: `make ci` passed with 207 integration tests and 1,210
     combined coverage tests; total coverage remained 93.70%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+49. Current portfolio workspace performance parser branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 450 source files, Workbench/OpenAPI contract smoke, and
+    1,008 unit/contract tests.
+50. Current portfolio workspace performance parser branch: `make ci` passed with 207 integration
+    tests and 1,215 combined coverage tests; total coverage is 93.74%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
