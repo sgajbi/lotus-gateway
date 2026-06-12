@@ -35,7 +35,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,872 lines,
+1. `src/app/services/portfolio_service.py` at 2,854 lines,
 2. `src/app/services/performance_workspace_service.py` at 1,607 lines,
 3. `src/app/services/advisor_brief_service.py` at 1,452 lines,
 4. `src/app/services/dpm_command_center_service.py` at 1,137 lines,
@@ -143,8 +143,9 @@ descriptors separate from the public query dependency. Portfolio position-book m
 `src/app/services/portfolio_position_book.py`, and transaction-ledger request context plus row
 mapping now live in `src/app/services/portfolio_transaction_ledger.py`. Portfolio liquidity
 upstream payload loading now lives in `src/app/services/portfolio_liquidity_payloads.py`.
-Transaction request-context handling and final portfolio workspace response assembly have lowered
-`portfolio_service.py` to 2,872 lines. Performance workspace final response assembly now lives in
+Transaction request-context handling, transaction client-kwargs mapping, and final portfolio
+workspace response assembly have lowered `portfolio_service.py` to 2,854 lines. Performance
+workspace final response assembly now lives in
 `src/app/services/performance_workspace_response.py`, lowering
 `performance_workspace_service.py` to 1,607 lines. Lotus Core transaction query-parameter
 construction now lives in

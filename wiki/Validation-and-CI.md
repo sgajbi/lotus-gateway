@@ -86,12 +86,14 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 2,872 lines after portfolio liquidity loading,
-transaction request-context, and portfolio workspace response assembly extractions, so it remains
-the largest-file hotspot but is trending down. `performance_workspace_service.py` is now measured
-at 1,607 lines after response assembly extraction. The current merged longest-function baseline is
-49 lines. Local `make check` for PR #351 passed with 1,001 unit/contract tests, and local
-`make ci` passed with 207 integration tests, 1,208 coverage tests, 93.70 percent total coverage,
-and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
-GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
-green before PR #351 merged.
+`portfolio_service.py` is now measured at 2,854 lines after portfolio liquidity loading,
+transaction request-context, transaction client-kwargs, and portfolio workspace response assembly
+extractions, so it remains the largest-file hotspot but is trending down.
+`performance_workspace_service.py` is now measured at 1,607 lines after response assembly
+extraction. The current longest-function baseline is 49 lines. Local `make check` for PR #352
+passed with 1,001 unit/contract tests, and local `make ci` passed with 207 integration tests, 1,208
+coverage tests, 93.70 percent total coverage, and `pip-audit` reporting no known vulnerabilities
+after the governed FastAPI/Starlette exception. GitHub Feature Lane, PR Merge Gate, Quality
+Baseline, Docker build, and Docker parity checks were green before PR #352 merged. The current
+transaction client-kwargs branch adds focused transaction-ledger mapper evidence with 7 passing
+unit tests.
