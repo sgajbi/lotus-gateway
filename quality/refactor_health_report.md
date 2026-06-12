@@ -237,7 +237,7 @@ preserving the 49-line longest-function baseline.
 | Branch hygiene | Healthy | merged `main` at `ab656b9`; remote server truth showed only `main` after PR #353 cleanup |
 | Unit/contract coverage | Healthy | 1,003 unit/contract tests passed in current branch `make check`; focused transaction-ledger mapper tests passed with 8 tests on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,209 coverage tests passed in current branch `make ci`; total coverage is 93.70%, above the 84% floor |
+| Total coverage | Healthy | 1,210 coverage tests passed in current branch `make ci`; total coverage is 93.70%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context slices reduce `portfolio_service.py` to 2,797 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
