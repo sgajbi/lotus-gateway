@@ -58,7 +58,7 @@ repository longest-function baseline from 133 lines to 127 lines and reduced
 `portfolio_service.py` from 2,839 lines to 2,744 lines while preserving focused portfolio insight
 and router contract tests. The performance workspace capability-input extraction then lowered the
 repository longest-function baseline from 127 lines to 119 lines while adding focused capability
-input, history-date, and aggregate-only fallback tests. The current branch batch further lowered
+input, history-date, and aggregate-only fallback tests. That branch batch further lowered
 the repository longest-function baseline from 119 lines to 99 lines, reduced
 `portfolio_service.py` from 2,744 lines to 2,700 lines, added focused portfolio insight-rule tests,
 and passed `make check` with 967 unit/contract tests. The latest focused batch split DPM
@@ -86,11 +86,12 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 3,155 lines after explicit typed workspace component,
-transaction-summary, transaction-page, and book assembly helpers, so it remains the largest-file
-hotspot. Local `make check` remains green with 967 unit/contract tests on commit `6836e69`, and
-local `make ci` passes on commit `e1e7980` with 207 integration tests, 1,174 coverage tests,
-93.32 percent total coverage, and `pip-audit` reporting no known vulnerabilities after the
-governed FastAPI/Starlette exception. The latest focused slices have local router/service/contract,
-boundary, lint, format, mypy, and monetary-float evidence. GitHub Feature Lane and Quality
-Baseline runs remain the authoritative remote evidence and must be rechecked before PR readiness.
+`portfolio_service.py` is now measured at 2,872 lines after portfolio liquidity loading,
+transaction request-context, and portfolio workspace response assembly extractions, so it remains
+the largest-file hotspot but is trending down. `performance_workspace_service.py` is now measured
+at 1,607 lines after response assembly extraction. The current merged longest-function baseline is
+49 lines. Local `make check` for PR #351 passed with 1,001 unit/contract tests, and local
+`make ci` passed with 207 integration tests, 1,208 coverage tests, 93.70 percent total coverage,
+and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
+GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
+green before PR #351 merged.

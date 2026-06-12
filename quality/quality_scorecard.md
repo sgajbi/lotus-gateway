@@ -1,36 +1,39 @@
 # Quality Scorecard
 
 Date: 2026-06-12
-Mode: PR-readiness evidence update
+Mode: merged-main evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | `make check` passed with lint, format, monetary-float guard, mypy, contract smoke, and 996 unit/contract tests; `make ci` passed with 207 integration tests, 1,203 coverage tests, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
-| Coverage | 4/5 | 93.69% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
-| Modularity | 4/5 | Current slice preserves the 49-line longest-function baseline and extracts portfolio liquidity upstream payload loading into a reusable helper; `portfolio_service.py` drops from 2,993 to 2,968 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
+| Build and test reliability | 5/5 | Latest merged hardening evidence includes `make check` with ruff, format, monetary-float guard, mypy over 449 source files, contract smoke, and 1,001 unit/contract tests; `make ci` passed with 207 integration tests, 1,208 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
+| Coverage | 4/5 | 93.70% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
+| Modularity | 4/5 | Current merged state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, performance workspace response assembly, and portfolio workspace response assembly; `portfolio_service.py` is now 2,872 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 4/5 | 233 OpenAPI paths and 247 operations; missing summary, description, operation ID, tags, and documented 4xx/5xx response counts are all 0; Spectral remains report-only | Triage Spectral warnings and decide explicit operation ID policy |
-| Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions | Normalize route/upstream errors |
-| Observability | 3/5 | Health/readiness/metrics/correlation/audit present; analytics async polling now separates per-attempt fanout logging from loop orchestration and preserves absolute result URLs under test | Enforce structured log and metric label rules |
-| Security | 4/5 | `pip-audit` passed in `make ci` with the governed FastAPI/Starlette exception; no known vulnerabilities found | Triage bandit and sensitive-data handling checks |
-| Documentation | 4/5 | Quality scorecard and health evidence updated with current portfolio liquidity payload-loader metrics; no repo-local wiki source changes required for this code-focused extraction | Keep wiki synced and add diagrams over time |
-| Operations readiness | 3/5 | Existing CI/runbook docs; operational runbook now consolidated | Add incident playbooks and SLO checks |
+| Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions; route/upstream error normalization remains a meaningful hardening candidate | Normalize route/upstream errors |
+| Observability | 3/5 | Health/readiness/metrics/correlation/audit are present; RFC-0108 fan-out and selected analytics audit posture remain implementation-backed | Enforce structured log and metric label rules |
+| Security | 4/5 | `pip-audit` passed in latest `make ci` with the governed FastAPI/Starlette exception; no known vulnerabilities found | Triage bandit and sensitive-data handling checks |
+| Documentation | 4/5 | Baseline, scorecard, health report, and wiki validation evidence are refreshed to current merged metrics through PR #351 | Keep wiki synced and add diagrams over time |
+| Operations readiness | 3/5 | Existing CI/runbook docs and wiki validation posture describe the report-only quality lane | Add incident playbooks and SLO checks |
 
 ## Before/After Evidence
 
-Comparison point: `origin/main` at `8bed73e` versus the current portfolio liquidity payload-loader
-branch before merge.
+Comparison point: the prior scorecard state after the portfolio liquidity payload-loader slice
+versus merged `main` after PRs #349, #350, and #351.
 
-| Measure | Before | After | Result |
+| Measure | Prior scorecard | Current merged `main` | Result |
 | --- | ---: | ---: | --- |
-| Branch commits over `origin/main` | 0 | 1 planned | Narrow closure branch ready for PR review |
-| Tracked `src/app` Python files | 446 | 447 | Added reusable portfolio liquidity payload loader |
-| Tracked test files | 161 | 162 | Added focused liquidity payload loader tests |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,265 | 1,297 | Added focused modules, tests, and quality evidence |
+| Tracked `src/app` Python files | 447 | 449 | Added focused portfolio/performance response helpers |
+| Tracked Python test files | 162 | 164 | Added focused request-context and response-assembly tests |
 | Longest function | 49 lines | 49 lines | Preserved |
 | Top function hotspot count at 49 lines | 2 | 2 | Preserved |
-| Largest source file | 2,993 lines | 2,968 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
+| Largest source file | 2,968 lines | 2,872 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
+| `performance_workspace_service.py` | 1,724 lines | 1,607 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 994 | 996 | Added focused portfolio liquidity payload loader tests |
+| Local unit/contract tests | 996 | 1,001 | Added focused response/request boundary tests |
+| Local coverage tests | 1,203 | 1,208 | Added focused coverage while preserving total coverage |
+| Total coverage | 93.69% | 93.70% | Improved slightly |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |
 
 ## Phase Gates
@@ -54,8 +57,8 @@ Candidate thresholds:
 2. no new forbidden imports,
 3. no new high-confidence dead-code findings,
 4. no new high-severity bandit findings,
-5. no new function above the current branch maximum of 49 lines and no unclassified largest-file
-   growth above the current 2,968-line `portfolio_service.py` maximum.
+5. no new function above the current merged maximum of 49 lines and no unclassified largest-file
+   growth above the current 2,872-line `portfolio_service.py` maximum.
 
 ### Phase 3: Enforce Agreed Thresholds
 

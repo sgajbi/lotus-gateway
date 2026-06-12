@@ -54,7 +54,7 @@ extracted to `portfolio_exception_summaries.py`, reducing `portfolio_service.py`
 to 2,744 lines and reducing `_build_portfolio_exception_summaries` from 133 lines to a short
 readiness delegation. Performance workspace capability-input derivation has now been split into
 explicit capability input and history-date helpers, reducing `build_workspace_capabilities` from
-127 lines to 99 lines. The current branch has further split portfolio workspace source/analytics
+127 lines to 99 lines. A later hardening batch further split portfolio workspace source/analytics
 assembly, portfolio insight rules, performance workspace summary/detail and horizon contexts,
 foundation workspace assembly, risk rolling and attribution orchestration, shell workspace
 descriptor specs, transaction query contracts, DPM exception-summary workflow orchestration,
@@ -213,17 +213,27 @@ cashflow loading into `portfolio_liquidity_payloads.py`. It reduces `portfolio_s
 2,993 to 2,968 measured lines, removes `_load_portfolio_liquidity_payloads` from the top
 function-hotspot list, and preserves liquidity request parameter forwarding plus required upstream
 payload validation behavior.
+The current merged transaction request-context slice separates transaction request construction
+and cache-key responsibility from the public ledger method, reducing `portfolio_service.py` from
+2,968 to 2,898 lines while preserving upstream filter, cache, and ledger response behavior.
+The current merged performance workspace response slice extracts summary-view and response-part
+assembly into `performance_workspace_response.py`, reducing `performance_workspace_service.py`
+from 1,724 to 1,607 lines and making response contract construction directly unit-testable.
+The current merged portfolio workspace response slice extracts response component/parts models and
+pure `PortfolioWorkspaceResponse` construction into `portfolio_workspace_response.py`, reducing
+`portfolio_service.py` from 2,898 to 2,872 lines while preserving the 49-line longest-function
+baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | active focused portfolio liquidity payload-loader branch over `origin/main` `8bed73e`; intended to merge and delete before handoff |
-| Unit/contract coverage | Healthy | 996 unit/contract tests passed in current-branch `make check`; focused liquidity payload and portfolio service tests passed with 46 tests |
-| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` |
-| Total coverage | Healthy | 1,203 coverage tests passed in current-branch `make ci`; total coverage is 93.69%, above the 84% floor |
+| Branch hygiene | Healthy | merged `main` at `52b89ab`; remote server truth showed only `main` after PR #351 cleanup |
+| Unit/contract coverage | Healthy | 1,001 unit/contract tests passed in PR #351 `make check`; focused portfolio workspace response/control tests passed with 5 tests |
+| Integration coverage | Healthy | 207 integration tests passed in PR #351 `make ci` |
+| Total coverage | Healthy | 1,208 coverage tests passed in PR #351 `make ci`; total coverage is 93.70%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; portfolio liquidity upstream loading is extracted and `portfolio_service.py` is reduced to 2,968 measured lines; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context slices reduce `portfolio_service.py` to 2,872 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |

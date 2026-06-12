@@ -130,6 +130,16 @@ The current portfolio liquidity payload slice extracts concurrent AUM, cash-bala
 cashflow upstream loading into `portfolio_liquidity_payloads.py`. This preserves liquidity endpoint
 behavior while reducing `portfolio_service.py` from 2,993 to 2,968 measured lines and removing
 `_load_portfolio_liquidity_payloads` from the top function-hotspot list.
+The current merged transaction request-context slice separates transaction request context and
+cache-key construction from public ledger orchestration, reducing `portfolio_service.py` from
+2,968 to 2,898 measured lines while preserving upstream transaction filter and cache behavior.
+The current merged performance workspace response slice extracts summary-view and response-part
+assembly into `performance_workspace_response.py`, reducing `performance_workspace_service.py`
+from 1,724 to 1,607 measured lines while preserving the response contract.
+The current merged portfolio workspace response slice extracts response component/parts models and
+pure final response assembly into `portfolio_workspace_response.py`, reducing
+`portfolio_service.py` from 2,898 to 2,872 measured lines while preserving the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -137,25 +147,25 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,265 |
-| Python source files under `src/app` | 447 |
-| Python test files under `tests` | 162 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,297 |
+| Python source files under `src/app` | 449 |
+| Python test files under `tests` | 164 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio liquidity payload slice shows 1,265 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 447 Python source files under `src/app`;
-and 162 Python test files under `tests`.
+Working-tree verification for merged `main` after PR #351 shows 1,297 files under `src`, `tests`,
+`docs`, `wiki`, `.github`, and `scripts`; 449 Python source files under `src/app`; and 164 Python
+test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,968 | `src/app/services/portfolio_service.py` |
+| 1 | 2,872 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
-| 5 | 1,724 | `src/app/services/performance_workspace_service.py` |
+| 5 | 1,607 | `src/app/services/performance_workspace_service.py` |
 | 6 | 1,539 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,452 | `src/app/services/advisor_brief_service.py` |
 | 8 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -168,14 +178,14 @@ and 162 Python test files under `tests`.
 | ---: | ---: | --- | --- |
 | 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 48 | `_assemble_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 4 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
-| 5 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
-| 6 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 7 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 10 | 46 | `_portfolio_transactions_request_context` | `src/app/services/portfolio_service.py` |
+| 3 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
+| 4 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
+| 5 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 6 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 7 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 8 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
+| 9 | 46 | `_assemble_portfolio_workspace_components` | `src/app/services/portfolio_service.py` |
+| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
 
 ## Existing Blocking Gates
 
@@ -194,8 +204,9 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current branch: `make check` passed with ruff, format check, monetary-float guard, mypy over
-   447 source files, Workbench/OpenAPI contract smoke, and 996 unit/contract tests.
+1. Latest merged response-assembly slice: `make check` passed with ruff, format check,
+   monetary-float guard, mypy over 449 source files, Workbench/OpenAPI contract smoke, and 1,001
+   unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
    retry attempt extraction.
 3. Current focused branch: DPM proof-pack service tests passed with 8 tests after PM memo workflow
@@ -242,15 +253,20 @@ Most recent local evidence:
 34. Current focused branch: Workbench analytics tests passed with 7 selected tests.
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
-37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests.
-38. Current branch PR-grade evidence: `make ci` passed with 1,203 unit, contract, and integration
+37. PR #351 PR-grade evidence: `make ci` passed with 207 integration tests.
+38. PR #351 PR-grade evidence: `make ci` passed with 1,208 unit, contract, and integration
     coverage tests.
-39. Coverage: 93.69%, above the 84% floor.
+39. Coverage: 93.70%, above the 84% floor.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 41. Current closure slice: `tests/unit/test_portfolio_position_book.py` plus focused portfolio
     service position/allocation tests passed with 9 selected tests after mapper extraction.
 42. Current transaction-ledger slice: `tests/unit/test_portfolio_transaction_ledger.py` plus
     `tests/unit/test_portfolio_service.py` passed with 48 selected tests after mapper extraction.
+43. Current performance workspace response slice: `tests/unit/test_performance_workspace_response.py`
+    passed with direct response assembly coverage.
+44. Current portfolio workspace response slice:
+    `tests/unit/test_portfolio_workspace_response.py tests/unit/test_portfolio_workspace_controls.py`
+    passed with 5 selected tests after response assembly extraction.
 
 ## Tooling Availability Baseline
 

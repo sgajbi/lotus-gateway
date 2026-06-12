@@ -35,8 +35,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 2,993 lines,
-2. `src/app/services/performance_workspace_service.py` at 1,724 lines,
+1. `src/app/services/portfolio_service.py` at 2,872 lines,
+2. `src/app/services/performance_workspace_service.py` at 1,607 lines,
 3. `src/app/services/advisor_brief_service.py` at 1,452 lines,
 4. `src/app/services/dpm_command_center_service.py` at 1,137 lines,
 5. `src/app/services/dpm_wave_service.py` at 1,001 lines.
@@ -103,7 +103,7 @@ been extracted to
 delegation over readiness status. Performance workspace capability-input derivation has been
 split into `PerformanceCapabilityInputs`, `build_performance_capability_inputs`, and
 `resolve_history_date_range`, reducing `build_workspace_capabilities` from 127 lines to 99 lines
-while keeping capability payload assembly in the original module. The current branch also splits
+while keeping capability payload assembly in the original module. Later merged slices also split
 portfolio workspace source/analytics assembly, portfolio insight-rule helpers, performance
 workspace summary/detail and horizon contexts, foundation workspace assembly, risk rolling and
 attribution orchestration, shell workspace descriptor specs, transaction query contracts, DPM
@@ -141,9 +141,12 @@ helpers. Risk rolling response mapping now delegates supportability enrichment a
 assembly to focused helpers. Risk drawdown routing now keeps OpenAPI query metadata in named
 descriptors separate from the public query dependency. Portfolio position-book mapping now lives in
 `src/app/services/portfolio_position_book.py`, and transaction-ledger request context plus row
-mapping now live in `src/app/services/portfolio_transaction_ledger.py`. `portfolio_service.py` is
-down to 2,968 lines. Portfolio liquidity upstream payload loading now lives in
-`src/app/services/portfolio_liquidity_payloads.py`. Lotus Core transaction query-parameter
+mapping now live in `src/app/services/portfolio_transaction_ledger.py`. Portfolio liquidity
+upstream payload loading now lives in `src/app/services/portfolio_liquidity_payloads.py`.
+Transaction request-context handling and final portfolio workspace response assembly have lowered
+`portfolio_service.py` to 2,872 lines. Performance workspace final response assembly now lives in
+`src/app/services/performance_workspace_response.py`, lowering
+`performance_workspace_service.py` to 1,607 lines. Lotus Core transaction query-parameter
 construction now lives in
 `src/app/clients/lotus_core_transaction_params.py`, reducing `lotus_core_query_client.py` to 574
 measured lines and removing `_portfolio_transaction_query_params` from the current top hotspot
