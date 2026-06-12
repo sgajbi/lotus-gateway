@@ -232,17 +232,21 @@ preserving the 49-line longest-function baseline.
 The current portfolio workspace performance parser slice moves upstream performance summary
 payload parsing into `portfolio_workspace_performance.py`, reducing `portfolio_service.py` from
 2,797 to 2,772 lines while preserving the 49-line longest-function baseline.
+The current portfolio workspace rebalance parser slice moves manage-owned rebalance run and
+supportability payload parsing into `portfolio_workspace_rebalance.py`, reducing
+`portfolio_service.py` from 2,772 to 2,729 lines while preserving the 49-line longest-function
+baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | merged `main` at `481e091`; remote server truth showed only `main` after PR #354 cleanup |
-| Unit/contract coverage | Healthy | 1,008 unit/contract tests passed in current branch `make check`; focused workspace performance parser and portfolio service tests passed with 49 tests on this branch |
-| Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,215 coverage tests passed in current branch `make ci`; total coverage is 93.74%, above the 84% floor |
+| Unit/contract coverage | Healthy | 1,008 unit/contract tests passed in latest merged `make check`; focused workspace rebalance parser and portfolio service tests passed with 50 tests on this branch |
+| Integration coverage | Healthy | 207 integration tests passed in latest merged `make ci` |
+| Total coverage | Healthy | 1,215 coverage tests passed in latest merged `make ci`; total coverage is 93.74%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,772 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,729 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -254,7 +258,8 @@ payload parsing into `portfolio_workspace_performance.py`, reducing `portfolio_s
    transaction-summary context loading, transaction page loading, book response assembly,
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
    transaction-ledger response mapping, transaction client-kwargs mapping, and transaction page
-   context defaults, plus workspace performance parsing, are now separately testable.
+   context defaults, workspace performance parsing, and workspace rebalance parsing are now
+   separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
