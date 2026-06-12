@@ -8,8 +8,8 @@ from app.contracts.performance_workspace import (
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,
 )
-from app.contracts.portfolio import (
-    PortfolioPartialFailure,
+from app.contracts.portfolio_common import PortfolioPartialFailure
+from app.contracts.portfolio_performance_snapshot import (
     PortfolioPerformanceSnapshotPoint,
     PortfolioPerformanceSnapshotResponse,
     PortfolioPerformanceSnapshotUnavailable,

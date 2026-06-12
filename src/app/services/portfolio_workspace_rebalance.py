@@ -1,10 +1,10 @@
 from typing import Any
 
 from app.contracts.portfolio import (
-    PortfolioPartialFailure,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
 )
+from app.contracts.portfolio_common import PortfolioPartialFailure
 
 REBALANCE_SUPPORTABILITY_UNAVAILABLE = "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE"
 

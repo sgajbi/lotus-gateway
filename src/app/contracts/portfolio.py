@@ -2,9 +2,21 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.contracts import portfolio_common as _portfolio_common
+from app.contracts import portfolio_performance_snapshot as _portfolio_performance_snapshot
 from app.contracts import portfolio_transactions as _portfolio_transactions
 from app.contracts import portfolio_workflow as _portfolio_workflow
 
+PortfolioPartialFailure = _portfolio_common.PortfolioPartialFailure
+PortfolioPerformanceSnapshotPoint = (
+    _portfolio_performance_snapshot.PortfolioPerformanceSnapshotPoint
+)
+PortfolioPerformanceSnapshotResponse = (
+    _portfolio_performance_snapshot.PortfolioPerformanceSnapshotResponse
+)
+PortfolioPerformanceSnapshotUnavailable = (
+    _portfolio_performance_snapshot.PortfolioPerformanceSnapshotUnavailable
+)
 PortfolioTransactionLedgerResponse = _portfolio_transactions.PortfolioTransactionLedgerResponse
 PortfolioTransactionView = _portfolio_transactions.PortfolioTransactionView
 PortfolioReadinessBucket = _portfolio_workflow.PortfolioReadinessBucket
@@ -15,21 +27,6 @@ PortfolioSupportabilitySummary = _portfolio_workflow.PortfolioSupportabilitySumm
 PortfolioWorkflowAction = _portfolio_workflow.PortfolioWorkflowAction
 PortfolioWorkflowLaunchCue = _portfolio_workflow.PortfolioWorkflowLaunchCue
 PortfolioWorkflowResponse = _portfolio_workflow.PortfolioWorkflowResponse
-
-
-class PortfolioPartialFailure(BaseModel):
-    source_service: str = Field(
-        description="Source service that produced the degraded optional response section.",
-        examples=["lotus-core"],
-    )
-    error_code: str = Field(
-        description="Gateway warning or failure code associated with the degraded section.",
-        examples=["PORTFOLIO_CASHFLOW_UNAVAILABLE"],
-    )
-    detail: str = Field(
-        description="Human-readable detail describing the degraded upstream section.",
-        examples=["cashflow temporarily unavailable"],
-    )
 
 
 class PortfolioCatalogItem(BaseModel):
@@ -1629,173 +1626,6 @@ class PortfolioBookResponse(BaseModel):
                     "market_value_base": 400.0,
                     "market_value_local": 400.0,
                     "weight_pct": 40.0,
-                }
-            ]
-        ],
-    )
-
-
-class PortfolioPerformanceSnapshotPoint(BaseModel):
-    as_of_date: str = Field(
-        description="Observation end date represented by the compact performance sparkline point.",
-        examples=["2026-03-27"],
-    )
-    portfolio_return_pct: float | None = Field(
-        default=None,
-        description=(
-            "Cumulative portfolio return percentage through the sparkline observation date."
-        ),
-        examples=[15.1],
-    )
-    benchmark_return_pct: float | None = Field(
-        default=None,
-        description=(
-            "Cumulative benchmark return percentage through the sparkline observation date when "
-            "benchmark context is available."
-        ),
-        examples=[14.72],
-    )
-    excess_return_pct: float | None = Field(
-        default=None,
-        description=(
-            "Cumulative excess return percentage versus benchmark through the sparkline "
-            "observation date."
-        ),
-        examples=[0.38],
-    )
-
-
-class PortfolioPerformanceSnapshotUnavailable(BaseModel):
-    title: str = Field(
-        description="Advisor-facing unavailable-state title for the performance snapshot module.",
-        examples=["Performance data unavailable"],
-    )
-    detail: str = Field(
-        description="Short explanation of why the performance snapshot cannot yet be calculated.",
-        examples=[
-            "Performance snapshot requires valuation history, cashflow history, and a selected "
-            "reporting period."
-        ],
-    )
-    requirements: list[str] = Field(
-        default_factory=list,
-        description="Named prerequisites that remain missing before the snapshot becomes usable.",
-        examples=[["valuation history", "cashflow history", "selected reporting period"]],
-    )
-
-
-class PortfolioPerformanceSnapshotResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Opaque correlation identifier for the performance snapshot response envelope.",
-        examples=["corr-portfolio-performance-snapshot"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Version of the gateway performance snapshot response contract.",
-        examples=["v1"],
-    )
-    portfolio_id: str = Field(
-        description=(
-            "Portfolio identifier whose lightweight performance snapshot is being returned."
-        ),
-        examples=["PF_1001"],
-    )
-    as_of_date: str = Field(
-        description="Resolved as-of date used for the snapshot response.",
-        examples=["2026-03-27"],
-    )
-    report_start_date: str | None = Field(
-        default=None,
-        description=(
-            "Source-authored inclusive start date of the reporting window represented by the "
-            "snapshot when available."
-        ),
-        examples=["2026-01-01"],
-    )
-    report_end_date: str | None = Field(
-        default=None,
-        description=(
-            "Source-authored inclusive end date of the reporting window represented by the "
-            "snapshot when available."
-        ),
-        examples=["2026-03-27"],
-    )
-    period: str = Field(
-        description=(
-            "Resolved reporting horizon represented by the snapshot, such as YTD or EXPLICIT."
-        ),
-        examples=["YTD"],
-    )
-    benchmark_code: str | None = Field(
-        default=None,
-        description="Resolved benchmark code used for the comparison values when available.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    )
-    portfolio_return_pct: float | None = Field(
-        default=None,
-        description="Portfolio return percentage for the resolved reporting horizon.",
-        examples=[15.1],
-    )
-    benchmark_return_pct: float | None = Field(
-        default=None,
-        description=(
-            "Benchmark return percentage for the resolved reporting horizon when available."
-        ),
-        examples=[14.72],
-    )
-    excess_return_pct: float | None = Field(
-        default=None,
-        description="Excess return percentage versus benchmark for the resolved reporting horizon.",
-        examples=[0.38],
-    )
-    sparkline: list[PortfolioPerformanceSnapshotPoint] = Field(
-        default_factory=list,
-        description="Compact cumulative return observations suitable for a small trend sparkline.",
-        examples=[
-            [
-                {
-                    "as_of_date": "2026-01-31",
-                    "portfolio_return_pct": 2.0,
-                    "benchmark_return_pct": 1.8,
-                    "excess_return_pct": 0.2,
-                }
-            ]
-        ],
-    )
-    unavailable: PortfolioPerformanceSnapshotUnavailable | None = Field(
-        default=None,
-        description=(
-            "Explicit unavailable-state metadata when performance cannot yet be calculated."
-        ),
-        examples=[
-            {
-                "title": "Performance data unavailable",
-                "detail": (
-                    "Performance snapshot requires valuation history, cashflow history, and a "
-                    "selected reporting period."
-                ),
-                "requirements": [
-                    "valuation history",
-                    "cashflow history",
-                    "selected reporting period",
-                ],
-            }
-        ],
-    )
-    warnings: list[str] = Field(
-        default_factory=list,
-        description="Gateway warning codes describing degraded but still usable snapshot output.",
-        examples=[["PERFORMANCE_SNAPSHOT_UNAVAILABLE"]],
-    )
-    partial_failures: list[PortfolioPartialFailure] = Field(
-        default_factory=list,
-        description="Upstream source failures preserved when optional snapshot inputs are missing.",
-        examples=[
-            [
-                {
-                    "source_service": "lotus-performance",
-                    "error_code": "PERFORMANCE_SNAPSHOT_UNAVAILABLE",
-                    "detail": "performance summary temporarily unavailable",
                 }
             ]
         ],

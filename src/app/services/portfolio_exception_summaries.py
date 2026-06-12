@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
-from app.contracts.portfolio import (
-    PortfolioExceptionSummary,
-    PortfolioPartialFailure,
-)
+from app.contracts.portfolio import PortfolioExceptionSummary
+from app.contracts.portfolio_common import PortfolioPartialFailure
 
 
 @dataclass(frozen=True)
