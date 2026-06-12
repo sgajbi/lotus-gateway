@@ -409,6 +409,12 @@ Most recent local evidence:
 73. Current risk drawdown contract branch: focused validation passed with ruff, format check, mypy
     over the touched contract/service modules, monetary-float guard, and 31 risk workspace
     contract/service tests.
+74. Current risk drawdown contract branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 462 source files, Workbench/OpenAPI contract smoke, and 1,041
+    unit/contract tests.
+75. Current risk drawdown contract branch: `make ci` passed with 207 integration tests and 1,248
+    combined coverage tests; total coverage is 94.03%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

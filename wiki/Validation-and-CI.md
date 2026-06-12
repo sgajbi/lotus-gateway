@@ -105,6 +105,9 @@ contract compatibility and portfolio OpenAPI evidence with 24 passing focused te
 PR #364 then merged the holdings contract extraction with all GitHub checks green. The current
 risk drawdown contract branch moves drawdown payload models into `risk_workspace_drawdown.py`,
 keeps `app.contracts.risk_workspace` as the compatibility import surface, refreshes the governed
-monetary-float allowlist for the moved drawdown-at-risk fields, reduces `risk_workspace.py` from
-2,043 to 1,734 measured lines, and has focused evidence from ruff, format check, mypy, the
-monetary-float guard, and 31 passing risk workspace tests.
+monetary-float allowlist for the moved drawdown-at-risk fields, and reduces `risk_workspace.py`
+from 2,043 to 1,734 measured lines. Local validation passed with `make check` covering ruff,
+format check, monetary-float guard, mypy over 462 source files, Workbench/OpenAPI contract smoke,
+and 1,041 unit/contract tests; `make ci` passed with 207 integration tests, 1,248 coverage tests,
+94.03% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
