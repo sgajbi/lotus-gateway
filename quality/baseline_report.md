@@ -143,6 +143,10 @@ longest-function baseline.
 The current transaction client-kwargs slice moves upstream argument projection into
 `portfolio_transaction_ledger.py`, reducing `portfolio_service.py` from 2,872 to 2,854 measured
 lines while preserving the 49-line longest-function baseline.
+The current transaction page-context slice moves income/activity transaction page defaults into
+`portfolio_transaction_ledger.py`, reducing `portfolio_service.py` from 2,854 to 2,797 measured
+lines while preserving the 49-line longest-function baseline and removing
+`_get_portfolio_transactions_result` from the top hotspot list.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -156,7 +160,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current transaction client-kwargs branch shows 1,297 files under
+Working-tree verification for the current transaction page-context branch shows 1,297 files under
 `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 449 Python source files under `src/app`;
 and 164 Python test files under `tests`.
 
@@ -164,7 +168,7 @@ and 164 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,854 | `src/app/services/portfolio_service.py` |
+| 1 | 2,797 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
@@ -181,14 +185,14 @@ and 164 Python test files under `tests`.
 | ---: | ---: | --- | --- |
 | 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
-| 4 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
-| 5 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 6 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 7 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 8 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 9 | 46 | `_assemble_portfolio_workspace_components` | `src/app/services/portfolio_service.py` |
-| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
+| 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 6 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 7 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
+| 8 | 46 | `_assemble_portfolio_workspace_components` | `src/app/services/portfolio_service.py` |
+| 9 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 10 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
 
 ## Existing Blocking Gates
 
@@ -232,8 +236,8 @@ Most recent local evidence:
     after policy state extraction.
 12. Current focused branch: performance workspace evidence-view tests passed with 3 selected tests
     after response-resolution extraction.
-13. Current focused branch: portfolio transaction-ledger tests passed with 7 tests after
-    transaction client-kwargs mapping extraction.
+13. Current focused branch: portfolio transaction-ledger tests passed with 8 tests after
+    transaction page-context extraction.
 14. Current focused branch: portfolio workspace tests passed with 7 selected tests.
 15. Current focused branch: Lotus Core transaction client tests passed with 2 selected tests.
 16. Current focused branch: foundation optional-upstream tests passed with 4 selected tests.
@@ -257,8 +261,8 @@ Most recent local evidence:
 34. Current focused branch: Workbench analytics tests passed with 7 selected tests.
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
-37. PR #352 PR-grade evidence: `make ci` passed with 207 integration tests.
-38. PR #352 PR-grade evidence: `make ci` passed with 1,208 unit, contract, and integration
+37. PR #353 PR-grade evidence: `make ci` passed with 207 integration tests.
+38. PR #353 PR-grade evidence: `make ci` passed with 1,209 unit, contract, and integration
     coverage tests.
 39. Coverage: 93.70%, above the 84% floor.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
