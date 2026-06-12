@@ -11,6 +11,7 @@ from app.clients.lotus_ai_client import LotusAiClient
 from app.clients.lotus_analytics_client import LotusAnalyticsClient
 from app.clients.lotus_core_ingestion_client import LotusCoreIngestionClient
 from app.clients.lotus_core_query_client import LotusCoreQueryClient
+from app.clients.lotus_core_transaction_params import build_portfolio_transaction_query_params
 from app.clients.reporting_client import ReportingClient
 from app.middleware.correlation import trace_id_var
 
@@ -1405,6 +1406,36 @@ async def test_lotus_core_query_client_transaction_route_supports_advanced_filte
         "far_leg_group_id": "FXSWAP-2026-0001-FAR",
         "start_date": "2026-03-01",
         "end_date": "2026-03-27",
+    }
+
+
+def test_lotus_core_transaction_query_params_omit_unset_optional_filters():
+    assert build_portfolio_transaction_query_params(
+        limit=10,
+        skip=0,
+        sort_by="transaction_date",
+        sort_order="desc",
+        include_projected=False,
+        as_of_date=None,
+        transaction_type=None,
+        security_id=None,
+        instrument_id=None,
+        component_type=None,
+        linked_transaction_group_id=None,
+        fx_contract_id=None,
+        swap_event_id=None,
+        near_leg_group_id=None,
+        far_leg_group_id=None,
+        start_date=None,
+        end_date=None,
+        reporting_currency="SGD",
+    ) == {
+        "limit": 10,
+        "skip": 0,
+        "sort_by": "transaction_date",
+        "sort_order": "desc",
+        "include_projected": "false",
+        "reporting_currency": "SGD",
     }
 
 

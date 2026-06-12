@@ -122,6 +122,10 @@ The current transaction-ledger slice extracts transaction-ledger request context
 mapping into `portfolio_transaction_ledger.py`. This preserves ledger metadata, transaction
 identifier, quantization, upstream filter, and cache behavior while reducing `portfolio_service.py`
 from 3,062 to 2,993 lines and keeping the 49-line longest-function baseline.
+The current Lotus Core transaction query-parameter slice extracts deterministic transaction-filter
+parameter construction into `lotus_core_transaction_params.py`. This preserves the public client
+signature and route contract while reducing `lotus_core_query_client.py` from 622 to 574 measured
+lines and removing `_portfolio_transaction_query_params` from the top function-hotspot list.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -129,15 +133,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,262 |
-| Python source files under `src/app` | 445 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,263 |
+| Python source files under `src/app` | 446 |
 | Python test files under `tests` | 161 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current transaction-ledger slice shows 1,262 files under `src`,
-`tests`, `docs`, `wiki`, `.github`, and `scripts`; 445 Python source files under `src/app`; and
-161 Python test files under `tests`.
+Working-tree verification for the current Lotus Core transaction query-parameter slice shows 1,263
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 446 Python source files under
+`src/app`; and 161 Python test files under `tests`.
 
 ## Largest Source Files
 
@@ -164,10 +168,10 @@ Working-tree verification for the current transaction-ledger slice shows 1,262 f
 | 4 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
 | 5 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 6 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 7 | 47 | `_portfolio_transaction_query_params` | `src/app/clients/lotus_core_query_client.py` |
-| 8 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 9 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
-| 10 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
+| 7 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
+| 10 | 46 | `_portfolio_transactions_request_context` | `src/app/services/portfolio_service.py` |
 
 ## Existing Blocking Gates
 
@@ -187,7 +191,7 @@ Current repo-native gates already cover:
 Most recent local evidence:
 
 1. Current branch: `make check` passed with ruff, format check, monetary-float guard, mypy over
-   445 source files, Workbench/OpenAPI contract smoke, and 993 unit/contract tests.
+   446 source files, Workbench/OpenAPI contract smoke, and 994 unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
    retry attempt extraction.
 3. Current focused branch: DPM proof-pack service tests passed with 8 tests after PM memo workflow
@@ -235,7 +239,7 @@ Most recent local evidence:
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
 37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests.
-38. Current branch PR-grade evidence: `make ci` passed with 1,200 unit, contract, and integration
+38. Current branch PR-grade evidence: `make ci` passed with 1,201 unit, contract, and integration
     coverage tests.
 39. Coverage: 93.69%, above the 84% floor.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
@@ -275,7 +279,7 @@ report-only quality checks. Baseline findings should be triaged before making th
 
 ## OpenAPI Gaps
 
-Current generated OpenAPI evidence on branch head `62c7a7399944b380eca8ddc7be7ac987a2cd4654`:
+Current generated OpenAPI evidence for this working-tree baseline:
 
 | Check | Count |
 | --- | ---: |
