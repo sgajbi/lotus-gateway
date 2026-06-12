@@ -208,17 +208,22 @@ construction into `lotus_core_transaction_params.py`. It reduces `lotus_core_que
 622 to 574 measured lines, removes `_portfolio_transaction_query_params` from the top
 function-hotspot list, and preserves the public client method signature plus route-level filter
 contract.
+The current portfolio liquidity payload slice extracts concurrent AUM, cash-balance, and projected
+cashflow loading into `portfolio_liquidity_payloads.py`. It reduces `portfolio_service.py` from
+2,993 to 2,968 measured lines, removes `_load_portfolio_liquidity_payloads` from the top
+function-hotspot list, and preserves liquidity request parameter forwarding plus required upstream
+payload validation behavior.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | active focused Lotus Core transaction query-parameter branch over `origin/main` `58984a2`; intended to merge and delete before handoff |
-| Unit/contract coverage | Healthy | 994 unit/contract tests passed in current-branch `make check`; focused upstream-client tests passed with 177 tests |
+| Branch hygiene | Healthy | active focused portfolio liquidity payload-loader branch over `origin/main` `8bed73e`; intended to merge and delete before handoff |
+| Unit/contract coverage | Healthy | 996 unit/contract tests passed in current-branch `make check`; focused liquidity payload and portfolio service tests passed with 46 tests |
 | Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` |
-| Total coverage | Healthy | 1,201 coverage tests passed in current-branch `make ci`; total coverage is 93.69%, above the 84% floor |
+| Total coverage | Healthy | 1,203 coverage tests passed in current-branch `make ci`; total coverage is 93.69%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; Lotus Core transaction query-parameter mapping is extracted and `lotus_core_query_client.py` is reduced to 574 measured lines; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; portfolio liquidity upstream loading is extracted and `portfolio_service.py` is reduced to 2,968 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
