@@ -80,6 +80,11 @@ from app.services.portfolio_transaction_ledger import (
     portfolio_transactions_cache_key,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.portfolio_workspace_response import (
+    PortfolioWorkspaceComponents,
+    PortfolioWorkspaceResponseParts,
+    assemble_portfolio_workspace_response,
+)
 from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
@@ -134,28 +139,6 @@ class PortfolioAllocationResults:
     aum_result: UpstreamResult
     positions_result: UpstreamResult
     allocation_result: UpstreamResult
-
-
-@dataclass(frozen=True)
-class PortfolioWorkspaceComponents:
-    portfolio: PortfolioIdentity
-    profile: PortfolioProfile
-    summary: PortfolioSummary
-    cashflow_outlook: PortfolioCashflowOutlook | None
-    performance: PortfolioPerformanceSummary | None
-    rebalance: PortfolioRebalanceSummary | None
-    operations: PortfolioOperationalReadiness | None
-    warnings: list[str]
-    partial_failures: list[PortfolioPartialFailure]
-
-
-@dataclass(frozen=True)
-class PortfolioWorkspaceResponseParts:
-    reporting: PortfolioReportingReadiness
-    control_capabilities: PortfolioWorkspaceControlCapabilities
-    workflow_cues: list[PortfolioWorkflowLaunchCue]
-    warnings: list[str]
-    partial_failures: list[PortfolioPartialFailure]
 
 
 @dataclass(frozen=True)
@@ -801,10 +784,6 @@ class PortfolioService:
             analytics_results=analytics_results,
         )
 
-        portfolio = components.portfolio
-        profile = components.profile
-        summary = components.summary
-
         response_parts = self._build_portfolio_workspace_response_parts(
             portfolio_id=portfolio_id,
             components=components,
@@ -814,22 +793,12 @@ class PortfolioService:
             reporting_currency=reporting_currency,
         )
 
-        return PortfolioWorkspaceResponse(
+        return assemble_portfolio_workspace_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             as_of_date=resolved_as_of_date,
-            portfolio=portfolio,
-            profile=profile,
-            summary=summary,
-            cashflow_outlook=components.cashflow_outlook,
-            performance=components.performance,
-            rebalance=components.rebalance,
-            reporting=response_parts.reporting,
-            operations=components.operations,
-            control_capabilities=response_parts.control_capabilities,
-            workflow_cues=response_parts.workflow_cues,
-            warnings=response_parts.warnings,
-            partial_failures=response_parts.partial_failures,
+            components=components,
+            response_parts=response_parts,
         )
 
     def _build_portfolio_workspace_response_parts(
