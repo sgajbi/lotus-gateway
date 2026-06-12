@@ -423,6 +423,12 @@ Most recent local evidence:
 76. Current reporting batch contract branch: focused validation passed with ruff, format check,
     monetary-float guard, mypy over the touched contract/router/service modules, and 40 reporting
     batch, contract, and integration tests.
+77. Current reporting batch contract branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 464 source files, Workbench/OpenAPI contract smoke, and 1,044
+    unit/contract tests.
+78. Current reporting batch contract branch: `make ci` passed with 207 integration tests and 1,251
+    combined coverage tests; total coverage is 94.03%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

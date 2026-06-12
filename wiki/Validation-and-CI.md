@@ -116,4 +116,8 @@ reporting batch contract branch moves batch, worker-run, scheduler, and shared r
 error-example contracts into `reporting_batches.py` and `reporting_errors.py`, keeps
 `app.contracts.reporting` as the compatibility import surface, reduces `reporting.py` from 1,840
 to 1,184 measured lines, and has focused evidence from ruff, format check, mypy,
-monetary-float guard, and 40 passing reporting batch, contract, and integration tests.
+monetary-float guard, and 40 passing reporting batch, contract, and integration tests. Local
+validation passed with `make check` covering ruff, format check, monetary-float guard, mypy over
+464 source files, Workbench/OpenAPI contract smoke, and 1,044 unit/contract tests; `make ci`
+passed with 207 integration tests, 1,251 coverage tests, 94.03% total coverage, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
