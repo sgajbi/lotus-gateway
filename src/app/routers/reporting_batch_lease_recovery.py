@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path
 
-from app.contracts.reporting import BATCH_RECOVERY_RESPONSE_EXAMPLE, BatchRecoveryResponse
+from app.contracts.reporting_batches import BATCH_RECOVERY_RESPONSE_EXAMPLE, BatchRecoveryResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import ReportingCallerContext
 from app.services.reporting_service_provider import reporting_batch_control_service

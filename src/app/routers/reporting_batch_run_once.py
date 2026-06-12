@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Path
 
-from app.contracts.reporting import (
+from app.contracts.reporting_batches import (
     BATCH_WORKER_RUN_REQUEST_EXAMPLE,
     BATCH_WORKER_RUN_RESPONSE_EXAMPLE,
     BatchWorkerRunRequest,

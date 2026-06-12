@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from app.contracts.reporting import BatchCreateRequest
+from app.contracts.reporting_batches import BatchCreateRequest
 from app.services.reporting_batch_lifecycle_service import ReportingBatchLifecycleService
 
 

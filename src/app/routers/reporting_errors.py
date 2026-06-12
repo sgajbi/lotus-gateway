@@ -1,9 +1,9 @@
 from typing import Any
 
-from app.contracts.reporting import (
+from app.contracts.reporting import ReportJobErrorResponse
+from app.contracts.reporting_errors import (
     REPORT_BATCH_ERROR_EXAMPLES,
     REPORT_JOB_ERROR_EXAMPLES,
-    ReportJobErrorResponse,
 )
 
 

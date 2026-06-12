@@ -1,4 +1,4 @@
-from app.contracts.reporting import (
+from app.contracts.reporting_batches import (
     BatchScheduleListResponse,
     BatchSchedulerRunRequest,
     BatchSchedulerRunResponse,

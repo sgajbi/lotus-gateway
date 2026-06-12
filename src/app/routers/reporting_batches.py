@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Header, status
 
-from app.contracts.reporting import (
+from app.contracts.reporting_batches import (
     BATCH_CREATE_REQUEST_EXAMPLE,
     BATCH_HANDLE_RESPONSE_EXAMPLE,
     BatchCreateRequest,
