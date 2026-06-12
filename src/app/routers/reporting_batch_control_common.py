@@ -1,4 +1,4 @@
-from app.contracts.reporting import BatchControlResponse
+from app.contracts.reporting_batches import BatchControlResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.reporting_service_provider import reporting_batch_control_service
 

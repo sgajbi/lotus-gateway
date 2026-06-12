@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from app.contracts.reporting import BatchSchedulerRunRequest
+from app.contracts.reporting_batches import BatchSchedulerRunRequest
 from app.services.reporting_batch_scheduler_service import ReportingBatchSchedulerService
 
 

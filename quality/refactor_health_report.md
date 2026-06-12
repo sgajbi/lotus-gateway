@@ -277,17 +277,22 @@ The current risk drawdown contract slice moves drawdown payload contracts into
 intact, refreshes the governed monetary-float allowlist for the moved drawdown-at-risk fields, and
 reduces `risk_workspace.py` from 2,043 to 1,734 lines while preserving risk workspace contract
 tests and the 49-line longest-function baseline.
+The current reporting batch contract slice moves batch, worker-run, scheduler, and shared
+reporting error-example contracts into `reporting_batches.py` and `reporting_errors.py`, keeps the
+legacy `app.contracts.reporting` import surface intact, and reduces `reporting.py` from 1,840 to
+1,184 lines while preserving reporting contract/router tests and the 49-line longest-function
+baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current risk drawdown contract branch was created from clean `main` after PR #364; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | 1,041 unit/contract tests passed in current branch `make check`; focused risk drawdown contract and risk workspace service tests passed with 31 tests on this branch |
+| Branch hygiene | Healthy | Current reporting batch contract branch was created from clean `main` after PR #365; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | 1,044 unit/contract tests passed in current branch `make check`; focused reporting batch, contract, and integration tests passed with 40 tests on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,248 coverage tests passed in current branch `make ci`; total coverage is 94.03%, above the 84% floor |
+| Total coverage | Healthy | 1,251 coverage tests passed in current branch `make ci`; total coverage is 94.03%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 954 measured lines and `risk_workspace.py` to 1,734 measured lines, leaving `portfolio_service.py` at 2,079 measured lines and `performance_workspace_service.py` at 1,704 measured lines; large contracts and several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 954 measured lines, `risk_workspace.py` to 1,734 measured lines, and `reporting.py` to 1,184 measured lines, leaving `portfolio_service.py` at 2,079 measured lines and `performance_workspace_service.py` at 1,704 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.contracts.reporting import (
+from app.contracts.reporting_batches import (
     BATCH_SCHEDULE_LIST_RESPONSE_EXAMPLE,
     BatchScheduleListResponse,
 )

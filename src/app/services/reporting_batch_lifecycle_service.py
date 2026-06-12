@@ -1,11 +1,11 @@
 from fastapi import HTTPException, status
 
-from app.contracts.reporting import (
-    REPORT_BATCH_ERROR_EXAMPLES,
+from app.contracts.reporting_batches import (
     BatchCreateRequest,
     BatchHandleResponse,
     BatchStatusResponse,
 )
+from app.contracts.reporting_errors import REPORT_BATCH_ERROR_EXAMPLES
 from app.services.reporting_client_protocols import ReportingBatchLifecycleClient
 from app.services.reporting_error_mapping import raise_report_batch_error
 from app.services.reporting_links import rewrite_report_batch_status_url

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path
 
-from app.contracts.reporting import BATCH_CONTROL_RESPONSE_EXAMPLE, BatchControlResponse
+from app.contracts.reporting_batches import BATCH_CONTROL_RESPONSE_EXAMPLE, BatchControlResponse
 from app.routers.reporting_batch_control_common import control_report_batch
 from app.routers.reporting_context import ReportingCallerContext
 

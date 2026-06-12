@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.contracts.reporting import (
+from app.contracts.reporting_batches import (
     BatchControlResponse,
     BatchRecoveryResponse,
     BatchWorkerRunRequest,

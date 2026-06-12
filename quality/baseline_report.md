@@ -196,6 +196,11 @@ The current risk drawdown contract slice moves drawdown payload models into
 surface, refreshes the governed monetary float allowlist for the moved drawdown-at-risk fields,
 and reduces `risk_workspace.py` from 2,043 to 1,734 measured lines while preserving OpenAPI schema
 names and the 49-line longest-function baseline.
+The current reporting batch contract slice moves batch, worker-run, scheduler, and shared
+reporting error-example contracts into `reporting_batches.py` and `reporting_errors.py`, keeps
+`app.contracts.reporting` as the compatibility import surface, and reduces `reporting.py` from
+1,840 to 1,184 measured lines while preserving OpenAPI schema names and the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -203,28 +208,28 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,345 |
-| Python source files under `src/app` | 462 |
-| Python test files under `tests` | 175 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,351 |
+| Python source files under `src/app` | 464 |
+| Python test files under `tests` | 176 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current risk drawdown contract branch shows 1,345 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 462 Python source files under `src/app`;
-and 175 Python test files under `tests`.
+Working-tree verification for the current reporting batch contract branch shows 1,351 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 464 Python source files under `src/app`;
+and 176 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 2,079 | `src/app/services/portfolio_service.py` |
-| 2 | 1,840 | `src/app/contracts/reporting.py` |
-| 3 | 1,734 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,704 | `src/app/services/performance_workspace_service.py` |
-| 5 | 1,607 | `src/app/services/advisor_brief_service.py` |
-| 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 7 | 1,362 | `src/app/clients/dpm_client.py` |
-| 8 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 2 | 1,734 | `src/app/contracts/risk_workspace.py` |
+| 3 | 1,704 | `src/app/services/performance_workspace_service.py` |
+| 4 | 1,607 | `src/app/services/advisor_brief_service.py` |
+| 5 | 1,606 | `src/app/contracts/performance_workspace.py` |
+| 6 | 1,362 | `src/app/clients/dpm_client.py` |
+| 7 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 8 | 1,184 | `src/app/contracts/reporting.py` |
 | 9 | 1,098 | `src/app/clients/advise_client.py` |
 | 10 | 1,093 | `src/app/services/dpm_wave_service.py` |
 
@@ -413,6 +418,15 @@ Most recent local evidence:
     monetary-float guard, mypy over 462 source files, Workbench/OpenAPI contract smoke, and 1,041
     unit/contract tests.
 75. Current risk drawdown contract branch: `make ci` passed with 207 integration tests and 1,248
+    combined coverage tests; total coverage is 94.03%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
+76. Current reporting batch contract branch: focused validation passed with ruff, format check,
+    monetary-float guard, mypy over the touched contract/router/service modules, and 40 reporting
+    batch, contract, and integration tests.
+77. Current reporting batch contract branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 464 source files, Workbench/OpenAPI contract smoke, and 1,044
+    unit/contract tests.
+78. Current reporting batch contract branch: `make ci` passed with 207 integration tests and 1,251
     combined coverage tests; total coverage is 94.03%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
