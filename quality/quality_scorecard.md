@@ -5,7 +5,7 @@ Mode: feature-branch evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 449 source files, contract smoke, and 1,002 unit/contract tests; `make ci` passed with 207 integration tests, 1,209 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
+| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 449 source files, contract smoke, and 1,003 unit/contract tests; latest `make ci` evidence passed with 207 integration tests, 1,209 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
 | Coverage | 4/5 | 93.70% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
 | Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, and portfolio workspace response assembly; `portfolio_service.py` is now 2,797 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
@@ -31,7 +31,7 @@ versus the current transaction page-context branch after PRs #349, #350, #351, #
 | Largest source file | 2,968 lines | 2,797 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
 | `performance_workspace_service.py` | 1,724 lines | 1,607 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 996 | 1,002 | Added focused response/request boundary tests |
+| Local unit/contract tests | 996 | 1,003 | Added focused response/request boundary tests |
 | Local coverage tests | 1,203 | 1,209 | Added focused coverage while preserving total coverage |
 | Total coverage | 93.69% | 93.70% | Improved slightly |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |

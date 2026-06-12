@@ -281,6 +281,9 @@ Most recent local evidence:
 46. Current transaction client-kwargs branch: `make ci` passed with 207 integration tests and
     1,209 combined coverage tests; total coverage remained 93.70%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+47. Current transaction page-context branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 449 source files, Workbench/OpenAPI contract smoke, and 1,003
+    unit/contract tests.
 
 ## Tooling Availability Baseline
 

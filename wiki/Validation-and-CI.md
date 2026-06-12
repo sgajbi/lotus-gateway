@@ -92,7 +92,7 @@ workspace response assembly extractions, so it remains the largest-file hotspot 
 down.
 `performance_workspace_service.py` is now measured at 1,607 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-transaction client-kwargs branch passed with 1,002 unit/contract tests, and local `make ci` passed
+transaction page-context branch passed with 1,003 unit/contract tests, and local `make ci` passed
 with 207 integration tests, 1,209 coverage tests, 93.70 percent total coverage, and `pip-audit`
 reporting no known vulnerabilities after the governed FastAPI/Starlette exception. GitHub Feature
 Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were green before PR
