@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 3,155 lines,
-2. `src/app/services/performance_workspace_service.py` at 1,673 lines,
-3. `src/app/services/advisor_brief_service.py` at 1,581 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
-5. `src/app/services/dpm_wave_service.py` at 1,030 lines.
+1. `src/app/services/portfolio_service.py` at 2,993 lines,
+2. `src/app/services/performance_workspace_service.py` at 1,724 lines,
+3. `src/app/services/advisor_brief_service.py` at 1,452 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,137 lines,
+5. `src/app/services/dpm_wave_service.py` at 1,001 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -139,8 +139,12 @@ projection now delegates sparkline, unavailable-state, and partial-failure mappi
 helpers. Contribution summary merging now delegates detail-vs-summary selection policy to reusable
 helpers. Risk rolling response mapping now delegates supportability enrichment and fallback warning
 assembly to focused helpers. Risk drawdown routing now keeps OpenAPI query metadata in named
-descriptors separate from the public query dependency. The current longest functions are 54-line
-orchestration and mapper helpers.
+descriptors separate from the public query dependency. Portfolio position-book mapping now lives in
+`src/app/services/portfolio_position_book.py`, and transaction-ledger request context plus row
+mapping now live in `src/app/services/portfolio_transaction_ledger.py`. `portfolio_service.py` is
+down to 2,993 lines. The current longest functions are 49-line helpers:
+`get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
+`lotus_core_query_client.py`.
 
 ## Progressive Enforcement
 

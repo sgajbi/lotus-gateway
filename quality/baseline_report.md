@@ -1,6 +1,6 @@
 # Quality Baseline Report
 
-Date: 2026-06-05
+Date: 2026-06-12
 Repository: `lotus-gateway`  
 Baseline phase: report-only
 
@@ -118,6 +118,10 @@ The current closure slice extracts portfolio position-book summary derivation, p
 valuation fallback handling, cash-position summarization, and top-position ranking into
 `portfolio_position_book.py`. This preserves allocation and position-book behavior while reducing
 `portfolio_service.py` from 3,337 to 3,241 lines and keeping the 49-line longest-function baseline.
+The current transaction-ledger slice extracts transaction-ledger request context and response-row
+mapping into `portfolio_transaction_ledger.py`. This preserves ledger metadata, transaction
+identifier, quantization, upstream filter, and cache behavior while reducing `portfolio_service.py`
+from 3,062 to 2,993 lines and keeping the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -125,30 +129,30 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,404 |
-| Python source files under `src/app` | 444 |
-| Python test files under `tests` | 160 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,262 |
+| Python source files under `src/app` | 445 |
+| Python test files under `tests` | 161 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current closure slice shows 1,404 files under `src`, `tests`,
-`docs`, `wiki`, `.github`, and `scripts`; 444 Python source files under `src/app`; and 160 Python
-test files under `tests`.
+Working-tree verification for the current transaction-ledger slice shows 1,262 files under `src`,
+`tests`, `docs`, `wiki`, `.github`, and `scripts`; 445 Python source files under `src/app`; and
+161 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 3,241 | `src/app/services/portfolio_service.py` |
-| 2 | 2,226 | `src/app/contracts/portfolio.py` |
-| 3 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 4 | 1,840 | `src/app/contracts/reporting.py` |
-| 5 | 1,836 | `src/app/services/performance_workspace_service.py` |
-| 6 | 1,607 | `src/app/services/advisor_brief_service.py` |
-| 7 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 8 | 1,362 | `src/app/clients/dpm_client.py` |
-| 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
-| 10 | 1,098 | `src/app/clients/advise_client.py` |
+| 1 | 2,993 | `src/app/services/portfolio_service.py` |
+| 2 | 2,123 | `src/app/contracts/portfolio.py` |
+| 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
+| 4 | 1,731 | `src/app/contracts/reporting.py` |
+| 5 | 1,724 | `src/app/services/performance_workspace_service.py` |
+| 6 | 1,539 | `src/app/contracts/performance_workspace.py` |
+| 7 | 1,452 | `src/app/services/advisor_brief_service.py` |
+| 8 | 1,258 | `src/app/clients/dpm_client.py` |
+| 9 | 1,137 | `src/app/services/dpm_command_center_service.py` |
+| 10 | 1,012 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
@@ -158,12 +162,12 @@ test files under `tests`.
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
 | 3 | 48 | `_assemble_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 4 | 47 | `_get_portfolio_transactions_result` | `src/app/services/portfolio_service.py` |
-| 5 | 47 | `_portfolio_transaction_query_params` | `src/app/clients/lotus_core_query_client.py` |
-| 6 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
-| 7 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
-| 8 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
-| 9 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 5 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
+| 6 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
+| 7 | 47 | `_portfolio_transaction_query_params` | `src/app/clients/lotus_core_query_client.py` |
+| 8 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
+| 9 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
+| 10 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
 
 ## Existing Blocking Gates
 
@@ -182,9 +186,8 @@ Current repo-native gates already cover:
 
 Most recent local evidence:
 
-1. Current branch: `make check` passed repeatedly through commit `1b2a4e5` with ruff, format check,
-   monetary-float guard, mypy over 443 source files, Workbench/OpenAPI contract smoke, and 986
-   unit/contract tests.
+1. Current branch: `make check` passed with ruff, format check, monetary-float guard, mypy over
+   445 source files, Workbench/OpenAPI contract smoke, and 993 unit/contract tests.
 2. Current focused branch: `tests/unit/test_http_resilience.py` passed with 15 tests after JSON
    retry attempt extraction.
 3. Current focused branch: DPM proof-pack service tests passed with 8 tests after PM memo workflow
@@ -231,14 +234,15 @@ Most recent local evidence:
 34. Current focused branch: Workbench analytics tests passed with 7 selected tests.
 35. Current focused branch: Workbench rebalance tests passed with 3 selected tests.
 36. Current focused branch: portfolio readiness tests passed with 4 selected tests.
-37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests on commit
-    `1b2a4e5`.
-38. Current branch PR-grade evidence: `make ci` passed with 1,193 unit, contract, and integration
-    coverage tests on commit `1b2a4e5`.
-39. Coverage: 93.67%.
+37. Current branch PR-grade evidence: `make ci` passed with 207 integration tests.
+38. Current branch PR-grade evidence: `make ci` passed with 1,200 unit, contract, and integration
+    coverage tests.
+39. Coverage: 93.69%, above the 84% floor.
 40. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 41. Current closure slice: `tests/unit/test_portfolio_position_book.py` plus focused portfolio
     service position/allocation tests passed with 9 selected tests after mapper extraction.
+42. Current transaction-ledger slice: `tests/unit/test_portfolio_transaction_ledger.py` plus
+    `tests/unit/test_portfolio_service.py` passed with 48 selected tests after mapper extraction.
 
 ## Tooling Availability Baseline
 
@@ -254,7 +258,7 @@ large-file and long-function hotspots in service, contract, and client code.
 The first enforcement candidates should be:
 
 1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 50 lines,
+2. no new function above the current longest-function baseline of 49 lines,
 3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
 4. no new architecture import-linter violations after contracts are reviewed.
 
@@ -271,7 +275,7 @@ report-only quality checks. Baseline findings should be triaged before making th
 
 ## OpenAPI Gaps
 
-Current generated OpenAPI evidence on branch head `1b2a4e5`:
+Current generated OpenAPI evidence on branch head `62c7a7399944b380eca8ddc7be7ac987a2cd4654`:
 
 | Check | Count |
 | --- | ---: |

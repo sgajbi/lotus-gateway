@@ -46,7 +46,6 @@ from app.contracts.portfolio import (
     PortfolioSupportabilitySummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
-    PortfolioTransactionView,
     PortfolioWorkflowAction,
     PortfolioWorkflowLaunchCue,
     PortfolioWorkflowResponse,
@@ -56,8 +55,6 @@ from app.contracts.portfolio import (
 from app.precision_policy import (
     quantize_money,
     quantize_performance,
-    quantize_price,
-    quantize_quantity,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_exception_summaries import (
@@ -69,6 +66,10 @@ from app.services.portfolio_position_book import (
     build_top_positions,
     parse_position_book_summary,
     parse_positions,
+)
+from app.services.portfolio_transaction_ledger import (
+    PortfolioTransactionsRequestContext,
+    build_transaction_ledger_response,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.upstream_envelope import safe_upstream_detail
@@ -181,30 +182,6 @@ class PortfolioWorkspaceAssemblyState:
     portfolio_payload: dict[str, Any]
     warnings: list[str]
     partial_failures: list[PortfolioPartialFailure]
-
-
-@dataclass(frozen=True)
-class PortfolioTransactionsRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    as_of_date: str | None
-    include_projected: bool
-    skip: int
-    limit: int
-    transaction_type: str | None
-    security_id: str | None
-    instrument_id: str | None
-    component_type: str | None
-    linked_transaction_group_id: str | None
-    fx_contract_id: str | None
-    swap_event_id: str | None
-    near_leg_group_id: str | None
-    far_leg_group_id: str | None
-    sort_by: str
-    sort_order: str
-    start_date: str | None
-    end_date: str | None
-    reporting_currency: str | None
 
 
 @dataclass(frozen=True)
@@ -1738,25 +1715,10 @@ class PortfolioService:
         context: PortfolioTransactionsRequestContext,
         result_payload: dict[str, Any],
     ) -> PortfolioTransactionLedgerResponse:
-        transactions = [
-            self._parse_transaction_view(item)
-            for item in result_payload.get("transactions", [])
-            if isinstance(item, dict)
-        ]
-        return PortfolioTransactionLedgerResponse(
-            correlation_id=context.correlation_id,
+        return build_transaction_ledger_response(
+            context=context,
             contract_version=settings.contract_version,
-            portfolio_id=context.portfolio_id,
-            as_of_date=(
-                str(result_payload.get("as_of_date"))
-                if result_payload.get("as_of_date")
-                else context.as_of_date
-            ),
-            include_projected=context.include_projected,
-            total=int(result_payload.get("total", len(transactions))),
-            skip=int(result_payload.get("skip", context.skip)),
-            limit=int(result_payload.get("limit", context.limit)),
-            transactions=transactions,
+            result_payload=result_payload,
         )
 
     async def get_income_summary(
@@ -2260,40 +2222,6 @@ class PortfolioService:
                 )
             )
         return balances
-
-    def _parse_transaction_view(self, item: dict[str, Any]) -> PortfolioTransactionView:
-        return PortfolioTransactionView(
-            transaction_id=str(item.get("transaction_id", "")),
-            transaction_date=str(item.get("transaction_date", "")),
-            settlement_date=self._optional_str(item.get("settlement_date")),
-            transaction_type=str(item.get("transaction_type", "")),
-            component_type=self._optional_str(item.get("component_type")),
-            security_id=str(item.get("security_id", "")),
-            instrument_id=str(item.get("instrument_id", "")),
-            quantity=float(quantize_quantity(item.get("quantity", 0))),
-            price=float(quantize_price(item.get("price", 0)))
-            if item.get("price") is not None
-            else None,
-            gross_amount=float(quantize_money(item.get("gross_transaction_amount", 0)))
-            if item.get("gross_transaction_amount") is not None
-            else None,
-            currency=self._optional_str(item.get("currency")),
-            net_cost_base=float(quantize_money(item.get("net_cost", 0)))
-            if item.get("net_cost") is not None
-            else None,
-            realized_gain_loss_base=float(quantize_money(item.get("realized_gain_loss", 0)))
-            if item.get("realized_gain_loss") is not None
-            else None,
-            settlement_status=self._optional_str(item.get("settlement_status")),
-            source_system=self._optional_str(item.get("source_system")),
-            cash_entry_mode=self._optional_str(item.get("cash_entry_mode")),
-            economic_event_id=self._optional_str(item.get("economic_event_id")),
-            linked_transaction_group_id=self._optional_str(item.get("linked_transaction_group_id")),
-            fx_contract_id=self._optional_str(item.get("fx_contract_id")),
-            swap_event_id=self._optional_str(item.get("swap_event_id")),
-            near_leg_group_id=self._optional_str(item.get("near_leg_group_id")),
-            far_leg_group_id=self._optional_str(item.get("far_leg_group_id")),
-        )
 
     async def _list_transaction_rows(
         self,
