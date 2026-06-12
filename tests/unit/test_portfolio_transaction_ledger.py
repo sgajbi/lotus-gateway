@@ -1,7 +1,9 @@
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionsRequestContext,
+    build_portfolio_transactions_request_context,
     build_transaction_ledger_response,
     parse_transaction_views,
+    portfolio_transactions_cache_key,
 )
 
 
@@ -51,6 +53,99 @@ def test_build_transaction_ledger_response_preserves_source_metadata():
     assert response.total == 30
     assert response.skip == 20
     assert response.limit == 10
+
+
+def test_build_portfolio_transactions_request_context_preserves_filters():
+    context = build_portfolio_transactions_request_context(
+        portfolio_id="PF_1001",
+        correlation_id="corr-ledger",
+        as_of_date="2026-03-27",
+        include_projected=False,
+        skip=10,
+        limit=50,
+        transaction_type="FX_FORWARD",
+        security_id="SEC_1",
+        instrument_id="INST_1",
+        component_type="FX_CONTRACT_OPEN",
+        linked_transaction_group_id="LTG-FX-2026-0001",
+        fx_contract_id="FXC-2026-0001",
+        swap_event_id="FXSWAP-2026-0001",
+        near_leg_group_id="FXSWAP-2026-0001-NEAR",
+        far_leg_group_id="FXSWAP-2026-0001-FAR",
+        sort_by="settlement_date",
+        sort_order="asc",
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        reporting_currency="CHF",
+    )
+
+    assert context.portfolio_id == "PF_1001"
+    assert context.correlation_id == "corr-ledger"
+    assert context.include_projected is False
+    assert context.skip == 10
+    assert context.limit == 50
+    assert context.transaction_type == "FX_FORWARD"
+    assert context.security_id == "SEC_1"
+    assert context.instrument_id == "INST_1"
+    assert context.component_type == "FX_CONTRACT_OPEN"
+    assert context.linked_transaction_group_id == "LTG-FX-2026-0001"
+    assert context.fx_contract_id == "FXC-2026-0001"
+    assert context.swap_event_id == "FXSWAP-2026-0001"
+    assert context.near_leg_group_id == "FXSWAP-2026-0001-NEAR"
+    assert context.far_leg_group_id == "FXSWAP-2026-0001-FAR"
+    assert context.sort_by == "settlement_date"
+    assert context.sort_order == "asc"
+    assert context.start_date == "2026-01-01"
+    assert context.end_date == "2026-03-31"
+    assert context.reporting_currency == "CHF"
+
+
+def test_portfolio_transactions_cache_key_includes_all_request_filters():
+    context = build_portfolio_transactions_request_context(
+        portfolio_id="PF_1001",
+        correlation_id="corr-ledger",
+        as_of_date="2026-03-27",
+        include_projected=True,
+        skip=20,
+        limit=25,
+        transaction_type="DIVIDEND",
+        security_id="SEC_1",
+        instrument_id="INST_1",
+        component_type="CASH_DIVIDEND",
+        linked_transaction_group_id="LTG-1",
+        fx_contract_id="FXC-1",
+        swap_event_id="SWAP-1",
+        near_leg_group_id="NEAR-1",
+        far_leg_group_id="FAR-1",
+        sort_by="transaction_date",
+        sort_order="desc",
+        start_date="2026-01-01",
+        end_date="2026-03-31",
+        reporting_currency="USD",
+    )
+
+    assert portfolio_transactions_cache_key(context) == (
+        "transactions",
+        "PF_1001",
+        "2026-03-27",
+        True,
+        20,
+        25,
+        "DIVIDEND",
+        "SEC_1",
+        "INST_1",
+        "CASH_DIVIDEND",
+        "LTG-1",
+        "FXC-1",
+        "SWAP-1",
+        "NEAR-1",
+        "FAR-1",
+        "transaction_date",
+        "desc",
+        "2026-01-01",
+        "2026-03-31",
+        "USD",
+    )
 
 
 def test_build_transaction_ledger_response_falls_back_to_context_metadata():
