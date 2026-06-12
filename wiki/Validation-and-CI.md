@@ -102,3 +102,9 @@ and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/St
 GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
 green before PR #363 merged. The current portfolio holdings contract branch adds focused holdings
 contract compatibility and portfolio OpenAPI evidence with 24 passing focused tests.
+PR #364 then merged the holdings contract extraction with all GitHub checks green. The current
+risk drawdown contract branch moves drawdown payload models into `risk_workspace_drawdown.py`,
+keeps `app.contracts.risk_workspace` as the compatibility import surface, refreshes the governed
+monetary-float allowlist for the moved drawdown-at-risk fields, reduces `risk_workspace.py` from
+2,043 to 1,734 measured lines, and has focused evidence from ruff, format check, mypy, the
+monetary-float guard, and 31 passing risk workspace tests.

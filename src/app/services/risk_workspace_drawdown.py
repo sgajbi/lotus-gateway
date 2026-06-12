@@ -5,16 +5,18 @@ from typing import Any, cast
 from app.contracts.risk_workspace import (
     RiskModuleState,
     RiskSupportabilityState,
+    WorkbenchRiskDrawdownResponse,
+    WorkbenchRiskMetadata,
+    WorkbenchRiskSupportabilityItem,
+)
+from app.contracts.risk_workspace_drawdown import (
     WorkbenchRiskDrawdownAnalysisContext,
     WorkbenchRiskDrawdownEpisode,
     WorkbenchRiskDrawdownPayload,
     WorkbenchRiskDrawdownPeriodResult,
-    WorkbenchRiskDrawdownResponse,
     WorkbenchRiskDrawdownSummary,
-    WorkbenchRiskMetadata,
     WorkbenchRiskRelativeDrawdownContext,
     WorkbenchRiskRelativeDrawdownSummary,
-    WorkbenchRiskSupportabilityItem,
     WorkbenchRiskUnderwaterPoint,
 )
 from app.contracts.workbench import WorkbenchPartialFailure

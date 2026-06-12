@@ -191,6 +191,11 @@ The current portfolio holdings contract slice moves shared portfolio identity/su
 float allowlist for the moved position and allocation fields, and reduces `portfolio.py` from
 1,464 to 954 measured lines while preserving OpenAPI schema names and the 49-line
 longest-function baseline.
+The current risk drawdown contract slice moves drawdown payload models into
+`risk_workspace_drawdown.py`, keeps `app.contracts.risk_workspace` as the compatibility import
+surface, refreshes the governed monetary float allowlist for the moved drawdown-at-risk fields,
+and reduces `risk_workspace.py` from 2,043 to 1,734 measured lines while preserving OpenAPI schema
+names and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -198,23 +203,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,341 |
-| Python source files under `src/app` | 461 |
-| Python test files under `tests` | 174 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,345 |
+| Python source files under `src/app` | 462 |
+| Python test files under `tests` | 175 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio holdings contract branch shows 1,341 files
-under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 461 Python source files under
-`src/app`; and 174 Python test files under `tests`.
+Working-tree verification for the current risk drawdown contract branch shows 1,345 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 462 Python source files under `src/app`;
+and 175 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 2,079 | `src/app/services/portfolio_service.py` |
-| 2 | 2,043 | `src/app/contracts/risk_workspace.py` |
-| 3 | 1,840 | `src/app/contracts/reporting.py` |
+| 2 | 1,840 | `src/app/contracts/reporting.py` |
+| 3 | 1,734 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,704 | `src/app/services/performance_workspace_service.py` |
 | 5 | 1,607 | `src/app/services/advisor_brief_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
@@ -401,6 +406,9 @@ Most recent local evidence:
 72. Current portfolio income/activity contract branch: `make ci` passed with 207 integration tests
     and 1,242 combined coverage tests; total coverage is 94.02%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+73. Current risk drawdown contract branch: focused validation passed with ruff, format check, mypy
+    over the touched contract/service modules, monetary-float guard, and 31 risk workspace
+    contract/service tests.
 
 ## Tooling Availability Baseline
 
