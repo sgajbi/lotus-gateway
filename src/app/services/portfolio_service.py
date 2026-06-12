@@ -31,7 +31,6 @@ from app.contracts.portfolio import (
     PortfolioPositionView,
     PortfolioProfile,
     PortfolioProjectedCashflowResponse,
-    PortfolioReadinessIndicator,
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
@@ -39,8 +38,6 @@ from app.contracts.portfolio import (
     PortfolioSummary,
     PortfolioTopPosition,
     PortfolioTransactionLedgerResponse,
-    PortfolioWorkflowAction,
-    PortfolioWorkflowLaunchCue,
     PortfolioWorkflowResponse,
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
@@ -86,6 +83,15 @@ from app.services.portfolio_transaction_summary import (
     build_income_summary_response,
     transaction_date_in_range,
     transaction_date_value,
+)
+from app.services.portfolio_workflow import (
+    build_readiness_indicators,
+    build_workflow_actions,
+    build_workflow_cues,
+    holdings_readiness_status,
+    pricing_readiness_status,
+    reporting_status_label,
+    transactions_readiness_status,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
@@ -188,105 +194,7 @@ class PortfolioBookSourceResults:
     portfolio_result: UpstreamResult
 
 
-@dataclass(frozen=True)
-class PortfolioWorkflowActionSpec:
-    title: str
-    impact: str
-    target: str
-    href: str
-    cta_label: str
-    recommended: bool = False
-
-
-EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS: tuple[PortfolioWorkflowActionSpec, ...] = (
-    PortfolioWorkflowActionSpec(
-        title="Fund portfolio",
-        impact=(
-            "Create opening liquidity so balances, allocation, and readiness checks become "
-            "meaningful."
-        ),
-        target="Target: cash funding and opening balance setup",
-        href="operations",
-        cta_label="Fund now",
-        recommended=True,
-    ),
-    PortfolioWorkflowActionSpec(
-        title="Book first trade",
-        impact="Activate the holdings book and create the first investable position.",
-        target="Target: transaction entry and execution workflow",
-        href="operations",
-        cta_label="Book trade",
-    ),
-    PortfolioWorkflowActionSpec(
-        title="Publish pricing",
-        impact="Enable valuation, allocation, and downstream reporting coverage.",
-        target="Target: pricing publication and valuation refresh",
-        href="operations",
-        cta_label="Publish prices",
-    ),
-    PortfolioWorkflowActionSpec(
-        title="Review holdings",
-        impact="Confirm the funded book, position weights, and coverage after valuation.",
-        target="Target: holdings and allocation review",
-        href="#portfolio-insights",
-        cta_label="Open holdings",
-    ),
-    PortfolioWorkflowActionSpec(
-        title="Open performance",
-        impact="Review return analytics once holdings are funded and valued.",
-        target="Target: performance workspace after valuation is available",
-        href="performance",
-        cta_label="Open performance",
-    ),
-)
-
-
 class PortfolioService:
-    _WORKFLOW_DEFINITIONS: dict[str, dict[str, str | int]] = {
-        "performance": {
-            "order": 0,
-            "title": "Review performance",
-            "cta_label": "Performance",
-            "target_label": "Performance",
-            "impact": (
-                "Review portfolio return, benchmark context, and contribution once the book "
-                "is valued."
-            ),
-        },
-        "holdings": {
-            "order": 1,
-            "title": "Review holdings",
-            "cta_label": "Holdings",
-            "target_label": "Holdings",
-            "impact": (
-                "Confirm funded positions, valuations, and portfolio weights before client review."
-            ),
-        },
-        "transactions": {
-            "order": 2,
-            "title": "Review transactions",
-            "cta_label": "Transactions",
-            "target_label": "Transactions",
-            "impact": "Inspect recent funding, trading, and cash activity affecting the book.",
-        },
-        "risk": {
-            "order": 3,
-            "title": "Review suitability",
-            "cta_label": "Suitability",
-            "target_label": "Suitability",
-            "impact": (
-                "Validate suitability, exposure, and mandate fit before the next client action."
-            ),
-        },
-        "proposal": {
-            "order": 4,
-            "title": "Prepare recommendation",
-            "cta_label": "Recommendation",
-            "target_label": "Recommendation",
-            "impact": "Prepare the next recommended portfolio action or client proposal.",
-        },
-    }
-
     def __init__(
         self,
         lotus_core_query_client: PortfolioCoreClient,
@@ -759,7 +667,7 @@ class PortfolioService:
                 effective_as_of_date=resolved_as_of_date,
                 requested_reporting_currency=reporting_currency,
             ),
-            workflow_cues=self._build_workflow_cues(portfolio_id),
+            workflow_cues=build_workflow_cues(portfolio_id),
             warnings=components.warnings,
             partial_failures=components.partial_failures,
         )
@@ -935,7 +843,7 @@ class PortfolioService:
         indicators = build_source_readiness_indicators(
             payload=source_payload,
             detailed_view=False,
-        ) or self._build_readiness_indicators(
+        ) or build_readiness_indicators(
             workspace=workspace,
             positions=positions.positions,
             allocation_views=allocations.views,
@@ -1044,10 +952,9 @@ class PortfolioService:
                 as_of_date=as_of_date,
             ),
         )
-        actions = self._build_workflow_actions(
+        actions = build_workflow_actions(
             portfolio_id=portfolio_id,
             summary=workspace.summary,
-            operations=workspace.operations,
             workflow_cues=workspace.workflow_cues,
             transaction_total=transactions.total,
         )
@@ -1992,106 +1899,6 @@ class PortfolioService:
             row_count=summary.position_count,
         )
 
-    def _build_workflow_cues(self, portfolio_id: str) -> list[PortfolioWorkflowLaunchCue]:
-        return [
-            PortfolioWorkflowLaunchCue(
-                key="holdings",
-                label="Holdings",
-                href=f"/portfolio?portfolioId={portfolio_id}#portfolio-drilldown",
-            ),
-            PortfolioWorkflowLaunchCue(
-                key="transactions",
-                label="Transactions",
-                href=f"/portfolio?portfolioId={portfolio_id}#portfolio-drilldown",
-            ),
-            PortfolioWorkflowLaunchCue(
-                key="performance",
-                label="Performance",
-                href=f"/performance?portfolioId={portfolio_id}",
-            ),
-        ]
-
-    def _build_readiness_indicators(
-        self,
-        *,
-        workspace: PortfolioWorkspaceResponse,
-        positions: list[PortfolioPositionView],
-        allocation_views: list[PortfolioAllocationView],
-        transaction_total: int,
-        detailed_view: bool,
-    ) -> list[PortfolioReadinessIndicator]:
-        holdings_status = self._holdings_readiness_status(
-            position_count=workspace.summary.position_count,
-            positions=positions,
-        )
-        pricing_status = self._pricing_readiness_status(
-            positions=positions,
-            allocation_views=allocation_views,
-        )
-        transactions_status = self._transactions_readiness_status(
-            transaction_total=transaction_total,
-            operations=workspace.operations,
-        )
-        reporting_status = self._reporting_status_label(
-            workspace.reporting.status,
-            workspace.reporting.row_count,
-        )
-        return self._readiness_indicators_from_statuses(
-            holdings_status=holdings_status,
-            pricing_status=pricing_status,
-            transactions_status=transactions_status,
-            reporting_status=reporting_status,
-            detailed_view=detailed_view,
-        )
-
-    def _readiness_indicators_from_statuses(
-        self,
-        *,
-        holdings_status: str,
-        pricing_status: str,
-        transactions_status: str,
-        reporting_status: str,
-        detailed_view: bool,
-    ) -> list[PortfolioReadinessIndicator]:
-        insights_href = "#portfolio-drilldown" if detailed_view else "#portfolio-insights"
-
-        return [
-            self._readiness_indicator(
-                key="holdings",
-                label="Holdings",
-                status=holdings_status,
-                href=insights_href,
-            ),
-            self._readiness_indicator(
-                key="pricing",
-                label="Pricing",
-                status=pricing_status,
-                href="#portfolio-attention",
-            ),
-            self._readiness_indicator(
-                key="transactions",
-                label="Transactions",
-                status=transactions_status,
-                href=insights_href,
-            ),
-            self._readiness_indicator(
-                key="reporting",
-                label="Reporting",
-                status=reporting_status,
-                href="#portfolio-health",
-            ),
-        ]
-
-    def _readiness_indicator(
-        self, *, key: str, label: str, status: str, href: str
-    ) -> PortfolioReadinessIndicator:
-        return PortfolioReadinessIndicator(
-            key=key,
-            label=label,
-            status=status,
-            href=href,
-        )
-
     def _build_portfolio_exception_summaries(
         self,
         *,
@@ -2102,19 +1909,19 @@ class PortfolioService:
     ) -> list[PortfolioExceptionSummary]:
         return build_portfolio_exception_summaries(
             readiness=PortfolioExceptionReadiness(
-                holdings_status=self._holdings_readiness_status(
+                holdings_status=holdings_readiness_status(
                     position_count=workspace.summary.position_count,
                     positions=positions,
                 ),
-                pricing_status=self._pricing_readiness_status(
+                pricing_status=pricing_readiness_status(
                     positions=positions,
                     allocation_views=allocation_views,
                 ),
-                transaction_status=self._transactions_readiness_status(
+                transaction_status=transactions_readiness_status(
                     transaction_total=transaction_total,
                     operations=workspace.operations,
                 ),
-                reporting_status=self._reporting_status_label(
+                reporting_status=reporting_status_label(
                     workspace.reporting.status,
                     workspace.reporting.row_count,
                 ),
@@ -2142,184 +1949,15 @@ class PortfolioService:
             positions=positions,
             top_positions=top_positions,
             activity_summary=activity_summary,
-            pricing_status=self._pricing_readiness_status(
+            pricing_status=pricing_readiness_status(
                 positions=positions,
                 allocation_views=allocation_views,
             ),
-            reporting_status=self._reporting_status_label(
+            reporting_status=reporting_status_label(
                 workspace.reporting.status,
                 workspace.reporting.row_count,
             ),
         )
-
-    def _build_workflow_actions(
-        self,
-        *,
-        portfolio_id: str,
-        summary: PortfolioSummary,
-        operations: PortfolioOperationalReadiness | None,
-        workflow_cues: list[PortfolioWorkflowLaunchCue],
-        transaction_total: int,
-    ) -> list[PortfolioWorkflowAction]:
-        if self._is_empty_portfolio_workflow(summary, transaction_total):
-            return self._build_empty_portfolio_workflow_actions(portfolio_id)
-        return self._build_supported_cue_workflow_actions(workflow_cues)
-
-    def _build_empty_portfolio_workflow_actions(
-        self,
-        portfolio_id: str,
-    ) -> list[PortfolioWorkflowAction]:
-        return [
-            PortfolioWorkflowAction(
-                sequence=index + 1,
-                title=spec.title,
-                impact=spec.impact,
-                target=spec.target,
-                href=self._workflow_action_spec_href(spec, portfolio_id),
-                cta_label=spec.cta_label,
-                recommended=spec.recommended,
-            )
-            for index, spec in enumerate(EMPTY_PORTFOLIO_WORKFLOW_ACTION_SPECS)
-        ]
-
-    def _build_supported_cue_workflow_actions(
-        self,
-        workflow_cues: list[PortfolioWorkflowLaunchCue],
-    ) -> list[PortfolioWorkflowAction]:
-        ordered_cues = sorted(
-            self._supported_workflow_cues(self._dedupe_workflow_cues(workflow_cues)),
-            key=lambda cue: self._workflow_order_rank(cue.key),
-        )
-        return [
-            self._build_supported_cue_workflow_action(
-                cue=cue,
-                sequence=index + 1,
-                recommended=index == 0,
-            )
-            for index, cue in enumerate(ordered_cues)
-        ]
-
-    def _build_supported_cue_workflow_action(
-        self,
-        *,
-        cue: PortfolioWorkflowLaunchCue,
-        sequence: int,
-        recommended: bool,
-    ) -> PortfolioWorkflowAction:
-        return PortfolioWorkflowAction(
-            sequence=sequence,
-            title=self._workflow_task_label(cue.key),
-            impact=self._workflow_impact_label(cue.key),
-            target=f"Target: {self._workflow_target_label(cue.key)} workflow for this portfolio",
-            href=cue.href,
-            cta_label=self._workflow_cta_label(cue.key),
-            recommended=recommended,
-        )
-
-    def _is_empty_portfolio_workflow(
-        self,
-        summary: PortfolioSummary,
-        transaction_total: int,
-    ) -> bool:
-        return (
-            summary.position_count == 0
-            and summary.cash_balance_count == 0
-            and transaction_total == 0
-        )
-
-    def _workflow_action_spec_href(
-        self,
-        spec: PortfolioWorkflowActionSpec,
-        portfolio_id: str,
-    ) -> str:
-        if spec.href == "operations":
-            return f"/workbench?portfolioId={portfolio_id}"
-        if spec.href == "performance":
-            return f"/performance?portfolioId={portfolio_id}"
-        return spec.href
-
-    def _holdings_readiness_status(
-        self, *, position_count: int, positions: list[PortfolioPositionView]
-    ) -> str:
-        if position_count > 0 and positions:
-            return "Ready"
-        if position_count > 0:
-            return "Partial"
-        return "Missing"
-
-    def _pricing_readiness_status(
-        self,
-        *,
-        positions: list[PortfolioPositionView],
-        allocation_views: list[PortfolioAllocationView],
-    ) -> str:
-        has_valued_holdings = any((position.market_value_base or 0) > 0 for position in positions)
-        if has_valued_holdings and allocation_views:
-            return "Ready"
-        if positions or allocation_views:
-            return "Partial"
-        return "Missing"
-
-    def _transactions_readiness_status(
-        self,
-        *,
-        transaction_total: int,
-        operations: PortfolioOperationalReadiness | None,
-    ) -> str:
-        if transaction_total > 0:
-            return "Ready"
-        if operations and operations.latest_booked_transaction_date:
-            return "Partial"
-        return "Missing"
-
-    def _reporting_status_label(self, status: str, row_count: int) -> str:
-        normalized = status.upper()
-        if normalized in {"READY", "COMPLETE"}:
-            return "Ready"
-        if normalized == "EMPTY":
-            return "Empty"
-        if normalized == "PENDING" or row_count > 0:
-            return "Partial"
-        return "Missing"
-
-    def _dedupe_workflow_cues(
-        self, workflow_cues: list[PortfolioWorkflowLaunchCue]
-    ) -> list[PortfolioWorkflowLaunchCue]:
-        unique: list[PortfolioWorkflowLaunchCue] = []
-        seen: set[str] = set()
-        for cue in workflow_cues:
-            if cue.key in seen:
-                continue
-            seen.add(cue.key)
-            unique.append(cue)
-        return unique
-
-    def _supported_workflow_cues(
-        self, workflow_cues: list[PortfolioWorkflowLaunchCue]
-    ) -> list[PortfolioWorkflowLaunchCue]:
-        return [cue for cue in workflow_cues if cue.key in self._WORKFLOW_DEFINITIONS]
-
-    def _workflow_order_rank(self, key: str) -> int:
-        definition = self._WORKFLOW_DEFINITIONS.get(key)
-        return int(definition["order"]) if definition is not None else 99
-
-    def _workflow_task_label(self, key: str) -> str:
-        definition = self._WORKFLOW_DEFINITIONS.get(key)
-        return str(definition["title"]) if definition is not None else "Open workflow"
-
-    def _workflow_cta_label(self, key: str) -> str:
-        definition = self._WORKFLOW_DEFINITIONS.get(key)
-        return str(definition["cta_label"]) if definition is not None else "Open workflow"
-
-    def _workflow_target_label(self, key: str) -> str:
-        definition = self._WORKFLOW_DEFINITIONS.get(key)
-        return str(definition["target_label"]) if definition is not None else "Workflow"
-
-    def _workflow_impact_label(self, key: str) -> str:
-        definition = self._WORKFLOW_DEFINITIONS.get(key)
-        if definition is None:
-            return "Open the next available workflow for this portfolio."
-        return str(definition["impact"])
 
     def _parse_look_through_capability(
         self, payload: Any

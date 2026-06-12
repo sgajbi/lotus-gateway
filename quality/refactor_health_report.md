@@ -244,17 +244,21 @@ The current portfolio transaction summary mapper slice moves income/activity res
 money aggregation, tax bucketing, and transaction-date filtering into
 `portfolio_transaction_summary.py`, reducing `portfolio_service.py` from 2,629 to 2,438 lines
 while preserving the 49-line longest-function baseline.
+The current portfolio workflow mapper slice moves workflow launch cue construction, readiness
+status labels, empty-book setup sequencing, and supported-cue action ordering into
+`portfolio_workflow.py`, reducing `portfolio_service.py` from 2,438 to 2,076 lines while
+preserving the 49-line longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current transaction summary mapper branch was created from clean `main` after PR #357; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | 1,029 unit/contract tests passed in current branch `make check`; focused transaction summary, portfolio service, and transaction ledger tests passed with 57 tests on this branch |
+| Branch hygiene | Healthy | Current workflow mapper branch was created from clean `main` after PR #358; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | 1,031 unit/contract tests passed in current branch `make check`; focused workflow mapper and portfolio service tests passed with 46 tests on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,236 coverage tests passed in current branch `make ci`; total coverage is 93.95%, above the 84% floor |
+| Total coverage | Healthy | 1,238 coverage tests passed in current branch `make ci`; total coverage is 94.00%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,438 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper slices reduce `portfolio_service.py` to 2,076 measured lines and `performance_workspace_service.py` to 1,607 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -262,12 +266,13 @@ while preserving the 49-line longest-function baseline.
 ## Primary Refactor Backlog
 
 1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, and
-   workflow-cue adapters. Exception-summary payload construction, workflow-action assembly,
+   workflow adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
    transaction-ledger response mapping, transaction client-kwargs mapping, transaction page
    context defaults, workspace performance parsing, workspace rebalance parsing, source readiness
-   parsing, and transaction summary mapping are now separately testable.
+   parsing, transaction summary mapping, and workflow cue/action mapping are now separately
+   testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
