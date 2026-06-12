@@ -154,6 +154,10 @@ The current portfolio workspace rebalance parser slice moves manage-owned rebala
 supportability payload parsing into `portfolio_workspace_rebalance.py`, reducing
 `portfolio_service.py` from 2,772 to 2,729 measured lines while preserving the 49-line
 longest-function baseline.
+The current portfolio source-readiness parser slice moves source-readiness bucket, reason,
+supportability, and indicator mapping into `portfolio_source_readiness.py`, reducing
+`portfolio_service.py` from 2,729 to 2,629 measured lines while preserving the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -161,21 +165,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,303 |
-| Python source files under `src/app` | 451 |
-| Python test files under `tests` | 166 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,305 |
+| Python source files under `src/app` | 452 |
+| Python test files under `tests` | 167 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio workspace rebalance parser branch shows
-1,303 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 451 Python source
-files under `src/app`; and 166 Python test files under `tests`.
+Working-tree verification for the current portfolio source-readiness parser branch shows 1,305
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 452 Python source files
+under `src/app`; and 167 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,729 | `src/app/services/portfolio_service.py` |
+| 1 | 2,629 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
