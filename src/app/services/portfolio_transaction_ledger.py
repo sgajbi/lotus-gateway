@@ -106,6 +106,33 @@ def portfolio_transactions_cache_key(
     )
 
 
+def portfolio_transactions_client_kwargs(
+    context: PortfolioTransactionsRequestContext,
+) -> dict[str, Any]:
+    return {
+        "portfolio_id": context.portfolio_id,
+        "correlation_id": context.correlation_id,
+        "as_of_date": context.as_of_date,
+        "include_projected": context.include_projected,
+        "skip": context.skip,
+        "limit": context.limit,
+        "sort_by": context.sort_by,
+        "sort_order": context.sort_order,
+        "transaction_type": context.transaction_type,
+        "security_id": context.security_id,
+        "instrument_id": context.instrument_id,
+        "component_type": context.component_type,
+        "linked_transaction_group_id": context.linked_transaction_group_id,
+        "fx_contract_id": context.fx_contract_id,
+        "swap_event_id": context.swap_event_id,
+        "near_leg_group_id": context.near_leg_group_id,
+        "far_leg_group_id": context.far_leg_group_id,
+        "start_date": context.start_date,
+        "end_date": context.end_date,
+        "reporting_currency": context.reporting_currency,
+    }
+
+
 def build_transaction_ledger_response(
     *,
     context: PortfolioTransactionsRequestContext,
