@@ -4,18 +4,17 @@ from dataclasses import dataclass
 
 from app.contracts.portfolio import (
     PortfolioCashflowOutlook,
-    PortfolioIdentity,
     PortfolioOperationalReadiness,
     PortfolioPerformanceSummary,
     PortfolioProfile,
     PortfolioRebalanceSummary,
     PortfolioReportingReadiness,
-    PortfolioSummary,
     PortfolioWorkflowLaunchCue,
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
 )
 from app.contracts.portfolio_common import PortfolioPartialFailure
+from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 
 
 @dataclass(frozen=True)
