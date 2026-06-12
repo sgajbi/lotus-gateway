@@ -240,17 +240,21 @@ The current portfolio source-readiness parser slice moves source-readiness bucke
 supportability, and indicator mapping into `portfolio_source_readiness.py`, reducing
 `portfolio_service.py` from 2,729 to 2,629 lines while preserving the 49-line longest-function
 baseline.
+The current portfolio transaction summary mapper slice moves income/activity response mapping,
+money aggregation, tax bucketing, and transaction-date filtering into
+`portfolio_transaction_summary.py`, reducing `portfolio_service.py` from 2,629 to 2,438 lines
+while preserving the 49-line longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current source-readiness parser branch was created from clean `main` after PR #356; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | 1,024 unit/contract tests passed in current branch `make check`; focused source-readiness parser and portfolio service tests passed with 54 tests on this branch |
-| Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,231 coverage tests passed in current branch `make ci`; total coverage is 93.89%, above the 84% floor |
+| Branch hygiene | Healthy | Current transaction summary mapper branch was created from clean `main` after PR #357; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | 1,024 unit/contract tests passed in latest merged `make check`; focused transaction summary, portfolio service, and transaction ledger tests passed with 57 tests on this branch |
+| Integration coverage | Healthy | 207 integration tests passed in latest merged `make ci`; current branch full gate pending |
+| Total coverage | Healthy | 1,231 coverage tests passed in latest merged `make ci`; total coverage is 93.89%, above the 84% floor; current branch full gate pending |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,629 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,438 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -261,9 +265,9 @@ baseline.
    workflow-cue adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
-   transaction-ledger response mapping, transaction client-kwargs mapping, and transaction page
-   context defaults, workspace performance parsing, workspace rebalance parsing, and source
-   readiness parsing are now separately testable.
+   transaction-ledger response mapping, transaction client-kwargs mapping, transaction page
+   context defaults, workspace performance parsing, workspace rebalance parsing, source readiness
+   parsing, and transaction summary mapping are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
