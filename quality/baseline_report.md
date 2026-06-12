@@ -185,6 +185,12 @@ activity summary response models into `portfolio_activity_income.py`, keeps
 `app.contracts.portfolio` as the compatibility import surface, refreshes the governed monetary
 float allowlist for the moved money fields, and reduces `portfolio.py` from 1,632 to 1,464
 measured lines while preserving OpenAPI schema names and the 49-line longest-function baseline.
+The current portfolio holdings contract slice moves shared portfolio identity/summary models into
+`portfolio_core.py` and holdings/book response models into `portfolio_holdings.py`, keeps
+`app.contracts.portfolio` as the compatibility import surface, refreshes the governed monetary
+float allowlist for the moved position and allocation fields, and reduces `portfolio.py` from
+1,464 to 954 measured lines while preserving OpenAPI schema names and the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -192,30 +198,30 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,335 |
-| Python source files under `src/app` | 459 |
-| Python test files under `tests` | 173 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,341 |
+| Python source files under `src/app` | 461 |
+| Python test files under `tests` | 174 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio income/activity contract branch shows 1,335
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 459 Python source files
-under `src/app`; and 173 Python test files under `tests`.
+Working-tree verification for the current portfolio holdings contract branch shows 1,341 files
+under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 461 Python source files under
+`src/app`; and 174 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,078 | `src/app/services/portfolio_service.py` |
+| 1 | 2,079 | `src/app/services/portfolio_service.py` |
 | 2 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 3 | 1,840 | `src/app/contracts/reporting.py` |
 | 4 | 1,704 | `src/app/services/performance_workspace_service.py` |
 | 5 | 1,607 | `src/app/services/advisor_brief_service.py` |
 | 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
-| 7 | 1,464 | `src/app/contracts/portfolio.py` |
-| 8 | 1,362 | `src/app/clients/dpm_client.py` |
-| 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
-| 10 | 1,098 | `src/app/clients/advise_client.py` |
+| 7 | 1,362 | `src/app/clients/dpm_client.py` |
+| 8 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 1,098 | `src/app/clients/advise_client.py` |
+| 10 | 1,093 | `src/app/services/dpm_wave_service.py` |
 
 ## Largest Functions
 

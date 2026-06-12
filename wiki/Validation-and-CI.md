@@ -86,19 +86,19 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 2,078 lines after portfolio liquidity loading,
+`portfolio_service.py` is now measured at 2,079 lines after portfolio liquidity loading,
 transaction request-context, transaction page-context, transaction client-kwargs, portfolio
 workspace response assembly, portfolio workspace performance parsing, and portfolio workspace
 rebalance parsing, portfolio source-readiness parsing, portfolio transaction summary mapping, and
 portfolio workflow mapping extractions. `portfolio.py` is now measured at 1,464 lines after
 workflow/readiness, transaction-ledger, performance snapshot, and income/activity contract
-extractions.
+extractions, and 954 lines after the holdings/book contract extraction.
 `performance_workspace_service.py` is now measured at 1,704 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-portfolio income/activity contract branch passed with ruff, format check, monetary-float guard,
-mypy over 459 source files, Workbench/OpenAPI contract smoke, and 1,035 unit/contract tests. Local
-`make ci` passed with 207 integration tests, 1,242 coverage tests, 94.02 percent total coverage,
+portfolio holdings contract branch passed with ruff, format check, monetary-float guard, mypy over
+461 source files, Workbench/OpenAPI contract smoke, and 1,039 unit/contract tests. Local `make ci`
+passed with 207 integration tests, 1,246 coverage tests, 94.02 percent total coverage,
 and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette exception.
 GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were
-green before PR #362 merged. The current portfolio income/activity contract branch adds focused
-income/activity contract compatibility and portfolio OpenAPI evidence with 17 passing tests.
+green before PR #363 merged. The current portfolio holdings contract branch adds focused holdings
+contract compatibility and portfolio OpenAPI evidence with 24 passing focused tests.

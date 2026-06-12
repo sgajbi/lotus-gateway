@@ -1,10 +1,7 @@
 from typing import Any
 
-from app.contracts.portfolio import (
-    PortfolioPositionView,
-    PortfolioSummary,
-    PortfolioTopPosition,
-)
+from app.contracts.portfolio_core import PortfolioSummary
+from app.contracts.portfolio_holdings import PortfolioPositionView, PortfolioTopPosition
 from app.precision_policy import (
     quantize_money,
     quantize_performance,
