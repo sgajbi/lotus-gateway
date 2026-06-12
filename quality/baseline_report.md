@@ -180,6 +180,11 @@ and performance snapshot response models into focused contract modules, keeps
 `app.contracts.portfolio` as the compatibility import surface, refreshes the governed monetary
 float allowlist for the moved percentage fields, and reduces `portfolio.py` from 1,717 to 1,632
 measured lines while preserving OpenAPI schema names and the 49-line longest-function baseline.
+The current portfolio income/activity contract slice moves money summary, income summary, and
+activity summary response models into `portfolio_activity_income.py`, keeps
+`app.contracts.portfolio` as the compatibility import surface, refreshes the governed monetary
+float allowlist for the moved money fields, and reduces `portfolio.py` from 1,632 to 1,464
+measured lines while preserving OpenAPI schema names and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -187,27 +192,27 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,331 |
-| Python source files under `src/app` | 458 |
-| Python test files under `tests` | 172 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,335 |
+| Python source files under `src/app` | 459 |
+| Python test files under `tests` | 173 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio performance snapshot contract branch shows
-1,331 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 458 Python source
-files under `src/app`; and 172 Python test files under `tests`.
+Working-tree verification for the current portfolio income/activity contract branch shows 1,335
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 459 Python source files
+under `src/app`; and 173 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,076 | `src/app/services/portfolio_service.py` |
+| 1 | 2,078 | `src/app/services/portfolio_service.py` |
 | 2 | 2,043 | `src/app/contracts/risk_workspace.py` |
 | 3 | 1,840 | `src/app/contracts/reporting.py` |
 | 4 | 1,704 | `src/app/services/performance_workspace_service.py` |
-| 5 | 1,632 | `src/app/contracts/portfolio.py` |
-| 6 | 1,607 | `src/app/services/advisor_brief_service.py` |
-| 7 | 1,606 | `src/app/contracts/performance_workspace.py` |
+| 5 | 1,607 | `src/app/services/advisor_brief_service.py` |
+| 6 | 1,606 | `src/app/contracts/performance_workspace.py` |
+| 7 | 1,464 | `src/app/contracts/portfolio.py` |
 | 8 | 1,362 | `src/app/clients/dpm_client.py` |
 | 9 | 1,217 | `src/app/services/dpm_command_center_service.py` |
 | 10 | 1,098 | `src/app/clients/advise_client.py` |
@@ -381,6 +386,15 @@ Most recent local evidence:
 69. Current portfolio performance snapshot contract branch: `make ci` passed with 207 integration
     tests and 1,241 combined coverage tests; total coverage is 94.01%, and `pip-audit` found no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
+70. Current portfolio income/activity contract branch: focused validation passed with ruff, mypy
+    over the touched contract/router/service modules, monetary-float guard, diff whitespace checks,
+    and 17 income/activity summary, insight, and portfolio OpenAPI contract tests.
+71. Current portfolio income/activity contract branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 459 source files, Workbench/OpenAPI contract smoke, and
+    1,035 unit/contract tests.
+72. Current portfolio income/activity contract branch: `make ci` passed with 207 integration tests
+    and 1,242 combined coverage tests; total coverage is 94.02%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

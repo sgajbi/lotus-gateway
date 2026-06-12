@@ -1,10 +1,10 @@
 from app.contracts.portfolio import (
-    PortfolioActivitySummaryResponse,
     PortfolioInsight,
     PortfolioPositionView,
     PortfolioSummary,
     PortfolioTopPosition,
 )
+from app.contracts.portfolio_activity_income import PortfolioActivitySummaryResponse
 
 
 def build_portfolio_insights(

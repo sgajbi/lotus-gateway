@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 
-from app.contracts.portfolio import PortfolioActivitySummaryResponse
+from app.contracts.portfolio_activity_income import PortfolioActivitySummaryResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 

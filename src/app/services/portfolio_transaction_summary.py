@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from app.contracts.portfolio import (
+from app.contracts.portfolio_activity_income import (
     PortfolioActivityBucketSummary,
     PortfolioActivitySummaryResponse,
     PortfolioIncomePeriodSummary,
