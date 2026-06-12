@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-05T11:44:33Z",
+  "generated_at": "2026-06-12T08:31:09Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -802,154 +802,154 @@
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2026:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
+      "finding": "src/app/services/portfolio_service.py:1988:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2102:float(quantize_performance(period_return)) if period_return is not None else None",
+      "finding": "src/app/services/portfolio_service.py:2064:float(quantize_performance(period_return)) if period_return is not None else None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2228:market_value_base=float(",
+      "finding": "src/app/services/portfolio_service.py:2190:market_value_base=float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2231:weight_pct=float(",
+      "finding": "src/app/services/portfolio_service.py:2193:weight_pct=float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2232:quantize_performance(float(bucket.get(\"weight\", 0)) * 100)",
+      "finding": "src/app/services/portfolio_service.py:2194:quantize_performance(float(bucket.get(\"weight\", 0)) * 100)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2274:price=float(quantize_price(item.get(\"price\", 0)))",
+      "finding": "src/app/services/portfolio_service.py:2376:accumulator[\"gross_amount_portfolio_currency\"] = float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2277:gross_amount=float(quantize_money(item.get(\"gross_transaction_amount\", 0)))",
+      "finding": "src/app/services/portfolio_service.py:2379:accumulator[\"gross_amount_reporting_currency\"] = float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2281:net_cost_base=float(quantize_money(item.get(\"net_cost\", 0)))",
+      "finding": "src/app/services/portfolio_service.py:2406:accumulator[\"net_amount_portfolio_currency\"] = float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2448:accumulator[\"gross_amount_portfolio_currency\"] = float(",
+      "finding": "src/app/services/portfolio_service.py:2409:accumulator[\"net_amount_reporting_currency\"] = float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2451:accumulator[\"gross_amount_reporting_currency\"] = float(",
+      "finding": "src/app/services/portfolio_service.py:2417:portfolio_amount: float,",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2478:accumulator[\"net_amount_portfolio_currency\"] = float(",
+      "finding": "src/app/services/portfolio_service.py:2418:reporting_amount: float,",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2481:accumulator[\"net_amount_reporting_currency\"] = float(",
+      "finding": "src/app/services/portfolio_service.py:2422:float(accumulator[\"amount_portfolio_currency\"]) + portfolio_amount",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2489:portfolio_amount: float,",
+      "finding": "src/app/services/portfolio_service.py:2425:float(accumulator[\"amount_reporting_currency\"]) + reporting_amount",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2490:reporting_amount: float,",
+      "finding": "src/app/services/portfolio_service.py:2448:def _activity_portfolio_amount(self, row: dict[str, Any]) -> float:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2494:float(accumulator[\"amount_portfolio_currency\"]) + portfolio_amount",
+      "finding": "src/app/services/portfolio_service.py:2455:def _activity_reporting_amount(self, row: dict[str, Any]) -> float:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2497:float(accumulator[\"amount_reporting_currency\"]) + reporting_amount",
+      "finding": "src/app/services/portfolio_service.py:2472:def _income_net_portfolio_amount(self, row: dict[str, Any]) -> float:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2520:def _activity_portfolio_amount(self, row: dict[str, Any]) -> float:",
+      "finding": "src/app/services/portfolio_service.py:2482:return float(quantize_money(gross - withholding - other_deductions - trade_fee))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2527:def _activity_reporting_amount(self, row: dict[str, Any]) -> float:",
+      "finding": "src/app/services/portfolio_service.py:2484:def _income_net_reporting_amount(self, row: dict[str, Any]) -> float:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2544:def _income_net_portfolio_amount(self, row: dict[str, Any]) -> float:",
+      "finding": "src/app/services/portfolio_service.py:2510:return float(quantize_money(gross - withholding - other_deductions - trade_fee))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2554:return float(quantize_money(gross - withholding - other_deductions - trade_fee))",
+      "finding": "src/app/services/portfolio_service.py:2523:def _absolute_money(self, value: Any) -> float:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2556:def _income_net_reporting_amount(self, row: dict[str, Any]) -> float:",
+      "finding": "src/app/services/portfolio_service.py:2526:return float(quantize_money(abs(float(value))))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2582:return float(quantize_money(gross - withholding - other_deductions - trade_fee))",
+      "finding": "src/app/services/portfolio_service.py:2588:reporting_currency_amount=float(quantize_money(payload.get(reporting_key, 0))),",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2595:def _absolute_money(self, value: Any) -> float:",
+      "finding": "src/app/services/portfolio_transaction_ledger.py:77:price=float(quantize_price(item.get(\"price\", 0)))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-19"
+      "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2598:return float(quantize_money(abs(float(value))))",
+      "finding": "src/app/services/portfolio_transaction_ledger.py:96:def optional_money(value: Any) -> float | None:",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-19"
+      "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:2660:reporting_currency_amount=float(quantize_money(payload.get(reporting_key, 0))),",
+      "finding": "src/app/services/portfolio_transaction_ledger.py:99:return float(quantize_money(value))",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-19"
+      "review_by": "2026-12-09"
     }
   ]
 }

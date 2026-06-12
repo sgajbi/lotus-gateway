@@ -1,6 +1,6 @@
 # Refactor Health Report
 
-Date: 2026-06-05
+Date: 2026-06-12
 Phase: baseline/report-only
 
 ## Current Direction
@@ -198,17 +198,22 @@ preserving the 49-line longest-function baseline. `portfolio_service.py` remains
 hotspot even though the position-book mapper is now separately testable. The remaining work is
 still substantial: large portfolio, performance workspace, advisor-brief orchestration, contract,
 and client modules remain.
+The current transaction-ledger slice extracts `PortfolioTransactionsRequestContext`, response
+metadata assembly, transaction row parsing, event-identifier preservation, and quantized amount
+conversion into `portfolio_transaction_ledger.py`. It reduces `portfolio_service.py` from 3,062 to
+2,993 lines while preserving the 49-line longest-function baseline and keeping upstream request,
+cache, and filter pass-through behavior in `PortfolioService`.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | active focused closure branch over `origin/main`; intended to merge and delete before handoff |
-| Unit/contract coverage | Healthy | 986 tests passed in current-branch `make check` evidence through commit `1b2a4e5`; focused position-book mapper tests pass in closure slice |
-| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` evidence on commit `1b2a4e5`; closure branch will rerun repo-native gates before merge |
-| Total coverage | Healthy | 93.67%, above the 84% floor |
-| Security audit | Governed | `pip-audit` passes with one documented FastAPI/Starlette exception and no known vulnerabilities on commit `1b2a4e5` |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; portfolio position-book mapping is extracted and `portfolio_service.py` is reduced to 3,241 lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | active focused transaction-ledger branch over `origin/main` `62c7a7399944b380eca8ddc7be7ac987a2cd4654`; intended to merge and delete before handoff |
+| Unit/contract coverage | Healthy | 993 tests passed in current-branch `make check`; focused transaction-ledger mapper tests pass |
+| Integration coverage | Healthy | 207 integration tests passed in current-branch `make ci` |
+| Total coverage | Healthy | 1,200 coverage tests passed in current-branch `make ci`; total coverage is 93.69%, above the 84% floor |
+| Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; portfolio transaction-ledger mapping is extracted and `portfolio_service.py` is reduced to 2,993 lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -218,8 +223,8 @@ and client modules remain.
 1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, and
    workflow-cue adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
-   transaction-ledger payload loading, workspace source gathering, and position-book mapping are
-   now separately testable.
+   transaction-ledger payload loading, workspace source gathering, position-book mapping, and
+   transaction-ledger response mapping are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
