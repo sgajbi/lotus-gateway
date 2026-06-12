@@ -1,4 +1,5 @@
-from app.contracts.portfolio import PortfolioSummary, PortfolioWorkflowLaunchCue
+from app.contracts.portfolio import PortfolioSummary
+from app.contracts.portfolio_workflow import PortfolioWorkflowLaunchCue
 from app.services.portfolio_workflow import (
     build_workflow_actions,
     build_workflow_cues,
