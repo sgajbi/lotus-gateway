@@ -271,6 +271,12 @@ Most recent local evidence:
 44. Current portfolio workspace response slice:
     `tests/unit/test_portfolio_workspace_response.py tests/unit/test_portfolio_workspace_controls.py`
     passed with 5 selected tests after response assembly extraction.
+45. Current transaction client-kwargs branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 449 source files, Workbench/OpenAPI contract smoke, and 1,002
+    unit/contract tests.
+46. Current transaction client-kwargs branch: `make ci` passed with 207 integration tests and
+    1,209 combined coverage tests; total coverage remained 93.70%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
