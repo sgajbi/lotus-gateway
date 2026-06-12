@@ -5,35 +5,36 @@ Mode: feature-branch evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 449 source files, contract smoke, and 1,003 unit/contract tests; `make ci` passed with 207 integration tests, 1,210 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
-| Coverage | 4/5 | 93.70% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
-| Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, and portfolio workspace response assembly; `portfolio_service.py` is now 2,797 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
+| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 450 source files, contract smoke, and 1,008 unit/contract tests; `make ci` passed with 207 integration tests, 1,215 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
+| Coverage | 4/5 | 93.74% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
+| Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, portfolio workspace response assembly, and portfolio workspace performance parsing; `portfolio_service.py` is now 2,772 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 4/5 | 233 OpenAPI paths and 247 operations; missing summary, description, operation ID, tags, and documented 4xx/5xx response counts are all 0; Spectral remains report-only | Triage Spectral warnings and decide explicit operation ID policy |
 | Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions; route/upstream error normalization remains a meaningful hardening candidate | Normalize route/upstream errors |
 | Observability | 3/5 | Health/readiness/metrics/correlation/audit are present; RFC-0108 fan-out and selected analytics audit posture remain implementation-backed | Enforce structured log and metric label rules |
-| Security | 4/5 | `pip-audit` passed in latest `make ci` with the governed FastAPI/Starlette exception; no known vulnerabilities found | Triage bandit and sensitive-data handling checks |
-| Documentation | 4/5 | Baseline, scorecard, health report, and wiki validation evidence are refreshed to current branch metrics after PR #353 | Keep wiki synced and add diagrams over time |
+| Security | 4/5 | `pip-audit` passed in current branch `make ci` with the governed FastAPI/Starlette exception; no known vulnerabilities found | Triage bandit and sensitive-data handling checks |
+| Documentation | 4/5 | Baseline, scorecard, health report, and wiki validation evidence are refreshed to current branch metrics after PR #354 and the current focused parser slice | Keep wiki synced and add diagrams over time |
 | Operations readiness | 3/5 | Existing CI/runbook docs and wiki validation posture describe the report-only quality lane | Add incident playbooks and SLO checks |
 
 ## Before/After Evidence
 
 Comparison point: the prior scorecard state after the portfolio liquidity payload-loader slice
-versus the current transaction page-context branch after PRs #349, #350, #351, #352, and #353.
+versus the current portfolio workspace performance parser branch after PRs #349, #350, #351,
+#352, #353, and #354.
 
 | Measure | Prior scorecard | Current branch | Result |
 | --- | ---: | ---: | --- |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,265 | 1,297 | Added focused modules, tests, and quality evidence |
-| Tracked `src/app` Python files | 447 | 449 | Added focused portfolio/performance response helpers |
-| Tracked Python test files | 162 | 164 | Added focused request-context and response-assembly tests |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,265 | 1,301 | Added focused modules, tests, and quality evidence |
+| Tracked `src/app` Python files | 447 | 450 | Added focused portfolio/performance response helpers and the workspace performance parser |
+| Tracked Python test files | 162 | 165 | Added focused request-context, response-assembly, and workspace performance parser tests |
 | Longest function | 49 lines | 49 lines | Preserved |
 | Top function hotspot count at 49 lines | 2 | 2 | Preserved |
-| Largest source file | 2,968 lines | 2,797 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
+| Largest source file | 2,968 lines | 2,772 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
 | `performance_workspace_service.py` | 1,724 lines | 1,607 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 996 | 1,003 | Added focused response/request boundary tests |
-| Local coverage tests | 1,203 | 1,210 | Added focused coverage while preserving total coverage |
-| Total coverage | 93.69% | 93.70% | Improved slightly |
+| Local unit/contract tests | 996 | 1,008 | Added focused response/request boundary and workspace performance parser tests |
+| Local coverage tests | 1,203 | 1,215 | Added focused coverage while preserving total coverage |
+| Total coverage | 93.69% | 93.74% | Improved |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |
 
 ## Phase Gates
@@ -58,7 +59,7 @@ Candidate thresholds:
 3. no new high-confidence dead-code findings,
 4. no new high-severity bandit findings,
 5. no new function above the current maximum of 49 lines and no unclassified largest-file growth
-   above the current 2,797-line `portfolio_service.py` maximum.
+   above the current 2,772-line `portfolio_service.py` maximum.
 
 ### Phase 3: Enforce Agreed Thresholds
 

@@ -147,6 +147,9 @@ The current transaction page-context slice moves income/activity transaction pag
 `portfolio_transaction_ledger.py`, reducing `portfolio_service.py` from 2,854 to 2,797 measured
 lines while preserving the 49-line longest-function baseline and removing
 `_get_portfolio_transactions_result` from the top hotspot list.
+The current portfolio workspace performance parser slice moves upstream performance summary
+payload parsing into `portfolio_workspace_performance.py`, reducing `portfolio_service.py` from
+2,797 to 2,772 measured lines while preserving the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -154,21 +157,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,297 |
-| Python source files under `src/app` | 449 |
-| Python test files under `tests` | 164 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,301 |
+| Python source files under `src/app` | 450 |
+| Python test files under `tests` | 165 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current transaction page-context branch shows 1,297 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 449 Python source files under `src/app`;
-and 164 Python test files under `tests`.
+Working-tree verification for the current portfolio workspace performance parser branch shows
+1,301 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 450 Python source
+files under `src/app`; and 165 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,797 | `src/app/services/portfolio_service.py` |
+| 1 | 2,772 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
@@ -287,6 +290,12 @@ Most recent local evidence:
 48. Current transaction page-context branch: `make ci` passed with 207 integration tests and 1,210
     combined coverage tests; total coverage remained 93.70%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+49. Current portfolio workspace performance parser branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 450 source files, Workbench/OpenAPI contract smoke, and
+    1,008 unit/contract tests.
+50. Current portfolio workspace performance parser branch: `make ci` passed with 207 integration
+    tests and 1,215 combined coverage tests; total coverage is 93.74%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

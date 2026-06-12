@@ -82,6 +82,7 @@ from app.services.portfolio_transaction_ledger import (
     portfolio_transactions_client_kwargs,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
 from app.services.portfolio_workspace_response import (
     PortfolioWorkspaceComponents,
     PortfolioWorkspaceResponseParts,
@@ -1844,33 +1845,7 @@ class PortfolioService:
         )
         if payload is None:
             return None
-        results_by_period = payload.get("results_by_period", payload.get("resultsByPeriod", {}))
-        if not isinstance(results_by_period, dict):
-            warnings.append("PORTFOLIO_PERFORMANCE_INVALID")
-            return None
-        period_key = "YTD" if "YTD" in results_by_period else next(iter(results_by_period), None)
-        if period_key is None:
-            return None
-        period_payload = results_by_period.get(period_key, {})
-        if not isinstance(period_payload, dict):
-            return None
-        portfolio_payload = period_payload.get("portfolio", {})
-        if not isinstance(portfolio_payload, dict):
-            return None
-        summary_payload = portfolio_payload.get("summary", {})
-        if not isinstance(summary_payload, dict):
-            return None
-        period_return_payload = summary_payload.get("period_return", {})
-        if not isinstance(period_return_payload, dict):
-            return None
-        period_return = period_return_payload.get("base")
-        try:
-            return_pct = (
-                float(quantize_performance(period_return)) if period_return is not None else None
-            )
-        except (TypeError, ValueError):
-            return_pct = None
-        return PortfolioPerformanceSummary(period=str(period_key), return_pct=return_pct)
+        return parse_workspace_performance_summary(payload, warnings)
 
     def _parse_workspace_rebalance(
         self,

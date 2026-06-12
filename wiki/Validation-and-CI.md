@@ -86,15 +86,16 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 2,797 lines after portfolio liquidity loading,
-transaction request-context, transaction page-context, transaction client-kwargs, and portfolio
-workspace response assembly extractions, so it remains the largest-file hotspot but is trending
-down.
+`portfolio_service.py` is now measured at 2,772 lines after portfolio liquidity loading,
+transaction request-context, transaction page-context, transaction client-kwargs, portfolio
+workspace response assembly, and portfolio workspace performance parsing extractions, so it
+remains the largest-file hotspot but is trending down.
 `performance_workspace_service.py` is now measured at 1,607 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
-transaction page-context branch passed with 1,003 unit/contract tests, and local `make ci` passed
-with 207 integration tests, 1,210 coverage tests, 93.70 percent total coverage, and `pip-audit`
-reporting no known vulnerabilities after the governed FastAPI/Starlette exception. GitHub Feature
-Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity checks were green before PR
-#353 merged. The current transaction page-context branch adds focused transaction-ledger mapper
-evidence with 8 passing unit tests.
+portfolio workspace performance parser branch passed with ruff, format check, monetary-float
+guard, mypy over 450 source files, Workbench/OpenAPI contract smoke, and 1,008 unit/contract tests.
+Local `make ci` passed with 207 integration tests, 1,215 coverage tests, 93.74 percent total
+coverage, and `pip-audit` reporting no known vulnerabilities after the governed FastAPI/Starlette
+exception. GitHub Feature Lane, PR Merge Gate, Quality Baseline, Docker build, and Docker parity
+checks were green before PR #354 merged. The current portfolio workspace performance parser branch
+also adds focused parser and portfolio service evidence with 49 passing unit tests.
