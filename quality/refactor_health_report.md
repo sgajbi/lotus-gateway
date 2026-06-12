@@ -266,17 +266,23 @@ activity summary contracts into `portfolio_activity_income.py`, keeps the legacy
 `app.contracts.portfolio` import surface intact, refreshes the governed monetary-float allowlist
 for the moved money fields, and reduces `portfolio.py` from 1,632 to 1,464 lines while preserving
 OpenAPI contract tests and the 49-line longest-function baseline.
+The current portfolio holdings contract slice moves shared identity/summary contracts into
+`portfolio_core.py` and cash, allocation, position, and combined book contracts into
+`portfolio_holdings.py`, keeps the legacy `app.contracts.portfolio` import surface intact,
+refreshes the governed monetary-float allowlist for the moved holdings fields, and reduces
+`portfolio.py` from 1,464 to 954 lines while preserving OpenAPI contract tests and the 49-line
+longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current income/activity contract branch was created from clean `main` after PR #362; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | 1,035 unit/contract tests passed in current branch `make check`; focused income/activity summary, insight, and portfolio OpenAPI contract tests passed with 17 tests on this branch |
+| Branch hygiene | Healthy | Current holdings contract branch was created from clean `main` after PR #363; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | 1,039 unit/contract tests passed in current branch `make check`; focused holdings, portfolio OpenAPI, insight, workflow, and workspace tests passed with 24 tests on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,242 coverage tests passed in current branch `make ci`; total coverage is 94.02%, above the 84% floor |
+| Total coverage | Healthy | 1,246 coverage tests passed in current branch `make ci`; total coverage is 94.02%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 1,464 measured lines and leave `portfolio_service.py` at 2,078 measured lines and `performance_workspace_service.py` at 1,704 measured lines; large contracts and several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 954 measured lines and leave `portfolio_service.py` at 2,079 measured lines and `performance_workspace_service.py` at 1,704 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -290,8 +296,8 @@ OpenAPI contract tests and the 49-line longest-function baseline.
    transaction-ledger response mapping, transaction client-kwargs mapping, transaction page
    context defaults, workspace performance parsing, workspace rebalance parsing, source readiness
    parsing, transaction summary mapping, workflow cue/action mapping, workflow/readiness
-   contracts, transaction ledger contracts, performance snapshot contracts, and income/activity
-   contracts are now separately testable.
+   contracts, transaction ledger contracts, performance snapshot contracts, income/activity
+   contracts, and holdings/book contracts are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
