@@ -300,6 +300,12 @@ Most recent local evidence:
 50. Current portfolio workspace performance parser branch: `make ci` passed with 207 integration
     tests and 1,215 combined coverage tests; total coverage is 93.74%, and `pip-audit` found no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
+51. Current portfolio workspace rebalance parser branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 451 source files, Workbench/OpenAPI contract smoke, and
+    1,014 unit/contract tests.
+52. Current portfolio workspace rebalance parser branch: `make ci` passed with 207 integration
+    tests and 1,221 combined coverage tests; total coverage is 93.78%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

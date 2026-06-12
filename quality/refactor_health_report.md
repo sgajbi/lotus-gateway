@@ -242,9 +242,9 @@ baseline.
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | merged `main` at `481e091`; remote server truth showed only `main` after PR #354 cleanup |
-| Unit/contract coverage | Healthy | 1,008 unit/contract tests passed in latest merged `make check`; focused workspace rebalance parser and portfolio service tests passed with 50 tests on this branch |
-| Integration coverage | Healthy | 207 integration tests passed in latest merged `make ci` |
-| Total coverage | Healthy | 1,215 coverage tests passed in latest merged `make ci`; total coverage is 93.74%, above the 84% floor |
+| Unit/contract coverage | Healthy | 1,014 unit/contract tests passed in current branch `make check`; focused workspace rebalance parser and portfolio service tests passed with 50 tests on this branch |
+| Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
+| Total coverage | Healthy | 1,221 coverage tests passed in current branch `make ci`; total coverage is 93.78%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser slices reduce `portfolio_service.py` to 2,729 measured lines and `performance_workspace_service.py` to 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
