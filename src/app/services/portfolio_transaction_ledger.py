@@ -79,6 +79,41 @@ def build_portfolio_transactions_request_context(
     )
 
 
+def build_transaction_rows_page_request_context(
+    *,
+    portfolio_id: str,
+    correlation_id: str,
+    as_of_date: str | None,
+    skip: int,
+    limit: int,
+    start_date: str,
+    end_date: str,
+    reporting_currency: str | None,
+) -> PortfolioTransactionsRequestContext:
+    return build_portfolio_transactions_request_context(
+        portfolio_id=portfolio_id,
+        correlation_id=correlation_id,
+        as_of_date=as_of_date,
+        include_projected=False,
+        skip=skip,
+        limit=limit,
+        transaction_type=None,
+        security_id=None,
+        instrument_id=None,
+        component_type=None,
+        linked_transaction_group_id=None,
+        fx_contract_id=None,
+        swap_event_id=None,
+        near_leg_group_id=None,
+        far_leg_group_id=None,
+        sort_by="transaction_date",
+        sort_order="asc",
+        start_date=start_date,
+        end_date=end_date,
+        reporting_currency=reporting_currency,
+    )
+
+
 def portfolio_transactions_cache_key(
     context: PortfolioTransactionsRequestContext,
 ) -> tuple[object, ...]:
