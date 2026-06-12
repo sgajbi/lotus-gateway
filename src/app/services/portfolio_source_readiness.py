@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.contracts.portfolio import (
+from app.contracts.portfolio_workflow import (
     PortfolioReadinessBucket,
     PortfolioReadinessIndicator,
     PortfolioReadinessReason,

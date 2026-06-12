@@ -4,11 +4,13 @@ from app.contracts.portfolio import (
     PortfolioAllocationView,
     PortfolioOperationalReadiness,
     PortfolioPositionView,
-    PortfolioReadinessIndicator,
     PortfolioSummary,
+    PortfolioWorkspaceResponse,
+)
+from app.contracts.portfolio_workflow import (
+    PortfolioReadinessIndicator,
     PortfolioWorkflowAction,
     PortfolioWorkflowLaunchCue,
-    PortfolioWorkspaceResponse,
 )
 
 

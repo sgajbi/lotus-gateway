@@ -248,17 +248,20 @@ The current portfolio workflow mapper slice moves workflow launch cue constructi
 status labels, empty-book setup sequencing, and supported-cue action ordering into
 `portfolio_workflow.py`, reducing `portfolio_service.py` from 2,438 to 2,076 lines while
 preserving the 49-line longest-function baseline.
+The current portfolio workflow contract slice moves readiness and workflow response models into
+`portfolio_workflow.py`, keeps the legacy `app.contracts.portfolio` import surface intact, and
+reduces `portfolio.py` from 2,226 to 1,974 lines while preserving OpenAPI contract tests.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current workflow mapper branch was created from clean `main` after PR #358; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | 1,031 unit/contract tests passed in current branch `make check`; focused workflow mapper and portfolio service tests passed with 46 tests on this branch |
+| Branch hygiene | Healthy | Current workflow contract branch was created from clean `main` after PR #359; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | 1,032 unit/contract tests passed in current branch `make check`; focused workflow contract, source-readiness, workflow mapper, and portfolio OpenAPI contract tests passed with 23 tests on this branch |
 | Integration coverage | Healthy | 207 integration tests passed in current branch `make ci` |
-| Total coverage | Healthy | 1,238 coverage tests passed in current branch `make ci`; total coverage is 94.00%, above the 84% floor |
+| Total coverage | Healthy | 1,239 coverage tests passed in current branch `make ci`; total coverage is 94.01%, above the 84% floor |
 | Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper slices reduce `portfolio_service.py` to 2,076 measured lines and `performance_workspace_service.py` to 1,607 measured lines; large contracts and several service files remain above 1,000 lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper slices reduce `portfolio_service.py` to 2,076 measured lines, `portfolio.py` to 1,974 measured lines, and `performance_workspace_service.py` to 1,607 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -271,8 +274,8 @@ preserving the 49-line longest-function baseline.
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
    transaction-ledger response mapping, transaction client-kwargs mapping, transaction page
    context defaults, workspace performance parsing, workspace rebalance parsing, source readiness
-   parsing, transaction summary mapping, and workflow cue/action mapping are now separately
-   testable.
+   parsing, transaction summary mapping, workflow cue/action mapping, and workflow/readiness
+   contracts are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
    behavior-preserving seams are obvious; the risk response boundaries are now separately testable.
 3. Continue splitting platform capability normalization or orchestration helpers if future changes
