@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.contracts.portfolio import (
+from app.contracts.portfolio_transactions import (
     PortfolioTransactionLedgerResponse,
     PortfolioTransactionView,
 )

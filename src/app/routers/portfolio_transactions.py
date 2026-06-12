@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from fastapi import APIRouter, Query
 
-from app.contracts.portfolio import PortfolioTransactionLedgerResponse
+from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.portfolio_service_provider import portfolio_service
 

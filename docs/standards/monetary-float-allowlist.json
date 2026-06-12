@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-12T14:51:29Z",
+  "generated_at": "2026-06-12T15:57:24Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -340,172 +340,172 @@
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:165:invested_market_value_base: float = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/portfolio.py:169:cash_market_value_base: float = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/portfolio.py:173:cash_weight_pct: float = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/portfolio.py:205:market_value_base: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/portfolio.py:2067:portfolio_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1643:portfolio_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:2074:benchmark_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1650:benchmark_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:2082:excess_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1658:excess_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:210:weight_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/portfolio.py:2158:portfolio_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1734:portfolio_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:2163:benchmark_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1739:benchmark_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:2170:excess_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:1746:excess_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-27"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:226:market_value_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:179:invested_market_value_base: float = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:231:weight_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:183:cash_market_value_base: float = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:302:cost_basis_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:187:cash_weight_pct: float = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:307:market_value_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:219:market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:312:weight_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:224:weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:362:market_price: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:240:market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:367:cost_basis_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:245:weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:372:cost_basis_local: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:316:cost_basis_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:377:market_value_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:321:market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:382:market_value_local: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:326:weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:399:weight_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:376:market_price: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:446:price: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:381:cost_basis_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:451:gross_amount: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:386:cost_basis_local: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:461:net_cost_base: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:391:market_value_base: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:575:portfolio_currency_amount: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:396:market_value_local: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:580:reporting_currency_amount: float = Field(",
+      "finding": "src/app/contracts/portfolio.py:413:weight_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:756:return_pct: float | None = Field(",
+      "finding": "src/app/contracts/portfolio.py:478:portfolio_currency_amount: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
+    },
+    {
+      "finding": "src/app/contracts/portfolio.py:483:reporting_currency_amount: float = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-14"
+    },
+    {
+      "finding": "src/app/contracts/portfolio.py:659:return_pct: float | None = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-10-14"
+    },
+    {
+      "finding": "src/app/contracts/portfolio_transactions.py:39:price: float | None = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-12-09"
+    },
+    {
+      "finding": "src/app/contracts/portfolio_transactions.py:44:gross_amount: float | None = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-12-09"
+    },
+    {
+      "finding": "src/app/contracts/portfolio_transactions.py:54:net_cost_base: float | None = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-12-09"
     },
     {
       "finding": "src/app/contracts/risk_workspace.py:1094:metric_values: dict[str, float | None] = Field(",
@@ -802,25 +802,25 @@
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:1736:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
+      "finding": "src/app/services/portfolio_service.py:1643:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:1863:market_value_base=float(",
+      "finding": "src/app/services/portfolio_service.py:1770:market_value_base=float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:1866:weight_pct=float(",
+      "finding": "src/app/services/portfolio_service.py:1773:weight_pct=float(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:1867:quantize_performance(float(bucket.get(\"weight\", 0)) * 100)",
+      "finding": "src/app/services/portfolio_service.py:1774:quantize_performance(float(bucket.get(\"weight\", 0)) * 100)",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"
