@@ -150,6 +150,10 @@ lines while preserving the 49-line longest-function baseline and removing
 The current portfolio workspace performance parser slice moves upstream performance summary
 payload parsing into `portfolio_workspace_performance.py`, reducing `portfolio_service.py` from
 2,797 to 2,772 measured lines while preserving the 49-line longest-function baseline.
+The current portfolio workspace rebalance parser slice moves manage-owned rebalance run and
+supportability payload parsing into `portfolio_workspace_rebalance.py`, reducing
+`portfolio_service.py` from 2,772 to 2,729 measured lines while preserving the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -157,21 +161,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,301 |
-| Python source files under `src/app` | 450 |
-| Python test files under `tests` | 165 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,303 |
+| Python source files under `src/app` | 451 |
+| Python test files under `tests` | 166 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio workspace performance parser branch shows
-1,301 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 450 Python source
-files under `src/app`; and 165 Python test files under `tests`.
+Working-tree verification for the current portfolio workspace rebalance parser branch shows
+1,303 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 451 Python source
+files under `src/app`; and 166 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 2,772 | `src/app/services/portfolio_service.py` |
+| 1 | 2,729 | `src/app/services/portfolio_service.py` |
 | 2 | 2,123 | `src/app/contracts/portfolio.py` |
 | 3 | 1,940 | `src/app/contracts/risk_workspace.py` |
 | 4 | 1,731 | `src/app/contracts/reporting.py` |
@@ -295,6 +299,12 @@ Most recent local evidence:
     1,008 unit/contract tests.
 50. Current portfolio workspace performance parser branch: `make ci` passed with 207 integration
     tests and 1,215 combined coverage tests; total coverage is 93.74%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
+51. Current portfolio workspace rebalance parser branch: `make check` passed with ruff, format
+    check, monetary-float guard, mypy over 451 source files, Workbench/OpenAPI contract smoke, and
+    1,014 unit/contract tests.
+52. Current portfolio workspace rebalance parser branch: `make ci` passed with 207 integration
+    tests and 1,221 combined coverage tests; total coverage is 93.78%, and `pip-audit` found no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline

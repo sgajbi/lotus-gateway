@@ -83,6 +83,11 @@ from app.services.portfolio_transaction_ledger import (
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
 from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
+from app.services.portfolio_workspace_rebalance import (
+    parse_workspace_rebalance_summary,
+    parse_workspace_rebalance_supportability,
+    rebalance_summary_from_supportability,
+)
 from app.services.portfolio_workspace_response import (
     PortfolioWorkspaceComponents,
     PortfolioWorkspaceResponseParts,
@@ -1860,7 +1865,7 @@ class PortfolioService:
             partial_failures,
         )
         if result is None:
-            return self._rebalance_summary_from_supportability("NO_RUNS", supportability)
+            return rebalance_summary_from_supportability("NO_RUNS", supportability)
         payload = self._optional_payload(
             result,
             "lotus-manage",
@@ -1869,33 +1874,8 @@ class PortfolioService:
             partial_failures,
         )
         if payload is None:
-            return self._rebalance_summary_from_supportability("UNKNOWN", supportability)
-        items = payload.get("items", [])
-        if not isinstance(items, list) or not items:
-            return self._rebalance_summary_from_supportability("NO_RUNS", supportability)
-        latest = items[0]
-        if not isinstance(latest, dict):
-            return self._rebalance_summary_from_supportability("UNKNOWN", supportability)
-        return PortfolioRebalanceSummary(
-            status=str(latest.get("status", "UNKNOWN")),
-            last_run_at_utc=self._optional_str(latest.get("created_at")),
-            last_rebalance_run_id=self._optional_str(latest.get("rebalance_run_id")),
-            supportability=supportability,
-        )
-
-    def _rebalance_summary_from_supportability(
-        self,
-        status_value: str,
-        supportability: PortfolioRebalanceSupportabilitySummary | None,
-    ) -> PortfolioRebalanceSummary | None:
-        if supportability is None:
-            return None
-        return PortfolioRebalanceSummary(
-            status=status_value,
-            last_run_at_utc=None,
-            last_rebalance_run_id=None,
-            supportability=supportability,
-        )
+            return rebalance_summary_from_supportability("UNKNOWN", supportability)
+        return parse_workspace_rebalance_summary(payload, supportability)
 
     def _parse_workspace_rebalance_supportability(
         self,
@@ -1914,31 +1894,7 @@ class PortfolioService:
         )
         if payload is None:
             return None
-        supportability_payload = payload.get("supportability", payload)
-        if not isinstance(supportability_payload, dict):
-            warnings.append("PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE")
-            partial_failures.append(
-                PortfolioPartialFailure(
-                    source_service="lotus-manage",
-                    error_code="PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE",
-                    detail="lotus-manage supportability summary did not include an object payload",
-                )
-            )
-            return None
-        return PortfolioRebalanceSupportabilitySummary(
-            feature_key=(
-                self._optional_str(supportability_payload.get("feature_key"))
-                or "manage.observability.action_register_supportability"
-            ),
-            state=str(supportability_payload.get("state") or "unknown"),
-            reason=self._optional_str(supportability_payload.get("reason")),
-            freshness_bucket=self._optional_str(supportability_payload.get("freshness_bucket")),
-            run_count=self._optional_int(supportability_payload.get("run_count")),
-            operation_count=self._optional_int(supportability_payload.get("operation_count")),
-            workflow_decision_count=self._optional_int(
-                supportability_payload.get("workflow_decision_count")
-            ),
-        )
+        return parse_workspace_rebalance_supportability(payload, warnings, partial_failures)
 
     def _parse_operations(
         self,
