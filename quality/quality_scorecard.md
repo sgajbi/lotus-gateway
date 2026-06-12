@@ -5,8 +5,8 @@ Mode: feature-branch evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 451 source files, contract smoke, and 1,014 unit/contract tests; `make ci` passed with 207 integration tests, 1,221 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
-| Coverage | 4/5 | 93.78% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
+| Build and test reliability | 5/5 | Current branch evidence includes `make check` with ruff, format, monetary-float guard, mypy over 452 source files, contract smoke, and 1,024 unit/contract tests; `make ci` passed with 207 integration tests, 1,231 coverage tests, Docker-equivalent GitHub gates, and dependency audit | Keep Docker parity blocking in PR Merge Gate |
+| Coverage | 4/5 | 93.89% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
 | Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, portfolio workspace response assembly, portfolio workspace performance parsing, portfolio workspace rebalance parsing, and portfolio source-readiness parsing; `portfolio_service.py` is now 2,629 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 4/5 | 233 OpenAPI paths and 247 operations; missing summary, description, operation ID, tags, and documented 4xx/5xx response counts are all 0; Spectral remains report-only | Triage Spectral warnings and decide explicit operation ID policy |
@@ -32,9 +32,9 @@ versus the current portfolio source-readiness parser branch after PRs #349, #350
 | Largest source file | 2,968 lines | 2,629 lines | Improved; `portfolio_service.py` remains largest residual hotspot |
 | `performance_workspace_service.py` | 1,724 lines | 1,607 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 996 | 1,014 | Added focused response/request boundary and workspace parser tests |
-| Local coverage tests | 1,203 | 1,221 | Added focused coverage while preserving total coverage |
-| Total coverage | 93.69% | 93.78% | Improved |
+| Local unit/contract tests | 996 | 1,024 | Added focused response/request boundary, workspace parser, and source-readiness parser tests |
+| Local coverage tests | 1,203 | 1,231 | Added focused coverage while preserving total coverage |
+| Total coverage | 93.69% | 93.89% | Improved |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |
 
 ## Phase Gates
