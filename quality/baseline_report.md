@@ -573,6 +573,10 @@ Most recent local evidence:
      unit/contract tests. `make ci` passed with 207 integration tests and 1,291 combined coverage
      tests; total coverage is 94.10%, and `pip-audit` found no known vulnerabilities after the
      governed `PYSEC-2026-161` exception.
+105. Current Bank-Buyable service-error config branch focused validation passed with 31
+     upstream-envelope and advisory service unit tests plus ruff, format check, and mypy over the
+     shared upstream envelope helper and migrated advisory service modules. Full `make check` and
+     `make ci` evidence remains pending for PR readiness.
 
 ## Tooling Availability Baseline
 
