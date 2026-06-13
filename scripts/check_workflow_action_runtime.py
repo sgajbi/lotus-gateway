@@ -14,7 +14,7 @@ ACTION_MAJOR_BASELINE = {
     "actions/upload-artifact": 5,
 }
 USES_PATTERN = re.compile(r"^\s*(?:-\s*)?uses:\s*(?P<uses>[^#\s]+)")
-VERSION_PATTERN = re.compile(r"^(?P<action>[^@]+)@v(?P<major>\d+)$")
+VERSION_PATTERN = re.compile(r"^(?P<action>[^@]+)@v(?P<major>\d+)(?:\D.*)?$")
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,10 @@ def iter_workflow_files(workflow_roots: Sequence[Path]) -> Iterable[Path]:
             yield from sorted(workflow_root.glob("*.yaml"))
 
 
+def normalize_uses_value(uses_value: str) -> str:
+    return uses_value.strip().strip("\"'")
+
+
 def find_workflow_action_runtime_violations(
     workflow_roots: Sequence[Path],
 ) -> tuple[WorkflowActionRuntimeViolation, ...]:
@@ -50,7 +54,8 @@ def find_workflow_action_runtime_violations(
             uses_match = USES_PATTERN.match(line)
             if uses_match is None:
                 continue
-            version_match = VERSION_PATTERN.match(uses_match.group("uses"))
+            uses_value = normalize_uses_value(uses_match.group("uses"))
+            version_match = VERSION_PATTERN.match(uses_value)
             if version_match is None:
                 continue
             action = version_match.group("action")
@@ -63,7 +68,7 @@ def find_workflow_action_runtime_violations(
                     WorkflowActionRuntimeViolation(
                         path=path,
                         line_number=line_number,
-                        uses_value=uses_match.group("uses"),
+                        uses_value=uses_value,
                         required_value=f"{action}@v{required_major}",
                     )
                 )

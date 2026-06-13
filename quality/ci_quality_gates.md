@@ -108,8 +108,8 @@ Most recent local PR-grade evidence:
     core action majors: `actions/checkout@v6`, `actions/setup-python@v6`,
     `actions/setup-node@v5`, and `actions/upload-artifact@v5`. The new
     `scripts/check_workflow_action_runtime.py` validator is part of `make lint` and blocks
-    reintroducing older governed action majors. Local `make check` passed with 1,105
-    unit/contract tests, and local `make ci` passed with 207 integration tests, 1,312 coverage
+    reintroducing older governed action majors. Local `make check` passed with 1,108
+    unit/contract tests, and local `make ci` passed with 207 integration tests, 1,315 coverage
     tests, 94.13% total coverage, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
 
