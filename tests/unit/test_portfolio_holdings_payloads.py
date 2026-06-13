@@ -4,8 +4,11 @@ from app.services.portfolio_holdings_payloads import (
     ALLOCATION_VIEW_DIMENSIONS,
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
+    PortfolioPositionBookLoadRequest,
+    PortfolioPositionBookPayloadLoaders,
     build_portfolio_allocation_response,
     load_portfolio_allocation_payloads,
+    load_portfolio_position_book_payloads,
     parse_allocation_views,
     parse_cash_balances,
     parse_look_through_capability,
@@ -90,6 +93,70 @@ async def test_load_portfolio_allocation_payloads_queries_sources_and_requires_p
     assert required == [
         (aum_result, "lotus-core aum unavailable"),
         (allocation_result, "lotus-core allocation unavailable"),
+        (positions_result, "lotus-core positions unavailable"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_load_portfolio_position_book_payloads_queries_sources_and_requires_payloads() -> (
+    None
+):
+    calls: list[tuple[str, dict[str, object]]] = []
+    aum_result = (200, {"portfolios": [{"aum_reporting_currency": "1250"}]})
+    positions_result = (200, {"positions": [{"security_id": "FI_1"}]})
+
+    async def query_aum_result(**kwargs):
+        calls.append(("aum", kwargs))
+        return aum_result
+
+    async def get_portfolio_positions_result(**kwargs):
+        calls.append(("positions", kwargs))
+        return positions_result
+
+    required: list[tuple[object, str]] = []
+
+    def require_payload(*, result, unavailable_detail_prefix: str):
+        required.append((result, unavailable_detail_prefix))
+        return result[1]
+
+    payloads = await load_portfolio_position_book_payloads(
+        PortfolioPositionBookLoadRequest(
+            portfolio_id="PF_2002",
+            correlation_id="corr-positions",
+            as_of_date="2026-04-30",
+            include_projected=True,
+            reporting_currency="CHF",
+        ),
+        PortfolioPositionBookPayloadLoaders(
+            query_aum_result=query_aum_result,
+            get_portfolio_positions_result=get_portfolio_positions_result,
+            require_payload=require_payload,
+        ),
+    )
+
+    assert payloads.aum_payload == aum_result[1]
+    assert payloads.positions_payload == positions_result[1]
+    assert (
+        "aum",
+        {
+            "correlation_id": "corr-positions",
+            "portfolio_id": "PF_2002",
+            "as_of_date": "2026-04-30",
+            "reporting_currency": "CHF",
+        },
+    ) in calls
+    assert (
+        "positions",
+        {
+            "portfolio_id": "PF_2002",
+            "correlation_id": "corr-positions",
+            "as_of_date": "2026-04-30",
+            "include_projected": True,
+            "reporting_currency": "CHF",
+        },
+    ) in calls
+    assert required == [
+        (aum_result, "lotus-core aum unavailable"),
         (positions_result, "lotus-core positions unavailable"),
     ]
 
