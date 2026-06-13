@@ -214,6 +214,7 @@ def validate_gateway_analytics_ui_log_fields(fields: Mapping[str, object]) -> di
     return _validate_gateway_analytics_ui_fields(
         fields=fields,
         supported_fields=set(GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS),
+        supported_events=set(GATEWAY_ANALYTICS_UI_LOG_EVENTS),
         error_prefix="Analytics UI log fields",
     )
 
@@ -224,6 +225,7 @@ def validate_gateway_analytics_ui_audit_log_fields(
     return _validate_gateway_analytics_ui_fields(
         fields=fields,
         supported_fields=set(GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS),
+        supported_events=set(GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS),
         error_prefix="Analytics UI audit log fields",
     )
 
@@ -232,6 +234,7 @@ def _validate_gateway_analytics_ui_fields(
     *,
     fields: Mapping[str, object],
     supported_fields: set[str],
+    supported_events: set[str],
     error_prefix: str,
 ) -> dict[str, object]:
     field_names = set(fields)
@@ -243,20 +246,22 @@ def _validate_gateway_analytics_ui_fields(
     if unsupported:
         raise ValueError(f"{error_prefix} include unsupported field(s): {', '.join(unsupported)}")
 
-    _validate_gateway_analytics_ui_field_values(fields=fields, error_prefix=error_prefix)
+    _validate_gateway_analytics_ui_field_values(
+        fields=fields,
+        supported_events=supported_events,
+        error_prefix=error_prefix,
+    )
     return {key: value for key, value in fields.items() if value is not None and value != ""}
 
 
 def _validate_gateway_analytics_ui_field_values(
     *,
     fields: Mapping[str, object],
+    supported_events: set[str],
     error_prefix: str,
 ) -> None:
     event = fields.get("event")
-    if event is not None and event not in {
-        *GATEWAY_ANALYTICS_UI_LOG_EVENTS,
-        *GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
-    }:
+    if event is not None and event not in supported_events:
         raise ValueError(f"{error_prefix} include unsupported event: {event}")
 
     state = fields.get("state")

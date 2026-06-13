@@ -631,9 +631,10 @@ Existing README, wiki, RFCs, and standards are substantial. Gaps now addressed b
 Current code and docs include health, readiness, metrics, correlation, selected analytics audit
 logs, and diagnostics lookup. Remaining baseline gaps:
 
-1. no central observability runbook existed at `docs/observability.md`,
-2. structured logging/audit field allowlists are documented in repository context but not yet
-   scored in CI,
+1. analytics UI structured logging/audit field allowlists are covered by unit tests, including
+   separate fan-out log and audit event-family enforcement,
+2. broader structured logging/audit field allowlists are not yet scored across all gateway
+   telemetry in CI,
 3. tracing propagation beyond correlation IDs is not yet governed by a blocking test,
 4. metrics label-cardinality rules are not yet enforced by a static gate.
 

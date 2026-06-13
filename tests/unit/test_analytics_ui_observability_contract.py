@@ -201,6 +201,21 @@ def test_validate_gateway_analytics_ui_log_fields_rejects_value_drift(
         validate_gateway_analytics_ui_log_fields(fields)
 
 
+def test_validate_gateway_analytics_ui_log_fields_rejects_audit_event_drift() -> None:
+    with pytest.raises(ValueError, match="unsupported event"):
+        validate_gateway_analytics_ui_log_fields(
+            {
+                "event": "gateway.analytics.audit.analytics_read_allowed",
+                "route": "workbench-analytics",
+                "service": "lotus-performance",
+                "operation": "performance.workspace-summary",
+                "state": "ready",
+                "status_class": "2xx",
+                "duration_ms": 12.0,
+            }
+        )
+
+
 def test_validate_gateway_analytics_ui_audit_log_fields_accepts_bounded_runtime_fields() -> None:
     fields = validate_gateway_analytics_ui_audit_log_fields(
         {
@@ -250,6 +265,23 @@ def test_validate_gateway_analytics_ui_audit_log_fields_rejects_value_drift(
 
     with pytest.raises(ValueError, match=match):
         validate_gateway_analytics_ui_audit_log_fields(fields)
+
+
+def test_validate_gateway_analytics_ui_audit_log_fields_rejects_fanout_event_drift() -> None:
+    with pytest.raises(ValueError, match="unsupported event"):
+        validate_gateway_analytics_ui_audit_log_fields(
+            {
+                "event": "gateway.analytics.fanout.completed",
+                "route": "workbench-analytics",
+                "panel": "performance-summary",
+                "operation": "performance.workspace-summary",
+                "state": "ready",
+                "reason": "upstream_read_succeeded",
+                "status_class": "2xx",
+                "region": "ap-southeast-1",
+                "environment": "local",
+            }
+        )
 
 
 def test_protected_diagnostics_audit_log_uses_bounded_fields(caplog) -> None:
