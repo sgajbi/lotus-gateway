@@ -77,8 +77,21 @@ def collect_governed_action_refs(source: str) -> list[str]:
     return action_refs
 
 
-def has_node24_opt_in(source: str) -> bool:
-    return any(NODE24_OPT_IN_PATTERN.match(line) for line in source.splitlines())
+def has_workflow_level_node24_opt_in(source: str) -> bool:
+    in_workflow_env = False
+    for line in source.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0:
+            in_workflow_env = stripped == "env:"
+            continue
+
+        if in_workflow_env and NODE24_OPT_IN_PATTERN.match(line):
+            return True
+    return False
 
 
 def find_workflow_action_runtime_violations(
@@ -118,7 +131,7 @@ def find_workflow_node24_opt_in_violations(
     violations: list[WorkflowNode24OptInViolation] = []
     for path in iter_workflow_files(workflow_roots):
         source = path.read_text(encoding="utf-8")
-        if collect_governed_action_refs(source) and not has_node24_opt_in(source):
+        if collect_governed_action_refs(source) and not has_workflow_level_node24_opt_in(source):
             violations.append(WorkflowNode24OptInViolation(path=path))
     return tuple(violations)
 

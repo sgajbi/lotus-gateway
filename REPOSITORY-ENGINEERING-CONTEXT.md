@@ -202,7 +202,7 @@ Important validation expectations:
 2. migration smoke remains required,
 3. security audit and monetary-float governance remain active,
 4. workflow action-runtime governance is part of `make lint` and enforces the platform baseline
-   for governed core GitHub Actions majors plus the Node 24 JavaScript action opt-in,
+   for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. Docker parity matters because the gateway is a live integration boundary,
 6. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.

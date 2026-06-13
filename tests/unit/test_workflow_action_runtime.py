@@ -65,6 +65,33 @@ def test_workflow_node24_opt_in_reports_missing_env_for_governed_workflow(
     assert violations[0].path == workflow
 
 
+def test_workflow_node24_opt_in_rejects_job_scoped_env_for_governed_workflow(
+    tmp_path: Path,
+) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "\n".join(
+            [
+                "jobs:",
+                "  test:",
+                "    env:",
+                '      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
+                "    steps:",
+                "      - uses: actions/checkout@v6",
+                "  unprotected:",
+                "    steps:",
+                "      - uses: actions/setup-python@v6",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    violations = find_workflow_node24_opt_in_violations([workflow])
+
+    assert len(violations) == 1
+    assert violations[0].path == workflow
+
+
 def test_workflow_node24_opt_in_ignores_workflows_without_governed_actions(
     tmp_path: Path,
 ) -> None:
