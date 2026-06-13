@@ -39,7 +39,7 @@ jobs:
         run: python -m pip check
       - name: Security Audit
         run: make security-audit
-      - name: Lint
+      - name: Lint and Refactor Quality Thresholds
         run: make lint
       - name: Typecheck
         run: make typecheck
@@ -68,7 +68,7 @@ jobs:
 
   coverage:
     name: Main Releasability / Coverage Gate
-    needs: [integration]
+    needs: [lint-typecheck-unit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -93,7 +93,7 @@ jobs:
 
   docker-build:
     name: Main Releasability / Validate Docker Build
-    needs: [coverage]
+    needs: [integration, coverage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -102,7 +102,7 @@ jobs:
 
   ci-local-docker:
     name: Main Releasability / CI Local Docker Parity
-    needs: [coverage]
+    needs: [integration, coverage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
