@@ -201,8 +201,10 @@ Important validation expectations:
 1. OpenAPI and workbench contract quality are part of the gate,
 2. migration smoke remains required,
 3. security audit and monetary-float governance remain active,
-4. Docker parity matters because the gateway is a live integration boundary,
-5. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
+4. workflow action-runtime governance is part of `make lint` and enforces the platform baseline
+   for governed core GitHub Actions majors,
+5. Docker parity matters because the gateway is a live integration boundary,
+6. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and
    mixed query, body, or multipart shapes should be backed by executable examples in the wiki.
 
 ## Standards And RFCs That Govern This Repository
