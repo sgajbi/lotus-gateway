@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Path
 
-from app.contracts.reporting import ReportSnapshotLineageResponse
+from app.contracts.reporting_query import ReportSnapshotLineageResponse
 from app.middleware.correlation import correlation_id_var
 from app.routers.reporting_context import ReportingCallerContext
 from app.routers.reporting_errors import report_job_error_response
