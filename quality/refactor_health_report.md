@@ -333,14 +333,14 @@ baseline.
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current performance evidence-view builder branch was created from clean `main` after PR #373; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current performance evidence-view builder branch `make check` passed with ruff, format check, monetary-float guard, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,063 unit/contract tests |
-| Integration coverage | Healthy | 207 integration tests passed in current performance evidence-view builder branch `make ci` |
-| Total coverage | Healthy | 1,270 coverage tests passed in current performance evidence-view builder branch `make ci`; total coverage is 94.05%, above the 84% floor |
-| Security audit | Governed | Current performance evidence-view builder branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed without allowlist churn |
+| Branch hygiene | Healthy | Current quality-baseline enforcement branch was created from clean `main` after PR #374; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current quality-baseline enforcement branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,066 unit/contract tests |
+| Integration coverage | Healthy | 207 integration tests passed in current quality-baseline enforcement branch `make ci` |
+| Total coverage | Healthy | 1,273 coverage tests passed in current quality-baseline enforcement branch `make ci`; total coverage is 94.05%, above the 84% floor |
+| Security audit | Governed | Current quality-baseline enforcement branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed without allowlist churn |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `advisor_brief_service.py` at 1,454 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
-| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
+| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
 
 ## Primary Refactor Backlog
@@ -374,14 +374,15 @@ baseline.
 
 ## Quality-Gate Roadmap
 
-1. Report-only workflow introduced in this slice.
-2. Report-only workflow uploads quality logs for baseline classification.
+1. Report-only workflow uploads quality logs for baseline classification.
+2. Blocking refactor threshold gate now enforces:
+   - no Python source file under `src/app` above 2,100 physical lines,
+   - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,
    - coverage,
    - import-linter,
    - OpenAPI spectral warnings,
-   - largest-file and longest-function thresholds,
    - `pip-audit` and high-confidence `bandit` findings.
 4. Enterprise-readiness gates should require docs, API, security, observability, and architecture
    scorecard sections to be green before release promotion.
