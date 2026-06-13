@@ -245,6 +245,11 @@ source-supportability collection, durable calculation evidence fetching, and sup
 unavailable evidence response resolution into `performance_workspace_evidence.py`, reducing
 `performance_workspace_service.py` from 1,611 to 1,413 measured lines while preserving the
 49-line longest-function baseline and the Workbench performance evidence API contract.
+The current portfolio transaction-summary context slice moves reporting-window resolution, YTD
+transaction pagination, defensive page-row extraction, reporting-currency fallback, and
+requested-window filtering into `portfolio_transaction_summary.py`, reducing
+`portfolio_service.py` from 1,970 to 1,888 physical lines while preserving income/activity summary
+behavior and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -258,7 +263,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance evidence-view builder branch shows 1,377
+Working-tree verification for the current portfolio transaction-summary context branch shows 1,377
 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 471 Python source files
 under `src/app`; and 182 Python test files under `tests`.
 
@@ -266,7 +271,7 @@ under `src/app`; and 182 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,970 | `src/app/services/portfolio_service.py` |
+| 1 | 1,888 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -509,16 +514,25 @@ Most recent local evidence:
 90. Current performance evidence-view builder branch: `make ci` passed with 207 integration tests
     and 1,270 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
-91. Current quality-baseline enforcement branch promotes the remediated file/function-size
+91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` passed with
     `max_source_file_lines=2100` and `max_function_lines=49`.
-93. Current quality-baseline enforcement branch: `make check` passed with ruff, format check,
+93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
-94. Current quality-baseline enforcement branch: `make ci` passed with 207 integration tests and
+94. Merged quality-baseline enforcement branch: `make ci` passed with 207 integration tests and
     1,273 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+95. Current portfolio transaction-summary context branch focused validation passed with ruff
+    check, ruff format check, mypy over touched service modules, and 51 portfolio summary/service
+    unit tests.
+96. Current portfolio transaction-summary context branch: `make check` passed with ruff, format
+    check, monetary-float guard, refactor threshold gate, mypy over 471 source files,
+    Workbench/OpenAPI contract smoke, and 1,070 unit/contract tests.
+97. Current portfolio transaction-summary context branch: `make ci` passed with 207 integration
+    tests and 1,277 combined coverage tests; total coverage is 94.08%, and `pip-audit` found no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

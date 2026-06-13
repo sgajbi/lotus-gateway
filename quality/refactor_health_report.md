@@ -328,17 +328,22 @@ unavailable evidence response resolution into `performance_workspace_evidence.py
 `performance_workspace_service.py` from 1,611 to 1,413 measured lines while preserving focused
 evidence/service tests, Workbench performance evidence behavior, and the 49-line longest-function
 baseline.
+The current portfolio transaction-summary context slice moves reporting-window resolution, YTD
+transaction pagination, page-row filtering, reporting-currency fallback, and requested-window row
+selection into `portfolio_transaction_summary.py`, reducing `portfolio_service.py` from 1,970 to
+1,888 physical lines while preserving income/activity endpoint behavior and the 49-line
+longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current quality-baseline enforcement branch was created from clean `main` after PR #374; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current quality-baseline enforcement branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,066 unit/contract tests |
-| Integration coverage | Healthy | 207 integration tests passed in current quality-baseline enforcement branch `make ci` |
-| Total coverage | Healthy | 1,273 coverage tests passed in current quality-baseline enforcement branch `make ci`; total coverage is 94.05%, above the 84% floor |
-| Security audit | Governed | Current quality-baseline enforcement branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed without allowlist churn |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `advisor_brief_service.py` at 1,454 measured lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current portfolio transaction-summary context branch was created from clean `main` after PR #375; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current portfolio transaction-summary context branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,070 unit/contract tests |
+| Integration coverage | Healthy | 207 integration tests passed in current portfolio transaction-summary context branch `make ci` |
+| Total coverage | Healthy | 1,277 coverage tests passed in current portfolio transaction-summary context branch `make ci`; total coverage is 94.08%, above the 84% floor |
+| Security audit | Governed | Current portfolio transaction-summary context branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed without allowlist churn |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,888 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
@@ -351,7 +356,7 @@ baseline.
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
    transaction-ledger response mapping, transaction client-kwargs mapping, transaction page
    context defaults, workspace performance parsing, workspace rebalance parsing, source readiness
-   parsing, transaction summary mapping, workflow cue/action mapping, workflow/readiness
+   parsing, transaction summary mapping and context loading, workflow cue/action mapping, workflow/readiness
    contracts, transaction ledger contracts, performance snapshot contracts, income/activity
    contracts, and holdings/book contracts are now separately testable.
 2. Continue splitting `risk_workspace_service.py` around remaining orchestration helpers only when
