@@ -96,6 +96,9 @@ jobs:
           PY
           spectral lint openapi.json --ruleset .spectral.yaml 2>&1 | tee output/quality-baseline/spectral.txt
 
+      - name: Validate Quality Baseline Artifact Set
+        run: python scripts/check_quality_baseline_artifacts.py
+
       - name: Upload Quality Baseline Logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,4 +107,4 @@ jobs:
           path: |
             output/quality-baseline/
             openapi.json
-          if-no-files-found: warn
+          if-no-files-found: error
