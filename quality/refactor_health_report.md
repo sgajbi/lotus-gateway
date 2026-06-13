@@ -354,12 +354,12 @@ lines while preserving summary, top-position, full-position, and as-of-date fall
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio allocation source-loading branch was created from clean `main` after PR #394; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio allocation source-loading branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 475 source files, Workbench/OpenAPI contract smoke, and 1,116 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio allocation source-loading branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio allocation source-loading branch `make ci` passed with 1,323 coverage tests and 94.14% total coverage, above the 84% floor |
-| Security audit | Governed | Current portfolio allocation source-loading branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; no new dependency or monetary-float conversion was introduced |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to the 1,743-line source-file threshold; `advisor_brief_service.py` is the next-largest source file at 1,609 physical lines, and several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current portfolio position source-loading branch was created from clean `main` after PR #395; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current portfolio position source-loading branch focused validation passed with 50 portfolio holdings/service unit tests plus ruff, format, and refactor threshold checks; full `make check` remains a pre-merge gate |
+| Integration coverage | Healthy | Current portfolio position source-loading branch preserves the prior green integration posture; full `make ci` remains a pre-merge gate |
+| Total coverage | Healthy | Current portfolio position source-loading branch preserves the prior 94.14% coverage posture; full `make ci` remains a pre-merge gate |
+| Security audit | Governed | Current portfolio position source-loading branch introduces no dependency, network, authentication, or monetary-float policy changes; full dependency audit remains a pre-merge gate |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to the 1,728-line source-file threshold; `advisor_brief_service.py` is the next-largest source file at 1,609 physical lines, and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -401,7 +401,7 @@ lines while preserving summary, top-position, full-position, and as-of-date fall
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 1,743 physical lines,
+   - no Python source file under `src/app` above 1,728 physical lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,
