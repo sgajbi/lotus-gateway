@@ -710,7 +710,11 @@ Most recent local evidence:
      insight source fan-out bundle construction into `portfolio_readiness_insight_sources.py`,
      reducing `portfolio_service.py` from 1,659 to 1,607 script-counted lines while preserving
      workspace, source-readiness, positions, allocations, transaction-probe, and activity-summary
-     request behavior.
+     request behavior. Local `make check` passed with ruff, format check, monetary-float guard,
+     refactor threshold gate, workflow action-runtime gate, mypy over 478 source files,
+     Workbench/OpenAPI contract smoke, and 1,126 unit/contract tests. Local `make ci` passed with
+     207 integration tests and 1,333 combined coverage tests; total coverage is 94.19%, and
+     `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

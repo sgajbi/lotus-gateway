@@ -262,7 +262,11 @@ The current portfolio readiness/insight source-loading branch ratchets the sourc
 to 1,607 script-counted lines after extracting readiness and insight source fan-out into
 `portfolio_readiness_insight_sources.py`. Focused validation passed with ruff check, ruff format
 check, touched-module mypy, the refactor threshold gate, and 62 helper/service/boundary/threshold
-unit tests.
+unit tests. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, workflow action-runtime gate, mypy over 478 source files, Workbench/OpenAPI
+contract smoke, and 1,126 unit/contract tests. Local `make ci` passed with 207 integration tests,
+1,333 combined coverage tests, 94.19% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
