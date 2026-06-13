@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.contracts.performance_workspace import (
+from app.contracts.performance_contribution import (
     ContributionLevelView,
     ContributionPositionView,
     ContributionRowView,

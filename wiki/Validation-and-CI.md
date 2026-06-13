@@ -162,3 +162,15 @@ with ruff, format check, monetary-float guard, mypy over 468 source files, Workb
 contract smoke, and 1,054 unit/contract tests. Local `make ci` passed with 207 integration tests,
 1,261 coverage tests, 94.04% total coverage, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
+PR #370 then merged the risk attribution contract extraction with all GitHub checks green. The
+current performance contribution contract branch moves contribution row, position, level,
+smoothing-evidence, source-economics-evidence, and summary contracts into
+`performance_contribution.py`, keeps `app.contracts.performance_workspace` as the compatibility
+import surface, refreshes the governed monetary-float allowlist for the moved performance
+contribution fields, reduces `performance_workspace.py` from 1,539 to 1,499 measured lines, and
+has focused evidence from ruff, format check, mypy, monetary-float guard, and 33 passing
+performance contribution/workspace/advisor brief tests. Local `make check` passed with ruff,
+format check, monetary-float guard, mypy over 469 source files, Workbench/OpenAPI contract smoke,
+and 1,056 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,263 coverage
+tests, 94.04% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.

@@ -9,9 +9,9 @@ from typing import Any, TypeAlias, cast
 from fastapi import HTTPException
 
 from app.config import settings
+from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
-    ContributionSummaryView,
     PerformanceAttributionTrendResponse,
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceView,

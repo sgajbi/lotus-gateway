@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, TypeAlias
 
+from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
-    ContributionSummaryView,
     MoneyWeightedReturnSummary,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
