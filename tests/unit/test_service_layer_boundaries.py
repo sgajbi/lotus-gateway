@@ -240,6 +240,26 @@ def test_portfolio_service_delegates_book_source_loading() -> None:
     assert inline_source_gathers == []
 
 
+def test_portfolio_service_avoids_stale_workspace_wrapper_methods() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    stale_wrappers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_build_workspace_control_capabilities",
+            "_optional_int",
+            "_optional_str",
+            "_parse_portfolio_identity",
+            "_parse_portfolio_profile",
+        }
+    )
+
+    assert stale_wrappers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):
