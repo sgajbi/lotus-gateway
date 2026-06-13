@@ -21,7 +21,7 @@ def test_workflow_action_runtime_accepts_current_baseline(tmp_path: Path) -> Non
                 "      - uses: actions/checkout@v6",
                 "      - uses: actions/setup-python@v6",
                 "      - uses: actions/setup-node@v5",
-                "      - uses: actions/upload-artifact@v5",
+                "      - uses: actions/upload-artifact@v7",
                 "env:",
                 '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
             ]
@@ -175,7 +175,7 @@ def test_gateway_workflows_match_platform_action_runtime_baseline() -> None:
         "actions/checkout": 6,
         "actions/setup-python": 6,
         "actions/setup-node": 5,
-        "actions/upload-artifact": 5,
+        "actions/upload-artifact": 7,
     }
     assert find_workflow_action_runtime_violations([REPO_ROOT / ".github" / "workflows"]) == ()
     assert find_workflow_node24_opt_in_violations([REPO_ROOT / ".github" / "workflows"]) == ()

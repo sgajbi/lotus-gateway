@@ -31,7 +31,7 @@
 - live integration-boundary parity
 - CI action-runtime compatibility with the platform baseline:
   `actions/checkout@v6`, `actions/setup-python@v6`, `actions/setup-node@v5`, and
-  `actions/upload-artifact@v5`
+  `actions/upload-artifact@v7`
 - Workflow-level Node 24 JavaScript action runtime opt-in through
   `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
 

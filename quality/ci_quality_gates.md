@@ -107,7 +107,7 @@ Most recent local PR-grade evidence:
     `PYSEC-2026-161` exception.
 14. Current CI action-runtime baseline branch upgrades Gateway workflows to the platform-required
     core action majors: `actions/checkout@v6`, `actions/setup-python@v6`,
-    `actions/setup-node@v5`, and `actions/upload-artifact@v5`. The new
+    `actions/setup-node@v5`, and `actions/upload-artifact@v7`. The new
     `scripts/check_workflow_action_runtime.py` validator is part of `make lint` and blocks
     reintroducing older governed action majors. Local `make check` passed with 1,108
     unit/contract tests, and local `make ci` passed with 207 integration tests, 1,315 coverage
@@ -120,6 +120,9 @@ Most recent local PR-grade evidence:
     unit/contract tests, and local `make ci` passed with 207 integration tests, 1,319 coverage
     tests, 94.13% total coverage, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
+16. Current upload-artifact runtime branch raises the governed `actions/upload-artifact` baseline
+    from `v5` to `v7` after the merged Node 24 opt-in branch proved `v5` still emitted a GitHub
+    Node.js 20 deprecation annotation while being forced onto Node 24.
 
 ## Next Tightening Candidates
 

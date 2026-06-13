@@ -11,7 +11,7 @@ ACTION_MAJOR_BASELINE = {
     "actions/checkout": 6,
     "actions/setup-python": 6,
     "actions/setup-node": 5,
-    "actions/upload-artifact": 5,
+    "actions/upload-artifact": 7,
 }
 NODE24_OPT_IN_ENV_NAME = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
 NODE24_OPT_IN_ENV_VALUE = "true"
