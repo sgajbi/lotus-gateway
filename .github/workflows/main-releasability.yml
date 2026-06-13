@@ -17,15 +17,15 @@ jobs:
     name: Main Releasability / Workflow Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: reviewdog/action-actionlint@v1
 
   lint-typecheck-unit:
     name: Main Releasability / Lint Typecheck Unit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install
@@ -52,8 +52,8 @@ jobs:
     needs: [lint-typecheck-unit]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install
@@ -68,8 +68,8 @@ jobs:
     needs: [integration]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install
@@ -80,7 +80,7 @@ jobs:
         run: make test-coverage
       - name: Upload Coverage Artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: main-releasability-coverage-report
           path: |
@@ -93,7 +93,7 @@ jobs:
     needs: [coverage]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build image
         run: docker build -t lotus-gateway:ci-test .
 
@@ -102,7 +102,7 @@ jobs:
     needs: [coverage]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Dockerized local CI parity
         run: make ci-local-docker
       - name: Cleanup

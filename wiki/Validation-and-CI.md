@@ -14,7 +14,8 @@
 ## Local command mapping
 
 - `make check`
-  lint, typecheck, OpenAPI contract proof, unit tests
+  lint, monetary-float governance, refactor thresholds, workflow action-runtime governance,
+  typecheck, OpenAPI contract proof, unit tests
 - `make ci`
   migration smoke, integration tests, coverage, security audit
 - `make ci-local`
@@ -28,6 +29,9 @@
 - startup and migration truth
 - upstream composition safety
 - live integration-boundary parity
+- CI action-runtime compatibility with the platform baseline:
+  `actions/checkout@v6`, `actions/setup-python@v6`, `actions/setup-node@v5`, and
+  `actions/upload-artifact@v5`
 
 ## Quality baseline lane
 

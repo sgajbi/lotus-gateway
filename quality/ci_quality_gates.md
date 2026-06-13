@@ -15,15 +15,16 @@ The current local and PR-grade blocking gates are:
 2. monetary-float governance,
 3. refactor quality thresholds blocking new growth above the current largest-file and
    longest-function baselines,
-4. `mypy` over `src`,
-5. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+4. workflow action-runtime governance for platform-baseline GitHub Actions majors,
+5. `mypy` over `src`,
+6. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-6. migration contract smoke,
-7. unit and contract tests,
-8. integration tests,
-9. coverage with an 84% floor,
-10. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-11. Docker build and local Docker parity in the PR Merge Gate.
+7. migration contract smoke,
+8. unit and contract tests,
+9. integration tests,
+10. coverage with an 84% floor,
+11. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+12. Docker build and local Docker parity in the PR Merge Gate.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
 lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
@@ -101,6 +102,14 @@ Most recent local PR-grade evidence:
 13. Current portfolio position-book response mapper branch focused validation passed with ruff
     check and 47 focused portfolio position-book/service unit tests. `make check` passed with
     1,101 unit/contract tests, and `make ci` passed with 207 integration tests, 1,308 coverage
+    tests, 94.13% total coverage, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
+14. Current CI action-runtime baseline branch upgrades Gateway workflows to the platform-required
+    core action majors: `actions/checkout@v6`, `actions/setup-python@v6`,
+    `actions/setup-node@v5`, and `actions/upload-artifact@v5`. The new
+    `scripts/check_workflow_action_runtime.py` validator is part of `make lint` and blocks
+    reintroducing older governed action majors. Local `make check` passed with 1,105
+    unit/contract tests, and local `make ci` passed with 207 integration tests, 1,312 coverage
     tests, 94.13% total coverage, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
 
