@@ -1,5 +1,6 @@
 """Shared service-layer helpers for upstream-backed gateway envelopes."""
 
+from dataclasses import dataclass
 from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
@@ -10,6 +11,32 @@ from app.config import settings
 EnvelopeT = TypeVar("EnvelopeT", bound=BaseModel)
 PayloadT = TypeVar("PayloadT", bound=BaseModel)
 ErrorDetailT = TypeVar("ErrorDetailT", bound=BaseModel)
+
+
+@dataclass(frozen=True)
+class GatewayServiceErrorStatusRule:
+    upstream_statuses: frozenset[int]
+    gateway_status: int
+
+    def matches(self, upstream_status: int) -> bool:
+        return upstream_status in self.upstream_statuses
+
+
+GATEWAY_SERVICE_ERROR_STATUS_RULES = (
+    GatewayServiceErrorStatusRule(
+        upstream_statuses=frozenset({status.HTTP_404_NOT_FOUND}),
+        gateway_status=status.HTTP_404_NOT_FOUND,
+    ),
+    GatewayServiceErrorStatusRule(
+        upstream_statuses=frozenset(
+            {
+                status.HTTP_400_BAD_REQUEST,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+            }
+        ),
+        gateway_status=status.HTTP_400_BAD_REQUEST,
+    ),
+)
 
 
 def build_gateway_envelope(
@@ -260,14 +287,7 @@ def raise_gateway_mapped_service_error(
     if upstream_status < status.HTTP_400_BAD_REQUEST:
         return
 
-    gateway_status = status.HTTP_502_BAD_GATEWAY
-    if upstream_status == status.HTTP_404_NOT_FOUND:
-        gateway_status = status.HTTP_404_NOT_FOUND
-    elif upstream_status in {
-        status.HTTP_400_BAD_REQUEST,
-        status.HTTP_422_UNPROCESSABLE_CONTENT,
-    }:
-        gateway_status = status.HTTP_400_BAD_REQUEST
+    gateway_status = _gateway_status_for_service_error(upstream_status)
 
     raise HTTPException(
         status_code=gateway_status,
@@ -278,3 +298,10 @@ def raise_gateway_mapped_service_error(
             "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
         },
     )
+
+
+def _gateway_status_for_service_error(upstream_status: int) -> int:
+    for rule in GATEWAY_SERVICE_ERROR_STATUS_RULES:
+        if rule.matches(upstream_status):
+            return rule.gateway_status
+    return status.HTTP_502_BAD_GATEWAY
