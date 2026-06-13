@@ -31,8 +31,10 @@ Gateway errors should converge on RFC 7807/problem-details where applicable. The
 `ProblemDetails` model and an unhandled-exception handler that returns
 `application/problem+json`. Reporting job and report-batch upstream errors now use explicit
 code-owned mapping rules. The shared generic service-error mapper also uses explicit code-owned
-status rules for validation/not-found preservation and safe fallback `502` responses; broader
-route-specific upstream error mapping remains mixed and should be normalized incrementally.
+status rules for validation/not-found preservation and safe fallback `502` responses. Product-safe
+service-error defaults now have a typed immutable configuration seam for advisory-facing
+composition services; broader route-specific upstream error mapping remains mixed and should be
+normalized incrementally.
 
 ## Pagination, Filtering, Sorting, Versioning
 

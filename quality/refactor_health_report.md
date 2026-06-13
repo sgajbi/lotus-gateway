@@ -343,14 +343,14 @@ longest-function baseline.
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current Bank-Buyable upstream-error rule branch was created from clean `main` after PR #380; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,084 unit/contract tests |
-| Integration coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make ci` passed with 1,291 coverage tests and 94.10% total coverage, above the 84% floor |
-| Security audit | Governed | Current Bank-Buyable upstream-error rule branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
+| Branch hygiene | Healthy | Current Bank-Buyable service-error config branch was created from clean `main` after PR #381; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current Bank-Buyable service-error config branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,085 unit/contract tests |
+| Integration coverage | Healthy | Current Bank-Buyable service-error config branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current Bank-Buyable service-error config branch `make ci` passed with 1,292 coverage tests and 94.11% total coverage, above the 84% floor |
+| Security audit | Governed | Current Bank-Buyable service-error config branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
-| Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; broader route/upstream error normalization remains open |
+| Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
@@ -381,7 +381,8 @@ longest-function baseline.
 7. Continue normalizing route-specific upstream errors toward shared problem-details mapping.
    Foundation optional-upstream and archive-document mappings are smaller and safer, reporting
    job/batch error mapping and shared generic service-error status mapping are now rule-table
-   driven, but broader route/upstream error normalization remains open.
+   driven, advisory-facing product-safe service-error defaults now use typed immutable configs, but
+   broader route/upstream error normalization remains open.
 8. Extend API governance tests beyond operation completeness to cover deprecation posture and
    explicit operation ID policy once those standards are approved.
 

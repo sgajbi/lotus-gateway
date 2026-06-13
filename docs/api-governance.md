@@ -40,7 +40,10 @@ unhandled exceptions return `application/problem+json`. Reporting job and report
 errors now use explicit code-owned mapping rules for preserved validation/not-found/conflict errors
 and safe fallback `502` responses. The shared generic service-error mapper now uses explicit
 code-owned status rules for preserved validation/not-found errors and safe fallback `502`
-responses; broader route-specific upstream error mapping remains a baseline improvement area.
+responses. Product-safe service-error defaults are now also available through a typed immutable
+configuration seam used by advisory-facing policy, workspace, cockpit, and bank-demo-proof
+composition services; broader route-specific upstream error mapping remains a baseline improvement
+area.
 
 ## Versioning And Deprecation
 

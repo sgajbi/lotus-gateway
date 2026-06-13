@@ -39,6 +39,13 @@ GATEWAY_SERVICE_ERROR_STATUS_RULES = (
 )
 
 
+@dataclass(frozen=True)
+class ProductSafeServiceErrorConfig:
+    source_service: str
+    error_code: str
+    default_detail: str
+
+
 def build_gateway_envelope(
     response_model: type[EnvelopeT],
     *,
@@ -239,13 +246,51 @@ def raise_product_safe_service_error(
     if upstream_status < status.HTTP_400_BAD_REQUEST:
         return
 
+    _raise_product_safe_service_error(
+        upstream_status,
+        upstream_payload,
+        config=ProductSafeServiceErrorConfig(
+            source_service=source_service,
+            error_code=error_code,
+            default_detail=default_detail,
+        ),
+    )
+
+
+def raise_configured_product_safe_service_error(
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    *,
+    config: ProductSafeServiceErrorConfig,
+) -> None:
+    """Raise a product-safe Gateway error from a code-owned service error config."""
+
+    if upstream_status < status.HTTP_400_BAD_REQUEST:
+        return
+
+    _raise_product_safe_service_error(
+        upstream_status,
+        upstream_payload,
+        config=config,
+    )
+
+
+def _raise_product_safe_service_error(
+    upstream_status: int,
+    upstream_payload: dict[str, Any],
+    *,
+    config: ProductSafeServiceErrorConfig,
+) -> None:
     raise HTTPException(
         status_code=upstream_status,
         detail={
-            "source_service": source_service,
+            "source_service": config.source_service,
             "upstream_status": upstream_status,
-            "error_code": error_code,
-            "detail": safe_upstream_detail(upstream_payload, default_detail=default_detail),
+            "error_code": config.error_code,
+            "detail": safe_upstream_detail(
+                upstream_payload,
+                default_detail=config.default_detail,
+            ),
         },
     )
 

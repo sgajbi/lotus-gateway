@@ -10,11 +10,13 @@ from app.contracts.dpm_construction import (
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.services.upstream_envelope import (
     GATEWAY_SERVICE_ERROR_STATUS_RULES,
+    ProductSafeServiceErrorConfig,
     build_gateway_envelope,
     build_product_safe_upstream_status_gateway_envelope,
     build_product_safe_upstream_status_payload_gateway_envelope,
     build_upstream_status_gateway_envelope,
     build_upstream_status_payload_gateway_envelope,
+    raise_configured_product_safe_service_error,
     raise_for_upstream_error,
     raise_gateway_mapped_service_error,
     raise_product_safe_service_error,
@@ -240,6 +242,29 @@ def test_raise_product_safe_service_error_builds_untyped_detail() -> None:
         "upstream_status": 503,
         "error_code": "AI_WAVE_PM_MEMO_UPSTREAM_ERROR",
         "detail": "workflow pack unavailable",
+    }
+
+
+def test_raise_configured_product_safe_service_error_builds_untyped_detail() -> None:
+    config = ProductSafeServiceErrorConfig(
+        source_service="lotus-advise",
+        error_code="ADVISE_COCKPIT_UPSTREAM_ERROR",
+        default_detail="lotus-advise advisor cockpit request failed.",
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        raise_configured_product_safe_service_error(
+            409,
+            {"detail": {"portfolio_id": "PB_SENSITIVE"}},
+            config=config,
+        )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == {
+        "source_service": "lotus-advise",
+        "upstream_status": 409,
+        "error_code": "ADVISE_COCKPIT_UPSTREAM_ERROR",
+        "detail": "lotus-advise advisor cockpit request failed.",
     }
 
 

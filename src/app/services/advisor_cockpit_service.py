@@ -2,7 +2,17 @@ from typing import Any
 
 from app.contracts.advisor_cockpit import AdvisorCockpitEnvelopeResponse
 from app.services.advisory_client_protocols import AdvisorCockpitClient
-from app.services.upstream_envelope import build_gateway_envelope, raise_product_safe_service_error
+from app.services.upstream_envelope import (
+    ProductSafeServiceErrorConfig,
+    build_gateway_envelope,
+    raise_configured_product_safe_service_error,
+)
+
+ADVISOR_COCKPIT_ERROR_CONFIG = ProductSafeServiceErrorConfig(
+    source_service="lotus-advise",
+    error_code="ADVISE_COCKPIT_UPSTREAM_ERROR",
+    default_detail="lotus-advise advisor cockpit request failed.",
+)
 
 
 class AdvisorCockpitService:
@@ -136,10 +146,8 @@ class AdvisorCockpitService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        raise_product_safe_service_error(
+        raise_configured_product_safe_service_error(
             upstream_status,
             upstream_payload,
-            source_service="lotus-advise",
-            error_code="ADVISE_COCKPIT_UPSTREAM_ERROR",
-            default_detail="lotus-advise advisor cockpit request failed.",
+            config=ADVISOR_COCKPIT_ERROR_CONFIG,
         )
