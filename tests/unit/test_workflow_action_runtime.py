@@ -179,3 +179,29 @@ def test_gateway_workflows_match_platform_action_runtime_baseline() -> None:
     }
     assert find_workflow_action_runtime_violations([REPO_ROOT / ".github" / "workflows"]) == ()
     assert find_workflow_node24_opt_in_violations([REPO_ROOT / ".github" / "workflows"]) == ()
+
+
+def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "main-releasability.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert (
+        "      - name: Lint and Refactor Quality Thresholds\n        run: make lint"
+    ) in workflow
+    assert (
+        "  integration:\n    name: Main Releasability / Integration Tests\n"
+        "    needs: [lint-typecheck-unit]"
+    ) in workflow
+    assert (
+        "  coverage:\n    name: Main Releasability / Coverage Gate\n"
+        "    needs: [lint-typecheck-unit]"
+    ) in workflow
+    assert (
+        "  docker-build:\n    name: Main Releasability / Validate Docker Build\n"
+        "    needs: [integration, coverage]"
+    ) in workflow
+    assert (
+        "  ci-local-docker:\n    name: Main Releasability / CI Local Docker Parity\n"
+        "    needs: [integration, coverage]"
+    ) in workflow

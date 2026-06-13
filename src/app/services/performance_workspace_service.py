@@ -6,8 +6,6 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, TypeAlias, cast
 
-from fastapi import HTTPException
-
 from app.config import settings
 from app.contracts.performance_attribution import (
     AttributionSummaryView,
@@ -61,6 +59,7 @@ from app.services.performance_workspace_evidence import (
     EvidenceViewRequestContext,
     extract_calculation_id_from_result,
     fetch_evidence_view_state,
+    fetch_performance_evidence_artifact,
     resolve_evidence_view_response,
 )
 from app.services.performance_workspace_horizon import (
@@ -1367,23 +1366,12 @@ class PerformanceWorkspaceService:
         artifact_name: str,
         correlation_id: str,
     ) -> tuple[bytes, str | None]:
-        status_code, content, content_type = await self._analytics_client.get_lineage_artifact(
+        return await fetch_performance_evidence_artifact(
+            analytics_client=self._analytics_client,
             calculation_id=calculation_id,
             artifact_name=artifact_name,
             correlation_id=correlation_id,
         )
-        if status_code >= 400:
-            detail = "Performance evidence artifact is unavailable."
-            if content:
-                try:
-                    detail = content.decode("utf-8")
-                except UnicodeDecodeError:
-                    detail = "Performance evidence artifact retrieval failed."
-            raise HTTPException(
-                status_code=status_code,
-                detail=detail,
-            )
-        return content, content_type
 
     async def _build_evidence_view(
         self,

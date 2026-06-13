@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, TypeAlias
 
+from fastapi import HTTPException
+
 from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceArtifactView,
@@ -97,6 +99,35 @@ def build_evidence_requested_items(
         for role, calculation_id in calculations
         if calculation_id is not None
     ]
+
+
+async def fetch_performance_evidence_artifact(
+    *,
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    calculation_id: str,
+    artifact_name: str,
+    correlation_id: str,
+) -> tuple[bytes, str | None]:
+    status_code, content, content_type = await analytics_client.get_lineage_artifact(
+        calculation_id=calculation_id,
+        artifact_name=artifact_name,
+        correlation_id=correlation_id,
+    )
+    if status_code >= 400:
+        raise HTTPException(
+            status_code=status_code,
+            detail=performance_evidence_artifact_failure_detail(content),
+        )
+    return content, content_type
+
+
+def performance_evidence_artifact_failure_detail(content: bytes) -> str:
+    if not content:
+        return "Performance evidence artifact is unavailable."
+    try:
+        return content.decode("utf-8")
+    except UnicodeDecodeError:
+        return "Performance evidence artifact retrieval failed."
 
 
 async def fetch_evidence_view_state(
