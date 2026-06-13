@@ -51,7 +51,7 @@ been split into period mapping, dependency context, supportability, state, metad
 fallback, and payload helpers. The risk attribution mapper has been split into period mapping,
 set/contributor parsing, state, metadata, and payload helpers. The risk concentration mapper has
 been extracted to `src/app/services/risk_workspace_concentration.py`, reducing
-`risk_workspace_service.py` below 2,000 lines while preserving source-owned concentration fields
+`risk_workspace_service.py` below the current source-file ceiling while preserving source-owned concentration fields
 and supportability semantics. Risk unavailable-envelope primitives have been centralized in
 `src/app/services/risk_workspace_envelopes.py` so upstream failure detail mapping, product-safe
 unavailable supportability, and risk metadata construction are no longer duplicated across risk

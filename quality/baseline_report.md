@@ -533,8 +533,8 @@ Most recent local evidence:
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
-92. `python scripts/check_refactor_quality_thresholds.py` passed with
-    `max_source_file_lines=2100` and `max_function_lines=49`.
+92. `python scripts/check_refactor_quality_thresholds.py` now passes with
+    `max_source_file_lines=1804` and `max_function_lines=49` after the later threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -602,13 +602,13 @@ Most recent local evidence:
      tests; total coverage is 94.11%, and `pip-audit` found no known vulnerabilities after the
      governed `PYSEC-2026-161` exception.
 107. Current Bank-Buyable source-file threshold ratchet branch focused validation passed with the
-     refactor threshold gate at `max_source_file_lines=2000`, 4 refactor-threshold unit tests,
-     ruff check, and ruff format check over the touched threshold script and tests. `make check`
-     passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472
-     source files, Workbench/OpenAPI contract smoke, and 1,090 unit/contract tests. `make ci`
-     passed with 207 integration tests and 1,297 combined coverage tests; total coverage is
-     94.11%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
-     exception.
+     refactor threshold gate at `max_source_file_lines=1804`, 8 refactor-threshold/artifact unit
+     tests, ruff check, and ruff format check over the touched threshold script and tests.
+     `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+     mypy over 474 source files, Workbench/OpenAPI contract smoke, and 1,114 unit/contract tests.
+     `make ci` passed with 207 integration tests and 1,321 combined coverage tests; total coverage
+     is 94.14%, and `pip-audit` found no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 108. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
      ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
      The slice extracts allocation-view and cash-balance payload mapping into
@@ -667,7 +667,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 2,000 physical lines,
+1. no Python source file under `src/app` above 1,804 physical lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
