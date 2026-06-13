@@ -259,6 +259,10 @@ The current portfolio catalog payload mapper slice moves portfolio catalog item 
 metadata alias handling, display-name fallback, and deterministic sort order into
 `portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779 to 1,764 physical
 lines while preserving catalog response behavior and the 49-line longest-function baseline.
+The current portfolio allocation response mapper slice moves allocation response projection and
+look-through capability parsing into `portfolio_holdings_payloads.py`, reducing
+`portfolio_service.py` from 1,764 to 1,740 physical lines while preserving allocation summary,
+view, reporting-currency, and look-through behavior.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -272,7 +276,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio catalog payload mapper branch shows 1,399
+Working-tree verification for the current portfolio allocation response mapper branch shows 1,399
 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 474 Python source files
 under `src/app`; and 188 Python test files under `tests`.
 
@@ -280,7 +284,7 @@ under `src/app`; and 188 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,764 | `src/app/services/portfolio_service.py` |
+| 1 | 1,740 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -622,6 +626,16 @@ Most recent local evidence:
      Workbench/OpenAPI contract smoke, and 1,096 unit/contract tests. `make ci` passed with 207
      integration tests and 1,303 combined coverage tests; total coverage is 94.10%, and
      `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+110. Current portfolio allocation response mapper branch focused validation passed with ruff check
+     and 9 focused portfolio holdings/allocation service unit tests. The slice extracts allocation
+     response construction and look-through capability parsing into
+     `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,764 to 1,740
+     physical lines while preserving allocation summary, view, reporting-currency, and
+     look-through behavior. `make check` passed with ruff, format check, monetary-float guard,
+     refactor threshold gate, mypy over 474 source files, Workbench/OpenAPI contract smoke, and
+     1,099 unit/contract tests. `make ci` passed with 207 integration tests and 1,306 combined
+     coverage tests; total coverage is 94.13%, and `pip-audit` found no known vulnerabilities
+     after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

@@ -2,10 +2,54 @@ from typing import Any
 
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationBucket,
+    PortfolioAllocationLookThroughCapability,
+    PortfolioAllocationResponse,
     PortfolioAllocationView,
     PortfolioCashBalance,
 )
 from app.precision_policy import quantize_money, quantize_performance
+from app.services.portfolio_position_book import parse_position_book_summary
+
+
+def build_portfolio_allocation_response(
+    *,
+    correlation_id: str,
+    contract_version: str,
+    portfolio_id: str,
+    as_of_date: str | None,
+    default_as_of_date: str,
+    reporting_currency: str | None,
+    aum_payload: dict[str, Any],
+    positions_payload: dict[str, Any],
+    allocation_payload: dict[str, Any],
+) -> PortfolioAllocationResponse:
+    return PortfolioAllocationResponse(
+        correlation_id=correlation_id,
+        contract_version=contract_version,
+        portfolio_id=portfolio_id,
+        as_of_date=str(aum_payload.get("resolved_as_of_date") or as_of_date or default_as_of_date),
+        reporting_currency=optional_str(allocation_payload.get("reporting_currency"))
+        or reporting_currency,
+        look_through=parse_look_through_capability(allocation_payload.get("look_through")),
+        summary=parse_position_book_summary(aum_payload, positions_payload),
+        views=parse_allocation_views(allocation_payload),
+    )
+
+
+def parse_look_through_capability(
+    payload: Any,
+) -> PortfolioAllocationLookThroughCapability | None:
+    if not isinstance(payload, dict):
+        return None
+    requested_mode = optional_str(payload.get("requested_mode"))
+    effective_mode = optional_str(payload.get("effective_mode"))
+    if requested_mode is None or effective_mode is None:
+        return None
+    return PortfolioAllocationLookThroughCapability(
+        requested_mode=requested_mode,
+        effective_mode=effective_mode,
+        applied=bool(payload.get("applied", False)),
+    )
 
 
 def parse_allocation_views(payload: dict[str, Any]) -> list[PortfolioAllocationView]:
