@@ -41,6 +41,10 @@ Report-only quality checks should remain advisory until findings are classified:
 6. import-linter architecture contracts,
 7. documentation and observability scorecard gaps.
 
+The report-only workflow now enforces evidence capture itself: the expected quality-baseline log
+files and generated OpenAPI artifact must exist before upload. Tool findings remain report-only;
+missing or unusable evidence is treated as a CI measurement defect.
+
 ## Progressive Enforcement Plan
 
 1. Baseline/report-only: publish evidence without failing existing delivery lanes.
@@ -69,10 +73,14 @@ Most recent local PR-grade evidence:
 7. Current portfolio workspace payload mapper branch `make ci` passed with 207 integration tests,
    1,282 coverage tests, 94.07% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
+8. Current quality-baseline artifact branch focused validation passed with 4 artifact-validator
+   unit tests plus ruff and format checks over the new validator and tests. Full `make check` and
+   `make ci` evidence remains pending.
 
 ## Next Tightening Candidates
 
-1. Keep the quality baseline workflow report-only while findings are classified.
+1. Keep the quality baseline tool findings report-only while findings are classified; keep artifact
+   presence and OpenAPI artifact validity enforced so evidence gaps are visible.
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.

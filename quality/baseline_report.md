@@ -580,6 +580,11 @@ Most recent local evidence:
      files, Workbench/OpenAPI contract smoke, and 1,085 unit/contract tests. `make ci` passed with
      207 integration tests and 1,292 combined coverage tests; total coverage is 94.11%, and
      `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+106. Current Bank-Buyable quality-baseline artifact branch focused validation passed with 4
+     quality-baseline artifact unit tests plus ruff and format checks over the new validator and
+     tests. The quality-baseline workflow now validates that expected report-only logs and
+     generated OpenAPI evidence exist before artifact upload, while individual quality tools remain
+     report-only. Full `make check` and `make ci` evidence remains pending for PR readiness.
 
 ## Tooling Availability Baseline
 
@@ -587,6 +592,9 @@ The local shell did not expose `radon`, `xenon`, `vulture`, `deptry`, `bandit`, 
 `lint-imports`, `interrogate`, or `pyright` as commands before this slice. `pyproject.toml` now
 declares a `quality` optional dependency group for Python quality tools, and the new Quality
 Baseline workflow installs Python and Node quality tooling explicitly.
+The quality-baseline artifact validator enforces that the expected report-only log set and
+generated `openapi.json` exist before upload; individual quality tools remain report-only so
+existing findings can still be classified from uploaded evidence.
 
 ## Complexity And Maintainability Gaps
 
