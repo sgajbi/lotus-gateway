@@ -15,7 +15,8 @@ The current local and PR-grade blocking gates are:
 2. monetary-float governance,
 3. refactor quality thresholds blocking new growth above the current largest-file and
    longest-function baselines,
-4. workflow action-runtime governance for platform-baseline GitHub Actions majors,
+4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
+   workflow-level Node 24 JavaScript action opt-in,
 5. `mypy` over `src`,
 6. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
@@ -110,6 +111,13 @@ Most recent local PR-grade evidence:
     `scripts/check_workflow_action_runtime.py` validator is part of `make lint` and blocks
     reintroducing older governed action majors. Local `make check` passed with 1,108
     unit/contract tests, and local `make ci` passed with 207 integration tests, 1,315 coverage
+    tests, 94.13% total coverage, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
+15. Current Node 24 workflow-runtime branch adds
+    workflow-level `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"` to governed Gateway workflows and extends
+    `scripts/check_workflow_action_runtime.py` so `make lint` blocks workflows that use governed
+    GitHub JavaScript actions without the opt-in. Local `make check` passed with 1,112
+    unit/contract tests, and local `make ci` passed with 207 integration tests, 1,319 coverage
     tests, 94.13% total coverage, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
 
