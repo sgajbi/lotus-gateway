@@ -80,8 +80,10 @@ Most recent local PR-grade evidence:
    exception.
 9. Current source-file threshold ratchet branch focused validation passed with the refactor
    threshold gate at `max_source_file_lines=2000`, 4 refactor-threshold unit tests, ruff check, and
-   ruff format check over the touched threshold script and tests. Full `make check` and `make ci`
-   evidence remains pending.
+   ruff format check over the touched threshold script and tests. `make check` passed with 1,090
+   unit/contract tests, and `make ci` passed with 207 integration tests, 1,297 coverage tests,
+   94.11% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+   exception.
 
 ## Next Tightening Candidates
 
@@ -91,7 +93,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,929 physical lines, below the current 2,000-line
+   are split; `portfolio_service.py` is now 1,826 physical lines, below the current 2,000-line
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
