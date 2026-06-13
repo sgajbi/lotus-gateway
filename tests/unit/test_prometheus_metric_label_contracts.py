@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterable
 from pathlib import Path
 
 from app.observability.analytics_ui import (
@@ -14,7 +15,7 @@ PROMETHEUS_COLLECTORS = {"Counter", "Enum", "Gauge", "Histogram", "Info", "Summa
 
 
 def test_gateway_prometheus_metric_labels_are_registered_and_bounded() -> None:
-    discovered = _discover_prometheus_metric_label_contracts()
+    discovered = _discover_prometheus_metric_label_contracts(APP_ROOT.rglob("*.py"))
 
     assert discovered == GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS
 
@@ -26,17 +27,47 @@ def test_gateway_prometheus_metric_labels_are_registered_and_bounded() -> None:
         assert not any(_is_high_cardinality_label(label) for label in labels)
 
 
-def _discover_prometheus_metric_label_contracts() -> dict[str, tuple[str, ...]]:
+def test_metric_discovery_handles_module_qualified_prometheus_imports(tmp_path: Path) -> None:
+    module = tmp_path / "qualified_metric.py"
+    module.write_text(
+        "\n".join(
+            (
+                "import prometheus_client as prom",
+                "",
+                "QUALIFIED_LABELS = ('service', 'status_class')",
+                "",
+                "QUALIFIED = prom.Counter(",
+                "    'lotus_gateway_qualified_total',",
+                "    'Qualified import metric.',",
+                "    QUALIFIED_LABELS,",
+                ")",
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    assert _discover_prometheus_metric_label_contracts((module,)) == {
+        "lotus_gateway_qualified_total": ("service", "status_class")
+    }
+
+
+def _discover_prometheus_metric_label_contracts(
+    paths: Iterable[Path],
+) -> dict[str, tuple[str, ...]]:
     discovered: dict[str, tuple[str, ...]] = {}
-    for path in sorted(APP_ROOT.rglob("*.py")):
+    for path in sorted(paths):
         module = ast.parse(path.read_text(encoding="utf-8"))
         constants = _module_string_tuple_constants(module)
-        aliases = _prometheus_collector_aliases(module)
+        bare_aliases, module_aliases = _prometheus_collector_aliases(module)
         for node in ast.walk(module):
             if not isinstance(node, ast.Call):
                 continue
-            collector_name = _call_name(node)
-            if collector_name not in aliases:
+            collector_name = _call_name(
+                node,
+                bare_aliases=bare_aliases,
+                module_aliases=module_aliases,
+            )
+            if collector_name is None:
                 continue
             metric_name = _metric_name(node)
             labels = _metric_labels(node, constants)
@@ -58,20 +89,36 @@ def _module_string_tuple_constants(module: ast.Module) -> dict[str, tuple[str, .
     return constants
 
 
-def _prometheus_collector_aliases(module: ast.Module) -> set[str]:
-    aliases: set[str] = set()
+def _prometheus_collector_aliases(module: ast.Module) -> tuple[set[str], set[str]]:
+    bare_aliases: set[str] = set()
+    module_aliases: set[str] = set()
     for node in module.body:
-        if not isinstance(node, ast.ImportFrom) or node.module != "prometheus_client":
-            continue
-        for alias in node.names:
-            if alias.name in PROMETHEUS_COLLECTORS:
-                aliases.add(alias.asname or alias.name)
-    return aliases
+        if isinstance(node, ast.ImportFrom) and node.module == "prometheus_client":
+            for alias in node.names:
+                if alias.name in PROMETHEUS_COLLECTORS:
+                    bare_aliases.add(alias.asname or alias.name)
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "prometheus_client":
+                    module_aliases.add(alias.asname or alias.name)
+    return bare_aliases, module_aliases
 
 
-def _call_name(node: ast.Call) -> str | None:
+def _call_name(
+    node: ast.Call,
+    *,
+    bare_aliases: set[str],
+    module_aliases: set[str],
+) -> str | None:
     if isinstance(node.func, ast.Name):
-        return node.func.id
+        return node.func.id if node.func.id in bare_aliases else None
+    if (
+        isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id in module_aliases
+        and node.func.attr in PROMETHEUS_COLLECTORS
+    ):
+        return node.func.attr
     return None
 
 
