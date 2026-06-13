@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,804
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,799
    physical lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1804` and `max_function_lines=49`.
+   `max_source_file_lines=1799` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -134,6 +134,14 @@ Most recent local PR-grade evidence:
     with 1,114 unit/contract tests, and local `make ci` passed with 207 integration tests, 1,321
     coverage tests, 94.14% total coverage, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
+19. Current portfolio book response assembly branch moves deterministic book response construction
+    into `portfolio_book.py`, reducing `portfolio_service.py` from 1,804 to 1,799 physical lines
+    while preserving portfolio identity, cash-balance, allocation, top-position, and full-position
+    behavior. Focused validation passed with the refactor threshold gate, ruff check, ruff format
+    check, and 65 portfolio book/service/router tests. Local `make check` passed with 1,115
+    unit/contract tests, and local `make ci` passed with 207 integration tests, 1,322 coverage
+    tests, 94.14% total coverage, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
@@ -143,7 +151,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,804 physical lines and defines the current blocking
+   are split; `portfolio_service.py` is now 1,799 physical lines and defines the current blocking
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

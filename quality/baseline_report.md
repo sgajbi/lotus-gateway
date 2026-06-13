@@ -534,7 +534,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1804` and `max_function_lines=49` after the later threshold ratchet.
+    `max_source_file_lines=1799` and `max_function_lines=49` after the later threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -650,6 +650,16 @@ Most recent local evidence:
      passed with 207 integration tests and 1,308 combined coverage tests; total coverage is
      94.13%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
      exception.
+112. Current portfolio book response assembly branch focused validation passed with ruff check,
+     ruff format check, the refactor threshold gate at `max_source_file_lines=1799`, and 65
+     focused portfolio book/service/router tests. The slice extracts deterministic portfolio book
+     response assembly into `portfolio_book.py`, reducing `portfolio_service.py` from 1,804 to
+     1,799 physical lines while preserving portfolio identity, cash-balance, allocation,
+     top-position, and full-position behavior. `make check` passed with ruff, format check,
+     monetary-float guard, refactor threshold gate, mypy over 475 source files,
+     Workbench/OpenAPI contract smoke, and 1,115 unit/contract tests. `make ci` passed with 207
+     integration tests and 1,322 combined coverage tests; total coverage is 94.14%, and
+     `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -667,7 +677,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,804 physical lines,
+1. no Python source file under `src/app` above 1,799 physical lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
