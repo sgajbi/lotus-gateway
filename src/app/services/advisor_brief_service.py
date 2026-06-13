@@ -20,10 +20,12 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackRunReviewActionRequest,
     AdvisorBriefWorkflowPackTaskFlow,
 )
-from app.contracts.performance_workspace import (
-    AttributionSummaryView,
+from app.contracts.performance_contribution import (
     ContributionPositionView,
     ContributionSummaryView,
+)
+from app.contracts.performance_workspace import (
+    AttributionSummaryView,
     PerformanceComparativeSummary,
     PerformanceWorkspaceResponse,
 )

@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
-    ContributionSummaryView,
     PerformanceChartPoint,
     PerformanceComparativeSummary,
     PerformanceEvidenceView,

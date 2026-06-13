@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Protocol, TypeAlias
 
+from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_workspace import (
     AttributionSummaryView,
-    ContributionSummaryView,
     MoneyWeightedReturnSummary,
     PerformanceBenchmarkOptionView,
     PerformanceChartPoint,

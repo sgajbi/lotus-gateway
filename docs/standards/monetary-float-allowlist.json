@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-13T00:50:57Z",
+  "generated_at": "2026-06-13T01:13:32Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -52,289 +52,289 @@
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:103:linked_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_contribution.py:16:weight_avg_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-06"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:121:total_portfolio_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_contribution.py:17:total_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-06"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:12:portfolio_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_contribution.py:26:weight_avg_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-09-25"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:136:portfolio_weight_avg_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_contribution.py:27:total_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-06"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:13:benchmark_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_contribution.py:37:total_weight_avg_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-09-25"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:141:benchmark_weight_avg_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_contribution.py:38:total_portfolio_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-06"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:146:portfolio_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_contribution.py:46:linked_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-11-06"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:14:active_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_contribution.py:64:total_portfolio_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-09-25"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:151:benchmark_return_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-11-06"
-    },
-    {
-      "finding": "src/app/contracts/performance_workspace.py:15:annualized_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:20:portfolio_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-09-25"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:23:begin_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:21:benchmark_return_pct: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/performance_workspace.py:22:active_return_pct: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/performance_workspace.py:23:annualized_return_pct: float | None = None",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-09-25"
+    },
+    {
+      "finding": "src/app/contracts/performance_workspace.py:274:active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:24:end_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:31:begin_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:27:flow_adjusted_end_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:32:end_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:327:active_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:35:flow_adjusted_end_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:37:portfolio_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:45:portfolio_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:38:benchmark_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:46:benchmark_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:39:active_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:47:active_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:40:cumulative_portfolio_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:48:cumulative_portfolio_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:41:cumulative_benchmark_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:49:cumulative_benchmark_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:42:cumulative_active_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:50:cumulative_active_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:46:money_weighted_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:54:money_weighted_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:47:annualized_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:55:annualized_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:48:holding_period_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:569:begin_market_value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:60:begin_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:56:holding_period_return_pct: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:61:end_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:574:end_market_value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:622:begin_market_value: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:589:flow_adjusted_end_market_value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:627:end_market_value: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:604:net_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:642:flow_adjusted_end_market_value: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:609:gross_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:64:flow_adjusted_end_market_value: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:614:portfolio_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:657:net_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:619:benchmark_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:662:gross_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:626:active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:667:portfolio_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:631:cumulative_net_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:672:benchmark_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:636:cumulative_gross_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:679:active_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:641:cumulative_benchmark_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:684:cumulative_net_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:646:cumulative_active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:689:cumulative_gross_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:651:annualized_net_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:694:cumulative_benchmark_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:656:annualized_gross_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:699:cumulative_active_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:661:annualized_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:704:annualized_net_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:68:begin_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:709:annualized_gross_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:69:end_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:714:annualized_return_pct: float | None = Field(",
+      "finding": "src/app/contracts/performance_workspace.py:72:flow_adjusted_end_market_value: float | None = None",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:73:weight_avg_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:83:portfolio_weight_avg_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:74:total_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:869:active_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:83:weight_avg_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:88:benchmark_weight_avg_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:84:total_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:93:portfolio_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/performance_workspace.py:922:active_return_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-11-06"
-    },
-    {
-      "finding": "src/app/contracts/performance_workspace.py:94:total_weight_avg_pct: float | None = None",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-11-06"
-    },
-    {
-      "finding": "src/app/contracts/performance_workspace.py:95:total_portfolio_return_pct: float | None = None",
+      "finding": "src/app/contracts/performance_workspace.py:98:benchmark_return_pct: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-06"
