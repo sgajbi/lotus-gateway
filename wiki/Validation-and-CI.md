@@ -235,3 +235,15 @@ threshold gate, mypy over 471 source files, Workbench/OpenAPI contract smoke, an
 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,277 coverage tests,
 94.08% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
+
+The current portfolio workspace payload mapper branch moves portfolio identity/profile
+projection, workspace summary construction, cashflow outlook projection, display-name fallback,
+and operations readiness projection into `portfolio_workspace_payloads.py`. It reduces
+`portfolio_service.py` from 1,888 to 1,826 physical lines while preserving workspace response
+behavior and the 49-line longest-function baseline. Focused local validation passed with ruff
+check, ruff format check, mypy over touched service modules, and 48 portfolio workspace/service
+unit tests. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,075
+unit/contract tests. Local `make ci` passed with 207 integration tests, 1,282 coverage tests,
+94.07% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.

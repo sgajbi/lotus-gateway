@@ -250,6 +250,11 @@ transaction pagination, defensive page-row extraction, reporting-currency fallba
 requested-window filtering into `portfolio_transaction_summary.py`, reducing
 `portfolio_service.py` from 1,970 to 1,888 physical lines while preserving income/activity summary
 behavior and the 49-line longest-function baseline.
+The current portfolio workspace payload mapper slice moves portfolio identity/profile projection,
+workspace summary construction, cashflow outlook projection, display-name fallback, and operations
+readiness projection into `portfolio_workspace_payloads.py`, reducing `portfolio_service.py` from
+1,888 to 1,826 physical lines while preserving workspace response behavior and the 49-line
+longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -263,15 +268,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio transaction-summary context branch shows 1,377
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 471 Python source files
-under `src/app`; and 182 Python test files under `tests`.
+Working-tree verification for the current portfolio workspace payload mapper branch shows 1,385
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 472 Python source files
+under `src/app`; and 184 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,888 | `src/app/services/portfolio_service.py` |
+| 1 | 1,826 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -533,6 +538,15 @@ Most recent local evidence:
 97. Current portfolio transaction-summary context branch: `make ci` passed with 207 integration
     tests and 1,277 combined coverage tests; total coverage is 94.08%, and `pip-audit` found no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
+98. Current portfolio workspace payload mapper branch focused validation passed with ruff check,
+    ruff format check, mypy over touched service modules, and 48 portfolio workspace/service unit
+    tests.
+99. Current portfolio workspace payload mapper branch: `make check` passed with ruff, format
+    check, monetary-float guard, refactor threshold gate, mypy over 472 source files,
+    Workbench/OpenAPI contract smoke, and 1,075 unit/contract tests.
+100. Current portfolio workspace payload mapper branch: `make ci` passed with 207 integration
+     tests and 1,282 combined coverage tests; total coverage is 94.07%, and `pip-audit` found no
+     known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
