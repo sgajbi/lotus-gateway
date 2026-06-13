@@ -31,6 +31,8 @@ entitlement detail.
 2. Do not use portfolio, client, transaction, document, prompt, model-output, or entitlement IDs as
    metric labels.
 3. Degraded upstream posture should be counted with bounded service and reason labels.
+4. Prometheus collector label sets must be declared in code-owned metric label contracts and remain
+   covered by the static unit gate before new metric families are added.
 
 ## Traceability
 
@@ -42,6 +44,7 @@ the same sensitive-data constraints.
 
 1. Structured log and audit field allowlists are enforced by unit tests for analytics UI
    observability, including event-family separation.
-2. No blocking gate verifies metric label cardinality.
+2. Prometheus collector label cardinality is enforced by a static unit gate for gateway metric
+   definitions; broader structured telemetry scoring remains future hardening.
 3. Trace propagation beyond correlation IDs is not yet governed.
 4. Diagnostics authorization and masking should get dedicated security regression tests.

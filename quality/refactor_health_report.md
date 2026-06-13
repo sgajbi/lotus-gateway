@@ -351,7 +351,7 @@ longest-function baseline.
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
-| Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; broader trace/log scoring is not enforced |
+| Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
 ## Primary Refactor Backlog
 
