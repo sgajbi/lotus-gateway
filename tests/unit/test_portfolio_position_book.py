@@ -1,4 +1,5 @@
 from app.services.portfolio_position_book import (
+    build_position_book_response,
     build_top_positions,
     parse_position_book_summary,
     parse_positions,
@@ -98,3 +99,71 @@ def test_build_top_positions_ranks_by_market_value_and_limits_to_ten():
     assert len(top_positions) == 10
     assert top_positions[0].security_id == "EQ_11"
     assert top_positions[-1].security_id == "EQ_2"
+
+
+def test_build_position_book_response_uses_resolved_as_of_date_first():
+    response = build_position_book_response(
+        correlation_id="corr-123",
+        contract_version="v-test",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date="2026-03-30",
+        default_as_of_date="2026-03-29",
+        aum_payload={
+            "resolved_as_of_date": "2026-03-31",
+            "portfolios": [
+                {
+                    "aum_reporting_currency": 1000,
+                    "position_count": 2,
+                }
+            ],
+        },
+        positions_payload={
+            "positions": [
+                {
+                    "security_id": "CASH_USD",
+                    "instrument_name": "USD Cash",
+                    "asset_class": "Cash",
+                    "valuation": {"market_value_base": 100},
+                },
+                {
+                    "security_id": "EQ_1",
+                    "instrument_name": "Example Equity",
+                    "asset_class": "Equity",
+                    "valuation": {"market_value_base": 900},
+                },
+            ]
+        },
+    )
+
+    assert response.correlation_id == "corr-123"
+    assert response.contract_version == "v-test"
+    assert response.portfolio_id == "PB_SG_GLOBAL_BAL_001"
+    assert response.as_of_date == "2026-03-31"
+    assert response.summary.cash_market_value_base == 100.0
+    assert response.top_positions[0].security_id == "EQ_1"
+    assert [position.security_id for position in response.positions] == ["CASH_USD", "EQ_1"]
+
+
+def test_build_position_book_response_falls_back_to_requested_then_default_as_of_date():
+    requested_response = build_position_book_response(
+        correlation_id="corr-123",
+        contract_version="v-test",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date="2026-03-30",
+        default_as_of_date="2026-03-29",
+        aum_payload={"portfolios": [{"aum_reporting_currency": 0, "position_count": 0}]},
+        positions_payload={"positions": []},
+    )
+
+    default_response = build_position_book_response(
+        correlation_id="corr-123",
+        contract_version="v-test",
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date=None,
+        default_as_of_date="2026-03-29",
+        aum_payload={"portfolios": [{"aum_reporting_currency": 0, "position_count": 0}]},
+        positions_payload={"positions": []},
+    )
+
+    assert requested_response.as_of_date == "2026-03-30"
+    assert default_response.as_of_date == "2026-03-29"

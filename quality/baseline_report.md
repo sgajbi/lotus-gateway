@@ -259,10 +259,14 @@ The current portfolio catalog payload mapper slice moves portfolio catalog item 
 metadata alias handling, display-name fallback, and deterministic sort order into
 `portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779 to 1,764 physical
 lines while preserving catalog response behavior and the 49-line longest-function baseline.
-The current portfolio allocation response mapper slice moves allocation response projection and
+The prior portfolio allocation response mapper slice moves allocation response projection and
 look-through capability parsing into `portfolio_holdings_payloads.py`, reducing
 `portfolio_service.py` from 1,764 to 1,740 physical lines while preserving allocation summary,
 view, reporting-currency, and look-through behavior.
+The current portfolio position-book response mapper slice moves position-book response assembly into
+`portfolio_position_book.py`, reducing `portfolio_service.py` from 1,740 to 1,718 physical lines
+while preserving resolved/requested/default as-of-date precedence, summary, full positions, and
+top-position behavior.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -276,7 +280,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio allocation response mapper branch shows 1,399
+Working-tree verification for the current portfolio position-book response mapper branch shows 1,399
 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 474 Python source files
 under `src/app`; and 188 Python test files under `tests`.
 
@@ -284,7 +288,7 @@ under `src/app`; and 188 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,740 | `src/app/services/portfolio_service.py` |
+| 1 | 1,718 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -626,7 +630,7 @@ Most recent local evidence:
      Workbench/OpenAPI contract smoke, and 1,096 unit/contract tests. `make ci` passed with 207
      integration tests and 1,303 combined coverage tests; total coverage is 94.10%, and
      `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
-110. Current portfolio allocation response mapper branch focused validation passed with ruff check
+110. Prior portfolio allocation response mapper branch focused validation passed with ruff check
      and 9 focused portfolio holdings/allocation service unit tests. The slice extracts allocation
      response construction and look-through capability parsing into
      `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,764 to 1,740
@@ -636,6 +640,16 @@ Most recent local evidence:
      1,099 unit/contract tests. `make ci` passed with 207 integration tests and 1,306 combined
      coverage tests; total coverage is 94.13%, and `pip-audit` found no known vulnerabilities
      after the governed `PYSEC-2026-161` exception.
+111. Current portfolio position-book response mapper branch focused validation passed with ruff
+     check and 47 focused portfolio position-book/service unit tests. The slice extracts
+     position-book response construction into `portfolio_position_book.py`, reducing
+     `portfolio_service.py` from 1,740 to 1,718 physical lines while preserving summary,
+     top-position, full-position, and resolved/requested/default as-of-date behavior. `make check`
+     passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 474
+     source files, Workbench/OpenAPI contract smoke, and 1,101 unit/contract tests. `make ci`
+     passed with 207 integration tests and 1,308 combined coverage tests; total coverage is
+     94.13%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
+     exception.
 
 ## Tooling Availability Baseline
 
