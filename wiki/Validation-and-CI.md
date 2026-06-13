@@ -135,5 +135,7 @@ current risk concentration contract branch moves concentration payload and drive
 `risk_workspace_concentration.py`, keeps `app.contracts.risk_workspace` as the compatibility
 import surface, refreshes the governed monetary-float allowlist for the moved concentration weight
 fields, reduces `risk_workspace.py` from 1,647 to 1,343 measured lines, and has focused evidence
-from ruff, format check, mypy, monetary-float guard, and 29 passing risk workspace tests. Full
-`make check` and `make ci` remain required before PR/merge.
+from ruff, format check, mypy, monetary-float guard, and 29 passing risk workspace tests. Local
+`make check` passed with ruff, format check, monetary-float guard, mypy over 466 source files,
+Workbench/OpenAPI contract smoke, and 1,050 unit/contract tests. Full `make ci` remains required
+before PR/merge.

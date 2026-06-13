@@ -5,15 +5,15 @@ Mode: feature-branch evidence refresh
 
 | Dimension | Score | Current status | Next action |
 | --- | ---: | --- | --- |
-| Build and test reliability | 5/5 | Latest merged PR #367 evidence includes `make check` and `make ci`; current risk concentration branch focused checks passed with ruff, format check, monetary-float guard, mypy, and 29 risk workspace tests | Run `make check` and `make ci` before PR/merge |
+| Build and test reliability | 5/5 | Latest merged PR #367 evidence includes `make ci`; current risk concentration branch `make check` passed with ruff, format check, monetary-float guard, mypy over 466 source files, Workbench/OpenAPI contract smoke, and 1,050 unit/contract tests | Run `make ci` before PR/merge |
 | Coverage | 4/5 | 94.03% total coverage, above the 84% floor | Add targeted middleware/security/error tests |
 | Modularity | 4/5 | Current branch state preserves the 49-line longest-function baseline; recent slices extracted transaction request context, transaction page-context defaults, transaction client-kwargs mapping, performance workspace response assembly, portfolio workspace response assembly, portfolio workspace performance parsing, portfolio workspace rebalance parsing, portfolio source-readiness parsing, portfolio transaction summary mapping, portfolio workflow mapping, portfolio workflow contracts, portfolio transaction contracts, portfolio performance snapshot contracts, portfolio income/activity contracts, portfolio holdings/book contracts, risk drawdown contracts, reporting batch contracts, reporting query contracts, and risk concentration contracts; `portfolio_service.py` is now 1,970 measured lines, `portfolio.py` is now 911 measured lines, `risk_workspace.py` is now 1,343 measured lines, and `reporting.py` is now 532 measured lines | Continue extraction slices and reduce remaining largest-file pressure |
 | Architecture boundaries | 3/5 | Blocking AST tests exist; import-linter is report-only | Classify and enforce no-new-regression |
 | API governance | 4/5 | 233 OpenAPI paths and 247 operations; missing summary, description, operation ID, tags, and documented 4xx/5xx response counts are all 0; Spectral remains report-only | Triage Spectral warnings and decide explicit operation ID policy |
 | Error consistency | 2/5 | ProblemDetails exists for unhandled exceptions; route/upstream error normalization remains a meaningful hardening candidate | Normalize route/upstream errors |
 | Observability | 3/5 | Health/readiness/metrics/correlation/audit are present; RFC-0108 fan-out and selected analytics audit posture remain implementation-backed | Enforce structured log and metric label rules |
-| Security | 4/5 | `pip-audit` passed in current branch `make ci` with the governed FastAPI/Starlette exception; no known vulnerabilities found | Triage bandit and sensitive-data handling checks |
-| Documentation | 4/5 | Baseline, scorecard, health report, and wiki validation evidence are refreshed to current branch metrics after the current focused reporting batch contract slice | Keep wiki synced and add diagrams over time |
+| Security | 4/5 | Latest merged PR #367 `pip-audit` passed with the governed FastAPI/Starlette exception; current risk concentration branch monetary-float guard passed after refreshing moved concentration weight-field allowlist paths | Triage bandit and sensitive-data handling checks |
+| Documentation | 4/5 | Baseline, scorecard, health report, and wiki validation evidence are refreshed to current branch metrics after the current focused risk concentration contract slice | Keep wiki synced and add diagrams over time |
 | Operations readiness | 3/5 | Existing CI/runbook docs and wiki validation posture describe the report-only quality lane | Add incident playbooks and SLO checks |
 
 ## Before/After Evidence
@@ -32,7 +32,7 @@ versus the current reporting batch contract branch after PRs #349, #350, #351, #
 | Largest source file | 2,968 lines | 1,970 lines | Improved; `src/app/services/portfolio_service.py` remains the largest residual hotspot after reducing `portfolio.py`, `risk_workspace.py`, and `reporting.py` |
 | `performance_workspace_service.py` | 1,724 lines | 1,704 lines | Improved through response assembly extraction |
 | OpenAPI operations with missing summary/description/tags/errors | 0 | 0 | Preserved |
-| Local unit/contract tests | 996 | 1,048 | Added focused response/request boundary, workspace parser, source-readiness parser, transaction summary mapper, workflow mapper, workflow contract, transaction contract, performance snapshot contract, income/activity contract, holdings contract, risk drawdown contract, reporting batch contract, and reporting query contract tests |
+| Local unit/contract tests | 996 | 1,050 | Added focused response/request boundary, workspace parser, source-readiness parser, transaction summary mapper, workflow mapper, workflow contract, transaction contract, performance snapshot contract, income/activity contract, holdings contract, risk drawdown contract, reporting batch contract, reporting query contract, and risk concentration contract tests |
 | Local coverage tests | 1,203 | 1,255 | Added focused coverage while preserving total coverage |
 | Total coverage | 93.69% | 94.03% | Improved |
 | Dependency audit | governed pass | governed pass, no known vulnerabilities after the `PYSEC-2026-161` exception | Preserved |
