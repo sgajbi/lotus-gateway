@@ -123,6 +123,13 @@ Most recent local PR-grade evidence:
 16. Current upload-artifact runtime branch raises the governed `actions/upload-artifact` baseline
     from `v5` to `v7` after the merged Node 24 opt-in branch proved `v5` still emitted a GitHub
     Node.js 20 deprecation annotation while being forced onto Node 24.
+17. Current transaction-ledger assembly branch moves request-context and response assembly
+    orchestration into `portfolio_transaction_ledger.py`, reducing `portfolio_service.py` from
+    1,816 to 1,804 physical lines while preserving the 49-line longest-function baseline. Focused
+    validation passed with 52 portfolio ledger/service tests; local `make check` passed with
+    1,114 unit/contract tests, and local `make ci` passed with 207 integration tests, 1,321
+    coverage tests, 94.14% total coverage, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
@@ -132,7 +139,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,718 physical lines, below the current 2,000-line
+   are split; `portfolio_service.py` is now 1,804 physical lines, below the current 2,000-line
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

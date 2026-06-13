@@ -1,3 +1,4 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -30,6 +31,30 @@ class PortfolioTransactionsRequestContext:
     start_date: str | None
     end_date: str | None
     reporting_currency: str | None
+
+
+@dataclass(frozen=True)
+class PortfolioTransactionLedgerRequest:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    include_projected: bool
+    skip: int
+    limit: int
+    transaction_type: str | None = None
+    security_id: str | None = None
+    instrument_id: str | None = None
+    component_type: str | None = None
+    linked_transaction_group_id: str | None = None
+    fx_contract_id: str | None = None
+    swap_event_id: str | None = None
+    near_leg_group_id: str | None = None
+    far_leg_group_id: str | None = None
+    sort_by: str = "transaction_date"
+    sort_order: str = "desc"
+    start_date: str | None = None
+    end_date: str | None = None
+    reporting_currency: str | None = None
 
 
 def build_portfolio_transactions_request_context(
@@ -76,6 +101,33 @@ def build_portfolio_transactions_request_context(
         start_date=start_date,
         end_date=end_date,
         reporting_currency=reporting_currency,
+    )
+
+
+def build_transaction_ledger_request_context(
+    request: PortfolioTransactionLedgerRequest,
+) -> PortfolioTransactionsRequestContext:
+    return build_portfolio_transactions_request_context(
+        portfolio_id=request.portfolio_id,
+        correlation_id=request.correlation_id,
+        as_of_date=request.as_of_date,
+        include_projected=request.include_projected,
+        skip=request.skip,
+        limit=request.limit,
+        transaction_type=request.transaction_type,
+        security_id=request.security_id,
+        instrument_id=request.instrument_id,
+        component_type=request.component_type,
+        linked_transaction_group_id=request.linked_transaction_group_id,
+        fx_contract_id=request.fx_contract_id,
+        swap_event_id=request.swap_event_id,
+        near_leg_group_id=request.near_leg_group_id,
+        far_leg_group_id=request.far_leg_group_id,
+        sort_by=request.sort_by,
+        sort_order=request.sort_order,
+        start_date=request.start_date,
+        end_date=request.end_date,
+        reporting_currency=request.reporting_currency,
     )
 
 
@@ -166,6 +218,20 @@ def portfolio_transactions_client_kwargs(
         "end_date": context.end_date,
         "reporting_currency": context.reporting_currency,
     }
+
+
+async def build_transaction_ledger_response_for_request(
+    *,
+    request: PortfolioTransactionLedgerRequest,
+    contract_version: str,
+    load_payload: Callable[[PortfolioTransactionsRequestContext], Awaitable[dict[str, Any]]],
+) -> PortfolioTransactionLedgerResponse:
+    context = build_transaction_ledger_request_context(request)
+    return build_transaction_ledger_response(
+        context=context,
+        contract_version=contract_version,
+        result_payload=await load_payload(context),
+    )
 
 
 def build_transaction_ledger_response(
