@@ -169,6 +169,16 @@ Most recent local PR-grade evidence:
     tests. Local `make ci` passed with 207 integration tests, 1,326 combined coverage tests,
     94.16% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
     exception.
+23. Current advisor-brief source mapper branch moves source-context, fallback narrative,
+    source-metric, supportability, route, and AI fact-bundle shaping into
+    `advisor_brief_source.py`, reducing `advisor_brief_service.py` from 1,454 to 861 physical
+    lines while preserving the advisor-brief orchestration and workflow-pack runtime boundary.
+    Focused validation passed with ruff check, ruff format check, the refactor threshold gate, and
+    37 advisor-brief/source/boundary/threshold unit tests. Local `make check` passed with ruff,
+    format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate,
+    mypy over 477 source files, Workbench/OpenAPI contract smoke, and 1,123 unit/contract tests.
+    Local `make ci` passed with 207 integration tests, 1,330 combined coverage tests, 94.18% total
+    coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 

@@ -275,29 +275,28 @@ yet enforced unless they are already covered by existing repo-native gates.
 | Measure | Current value |
 | --- | ---: |
 | Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,399 |
-| Python source files under `src/app` | 474 |
-| Python test files under `tests` | 188 |
+| Python source files under `src/app` | 477 |
+| Python test files under `tests` | 192 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio position-book response mapper branch shows 1,399
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 474 Python source files
-under `src/app`; and 188 Python test files under `tests`.
+Working-tree verification for the current advisor-brief source mapper branch shows 477 Python
+source files under `src/app` and 192 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,718 | `src/app/services/portfolio_service.py` |
-| 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
-| 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
-| 4 | 1,258 | `src/app/clients/dpm_client.py` |
-| 5 | 1,137 | `src/app/services/dpm_command_center_service.py` |
-| 6 | 1,012 | `src/app/clients/advise_client.py` |
-| 7 | 1,001 | `src/app/services/dpm_wave_service.py` |
-| 8 | 911 | `src/app/contracts/portfolio.py` |
-| 9 | 903 | `src/app/contracts/performance_workspace.py` |
-| 10 | 884 | `src/app/contracts/proposals.py` |
+| 1 | 1,659 | `src/app/services/portfolio_service.py` |
+| 2 | 1,489 | `src/app/services/performance_workspace_service.py` |
+| 3 | 1,362 | `src/app/clients/dpm_client.py` |
+| 4 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 5 | 1,098 | `src/app/clients/advise_client.py` |
+| 6 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 7 | 979 | `src/app/contracts/proposals.py` |
+| 8 | 954 | `src/app/contracts/portfolio.py` |
+| 9 | 951 | `src/app/services/foundation_service.py` |
+| 10 | 930 | `src/app/contracts/performance_workspace.py` |
 
 ## Largest Functions
 
@@ -691,6 +690,18 @@ Most recent local evidence:
      mypy over 476 source files, Workbench/OpenAPI contract smoke, and 1,119 unit/contract tests.
      Local `make ci` passed with 207 integration tests and 1,326 combined coverage tests; total
      coverage is 94.16%, and `pip-audit` found no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
+116. Current advisor-brief source mapper branch focused validation passed with ruff check, ruff
+     format check, `scripts/check_refactor_quality_thresholds.py` at
+     `max_source_file_lines=1659`, and 37 focused advisor-brief/source/boundary/threshold unit
+     tests. The slice extracts source-context, fallback narrative, source-metric, supportability,
+     route, and AI fact-bundle shaping into `advisor_brief_source.py`, reducing
+     `advisor_brief_service.py` from 1,454 to 861 physical lines while preserving
+     workflow-pack runtime orchestration in the service. Local `make check` passed with ruff,
+     format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate,
+     mypy over 477 source files, Workbench/OpenAPI contract smoke, and 1,123 unit/contract tests.
+     Local `make ci` passed with 207 integration tests and 1,330 combined coverage tests; total
+     coverage is 94.18%, and `pip-audit` found no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
