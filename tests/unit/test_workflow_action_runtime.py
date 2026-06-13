@@ -182,9 +182,9 @@ def test_gateway_workflows_match_platform_action_runtime_baseline() -> None:
 
 
 def test_main_releasability_runs_coverage_in_parallel_with_integration() -> None:
-    workflow = (
-        REPO_ROOT / ".github" / "workflows" / "main-releasability.yml"
-    ).read_text(encoding="utf-8")
+    workflow = (REPO_ROOT / ".github" / "workflows" / "main-releasability.yml").read_text(
+        encoding="utf-8"
+    )
 
     assert (
         "      - name: Lint and Refactor Quality Thresholds\n        run: make lint"
