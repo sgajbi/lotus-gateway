@@ -584,7 +584,11 @@ Most recent local evidence:
      quality-baseline artifact unit tests plus ruff and format checks over the new validator and
      tests. The quality-baseline workflow now validates that expected report-only logs and
      generated OpenAPI evidence exist before artifact upload, while individual quality tools remain
-     report-only. Full `make check` and `make ci` evidence remains pending for PR readiness.
+     report-only. `make check` passed with ruff, format check, monetary-float guard, refactor
+     threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,089
+     unit/contract tests. `make ci` passed with 207 integration tests and 1,296 combined coverage
+     tests; total coverage is 94.11%, and `pip-audit` found no known vulnerabilities after the
+     governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

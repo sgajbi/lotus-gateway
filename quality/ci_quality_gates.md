@@ -74,8 +74,10 @@ Most recent local PR-grade evidence:
    1,282 coverage tests, 94.07% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
 8. Current quality-baseline artifact branch focused validation passed with 4 artifact-validator
-   unit tests plus ruff and format checks over the new validator and tests. Full `make check` and
-   `make ci` evidence remains pending.
+   unit tests plus ruff and format checks over the new validator and tests. `make check` passed
+   with 1,089 unit/contract tests, and `make ci` passed with 207 integration tests, 1,296 coverage
+   tests, 94.11% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+   exception.
 
 ## Next Tightening Candidates
 
