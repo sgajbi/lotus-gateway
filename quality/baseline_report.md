@@ -534,7 +534,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1728` and `max_function_lines=49` after the latest threshold ratchet.
+    `max_source_file_lines=1659` and `max_function_lines=49` after the latest threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -680,6 +680,14 @@ Most recent local evidence:
      contract smoke, and 1,117 unit/contract tests. `make ci` passed with 207 integration tests
      and 1,324 combined coverage tests; total coverage is 94.14%, and `pip-audit` found no known
      vulnerabilities after the governed `PYSEC-2026-161` exception.
+115. Current portfolio workspace source-loading branch focused validation passed with ruff check,
+     ruff format check, touched-module mypy, the refactor threshold gate at
+     `max_source_file_lines=1659`, and 44 focused portfolio workspace/service unit tests. The
+     slice extracts workspace source and analytics fan-out into `portfolio_workspace_sources.py`,
+     reducing `portfolio_service.py` from 1,728 to 1,659 physical lines while preserving
+     portfolio, AUM, support overview, projected cashflow, cash-balance, readiness, performance,
+     rebalance, and rebalance-supportability call shapes. Full `make check` and `make ci` remain
+     pre-merge gates and are recorded before merge.
 
 ## Tooling Availability Baseline
 
@@ -697,7 +705,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,728 physical lines,
+1. no Python source file under `src/app` above 1,659 physical lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
