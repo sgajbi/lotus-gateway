@@ -13,8 +13,13 @@ ACTION_MAJOR_BASELINE = {
     "actions/setup-node": 5,
     "actions/upload-artifact": 5,
 }
+NODE24_OPT_IN_ENV_NAME = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24"
+NODE24_OPT_IN_ENV_VALUE = "true"
 USES_PATTERN = re.compile(r"^\s*(?:-\s*)?uses:\s*(?P<uses>[^#\s]+)")
 VERSION_PATTERN = re.compile(r"^(?P<action>[^@]+)@v(?P<major>\d+)(?:\D.*)?$")
+NODE24_OPT_IN_PATTERN = re.compile(
+    rf"^\s*{NODE24_OPT_IN_ENV_NAME}:\s*['\"]?{NODE24_OPT_IN_ENV_VALUE}['\"]?\s*$"
+)
 
 
 @dataclass(frozen=True)
@@ -28,6 +33,17 @@ class WorkflowActionRuntimeViolation:
         return (
             f"{self.path}:{self.line_number} {self.uses_value} is below "
             f"the required baseline {self.required_value}"
+        )
+
+
+@dataclass(frozen=True)
+class WorkflowNode24OptInViolation:
+    path: Path
+
+    def format(self) -> str:
+        return (
+            f"{self.path}: missing {NODE24_OPT_IN_ENV_NAME}: "
+            f'"{NODE24_OPT_IN_ENV_VALUE}" for GitHub JavaScript action runtime opt-in'
         )
 
 
@@ -45,12 +61,33 @@ def normalize_uses_value(uses_value: str) -> str:
     return uses_value.strip().strip("\"'")
 
 
+def collect_governed_action_refs(source: str) -> list[str]:
+    action_refs: list[str] = []
+    for line in source.splitlines():
+        uses_match = USES_PATTERN.match(line)
+        if uses_match is None:
+            continue
+        uses_value = normalize_uses_value(uses_match.group("uses"))
+        version_match = VERSION_PATTERN.match(uses_value)
+        if version_match is None:
+            continue
+        action = version_match.group("action")
+        if action in ACTION_MAJOR_BASELINE:
+            action_refs.append(uses_value)
+    return action_refs
+
+
+def has_node24_opt_in(source: str) -> bool:
+    return any(NODE24_OPT_IN_PATTERN.match(line) for line in source.splitlines())
+
+
 def find_workflow_action_runtime_violations(
     workflow_roots: Sequence[Path],
 ) -> tuple[WorkflowActionRuntimeViolation, ...]:
     violations: list[WorkflowActionRuntimeViolation] = []
     for path in iter_workflow_files(workflow_roots):
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        source = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(source.splitlines(), start=1):
             uses_match = USES_PATTERN.match(line)
             if uses_match is None:
                 continue
@@ -75,6 +112,17 @@ def find_workflow_action_runtime_violations(
     return tuple(violations)
 
 
+def find_workflow_node24_opt_in_violations(
+    workflow_roots: Sequence[Path],
+) -> tuple[WorkflowNode24OptInViolation, ...]:
+    violations: list[WorkflowNode24OptInViolation] = []
+    for path in iter_workflow_files(workflow_roots):
+        source = path.read_text(encoding="utf-8")
+        if collect_governed_action_refs(source) and not has_node24_opt_in(source):
+            violations.append(WorkflowNode24OptInViolation(path=path))
+    return tuple(violations)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fail when governed GitHub Actions use deprecated runtime majors."
@@ -91,16 +139,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    violations = find_workflow_action_runtime_violations(args.workflow_roots)
-    if violations:
+    action_violations = find_workflow_action_runtime_violations(args.workflow_roots)
+    node24_violations = find_workflow_node24_opt_in_violations(args.workflow_roots)
+    if action_violations or node24_violations:
         print("Workflow action runtime baseline violations:")
-        for violation in violations:
+        for violation in action_violations:
+            print(f"- {violation.format()}")
+        for violation in node24_violations:
             print(f"- {violation.format()}")
         return 1
 
     print(
         "Workflow action runtime baseline passed: "
         + ", ".join(f"{action}@v{major}" for action, major in sorted(ACTION_MAJOR_BASELINE.items()))
+        + f"; {NODE24_OPT_IN_ENV_NAME}={NODE24_OPT_IN_ENV_VALUE}"
     )
     return 0
 

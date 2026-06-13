@@ -32,6 +32,8 @@
 - CI action-runtime compatibility with the platform baseline:
   `actions/checkout@v6`, `actions/setup-python@v6`, `actions/setup-node@v5`, and
   `actions/upload-artifact@v5`
+- Node 24 JavaScript action runtime opt-in through
+  `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`
 
 ## Quality baseline lane
 

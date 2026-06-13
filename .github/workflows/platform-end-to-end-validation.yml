@@ -10,6 +10,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   e2e-platform-capabilities-live:
     name: Platform End-to-End Validation / Gateway Live Upstreams

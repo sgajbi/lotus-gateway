@@ -3,6 +3,7 @@ from pathlib import Path
 from scripts.check_workflow_action_runtime import (
     ACTION_MAJOR_BASELINE,
     find_workflow_action_runtime_violations,
+    find_workflow_node24_opt_in_violations,
     normalize_uses_value,
 )
 
@@ -21,12 +22,56 @@ def test_workflow_action_runtime_accepts_current_baseline(tmp_path: Path) -> Non
                 "      - uses: actions/setup-python@v6",
                 "      - uses: actions/setup-node@v5",
                 "      - uses: actions/upload-artifact@v5",
+                "env:",
+                '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
             ]
         ),
         encoding="utf-8",
     )
 
     violations = find_workflow_action_runtime_violations([workflow])
+
+    assert violations == ()
+
+
+def test_workflow_node24_opt_in_accepts_governed_workflow_with_env(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "\n".join(
+            [
+                "env:",
+                '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
+                "steps:",
+                "  - uses: actions/checkout@v6",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    violations = find_workflow_node24_opt_in_violations([workflow])
+
+    assert violations == ()
+
+
+def test_workflow_node24_opt_in_reports_missing_env_for_governed_workflow(
+    tmp_path: Path,
+) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text("steps:\n  - uses: actions/checkout@v6\n", encoding="utf-8")
+
+    violations = find_workflow_node24_opt_in_violations([workflow])
+
+    assert len(violations) == 1
+    assert violations[0].path == workflow
+
+
+def test_workflow_node24_opt_in_ignores_workflows_without_governed_actions(
+    tmp_path: Path,
+) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text("steps:\n  - run: echo ok\n", encoding="utf-8")
+
+    violations = find_workflow_node24_opt_in_violations([workflow])
 
     assert violations == ()
 
@@ -106,3 +151,4 @@ def test_gateway_workflows_match_platform_action_runtime_baseline() -> None:
         "actions/upload-artifact": 5,
     }
     assert find_workflow_action_runtime_violations([REPO_ROOT / ".github" / "workflows"]) == ()
+    assert find_workflow_node24_opt_in_violations([REPO_ROOT / ".github" / "workflows"]) == ()
