@@ -163,8 +163,12 @@ Most recent local PR-grade evidence:
     physical lines while preserving portfolio, AUM, support overview, projected cashflow,
     cash-balance, readiness, performance, rebalance, and rebalance-supportability call shapes.
     Focused validation passed with the refactor threshold gate, ruff check, ruff format check,
-    touched-module mypy, and 44 portfolio workspace/service unit tests. Full `make check` and
-    `make ci` evidence is recorded before merge.
+    touched-module mypy, and 44 portfolio workspace/service unit tests. Local `make check` passed
+    with ruff, format check, monetary-float guard, refactor threshold gate, workflow action-runtime
+    gate, mypy over 476 source files, Workbench/OpenAPI contract smoke, and 1,119 unit/contract
+    tests. Local `make ci` passed with 207 integration tests, 1,326 combined coverage tests,
+    94.16% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+    exception.
 
 ## Next Tightening Candidates
 

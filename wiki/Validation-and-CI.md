@@ -242,8 +242,11 @@ The current portfolio workspace source-loading branch continues the same refacto
 by ratcheting the blocking source-file threshold to 1,659 physical lines after extracting workspace
 source and analytics fan-out into `portfolio_workspace_sources.py`. Focused validation passed with
 ruff, format check, touched-module mypy, the refactor threshold gate, and 44 portfolio
-workspace/service unit tests. Full `make check` and `make ci` remain pre-merge gates and are
-recorded before merge.
+workspace/service unit tests. Local `make check` passed with ruff, format check,
+monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 476 source
+files, Workbench/OpenAPI contract smoke, and 1,119 unit/contract tests. Local `make ci` passed with
+207 integration tests, 1,326 combined coverage tests, 94.16% total coverage, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

@@ -686,8 +686,12 @@ Most recent local evidence:
      slice extracts workspace source and analytics fan-out into `portfolio_workspace_sources.py`,
      reducing `portfolio_service.py` from 1,728 to 1,659 physical lines while preserving
      portfolio, AUM, support overview, projected cashflow, cash-balance, readiness, performance,
-     rebalance, and rebalance-supportability call shapes. Full `make check` and `make ci` remain
-     pre-merge gates and are recorded before merge.
+     rebalance, and rebalance-supportability call shapes. Local `make check` passed with ruff,
+     format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate,
+     mypy over 476 source files, Workbench/OpenAPI contract smoke, and 1,119 unit/contract tests.
+     Local `make ci` passed with 207 integration tests and 1,326 combined coverage tests; total
+     coverage is 94.16%, and `pip-audit` found no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
