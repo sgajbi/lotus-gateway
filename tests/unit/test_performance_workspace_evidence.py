@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 
 from app.contracts import performance_workspace
 from app.contracts.performance_evidence import (
@@ -18,9 +19,11 @@ from app.services.performance_workspace_evidence import (
     execution_lineage_stage_complete,
     extract_calculation_id_from_result,
     fetch_calculation_evidence,
+    fetch_performance_evidence_artifact,
     gateway_evidence_artifact_url,
     lineage_is_complete,
     lineage_is_transient,
+    performance_evidence_artifact_failure_detail,
     refresh_execution_after_lineage_completion,
     resolve_evidence_reason,
     resolve_evidence_state,
@@ -66,11 +69,78 @@ class _EvidenceAnalyticsClient:
         return self.lineage_results.pop(0)
 
 
+class _ArtifactAnalyticsClient:
+    def __init__(self, result: tuple[int, bytes, str | None]) -> None:
+        self.result = result
+        self.artifact_calls: list[dict[str, str]] = []
+
+    async def get_lineage_artifact(
+        self, *, calculation_id: str, artifact_name: str, correlation_id: str
+    ) -> tuple[int, bytes, str | None]:
+        self.artifact_calls.append(
+            {
+                "calculation_id": calculation_id,
+                "artifact_name": artifact_name,
+                "correlation_id": correlation_id,
+            }
+        )
+        return self.result
+
+
 def test_extract_calculation_id_from_result_returns_stable_string_id():
     assert extract_calculation_id_from_result((200, {"calculation_id": 42})) == "42"
     assert extract_calculation_id_from_result((200, {})) is None
     assert extract_calculation_id_from_result(ValueError("boom")) is None
     assert extract_calculation_id_from_result(None) is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_performance_evidence_artifact_returns_bytes_and_content_type() -> None:
+    client = _ArtifactAnalyticsClient((200, b"{}", "application/json"))
+
+    content, content_type = await fetch_performance_evidence_artifact(
+        analytics_client=client,
+        calculation_id="calc-1",
+        artifact_name="request.json",
+        correlation_id="corr-1",
+    )
+
+    assert content == b"{}"
+    assert content_type == "application/json"
+    assert client.artifact_calls == [
+        {
+            "calculation_id": "calc-1",
+            "artifact_name": "request.json",
+            "correlation_id": "corr-1",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_fetch_performance_evidence_artifact_raises_upstream_text_detail() -> None:
+    client = _ArtifactAnalyticsClient((404, b"artifact not found", "text/plain"))
+
+    with pytest.raises(HTTPException) as exc_info:
+        await fetch_performance_evidence_artifact(
+            analytics_client=client,
+            calculation_id="calc-1",
+            artifact_name="request.json",
+            correlation_id="corr-1",
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "artifact not found"
+
+
+def test_performance_evidence_artifact_failure_detail_uses_safe_fallbacks() -> None:
+    assert (
+        performance_evidence_artifact_failure_detail(b"")
+        == "Performance evidence artifact is unavailable."
+    )
+    assert (
+        performance_evidence_artifact_failure_detail(b"\xff\xfe\xfd")
+        == "Performance evidence artifact retrieval failed."
+    )
 
 
 def test_build_source_supportability_deduplicates_upstream_posture():
