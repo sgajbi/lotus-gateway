@@ -802,7 +802,7 @@
       "review_by": "2026-12-02"
     },
     {
-      "finding": "src/app/services/portfolio_service.py:1646:invested_market_value_base=float(quantize_money(total_aum - cash_total)),",
+      "finding": "src/app/services/portfolio_workspace_payloads.py:56:invested_market_value_base=float(quantize_money(invested - cash_total)),",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"

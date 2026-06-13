@@ -64,11 +64,10 @@ Most recent local PR-grade evidence:
    `max_source_file_lines=2100` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current portfolio transaction-summary context branch `make check` passed with 1,070
+6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
    unit/contract tests.
-7. Current portfolio transaction-summary context branch `make ci` passed with 207 integration
-   tests and 1,277 coverage tests; total coverage was 94.08%, and `pip-audit` found no known
-   vulnerabilities after the governed
+7. Current portfolio workspace payload mapper branch `make ci` passed with 207 integration tests,
+   1,282 coverage tests, 94.07% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
@@ -78,5 +77,5 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Tighten the enforced source-file threshold downward as the remaining largest services are split;
-   `portfolio_service.py` is now 1,888 physical lines, below the current 2,100-line ceiling.
+   `portfolio_service.py` is now 1,826 physical lines, below the current 2,100-line ceiling.
 5. Add static no-sensitive-observability checks for logs, metrics labels, and diagnostics fields.
