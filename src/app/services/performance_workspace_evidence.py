@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, TypeAlias
 
-from app.contracts.performance_workspace import (
+from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceArtifactView,
     PerformanceEvidenceStageView,

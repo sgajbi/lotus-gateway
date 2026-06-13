@@ -5,10 +5,10 @@ from dataclasses import dataclass
 
 from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import ContributionSummaryView
+from app.contracts.performance_evidence import PerformanceEvidenceView
 from app.contracts.performance_workspace import (
     PerformanceChartPoint,
     PerformanceComparativeSummary,
-    PerformanceEvidenceView,
     PerformanceModuleCapability,
     PerformanceWorkspaceCapabilities,
 )
