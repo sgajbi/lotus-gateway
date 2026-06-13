@@ -16,21 +16,19 @@ from app.contracts.portfolio import (
     PortfolioOperationalReadiness,
     PortfolioPartialFailure,
     PortfolioPerformanceSummary,
-    PortfolioProfile,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
     PortfolioReportingReadiness,
     PortfolioWorkflowResponse,
-    PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
 )
 from app.contracts.portfolio_activity_income import (
     PortfolioActivitySummaryResponse,
     PortfolioIncomeSummaryResponse,
 )
-from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
+from app.contracts.portfolio_core import PortfolioSummary
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
     PortfolioAllocationView,
@@ -388,7 +386,7 @@ class PortfolioService:
             [],
         )
         if isinstance(reference_payload, dict):
-            reference_end_date = self._optional_str(reference_payload.get("performance_end_date"))
+            reference_end_date = optional_text(reference_payload.get("performance_end_date"))
             if reference_end_date is not None:
                 report_end_date = reference_end_date
         return await self._get_cached_upstream_result(
@@ -575,7 +573,7 @@ class PortfolioService:
                 components.summary,
                 source_results.readiness_result,
             ),
-            control_capabilities=self._build_workspace_control_capabilities(
+            control_capabilities=build_workspace_control_capabilities(
                 portfolio=components.portfolio,
                 profile=components.profile,
                 requested_as_of_date=effective_as_of_date,
@@ -661,8 +659,8 @@ class PortfolioService:
         )
 
         return PortfolioWorkspaceComponents(
-            portfolio=self._parse_portfolio_identity(assembly_state.portfolio_payload),
-            profile=self._parse_portfolio_profile(assembly_state.portfolio_payload),
+            portfolio=parse_portfolio_identity(assembly_state.portfolio_payload),
+            profile=parse_portfolio_profile(assembly_state.portfolio_payload),
             summary=summary,
             cashflow_outlook=cashflow_outlook,
             performance=performance,
@@ -1292,12 +1290,6 @@ class PortfolioService:
         detail = safe_upstream_detail(payload, default_detail="upstream request failed")
         return f"{detail_prefix}: {detail}"
 
-    def _parse_portfolio_identity(self, payload: dict[str, Any]) -> PortfolioIdentity:
-        return parse_portfolio_identity(payload)
-
-    def _parse_portfolio_profile(self, payload: dict[str, Any]) -> PortfolioProfile:
-        return parse_portfolio_profile(payload)
-
     def _parse_summary(
         self,
         aum_result: tuple[int, dict[str, Any]],
@@ -1547,7 +1539,7 @@ class PortfolioService:
 
     def _format_upstream_error_detail(self, payload: Any) -> str:
         if isinstance(payload, dict):
-            detail = self._optional_str(payload.get("detail"))
+            detail = optional_text(payload.get("detail"))
             if detail is not None:
                 return detail
         return str(payload)
@@ -1559,31 +1551,3 @@ class PortfolioService:
             if payload and payload.get("resolved_as_of_date")
             else None
         )
-
-    def _build_workspace_control_capabilities(
-        self,
-        *,
-        portfolio: PortfolioIdentity,
-        profile: PortfolioProfile,
-        requested_as_of_date: str,
-        effective_as_of_date: str,
-        requested_reporting_currency: str | None,
-    ) -> PortfolioWorkspaceControlCapabilities:
-        return build_workspace_control_capabilities(
-            portfolio=portfolio,
-            profile=profile,
-            requested_as_of_date=requested_as_of_date,
-            effective_as_of_date=effective_as_of_date,
-            requested_reporting_currency=requested_reporting_currency,
-        )
-
-    def _optional_str(self, value: Any) -> str | None:
-        return optional_text(value)
-
-    def _optional_int(self, value: Any) -> int | None:
-        if value is None or isinstance(value, bool):
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
