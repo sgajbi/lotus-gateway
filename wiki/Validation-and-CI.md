@@ -140,3 +140,14 @@ from ruff, format check, mypy, monetary-float guard, and 29 passing risk workspa
 Workbench/OpenAPI contract smoke, and 1,050 unit/contract tests. Local `make ci` passed with 207
 integration tests, 1,257 coverage tests, 94.03% total coverage, and no known vulnerabilities after
 the governed `PYSEC-2026-161` exception.
+PR #368 then merged the risk concentration contract extraction with all GitHub checks green. The
+current risk rolling contract branch moves rolling metric summary, series, dependency,
+period-result, request-context, and payload contracts into `risk_workspace_rolling.py`, keeps
+`app.contracts.risk_workspace` as the compatibility import surface, refreshes the governed
+monetary-float allowlist for the moved rolling metric-value field, reduces `risk_workspace.py`
+from 1,343 to 969 measured lines, and has focused evidence from ruff, format check, mypy,
+monetary-float guard, and 23 passing risk workspace tests. Local `make check` passed with ruff,
+format check, monetary-float guard, mypy over 467 source files, Workbench/OpenAPI contract smoke,
+and 1,052 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,259 coverage
+tests, 94.03% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
