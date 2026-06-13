@@ -58,9 +58,7 @@ from app.services.portfolio_liquidity_payloads import (
     load_portfolio_liquidity_payloads,
 )
 from app.services.portfolio_position_book import (
-    build_top_positions,
-    parse_position_book_summary,
-    parse_positions,
+    build_position_book_response,
 )
 from app.services.portfolio_source_readiness import (
     build_source_readiness_indicators,
@@ -1290,11 +1288,14 @@ class PortfolioService:
             include_projected=include_projected,
             reporting_currency=reporting_currency,
         )
-        return self._build_position_book_response(
+        return build_position_book_response(
             correlation_id=correlation_id,
+            contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
-            payloads=payloads,
+            default_as_of_date=datetime.now(UTC).date().isoformat(),
+            aum_payload=payloads.aum_payload,
+            positions_payload=payloads.positions_payload,
         )
 
     async def _load_position_book_payloads(
@@ -1332,30 +1333,6 @@ class PortfolioService:
         return PortfolioPositionBookPayloads(
             aum_payload=aum_payload,
             positions_payload=positions_payload,
-        )
-
-    def _build_position_book_response(
-        self,
-        *,
-        correlation_id: str,
-        portfolio_id: str,
-        as_of_date: str | None,
-        payloads: PortfolioPositionBookPayloads,
-    ) -> PortfolioPositionBookResponse:
-        positions = parse_positions(payloads.positions_payload)
-        summary = parse_position_book_summary(payloads.aum_payload, payloads.positions_payload)
-        return PortfolioPositionBookResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=str(
-                payloads.aum_payload.get("resolved_as_of_date")
-                or as_of_date
-                or datetime.now(UTC).date()
-            ),
-            summary=summary,
-            top_positions=build_top_positions(positions),
-            positions=positions,
         )
 
     async def get_transaction_ledger(

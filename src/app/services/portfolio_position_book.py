@@ -1,7 +1,11 @@
 from typing import Any
 
 from app.contracts.portfolio_core import PortfolioSummary
-from app.contracts.portfolio_holdings import PortfolioPositionView, PortfolioTopPosition
+from app.contracts.portfolio_holdings import (
+    PortfolioPositionBookResponse,
+    PortfolioPositionView,
+    PortfolioTopPosition,
+)
 from app.precision_policy import (
     quantize_money,
     quantize_performance,
@@ -10,6 +14,29 @@ from app.precision_policy import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
+
+
+def build_position_book_response(
+    *,
+    correlation_id: str,
+    contract_version: str,
+    portfolio_id: str,
+    as_of_date: str | None,
+    default_as_of_date: str,
+    aum_payload: dict[str, Any],
+    positions_payload: dict[str, Any],
+) -> PortfolioPositionBookResponse:
+    positions = parse_positions(positions_payload)
+    summary = parse_position_book_summary(aum_payload, positions_payload)
+    return PortfolioPositionBookResponse(
+        correlation_id=correlation_id,
+        contract_version=contract_version,
+        portfolio_id=portfolio_id,
+        as_of_date=str(aum_payload.get("resolved_as_of_date") or as_of_date or default_as_of_date),
+        summary=summary,
+        top_positions=build_top_positions(positions),
+        positions=positions,
+    )
 
 
 def parse_position_book_summary(

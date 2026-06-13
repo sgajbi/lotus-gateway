@@ -342,21 +342,24 @@ The current portfolio catalog payload mapper slice moves portfolio catalog item 
 metadata alias handling, display-name fallback, and deterministic sort order into
 `portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779 to 1,764 physical
 lines while preserving catalog response behavior and the 49-line longest-function baseline.
-The current portfolio allocation response mapper slice moves allocation response projection and
+The prior portfolio allocation response mapper slice moves allocation response projection and
 look-through capability parsing into `portfolio_holdings_payloads.py`, reducing
 `portfolio_service.py` from 1,764 to 1,740 physical lines while preserving allocation summary,
 view, reporting-currency, and look-through behavior.
+The current portfolio position-book response mapper slice moves position-book response construction
+into `portfolio_position_book.py`, reducing `portfolio_service.py` from 1,740 to 1,718 physical
+lines while preserving summary, top-position, full-position, and as-of-date fallback behavior.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio allocation response mapper branch was created from clean `main` after PR #386; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio allocation response mapper branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 474 source files, Workbench/OpenAPI contract smoke, and 1,099 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio allocation response mapper branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio allocation response mapper branch `make ci` passed with 1,306 coverage tests and 94.13% total coverage, above the 84% floor |
-| Security audit | Governed | Current portfolio allocation response mapper branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; no new dependency or monetary-float conversion was introduced |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` below the 2,000-line source-file threshold at 1,740 physical lines; `performance_workspace_service.py` is 1,413 measured lines, and several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current portfolio position-book response mapper branch was created from clean `main` after PR #387; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current portfolio position-book response mapper branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 474 source files, Workbench/OpenAPI contract smoke, and 1,101 unit/contract tests |
+| Integration coverage | Healthy | Current portfolio position-book response mapper branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current portfolio position-book response mapper branch `make ci` passed with 1,308 coverage tests and 94.13% total coverage, above the 84% floor |
+| Security audit | Governed | Current portfolio position-book response mapper branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; no new dependency or monetary-float conversion was introduced |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` below the 2,000-line source-file threshold at 1,718 physical lines; `performance_workspace_service.py` is 1,413 measured lines, and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
