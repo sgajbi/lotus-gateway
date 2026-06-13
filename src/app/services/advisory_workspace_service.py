@@ -2,7 +2,17 @@ from typing import Any
 
 from app.contracts.advisory_workspaces import AdvisoryWorkspaceEnvelopeResponse
 from app.services.advisory_client_protocols import AdvisoryWorkspaceClient
-from app.services.upstream_envelope import build_gateway_envelope, raise_product_safe_service_error
+from app.services.upstream_envelope import (
+    ProductSafeServiceErrorConfig,
+    build_gateway_envelope,
+    raise_configured_product_safe_service_error,
+)
+
+ADVISORY_WORKSPACE_ERROR_CONFIG = ProductSafeServiceErrorConfig(
+    source_service="lotus-advise",
+    error_code="ADVISE_WORKSPACE_UPSTREAM_ERROR",
+    default_detail="lotus-advise advisory workspace request failed.",
+)
 
 
 class AdvisoryWorkspaceService:
@@ -202,10 +212,8 @@ class AdvisoryWorkspaceService:
         upstream_status: int,
         upstream_payload: dict[str, Any],
     ) -> None:
-        raise_product_safe_service_error(
+        raise_configured_product_safe_service_error(
             upstream_status,
             upstream_payload,
-            source_service="lotus-advise",
-            error_code="ADVISE_WORKSPACE_UPSTREAM_ERROR",
-            default_detail="lotus-advise advisory workspace request failed.",
+            config=ADVISORY_WORKSPACE_ERROR_CONFIG,
         )
