@@ -7,6 +7,8 @@ from app.contracts.performance_evidence import (
     PerformanceSourceSupportabilityView,
 )
 from app.services.performance_workspace_evidence import (
+    EvidenceViewFetchState,
+    EvidenceViewRequestContext,
     await_recent_evidence_completion,
     build_calculation_evidence_view,
     build_performance_evidence_view,
@@ -22,6 +24,7 @@ from app.services.performance_workspace_evidence import (
     refresh_execution_after_lineage_completion,
     resolve_evidence_reason,
     resolve_evidence_state,
+    resolve_evidence_view_response,
 )
 
 
@@ -110,6 +113,136 @@ def test_build_source_supportability_deduplicates_upstream_posture():
             "source_service": "lotus-performance",
         }
     ]
+
+
+def _evidence_request_context() -> EvidenceViewRequestContext:
+    return EvidenceViewRequestContext(
+        portfolio_id="PORT-1",
+        as_of_date="2026-03-27",
+        period="YTD",
+        basis="NET",
+        benchmark_code="BMK-1",
+        contract_version="v1",
+        correlation_id="corr-1",
+        calculations=[],
+        source_results=[],
+    )
+
+
+def test_resolve_evidence_view_response_returns_empty_unavailable_view() -> None:
+    warnings: list[str] = []
+    partial_failures = []
+
+    evidence = resolve_evidence_view_response(
+        context=_evidence_request_context(),
+        fetch_state=EvidenceViewFetchState(
+            source_supportability=[],
+            requested_items=[],
+            evidence_items=[],
+        ),
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert evidence.state == "unavailable"
+    assert (
+        evidence.reason == "No durable calculation evidence is available for the current selection."
+    )
+    assert evidence.limitations == ["No durable calculation evidence is available."]
+    assert warnings == []
+    assert partial_failures == []
+
+
+def test_resolve_evidence_view_response_records_unavailable_warning() -> None:
+    warnings: list[str] = []
+    partial_failures = []
+
+    evidence = resolve_evidence_view_response(
+        context=_evidence_request_context(),
+        fetch_state=EvidenceViewFetchState(
+            source_supportability=[],
+            requested_items=[("workspace_summary", "calc-1")],
+            evidence_items=[
+                PerformanceCalculationEvidenceView(
+                    calculation_role="workspace_summary",
+                    calculation_id="calc-1",
+                )
+            ],
+        ),
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert evidence.state == "unavailable"
+    assert evidence.reason == (
+        "Gateway could not resolve execution or lineage evidence from lotus-performance."
+    )
+    assert warnings == ["PERFORMANCE_EVIDENCE_UNAVAILABLE"]
+    assert partial_failures == []
+
+
+def test_resolve_evidence_view_response_downgrades_supported_source_posture() -> None:
+    stale_item = PerformanceSourceSupportabilityView(
+        key="source_calculation",
+        state="partial",
+        reason="Source data window stale",
+        freshness_bucket="stale",
+        source_service="lotus-performance",
+    )
+
+    evidence = resolve_evidence_view_response(
+        context=_evidence_request_context(),
+        fetch_state=EvidenceViewFetchState(
+            source_supportability=[stale_item],
+            requested_items=[("workspace_summary", "calc-1")],
+            evidence_items=[
+                PerformanceCalculationEvidenceView(
+                    calculation_role="workspace_summary",
+                    calculation_id="calc-1",
+                    execution_status="complete",
+                    lineage_status="complete",
+                )
+            ],
+        ),
+        warnings=[],
+        partial_failures=[],
+    )
+
+    assert evidence.state == "partial"
+    assert evidence.reason == "Source data window stale"
+    assert evidence.limitations == ["Source data window stale"]
+    assert evidence.source_supportability == [stale_item]
+
+
+def test_resolve_evidence_view_response_records_partial_failure() -> None:
+    warnings: list[str] = []
+    partial_failures = []
+
+    evidence = resolve_evidence_view_response(
+        context=_evidence_request_context(),
+        fetch_state=EvidenceViewFetchState(
+            source_supportability=[],
+            requested_items=[("workspace_summary", "calc-1")],
+            evidence_items=[
+                PerformanceCalculationEvidenceView(
+                    calculation_role="workspace_summary",
+                    calculation_id="calc-1",
+                    execution_status="complete",
+                    lineage_status="pending",
+                )
+            ],
+        ),
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+
+    assert evidence.state == "partial"
+    assert evidence.reason == (
+        "One or more performance calculations still have pending, failed, "
+        "or unavailable lineage evidence."
+    )
+    assert warnings == ["PERFORMANCE_EVIDENCE_PARTIAL"]
+    assert [failure.error_code for failure in partial_failures] == ["PERFORMANCE_EVIDENCE_PARTIAL"]
 
 
 def test_resolve_evidence_state_and_reason_honor_source_supportability():

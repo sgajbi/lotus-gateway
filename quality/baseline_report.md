@@ -240,6 +240,11 @@ upstream-snapshot, artifact, and evidence-view contracts into `performance_evide
 `app.contracts.performance_workspace` as the compatibility import surface, preserves the monetary
 float allowlist without churn, and reduces `performance_workspace.py` from 1,101 to 903 measured
 lines while preserving OpenAPI schema names and the 49-line longest-function baseline.
+The current performance evidence-view builder slice moves evidence request context, fetch state,
+source-supportability collection, durable calculation evidence fetching, and supported/partial/
+unavailable evidence response resolution into `performance_workspace_evidence.py`, reducing
+`performance_workspace_service.py` from 1,611 to 1,413 measured lines while preserving the
+49-line longest-function baseline and the Workbench performance evidence API contract.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -253,7 +258,7 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance evidence contract branch shows 1,377
+Working-tree verification for the current performance evidence-view builder branch shows 1,377
 files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 471 Python source files
 under `src/app`; and 182 Python test files under `tests`.
 
@@ -262,8 +267,8 @@ under `src/app`; and 182 Python test files under `tests`.
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 1,970 | `src/app/services/portfolio_service.py` |
-| 2 | 1,611 | `src/app/services/performance_workspace_service.py` |
-| 3 | 1,454 | `src/app/services/advisor_brief_service.py` |
+| 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
+| 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
 | 5 | 1,137 | `src/app/services/dpm_command_center_service.py` |
 | 6 | 1,012 | `src/app/clients/advise_client.py` |
@@ -486,14 +491,23 @@ Most recent local evidence:
 84. Latest merged performance attribution contract slice: `make ci` passed with 207 integration tests
     and 1,265 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
-85. Current performance evidence contract branch focused validation passed with ruff format, ruff
+85. Merged performance evidence contract branch focused validation passed with ruff format, ruff
     check, mypy over touched contract/service modules, monetary-float guard, and 18 performance
     evidence/capabilities/response tests.
-86. Current performance evidence contract branch: `make check` passed with ruff, format check,
+86. Latest merged performance evidence contract slice: `make check` passed with ruff, format check,
     monetary-float guard, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,059
     unit/contract tests.
-87. Current performance evidence contract branch: `make ci` passed with 207 integration tests and
+87. Latest merged performance evidence contract slice: `make ci` passed with 207 integration tests and
     1,266 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
+88. Current performance evidence-view builder branch focused validation passed with ruff format,
+    ruff check, mypy over touched service modules, monetary-float guard, and 51 focused
+    performance evidence/service tests.
+89. Current performance evidence-view builder branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,063
+    unit/contract tests.
+90. Current performance evidence-view builder branch: `make ci` passed with 207 integration tests
+    and 1,270 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline

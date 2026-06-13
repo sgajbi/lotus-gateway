@@ -13,10 +13,12 @@ from app.contracts.performance_evidence import (
     PerformanceEvidenceView,
     PerformanceSourceSupportabilityView,
 )
+from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.performance_workspace_capabilities import (
     SUPPORTED_ATTRIBUTION_DIMENSIONS,
     SUPPORTED_CONTRIBUTION_DIMENSIONS,
 )
+from app.services.performance_workspace_failures import build_performance_failure
 from app.services.source_supportability import (
     extract_calculation_supportability,
     source_supportability_reason,
@@ -39,6 +41,42 @@ class CalculationEvidencePayloads:
     lineage_data: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class EvidenceViewRequestContext:
+    portfolio_id: str
+    as_of_date: str
+    period: str
+    basis: str
+    benchmark_code: str | None
+    contract_version: str
+    correlation_id: str
+    calculations: Sequence[tuple[str, str | None]]
+    source_results: Sequence[GatheredResult | None]
+
+
+@dataclass(frozen=True)
+class EvidenceViewFetchState:
+    source_supportability: list[PerformanceSourceSupportabilityView]
+    requested_items: list[tuple[str, str]]
+    evidence_items: list[PerformanceCalculationEvidenceView]
+
+    @property
+    def backed_count(self) -> int:
+        return sum(
+            1
+            for item in self.evidence_items
+            if item.execution_status is not None or item.lineage_status is not None
+        )
+
+    @property
+    def complete_count(self) -> int:
+        return sum(
+            1
+            for item in self.evidence_items
+            if item.execution_status == "complete" and item.lineage_status == "complete"
+        )
+
+
 def extract_calculation_id_from_result(result: GatheredResult | None) -> str | None:
     if result is None or isinstance(result, BaseException):
         return None
@@ -49,6 +87,194 @@ def extract_calculation_id_from_result(result: GatheredResult | None) -> str | N
     if calculation_id is None:
         return None
     return str(calculation_id)
+
+
+def build_evidence_requested_items(
+    calculations: Sequence[tuple[str, str | None]],
+) -> list[tuple[str, str]]:
+    return [
+        (role, calculation_id)
+        for role, calculation_id in calculations
+        if calculation_id is not None
+    ]
+
+
+async def fetch_evidence_view_state(
+    *,
+    analytics_client: PerformanceWorkspaceAnalyticsClient,
+    context: EvidenceViewRequestContext,
+    poll_interval_seconds: float = DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS,
+) -> EvidenceViewFetchState:
+    requested_items = build_evidence_requested_items(context.calculations)
+    source_supportability = build_source_supportability(context.source_results)
+    if not requested_items:
+        return EvidenceViewFetchState(
+            source_supportability=source_supportability,
+            requested_items=[],
+            evidence_items=[],
+        )
+    evidence_items = await asyncio.gather(
+        *[
+            fetch_calculation_evidence(
+                analytics_client=analytics_client,
+                portfolio_id=context.portfolio_id,
+                calculation_role=role,
+                calculation_id=calculation_id,
+                correlation_id=context.correlation_id,
+                poll_interval_seconds=poll_interval_seconds,
+            )
+            for role, calculation_id in requested_items
+        ]
+    )
+    return EvidenceViewFetchState(
+        source_supportability=source_supportability,
+        requested_items=requested_items,
+        evidence_items=list(evidence_items),
+    )
+
+
+def resolve_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> PerformanceEvidenceView:
+    if not fetch_state.requested_items:
+        return build_empty_evidence_view_response(
+            context=context,
+            source_supportability=fetch_state.source_supportability,
+        )
+    if fetch_state.backed_count == 0:
+        warnings.append("PERFORMANCE_EVIDENCE_UNAVAILABLE")
+        return build_unavailable_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    if fetch_state.complete_count == len(fetch_state.evidence_items):
+        return build_supported_evidence_view_response(
+            context=context,
+            fetch_state=fetch_state,
+        )
+    record_partial_evidence_view(
+        warnings=warnings,
+        partial_failures=partial_failures,
+    )
+    return build_partial_evidence_view_response(
+        context=context,
+        fetch_state=fetch_state,
+    )
+
+
+def build_empty_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    source_supportability: Sequence[PerformanceSourceSupportabilityView],
+) -> PerformanceEvidenceView:
+    return build_performance_evidence_view(
+        state="unavailable",
+        reason="No durable calculation evidence is available for the current selection.",
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=["No durable calculation evidence is available."],
+        calculations=[],
+        source_supportability=source_supportability,
+    )
+
+
+def build_unavailable_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    reason = "Gateway could not resolve execution or lineage evidence from lotus-performance."
+    return build_performance_evidence_view(
+        state="unavailable",
+        reason=reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
+
+
+def build_supported_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    evidence_state = resolve_evidence_state(
+        evidence_state="supported",
+        source_supportability=fetch_state.source_supportability,
+    )
+    evidence_reason = resolve_evidence_reason(
+        evidence_state=evidence_state,
+        supported_reason=(
+            "Execution status, upstream lineage, and artifact inventory "
+            "are exposed for the current performance view."
+        ),
+        source_supportability=fetch_state.source_supportability,
+    )
+    return build_performance_evidence_view(
+        state=evidence_state,
+        reason=evidence_reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[] if evidence_state == "supported" else [evidence_reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
+
+
+def build_partial_evidence_view_response(
+    *,
+    context: EvidenceViewRequestContext,
+    fetch_state: EvidenceViewFetchState,
+) -> PerformanceEvidenceView:
+    reason = (
+        "One or more performance calculations still have pending, failed, "
+        "or unavailable lineage evidence."
+    )
+    return build_performance_evidence_view(
+        state="partial",
+        reason=reason,
+        as_of_date=context.as_of_date,
+        period=context.period,
+        basis=context.basis,
+        benchmark_code=context.benchmark_code,
+        contract_version=context.contract_version,
+        limitations=[reason],
+        calculations=fetch_state.evidence_items,
+        source_supportability=fetch_state.source_supportability,
+    )
+
+
+def record_partial_evidence_view(
+    *,
+    warnings: list[str],
+    partial_failures: list[WorkbenchPartialFailure],
+) -> None:
+    warnings.append("PERFORMANCE_EVIDENCE_PARTIAL")
+    partial_failures.append(
+        build_performance_failure(
+            "lotus-performance",
+            "PERFORMANCE_EVIDENCE_PARTIAL",
+            (
+                "Gateway resolved only partial execution or lineage evidence "
+                "for one or more performance calculations."
+            ),
+        )
+    )
 
 
 def build_performance_evidence_view(

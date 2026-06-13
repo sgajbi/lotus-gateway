@@ -187,7 +187,7 @@ check, monetary-float guard, mypy over 470 source files, Workbench/OpenAPI contr
 tests, 94.05% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 PR #372 then merged the performance attribution contract extraction with all GitHub checks green.
-The current performance evidence contract branch moves calculation, source-supportability, stage,
+The merged performance evidence contract branch moved calculation, source-supportability, stage,
 upstream-snapshot, artifact, and evidence-view contracts into `performance_evidence.py`, keeps
 `app.contracts.performance_workspace` as the compatibility import surface, preserves the governed
 monetary-float allowlist without churn, reduces `performance_workspace.py` from 1,101 to 903
@@ -197,3 +197,13 @@ format check, monetary-float guard, mypy over 471 source files, Workbench/OpenAP
 and 1,059 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,266 coverage
 tests, 94.05% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
+PR #373 then merged the performance evidence contract extraction with all GitHub checks green.
+The current performance evidence-view builder branch moves evidence request context, fetch state,
+source-supportability collection, durable calculation evidence fetching, and supported/partial/
+unavailable evidence response resolution into `performance_workspace_evidence.py`, reduces
+`performance_workspace_service.py` from 1,611 to 1,413 measured lines, and has focused evidence
+from ruff, format check, mypy, monetary-float guard, and 51 passing performance evidence/service
+tests. Local `make check` passed with ruff, format check, monetary-float guard, mypy over 471
+source files, Workbench/OpenAPI contract smoke, and 1,063 unit/contract tests. Local `make ci`
+passed with 207 integration tests, 1,270 coverage tests, 94.05% total coverage, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
