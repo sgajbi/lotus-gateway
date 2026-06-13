@@ -48,7 +48,11 @@ from app.services.portfolio_exception_summaries import (
     build_portfolio_exception_summaries,
 )
 from app.services.portfolio_holdings_payloads import (
+    PortfolioAllocationLoadRequest,
+    PortfolioAllocationPayloadLoaders,
+    PortfolioAllocationPayloads,
     build_portfolio_allocation_response,
+    load_portfolio_allocation_payloads,
     parse_cash_balances,
 )
 from app.services.portfolio_insights import build_portfolio_insights
@@ -149,24 +153,9 @@ class PortfolioWorkspaceAnalyticsResults:
 
 
 @dataclass(frozen=True)
-class PortfolioAllocationPayloads:
-    aum_result: UpstreamResult
-    aum_payload: dict[str, Any]
-    positions_payload: dict[str, Any]
-    allocation_payload: dict[str, Any]
-
-
-@dataclass(frozen=True)
 class PortfolioPositionBookPayloads:
     aum_payload: dict[str, Any]
     positions_payload: dict[str, Any]
-
-
-@dataclass(frozen=True)
-class PortfolioAllocationResults:
-    aum_result: UpstreamResult
-    positions_result: UpstreamResult
-    allocation_result: UpstreamResult
 
 
 @dataclass(frozen=True)
@@ -1207,65 +1196,20 @@ class PortfolioService:
         reporting_currency: str | None,
         look_through_mode: str | None,
     ) -> PortfolioAllocationPayloads:
-        results = await self._query_portfolio_allocation_results(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            reporting_currency=reporting_currency,
-            look_through_mode=look_through_mode,
-        )
-        return PortfolioAllocationPayloads(
-            aum_result=results.aum_result,
-            aum_payload=self._require_payload(
-                result=results.aum_result,
-                unavailable_detail_prefix="lotus-core aum unavailable",
-            ),
-            allocation_payload=self._require_payload(
-                result=results.allocation_result,
-                unavailable_detail_prefix="lotus-core allocation unavailable",
-            ),
-            positions_payload=self._require_payload(
-                result=results.positions_result,
-                unavailable_detail_prefix="lotus-core positions unavailable",
-            ),
-        )
-
-    async def _query_portfolio_allocation_results(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None,
-        reporting_currency: str | None,
-        look_through_mode: str | None,
-    ) -> PortfolioAllocationResults:
-        aum_result, positions_result, allocation_result = await asyncio.gather(
-            self._query_aum_result(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._get_portfolio_positions_result(
+        return await load_portfolio_allocation_payloads(
+            PortfolioAllocationLoadRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
-                include_projected=False,
-                reporting_currency=reporting_currency,
-            ),
-            self._query_asset_allocation_result(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                dimensions=["asset_class", "currency", "sector", "region"],
                 reporting_currency=reporting_currency,
                 look_through_mode=look_through_mode,
             ),
-        )
-        return PortfolioAllocationResults(
-            aum_result=aum_result,
-            positions_result=positions_result,
-            allocation_result=allocation_result,
+            PortfolioAllocationPayloadLoaders(
+                query_aum_result=self._query_aum_result,
+                get_portfolio_positions_result=self._get_portfolio_positions_result,
+                query_asset_allocation_result=self._query_asset_allocation_result,
+                require_payload=self._require_payload,
+            ),
         )
 
     async def get_portfolio_positions(

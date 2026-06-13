@@ -1,9 +1,97 @@
+import pytest
+
 from app.services.portfolio_holdings_payloads import (
+    ALLOCATION_VIEW_DIMENSIONS,
+    PortfolioAllocationLoadRequest,
+    PortfolioAllocationPayloadLoaders,
     build_portfolio_allocation_response,
+    load_portfolio_allocation_payloads,
     parse_allocation_views,
     parse_cash_balances,
     parse_look_through_capability,
 )
+
+
+@pytest.mark.asyncio
+async def test_load_portfolio_allocation_payloads_queries_sources_and_requires_payloads() -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+    aum_result = (200, {"portfolios": [{"aum_reporting_currency": "1000"}]})
+    positions_result = (200, {"positions": [{"security_id": "EQ_1"}]})
+    allocation_result = (200, {"views": []})
+
+    async def query_aum_result(**kwargs):
+        calls.append(("aum", kwargs))
+        return aum_result
+
+    async def get_portfolio_positions_result(**kwargs):
+        calls.append(("positions", kwargs))
+        return positions_result
+
+    async def query_asset_allocation_result(**kwargs):
+        calls.append(("allocation", kwargs))
+        return allocation_result
+
+    required: list[tuple[object, str]] = []
+
+    def require_payload(*, result, unavailable_detail_prefix: str):
+        required.append((result, unavailable_detail_prefix))
+        return result[1]
+
+    payloads = await load_portfolio_allocation_payloads(
+        PortfolioAllocationLoadRequest(
+            portfolio_id="PF_1001",
+            correlation_id="corr-allocation",
+            as_of_date="2026-03-31",
+            reporting_currency="USD",
+            look_through_mode="full",
+        ),
+        PortfolioAllocationPayloadLoaders(
+            query_aum_result=query_aum_result,
+            get_portfolio_positions_result=get_portfolio_positions_result,
+            query_asset_allocation_result=query_asset_allocation_result,
+            require_payload=require_payload,
+        ),
+    )
+
+    assert payloads.aum_result == aum_result
+    assert payloads.aum_payload == aum_result[1]
+    assert payloads.positions_payload == positions_result[1]
+    assert payloads.allocation_payload == allocation_result[1]
+    assert (
+        "aum",
+        {
+            "correlation_id": "corr-allocation",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-31",
+            "reporting_currency": "USD",
+        },
+    ) in calls
+    assert (
+        "positions",
+        {
+            "portfolio_id": "PF_1001",
+            "correlation_id": "corr-allocation",
+            "as_of_date": "2026-03-31",
+            "include_projected": False,
+            "reporting_currency": "USD",
+        },
+    ) in calls
+    assert (
+        "allocation",
+        {
+            "correlation_id": "corr-allocation",
+            "portfolio_id": "PF_1001",
+            "as_of_date": "2026-03-31",
+            "dimensions": ALLOCATION_VIEW_DIMENSIONS,
+            "reporting_currency": "USD",
+            "look_through_mode": "full",
+        },
+    ) in calls
+    assert required == [
+        (aum_result, "lotus-core aum unavailable"),
+        (allocation_result, "lotus-core allocation unavailable"),
+        (positions_result, "lotus-core positions unavailable"),
+    ]
 
 
 def test_build_portfolio_allocation_response_preserves_summary_views_and_look_through() -> None:

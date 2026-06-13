@@ -220,10 +220,10 @@ blocking `make lint` path through `scripts/check_refactor_quality_thresholds.py`
 the promoted refactor threshold visible as `Lint and Refactor Quality Thresholds` in Feature Lane
 and PR Merge Gate logs, and lets PR Merge Gate integration and coverage jobs run in parallel after
 lint/typecheck/unit. Docker build and Docker parity still wait for both integration and coverage.
-Subsequent source-file ratchets now fail when any Python source file under `src/app` exceeds 1,799
+Subsequent source-file ratchets now fail when any Python source file under `src/app` exceeds 1,743
 physical lines or any Python function or async function exceeds the current 49-line AST span
 baseline. Current focused local evidence: `python scripts/check_refactor_quality_thresholds.py`
-passed with `max_source_file_lines=1799` and `max_function_lines=49`.
+passed with `max_source_file_lines=1743` and `max_function_lines=49`.
 Local validation for that branch passed with `make check` covering ruff, format check,
 monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
 contract smoke, and 1,066 unit/contract tests. Local `make ci` passed with 207 integration tests,
