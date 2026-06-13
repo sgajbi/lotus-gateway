@@ -86,14 +86,14 @@ and rebalance supportability failure-recording splits then lowered the baseline 
 74 lines. The 50-commit enterprise-hardening branch then split shared analytics async polling,
 workspace-summary payload assembly, portfolio transaction-summary context loading, transaction
 page loading, and portfolio book response assembly, lowering the baseline to 62 lines.
-`portfolio_service.py` is now measured at 2,079 lines after portfolio liquidity loading,
+At that point, `portfolio_service.py` was measured at 2,079 lines after portfolio liquidity loading,
 transaction request-context, transaction page-context, transaction client-kwargs, portfolio
 workspace response assembly, portfolio workspace performance parsing, and portfolio workspace
 rebalance parsing, portfolio source-readiness parsing, portfolio transaction summary mapping, and
-portfolio workflow mapping extractions. `portfolio.py` is now measured at 1,464 lines after
+portfolio workflow mapping extractions. `portfolio.py` was measured at 1,464 lines after
 workflow/readiness, transaction-ledger, performance snapshot, and income/activity contract
 extractions, and 954 lines after the holdings/book contract extraction.
-`performance_workspace_service.py` is now measured at 1,704 lines after response assembly
+`performance_workspace_service.py` was measured at 1,704 lines after response assembly
 extraction. The current longest-function baseline is 49 lines. Local `make check` for the current
 portfolio holdings contract branch passed with ruff, format check, monetary-float guard, mypy over
 461 source files, Workbench/OpenAPI contract smoke, and 1,039 unit/contract tests. Local `make ci`
@@ -198,7 +198,7 @@ and 1,059 unit/contract tests. Local `make ci` passed with 207 integration tests
 tests, 94.05% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 PR #373 then merged the performance evidence contract extraction with all GitHub checks green.
-The current performance evidence-view builder branch moves evidence request context, fetch state,
+The then-current performance evidence-view builder branch moved evidence request context, fetch state,
 source-supportability collection, durable calculation evidence fetching, and supported/partial/
 unavailable evidence response resolution into `performance_workspace_evidence.py`, reduces
 `performance_workspace_service.py` from 1,611 to 1,413 measured lines, and has focused evidence
@@ -208,7 +208,8 @@ source files, Workbench/OpenAPI contract smoke, and 1,063 unit/contract tests. L
 passed with 207 integration tests, 1,270 coverage tests, 94.05% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 PR #374 then merged the performance evidence-view builder extraction with all GitHub checks green.
-The current quality-baseline enforcement branch promotes remediated refactor thresholds into the
+PR #375 then merged the quality-baseline enforcement branch with all GitHub checks green. That
+branch promoted remediated refactor thresholds into the
 blocking `make lint` path through `scripts/check_refactor_quality_thresholds.py`. The gate fails
 when any Python source file under `src/app` exceeds 2,100 physical lines or any Python function or
 async function exceeds the current 49-line AST span baseline. Focused local evidence:
@@ -217,8 +218,20 @@ async function exceeds the current 49-line AST span baseline. Focused local evid
 visible as `Lint and Refactor Quality Thresholds` in Feature Lane and PR Merge Gate logs, and lets
 PR Merge Gate integration and coverage jobs run in parallel after lint/typecheck/unit. Docker build
 and Docker parity still wait for both integration and coverage.
-Local validation for the current branch passed with `make check` covering ruff, format check,
+Local validation for that branch passed with `make check` covering ruff, format check,
 monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
 contract smoke, and 1,066 unit/contract tests. Local `make ci` passed with 207 integration tests,
 1,273 coverage tests, 94.05% total coverage, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
+
+The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
+transaction pagination, defensive page-row extraction, reporting-currency fallback, and
+requested-window filtering into `portfolio_transaction_summary.py`. It reduces
+`portfolio_service.py` from 1,970 to 1,888 physical lines while preserving income/activity summary
+behavior and the 49-line longest-function baseline. Focused local validation passed with ruff
+check, ruff format check, mypy over touched service modules, and 51 portfolio summary/service
+unit tests. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,070
+unit/contract tests. Local `make ci` passed with 207 integration tests, 1,277 coverage tests,
+94.08% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
