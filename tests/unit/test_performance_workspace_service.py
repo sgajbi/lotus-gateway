@@ -2249,7 +2249,7 @@ async def test_performance_workspace_service_marks_pending_lineage_as_partial_ev
 @pytest.mark.asyncio
 async def test_performance_workspace_service_promotes_recently_materialized_lineage(monkeypatch):
     monkeypatch.setattr(
-        "app.services.performance_workspace_service.LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS",
+        "app.services.performance_workspace_evidence.DEFAULT_LINEAGE_COMPLETION_POLL_INTERVAL_SECONDS",
         0,
     )
 
