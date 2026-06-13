@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-13T00:10:04Z",
+  "generated_at": "2026-06-13T00:28:52Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -508,25 +508,19 @@
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:302:value: float | None = Field(",
+      "finding": "src/app/contracts/risk_workspace.py:227:value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:463:metric_values: dict[str, float | None] = Field(",
+      "finding": "src/app/contracts/risk_workspace.py:357:weight_average: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:751:weight_average: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
-      "finding": "src/app/contracts/risk_workspace.py:786:total_value: float | None = Field(",
+      "finding": "src/app/contracts/risk_workspace.py:392:total_value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
@@ -608,6 +602,12 @@
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
+    },
+    {
+      "finding": "src/app/contracts/risk_workspace_rolling.py:190:metric_values: dict[str, float | None] = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-12-10"
     },
     {
       "finding": "src/app/contracts/workbench.py:239:market_value_base: float | None = Field(",

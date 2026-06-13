@@ -7,6 +7,10 @@ from fastapi import status
 from app.contracts.risk_workspace import (
     RiskModuleState,
     WorkbenchRiskMetadata,
+    WorkbenchRiskRollingResponse,
+    WorkbenchRiskSupportabilityItem,
+)
+from app.contracts.risk_workspace_rolling import (
     WorkbenchRiskRollingDependencyContext,
     WorkbenchRiskRollingMetricSeriesContext,
     WorkbenchRiskRollingMetricSeriesPoint,
@@ -14,9 +18,7 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskRollingPayload,
     WorkbenchRiskRollingPeriodResult,
     WorkbenchRiskRollingRequestContext,
-    WorkbenchRiskRollingResponse,
     WorkbenchRiskRollingWindowResult,
-    WorkbenchRiskSupportabilityItem,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
