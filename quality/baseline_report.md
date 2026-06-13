@@ -603,8 +603,12 @@ Most recent local evidence:
      `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,826 to 1,779
      physical lines while preserving the 49-line longest-function baseline. The monetary-float
      allowlist was refreshed because approved quantized response float conversions moved from the
-     service into the new mapper; the guard remains at 159 findings, all allowlisted. Full
-     `make check` and `make ci` evidence remains pending for PR readiness.
+     service into the new mapper; the guard remains at 159 findings, all allowlisted. `make check`
+     passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 473
+     source files, Workbench/OpenAPI contract smoke, and 1,093 unit/contract tests. `make ci`
+     passed with 207 integration tests and 1,300 combined coverage tests; total coverage is
+     94.10%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
+     exception.
 
 ## Tooling Availability Baseline
 

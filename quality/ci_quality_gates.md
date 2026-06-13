@@ -86,7 +86,9 @@ Most recent local PR-grade evidence:
    exception.
 10. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
-    Full `make check` and `make ci` evidence remains pending.
+    `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
+    tests, 1,300 coverage tests, 94.10% total coverage, and no known vulnerabilities after the
+    governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
