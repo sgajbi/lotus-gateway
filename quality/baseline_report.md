@@ -552,6 +552,13 @@ Most recent local evidence:
      Workbench/OpenAPI contract smoke, and 1,077 unit/contract tests. `make ci` passed with 207
      integration tests and 1,284 combined coverage tests; total coverage is 94.07%, and
      `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+102. Current Bank-Buyable metric-label contract branch: focused validation passed with 24
+     observability unit tests plus ruff, format check, and mypy over the touched observability
+     module. `make check` passed with ruff, format check, monetary-float guard, refactor threshold
+     gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,079 unit/contract
+     tests. `make ci` passed with 207 integration tests and 1,286 combined coverage tests; total
+     coverage is 94.07%, and `pip-audit` found no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -641,7 +648,8 @@ logs, and diagnostics lookup. Remaining baseline gaps:
 2. broader structured logging/audit field allowlists are not yet scored across all gateway
    telemetry in CI,
 3. tracing propagation beyond correlation IDs is not yet governed by a blocking test,
-4. metrics label-cardinality rules are not yet enforced by a static gate.
+4. Prometheus collector metric-label rules are enforced by a static unit gate for gateway metric
+   definitions; broader non-Prometheus telemetry label scoring remains future hardening.
 
 ## Next Gates
 

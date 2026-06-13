@@ -78,4 +78,5 @@ Most recent local PR-grade evidence:
 3. Promote import-linter contracts after false positives are classified.
 4. Tighten the enforced source-file threshold downward as the remaining largest services are split;
    `portfolio_service.py` is now 1,826 physical lines, below the current 2,100-line ceiling.
-5. Add static no-sensitive-observability checks for logs, metrics labels, and diagnostics fields.
+5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
+   broader logs, trace attributes, and diagnostics fields.

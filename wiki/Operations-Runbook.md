@@ -27,8 +27,11 @@
 - RFC-0108 analytics UI observability vocabulary is code-owned in
   `src/app/observability/analytics_ui.py`.
 - The module defines allowed labels, forbidden fields, state vocabulary, and gateway analytics
-  metric-family names.
+  metric-family names and label contracts.
 - Do not add gateway analytics metric labels outside that contract.
+- Prometheus collector labels are covered by the static unit gate in
+  `tests/unit/test_prometheus_metric_label_contracts.py`; add new metric families to the code-owned
+  contract before expecting CI to pass.
 - `portfolio_id`, `client_id`, `client_name`, `holding_id`, `transaction_id`, `session_id`,
   `simulation_session_id`, `upload_id`, `document_id`, `trace_id`, `correlation_id`, request
   bodies, response bodies, raw prompts, model output, and raw entitlement failures must not become
