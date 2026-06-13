@@ -561,8 +561,11 @@ Most recent local evidence:
      `PYSEC-2026-161` exception.
 103. Current Bank-Buyable error-normalization branch focused validation passed with 26 reporting
      and upstream-envelope unit tests plus ruff, format check, mypy over the reporting error mapper,
-     and the refactor threshold gate. Full `make check` and `make ci` evidence remains pending for
-     PR readiness.
+     and the refactor threshold gate. `make check` passed with ruff, format check,
+     monetary-float guard, refactor threshold gate, mypy over 472 source files,
+     Workbench/OpenAPI contract smoke, and 1,082 unit/contract tests. `make ci` passed with 207
+     integration tests and 1,289 combined coverage tests; total coverage is 94.10%, and
+     `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
