@@ -42,6 +42,12 @@ from app.contracts.portfolio_holdings import (
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_book import build_portfolio_book_response
+from app.services.portfolio_book_sources import (
+    PortfolioBookSourceLoaders,
+    PortfolioBookSourceRequest,
+    PortfolioBookSourceResults,
+    load_portfolio_book_source_results,
+)
 from app.services.portfolio_catalog_payloads import parse_catalog_items
 from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
@@ -156,14 +162,6 @@ class PortfolioWorkspaceAssemblyState:
     portfolio_payload: dict[str, Any]
     warnings: list[str]
     partial_failures: list[PortfolioPartialFailure]
-
-
-@dataclass(frozen=True)
-class PortfolioBookSourceResults:
-    allocations: PortfolioAllocationResponse
-    positions: PortfolioPositionBookResponse
-    cash_balances_result: UpstreamResult
-    portfolio_result: UpstreamResult
 
 
 class PortfolioService:
@@ -884,36 +882,20 @@ class PortfolioService:
         include_projected: bool,
         reporting_currency: str | None,
     ) -> PortfolioBookSourceResults:
-        allocations, positions, cash_balances_result, portfolio_result = await asyncio.gather(
-            self.get_portfolio_allocations(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self.get_portfolio_positions(
+        return await load_portfolio_book_source_results(
+            PortfolioBookSourceRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
                 reporting_currency=reporting_currency,
             ),
-            self._query_cash_balances_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
+            PortfolioBookSourceLoaders(
+                get_portfolio_allocations=self.get_portfolio_allocations,
+                get_portfolio_positions=self.get_portfolio_positions,
+                query_cash_balances_result=self._query_cash_balances_result,
+                get_portfolio_result=self._get_portfolio_result,
             ),
-            self._get_portfolio_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            ),
-        )
-        return PortfolioBookSourceResults(
-            allocations=allocations,
-            positions=positions,
-            cash_balances_result=cash_balances_result,
-            portfolio_result=portfolio_result,
         )
 
     def _build_portfolio_book_response(

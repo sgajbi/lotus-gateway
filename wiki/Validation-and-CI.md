@@ -220,10 +220,10 @@ blocking `make lint` path through `scripts/check_refactor_quality_thresholds.py`
 the promoted refactor threshold visible as `Lint and Refactor Quality Thresholds` in Feature Lane
 and PR Merge Gate logs, and lets PR Merge Gate integration and coverage jobs run in parallel after
 lint/typecheck/unit. Docker build and Docker parity still wait for both integration and coverage.
-Subsequent source-file ratchets now fail when any Python source file under `src/app` exceeds 1,607
+Subsequent source-file ratchets now fail when any Python source file under `src/app` exceeds 1,589
 script-counted lines or any Python function or async function exceeds the current 49-line AST span
 baseline. Current focused local evidence: `python scripts/check_refactor_quality_thresholds.py`
-passed with `max_source_file_lines=1607` and `max_function_lines=49`.
+passed with `max_source_file_lines=1589` and `max_function_lines=49`.
 Local validation for that branch passed with `make check` covering ruff, format check,
 monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
 contract smoke, and 1,066 unit/contract tests. Local `make ci` passed with 207 integration tests,
@@ -266,6 +266,16 @@ unit tests. Local `make check` passed with ruff, format check, monetary-float gu
 threshold gate, workflow action-runtime gate, mypy over 478 source files, Workbench/OpenAPI
 contract smoke, and 1,126 unit/contract tests. Local `make ci` passed with 207 integration tests,
 1,333 combined coverage tests, 94.19% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
+
+The current portfolio book source-loading branch ratchets the source-file threshold to 1,589
+script-counted lines after extracting portfolio book source fan-out into
+`portfolio_book_sources.py`. Focused validation passed with ruff check, ruff format check,
+touched-module mypy, the refactor threshold gate, and 64 helper/service/boundary/threshold unit
+tests. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, workflow action-runtime gate, mypy over 479 source files, Workbench/OpenAPI
+contract smoke, and 1,128 unit/contract tests. Local `make ci` passed with 207 integration tests,
+1,335 combined coverage tests, 94.20% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD

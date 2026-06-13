@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 DEFAULT_SOURCE_ROOT = Path("src/app")
-DEFAULT_MAX_SOURCE_FILE_LINES = 1607
+DEFAULT_MAX_SOURCE_FILE_LINES = 1589
 DEFAULT_MAX_FUNCTION_LINES = 49
 
 
@@ -131,7 +131,7 @@ def parse_args() -> argparse.Namespace:
         "--max-source-file-lines",
         type=int,
         default=DEFAULT_MAX_SOURCE_FILE_LINES,
-        help="Maximum allowed physical lines in any Python source file.",
+        help="Maximum allowed script-counted lines in any Python source file.",
     )
     parser.add_argument(
         "--max-function-lines",

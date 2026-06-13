@@ -35,7 +35,7 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 1,607 script-counted lines,
+1. `src/app/services/portfolio_service.py` at 1,589 script-counted lines,
 2. `src/app/services/performance_workspace_service.py` at 1,489 lines,
 3. `src/app/clients/dpm_client.py` at 1,362 lines,
 4. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
@@ -151,7 +151,10 @@ final portfolio workspace response assembly lowered `portfolio_service.py` to 1,
 lines. Portfolio readiness and insight source fan-out now lives in
 `src/app/services/portfolio_readiness_insight_sources.py`, reducing `portfolio_service.py` to
 1,607 script-counted lines while preserving workspace, source-readiness, positions, allocations,
-transaction-probe, and activity-summary request behavior. Performance workspace final response
+transaction-probe, and activity-summary request behavior. Portfolio book source fan-out now lives
+in `src/app/services/portfolio_book_sources.py`, reducing `portfolio_service.py` to 1,589
+script-counted lines while preserving allocation, position, cash-balance, portfolio-profile,
+projection, and reporting-currency request behavior. Performance workspace final response
 assembly now lives in
 `src/app/services/performance_workspace_response.py`, lowering
 `performance_workspace_service.py` to 1,413 lines. Lotus Core transaction query-parameter
