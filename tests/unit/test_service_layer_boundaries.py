@@ -183,6 +183,37 @@ def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     assert source_helpers == []
 
 
+def test_portfolio_service_delegates_readiness_and_insight_source_loading() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_source_bundles = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+        and node.name in {"PortfolioReadinessSources", "PortfolioInsightSources"}
+    )
+    inline_source_gathers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "_load_portfolio_readiness_sources",
+            "_load_portfolio_insight_sources",
+        }
+        and any(
+            isinstance(child, ast.Attribute)
+            and isinstance(child.value, ast.Name)
+            and child.value.id == "asyncio"
+            and child.attr == "gather"
+            for child in ast.walk(node)
+        )
+    )
+
+    assert local_source_bundles == []
+    assert inline_source_gathers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

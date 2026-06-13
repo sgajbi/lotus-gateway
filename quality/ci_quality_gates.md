@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,659
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,607
    physical lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1659` and `max_function_lines=49`.
+   `max_source_file_lines=1607` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -169,7 +169,7 @@ Most recent local PR-grade evidence:
     tests. Local `make ci` passed with 207 integration tests, 1,326 combined coverage tests,
     94.16% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
     exception.
-23. Current advisor-brief source mapper branch moves source-context, fallback narrative,
+23. Prior advisor-brief source mapper branch moves source-context, fallback narrative,
     source-metric, supportability, route, and AI fact-bundle shaping into
     `advisor_brief_source.py`, reducing `advisor_brief_service.py` from 1,454 to 861 physical
     lines while preserving the advisor-brief orchestration and workflow-pack runtime boundary.
@@ -179,6 +179,17 @@ Most recent local PR-grade evidence:
     mypy over 477 source files, Workbench/OpenAPI contract smoke, and 1,123 unit/contract tests.
     Local `make ci` passed with 207 integration tests, 1,330 combined coverage tests, 94.18% total
     coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+24. Current portfolio readiness/insight source-loading branch moves readiness and insight fan-out
+    source bundle construction into `portfolio_readiness_insight_sources.py`, reducing
+    `portfolio_service.py` from 1,659 to 1,607 script-counted lines while preserving workspace,
+    source-readiness, positions, allocations, transaction-probe, and activity-summary request
+    behavior. Focused validation passed with ruff check, ruff format check, touched-module mypy,
+    the refactor threshold gate, and 62 helper/service/boundary/threshold unit tests. Local
+    `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+    workflow action-runtime gate, mypy over 478 source files, Workbench/OpenAPI contract smoke,
+    and 1,126 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,333
+    combined coverage tests, 94.19% total coverage, and no known vulnerabilities after the
+    governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
@@ -188,7 +199,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,659 physical lines and defines the current blocking
+   are split; `portfolio_service.py` is now 1,607 script-counted lines and defines the current blocking
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

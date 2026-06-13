@@ -69,6 +69,16 @@ from app.services.portfolio_liquidity_payloads import (
 from app.services.portfolio_position_book import (
     build_position_book_response,
 )
+from app.services.portfolio_readiness_insight_sources import (
+    PortfolioInsightSourceLoaders,
+    PortfolioInsightSourceRequest,
+    PortfolioInsightSources,
+    PortfolioReadinessSourceLoaders,
+    PortfolioReadinessSourceRequest,
+    PortfolioReadinessSources,
+    load_portfolio_insight_sources,
+    load_portfolio_readiness_sources,
+)
 from app.services.portfolio_source_readiness import (
     build_source_readiness_indicators,
     parse_portfolio_supportability,
@@ -139,24 +149,6 @@ from app.services.workspace_client_protocols import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
-
-
-@dataclass(frozen=True)
-class PortfolioInsightSources:
-    workspace: PortfolioWorkspaceResponse
-    positions: PortfolioPositionBookResponse
-    allocations: PortfolioAllocationResponse
-    transactions: PortfolioTransactionLedgerResponse
-    activity: PortfolioActivitySummaryResponse
-
-
-@dataclass(frozen=True)
-class PortfolioReadinessSources:
-    workspace: PortfolioWorkspaceResponse
-    source_readiness: UpstreamResult
-    positions: PortfolioPositionBookResponse
-    allocations: PortfolioAllocationResponse
-    transactions: PortfolioTransactionLedgerResponse
 
 
 @dataclass(frozen=True)
@@ -718,40 +710,19 @@ class PortfolioService:
         correlation_id: str,
         as_of_date: str | None,
     ) -> PortfolioReadinessSources:
-        workspace, source_readiness, positions, allocations, transactions = await asyncio.gather(
-            self.get_portfolio_workspace(
+        return await load_portfolio_readiness_sources(
+            PortfolioReadinessSourceRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self._get_portfolio_readiness_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
+            PortfolioReadinessSourceLoaders(
+                get_portfolio_workspace=self.get_portfolio_workspace,
+                get_portfolio_readiness_result=self._get_portfolio_readiness_result,
+                get_portfolio_positions=self.get_portfolio_positions,
+                get_portfolio_allocations=self.get_portfolio_allocations,
+                get_latest_transaction_probe=self._get_latest_transaction_probe,
             ),
-            self.get_portfolio_positions(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                include_projected=False,
-            ),
-            self.get_portfolio_allocations(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-            self._get_latest_transaction_probe(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-        )
-        return PortfolioReadinessSources(
-            workspace=workspace,
-            source_readiness=source_readiness,
-            positions=positions,
-            allocations=allocations,
-            transactions=transactions,
         )
 
     def _build_portfolio_readiness_response(
@@ -824,42 +795,19 @@ class PortfolioService:
     async def _load_portfolio_insight_sources(
         self, *, portfolio_id: str, correlation_id: str, as_of_date: str | None
     ) -> PortfolioInsightSources:
-        workspace, positions, allocations, transactions, activity = await asyncio.gather(
-            self.get_portfolio_workspace(
+        return await load_portfolio_insight_sources(
+            PortfolioInsightSourceRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
             ),
-            self.get_portfolio_positions(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                include_projected=False,
+            PortfolioInsightSourceLoaders(
+                get_portfolio_workspace=self.get_portfolio_workspace,
+                get_portfolio_positions=self.get_portfolio_positions,
+                get_portfolio_allocations=self.get_portfolio_allocations,
+                get_latest_transaction_probe=self._get_latest_transaction_probe,
+                get_activity_summary=self.get_activity_summary,
             ),
-            self.get_portfolio_allocations(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-            self._get_latest_transaction_probe(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-            self.get_activity_summary(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                start_date=None,
-                end_date=None,
-            ),
-        )
-        return PortfolioInsightSources(
-            workspace=workspace,
-            positions=positions,
-            allocations=allocations,
-            transactions=transactions,
-            activity=activity,
         )
 
     async def get_portfolio_workflow(
