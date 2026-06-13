@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from app.contracts.performance_workspace import (
+from app.contracts.performance_attribution import (
     AttributionLevelView,
     AttributionReasonView,
     AttributionResidualMaterialityView,

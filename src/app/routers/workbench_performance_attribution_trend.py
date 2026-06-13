@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, Path, Query
 
-from app.contracts.performance_workspace import PerformanceAttributionTrendResponse
+from app.contracts.performance_attribution import PerformanceAttributionTrendResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.workbench_service_provider import performance_workspace_service
 
