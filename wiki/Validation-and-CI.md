@@ -151,3 +151,14 @@ format check, monetary-float guard, mypy over 467 source files, Workbench/OpenAP
 and 1,052 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,259 coverage
 tests, 94.03% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
+PR #369 then merged the risk rolling contract extraction with all GitHub checks green. The current
+risk attribution contract branch moves attribution control, contributor, set, period-result,
+methodology-context, and payload contracts into `risk_workspace_attribution.py`, keeps
+`app.contracts.risk_workspace` as the compatibility import surface, refreshes the governed
+monetary-float allowlist for the moved attribution contribution fields, reduces
+`risk_workspace.py` from 969 to 678 measured lines, and has focused evidence from ruff, format
+check, mypy, monetary-float guard, and 34 passing risk workspace tests. Local `make check` passed
+with ruff, format check, monetary-float guard, mypy over 468 source files, Workbench/OpenAPI
+contract smoke, and 1,054 unit/contract tests. Local `make ci` passed with 207 integration tests,
+1,261 coverage tests, 94.04% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
