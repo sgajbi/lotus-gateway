@@ -248,6 +248,16 @@ files, Workbench/OpenAPI contract smoke, and 1,119 unit/contract tests. Local `m
 207 integration tests, 1,326 combined coverage tests, 94.16% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current advisor-brief source mapper branch keeps the 1,659-line source-file threshold while
+extracting source-context, fallback narrative, source-metric, supportability, route, and AI
+fact-bundle shaping into `advisor_brief_source.py`. Focused validation passed with ruff check,
+ruff format check, the refactor threshold gate, and 37 advisor-brief/source/boundary/threshold unit
+tests. Local `make check` passed with ruff, format check, monetary-float guard, refactor threshold
+gate, workflow action-runtime gate, mypy over 477 source files, Workbench/OpenAPI contract smoke,
+and 1,123 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,330 combined
+coverage tests, 94.18% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

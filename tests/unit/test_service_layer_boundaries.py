@@ -162,6 +162,27 @@ def test_advisor_brief_service_delegates_supportability_runtime_mapping() -> Non
     assert supportability_helpers == []
 
 
+def test_advisor_brief_service_delegates_source_context_mapping() -> None:
+    path = _SERVICE_ROOT / "advisor_brief_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    source_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and (
+            node.name.startswith("_build_source_metric")
+            or node.name.startswith("_build_source_talking")
+            or node.name.startswith("_build_source_summary")
+            or node.name.startswith("_build_return_source_")
+            or node.name == "_build_advisor_brief_source_context"
+            or node.name == "_build_supportability"
+            or node.name == "_route_query"
+        )
+    )
+
+    assert source_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

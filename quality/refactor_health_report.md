@@ -354,12 +354,12 @@ lines while preserving summary, top-position, full-position, and as-of-date fall
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio workspace source-loading branch was created from clean `main` after PR #396; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio workspace source-loading branch focused validation passed with 44 portfolio workspace/service unit tests plus ruff, format, touched-module mypy, and refactor threshold checks; local `make check` passed with 1,119 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio workspace source-loading branch local `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio workspace source-loading branch local `make ci` passed with 1,326 combined coverage tests and 94.16% total coverage |
-| Security audit | Governed | Current portfolio workspace source-loading branch introduces no dependency, network, authentication, or monetary-float policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to the 1,659-line source-file threshold; `advisor_brief_service.py` is the next-largest source file at 1,609 physical lines, and several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current advisor-brief source mapper branch was created from clean `main` after PR #397; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current advisor-brief source mapper branch focused validation passed with 37 advisor-brief/source/boundary/threshold unit tests plus ruff, format, and refactor threshold checks; local `make check` passed with 1,123 unit/contract tests |
+| Integration coverage | Healthy | Current advisor-brief source mapper branch local `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current advisor-brief source mapper branch local `make ci` passed with 1,330 combined coverage tests and 94.18% total coverage |
+| Security audit | Governed | Current advisor-brief source mapper branch introduces no dependency, network, authentication, or monetary-float policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` at the 1,659-line source-file threshold and reduce `advisor_brief_service.py` from 1,454 to 861 physical lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |

@@ -35,17 +35,18 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 1,826 physical lines,
-2. `src/app/services/advisor_brief_service.py` at 1,454 lines,
-3. `src/app/services/performance_workspace_service.py` at 1,413 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,137 lines,
-5. `src/app/services/dpm_wave_service.py` at 1,001 lines.
+1. `src/app/services/portfolio_service.py` at 1,659 physical lines,
+2. `src/app/services/performance_workspace_service.py` at 1,489 lines,
+3. `src/app/clients/dpm_client.py` at 1,362 lines,
+4. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
+5. `src/app/clients/advise_client.py` at 1,098 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
 response builder has also been split into request-context, summary/detail, evidence, and assembly
-helpers. The advisor-brief response builder has been split into source-context, AI narrative,
-runtime supportability, and response assembly helpers. The risk drawdown mapper has been split into
+helpers. Advisor-brief source-context, fallback narrative, source-metric, supportability, route,
+and AI fact-bundle shaping are split into `advisor_brief_source.py`, leaving the service focused on
+orchestration, AI narrative parsing, runtime supportability, and response assembly. The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
 fallback, and payload helpers. The risk attribution mapper has been split into period mapping,
