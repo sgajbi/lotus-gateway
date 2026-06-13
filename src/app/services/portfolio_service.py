@@ -121,6 +121,16 @@ from app.services.portfolio_workspace_response import (
     PortfolioWorkspaceResponseParts,
     assemble_portfolio_workspace_response,
 )
+from app.services.portfolio_workspace_sources import (
+    PortfolioWorkspaceAnalyticsLoaders,
+    PortfolioWorkspaceAnalyticsLoadRequest,
+    PortfolioWorkspaceAnalyticsResults,
+    PortfolioWorkspaceSourceLoaders,
+    PortfolioWorkspaceSourceLoadRequest,
+    PortfolioWorkspaceSourceResults,
+    load_portfolio_workspace_analytics,
+    load_portfolio_workspace_sources,
+)
 from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
@@ -129,31 +139,6 @@ from app.services.workspace_client_protocols import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
-PortfolioWorkspaceSourceResultSet = tuple[
-    UpstreamResult,
-    UpstreamResult,
-    UpstreamResult,
-    UpstreamResult,
-    UpstreamResult,
-    UpstreamResult,
-]
-
-
-@dataclass(frozen=True)
-class PortfolioWorkspaceSourceResults:
-    portfolio_result: UpstreamResult
-    aum_result: UpstreamResult
-    support_result: UpstreamResult
-    cashflow_result: UpstreamResult
-    cash_balance_result: UpstreamResult
-    readiness_result: UpstreamResult
-
-
-@dataclass(frozen=True)
-class PortfolioWorkspaceAnalyticsResults:
-    performance_result: UpstreamResult | None
-    rebalance_result: UpstreamResult | None
-    rebalance_supportability_result: UpstreamResult | None
 
 
 @dataclass(frozen=True)
@@ -513,65 +498,20 @@ class PortfolioService:
         effective_as_of_date: str,
         reporting_currency: str | None,
     ) -> PortfolioWorkspaceSourceResults:
-        (
-            portfolio_result,
-            aum_result,
-            support_result,
-            cashflow_result,
-            cash_balance_result,
-            readiness_result,
-        ) = await self._gather_portfolio_workspace_source_results(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            effective_as_of_date=effective_as_of_date,
-            reporting_currency=reporting_currency,
-        )
-        return PortfolioWorkspaceSourceResults(
-            portfolio_result=portfolio_result,
-            aum_result=aum_result,
-            support_result=support_result,
-            cashflow_result=cashflow_result,
-            cash_balance_result=cash_balance_result,
-            readiness_result=readiness_result,
-        )
-
-    async def _gather_portfolio_workspace_source_results(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        effective_as_of_date: str,
-        reporting_currency: str | None,
-    ) -> PortfolioWorkspaceSourceResultSet:
-        return await asyncio.gather(
-            self._get_portfolio_result(portfolio_id=portfolio_id, correlation_id=correlation_id),
-            self._query_aum_result(
-                correlation_id=correlation_id,
+        return await load_portfolio_workspace_sources(
+            PortfolioWorkspaceSourceLoadRequest(
                 portfolio_id=portfolio_id,
-                as_of_date=effective_as_of_date,
+                correlation_id=correlation_id,
+                effective_as_of_date=effective_as_of_date,
                 reporting_currency=reporting_currency,
             ),
-            self._get_support_overview_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            ),
-            self._get_cashflow_projection_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=effective_as_of_date,
-                include_projected=True,
-                horizon_days=10,
-            ),
-            self._query_cash_balances_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=effective_as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._get_portfolio_readiness_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=effective_as_of_date,
+            PortfolioWorkspaceSourceLoaders(
+                get_portfolio_result=self._get_portfolio_result,
+                query_aum_result=self._query_aum_result,
+                get_support_overview_result=self._get_support_overview_result,
+                get_cashflow_projection_result=self._get_cashflow_projection_result,
+                query_cash_balances_result=self._query_cash_balances_result,
+                get_portfolio_readiness_result=self._get_portfolio_readiness_result,
             ),
         )
 
@@ -582,28 +522,19 @@ class PortfolioService:
         correlation_id: str,
         performance_as_of_date: str,
     ) -> PortfolioWorkspaceAnalyticsResults:
-        (
-            performance_result,
-            rebalance_result,
-            rebalance_supportability_result,
-        ) = await asyncio.gather(
-            self._get_workspace_performance_result(
+        return await load_portfolio_workspace_analytics(
+            PortfolioWorkspaceAnalyticsLoadRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
-                as_of_date=performance_as_of_date,
+                performance_as_of_date=performance_as_of_date,
             ),
-            self._get_workspace_rebalance_result(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
+            PortfolioWorkspaceAnalyticsLoaders(
+                get_workspace_performance_result=self._get_workspace_performance_result,
+                get_workspace_rebalance_result=self._get_workspace_rebalance_result,
+                get_workspace_rebalance_supportability_result=(
+                    self._get_workspace_rebalance_supportability_result
+                ),
             ),
-            self._get_workspace_rebalance_supportability_result(
-                correlation_id=correlation_id,
-            ),
-        )
-        return PortfolioWorkspaceAnalyticsResults(
-            performance_result=performance_result,
-            rebalance_result=rebalance_result,
-            rebalance_supportability_result=rebalance_supportability_result,
         )
 
     def _build_portfolio_workspace_response(
