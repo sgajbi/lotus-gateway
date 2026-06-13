@@ -8,7 +8,6 @@ from fastapi import HTTPException, status
 from app.config import settings
 from app.contracts.portfolio import (
     PortfolioCashflowOutlook,
-    PortfolioCatalogItem,
     PortfolioCatalogResponse,
     PortfolioExceptionSummary,
     PortfolioInsight,
@@ -43,6 +42,7 @@ from app.contracts.portfolio_holdings import (
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.portfolio_catalog_payloads import parse_catalog_items
 from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
@@ -100,7 +100,6 @@ from app.services.portfolio_workspace_payloads import (
     parse_portfolio_identity,
     parse_portfolio_profile,
     parse_portfolio_summary,
-    resolve_portfolio_display_name,
 )
 from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
 from app.services.portfolio_workspace_rebalance import (
@@ -478,8 +477,7 @@ class PortfolioService:
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core portfolio catalog unavailable",
         ).get("portfolios", [])
-        items = [self._parse_catalog_item(item) for item in items_payload if isinstance(item, dict)]
-        items.sort(key=lambda item: item.portfolio_id)
+        items = parse_catalog_items(items_payload)
         return PortfolioCatalogResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
@@ -1553,20 +1551,6 @@ class PortfolioService:
     ) -> str:
         detail = safe_upstream_detail(payload, default_detail="upstream request failed")
         return f"{detail_prefix}: {detail}"
-
-    def _parse_catalog_item(self, item: dict[str, Any]) -> PortfolioCatalogItem:
-        portfolio_id = str(item.get("portfolio_id", "")).strip()
-        return PortfolioCatalogItem(
-            portfolio_id=portfolio_id,
-            display_name=resolve_portfolio_display_name(item, fallback_portfolio_id=portfolio_id),
-            base_currency=str(item.get("base_currency", "USD")),
-            client_id=self._optional_str(item.get("client_id", item.get("cif_id"))),
-            booking_center_code=self._optional_str(
-                item.get("booking_center_code", item.get("booking_center"))
-            ),
-            portfolio_type=self._optional_str(item.get("portfolio_type")),
-            status=self._optional_str(item.get("status")),
-        )
 
     def _parse_portfolio_identity(self, payload: dict[str, Any]) -> PortfolioIdentity:
         return parse_portfolio_identity(payload)

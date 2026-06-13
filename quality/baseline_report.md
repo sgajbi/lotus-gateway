@@ -255,6 +255,10 @@ workspace summary construction, cashflow outlook projection, display-name fallba
 readiness projection into `portfolio_workspace_payloads.py`, reducing `portfolio_service.py` from
 1,888 to 1,826 physical lines while preserving workspace response behavior and the 49-line
 longest-function baseline.
+The current portfolio catalog payload mapper slice moves portfolio catalog item projection,
+metadata alias handling, display-name fallback, and deterministic sort order into
+`portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779 to 1,764 physical
+lines while preserving catalog response behavior and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -262,21 +266,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,395 |
-| Python source files under `src/app` | 473 |
-| Python test files under `tests` | 187 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,399 |
+| Python source files under `src/app` | 474 |
+| Python test files under `tests` | 188 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio holdings payload mapper branch shows 1,395
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 473 Python source files
-under `src/app`; and 187 Python test files under `tests`.
+Working-tree verification for the current portfolio catalog payload mapper branch shows 1,399
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 474 Python source files
+under `src/app`; and 188 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,779 | `src/app/services/portfolio_service.py` |
+| 1 | 1,764 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -609,6 +613,15 @@ Most recent local evidence:
      passed with 207 integration tests and 1,300 combined coverage tests; total coverage is
      94.10%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
      exception.
+109. Current portfolio catalog payload mapper branch focused validation passed with ruff check and
+     5 focused portfolio catalog/service unit tests. The slice extracts deterministic catalog item
+     projection into `portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779
+     to 1,764 physical lines while preserving catalog sorting, identity metadata aliases, and
+     display-name fallback behavior. `make check` passed with ruff, format check,
+     monetary-float guard, refactor threshold gate, mypy over 474 source files,
+     Workbench/OpenAPI contract smoke, and 1,096 unit/contract tests. `make ci` passed with 207
+     integration tests and 1,303 combined coverage tests; total coverage is 94.10%, and
+     `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

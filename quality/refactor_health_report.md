@@ -338,17 +338,21 @@ workspace summary construction, cashflow outlook projection, display-name fallba
 readiness projection into `portfolio_workspace_payloads.py`, reducing `portfolio_service.py` from
 1,888 to 1,826 physical lines while preserving workspace response behavior and the 49-line
 longest-function baseline.
+The current portfolio catalog payload mapper slice moves portfolio catalog item projection,
+metadata alias handling, display-name fallback, and deterministic sort order into
+`portfolio_catalog_payloads.py`, reducing `portfolio_service.py` from 1,779 to 1,764 physical
+lines while preserving catalog response behavior and the 49-line longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio holdings payload mapper branch was created from clean `main` after PR #384; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio holdings payload mapper branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 473 source files, Workbench/OpenAPI contract smoke, and 1,093 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio holdings payload mapper branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio holdings payload mapper branch `make ci` passed with 1,300 coverage tests and 94.10% total coverage, above the 84% floor |
-| Security audit | Governed | Current portfolio holdings payload mapper branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the refreshed governed allowlist |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` below the 2,000-line source-file threshold at 1,779 physical lines; `performance_workspace_service.py` is 1,413 measured lines, and several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current portfolio catalog payload mapper branch was created from clean `main` after PR #385; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current portfolio catalog payload mapper branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 474 source files, Workbench/OpenAPI contract smoke, and 1,096 unit/contract tests |
+| Integration coverage | Healthy | Current portfolio catalog payload mapper branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current portfolio catalog payload mapper branch `make ci` passed with 1,303 coverage tests and 94.10% total coverage, above the 84% floor |
+| Security audit | Governed | Current portfolio catalog payload mapper branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; no new dependency or monetary-float conversion was introduced |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` below the 2,000-line source-file threshold at 1,764 physical lines; `performance_workspace_service.py` is 1,413 measured lines, and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
