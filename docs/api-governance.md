@@ -38,8 +38,9 @@ description, tags, a documented 4xx/5xx response, or a global tag declaration wi
 Gateway should converge on RFC 7807/problem-details for platform errors where applicable. Existing
 unhandled exceptions return `application/problem+json`. Reporting job and report-batch upstream
 errors now use explicit code-owned mapping rules for preserved validation/not-found/conflict errors
-and safe fallback `502` responses; broader route-specific upstream error mapping remains a
-baseline improvement area.
+and safe fallback `502` responses. The shared generic service-error mapper now uses explicit
+code-owned status rules for preserved validation/not-found errors and safe fallback `502`
+responses; broader route-specific upstream error mapping remains a baseline improvement area.
 
 ## Versioning And Deprecation
 

@@ -566,6 +566,9 @@ Most recent local evidence:
      Workbench/OpenAPI contract smoke, and 1,082 unit/contract tests. `make ci` passed with 207
      integration tests and 1,289 combined coverage tests; total coverage is 94.10%, and
      `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+104. Current Bank-Buyable upstream-error rule branch focused validation passed with 18
+     upstream-envelope unit tests plus ruff, format check, and mypy over the shared upstream
+     envelope helper. Full `make check` and `make ci` evidence remains pending for PR readiness.
 
 ## Tooling Availability Baseline
 
