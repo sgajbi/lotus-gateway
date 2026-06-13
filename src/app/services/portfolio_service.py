@@ -8,7 +8,6 @@ from fastapi import HTTPException, status
 from app.config import settings
 from app.contracts.portfolio import (
     PortfolioCashflowOutlook,
-    PortfolioCashflowPoint,
     PortfolioCatalogItem,
     PortfolioCatalogResponse,
     PortfolioExceptionSummary,
@@ -99,6 +98,15 @@ from app.services.portfolio_workflow import (
     transactions_readiness_status,
 )
 from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.portfolio_workspace_payloads import (
+    optional_text,
+    parse_cashflow_outlook,
+    parse_operational_readiness,
+    parse_portfolio_identity,
+    parse_portfolio_profile,
+    parse_portfolio_summary,
+    resolve_portfolio_display_name,
+)
 from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
 from app.services.portfolio_workspace_rebalance import (
     parse_workspace_rebalance_summary,
@@ -1555,9 +1563,7 @@ class PortfolioService:
         portfolio_id = str(item.get("portfolio_id", "")).strip()
         return PortfolioCatalogItem(
             portfolio_id=portfolio_id,
-            display_name=self._resolve_portfolio_display_name(
-                item, fallback_portfolio_id=portfolio_id
-            ),
+            display_name=resolve_portfolio_display_name(item, fallback_portfolio_id=portfolio_id),
             base_currency=str(item.get("base_currency", "USD")),
             client_id=self._optional_str(item.get("client_id", item.get("cif_id"))),
             booking_center_code=self._optional_str(
@@ -1568,31 +1574,10 @@ class PortfolioService:
         )
 
     def _parse_portfolio_identity(self, payload: dict[str, Any]) -> PortfolioIdentity:
-        portfolio_id = str(payload.get("portfolio_id", ""))
-        return PortfolioIdentity(
-            portfolio_id=portfolio_id,
-            display_name=self._resolve_portfolio_display_name(
-                payload, fallback_portfolio_id=portfolio_id
-            ),
-            client_id=self._optional_str(payload.get("client_id", payload.get("cif_id"))),
-            base_currency=str(payload.get("base_currency", "USD")),
-            booking_center_code=self._optional_str(
-                payload.get("booking_center_code", payload.get("booking_center"))
-            ),
-        )
+        return parse_portfolio_identity(payload)
 
     def _parse_portfolio_profile(self, payload: dict[str, Any]) -> PortfolioProfile:
-        return PortfolioProfile(
-            status=self._optional_str(payload.get("status")),
-            portfolio_type=self._optional_str(payload.get("portfolio_type")),
-            risk_exposure=self._optional_str(payload.get("risk_exposure")),
-            investment_time_horizon=self._optional_str(payload.get("investment_time_horizon")),
-            objective=self._optional_str(payload.get("objective")),
-            is_leverage_allowed=payload.get("is_leverage_allowed"),
-            advisor_id=self._optional_str(payload.get("advisor_id")),
-            open_date=self._optional_str(payload.get("open_date")),
-            close_date=self._optional_str(payload.get("close_date")),
-        )
+        return parse_portfolio_profile(payload)
 
     def _parse_summary(
         self,
@@ -1617,24 +1602,9 @@ class PortfolioService:
             )
             or {}
         )
-        first_portfolio: dict[str, Any] = next(iter(aum_payload.get("portfolios", [])), {})
-        invested = float(quantize_money(first_portfolio.get("aum_reporting_currency", 0)))
-        cash_total = float(
-            quantize_money(
-                cash_payload.get("totals", {}).get("total_balance_reporting_currency", 0)
-            )
-        )
-        total_aum = invested
-        cash_weight = (
-            float(quantize_performance((cash_total / total_aum) * 100)) if total_aum > 0 else 0.0
-        )
-        return PortfolioSummary(
-            assets_under_management_base=total_aum,
-            invested_market_value_base=float(quantize_money(total_aum - cash_total)),
-            cash_market_value_base=cash_total,
-            cash_weight_pct=cash_weight,
-            position_count=int(first_portfolio.get("position_count", 0)),
-            cash_balance_count=int(cash_payload.get("totals", {}).get("cash_account_count", 0)),
+        return parse_portfolio_summary(
+            aum_payload=aum_payload,
+            cash_payload=cash_payload,
         )
 
     def _parse_cashflow(
@@ -1648,24 +1618,7 @@ class PortfolioService:
         )
         if payload is None:
             return None
-        return PortfolioCashflowOutlook(
-            as_of_date=str(payload.get("as_of_date")),
-            range_end_date=str(payload.get("range_end_date")),
-            total_net_cashflow_base=float(quantize_money(payload.get("total_net_cashflow", 0))),
-            projection_days=int(payload.get("projection_days", 0)),
-            include_projected=bool(payload.get("include_projected", False)),
-            upcoming_points=[
-                PortfolioCashflowPoint(
-                    projection_date=str(point.get("projection_date")),
-                    net_cashflow_base=float(quantize_money(point.get("net_cashflow", 0))),
-                    projected_cumulative_cashflow_base=float(
-                        quantize_money(point.get("projected_cumulative_cashflow", 0))
-                    ),
-                )
-                for point in payload.get("points", [])
-                if isinstance(point, dict)
-            ],
-        )
+        return parse_cashflow_outlook(payload)
 
     def _parse_workspace_performance(
         self,
@@ -1745,9 +1698,7 @@ class PortfolioService:
         )
         if payload is None:
             return None
-        return PortfolioOperationalReadiness(
-            **{key: payload.get(key) for key in PortfolioOperationalReadiness.model_fields}
-        )
+        return parse_operational_readiness(payload)
 
     def _parse_allocation_views(self, payload: dict[str, Any]) -> list[PortfolioAllocationView]:
         return [
@@ -1967,10 +1918,7 @@ class PortfolioService:
         )
 
     def _optional_str(self, value: Any) -> str | None:
-        if value is None:
-            return None
-        text = str(value).strip()
-        return text or None
+        return optional_text(value)
 
     def _optional_int(self, value: Any) -> int | None:
         if value is None or isinstance(value, bool):
@@ -1979,14 +1927,3 @@ class PortfolioService:
             return int(value)
         except (TypeError, ValueError):
             return None
-
-    def _resolve_portfolio_display_name(
-        self, payload: dict[str, Any], *, fallback_portfolio_id: str
-    ) -> str:
-        return str(
-            payload.get("portfolio_name")
-            or payload.get("name")
-            or payload.get("label")
-            or payload.get("display_name")
-            or fallback_portfolio_id
-        )
