@@ -33,26 +33,21 @@ from app.contracts.portfolio_activity_income import (
 )
 from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 from app.contracts.portfolio_holdings import (
-    PortfolioAllocationBucket,
     PortfolioAllocationLookThroughCapability,
     PortfolioAllocationResponse,
     PortfolioAllocationView,
     PortfolioBookResponse,
-    PortfolioCashBalance,
     PortfolioPositionBookResponse,
     PortfolioPositionView,
     PortfolioTopPosition,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
-from app.precision_policy import (
-    quantize_money,
-    quantize_performance,
-)
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
 )
+from app.services.portfolio_holdings_payloads import parse_allocation_views, parse_cash_balances
 from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_liquidity_payloads import (
     PortfolioLiquidityLoadRequest,
@@ -1077,7 +1072,7 @@ class PortfolioService:
             as_of_date=source_results.positions.as_of_date,
             portfolio=portfolio,
             summary=source_results.positions.summary,
-            cash_balances=self._parse_cash_balances(
+            cash_balances=parse_cash_balances(
                 cash_balances_payload,
                 source_results.positions.summary.assets_under_management_base,
             ),
@@ -1117,7 +1112,7 @@ class PortfolioService:
             ),
             portfolio_id=portfolio_id,
             summary=summary,
-            cash_balances=self._parse_cash_balances(
+            cash_balances=parse_cash_balances(
                 payloads.cash_balances_payload,
                 summary.assets_under_management_base,
             ),
@@ -1219,7 +1214,7 @@ class PortfolioService:
                 payloads.allocation_payload.get("look_through")
             ),
             summary=summary,
-            views=self._parse_allocation_views(payloads.allocation_payload),
+            views=parse_allocation_views(payloads.allocation_payload),
         )
 
     async def _load_portfolio_allocation_payloads(
@@ -1699,50 +1694,6 @@ class PortfolioService:
         if payload is None:
             return None
         return parse_operational_readiness(payload)
-
-    def _parse_allocation_views(self, payload: dict[str, Any]) -> list[PortfolioAllocationView]:
-        return [
-            PortfolioAllocationView(
-                dimension=str(view.get("dimension")),
-                buckets=[
-                    PortfolioAllocationBucket(
-                        bucket=str(bucket.get("dimension_value")),
-                        position_count=int(bucket.get("position_count", 0)),
-                        market_value_base=float(
-                            quantize_money(bucket.get("market_value_reporting_currency", 0))
-                        ),
-                        weight_pct=float(
-                            quantize_performance(float(bucket.get("weight", 0)) * 100)
-                        ),
-                    )
-                    for bucket in view.get("buckets", [])
-                    if isinstance(bucket, dict)
-                ],
-            )
-            for view in payload.get("views", [])
-            if isinstance(view, dict)
-        ]
-
-    def _parse_cash_balances(
-        self, payload: dict[str, Any], total_aum: float
-    ) -> list[PortfolioCashBalance]:
-        balances: list[PortfolioCashBalance] = []
-        for item in payload.get("cash_accounts", []):
-            balance = float(quantize_money(item.get("balance_reporting_currency", 0)))
-            weight = (
-                float(quantize_performance((balance / total_aum) * 100)) if total_aum > 0 else 0.0
-            )
-            balances.append(
-                PortfolioCashBalance(
-                    security_id=str(item.get("security_id", "")),
-                    instrument_name=str(item.get("instrument_name", "")),
-                    currency=self._optional_str(item.get("account_currency")),
-                    quantity=float(quantize_money(item.get("balance_account_currency", 0))),
-                    market_value_base=balance,
-                    weight_pct=weight,
-                )
-            )
-        return balances
 
     async def _load_transaction_rows_page(
         self,

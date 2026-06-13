@@ -262,21 +262,21 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,391 |
-| Python source files under `src/app` | 472 |
-| Python test files under `tests` | 186 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,395 |
+| Python source files under `src/app` | 473 |
+| Python test files under `tests` | 187 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current source-file threshold ratchet branch shows 1,391 files
-under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 472 Python source files under
-`src/app`; and 186 Python test files under `tests`.
+Working-tree verification for the current portfolio holdings payload mapper branch shows 1,395
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 473 Python source files
+under `src/app`; and 187 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,826 | `src/app/services/portfolio_service.py` |
+| 1 | 1,779 | `src/app/services/portfolio_service.py` |
 | 2 | 1,454 | `src/app/services/advisor_brief_service.py` |
 | 3 | 1,413 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,258 | `src/app/clients/dpm_client.py` |
@@ -596,6 +596,18 @@ Most recent local evidence:
      source files, Workbench/OpenAPI contract smoke, and 1,090 unit/contract tests. `make ci`
      passed with 207 integration tests and 1,297 combined coverage tests; total coverage is
      94.11%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
+     exception.
+108. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
+     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
+     The slice extracts allocation-view and cash-balance payload mapping into
+     `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,826 to 1,779
+     physical lines while preserving the 49-line longest-function baseline. The monetary-float
+     allowlist was refreshed because approved quantized response float conversions moved from the
+     service into the new mapper; the guard remains at 159 findings, all allowlisted. `make check`
+     passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 473
+     source files, Workbench/OpenAPI contract smoke, and 1,093 unit/contract tests. `make ci`
+     passed with 207 integration tests and 1,300 combined coverage tests; total coverage is
+     94.10%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
      exception.
 
 ## Tooling Availability Baseline
