@@ -1,13 +1,21 @@
 from datetime import date
 
+import pytest
+
 from app.services.portfolio_transaction_summary import (
+    InvalidPortfolioReportingWindow,
     PortfolioTransactionSummaryContext,
+    PortfolioTransactionSummaryRequest,
+    TransactionRowsPageRequest,
     build_activity_summary_response,
     build_income_summary_response,
+    build_transaction_summary_context,
+    resolve_reporting_window,
     summarize_activity_rows,
     summarize_income_rows,
     transaction_date_in_range,
     transaction_date_value,
+    transaction_page_rows,
 )
 
 
@@ -27,6 +35,92 @@ def _summary_context(
         if year_to_date_rows is not None
         else requested_window_rows,
     )
+
+
+@pytest.mark.asyncio
+async def test_build_transaction_summary_context_loads_ytd_and_filters_window() -> None:
+    page_requests: list[TransactionRowsPageRequest] = []
+    pages = [
+        {
+            "reporting_currency": "CHF",
+            "total": 3,
+            "transactions": [
+                {"transaction_type": "DIVIDEND", "transaction_date": "2026-02-28"},
+                {"transaction_type": "DEPOSIT", "transaction_date": "2026-03-05"},
+            ],
+        },
+        {
+            "reporting_currency": "CHF",
+            "total": 3,
+            "transactions": [
+                {"transaction_type": "INTEREST", "transaction_date": "2026-03-31T09:00:00Z"},
+            ],
+        },
+    ]
+
+    async def page_loader(request: TransactionRowsPageRequest) -> dict:
+        page_requests.append(request)
+        return pages[len(page_requests) - 1]
+
+    context = await build_transaction_summary_context(
+        request=PortfolioTransactionSummaryRequest(
+            portfolio_id="PF_1001",
+            correlation_id="corr-summary",
+            as_of_date="2026-03-31",
+            start_date="2026-03-01",
+            end_date=None,
+            reporting_currency=None,
+        ),
+        page_loader=page_loader,
+        page_size=2,
+    )
+
+    assert context.reporting_currency == "CHF"
+    assert context.window_start == date(2026, 3, 1)
+    assert context.window_end == date(2026, 3, 31)
+    assert [row["transaction_type"] for row in context.year_to_date_rows] == [
+        "DIVIDEND",
+        "DEPOSIT",
+        "INTEREST",
+    ]
+    assert [row["transaction_type"] for row in context.requested_window_rows] == [
+        "DEPOSIT",
+        "INTEREST",
+    ]
+    assert [
+        (request.start_date, request.end_date, request.skip, request.limit)
+        for request in page_requests
+    ] == [
+        ("2026-01-01", "2026-03-31", 0, 2),
+        ("2026-01-01", "2026-03-31", 2, 2),
+    ]
+
+
+def test_build_transaction_summary_context_defaults_reporting_currency() -> None:
+    window_start, window_end = resolve_reporting_window(
+        start_date=None,
+        end_date=None,
+        default_end_date="2026-04-15",
+    )
+
+    assert window_start == date(2026, 3, 17)
+    assert window_end == date(2026, 4, 15)
+
+
+def test_resolve_reporting_window_rejects_reversed_window() -> None:
+    with pytest.raises(
+        InvalidPortfolioReportingWindow, match="start_date cannot be after end_date"
+    ):
+        resolve_reporting_window(
+            start_date="2026-04-01",
+            end_date="2026-03-31",
+        )
+
+
+def test_transaction_page_rows_ignores_non_object_items() -> None:
+    rows = transaction_page_rows({"transactions": [{"id": "T1"}, "bad", None, {"id": "T2"}]})
+
+    assert rows == [{"id": "T1"}, {"id": "T2"}]
 
 
 def test_build_income_summary_uses_income_rows_and_net_interest_override() -> None:

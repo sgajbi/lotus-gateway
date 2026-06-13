@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -81,11 +81,13 @@ from app.services.portfolio_transaction_ledger import (
     portfolio_transactions_client_kwargs,
 )
 from app.services.portfolio_transaction_summary import (
+    InvalidPortfolioReportingWindow,
     PortfolioTransactionSummaryContext,
+    PortfolioTransactionSummaryRequest,
+    TransactionRowsPageRequest,
     build_activity_summary_response,
     build_income_summary_response,
-    transaction_date_in_range,
-    transaction_date_value,
+    build_transaction_summary_context,
 )
 from app.services.portfolio_workflow import (
     build_readiness_indicators,
@@ -1491,38 +1493,23 @@ class PortfolioService:
         end_date: str | None,
         reporting_currency: str | None,
     ) -> PortfolioTransactionSummaryContext:
-        window_start, window_end = self._resolve_reporting_window(
-            start_date,
-            end_date,
-            default_end_date=as_of_date,
-        )
-        ytd_start = date(window_end.year, 1, 1)
-        resolved_reporting_currency, year_to_date_rows = await self._list_transaction_rows(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            start_date=ytd_start.isoformat(),
-            end_date=window_end.isoformat(),
-            as_of_date=as_of_date,
-            reporting_currency=reporting_currency,
-        )
-        requested_window_rows = [
-            item
-            for item in year_to_date_rows
-            if transaction_date_in_range(
-                transaction_date=transaction_date_value(item),
-                start_date=window_start,
-                end_date=window_end,
+        try:
+            return await build_transaction_summary_context(
+                request=PortfolioTransactionSummaryRequest(
+                    portfolio_id=portfolio_id,
+                    correlation_id=correlation_id,
+                    as_of_date=as_of_date,
+                    start_date=start_date,
+                    end_date=end_date,
+                    reporting_currency=reporting_currency,
+                ),
+                page_loader=self._load_transaction_rows_page,
             )
-        ]
-        return PortfolioTransactionSummaryContext(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            reporting_currency=resolved_reporting_currency or reporting_currency or "USD",
-            window_start=window_start,
-            window_end=window_end,
-            requested_window_rows=requested_window_rows,
-            year_to_date_rows=year_to_date_rows,
-        )
+        except InvalidPortfolioReportingWindow as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
 
     def _require_payload(
         self, result: tuple[int, dict[str, Any]], unavailable_detail_prefix: str
@@ -1806,76 +1793,25 @@ class PortfolioService:
             )
         return balances
 
-    async def _list_transaction_rows(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        start_date: str,
-        end_date: str,
-        as_of_date: str | None,
-        reporting_currency: str | None,
-    ) -> tuple[str | None, list[dict[str, Any]]]:
-        page_size = 500
-        rows: list[dict[str, Any]] = []
-        resolved_reporting_currency: str | None = None
-        skip = 0
-
-        while True:
-            result_payload = await self._load_transaction_rows_page(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-                skip=skip,
-                limit=page_size,
-                start_date=start_date,
-                end_date=end_date,
-                reporting_currency=reporting_currency,
-            )
-            if resolved_reporting_currency is None:
-                resolved_reporting_currency = self._optional_str(
-                    result_payload.get("reporting_currency")
-                )
-            page_rows = self._transaction_page_rows(result_payload)
-            rows.extend(page_rows)
-            total = int(result_payload.get("total", len(page_rows)))
-            skip += len(page_rows)
-            if not page_rows or skip >= total:
-                break
-
-        return resolved_reporting_currency, rows
-
     async def _load_transaction_rows_page(
         self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None,
-        skip: int,
-        limit: int,
-        start_date: str,
-        end_date: str,
-        reporting_currency: str | None,
+        request: TransactionRowsPageRequest,
     ) -> dict[str, Any]:
         context = build_transaction_rows_page_request_context(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            skip=skip,
-            limit=limit,
-            start_date=start_date,
-            end_date=end_date,
-            reporting_currency=reporting_currency,
+            portfolio_id=request.portfolio_id,
+            correlation_id=request.correlation_id,
+            as_of_date=request.as_of_date,
+            skip=request.skip,
+            limit=request.limit,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            reporting_currency=request.reporting_currency,
         )
         status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
         return self._require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
-
-    @staticmethod
-    def _transaction_page_rows(result_payload: dict[str, Any]) -> list[dict[str, Any]]:
-        return [item for item in result_payload.get("transactions", []) if isinstance(item, dict)]
 
     def _reporting_readiness(
         self,
@@ -2054,26 +1990,3 @@ class PortfolioService:
             or payload.get("display_name")
             or fallback_portfolio_id
         )
-
-    def _resolve_reporting_window(
-        self,
-        start_date: str | None,
-        end_date: str | None,
-        default_end_date: str | None = None,
-    ) -> tuple[date, date]:
-        window_end = (
-            date.fromisoformat(end_date)
-            if end_date
-            else date.fromisoformat(default_end_date)
-            if default_end_date
-            else datetime.now(UTC).date()
-        )
-        window_start = (
-            date.fromisoformat(start_date) if start_date else window_end - timedelta(days=29)
-        )
-        if window_start > window_end:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="portfolio reporting window start_date cannot be after end_date",
-            )
-        return window_start, window_end

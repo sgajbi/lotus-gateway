@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from datetime import date
-from typing import Any
+from datetime import UTC, date, datetime, timedelta
+from typing import Any, Awaitable, Callable
 
 from app.contracts.portfolio_activity_income import (
     PortfolioActivityBucketSummary,
@@ -22,6 +22,136 @@ class PortfolioTransactionSummaryContext:
     window_end: date
     requested_window_rows: list[dict[str, Any]]
     year_to_date_rows: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class PortfolioTransactionSummaryRequest:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    start_date: str | None
+    end_date: str | None
+    reporting_currency: str | None
+
+
+@dataclass(frozen=True)
+class TransactionRowsPageRequest:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    skip: int
+    limit: int
+    start_date: str
+    end_date: str
+    reporting_currency: str | None
+
+
+TransactionRowsPageLoader = Callable[[TransactionRowsPageRequest], Awaitable[dict[str, Any]]]
+
+
+class InvalidPortfolioReportingWindow(ValueError):
+    pass
+
+
+async def build_transaction_summary_context(
+    *,
+    request: PortfolioTransactionSummaryRequest,
+    page_loader: TransactionRowsPageLoader,
+    page_size: int = 500,
+) -> PortfolioTransactionSummaryContext:
+    window_start, window_end = resolve_reporting_window(
+        start_date=request.start_date,
+        end_date=request.end_date,
+        default_end_date=request.as_of_date,
+    )
+    ytd_start = date(window_end.year, 1, 1)
+    resolved_reporting_currency, year_to_date_rows = await list_transaction_rows(
+        request=request,
+        page_loader=page_loader,
+        start_date=ytd_start,
+        end_date=window_end,
+        page_size=page_size,
+    )
+    requested_window_rows = [
+        item
+        for item in year_to_date_rows
+        if transaction_date_in_range(
+            transaction_date=transaction_date_value(item),
+            start_date=window_start,
+            end_date=window_end,
+        )
+    ]
+    return PortfolioTransactionSummaryContext(
+        portfolio_id=request.portfolio_id,
+        correlation_id=request.correlation_id,
+        reporting_currency=resolved_reporting_currency or request.reporting_currency or "USD",
+        window_start=window_start,
+        window_end=window_end,
+        requested_window_rows=requested_window_rows,
+        year_to_date_rows=year_to_date_rows,
+    )
+
+
+async def list_transaction_rows(
+    *,
+    request: PortfolioTransactionSummaryRequest,
+    page_loader: TransactionRowsPageLoader,
+    start_date: date,
+    end_date: date,
+    page_size: int = 500,
+) -> tuple[str | None, list[dict[str, Any]]]:
+    rows: list[dict[str, Any]] = []
+    resolved_reporting_currency: str | None = None
+    skip = 0
+
+    while True:
+        result_payload = await page_loader(
+            TransactionRowsPageRequest(
+                portfolio_id=request.portfolio_id,
+                correlation_id=request.correlation_id,
+                as_of_date=request.as_of_date,
+                skip=skip,
+                limit=page_size,
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+                reporting_currency=request.reporting_currency,
+            )
+        )
+        if resolved_reporting_currency is None:
+            resolved_reporting_currency = optional_text(result_payload.get("reporting_currency"))
+        page_rows = transaction_page_rows(result_payload)
+        rows.extend(page_rows)
+        total = int(result_payload.get("total", len(page_rows)))
+        skip += len(page_rows)
+        if not page_rows or skip >= total:
+            break
+
+    return resolved_reporting_currency, rows
+
+
+def transaction_page_rows(result_payload: dict[str, Any]) -> list[dict[str, Any]]:
+    return [item for item in result_payload.get("transactions", []) if isinstance(item, dict)]
+
+
+def resolve_reporting_window(
+    *,
+    start_date: str | None,
+    end_date: str | None,
+    default_end_date: str | None = None,
+) -> tuple[date, date]:
+    window_end = (
+        date.fromisoformat(end_date)
+        if end_date
+        else date.fromisoformat(default_end_date)
+        if default_end_date
+        else datetime.now(UTC).date()
+    )
+    window_start = date.fromisoformat(start_date) if start_date else window_end - timedelta(days=29)
+    if window_start > window_end:
+        raise InvalidPortfolioReportingWindow(
+            "portfolio reporting window start_date cannot be after end_date"
+        )
+    return window_start, window_end
 
 
 def build_income_summary_response(
