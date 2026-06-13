@@ -206,6 +206,11 @@ upstream-call, and snapshot-lineage contracts into `reporting_query.py`, keeps
 `app.contracts.reporting` as the compatibility import surface, and reduces `reporting.py` from
 1,184 to 532 measured lines while preserving OpenAPI schema names and the 49-line
 longest-function baseline.
+The current risk concentration contract slice moves concentration payload and driver contracts
+into `risk_workspace_concentration.py`, keeps `app.contracts.risk_workspace` as the compatibility
+import surface, refreshes the governed monetary float allowlist for the moved concentration weight
+fields, and reduces `risk_workspace.py` from 1,647 to 1,343 measured lines while preserving
+OpenAPI schema names and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -213,25 +218,25 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,355 |
-| Python source files under `src/app` | 465 |
-| Python test files under `tests` | 177 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,359 |
+| Python source files under `src/app` | 466 |
+| Python test files under `tests` | 178 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current reporting query contract branch shows 1,355 files under
-`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 465 Python source files under `src/app`;
-and 177 Python test files under `tests`.
+Working-tree verification for the current risk concentration contract branch shows 1,359 files
+under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 466 Python source files under
+`src/app`; and 178 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 1,970 | `src/app/services/portfolio_service.py` |
-| 2 | 1,647 | `src/app/contracts/risk_workspace.py` |
-| 3 | 1,607 | `src/app/services/performance_workspace_service.py` |
-| 4 | 1,539 | `src/app/contracts/performance_workspace.py` |
-| 5 | 1,452 | `src/app/services/advisor_brief_service.py` |
+| 2 | 1,607 | `src/app/services/performance_workspace_service.py` |
+| 3 | 1,539 | `src/app/contracts/performance_workspace.py` |
+| 4 | 1,452 | `src/app/services/advisor_brief_service.py` |
+| 5 | 1,343 | `src/app/contracts/risk_workspace.py` |
 | 6 | 1,258 | `src/app/clients/dpm_client.py` |
 | 7 | 1,137 | `src/app/services/dpm_command_center_service.py` |
 | 8 | 1,012 | `src/app/clients/advise_client.py` |
