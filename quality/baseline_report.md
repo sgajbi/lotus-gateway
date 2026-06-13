@@ -589,6 +589,10 @@ Most recent local evidence:
      unit/contract tests. `make ci` passed with 207 integration tests and 1,296 combined coverage
      tests; total coverage is 94.11%, and `pip-audit` found no known vulnerabilities after the
      governed `PYSEC-2026-161` exception.
+107. Current Bank-Buyable source-file threshold ratchet branch focused validation passed with the
+     refactor threshold gate at `max_source_file_lines=2000`, 4 refactor-threshold unit tests,
+     ruff check, and ruff format check over the touched threshold script and tests. Full
+     `make check` and `make ci` evidence remains pending for PR readiness.
 
 ## Tooling Availability Baseline
 
@@ -606,7 +610,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 2,100 physical lines,
+1. no Python source file under `src/app` above 2,000 physical lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

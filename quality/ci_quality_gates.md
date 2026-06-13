@@ -60,7 +60,7 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 2,100
+2. Current enforced source-file threshold: no Python source file under `src/app` above 2,000
    physical lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
@@ -78,6 +78,10 @@ Most recent local PR-grade evidence:
    with 1,089 unit/contract tests, and `make ci` passed with 207 integration tests, 1,296 coverage
    tests, 94.11% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
    exception.
+9. Current source-file threshold ratchet branch focused validation passed with the refactor
+   threshold gate at `max_source_file_lines=2000`, 4 refactor-threshold unit tests, ruff check, and
+   ruff format check over the touched threshold script and tests. Full `make check` and `make ci`
+   evidence remains pending.
 
 ## Next Tightening Candidates
 
@@ -86,7 +90,8 @@ Most recent local PR-grade evidence:
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
-4. Tighten the enforced source-file threshold downward as the remaining largest services are split;
-   `portfolio_service.py` is now 1,826 physical lines, below the current 2,100-line ceiling.
+4. Continue tightening the enforced source-file threshold downward as the remaining largest services
+   are split; `portfolio_service.py` is now 1,929 physical lines, below the current 2,000-line
+   ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
