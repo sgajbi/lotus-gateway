@@ -29,7 +29,8 @@ update, so the warning count should be refreshed from the GitHub quality-baselin
 
 Gateway errors should converge on RFC 7807/problem-details where applicable. The current app has a
 `ProblemDetails` model and an unhandled-exception handler that returns
-`application/problem+json`; route-specific upstream error mapping remains mixed and should be
+`application/problem+json`. Reporting job and report-batch upstream errors now use explicit
+code-owned mapping rules; broader route-specific upstream error mapping remains mixed and should be
 normalized incrementally.
 
 ## Pagination, Filtering, Sorting, Versioning

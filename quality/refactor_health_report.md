@@ -350,6 +350,7 @@ longest-function baseline.
 | Security audit | Governed | Current Bank-Buyable metric-label contract branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
+| Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
@@ -377,9 +378,10 @@ longest-function baseline.
    contracts if future changes expand the remaining runtime or review helpers.
 6. Split large contract modules only when contract ownership boundaries are clear and tests remain
    stable.
-7. Normalize route-specific upstream errors toward shared problem-details mapping.
-   Foundation optional-upstream and archive-document mappings are now smaller and safer, but
-   broader route/upstream error normalization remains open.
+7. Continue normalizing route-specific upstream errors toward shared problem-details mapping.
+   Foundation optional-upstream and archive-document mappings are smaller and safer, reporting
+   job/batch error mapping is now rule-table driven, but broader route/upstream error normalization
+   remains open.
 8. Extend API governance tests beyond operation completeness to cover deprecation posture and
    explicit operation ID policy once those standards are approved.
 
