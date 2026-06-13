@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from scripts.check_refactor_quality_thresholds import (
+    DEFAULT_MAX_SOURCE_FILE_LINES,
     check_refactor_quality_thresholds,
     find_function_size_violations,
 )
@@ -19,6 +20,10 @@ def test_refactor_quality_thresholds_pass_for_small_source_file(tmp_path: Path) 
     assert result.passed
     assert result.file_size_violations == ()
     assert result.function_size_violations == ()
+
+
+def test_default_source_file_threshold_tracks_remediated_gateway_baseline() -> None:
+    assert DEFAULT_MAX_SOURCE_FILE_LINES == 2000
 
 
 def test_refactor_quality_thresholds_reports_oversized_files(tmp_path: Path) -> None:
