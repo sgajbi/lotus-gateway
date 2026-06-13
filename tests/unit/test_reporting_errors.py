@@ -6,9 +6,26 @@ from app.routers.reporting_errors import (
     report_job_error_response,
 )
 from app.services.reporting_error_mapping import (
+    REPORT_BATCH_ERROR_RULES,
+    REPORT_JOB_ERROR_RULES,
     raise_report_batch_error,
     raise_report_job_error,
 )
+
+
+def test_reporting_error_rule_tables_are_explicit() -> None:
+    assert [rule.fallback_code for rule in REPORT_JOB_ERROR_RULES] == [
+        "missing_idempotency_key",
+        "invalid_report_job_filters",
+        "report_job_not_found",
+        "report_snapshot_not_found",
+        "report_job_conflict",
+    ]
+    assert [rule.fallback_code for rule in REPORT_BATCH_ERROR_RULES] == [
+        "invalid_batch_selector",
+        "report_batch_not_found",
+        "report_batch_conflict",
+    ]
 
 
 def test_raise_report_job_error_preserves_validation_detail() -> None:
@@ -35,6 +52,20 @@ def test_raise_report_job_error_maps_unknown_upstream_error_to_safe_gateway_erro
     }
 
 
+def test_raise_report_job_error_preserves_any_conflict_with_safe_fallback_code() -> None:
+    with pytest.raises(HTTPException) as exc:
+        raise_report_job_error(
+            status.HTTP_409_CONFLICT,
+            {"detail": {"message": "Report job is already being cancelled."}},
+        )
+
+    assert exc.value.status_code == status.HTTP_409_CONFLICT
+    assert exc.value.detail == {
+        "code": "report_job_conflict",
+        "message": "Report job is already being cancelled.",
+    }
+
+
 def test_raise_report_batch_error_preserves_report_batch_not_found() -> None:
     with pytest.raises(HTTPException) as exc:
         raise_report_batch_error(
@@ -54,6 +85,26 @@ def test_raise_report_batch_error_maps_unknown_upstream_error_to_safe_gateway_er
         raise_report_batch_error(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             {"detail": {"code": "raw_batch_failure", "message": "raw failure"}},
+        )
+
+    assert exc.value.status_code == status.HTTP_502_BAD_GATEWAY
+    assert exc.value.detail == {
+        "code": "report_batch_upstream_unavailable",
+        "message": "Report batch service is unavailable.",
+    }
+
+
+def test_raise_report_batch_error_maps_unknown_conflict_to_safe_gateway_error() -> None:
+    with pytest.raises(HTTPException) as exc:
+        raise_report_batch_error(
+            status.HTTP_409_CONFLICT,
+            {
+                "detail": {
+                    "code": "raw_scheduler_conflict",
+                    "message": "internal conflict",
+                    "portfolio_id": "PB_SENSITIVE",
+                }
+            },
         )
 
     assert exc.value.status_code == status.HTTP_502_BAD_GATEWAY
