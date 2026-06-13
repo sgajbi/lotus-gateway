@@ -343,12 +343,12 @@ longest-function baseline.
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current Bank-Buyable quality-baseline artifact branch was created from clean `main` after PR #382; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current Bank-Buyable quality-baseline artifact branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,089 unit/contract tests |
-| Integration coverage | Healthy | Current Bank-Buyable quality-baseline artifact branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current Bank-Buyable quality-baseline artifact branch `make ci` passed with 1,296 coverage tests and 94.11% total coverage, above the 84% floor |
-| Security audit | Governed | Current Bank-Buyable quality-baseline artifact branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current source-file threshold ratchet branch was created from clean `main` after PR #383; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current source-file threshold ratchet branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,090 unit/contract tests |
+| Integration coverage | Healthy | Current source-file threshold ratchet branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current source-file threshold ratchet branch `make ci` passed with 1,297 coverage tests and 94.11% total coverage, above the 84% floor |
+| Security audit | Governed | Current source-file threshold ratchet branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices keep `portfolio_service.py` below the 2,000-line source-file threshold at 1,826 physical lines; `performance_workspace_service.py` is 1,413 measured lines, and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -390,7 +390,7 @@ longest-function baseline.
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 2,100 physical lines,
+   - no Python source file under `src/app` above 2,000 physical lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

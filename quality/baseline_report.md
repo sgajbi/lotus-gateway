@@ -262,15 +262,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,377 |
-| Python source files under `src/app` | 471 |
-| Python test files under `tests` | 182 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,391 |
+| Python source files under `src/app` | 472 |
+| Python test files under `tests` | 186 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio workspace payload mapper branch shows 1,385
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 472 Python source files
-under `src/app`; and 184 Python test files under `tests`.
+Working-tree verification for the current source-file threshold ratchet branch shows 1,391 files
+under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 472 Python source files under
+`src/app`; and 186 Python test files under `tests`.
 
 ## Largest Source Files
 
@@ -589,6 +589,14 @@ Most recent local evidence:
      unit/contract tests. `make ci` passed with 207 integration tests and 1,296 combined coverage
      tests; total coverage is 94.11%, and `pip-audit` found no known vulnerabilities after the
      governed `PYSEC-2026-161` exception.
+107. Current Bank-Buyable source-file threshold ratchet branch focused validation passed with the
+     refactor threshold gate at `max_source_file_lines=2000`, 4 refactor-threshold unit tests,
+     ruff check, and ruff format check over the touched threshold script and tests. `make check`
+     passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472
+     source files, Workbench/OpenAPI contract smoke, and 1,090 unit/contract tests. `make ci`
+     passed with 207 integration tests and 1,297 combined coverage tests; total coverage is
+     94.11%, and `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161`
+     exception.
 
 ## Tooling Availability Baseline
 
@@ -606,7 +614,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 2,100 physical lines,
+1. no Python source file under `src/app` above 2,000 physical lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
