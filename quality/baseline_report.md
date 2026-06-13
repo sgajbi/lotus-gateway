@@ -547,6 +547,11 @@ Most recent local evidence:
 100. Current portfolio workspace payload mapper branch: `make ci` passed with 207 integration
      tests and 1,282 combined coverage tests; total coverage is 94.07%, and `pip-audit` found no
      known vulnerabilities after the governed `PYSEC-2026-161` exception.
+101. Current Bank-Buyable observability controls branch: `make check` passed with ruff, format
+     check, monetary-float guard, refactor threshold gate, mypy over 472 source files,
+     Workbench/OpenAPI contract smoke, and 1,077 unit/contract tests. `make ci` passed with 207
+     integration tests and 1,284 combined coverage tests; total coverage is 94.07%, and
+     `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
