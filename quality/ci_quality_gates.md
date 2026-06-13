@@ -154,8 +154,10 @@ Most recent local PR-grade evidence:
     `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,743 to 1,728
     physical lines while preserving AUM, positions, projection, reporting-currency, and
     product-safe unavailable-detail behavior. Focused validation passed with the refactor threshold
-    gate, ruff check, ruff format check, and 50 portfolio holdings/service unit tests. Full
-    `make check` and `make ci` evidence is recorded before merge.
+    gate, ruff check, ruff format check, and 50 portfolio holdings/service unit tests. Local
+    `make check` passed with 1,117 unit/contract tests, and local `make ci` passed with 207
+    integration tests, 1,324 coverage tests, 94.14% total coverage, and no known vulnerabilities
+    after the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
