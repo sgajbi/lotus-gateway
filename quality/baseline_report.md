@@ -509,6 +509,16 @@ Most recent local evidence:
 90. Current performance evidence-view builder branch: `make ci` passed with 207 integration tests
     and 1,270 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+91. Current quality-baseline enforcement branch promotes the remediated file/function-size
+    baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
+92. `python scripts/check_refactor_quality_thresholds.py` passed with
+    `max_source_file_lines=2100` and `max_function_lines=49`.
+93. Current quality-baseline enforcement branch: `make check` passed with ruff, format check,
+    monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
+    contract smoke, and 1,066 unit/contract tests.
+94. Current quality-baseline enforcement branch: `make ci` passed with 207 integration tests and
+    1,273 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -521,12 +531,15 @@ Baseline workflow installs Python and Node quality tooling explicitly.
 
 Report-only complexity tools are being introduced now. Current manual size evidence already shows
 large-file and long-function hotspots in service, contract, and client code.
-The first enforcement candidates should be:
+The remediated size baselines are now partially enforced through `make lint`:
 
-1. no new service file above the current largest-file baseline,
-2. no new function above the current longest-function baseline of 49 lines,
-3. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
-4. no new architecture import-linter violations after contracts are reviewed.
+1. no Python source file under `src/app` above 2,100 physical lines,
+2. no function or async function above the current longest-function baseline of 49 lines.
+
+The remaining enforcement candidates should be:
+
+1. no regression in average cyclomatic complexity after `radon` baselines are collected in CI,
+2. no new architecture import-linter violations after contracts are reviewed.
 
 ## Dead Code Gaps
 

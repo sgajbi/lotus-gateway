@@ -1,6 +1,6 @@
 # CI Quality Gates
 
-Date: 2026-06-04  
+Date: 2026-06-13  
 Mode: progressive enforcement
 
 This file records the governed CI measurement posture for the gateway hardening program. It is the
@@ -13,15 +13,21 @@ The current local and PR-grade blocking gates are:
 
 1. `ruff` lint and format checks,
 2. monetary-float governance,
-3. `mypy` over `src`,
-4. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+3. refactor quality thresholds blocking new growth above the current largest-file and
+   longest-function baselines,
+4. `mypy` over `src`,
+5. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-5. migration contract smoke,
-6. unit and contract tests,
-7. integration tests,
-8. coverage with an 84% floor,
-9. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-10. Docker build and local Docker parity in the PR Merge Gate.
+6. migration contract smoke,
+7. unit and contract tests,
+8. integration tests,
+9. coverage with an 84% floor,
+10. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+11. Docker build and local Docker parity in the PR Merge Gate.
+
+The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
+lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
+merge barrier still requires all PR-grade proof.
 
 ## Report-Only Gates
 
@@ -48,11 +54,20 @@ Report-only quality checks should remain advisory until findings are classified:
 
 Most recent local PR-grade evidence:
 
-1. `make check`: 969 unit/contract tests passed.
-2. `make ci`: 207 integration tests passed.
-3. `make ci`: 1,176 coverage tests passed.
-4. Total coverage: 93.36%, above the 84% floor.
-5. `pip-audit`: no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+1. Current branch adds `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage
+   gate.
+2. Current enforced source-file threshold: no Python source file under `src/app` above 2,100
+   physical lines.
+3. Current enforced function threshold: no Python function or async function above the remediated
+   49-line AST span baseline.
+4. `python scripts/check_refactor_quality_thresholds.py`: passed with
+   `max_source_file_lines=2100` and `max_function_lines=49`.
+5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+   so the promoted gate is visible in GitHub logs.
+6. Current branch `make check` passed with 1,066 unit/contract tests.
+7. Current branch `make ci` passed with 207 integration tests and 1,273 coverage tests; total
+   coverage was 94.05%, and `pip-audit` found no known vulnerabilities after the governed
+   `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
@@ -60,5 +75,5 @@ Most recent local PR-grade evidence:
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
-4. Add no-new-file/function-above-baseline checks for refactor slices.
+4. Tighten the enforced source-file threshold downward as the remaining largest services are split.
 5. Add static no-sensitive-observability checks for logs, metrics labels, and diagnostics fields.

@@ -207,3 +207,18 @@ tests. Local `make check` passed with ruff, format check, monetary-float guard, 
 source files, Workbench/OpenAPI contract smoke, and 1,063 unit/contract tests. Local `make ci`
 passed with 207 integration tests, 1,270 coverage tests, 94.05% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
+PR #374 then merged the performance evidence-view builder extraction with all GitHub checks green.
+The current quality-baseline enforcement branch promotes remediated refactor thresholds into the
+blocking `make lint` path through `scripts/check_refactor_quality_thresholds.py`. The gate fails
+when any Python source file under `src/app` exceeds 2,100 physical lines or any Python function or
+async function exceeds the current 49-line AST span baseline. Focused local evidence:
+`python scripts/check_refactor_quality_thresholds.py` passed with
+`max_source_file_lines=2100` and `max_function_lines=49`. The branch also makes the promoted gate
+visible as `Lint and Refactor Quality Thresholds` in Feature Lane and PR Merge Gate logs, and lets
+PR Merge Gate integration and coverage jobs run in parallel after lint/typecheck/unit. Docker build
+and Docker parity still wait for both integration and coverage.
+Local validation for the current branch passed with `make check` covering ruff, format check,
+monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
+contract smoke, and 1,066 unit/contract tests. Local `make ci` passed with 207 integration tests,
+1,273 coverage tests, 94.05% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.

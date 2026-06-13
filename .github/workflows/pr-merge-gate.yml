@@ -36,7 +36,7 @@ jobs:
         run: python -m pip check
       - name: Security Audit
         run: make security-audit
-      - name: Lint
+      - name: Lint and Refactor Quality Thresholds
         run: make lint
       - name: Typecheck
         run: make typecheck
@@ -65,7 +65,7 @@ jobs:
 
   coverage:
     name: PR Merge Gate / Coverage Gate
-    needs: [integration]
+    needs: [lint-typecheck-unit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
 
   docker-build:
     name: PR Merge Gate / Validate Docker Build
-    needs: [coverage]
+    needs: [integration, coverage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +90,7 @@ jobs:
 
   ci-local-docker:
     name: PR Merge Gate / CI Local Docker Parity
-    needs: [coverage]
+    needs: [integration, coverage]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

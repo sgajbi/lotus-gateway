@@ -37,7 +37,7 @@ jobs:
         run: python -m pip check
       - name: Security Audit
         run: make security-audit
-      - name: Lint
+      - name: Lint and Refactor Quality Thresholds
         run: make lint
       - name: Typecheck
         run: make typecheck
