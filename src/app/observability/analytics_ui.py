@@ -95,16 +95,24 @@ GATEWAY_ANALYTICS_UI_METRIC_FAMILIES = (
     "lotus_gateway_analytics_degraded_total",
 )
 
+GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS = ("operation", "service", "status_class")
+GATEWAY_ANALYTICS_DEGRADED_LABELS = ("operation", "service", "reason")
+
+GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS = {
+    "lotus_gateway_analytics_fanout_duration_seconds": GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
+    "lotus_gateway_analytics_degraded_total": GATEWAY_ANALYTICS_DEGRADED_LABELS,
+}
+
 GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS = Histogram(
     "lotus_gateway_analytics_fanout_duration_seconds",
     "Duration of Gateway analytics upstream fan-out calls.",
-    ("operation", "service", "status_class"),
+    GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
 )
 
 GATEWAY_ANALYTICS_DEGRADED_TOTAL = Counter(
     "lotus_gateway_analytics_degraded_total",
     "Count of degraded Gateway analytics upstream fan-out calls.",
-    ("operation", "service", "reason"),
+    GATEWAY_ANALYTICS_DEGRADED_LABELS,
 )
 
 GATEWAY_ANALYTICS_UI_LOG_EVENTS = (

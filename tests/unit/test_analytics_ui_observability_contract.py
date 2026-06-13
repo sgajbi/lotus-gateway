@@ -10,12 +10,15 @@ from app.observability.analytics_ui import (
     ANALYTICS_UI_SEVERITY_LEVELS,
     ANALYTICS_UI_STATE_VOCABULARY,
     ANALYTICS_UI_TRACE_ATTRIBUTES,
+    GATEWAY_ANALYTICS_DEGRADED_LABELS,
     GATEWAY_ANALYTICS_DEGRADED_TOTAL,
+    GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS,
     GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_AUDIT_LOG_FIELDS,
     GATEWAY_ANALYTICS_UI_LOG_EVENTS,
     GATEWAY_ANALYTICS_UI_METRIC_FAMILIES,
+    GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS,
     GATEWAY_ANALYTICS_UI_STRUCTURED_LOG_FIELDS,
     emit_gateway_analytics_fanout_log,
     emit_gateway_protected_diagnostics_audit_log,
@@ -33,10 +36,18 @@ def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:
         "lotus_gateway_analytics_fanout_duration_seconds",
         "lotus_gateway_analytics_degraded_total",
     )
+    assert GATEWAY_ANALYTICS_UI_METRIC_LABEL_CONTRACTS == {
+        "lotus_gateway_analytics_fanout_duration_seconds": (
+            "operation",
+            "service",
+            "status_class",
+        ),
+        "lotus_gateway_analytics_degraded_total": ("operation", "service", "reason"),
+    }
     duration_labels = GATEWAY_ANALYTICS_FANOUT_DURATION_SECONDS._labelnames
     degraded_labels = GATEWAY_ANALYTICS_DEGRADED_TOTAL._labelnames
-    assert duration_labels == ("operation", "service", "status_class")
-    assert degraded_labels == ("operation", "service", "reason")
+    assert duration_labels == GATEWAY_ANALYTICS_FANOUT_DURATION_LABELS
+    assert degraded_labels == GATEWAY_ANALYTICS_DEGRADED_LABELS
 
 
 def test_state_vocabulary_matches_governed_analytics_ui_states() -> None:
