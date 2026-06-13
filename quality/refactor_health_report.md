@@ -353,17 +353,21 @@ The current portfolio readiness/insight source-loading slice moves readiness and
 bundle construction into `portfolio_readiness_insight_sources.py`, reducing `portfolio_service.py`
 from 1,659 to 1,607 script-counted lines while preserving workspace, source-readiness, holdings,
 allocation, transaction-probe, and activity-summary request behavior.
+The current portfolio book source-loading slice moves book source fan-out bundle construction into
+`portfolio_book_sources.py`, reducing `portfolio_service.py` from 1,607 to 1,589 script-counted
+lines while preserving allocation, position, cash-balance, portfolio-profile, projection, and
+reporting-currency request behavior.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio readiness/insight source-loading branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio readiness/insight source-loading branch focused validation passed with 62 helper/service/boundary/threshold unit tests plus ruff, format, mypy, and refactor threshold checks; local `make check` passed with 1,126 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio readiness/insight source-loading branch local `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio readiness/insight source-loading branch local `make ci` passed with 1,333 combined coverage tests and 94.19% total coverage |
-| Security audit | Governed | Current portfolio readiness/insight source-loading branch introduces no dependency, network, authentication, monetary-float, or caller-context policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to the 1,607-line source-file threshold and reduce `advisor_brief_service.py` from 1,454 to 861 script-counted lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current portfolio book source-loading branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current portfolio book source-loading branch focused validation passed with 64 helper/service/boundary/threshold unit tests plus ruff, format, mypy, and refactor threshold checks; local `make check` passed with 1,128 unit/contract tests |
+| Integration coverage | Healthy | Current portfolio book source-loading branch local `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current portfolio book source-loading branch local `make ci` passed with 1,335 combined coverage tests and 94.20% total coverage |
+| Security audit | Governed | Current portfolio book source-loading branch introduces no dependency, network, authentication, monetary-float, or caller-context policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to the 1,589-line source-file threshold and reduce `advisor_brief_service.py` from 1,454 to 861 script-counted lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -371,7 +375,7 @@ allocation, transaction-probe, and activity-summary request behavior.
 
 ## Primary Refactor Backlog
 
-1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, and
+1. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, book, and
    workflow adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
    transaction-ledger payload loading, workspace source gathering, position-book mapping,
@@ -405,7 +409,7 @@ allocation, transaction-probe, and activity-summary request behavior.
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 1,607 script-counted lines,
+   - no Python source file under `src/app` above 1,589 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,
