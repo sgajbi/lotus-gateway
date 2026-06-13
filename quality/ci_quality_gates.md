@@ -93,6 +93,11 @@ Most recent local PR-grade evidence:
     5 focused portfolio catalog/service unit tests. `make check` passed with 1,096 unit/contract
     tests, and `make ci` passed with 207 integration tests, 1,303 coverage tests, 94.10% total
     coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+12. Current portfolio allocation response mapper branch focused validation passed with ruff check
+    and 9 focused portfolio holdings/allocation service unit tests. `make check` passed with 1,099
+    unit/contract tests, and `make ci` passed with 207 integration tests, 1,306 coverage tests,
+    94.13% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+    exception.
 
 ## Next Tightening Candidates
 
@@ -102,7 +107,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,764 physical lines, below the current 2,000-line
+   are split; `portfolio_service.py` is now 1,740 physical lines, below the current 2,000-line
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

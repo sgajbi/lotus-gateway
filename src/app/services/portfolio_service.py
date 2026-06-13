@@ -32,7 +32,6 @@ from app.contracts.portfolio_activity_income import (
 )
 from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 from app.contracts.portfolio_holdings import (
-    PortfolioAllocationLookThroughCapability,
     PortfolioAllocationResponse,
     PortfolioAllocationView,
     PortfolioBookResponse,
@@ -47,7 +46,10 @@ from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
 )
-from app.services.portfolio_holdings_payloads import parse_allocation_views, parse_cash_balances
+from app.services.portfolio_holdings_payloads import (
+    build_portfolio_allocation_response,
+    parse_cash_balances,
+)
 from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_liquidity_payloads import (
     PortfolioLiquidityLoadRequest,
@@ -1191,28 +1193,16 @@ class PortfolioService:
             reporting_currency=reporting_currency,
             look_through_mode=look_through_mode,
         )
-        summary = parse_position_book_summary(
-            payloads.aum_payload,
-            payloads.positions_payload,
-        )
-        return PortfolioAllocationResponse(
+        return build_portfolio_allocation_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=str(
-                payloads.aum_payload.get("resolved_as_of_date")
-                or as_of_date
-                or datetime.now(UTC).date()
-            ),
-            reporting_currency=self._optional_str(
-                payloads.allocation_payload.get("reporting_currency")
-            )
-            or reporting_currency,
-            look_through=self._parse_look_through_capability(
-                payloads.allocation_payload.get("look_through")
-            ),
-            summary=summary,
-            views=parse_allocation_views(payloads.allocation_payload),
+            as_of_date=as_of_date,
+            default_as_of_date=datetime.now(UTC).date().isoformat(),
+            reporting_currency=reporting_currency,
+            aum_payload=payloads.aum_payload,
+            positions_payload=payloads.positions_payload,
+            allocation_payload=payloads.allocation_payload,
         )
 
     async def _load_portfolio_allocation_payloads(
@@ -1782,21 +1772,6 @@ class PortfolioService:
                 workspace.reporting.status,
                 workspace.reporting.row_count,
             ),
-        )
-
-    def _parse_look_through_capability(
-        self, payload: Any
-    ) -> PortfolioAllocationLookThroughCapability | None:
-        if not isinstance(payload, dict):
-            return None
-        requested_mode = self._optional_str(payload.get("requested_mode"))
-        effective_mode = self._optional_str(payload.get("effective_mode"))
-        if requested_mode is None or effective_mode is None:
-            return None
-        return PortfolioAllocationLookThroughCapability(
-            requested_mode=requested_mode,
-            effective_mode=effective_mode,
-            applied=bool(payload.get("applied", False)),
         )
 
     def _optional_payload(
