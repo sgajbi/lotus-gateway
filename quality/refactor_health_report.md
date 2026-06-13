@@ -343,11 +343,11 @@ longest-function baseline.
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current Bank-Buyable error-normalization branch was created from clean `main` after PR #379; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current Bank-Buyable error-normalization branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,082 unit/contract tests |
-| Integration coverage | Healthy | Current Bank-Buyable error-normalization branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current Bank-Buyable error-normalization branch `make ci` passed with 1,289 coverage tests and 94.10% total coverage, above the 84% floor |
-| Security audit | Governed | Current Bank-Buyable error-normalization branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
+| Branch hygiene | Healthy | Current Bank-Buyable upstream-error rule branch was created from clean `main` after PR #380; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,084 unit/contract tests |
+| Integration coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current Bank-Buyable upstream-error rule branch `make ci` passed with 1,291 coverage tests and 94.10% total coverage, above the 84% floor |
+| Security audit | Governed | Current Bank-Buyable upstream-error rule branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with the existing governed allowlist |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; broader route/upstream error normalization remains open |
