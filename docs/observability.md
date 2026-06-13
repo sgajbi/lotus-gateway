@@ -21,7 +21,9 @@ entitlement detail.
 2. Logs must not include raw portfolio holdings, client PII, prompts, model outputs, transaction
    payloads, entitlement payloads, or generated report content.
 3. Audit records should use bounded fields and explicit route/operation/panel/state/reason labels.
-4. Correlation IDs should be present on ingress and propagated to upstream clients.
+4. Analytics fan-out structured logs and analytics audit logs must use their own governed event
+   families; validators reject cross-family event drift.
+5. Correlation IDs should be present on ingress and propagated to upstream clients.
 
 ## Metrics Rules
 
@@ -38,7 +40,8 @@ the same sensitive-data constraints.
 
 ## Baseline Gaps
 
-1. No blocking static check yet verifies structured log field allowlists.
+1. Structured log and audit field allowlists are enforced by unit tests for analytics UI
+   observability, including event-family separation.
 2. No blocking gate verifies metric label cardinality.
 3. Trace propagation beyond correlation IDs is not yet governed.
 4. Diagnostics authorization and masking should get dedicated security regression tests.

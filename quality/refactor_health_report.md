@@ -344,14 +344,14 @@ longest-function baseline.
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current portfolio workspace payload mapper branch was created from clean `main` after PR #376; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio workspace payload mapper branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,075 unit/contract tests |
-| Integration coverage | Healthy | Current portfolio workspace payload mapper branch `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current portfolio workspace payload mapper branch `make ci` passed with 1,282 coverage tests and 94.07% total coverage, above the 84% floor |
+| Unit/contract coverage | Healthy | Current Bank-Buyable observability controls branch `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, mypy over 472 source files, Workbench/OpenAPI contract smoke, and 1,077 unit/contract tests |
+| Integration coverage | Healthy | Current Bank-Buyable observability controls branch `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current Bank-Buyable observability controls branch `make ci` passed with 1,284 coverage tests and 94.07% total coverage, above the 84% floor |
 | Security audit | Governed | Current portfolio workspace payload mapper branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed with one allowlist relocation for an unchanged quantized response float conversion |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio_service.py` to 1,826 physical lines, `performance_workspace_service.py` to 1,413 measured lines, `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
-| Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
+| Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; broader trace/log scoring is not enforced |
 
 ## Primary Refactor Backlog
 
