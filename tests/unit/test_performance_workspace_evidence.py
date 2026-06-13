@@ -1,6 +1,7 @@
 import pytest
 
-from app.contracts.performance_workspace import (
+from app.contracts import performance_workspace
+from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceUpstreamSnapshotView,
     PerformanceSourceSupportabilityView,
@@ -22,6 +23,21 @@ from app.services.performance_workspace_evidence import (
     resolve_evidence_reason,
     resolve_evidence_state,
 )
+
+
+def test_workspace_contract_reexports_performance_evidence_views() -> None:
+    assert (
+        performance_workspace.PerformanceCalculationEvidenceView
+        is PerformanceCalculationEvidenceView
+    )
+    assert (
+        performance_workspace.PerformanceEvidenceUpstreamSnapshotView
+        is PerformanceEvidenceUpstreamSnapshotView
+    )
+    assert (
+        performance_workspace.PerformanceSourceSupportabilityView
+        is PerformanceSourceSupportabilityView
+    )
 
 
 class _EvidenceAnalyticsClient:

@@ -14,11 +14,13 @@ from app.contracts.performance_attribution import (
     PerformanceAttributionTrendResponse,
 )
 from app.contracts.performance_contribution import ContributionSummaryView
-from app.contracts.performance_workspace import (
+from app.contracts.performance_evidence import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceView,
-    PerformanceHorizonComparisonResponse,
     PerformanceSourceSupportabilityView,
+)
+from app.contracts.performance_workspace import (
+    PerformanceHorizonComparisonResponse,
     PerformanceWorkspaceDetailsResponse,
     PerformanceWorkspaceResponse,
     PerformanceWorkspaceSummaryResponse,

@@ -175,7 +175,7 @@ and 1,056 unit/contract tests. Local `make ci` passed with 207 integration tests
 tests, 94.04% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 PR #371 then merged the performance contribution contract extraction with all GitHub checks green.
-The current performance attribution contract branch moves attribution row, level, reason,
+The merged performance attribution contract branch moved attribution row, level, reason,
 residual-materiality, supportability-evidence, summary, trend-row, and trend-response contracts
 into `performance_attribution.py`, keeps `app.contracts.performance_workspace` as the compatibility
 import surface, refreshes the governed monetary-float allowlist for the moved performance
@@ -184,5 +184,16 @@ focused evidence from ruff, format check, mypy, monetary-float guard, and 74 pas
 attribution/workspace/advisor brief/OpenAPI tests. Local `make check` passed with ruff, format
 check, monetary-float guard, mypy over 470 source files, Workbench/OpenAPI contract smoke, and
 1,058 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,265 coverage
+tests, 94.05% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
+PR #372 then merged the performance attribution contract extraction with all GitHub checks green.
+The current performance evidence contract branch moves calculation, source-supportability, stage,
+upstream-snapshot, artifact, and evidence-view contracts into `performance_evidence.py`, keeps
+`app.contracts.performance_workspace` as the compatibility import surface, preserves the governed
+monetary-float allowlist without churn, reduces `performance_workspace.py` from 1,101 to 903
+measured lines, and has focused evidence from ruff, format check, mypy, monetary-float guard, and
+18 passing performance evidence/capabilities/response tests. Local `make check` passed with ruff,
+format check, monetary-float guard, mypy over 471 source files, Workbench/OpenAPI contract smoke,
+and 1,059 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,266 coverage
 tests, 94.05% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.

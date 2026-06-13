@@ -316,17 +316,23 @@ surface intact, refreshes the governed monetary-float allowlist for the moved pe
 attribution fields, and reduces `performance_workspace.py` from 1,499 to 1,101 lines while
 preserving focused performance workspace/advisor brief/OpenAPI tests and the 49-line
 longest-function baseline.
+The current performance evidence contract slice moves calculation, source-supportability, stage,
+upstream-snapshot, artifact, and evidence-view contracts into `performance_evidence.py`, keeps the
+legacy `app.contracts.performance_workspace` import surface intact, preserves the governed
+monetary-float allowlist without churn, and reduces `performance_workspace.py` from 1,101 to 903
+lines while preserving focused evidence/capabilities/response tests and the 49-line
+longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current performance attribution contract branch was created from clean `main` after PR #371; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current performance attribution contract branch `make check` passed with 1,058 unit/contract tests after focused attribution compatibility, performance workspace, advisor brief, and OpenAPI tests passed locally with 74 tests |
-| Integration coverage | Healthy | 207 integration tests passed in current performance attribution contract branch `make ci` |
-| Total coverage | Healthy | 1,265 coverage tests passed in current performance attribution contract branch `make ci`; total coverage is 94.05%, above the 84% floor |
-| Security audit | Governed | Current performance attribution contract branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed after the moved performance attribution-field allowlist paths were refreshed |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `performance_workspace.py` to 1,101 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,609 measured lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current performance evidence contract branch was created from clean `main` after PR #372; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current performance evidence contract branch `make check` passed with ruff, format check, monetary-float guard, mypy over 471 source files, Workbench/OpenAPI contract smoke, and 1,059 unit/contract tests |
+| Integration coverage | Healthy | 207 integration tests passed in current performance evidence contract branch `make ci` |
+| Total coverage | Healthy | 1,266 coverage tests passed in current performance evidence contract branch `make ci`; total coverage is 94.05%, above the 84% floor |
+| Security audit | Governed | Current performance evidence contract branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed without allowlist churn |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `performance_workspace.py` to 903 measured lines, `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,611 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |
