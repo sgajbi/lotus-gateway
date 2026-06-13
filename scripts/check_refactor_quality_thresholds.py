@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 DEFAULT_SOURCE_ROOT = Path("src/app")
-DEFAULT_MAX_SOURCE_FILE_LINES = 1489
+DEFAULT_MAX_SOURCE_FILE_LINES = 1477
 DEFAULT_MAX_FUNCTION_LINES = 49
 
 
