@@ -601,8 +601,10 @@ Most recent local evidence:
      ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
      The slice extracts allocation-view and cash-balance payload mapping into
      `portfolio_holdings_payloads.py`, reducing `portfolio_service.py` from 1,826 to 1,779
-     physical lines while preserving the 49-line longest-function baseline. Full `make check` and
-     `make ci` evidence remains pending for PR readiness.
+     physical lines while preserving the 49-line longest-function baseline. The monetary-float
+     allowlist was refreshed because approved quantized response float conversions moved from the
+     service into the new mapper; the guard remains at 159 findings, all allowlisted. Full
+     `make check` and `make ci` evidence remains pending for PR readiness.
 
 ## Tooling Availability Baseline
 
