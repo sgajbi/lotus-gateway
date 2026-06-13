@@ -260,6 +260,26 @@ def test_portfolio_service_avoids_stale_workspace_wrapper_methods() -> None:
     assert stale_wrappers == []
 
 
+def test_portfolio_service_delegates_upstream_payload_helpers() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_upstream_payload_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_build_safe_upstream_error_detail",
+            "_format_upstream_error_detail",
+            "_optional_payload",
+            "_raise_on_upstream_client_error",
+            "_require_payload",
+        }
+    )
+
+    assert local_upstream_payload_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

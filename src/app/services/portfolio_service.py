@@ -106,6 +106,11 @@ from app.services.portfolio_transaction_summary import (
     build_income_summary_response,
     build_transaction_summary_context,
 )
+from app.services.portfolio_upstream_payloads import (
+    optional_payload,
+    raise_on_upstream_client_error,
+    require_payload,
+)
 from app.services.portfolio_workflow import (
     build_readiness_indicators,
     build_workflow_actions,
@@ -145,7 +150,6 @@ from app.services.portfolio_workspace_sources import (
     load_portfolio_workspace_analytics,
     load_portfolio_workspace_sources,
 )
-from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
     PortfolioCoreClient,
     PortfolioManageClient,
@@ -378,7 +382,7 @@ class PortfolioService:
             as_of_date=as_of_date,
         )
         report_end_date = as_of_date
-        reference_payload = self._optional_payload(
+        reference_payload = optional_payload(
             reference_result,
             "lotus-core",
             "IGNORED",
@@ -434,7 +438,7 @@ class PortfolioService:
         status_code, payload = await self._lotus_core_query_client.list_portfolios(
             correlation_id=correlation_id
         )
-        items_payload = self._require_payload(
+        items_payload = require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core portfolio catalog unavailable",
         ).get("portfolios", [])
@@ -605,15 +609,15 @@ class PortfolioService:
         *,
         source_results: PortfolioWorkspaceSourceResults,
     ) -> PortfolioWorkspaceAssemblyState:
-        portfolio_payload = self._require_payload(
+        portfolio_payload = require_payload(
             result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
         )
-        self._raise_on_upstream_client_error(
+        raise_on_upstream_client_error(
             source_results.support_result,
             detail_prefix="lotus-core support overview rejected the request",
         )
-        self._raise_on_upstream_client_error(
+        raise_on_upstream_client_error(
             source_results.readiness_result,
             detail_prefix="lotus-core portfolio readiness rejected the request",
         )
@@ -678,11 +682,11 @@ class PortfolioService:
             correlation_id=correlation_id,
             as_of_date=as_of_date,
         )
-        self._raise_on_upstream_client_error(
+        raise_on_upstream_client_error(
             readiness_sources.source_readiness,
             detail_prefix="lotus-core portfolio readiness rejected the request",
         )
-        source_payload = self._optional_payload(
+        source_payload = optional_payload(
             readiness_sources.source_readiness,
             "lotus-core",
             "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
@@ -902,11 +906,11 @@ class PortfolioService:
         correlation_id: str,
         source_results: PortfolioBookSourceResults,
     ) -> PortfolioBookResponse:
-        portfolio_payload = self._require_payload(
+        portfolio_payload = require_payload(
             result=source_results.portfolio_result,
             unavailable_detail_prefix="lotus-core portfolio unavailable",
         )
-        cash_balances_payload = self._require_payload(
+        cash_balances_payload = require_payload(
             result=source_results.cash_balances_result,
             unavailable_detail_prefix="lotus-core cash balances unavailable",
         )
@@ -983,7 +987,7 @@ class PortfolioService:
                 query_aum_result=self._query_aum_result,
                 query_cash_balances_result=self._query_cash_balances_result,
                 get_cashflow_projection_result=self._get_cashflow_projection_result,
-                require_payload=self._require_payload,
+                require_payload=require_payload,
             ),
         )
 
@@ -1065,7 +1069,7 @@ class PortfolioService:
                 query_aum_result=self._query_aum_result,
                 get_portfolio_positions_result=self._get_portfolio_positions_result,
                 query_asset_allocation_result=self._query_asset_allocation_result,
-                require_payload=self._require_payload,
+                require_payload=require_payload,
             ),
         )
 
@@ -1114,7 +1118,7 @@ class PortfolioService:
             PortfolioPositionBookPayloadLoaders(
                 query_aum_result=self._query_aum_result,
                 get_portfolio_positions_result=self._get_portfolio_positions_result,
-                require_payload=self._require_payload,
+                require_payload=require_payload,
             ),
         )
 
@@ -1173,7 +1177,7 @@ class PortfolioService:
         context: PortfolioTransactionsRequestContext,
     ) -> dict[str, Any]:
         status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
-        return self._require_payload(
+        return require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
@@ -1250,46 +1254,6 @@ class PortfolioService:
                 detail=str(exc),
             ) from exc
 
-    def _require_payload(
-        self, result: tuple[int, dict[str, Any]], unavailable_detail_prefix: str
-    ) -> dict[str, Any]:
-        status_code, payload = result
-        if status_code >= status.HTTP_400_BAD_REQUEST:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=self._build_safe_upstream_error_detail(
-                    unavailable_detail_prefix,
-                    payload,
-                ),
-            )
-        if not isinstance(payload, dict):
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"{unavailable_detail_prefix}: invalid payload",
-            )
-        return payload
-
-    def _raise_on_upstream_client_error(
-        self,
-        result: tuple[int, dict[str, Any]],
-        *,
-        detail_prefix: str,
-    ) -> None:
-        status_code, payload = result
-        if status.HTTP_400_BAD_REQUEST <= status_code < status.HTTP_500_INTERNAL_SERVER_ERROR:
-            raise HTTPException(
-                status_code=status_code,
-                detail=self._build_safe_upstream_error_detail(detail_prefix, payload),
-            )
-
-    def _build_safe_upstream_error_detail(
-        self,
-        detail_prefix: str,
-        payload: dict[str, Any],
-    ) -> str:
-        detail = safe_upstream_detail(payload, default_detail="upstream request failed")
-        return f"{detail_prefix}: {detail}"
-
     def _parse_summary(
         self,
         aum_result: tuple[int, dict[str, Any]],
@@ -1298,13 +1262,13 @@ class PortfolioService:
         partial_failures: list[PortfolioPartialFailure],
     ) -> PortfolioSummary:
         aum_payload = (
-            self._optional_payload(
+            optional_payload(
                 aum_result, "lotus-core", "PORTFOLIO_AUM_UNAVAILABLE", warnings, partial_failures
             )
             or {}
         )
         cash_payload = (
-            self._optional_payload(
+            optional_payload(
                 cash_balances_result,
                 "lotus-core",
                 "PORTFOLIO_CASH_BALANCES_UNAVAILABLE",
@@ -1324,7 +1288,7 @@ class PortfolioService:
         warnings: list[str],
         partial_failures: list[PortfolioPartialFailure],
     ) -> PortfolioCashflowOutlook | None:
-        payload = self._optional_payload(
+        payload = optional_payload(
             result, "lotus-core", "PORTFOLIO_CASHFLOW_UNAVAILABLE", warnings, partial_failures
         )
         if payload is None:
@@ -1339,7 +1303,7 @@ class PortfolioService:
     ) -> PortfolioPerformanceSummary | None:
         if result is None:
             return None
-        payload = self._optional_payload(
+        payload = optional_payload(
             result,
             "lotus-performance",
             "PORTFOLIO_PERFORMANCE_UNAVAILABLE",
@@ -1364,7 +1328,7 @@ class PortfolioService:
         )
         if result is None:
             return rebalance_summary_from_supportability("NO_RUNS", supportability)
-        payload = self._optional_payload(
+        payload = optional_payload(
             result,
             "lotus-manage",
             "PORTFOLIO_REBALANCE_UNAVAILABLE",
@@ -1383,7 +1347,7 @@ class PortfolioService:
     ) -> PortfolioRebalanceSupportabilitySummary | None:
         if result is None:
             return None
-        payload = self._optional_payload(
+        payload = optional_payload(
             result,
             "lotus-manage",
             "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE",
@@ -1400,7 +1364,7 @@ class PortfolioService:
         warnings: list[str],
         partial_failures: list[PortfolioPartialFailure],
     ) -> PortfolioOperationalReadiness | None:
-        payload = self._optional_payload(
+        payload = optional_payload(
             result,
             "lotus-core",
             "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE",
@@ -1426,7 +1390,7 @@ class PortfolioService:
             reporting_currency=request.reporting_currency,
         )
         status_code, payload = await self._get_portfolio_transactions_result_for_context(context)
-        return self._require_payload(
+        return require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
         )
@@ -1437,7 +1401,7 @@ class PortfolioService:
         readiness_result: tuple[int, dict[str, Any]] | None = None,
     ):
         if readiness_result is not None:
-            payload = self._optional_payload(
+            payload = optional_payload(
                 readiness_result,
                 "lotus-core",
                 "PORTFOLIO_SOURCE_READINESS_UNAVAILABLE",
@@ -1516,36 +1480,8 @@ class PortfolioService:
             ),
         )
 
-    def _optional_payload(
-        self,
-        result: tuple[int, dict[str, Any]],
-        source_service: str,
-        warning_code: str,
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> dict[str, Any] | None:
-        status_code, payload = result
-        if status_code < status.HTTP_400_BAD_REQUEST and isinstance(payload, dict):
-            return payload
-        warnings.append(warning_code)
-        partial_failures.append(
-            PortfolioPartialFailure(
-                source_service=source_service,
-                error_code=warning_code,
-                detail=self._format_upstream_error_detail(payload),
-            )
-        )
-        return None
-
-    def _format_upstream_error_detail(self, payload: Any) -> str:
-        if isinstance(payload, dict):
-            detail = optional_text(payload.get("detail"))
-            if detail is not None:
-                return detail
-        return str(payload)
-
     def _extract_resolved_as_of_date(self, result: tuple[int, dict[str, Any]]) -> str | None:
-        payload = self._optional_payload(result, "lotus-core", "IGNORED", [], [])
+        payload = optional_payload(result, "lotus-core", "IGNORED", [], [])
         return (
             str(payload.get("resolved_as_of_date"))
             if payload and payload.get("resolved_as_of_date")
