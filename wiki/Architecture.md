@@ -10,11 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `portfolio_service.py` at 1,589 script-counted
+- current enterprise-hardening evidence records `portfolio_service.py` at 1,553 script-counted
   lines after the portfolio workspace, workspace payload, insight-rule, workflow-action, typed
   response-component, transaction-summary mapping/context, transaction-page, transaction-ledger,
   source-readiness, book response, readiness/insight source-loading, and book source-loading
-  extractions, with the repository longest-function baseline held at the enforced 49-line AST span
+  extractions plus stale wrapper cleanup, with the repository longest-function baseline held at
+  the enforced 49-line AST span
 
 ## Route-family map
 

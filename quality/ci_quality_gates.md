@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,589
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,553
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1589` and `max_function_lines=49`.
+   `max_source_file_lines=1553` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -201,6 +201,17 @@ Most recent local PR-grade evidence:
     Local `make ci` passed with 207 integration tests and 1,335 combined coverage tests; total
     coverage is 94.20%, and `pip-audit` found no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
+26. Current portfolio service wrapper-cleanup branch removes stale local pass-through wrappers for
+    portfolio identity/profile parsing, workspace control-capability construction, optional text
+    conversion, and unused optional-int conversion, reducing `portfolio_service.py` from 1,589 to
+    1,553 script-counted lines while preserving direct use of extracted helper modules. Focused
+    validation passed with ruff check, ruff format check, touched-module mypy, the refactor
+    threshold gate, and 68 service/boundary/threshold/docs unit tests. Local `make check` passed
+    with ruff, format check, monetary-float guard, refactor threshold gate, workflow
+    action-runtime gate, mypy over 479 source files, Workbench/OpenAPI contract smoke, and 1,129
+    unit/contract tests. Local `make ci` passed with 207 integration tests and 1,336 combined
+    coverage tests; total coverage is 94.24%, and `pip-audit` found no known vulnerabilities
+    after the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 
@@ -210,7 +221,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest services
-   are split; `portfolio_service.py` is now 1,589 script-counted lines and defines the current blocking
+   are split; `portfolio_service.py` is now 1,553 script-counted lines and defines the current blocking
    ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
