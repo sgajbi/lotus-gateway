@@ -41,6 +41,7 @@ from app.contracts.portfolio_holdings import (
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.services.async_ttl_cache import AsyncTtlCache
+from app.services.portfolio_book import build_portfolio_book_response
 from app.services.portfolio_catalog_payloads import parse_catalog_items
 from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
@@ -1063,20 +1064,14 @@ class PortfolioService:
             result=source_results.cash_balances_result,
             unavailable_detail_prefix="lotus-core cash balances unavailable",
         )
-        portfolio = self._parse_portfolio_identity(portfolio_payload)
-        return PortfolioBookResponse(
+        return build_portfolio_book_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             as_of_date=source_results.positions.as_of_date,
-            portfolio=portfolio,
-            summary=source_results.positions.summary,
-            cash_balances=parse_cash_balances(
-                cash_balances_payload,
-                source_results.positions.summary.assets_under_management_base,
-            ),
-            allocation_views=source_results.allocations.views,
-            top_positions=source_results.positions.top_positions,
-            positions=source_results.positions.positions,
+            portfolio_payload=portfolio_payload,
+            cash_balances_payload=cash_balances_payload,
+            allocations=source_results.allocations,
+            positions=source_results.positions,
         )
 
     async def get_portfolio_liquidity(
