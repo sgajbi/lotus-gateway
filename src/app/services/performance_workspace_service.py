@@ -9,10 +9,12 @@ from typing import Any, TypeAlias, cast
 from fastapi import HTTPException
 
 from app.config import settings
-from app.contracts.performance_contribution import ContributionSummaryView
-from app.contracts.performance_workspace import (
+from app.contracts.performance_attribution import (
     AttributionSummaryView,
     PerformanceAttributionTrendResponse,
+)
+from app.contracts.performance_contribution import ContributionSummaryView
+from app.contracts.performance_workspace import (
     PerformanceCalculationEvidenceView,
     PerformanceEvidenceView,
     PerformanceHorizonComparisonResponse,

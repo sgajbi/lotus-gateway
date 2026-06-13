@@ -229,6 +229,12 @@ smoothing-evidence, source-economics-evidence, and summary contracts into
 import surface, refreshes the governed monetary float allowlist for the moved performance
 contribution fields, and reduces `performance_workspace.py` from 1,539 to 1,499 measured lines
 while preserving OpenAPI schema names and the 49-line longest-function baseline.
+The current performance attribution contract slice moves attribution row, level, reason,
+residual-materiality, supportability-evidence, summary, trend-row, and trend-response contracts
+into `performance_attribution.py`, keeps `app.contracts.performance_workspace` as the
+compatibility import surface, refreshes the governed monetary float allowlist for the moved
+performance attribution fields, and reduces `performance_workspace.py` from 1,499 to 1,101
+measured lines while preserving OpenAPI schema names and the 49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -236,26 +242,26 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,371 |
-| Python source files under `src/app` | 469 |
-| Python test files under `tests` | 181 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,375 |
+| Python source files under `src/app` | 470 |
+| Python test files under `tests` | 182 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance contribution contract branch shows 1,371
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 469 Python source files
-under `src/app`; and 181 Python test files under `tests`.
+Working-tree verification for the current performance attribution contract branch shows 1,375
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 470 Python source files
+under `src/app`; and 182 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
 | 1 | 1,970 | `src/app/services/portfolio_service.py` |
-| 2 | 1,607 | `src/app/services/performance_workspace_service.py` |
-| 3 | 1,499 | `src/app/contracts/performance_workspace.py` |
-| 4 | 1,454 | `src/app/services/advisor_brief_service.py` |
-| 5 | 1,258 | `src/app/clients/dpm_client.py` |
-| 6 | 1,137 | `src/app/services/dpm_command_center_service.py` |
+| 2 | 1,609 | `src/app/services/performance_workspace_service.py` |
+| 3 | 1,454 | `src/app/services/advisor_brief_service.py` |
+| 4 | 1,258 | `src/app/clients/dpm_client.py` |
+| 5 | 1,137 | `src/app/services/dpm_command_center_service.py` |
+| 6 | 1,101 | `src/app/contracts/performance_workspace.py` |
 | 7 | 1,012 | `src/app/clients/advise_client.py` |
 | 8 | 1,001 | `src/app/services/dpm_wave_service.py` |
 | 9 | 911 | `src/app/contracts/portfolio.py` |
@@ -465,6 +471,15 @@ Most recent local evidence:
     unit/contract tests.
 81. Current performance contribution contract branch: `make ci` passed with 207 integration tests
     and 1,263 combined coverage tests; total coverage is 94.04%, and `pip-audit` found no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
+82. Current performance attribution contract branch focused validation passed with ruff format,
+    ruff check, mypy over the touched contract/service/router modules, monetary-float guard, and
+    74 performance attribution/workspace/advisor brief/OpenAPI tests.
+83. Current performance attribution contract branch: `make check` passed with ruff, format check,
+    monetary-float guard, mypy over 470 source files, Workbench/OpenAPI contract smoke, and 1,058
+    unit/contract tests.
+84. Current performance attribution contract branch: `make ci` passed with 207 integration tests
+    and 1,265 combined coverage tests; total coverage is 94.05%, and `pip-audit` found no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
