@@ -298,9 +298,9 @@ workspace tests and the 49-line longest-function baseline.
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current risk concentration contract branch was created from clean `main` after PR #367; final remote/local cleanup remains a post-merge gate |
 | Unit/contract coverage | Healthy | Current risk concentration branch `make check` passed with 1,050 unit/contract tests after focused risk concentration compatibility and risk workspace tests passed locally with 29 tests |
-| Integration coverage | Healthy | 207 integration tests passed in latest merged PR #367 `make ci`; full integration validation remains the pre-PR gate for this branch |
-| Total coverage | Healthy | 1,255 coverage tests passed in latest merged PR #367 `make ci`; total coverage was 94.03%, above the 84% floor, and full coverage validation remains the pre-PR gate for this branch |
-| Security audit | Governed | `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Integration coverage | Healthy | 207 integration tests passed in current risk concentration branch `make ci` |
+| Total coverage | Healthy | 1,257 coverage tests passed in current risk concentration branch `make ci`; total coverage is 94.03%, above the 84% floor |
+| Security audit | Governed | Current risk concentration branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 911 measured lines, `risk_workspace.py` to 1,343 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,607 measured lines; large contracts and several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |

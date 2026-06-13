@@ -137,5 +137,6 @@ import surface, refreshes the governed monetary-float allowlist for the moved co
 fields, reduces `risk_workspace.py` from 1,647 to 1,343 measured lines, and has focused evidence
 from ruff, format check, mypy, monetary-float guard, and 29 passing risk workspace tests. Local
 `make check` passed with ruff, format check, monetary-float guard, mypy over 466 source files,
-Workbench/OpenAPI contract smoke, and 1,050 unit/contract tests. Full `make ci` remains required
-before PR/merge.
+Workbench/OpenAPI contract smoke, and 1,050 unit/contract tests. Local `make ci` passed with 207
+integration tests, 1,257 coverage tests, 94.03% total coverage, and no known vulnerabilities after
+the governed `PYSEC-2026-161` exception.
