@@ -211,6 +211,12 @@ into `risk_workspace_concentration.py`, keeps `app.contracts.risk_workspace` as 
 import surface, refreshes the governed monetary float allowlist for the moved concentration weight
 fields, and reduces `risk_workspace.py` from 1,647 to 1,343 measured lines while preserving
 OpenAPI schema names and the 49-line longest-function baseline.
+The current risk rolling contract slice moves rolling metric summary, series, dependency,
+period-result, request-context, and payload contracts into `risk_workspace_rolling.py`, keeps
+`app.contracts.risk_workspace` as the compatibility import surface, refreshes the governed
+monetary float allowlist for the moved rolling metric-value field, and reduces
+`risk_workspace.py` from 1,343 to 969 measured lines while preserving OpenAPI schema names and the
+49-line longest-function baseline.
 It is intended to make quality debt visible before introducing stricter CI gates. Findings are not
 yet enforced unless they are already covered by existing repo-native gates.
 
@@ -218,15 +224,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 
 | Measure | Current value |
 | --- | ---: |
-| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,359 |
-| Python source files under `src/app` | 466 |
-| Python test files under `tests` | 178 |
+| Counted files under `src`, `tests`, `docs`, `wiki`, `.github`, `scripts` | 1,361 |
+| Python source files under `src/app` | 467 |
+| Python test files under `tests` | 179 |
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current risk concentration contract branch shows 1,359 files
-under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 466 Python source files under
-`src/app`; and 178 Python test files under `tests`.
+Working-tree verification for the current risk rolling contract branch shows 1,361 files under
+`src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 467 Python source files under `src/app`;
+and 179 Python test files under `tests`.
 
 ## Largest Source Files
 
@@ -236,11 +242,11 @@ under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`; 466 Python sourc
 | 2 | 1,607 | `src/app/services/performance_workspace_service.py` |
 | 3 | 1,539 | `src/app/contracts/performance_workspace.py` |
 | 4 | 1,452 | `src/app/services/advisor_brief_service.py` |
-| 5 | 1,343 | `src/app/contracts/risk_workspace.py` |
-| 6 | 1,258 | `src/app/clients/dpm_client.py` |
-| 7 | 1,137 | `src/app/services/dpm_command_center_service.py` |
-| 8 | 1,012 | `src/app/clients/advise_client.py` |
-| 9 | 1,001 | `src/app/services/dpm_wave_service.py` |
+| 5 | 1,258 | `src/app/clients/dpm_client.py` |
+| 6 | 1,137 | `src/app/services/dpm_command_center_service.py` |
+| 7 | 1,012 | `src/app/clients/advise_client.py` |
+| 8 | 1,001 | `src/app/services/dpm_wave_service.py` |
+| 9 | 969 | `src/app/contracts/risk_workspace.py` |
 | 10 | 911 | `src/app/contracts/portfolio.py` |
 
 ## Largest Functions
