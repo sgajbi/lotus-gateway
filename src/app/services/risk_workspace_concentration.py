@@ -4,14 +4,16 @@ from typing import Any, cast
 from app.contracts.risk_workspace import (
     RiskModuleState,
     RiskSupportabilityState,
+    WorkbenchRiskConcentrationResponse,
+    WorkbenchRiskMetadata,
+    WorkbenchRiskSupportabilityItem,
+)
+from app.contracts.risk_workspace_concentration import (
     WorkbenchIssuerConcentration,
     WorkbenchPortfolioConcentration,
     WorkbenchRiskConcentrationExecutionContext,
     WorkbenchRiskConcentrationPayload,
-    WorkbenchRiskConcentrationResponse,
     WorkbenchRiskConcentrationValuationContext,
-    WorkbenchRiskMetadata,
-    WorkbenchRiskSupportabilityItem,
     WorkbenchSinglePositionConcentration,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
