@@ -9,6 +9,7 @@ from app.contracts.dpm_construction import (
 )
 from app.contracts.dpm_waves import DpmCampaignDefinitionGatewayResponse
 from app.services.upstream_envelope import (
+    GATEWAY_SERVICE_ERROR_STATUS_RULES,
     build_gateway_envelope,
     build_product_safe_upstream_status_gateway_envelope,
     build_product_safe_upstream_status_payload_gateway_envelope,
@@ -242,12 +243,23 @@ def test_raise_product_safe_service_error_builds_untyped_detail() -> None:
     }
 
 
+def test_gateway_service_error_status_rules_are_explicit() -> None:
+    assert {
+        (tuple(sorted(rule.upstream_statuses)), rule.gateway_status)
+        for rule in GATEWAY_SERVICE_ERROR_STATUS_RULES
+    } == {
+        ((400, 422), 400),
+        ((404,), 404),
+    }
+
+
 @pytest.mark.parametrize(
     ("upstream_status", "gateway_status"),
     [
         (400, 400),
         (422, 400),
         (404, 404),
+        (409, 502),
         (500, 502),
     ],
 )
