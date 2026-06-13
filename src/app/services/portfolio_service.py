@@ -51,8 +51,12 @@ from app.services.portfolio_holdings_payloads import (
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
     PortfolioAllocationPayloads,
+    PortfolioPositionBookLoadRequest,
+    PortfolioPositionBookPayloadLoaders,
+    PortfolioPositionBookPayloads,
     build_portfolio_allocation_response,
     load_portfolio_allocation_payloads,
+    load_portfolio_position_book_payloads,
     parse_cash_balances,
 )
 from app.services.portfolio_insights import build_portfolio_insights
@@ -150,12 +154,6 @@ class PortfolioWorkspaceAnalyticsResults:
     performance_result: UpstreamResult | None
     rebalance_result: UpstreamResult | None
     rebalance_supportability_result: UpstreamResult | None
-
-
-@dataclass(frozen=True)
-class PortfolioPositionBookPayloads:
-    aum_payload: dict[str, Any]
-    positions_payload: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -1246,32 +1244,19 @@ class PortfolioService:
         include_projected: bool,
         reporting_currency: str | None,
     ) -> PortfolioPositionBookPayloads:
-        aum_result, positions_result = await asyncio.gather(
-            self._query_aum_result(
-                correlation_id=correlation_id,
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                reporting_currency=reporting_currency,
-            ),
-            self._get_portfolio_positions_result(
+        return await load_portfolio_position_book_payloads(
+            PortfolioPositionBookLoadRequest(
                 portfolio_id=portfolio_id,
                 correlation_id=correlation_id,
                 as_of_date=as_of_date,
                 include_projected=include_projected,
                 reporting_currency=reporting_currency,
             ),
-        )
-        aum_payload = self._require_payload(
-            result=aum_result,
-            unavailable_detail_prefix="lotus-core aum unavailable",
-        )
-        positions_payload = self._require_payload(
-            result=positions_result,
-            unavailable_detail_prefix="lotus-core positions unavailable",
-        )
-        return PortfolioPositionBookPayloads(
-            aum_payload=aum_payload,
-            positions_payload=positions_payload,
+            PortfolioPositionBookPayloadLoaders(
+                query_aum_result=self._query_aum_result,
+                get_portfolio_positions_result=self._get_portfolio_positions_result,
+                require_payload=self._require_payload,
+            ),
         )
 
     async def get_transaction_ledger(

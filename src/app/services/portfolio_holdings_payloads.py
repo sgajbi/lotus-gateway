@@ -35,10 +35,32 @@ class PortfolioAllocationPayloads:
 
 
 @dataclass(frozen=True)
+class PortfolioPositionBookLoadRequest:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    include_projected: bool
+    reporting_currency: str | None
+
+
+@dataclass(frozen=True)
+class PortfolioPositionBookPayloads:
+    aum_payload: dict[str, Any]
+    positions_payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class PortfolioAllocationPayloadLoaders:
     query_aum_result: Callable[..., Awaitable[UpstreamResult]]
     get_portfolio_positions_result: Callable[..., Awaitable[UpstreamResult]]
     query_asset_allocation_result: Callable[..., Awaitable[UpstreamResult]]
+    require_payload: Callable[..., dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class PortfolioPositionBookPayloadLoaders:
+    query_aum_result: Callable[..., Awaitable[UpstreamResult]]
+    get_portfolio_positions_result: Callable[..., Awaitable[UpstreamResult]]
     require_payload: Callable[..., dict[str, Any]]
 
 
@@ -78,6 +100,37 @@ async def load_portfolio_allocation_payloads(
         allocation_payload=loaders.require_payload(
             result=allocation_result,
             unavailable_detail_prefix="lotus-core allocation unavailable",
+        ),
+        positions_payload=loaders.require_payload(
+            result=positions_result,
+            unavailable_detail_prefix="lotus-core positions unavailable",
+        ),
+    )
+
+
+async def load_portfolio_position_book_payloads(
+    request: PortfolioPositionBookLoadRequest,
+    loaders: PortfolioPositionBookPayloadLoaders,
+) -> PortfolioPositionBookPayloads:
+    aum_result, positions_result = await asyncio.gather(
+        loaders.query_aum_result(
+            correlation_id=request.correlation_id,
+            portfolio_id=request.portfolio_id,
+            as_of_date=request.as_of_date,
+            reporting_currency=request.reporting_currency,
+        ),
+        loaders.get_portfolio_positions_result(
+            portfolio_id=request.portfolio_id,
+            correlation_id=request.correlation_id,
+            as_of_date=request.as_of_date,
+            include_projected=request.include_projected,
+            reporting_currency=request.reporting_currency,
+        ),
+    )
+    return PortfolioPositionBookPayloads(
+        aum_payload=loaders.require_payload(
+            result=aum_result,
+            unavailable_detail_prefix="lotus-core aum unavailable",
         ),
         positions_payload=loaders.require_payload(
             result=positions_result,
