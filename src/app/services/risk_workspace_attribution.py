@@ -3,14 +3,16 @@ from typing import Any, cast
 
 from app.contracts.risk_workspace import (
     RiskModuleState,
+    WorkbenchRiskAttributionResponse,
+    WorkbenchRiskMetadata,
+    WorkbenchRiskSupportabilityItem,
+)
+from app.contracts.risk_workspace_attribution import (
     WorkbenchRiskAttributionContributor,
     WorkbenchRiskAttributionMethodologyContext,
     WorkbenchRiskAttributionPayload,
     WorkbenchRiskAttributionPeriodResult,
-    WorkbenchRiskAttributionResponse,
     WorkbenchRiskAttributionSet,
-    WorkbenchRiskMetadata,
-    WorkbenchRiskSupportabilityItem,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_attribution_controls import (

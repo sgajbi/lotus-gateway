@@ -296,17 +296,23 @@ period-result, request-context, and payload contracts into `risk_workspace_rolli
 legacy `app.contracts.risk_workspace` import surface intact, refreshes the governed monetary-float
 allowlist for the moved rolling metric-value field, and reduces `risk_workspace.py` from 1,343 to
 969 lines while preserving focused risk workspace tests and the 49-line longest-function baseline.
+The current risk attribution contract slice moves attribution control, contributor, set,
+period-result, methodology-context, and payload contracts into `risk_workspace_attribution.py`,
+keeps the legacy `app.contracts.risk_workspace` import surface intact, refreshes the governed
+monetary-float allowlist for the moved attribution contribution fields, and reduces
+`risk_workspace.py` from 969 to 678 lines while preserving focused risk workspace tests and the
+49-line longest-function baseline.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current risk rolling contract branch was created from clean `main` after PR #368; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current risk rolling contract branch `make check` passed with 1,052 unit/contract tests after focused risk rolling compatibility and risk workspace tests passed locally with 23 tests |
-| Integration coverage | Healthy | 207 integration tests passed in current risk rolling contract branch `make ci` |
-| Total coverage | Healthy | 1,259 coverage tests passed in current risk rolling contract branch `make ci`; total coverage is 94.03%, above the 84% floor |
-| Security audit | Governed | Current risk rolling contract branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed after the moved rolling metric-value allowlist path was refreshed |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 911 measured lines, `risk_workspace.py` to 969 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,607 measured lines; several service files remain above 1,000 lines |
+| Branch hygiene | Healthy | Current risk attribution contract branch was created from clean `main` after PR #369; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current risk attribution contract branch `make check` passed with 1,054 unit/contract tests after focused risk attribution compatibility and risk workspace tests passed locally with 34 tests |
+| Integration coverage | Healthy | 207 integration tests passed in current risk attribution contract branch `make ci` |
+| Total coverage | Healthy | 1,261 coverage tests passed in current risk attribution contract branch `make ci`; total coverage is 94.04%, above the 84% floor |
+| Security audit | Governed | Current risk attribution contract branch `pip-audit` found no known vulnerabilities after the governed `PYSEC-2026-161` exception; monetary-float guard passed after the moved attribution contribution-field allowlist paths were refreshed |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices reduce `portfolio.py` to 911 measured lines, `risk_workspace.py` to 678 measured lines, and `reporting.py` to 532 measured lines, leaving `portfolio_service.py` at 1,970 measured lines and `performance_workspace_service.py` at 1,607 measured lines; several service files remain above 1,000 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is new report-only baseline |
 | Observability | Partial | Health/readiness/metrics/correlation exist; trace/log scoring not enforced |

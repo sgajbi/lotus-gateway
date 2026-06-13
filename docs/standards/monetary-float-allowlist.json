@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-13T00:28:52Z",
+  "generated_at": "2026-06-13T00:50:57Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -508,22 +508,22 @@
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:227:value: float | None = Field(",
+      "finding": "src/app/contracts/risk_workspace.py:148:value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-10-14"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:357:weight_average: float | None = Field(",
+      "finding": "src/app/contracts/risk_workspace_attribution.py:163:weight_average: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-14"
+      "review_by": "2026-12-10"
     },
     {
-      "finding": "src/app/contracts/risk_workspace.py:392:total_value: float | None = Field(",
+      "finding": "src/app/contracts/risk_workspace_attribution.py:198:total_value: float | None = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
-      "review_by": "2026-10-14"
+      "review_by": "2026-12-10"
     },
     {
       "finding": "src/app/contracts/risk_workspace_concentration.py:115:weight: float = Field(",

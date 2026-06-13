@@ -5,10 +5,12 @@ from typing import Any
 
 from app.contracts.risk_workspace import (
     RiskSupportabilityState,
+    WorkbenchRiskSupportabilityItem,
+)
+from app.contracts.risk_workspace_attribution import (
     WorkbenchRiskAttributionControls,
     WorkbenchRiskAttributionGroupingOption,
     WorkbenchRiskAttributionTypeOption,
-    WorkbenchRiskSupportabilityItem,
 )
 
 RISK_ATTRIBUTION_TYPE_LABELS = {
