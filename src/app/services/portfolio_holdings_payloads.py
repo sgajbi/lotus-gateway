@@ -1,3 +1,6 @@
+import asyncio
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 from app.contracts.portfolio_holdings import (
@@ -9,6 +12,78 @@ from app.contracts.portfolio_holdings import (
 )
 from app.precision_policy import quantize_money, quantize_performance
 from app.services.portfolio_position_book import parse_position_book_summary
+
+UpstreamResult = tuple[int, dict[str, Any]]
+ALLOCATION_VIEW_DIMENSIONS = ["asset_class", "currency", "sector", "region"]
+
+
+@dataclass(frozen=True)
+class PortfolioAllocationLoadRequest:
+    portfolio_id: str
+    correlation_id: str
+    as_of_date: str | None
+    reporting_currency: str | None
+    look_through_mode: str | None
+
+
+@dataclass(frozen=True)
+class PortfolioAllocationPayloads:
+    aum_result: UpstreamResult
+    aum_payload: dict[str, Any]
+    positions_payload: dict[str, Any]
+    allocation_payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PortfolioAllocationPayloadLoaders:
+    query_aum_result: Callable[..., Awaitable[UpstreamResult]]
+    get_portfolio_positions_result: Callable[..., Awaitable[UpstreamResult]]
+    query_asset_allocation_result: Callable[..., Awaitable[UpstreamResult]]
+    require_payload: Callable[..., dict[str, Any]]
+
+
+async def load_portfolio_allocation_payloads(
+    request: PortfolioAllocationLoadRequest,
+    loaders: PortfolioAllocationPayloadLoaders,
+) -> PortfolioAllocationPayloads:
+    aum_result, positions_result, allocation_result = await asyncio.gather(
+        loaders.query_aum_result(
+            correlation_id=request.correlation_id,
+            portfolio_id=request.portfolio_id,
+            as_of_date=request.as_of_date,
+            reporting_currency=request.reporting_currency,
+        ),
+        loaders.get_portfolio_positions_result(
+            portfolio_id=request.portfolio_id,
+            correlation_id=request.correlation_id,
+            as_of_date=request.as_of_date,
+            include_projected=False,
+            reporting_currency=request.reporting_currency,
+        ),
+        loaders.query_asset_allocation_result(
+            correlation_id=request.correlation_id,
+            portfolio_id=request.portfolio_id,
+            as_of_date=request.as_of_date,
+            dimensions=ALLOCATION_VIEW_DIMENSIONS,
+            reporting_currency=request.reporting_currency,
+            look_through_mode=request.look_through_mode,
+        ),
+    )
+    return PortfolioAllocationPayloads(
+        aum_result=aum_result,
+        aum_payload=loaders.require_payload(
+            result=aum_result,
+            unavailable_detail_prefix="lotus-core aum unavailable",
+        ),
+        allocation_payload=loaders.require_payload(
+            result=allocation_result,
+            unavailable_detail_prefix="lotus-core allocation unavailable",
+        ),
+        positions_payload=loaders.require_payload(
+            result=positions_result,
+            unavailable_detail_prefix="lotus-core positions unavailable",
+        ),
+    )
 
 
 def build_portfolio_allocation_response(
