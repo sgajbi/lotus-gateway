@@ -35,8 +35,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 1,453 script-counted lines,
-2. `src/app/clients/dpm_client.py` at 1,362 lines,
+1. `src/app/clients/dpm_client.py` at 1,362 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 1,237 script-counted lines,
 3. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
 4. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
 5. `src/app/clients/advise_client.py` at 1,098 lines.
@@ -169,7 +169,11 @@ policy now lives in `src/app/services/performance_workspace_context.py`, lowerin
 query-parameter construction now lives in
 `src/app/clients/lotus_core_transaction_params.py`, reducing `lotus_core_query_client.py` to 574
 measured lines and removing `_portfolio_transaction_query_params` from the current top hotspot
-list. The current longest functions are 49-line helpers:
+list. Portfolio workspace component parsing, reporting-readiness part assembly, and
+resolved-as-of-date extraction now live in `src/app/services/portfolio_workspace_components.py`,
+reducing `portfolio_service.py` from 1,453 to 1,237 script-counted lines and making
+`dpm_client.py` the largest remaining source-file hotspot. The current longest functions are
+49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.
 
