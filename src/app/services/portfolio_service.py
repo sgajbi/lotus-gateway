@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -7,19 +6,14 @@ from fastapi import HTTPException, status
 
 from app.config import settings
 from app.contracts.portfolio import (
-    PortfolioCashflowOutlook,
     PortfolioCatalogResponse,
     PortfolioExceptionSummary,
     PortfolioInsight,
     PortfolioInsightsResponse,
     PortfolioLiquidityResponse,
-    PortfolioOperationalReadiness,
     PortfolioPartialFailure,
-    PortfolioPerformanceSummary,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
-    PortfolioRebalanceSummary,
-    PortfolioRebalanceSupportabilitySummary,
     PortfolioWorkflowResponse,
     PortfolioWorkspaceResponse,
 )
@@ -27,7 +21,6 @@ from app.contracts.portfolio_activity_income import (
     PortfolioActivitySummaryResponse,
     PortfolioIncomeSummaryResponse,
 )
-from app.contracts.portfolio_core import PortfolioSummary
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
     PortfolioAllocationView,
@@ -84,7 +77,6 @@ from app.services.portfolio_readiness_insight_sources import (
 )
 from app.services.portfolio_readiness_response import (
     build_portfolio_readiness_response,
-    build_reporting_readiness,
 )
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionLedgerRequest,
@@ -110,26 +102,22 @@ from app.services.portfolio_upstream_payloads import (
 )
 from app.services.portfolio_workflow import (
     build_workflow_actions,
-    build_workflow_cues,
     holdings_readiness_status,
     pricing_readiness_status,
     reporting_status_label,
     transactions_readiness_status,
 )
-from app.services.portfolio_workspace_controls import build_workspace_control_capabilities
+from app.services.portfolio_workspace_components import (
+    PortfolioWorkspaceAssemblyState,
+    assemble_portfolio_workspace_components,
+    build_portfolio_workspace_assembly_state,
+    build_portfolio_workspace_response_parts,
+    extract_resolved_as_of_date,
+    parse_cashflow,
+    parse_summary,
+)
 from app.services.portfolio_workspace_payloads import (
     optional_text,
-    parse_cashflow_outlook,
-    parse_operational_readiness,
-    parse_portfolio_identity,
-    parse_portfolio_profile,
-    parse_portfolio_summary,
-)
-from app.services.portfolio_workspace_performance import parse_workspace_performance_summary
-from app.services.portfolio_workspace_rebalance import (
-    parse_workspace_rebalance_summary,
-    parse_workspace_rebalance_supportability,
-    rebalance_summary_from_supportability,
 )
 from app.services.portfolio_workspace_response import (
     PortfolioWorkspaceComponents,
@@ -153,13 +141,6 @@ from app.services.workspace_client_protocols import (
 )
 
 UpstreamResult = tuple[int, dict[str, Any]]
-
-
-@dataclass(frozen=True)
-class PortfolioWorkspaceAssemblyState:
-    portfolio_payload: dict[str, Any]
-    warnings: list[str]
-    partial_failures: list[PortfolioPartialFailure]
 
 
 class PortfolioService:
@@ -460,7 +441,7 @@ class PortfolioService:
             reporting_currency=reporting_currency,
         )
         resolved_as_of_date = (
-            self._extract_resolved_as_of_date(source_results.aum_result) or effective_as_of_date
+            extract_resolved_as_of_date(source_results.aum_result) or effective_as_of_date
         )
         performance_as_of_date = as_of_date or resolved_as_of_date
         analytics_results = await self._load_portfolio_workspace_analytics(
@@ -568,21 +549,13 @@ class PortfolioService:
         resolved_as_of_date: str,
         reporting_currency: str | None,
     ) -> PortfolioWorkspaceResponseParts:
-        return PortfolioWorkspaceResponseParts(
-            reporting=self._reporting_readiness(
-                components.summary,
-                source_results.readiness_result,
-            ),
-            control_capabilities=build_workspace_control_capabilities(
-                portfolio=components.portfolio,
-                profile=components.profile,
-                requested_as_of_date=effective_as_of_date,
-                effective_as_of_date=resolved_as_of_date,
-                requested_reporting_currency=reporting_currency,
-            ),
-            workflow_cues=build_workflow_cues(portfolio_id),
-            warnings=components.warnings,
-            partial_failures=components.partial_failures,
+        return build_portfolio_workspace_response_parts(
+            portfolio_id=portfolio_id,
+            components=components,
+            source_results=source_results,
+            effective_as_of_date=effective_as_of_date,
+            resolved_as_of_date=resolved_as_of_date,
+            reporting_currency=reporting_currency,
         )
 
     def _build_portfolio_workspace_components(
@@ -605,23 +578,7 @@ class PortfolioService:
         *,
         source_results: PortfolioWorkspaceSourceResults,
     ) -> PortfolioWorkspaceAssemblyState:
-        portfolio_payload = require_payload(
-            result=source_results.portfolio_result,
-            unavailable_detail_prefix="lotus-core portfolio unavailable",
-        )
-        raise_on_upstream_client_error(
-            source_results.support_result,
-            detail_prefix="lotus-core support overview rejected the request",
-        )
-        raise_on_upstream_client_error(
-            source_results.readiness_result,
-            detail_prefix="lotus-core portfolio readiness rejected the request",
-        )
-        return PortfolioWorkspaceAssemblyState(
-            portfolio_payload=portfolio_payload,
-            warnings=[],
-            partial_failures=[],
-        )
+        return build_portfolio_workspace_assembly_state(source_results=source_results)
 
     def _assemble_portfolio_workspace_components(
         self,
@@ -630,44 +587,10 @@ class PortfolioService:
         analytics_results: PortfolioWorkspaceAnalyticsResults,
         assembly_state: PortfolioWorkspaceAssemblyState,
     ) -> PortfolioWorkspaceComponents:
-        summary = self._parse_summary(
-            source_results.aum_result,
-            source_results.cash_balance_result,
-            assembly_state.warnings,
-            assembly_state.partial_failures,
-        )
-        cashflow_outlook = self._parse_cashflow(
-            source_results.cashflow_result,
-            assembly_state.warnings,
-            assembly_state.partial_failures,
-        )
-        performance = self._parse_workspace_performance(
-            analytics_results.performance_result,
-            assembly_state.warnings,
-            assembly_state.partial_failures,
-        )
-        rebalance = self._parse_workspace_rebalance(
-            analytics_results.rebalance_result,
-            analytics_results.rebalance_supportability_result,
-            assembly_state.warnings,
-            assembly_state.partial_failures,
-        )
-        operations = self._parse_operations(
-            source_results.support_result,
-            assembly_state.warnings,
-            assembly_state.partial_failures,
-        )
-
-        return PortfolioWorkspaceComponents(
-            portfolio=parse_portfolio_identity(assembly_state.portfolio_payload),
-            profile=parse_portfolio_profile(assembly_state.portfolio_payload),
-            summary=summary,
-            cashflow_outlook=cashflow_outlook,
-            performance=performance,
-            rebalance=rebalance,
-            operations=operations,
-            warnings=assembly_state.warnings,
-            partial_failures=assembly_state.partial_failures,
+        return assemble_portfolio_workspace_components(
+            source_results=source_results,
+            analytics_results=analytics_results,
+            assembly_state=assembly_state,
         )
 
     async def get_portfolio_readiness(
@@ -918,7 +841,7 @@ class PortfolioService:
             as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         )
-        summary = self._parse_summary(
+        summary = parse_summary(
             payloads.aum_result,
             payloads.cash_balances_result,
             warnings,
@@ -938,7 +861,7 @@ class PortfolioService:
                 payloads.cash_balances_payload,
                 summary.assets_under_management_base,
             ),
-            cashflow_outlook=self._parse_cashflow(
+            cashflow_outlook=parse_cashflow(
                 payloads.cashflow_result,
                 warnings,
                 partial_failures,
@@ -987,8 +910,8 @@ class PortfolioService:
             include_projected=include_projected,
             horizon_days=horizon_days,
         )
-        cashflow_outlook = self._parse_cashflow(cashflow_result, warnings, partial_failures)
-        resolved_as_of_date = self._extract_resolved_as_of_date(cashflow_result)
+        cashflow_outlook = parse_cashflow(cashflow_result, warnings, partial_failures)
+        resolved_as_of_date = extract_resolved_as_of_date(cashflow_result)
 
         return PortfolioProjectedCashflowResponse(
             correlation_id=correlation_id,
@@ -1233,127 +1156,6 @@ class PortfolioService:
                 detail=str(exc),
             ) from exc
 
-    def _parse_summary(
-        self,
-        aum_result: tuple[int, dict[str, Any]],
-        cash_balances_result: tuple[int, dict[str, Any]],
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioSummary:
-        aum_payload = (
-            optional_payload(
-                aum_result, "lotus-core", "PORTFOLIO_AUM_UNAVAILABLE", warnings, partial_failures
-            )
-            or {}
-        )
-        cash_payload = (
-            optional_payload(
-                cash_balances_result,
-                "lotus-core",
-                "PORTFOLIO_CASH_BALANCES_UNAVAILABLE",
-                warnings,
-                partial_failures,
-            )
-            or {}
-        )
-        return parse_portfolio_summary(
-            aum_payload=aum_payload,
-            cash_payload=cash_payload,
-        )
-
-    def _parse_cashflow(
-        self,
-        result: tuple[int, dict[str, Any]],
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioCashflowOutlook | None:
-        payload = optional_payload(
-            result, "lotus-core", "PORTFOLIO_CASHFLOW_UNAVAILABLE", warnings, partial_failures
-        )
-        if payload is None:
-            return None
-        return parse_cashflow_outlook(payload)
-
-    def _parse_workspace_performance(
-        self,
-        result: tuple[int, dict[str, Any]] | None,
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioPerformanceSummary | None:
-        if result is None:
-            return None
-        payload = optional_payload(
-            result,
-            "lotus-performance",
-            "PORTFOLIO_PERFORMANCE_UNAVAILABLE",
-            warnings,
-            partial_failures,
-        )
-        if payload is None:
-            return None
-        return parse_workspace_performance_summary(payload, warnings)
-
-    def _parse_workspace_rebalance(
-        self,
-        result: tuple[int, dict[str, Any]] | None,
-        supportability_result: tuple[int, dict[str, Any]] | None,
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioRebalanceSummary | None:
-        supportability = self._parse_workspace_rebalance_supportability(
-            supportability_result,
-            warnings,
-            partial_failures,
-        )
-        if result is None:
-            return rebalance_summary_from_supportability("NO_RUNS", supportability)
-        payload = optional_payload(
-            result,
-            "lotus-manage",
-            "PORTFOLIO_REBALANCE_UNAVAILABLE",
-            warnings,
-            partial_failures,
-        )
-        if payload is None:
-            return rebalance_summary_from_supportability("UNKNOWN", supportability)
-        return parse_workspace_rebalance_summary(payload, supportability)
-
-    def _parse_workspace_rebalance_supportability(
-        self,
-        result: tuple[int, dict[str, Any]] | None,
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioRebalanceSupportabilitySummary | None:
-        if result is None:
-            return None
-        payload = optional_payload(
-            result,
-            "lotus-manage",
-            "PORTFOLIO_REBALANCE_SUPPORTABILITY_UNAVAILABLE",
-            warnings,
-            partial_failures,
-        )
-        if payload is None:
-            return None
-        return parse_workspace_rebalance_supportability(payload, warnings, partial_failures)
-
-    def _parse_operations(
-        self,
-        result: tuple[int, dict[str, Any]],
-        warnings: list[str],
-        partial_failures: list[PortfolioPartialFailure],
-    ) -> PortfolioOperationalReadiness | None:
-        payload = optional_payload(
-            result,
-            "lotus-core",
-            "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE",
-            warnings,
-            partial_failures,
-        )
-        if payload is None:
-            return None
-        return parse_operational_readiness(payload)
-
     async def _load_transaction_rows_page(
         self,
         request: TransactionRowsPageRequest,
@@ -1372,16 +1174,6 @@ class PortfolioService:
         return require_payload(
             result=(status_code, payload),
             unavailable_detail_prefix="lotus-core transactions unavailable",
-        )
-
-    def _reporting_readiness(
-        self,
-        summary: PortfolioSummary,
-        readiness_result: tuple[int, dict[str, Any]] | None = None,
-    ):
-        return build_reporting_readiness(
-            summary_position_count=summary.position_count,
-            readiness_result=readiness_result,
         )
 
     def _build_portfolio_exception_summaries(
@@ -1442,12 +1234,4 @@ class PortfolioService:
                 workspace.reporting.status,
                 workspace.reporting.row_count,
             ),
-        )
-
-    def _extract_resolved_as_of_date(self, result: tuple[int, dict[str, Any]]) -> str | None:
-        payload = optional_payload(result, "lotus-core", "IGNORED", [], [])
-        return (
-            str(payload.get("resolved_as_of_date"))
-            if payload and payload.get("resolved_as_of_date")
-            else None
         )

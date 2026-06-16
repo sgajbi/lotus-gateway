@@ -280,6 +280,35 @@ def test_portfolio_service_delegates_upstream_payload_helpers() -> None:
     assert local_upstream_payload_helpers == []
 
 
+def test_portfolio_service_delegates_workspace_component_parsing() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_workspace_component_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_parse_cashflow",
+            "_parse_operations",
+            "_parse_summary",
+            "_parse_workspace_performance",
+            "_parse_workspace_rebalance",
+            "_parse_workspace_rebalance_supportability",
+            "_reporting_readiness",
+            "_extract_resolved_as_of_date",
+        }
+    )
+    local_workspace_component_state = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PortfolioWorkspaceAssemblyState"
+    )
+
+    assert local_workspace_component_helpers == []
+    assert local_workspace_component_state == []
+
+
 def test_performance_workspace_service_delegates_request_context_policy() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
