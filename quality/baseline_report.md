@@ -763,7 +763,11 @@ Most recent local evidence:
      workspace, horizon, and attribution-trend request-context policy into
      `performance_workspace_context.py`, reducing `performance_workspace_service.py` from 1,477
      to 1,206 script-counted lines while preserving normalization, benchmark, warning, and
-     partial-failure behavior.
+     partial-failure behavior. Local `make check` passed with ruff, format check, monetary-float
+     guard, refactor threshold gate, workflow action-runtime gate, mypy over 482 source files,
+     Workbench/OpenAPI contract smoke, and 1,150 unit/contract tests. Local `make ci` passed with
+     207 integration tests, 1,357 combined coverage tests, 94.30% total coverage, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
