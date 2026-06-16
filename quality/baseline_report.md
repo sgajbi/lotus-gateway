@@ -280,15 +280,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance workspace request-context extraction branch
-shows 482 Python source files under `src/app` and 197 Python test files under `tests`.
+Working-tree verification for the current portfolio workspace component parser extraction branch
+shows 483 Python source files under `src/app` and 198 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,453 | `src/app/services/portfolio_service.py` |
-| 2 | 1,362 | `src/app/clients/dpm_client.py` |
+| 1 | 1,362 | `src/app/clients/dpm_client.py` |
+| 2 | 1,237 | `src/app/services/portfolio_service.py` |
 | 3 | 1,217 | `src/app/services/dpm_command_center_service.py` |
 | 4 | 1,206 | `src/app/services/performance_workspace_service.py` |
 | 5 | 1,098 | `src/app/clients/advise_client.py` |
@@ -533,7 +533,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1453` and `max_function_lines=49` after the latest threshold ratchet.
+    `max_source_file_lines=1362` and `max_function_lines=49` after the latest threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -757,7 +757,7 @@ Most recent local evidence:
      construction and reporting-readiness fallback policy into
      `portfolio_readiness_response.py`, reducing `portfolio_service.py` from 1,489 to 1,453 lines
      while preserving readiness response behavior.
-122. Current performance workspace request-context extraction branch focused validation passed with
+122. Prior performance workspace request-context extraction branch focused validation passed with
      ruff check, ruff format check, touched-module mypy, 61 service/context/boundary unit tests,
      and a trial refactor threshold gate at `max_source_file_lines=1453`. The slice moves
      workspace, horizon, and attribution-trend request-context policy into
@@ -768,6 +768,24 @@ Most recent local evidence:
      Workbench/OpenAPI contract smoke, and 1,150 unit/contract tests. Local `make ci` passed with
      207 integration tests, 1,357 combined coverage tests, 94.30% total coverage, and no known
      vulnerabilities after the governed `PYSEC-2026-161` exception.
+123. Current portfolio workspace component parser extraction branch focused validation passed with
+     ruff check, ruff format check, touched-module mypy, 67 service/component/boundary unit tests,
+     and a trial refactor threshold gate at `max_source_file_lines=1362`. The slice moves
+     workspace assembly state, summary/cashflow/performance/rebalance/operations parsing,
+     reporting-readiness part assembly, and resolved-as-of-date extraction into
+     `portfolio_workspace_components.py`, reducing `portfolio_service.py` from 1,453 to 1,237
+     script-counted lines while preserving optional-upstream warning and partial-failure behavior.
+124. Current concrete-route registration fix focused validation passed with ruff check, ruff
+     format check, mypy over `router_registry.py`, and 15 route/contract tests. The fix registers
+     concrete `APIRoute` entries instead of FastAPI lazy included-router placeholders so route
+     enumeration, route-coverage contract tests, lookup/platform TestClient requests, and
+     Prometheus route-name middleware remain compatible with the current FastAPI routing runtime.
+125. Current portfolio workspace component parser branch local `make check` passed with ruff,
+     format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate,
+     mypy over 483 source files, Workbench/OpenAPI contract smoke, and 1,158 unit/contract tests.
+     Local `make ci` passed with 207 integration tests, 1,365 combined coverage tests, 94.31%
+     total coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -785,7 +803,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,453 script-counted lines,
+1. no Python source file under `src/app` above 1,362 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
