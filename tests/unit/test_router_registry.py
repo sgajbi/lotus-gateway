@@ -32,6 +32,14 @@ def test_router_registry_mounts_representative_gateway_route_families() -> None:
     assert "/api/v1/documents/{document_id}" in routes
 
 
+def test_router_registry_registers_concrete_routes_for_middleware_introspection() -> None:
+    app = FastAPI()
+
+    register_routers(app)
+
+    assert all(hasattr(route, "path") for route in app.routes)
+
+
 def test_router_registry_groups_are_non_empty_router_groups() -> None:
     assert ROUTER_GROUPS
 
