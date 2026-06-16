@@ -280,6 +280,27 @@ def test_portfolio_service_delegates_upstream_payload_helpers() -> None:
     assert local_upstream_payload_helpers == []
 
 
+def test_performance_workspace_service_delegates_request_context_policy() -> None:
+    path = _SERVICE_ROOT / "performance_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_context_policy_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_assemble_attribution_trend_request_context",
+            "_assemble_horizon_comparison_request_context",
+            "_assemble_workspace_request_context",
+            "_build_attribution_trend_dimension_context",
+            "_build_horizon_chart_frequency_context",
+            "_build_workspace_dimension_context",
+        }
+    )
+
+    assert local_context_policy_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

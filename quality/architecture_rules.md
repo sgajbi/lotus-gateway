@@ -35,10 +35,10 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_service.py` at 1,477 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 1,453 script-counted lines,
-3. `src/app/clients/dpm_client.py` at 1,362 lines,
-4. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
+1. `src/app/services/portfolio_service.py` at 1,453 script-counted lines,
+2. `src/app/clients/dpm_client.py` at 1,362 lines,
+3. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
+4. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
 5. `src/app/clients/advise_client.py` at 1,098 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
@@ -162,12 +162,11 @@ requiring, optional partial-failure recording, and safe client-error mapping now
 `src/app/services/portfolio_upstream_payloads.py`, reducing `portfolio_service.py` from 1,553 to
 1,489 script-counted lines. Portfolio readiness response construction and reporting-readiness
 fallback policy now live in `src/app/services/portfolio_readiness_response.py`, reducing
-`portfolio_service.py` to 1,453 lines while leaving `performance_workspace_service.py` as the
-largest current source-file hotspot at 1,477 lines. Performance workspace final response
-assembly now lives in
-`src/app/services/performance_workspace_response.py`, lowering
-`performance_workspace_service.py` to 1,413 lines. Lotus Core transaction query-parameter
-construction now lives in
+`portfolio_service.py` to 1,453 lines. Performance workspace final response assembly now lives in
+`src/app/services/performance_workspace_response.py`, and performance workspace request-context
+policy now lives in `src/app/services/performance_workspace_context.py`, lowering
+`performance_workspace_service.py` from 1,477 to 1,206 script-counted lines. Lotus Core transaction
+query-parameter construction now lives in
 `src/app/clients/lotus_core_transaction_params.py`, reducing `lotus_core_query_client.py` to 574
 measured lines and removing `_portfolio_transaction_query_params` from the current top hotspot
 list. The current longest functions are 49-line helpers:
