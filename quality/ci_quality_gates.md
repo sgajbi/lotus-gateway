@@ -246,6 +246,16 @@ Most recent local PR-grade evidence:
     upstream warning and partial-failure behavior. Focused validation passed with ruff check,
     ruff format check, touched-module mypy, 67 service/component/boundary unit tests, and a trial
     refactor threshold gate at `max_source_file_lines=1362`.
+31. Current concrete-route registration fix expands registered gateway routers into concrete
+    `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
+    do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
+    check, ruff format check, mypy over `router_registry.py`, and 15 route/contract tests.
+32. Current portfolio workspace component parser branch full local gates passed: `make check`
+    passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow
+    action-runtime gate, mypy over 483 source files, Workbench/OpenAPI contract smoke, and 1,158
+    unit/contract tests. `make ci` passed with 207 integration tests, 1,365 combined coverage
+    tests, 94.31% total coverage, migration contract smoke, and no known vulnerabilities after
+    the governed `PYSEC-2026-161` exception.
 
 ## Next Tightening Candidates
 

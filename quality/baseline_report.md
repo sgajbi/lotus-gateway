@@ -775,6 +775,17 @@ Most recent local evidence:
      reporting-readiness part assembly, and resolved-as-of-date extraction into
      `portfolio_workspace_components.py`, reducing `portfolio_service.py` from 1,453 to 1,237
      script-counted lines while preserving optional-upstream warning and partial-failure behavior.
+124. Current concrete-route registration fix focused validation passed with ruff check, ruff
+     format check, mypy over `router_registry.py`, and 15 route/contract tests. The fix registers
+     concrete `APIRoute` entries instead of FastAPI lazy included-router placeholders so route
+     enumeration, route-coverage contract tests, lookup/platform TestClient requests, and
+     Prometheus route-name middleware remain compatible with the current FastAPI routing runtime.
+125. Current portfolio workspace component parser branch local `make check` passed with ruff,
+     format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate,
+     mypy over 483 source files, Workbench/OpenAPI contract smoke, and 1,158 unit/contract tests.
+     Local `make ci` passed with 207 integration tests, 1,365 combined coverage tests, 94.31%
+     total coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
