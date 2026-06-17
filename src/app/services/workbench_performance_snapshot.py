@@ -146,10 +146,18 @@ def _period_return_payload(
 def _benchmark_return_payload(period_payload: object) -> dict[str, object] | None:
     if not isinstance(period_payload, dict):
         return None
-    return _nested_dict(
+    benchmark_net_payload = _nested_dict(
         period_payload,
         "benchmark",
         "net",
+        "summary",
+        "period_return",
+    )
+    if benchmark_net_payload is not None:
+        return benchmark_net_payload
+    return _nested_dict(
+        period_payload,
+        "benchmark",
         "summary",
         "period_return",
     )

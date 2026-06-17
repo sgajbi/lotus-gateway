@@ -357,10 +357,8 @@ def test_parse_performance_snapshot_accepts_workspace_summary_payload():
                             },
                         },
                         "benchmark": {
-                            "net": {
-                                "summary": {
-                                    "period_return": {"base": 5.1},
-                                },
+                            "summary": {
+                                "period_return": {"base": 5.1},
                             },
                         },
                     },
