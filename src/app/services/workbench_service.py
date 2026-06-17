@@ -197,6 +197,7 @@ class WorkbenchService:
         portfolio_id: str,
         correlation_id: str,
         session_id: str | None = None,
+        benchmark_code: str | None = None,
     ) -> WorkbenchPortfolio360Response:
         context = await self._load_workbench_snapshot_context(
             portfolio_id=portfolio_id,
@@ -213,6 +214,7 @@ class WorkbenchService:
             correlation_id=correlation_id,
             include_performance_snapshot=True,
             include_rebalance_snapshot=True,
+            benchmark_code=benchmark_code,
         )
 
         projected_positions: list[WorkbenchProjectedPositionView] = []
@@ -388,6 +390,7 @@ class WorkbenchService:
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             session_id=session_id,
+            benchmark_code=benchmark_code,
         )
         analytics_parts = _build_workbench_analytics_parts(
             portfolio_360=portfolio_360,
@@ -460,6 +463,7 @@ class WorkbenchService:
         correlation_id: str,
         include_performance_snapshot: bool,
         include_rebalance_snapshot: bool,
+        benchmark_code: str | None = None,
     ) -> tuple[
         WorkbenchPerformanceSnapshot | None,
         WorkbenchRebalanceSnapshot | None,
@@ -478,6 +482,7 @@ class WorkbenchService:
                 correlation_id=correlation_id,
                 include_performance_snapshot=include_performance_snapshot,
                 include_rebalance_snapshot=include_rebalance_snapshot,
+                benchmark_code=benchmark_code,
             )
             if include_performance_snapshot:
                 performance_snapshot = parse_performance_snapshot(
@@ -503,12 +508,14 @@ class WorkbenchService:
         correlation_id: str,
         include_performance_snapshot: bool,
         include_rebalance_snapshot: bool,
+        benchmark_code: str | None,
     ) -> WorkbenchOverviewEnrichmentResults:
         performance_task = await self._build_performance_snapshot_task(
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
             correlation_id=correlation_id,
             include_performance_snapshot=include_performance_snapshot,
+            benchmark_code=benchmark_code,
         )
         dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
             portfolio_id=portfolio_id,
@@ -537,6 +544,7 @@ class WorkbenchService:
         as_of_date: str,
         correlation_id: str,
         include_performance_snapshot: bool,
+        benchmark_code: str | None,
     ) -> Awaitable[tuple[int, dict[str, Any]]]:
         if not include_performance_snapshot:
             return self._empty_async_result()
@@ -552,7 +560,7 @@ class WorkbenchService:
             period="YTD",
             chart_frequency="monthly",
             detail_basis="NET",
-            benchmark_id=settings.workbench_default_benchmark_code,
+            benchmark_id=benchmark_code or settings.workbench_default_benchmark_code,
             reporting_currency=None,
             segment="asset_class",
             correlation_id=correlation_id,

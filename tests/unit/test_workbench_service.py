@@ -587,14 +587,7 @@ async def test_workbench_portfolio_360_with_projected_state():
     )
     service = WorkbenchService(
         lotus_core_query_client=lotus_core_client,
-        analytics_client=_StubLotusAnalyticsClient(
-            200,
-            {
-                "results_by_period": {
-                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
-                }
-            },
-        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_portfolio_360(
@@ -721,6 +714,14 @@ async def test_workbench_apply_sandbox_changes_with_policy_eval():
 
 @pytest.mark.asyncio
 async def test_workbench_analytics_response():
+    analytics_client = _StubLotusAnalyticsClient(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+            }
+        },
+    )
     service = WorkbenchService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
@@ -751,14 +752,7 @@ async def test_workbench_analytics_response():
                 },
             },
         ),
-        analytics_client=_StubLotusAnalyticsClient(
-            200,
-            {
-                "results_by_period": {
-                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
-                }
-            },
-        ),
+        analytics_client=analytics_client,
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_workbench_analytics(
@@ -774,6 +768,7 @@ async def test_workbench_analytics_response():
     assert response.session_id == "sess_1"
     assert response.period == "YTD"
     assert response.benchmark_code == "MODEL_60_40"
+    assert analytics_client.last_benchmark_id == "MODEL_60_40"
     assert response.portfolio_return_pct == pytest.approx(1.0)
     assert response.benchmark_return_pct is None
     assert response.active_return_pct is None
