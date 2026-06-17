@@ -25,11 +25,12 @@ class AdvisoryCopilotService:
         body: dict[str, Any],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
-        upstream_status, upstream_payload = (
-            await self._advise_client.create_advisory_copilot_evidence_packet(
-                body=self._upstream_body(body),
-                correlation_id=correlation_id,
-            )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.create_advisory_copilot_evidence_packet(
+            body=self._upstream_body(body),
+            correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -40,11 +41,12 @@ class AdvisoryCopilotService:
         body: dict[str, Any],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
-        upstream_status, upstream_payload = (
-            await self._advise_client.create_advisory_copilot_evidence_packet_from_proposal_version(
-                body=self._upstream_body(body),
-                correlation_id=correlation_id,
-            )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.create_advisory_copilot_evidence_packet_from_proposal_version(
+            body=self._upstream_body(body),
+            correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -55,11 +57,12 @@ class AdvisoryCopilotService:
         evidence_packet_id: str,
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
-        upstream_status, upstream_payload = (
-            await self._advise_client.get_advisory_copilot_evidence_packet(
-                evidence_packet_id=evidence_packet_id,
-                correlation_id=correlation_id,
-            )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_advisory_copilot_evidence_packet(
+            evidence_packet_id=evidence_packet_id,
+            correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -114,10 +117,11 @@ class AdvisoryCopilotService:
         *,
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
-        upstream_status, upstream_payload = (
-            await self._advise_client.get_advisory_copilot_supportability(
-                correlation_id=correlation_id,
-            )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.get_advisory_copilot_supportability(
+            correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)
@@ -130,13 +134,14 @@ class AdvisoryCopilotService:
         params: dict[str, Any],
         correlation_id: str,
     ) -> AdvisoryCopilotEnvelopeResponse:
-        upstream_status, upstream_payload = (
-            await self._advise_client.list_advisory_copilot_proposal_version_runs(
-                proposal_id=proposal_id,
-                version_id=version_id,
-                params=params,
-                correlation_id=correlation_id,
-            )
+        (
+            upstream_status,
+            upstream_payload,
+        ) = await self._advise_client.list_advisory_copilot_proposal_version_runs(
+            proposal_id=proposal_id,
+            version_id=version_id,
+            params=params,
+            correlation_id=correlation_id,
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._envelope(correlation_id, upstream_payload)

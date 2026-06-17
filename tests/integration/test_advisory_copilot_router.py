@@ -231,9 +231,7 @@ def test_advisory_copilot_supportability_openapi_documents_source_boundary() -> 
     schema = app.openapi()
     supportability_operation = schema["paths"]["/api/v1/advisory-copilot/supportability"]["get"]
     action_operation = schema["paths"]["/api/v1/advisory-copilot/actions"]["post"]
-    review_operation = schema["paths"]["/api/v1/advisory-copilot/actions/{run_id}/reviews"][
-        "post"
-    ]
+    review_operation = schema["paths"]["/api/v1/advisory-copilot/actions/{run_id}/reviews"]["post"]
     runs_operation = schema["paths"][
         "/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs"
     ]["get"]
