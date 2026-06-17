@@ -311,6 +311,20 @@ over 487 source files, Workbench/OpenAPI contract smoke, and 1,161 unit/contract
 migration contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 
+The current DPM PM operating-quality service-boundary branch ratchets the source-file threshold to
+1,206 script-counted lines after moving PM operating-quality policy, score-run, fairness-analysis,
+review-action, summary-invocation, and AI summary workflow-pack service orchestration into
+`dpm_pm_operating_quality_service.py`. It reduces `dpm_command_center_service.py` from 1,217 to
+695 script-counted lines while preserving the public `DpmCommandCenterService` surface,
+manage-owned evidence boundaries, and `lotus-ai` workflow-pack execution behavior. Focused
+validation passed with ruff check, touched-module mypy, 48 DPM command-center service/contract
+tests, and trial refactor threshold gates proving `max_source_file_lines=1206` passes while
+`1205` fails. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, workflow action-runtime gate, mypy over 488 source files, Workbench/OpenAPI
+contract smoke, and 1,161 unit/contract tests. Local `make ci` passed with 207 integration tests,
+1,368 combined coverage tests, 94.27% total coverage, migration contract smoke, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
