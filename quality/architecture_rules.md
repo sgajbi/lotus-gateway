@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/dpm_client.py` at 1,362 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 1,237 script-counted lines,
-3. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
-4. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
-5. `src/app/clients/advise_client.py` at 1,098 lines.
+1. `src/app/services/portfolio_service.py` at 1,237 script-counted lines,
+2. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
+3. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
+4. `src/app/clients/advise_client.py` at 1,098 lines,
+5. `src/app/services/dpm_wave_service.py` at 1,093 lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -172,7 +172,10 @@ measured lines and removing `_portfolio_transaction_query_params` from the curre
 list. Portfolio workspace component parsing, reporting-readiness part assembly, and
 resolved-as-of-date extraction now live in `src/app/services/portfolio_workspace_components.py`,
 reducing `portfolio_service.py` from 1,453 to 1,237 script-counted lines and making
-`dpm_client.py` the largest remaining source-file hotspot. The current longest functions are
+`dpm_client.py` the largest remaining source-file hotspot. PM operating-quality client route
+methods now live in `src/app/clients/dpm_pm_operating_quality_client.py`, reducing
+`dpm_client.py` below the current source-file ceiling and making `portfolio_service.py` the largest
+remaining source-file hotspot. The current longest functions are
 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.

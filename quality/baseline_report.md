@@ -281,18 +281,18 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI operations | 247 |
 
 Working-tree verification for the current portfolio workspace component parser extraction branch
-shows 483 Python source files under `src/app` and 198 Python test files under `tests`.
+shows 484 Python source files under `src/app` and 199 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,362 | `src/app/clients/dpm_client.py` |
-| 2 | 1,237 | `src/app/services/portfolio_service.py` |
-| 3 | 1,217 | `src/app/services/dpm_command_center_service.py` |
-| 4 | 1,206 | `src/app/services/performance_workspace_service.py` |
-| 5 | 1,098 | `src/app/clients/advise_client.py` |
-| 6 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 1 | 1,237 | `src/app/services/portfolio_service.py` |
+| 2 | 1,217 | `src/app/services/dpm_command_center_service.py` |
+| 3 | 1,206 | `src/app/services/performance_workspace_service.py` |
+| 4 | 1,098 | `src/app/clients/advise_client.py` |
+| 5 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 6 | 1,036 | `src/app/clients/dpm_client.py` |
 | 7 | 979 | `src/app/contracts/proposals.py` |
 | 8 | 954 | `src/app/contracts/portfolio.py` |
 | 9 | 951 | `src/app/services/foundation_service.py` |
@@ -533,7 +533,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1362` and `max_function_lines=49` after the latest threshold ratchet.
+    `max_source_file_lines=1237` and `max_function_lines=49` after the latest threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -803,7 +803,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,362 script-counted lines,
+1. no Python source file under `src/app` above 1,237 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
