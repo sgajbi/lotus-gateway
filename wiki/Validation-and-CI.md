@@ -410,6 +410,20 @@ and no known vulnerabilities after the governed `PYSEC-2026-161` exception. Focu
 refactor-threshold trials prove `max_source_file_lines=951` passes while `950` fails on
 `src/app/services/foundation_service.py`.
 
+The current Foundation core-snapshot mapper branch ratchets the source-file threshold to 930
+script-counted lines after moving lotus-core snapshot parsing, defensive payload normalization,
+allocation bucketing, top-position mapping, and market-value extraction into
+`foundation_core_snapshot.py`. It reduces `src/app/services/foundation_service.py` from 951 to 618
+script-counted lines while preserving Foundation workspace response behavior. Focused validation
+passed with ruff check, ruff format, mypy over touched service modules, 31 focused
+foundation/refactor unit, contract, and integration tests, and refactor-threshold trials proving
+`max_source_file_lines=930` passes while `929` fails on
+`src/app/contracts/performance_workspace.py`. Full local `make check` passed with ruff, format
+check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 498
+source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. Full local `make ci`
+passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total coverage, migration
+contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
