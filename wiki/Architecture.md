@@ -10,10 +10,11 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/contracts/portfolio.py` as the largest
-  residual source file at 954 script-counted lines after proposal memo contracts moved into
-  `proposal_memos.py`, reducing `src/app/contracts/proposals.py` to 828 script-counted lines; the
-  repository longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/services/foundation_service.py` as the
+  largest residual source file at 951 script-counted lines after portfolio liquidity contracts
+  moved into `portfolio_liquidity.py`, reducing `src/app/contracts/portfolio.py` to 754
+  script-counted lines; the repository longest-function baseline remains held at the enforced
+  49-line AST span
 
 ## Route-family map
 

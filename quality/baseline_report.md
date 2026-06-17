@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current proposal memo contract-boundary branch shows 496 Python
+Working-tree verification for the current portfolio liquidity contract-boundary branch shows 497 Python
 source files under `src/app` and 202 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 954 | `src/app/contracts/portfolio.py` |
-| 2 | 951 | `src/app/services/foundation_service.py` |
-| 3 | 930 | `src/app/contracts/performance_workspace.py` |
-| 4 | 909 | `src/app/clients/advise_client.py` |
-| 5 | 868 | `src/app/router_registry.py` |
-| 6 | 861 | `src/app/services/advisor_brief_service.py` |
-| 7 | 854 | `src/app/services/proposal_service.py` |
-| 8 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 9 | 828 | `src/app/contracts/proposals.py` |
-| 10 | 811 | `src/app/services/portfolio_service.py` |
+| 1 | 951 | `src/app/services/foundation_service.py` |
+| 2 | 930 | `src/app/contracts/performance_workspace.py` |
+| 3 | 909 | `src/app/clients/advise_client.py` |
+| 4 | 868 | `src/app/router_registry.py` |
+| 5 | 861 | `src/app/services/advisor_brief_service.py` |
+| 6 | 854 | `src/app/services/proposal_service.py` |
+| 7 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 8 | 828 | `src/app/contracts/proposals.py` |
+| 9 | 811 | `src/app/services/portfolio_service.py` |
+| 10 | 754 | `src/app/contracts/portfolio.py` |
 
 ## Largest Functions
 
@@ -874,7 +874,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 954 script-counted lines,
+1. no Python source file under `src/app` above 951 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 954
+2. Current enforced source-file threshold: no Python source file under `src/app` above 951
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=954` and `max_function_lines=49`.
+   `max_source_file_lines=951` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -355,7 +355,7 @@ Most recent local PR-grade evidence:
     `make ci` passed with 207 integration tests, 1,374 combined coverage tests, 94.22% total
     coverage, migration contract smoke, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
-41. Current proposal memo contract-boundary branch moves memo-specific proposal request and
+41. The previous proposal memo contract-boundary branch moved memo-specific proposal request and
     envelope contracts into `proposal_memos.py`, reducing `src/app/contracts/proposals.py` from
     979 to 828 script-counted lines while preserving the public `app.contracts.proposals` import
     surface. Focused validation passed with ruff check, ruff format check, 14 proposal
@@ -366,6 +366,14 @@ Most recent local PR-grade evidence:
     contract smoke, and 1,168 unit/contract tests. Full local `make ci` passed with 207
     integration tests, 1,375 combined coverage tests, 94.22% total coverage, migration contract
     smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+42. Current portfolio liquidity contract-boundary branch moves liquidity and projected-cashflow
+    contracts into `portfolio_liquidity.py`, reducing `src/app/contracts/portfolio.py` from 954
+    to 754 script-counted lines while preserving the public `app.contracts.portfolio` import
+    surface. Full local `make check` passed with 1,169 unit/contract tests, and full local
+    `make ci` passed with 207 integration tests, 1,376 combined coverage tests, 94.22% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception. Focused refactor-threshold trials prove
+    `max_source_file_lines=951` passes while `950` fails on `src/app/services/foundation_service.py`.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
@@ -385,7 +393,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/portfolio.py` is now the largest
-   file at 954 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/foundation_service.py` is now the
+   largest file at 951 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
