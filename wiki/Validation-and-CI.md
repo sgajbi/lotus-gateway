@@ -375,7 +375,7 @@ files, Workbench/OpenAPI contract smoke, and 1,166 unit/contract tests. Full loc
 passed with 207 integration tests, 1,373 combined coverage tests, 94.21% total coverage, migration
 contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current portfolio transaction-boundary branch ratchets the source-file threshold to 979
+The previous portfolio transaction-boundary branch ratcheted the source-file threshold to 979
 script-counted lines after moving transaction ledger, income summary, and activity summary
 orchestration into `portfolio_transaction_service.py`. It reduces `portfolio_service.py` from 980
 script-counted lines to 811 physical lines while preserving the public `PortfolioService` surface.
@@ -385,6 +385,18 @@ transaction/service-boundary tests, and refactor-threshold trials proving
 local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
 workflow action-runtime gate, mypy over 494 source files, Workbench/OpenAPI contract smoke, and
 1,167 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,374 combined
+coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
+after the governed `PYSEC-2026-161` exception.
+
+The current proposal memo contract-boundary branch ratchets the source-file threshold to 954
+script-counted lines after moving memo-specific proposal request and envelope contracts into
+`proposal_memos.py`. It reduces `src/app/contracts/proposals.py` from 979 to 828 script-counted
+lines while preserving the public `app.contracts.proposals` import surface. Focused validation
+passed with proposal contract tests, contract-boundary tests, and refactor-threshold trials proving
+`max_source_file_lines=954` passes while `953` fails on `src/app/contracts/portfolio.py`. Full
+local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+workflow action-runtime gate, mypy over 496 source files, Workbench/OpenAPI contract smoke, and
+1,168 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,375 combined
 coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
 

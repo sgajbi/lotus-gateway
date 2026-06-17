@@ -433,22 +433,27 @@ route methods into `dpm_wave_client.py` while preserving the public `DpmClient` 
 `dpm_client.py` was reduced from 1,041 to 452 script-counted lines. The blocking source-file
 threshold was ratcheted from 1,041 to 980 lines, making `portfolio_service.py` the single largest
 residual source-file hotspot.
-The current portfolio transaction-boundary slice moves transaction ledger, income summary, and
+The previous portfolio transaction-boundary slice moved transaction ledger, income summary, and
 activity summary orchestration into `portfolio_transaction_service.py` while preserving the public
-`PortfolioService` surface. `portfolio_service.py` is reduced from 980 script-counted lines to 811
-physical lines. The blocking source-file threshold is ratcheted from 980 to 979 lines, making
+`PortfolioService` surface. `portfolio_service.py` was reduced from 980 script-counted lines to 811
+physical lines. The blocking source-file threshold was ratcheted from 980 to 979 lines, making
 `src/app/contracts/proposals.py` the single largest residual source-file hotspot.
+The current proposal memo contract-boundary slice moves memo-specific proposal request and envelope
+contracts into `proposal_memos.py` while preserving the public `app.contracts.proposals` import
+surface. `src/app/contracts/proposals.py` is reduced from 979 to 828 script-counted lines. The
+blocking source-file threshold is ratcheted from 979 to 954 lines, making
+`src/app/contracts/portfolio.py` the single largest residual source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio transaction-boundary branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio transaction-boundary branch focused validation passed with ruff, format check, touched-service mypy, 19 transaction/service-boundary tests, and refactor threshold trials proving `max_source_file_lines=979` passes while `978` fails on `src/app/contracts/proposals.py`; full local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 494 source files, Workbench/OpenAPI contract smoke, and 1,167 unit/contract tests |
+| Branch hygiene | Healthy | Current proposal memo contract-boundary branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current proposal memo contract-boundary branch focused validation passed with proposal contract tests, contract-boundary tests, and refactor-threshold trials proving `max_source_file_lines=954` passes while `953` fails on `src/app/contracts/portfolio.py`; full local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 496 source files, Workbench/OpenAPI contract smoke, and 1,168 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with 207 integration tests and migration contract smoke |
-| Total coverage | Healthy | Full local `make ci` passed with 1,374 combined coverage tests and 94.22% total coverage |
-| Security audit | Governed | Current portfolio transaction-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; full local `make ci` `pip-audit` reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 811 physical lines, `performance_workspace_service.py` to 842 lines, `advisor_brief_service.py` to 861 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 909 script-counted lines, and `dpm_client.py` to 452 script-counted lines; `src/app/contracts/proposals.py` is now the largest current source-file hotspot at 979 lines |
+| Total coverage | Healthy | Full local `make ci` passed with 1,375 combined coverage tests and 94.22% total coverage |
+| Security audit | Governed | Current proposal memo contract-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; full local `make ci` `pip-audit` reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 811 physical lines, `performance_workspace_service.py` to 842 lines, `advisor_brief_service.py` to 861 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 909 script-counted lines, `dpm_client.py` to 452 script-counted lines, and `src/app/contracts/proposals.py` to 828 script-counted lines; `src/app/contracts/portfolio.py` is now the largest current source-file hotspot at 954 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -493,7 +498,7 @@ physical lines. The blocking source-file threshold is ratcheted from 980 to 979 
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 979 script-counted lines,
+   - no Python source file under `src/app` above 954 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

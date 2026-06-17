@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/proposals.py` at 979 script-counted lines,
-2. `src/app/contracts/portfolio.py` at 954 script-counted lines,
-3. `src/app/services/foundation_service.py` at 951 script-counted lines,
-4. `src/app/contracts/performance_workspace.py` at 930 script-counted lines,
-5. `src/app/clients/advise_client.py` at 909 script-counted lines.
+1. `src/app/contracts/portfolio.py` at 954 script-counted lines,
+2. `src/app/services/foundation_service.py` at 951 script-counted lines,
+3. `src/app/contracts/performance_workspace.py` at 930 script-counted lines,
+4. `src/app/clients/advise_client.py` at 909 script-counted lines,
+5. `src/app/contracts/proposals.py` at 828 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
