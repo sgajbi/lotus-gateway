@@ -190,6 +190,12 @@ class WorkbenchService:
             return as_of_date
         return performance_end_date
 
+    def _resolve_performance_snapshot_start_date(self, *, report_end_date: str) -> str | None:
+        try:
+            return date.fromisoformat(report_end_date).replace(month=1, day=1).isoformat()
+        except ValueError:
+            return None
+
     async def get_portfolio_360(
         self,
         portfolio_id: str,
@@ -543,10 +549,13 @@ class WorkbenchService:
             as_of_date=as_of_date,
             correlation_id=correlation_id,
         )
+        performance_start_date = self._resolve_performance_snapshot_start_date(
+            report_end_date=performance_end_date,
+        )
         return self._analytics_client.get_twr_analytics(
             portfolio_id=portfolio_id,
             report_end_date=performance_end_date,
-            report_start_date=None,
+            report_start_date=performance_start_date,
             period="YTD",
             metric_basis="NET",
             benchmark_id=settings.workbench_default_benchmark_code,

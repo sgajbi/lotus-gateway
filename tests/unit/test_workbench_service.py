@@ -93,6 +93,7 @@ class _StubLotusAnalyticsClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
+        self.last_report_start_date: str | None = None
         self.last_report_end_date: str | None = None
         self.last_benchmark_id: str | None = None
         self.workbench_status_code = 200
@@ -148,6 +149,7 @@ class _StubLotusAnalyticsClient:
         correlation_id: str,
     ):
         _ = report_start_date, metric_basis
+        self.last_report_start_date = report_start_date
         self.last_benchmark_id = benchmark_id
         return await self.get_stateful_twr(
             portfolio_id=portfolio_id,
@@ -314,6 +316,7 @@ async def test_workbench_overview_success():
     assert response.portfolio.booking_center_code == "SG"
     assert response.overview.market_value_base == 1000.0
     assert response.overview.cash_weight_pct == pytest.approx(20.0)
+    assert analytics_client.last_report_start_date == "2026-01-01"
     assert analytics_client.last_report_end_date == "2026-02-23"
     assert analytics_client.last_benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.rebalance_snapshot is not None
