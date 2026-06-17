@@ -857,6 +857,19 @@ Most recent local evidence:
      and 1,164 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,371
      combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
      vulnerabilities after the governed `PYSEC-2026-161` exception.
+132. Current Foundation core-snapshot mapper branch focused validation passed with ruff check,
+     ruff format, touched-module mypy, 31 foundation/refactor unit, contract, and integration
+     tests, and trial refactor threshold gates proving `max_source_file_lines=930` passes while
+     `929` fails on `src/app/contracts/performance_workspace.py`. The slice moves lotus-core
+     snapshot parsing, defensive payload normalization, allocation bucketing, top-position
+     mapping, and market-value extraction into `foundation_core_snapshot.py`, reducing
+     `foundation_service.py` from 951 to 618 script-counted lines while preserving Foundation
+     workspace response behavior. Full local `make check` passed with ruff, format check,
+     monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 498
+     source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. Full local
+     `make ci` passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

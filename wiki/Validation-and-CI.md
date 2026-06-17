@@ -418,7 +418,11 @@ script-counted lines while preserving Foundation workspace response behavior. Fo
 passed with ruff check, ruff format, mypy over touched service modules, 31 focused
 foundation/refactor unit, contract, and integration tests, and refactor-threshold trials proving
 `max_source_file_lines=930` passes while `929` fails on
-`src/app/contracts/performance_workspace.py`. Full local gates remain required before PR/merge.
+`src/app/contracts/performance_workspace.py`. Full local `make check` passed with ruff, format
+check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 498
+source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. Full local `make ci`
+passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total coverage, migration
+contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

@@ -381,7 +381,12 @@ Most recent local PR-grade evidence:
     Focused validation passed with ruff check, ruff format, mypy over touched service modules, and
     31 focused foundation/refactor unit, contract, and integration tests. Refactor-threshold trials prove
     `max_source_file_lines=930` passes while `929` fails on
-    `src/app/contracts/performance_workspace.py`. Full local gates remain required before PR/merge.
+    `src/app/contracts/performance_workspace.py`. Full local `make check` passed with ruff, format
+    check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over
+    498 source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. Full local
+    `make ci` passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
