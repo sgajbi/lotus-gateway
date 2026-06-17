@@ -1,7 +1,9 @@
 import logging
 from typing import Any
 
+from app.clients.dpm_construction_client import DpmConstructionClientMixin
 from app.clients.dpm_pm_operating_quality_client import DpmPmOperatingQualityClientMixin
+from app.clients.dpm_proof_pack_client import DpmProofPackClientMixin
 from app.clients.observed_fanout import request_observed_binary_fanout, request_observed_fanout
 from app.clients.upstream_headers import build_upstream_headers
 
@@ -16,7 +18,11 @@ _MANAGE_CAPABILITIES_CONSUMERS = {
 }
 
 
-class DpmClient(DpmPmOperatingQualityClientMixin):
+class DpmClient(
+    DpmConstructionClientMixin,
+    DpmProofPackClientMixin,
+    DpmPmOperatingQualityClientMixin,
+):
     def __init__(
         self,
         base_url: str,
@@ -854,117 +860,6 @@ class DpmClient(DpmPmOperatingQualityClientMixin):
             operation="manage.rebalance.waves.report_input",
         )
 
-    async def generate_construction_alternative_set(
-        self,
-        body: dict[str, Any],
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            "/api/v1/construction/alternative-sets/generate",
-            body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
-            operation="manage.construction.alternative_sets.generate",
-        )
-
-    async def get_construction_alternative_set(
-        self,
-        alternative_set_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/api/v1/construction/alternative-sets/{alternative_set_id}",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="manage.construction.alternative_sets.get",
-        )
-
-    async def select_construction_alternative(
-        self,
-        alternative_set_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/api/v1/construction/alternative-sets/{alternative_set_id}/selections",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="manage.construction.alternative_sets.select",
-        )
-
-    async def generate_proof_pack(
-        self,
-        body: dict[str, Any],
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            "/api/v1/rebalance/proof-packs",
-            body=body,
-            headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
-            operation="manage.rebalance.proof_packs.generate",
-        )
-
-    async def get_proof_pack(
-        self,
-        proof_pack_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/api/v1/rebalance/proof-packs/{proof_pack_id}",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="manage.rebalance.proof_packs.get",
-        )
-
-    async def get_proof_pack_markdown(
-        self,
-        proof_pack_id: str,
-        correlation_id: str,
-    ) -> tuple[int, str, dict[str, Any]]:
-        (
-            status_code,
-            content,
-            _response_headers,
-            error_payload,
-        ) = await request_observed_binary_fanout(
-            logger=logger,
-            service="lotus-manage",
-            operation="manage.rebalance.proof_packs.markdown",
-            method="GET",
-            url=f"{self._base_url}/api/v1/rebalance/proof-packs/{proof_pack_id}/summary.md",
-            timeout_seconds=self._timeout,
-            max_retries=self._max_retries,
-            backoff_seconds=self._retry_backoff_seconds,
-            params={},
-            headers=self._headers(correlation_id),
-        )
-        return status_code, content.decode("utf-8", errors="replace"), error_payload
-
-    async def get_proof_pack_report_input(
-        self,
-        proof_pack_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/api/v1/rebalance/proof-packs/{proof_pack_id}/report-input",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="manage.rebalance.proof_packs.report_input",
-        )
-
-    async def get_proof_pack_ai_evidence_input(
-        self,
-        proof_pack_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/api/v1/rebalance/proof-packs/{proof_pack_id}/ai-evidence-input",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="manage.rebalance.proof_packs.ai_evidence_input",
-        )
-
     async def get_portfolio_memory(
         self,
         portfolio_id: str,
@@ -1077,6 +972,31 @@ class DpmClient(DpmPmOperatingQualityClientMixin):
             params=params,
             headers=headers,
         )
+
+    async def _get_binary_text(
+        self,
+        path: str,
+        headers: dict[str, str],
+        operation: str,
+    ) -> tuple[int, str, dict[str, Any]]:
+        (
+            status_code,
+            content,
+            _response_headers,
+            error_payload,
+        ) = await request_observed_binary_fanout(
+            logger=logger,
+            service="lotus-manage",
+            operation=operation,
+            method="GET",
+            url=f"{self._base_url}{path}",
+            timeout_seconds=self._timeout,
+            max_retries=self._max_retries,
+            backoff_seconds=self._retry_backoff_seconds,
+            params={},
+            headers=headers,
+        )
+        return status_code, content.decode("utf-8", errors="replace"), error_payload
 
     async def _post(
         self,
