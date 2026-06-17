@@ -829,8 +829,12 @@ Most recent local evidence:
      fails. The slice moves performance horizon-comparison and attribution-trend service
      orchestration into `performance_workspace_trend_service.py`, reducing
      `performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
-     public `PerformanceWorkspaceService` surface. Full local `make check` and `make ci` evidence
-     remains pending for this branch.
+     public `PerformanceWorkspaceService` surface. Full local `make check` passed with ruff, format
+     check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over
+     489 source files, Workbench/OpenAPI contract smoke, and 1,162 unit/contract tests. Full local
+     `make ci` passed with 207 integration tests, 1,369 combined coverage tests, 94.26% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
