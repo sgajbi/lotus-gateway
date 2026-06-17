@@ -400,17 +400,24 @@ optional-client behavior, source fan-out call shapes, and the public `PortfolioS
 `portfolio_service.py` is reduced from 1,237 to 980 script-counted lines. The blocking source-file
 threshold is ratcheted from 1,237 to 1,217 lines, making `dpm_command_center_service.py` the
 single largest residual source-file hotspot.
+The current DPM PM operating-quality service-boundary slice moves PM operating-quality policy,
+score-run, fairness-analysis, review-action, summary-invocation, and AI summary workflow-pack
+service orchestration into `dpm_pm_operating_quality_service.py` while preserving the public
+`DpmCommandCenterService` surface, manage-owned evidence boundaries, and `lotus-ai` workflow-pack
+execution behavior. `dpm_command_center_service.py` is reduced from 1,217 to 695 script-counted
+lines. The blocking source-file threshold is ratcheted from 1,217 to 1,206 lines, making
+`performance_workspace_service.py` the single largest residual source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current portfolio upstream-access extraction branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current portfolio upstream-access extraction branch focused validation passed with ruff, touched-module mypy, 42 portfolio service tests, and the refactor threshold gate at `max_source_file_lines=1217`; local `make check` passed with 1,161 unit/contract tests |
-| Integration coverage | Healthy | Current local `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current local `make ci` passed with 1,368 combined coverage tests and 94.26% total coverage |
-| Security audit | Governed | Current portfolio upstream-access extraction branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 980 lines, `performance_workspace_service.py` to 1,206 lines, and `advisor_brief_service.py` from 1,454 to 861 script-counted lines; `dpm_client.py` is reduced below the ceiling by moving PM operating-quality, construction, and proof-pack route methods into dedicated client mixins; `dpm_command_center_service.py` is now the largest current source-file hotspot at 1,217 lines |
+| Unit/contract coverage | Healthy | Current DPM PM operating-quality service-boundary branch focused validation passed with ruff, touched-module mypy, 48 DPM command-center service/contract tests, and the refactor threshold gate at `max_source_file_lines=1206`; full local `make check` remains pending for this branch |
+| Integration coverage | Pending | Full local `make ci` remains pending for this branch |
+| Total coverage | Pending | Full local `make ci` coverage evidence remains pending for this branch |
+| Security audit | Governed | Current DPM PM operating-quality service-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; full local `make ci` security audit evidence remains pending for this branch |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 980 lines, `performance_workspace_service.py` to 1,206 lines, `advisor_brief_service.py` from 1,454 to 861 script-counted lines, and `dpm_command_center_service.py` to 695 lines; `performance_workspace_service.py` is now the largest current source-file hotspot at 1,206 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -418,8 +425,8 @@ single largest residual source-file hotspot.
 
 ## Primary Refactor Backlog
 
-1. Continue splitting `dpm_command_center_service.py`, `performance_workspace_service.py`, and
-   `advise_client.py` around clear orchestration or upstream-client route-family boundaries.
+1. Continue splitting `performance_workspace_service.py`, `advise_client.py`, and
+   `dpm_wave_service.py` around clear orchestration or upstream-client route-family boundaries.
 2. Continue splitting `portfolio_service.py` into source-readiness, workspace, insight, book, and
    workflow adapters. Exception-summary payload construction, workflow-action assembly,
    transaction-summary context loading, transaction page loading, book response assembly,
@@ -454,7 +461,7 @@ single largest residual source-file hotspot.
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 1,217 script-counted lines,
+   - no Python source file under `src/app` above 1,206 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

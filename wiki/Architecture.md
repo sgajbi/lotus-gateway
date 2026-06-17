@@ -10,10 +10,11 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `dpm_command_center_service.py` as the largest
-  residual source file at 1,217 script-counted lines after cached portfolio upstream access moved
-  into `portfolio_upstream_access.py`, reducing `portfolio_service.py` to 980 script-counted
-  lines; the repository longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `performance_workspace_service.py` as the largest
+  residual source file at 1,206 script-counted lines after DPM PM operating-quality service
+  orchestration moved into `dpm_pm_operating_quality_service.py`, reducing
+  `dpm_command_center_service.py` to 695 script-counted lines; the repository longest-function
+  baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 
