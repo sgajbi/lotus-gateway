@@ -29,3 +29,18 @@ def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
 
     assert expected_memo_contracts <= memo_contract_classes
     assert proposal_facade_classes.isdisjoint(expected_memo_contracts)
+
+
+def test_portfolio_liquidity_contracts_live_outside_portfolio_facade() -> None:
+    portfolio_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio.py")
+    liquidity_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_liquidity.py")
+
+    expected_liquidity_contracts = {
+        "PortfolioCashflowOutlook",
+        "PortfolioCashflowPoint",
+        "PortfolioLiquidityResponse",
+        "PortfolioProjectedCashflowResponse",
+    }
+
+    assert expected_liquidity_contracts <= liquidity_contract_classes
+    assert portfolio_facade_classes.isdisjoint(expected_liquidity_contracts)

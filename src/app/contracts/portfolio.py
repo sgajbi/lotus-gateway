@@ -6,6 +6,7 @@ from app.contracts import portfolio_activity_income as _portfolio_activity_incom
 from app.contracts import portfolio_common as _portfolio_common
 from app.contracts import portfolio_core as _portfolio_core
 from app.contracts import portfolio_holdings as _portfolio_holdings
+from app.contracts import portfolio_liquidity as _portfolio_liquidity
 from app.contracts import portfolio_performance_snapshot as _portfolio_performance_snapshot
 from app.contracts import portfolio_transactions as _portfolio_transactions
 from app.contracts import portfolio_workflow as _portfolio_workflow
@@ -24,7 +25,10 @@ PortfolioAllocationResponse = _portfolio_holdings.PortfolioAllocationResponse
 PortfolioAllocationView = _portfolio_holdings.PortfolioAllocationView
 PortfolioBookResponse = _portfolio_holdings.PortfolioBookResponse
 PortfolioCashBalance = _portfolio_holdings.PortfolioCashBalance
+PortfolioCashflowOutlook = _portfolio_liquidity.PortfolioCashflowOutlook
+PortfolioCashflowPoint = _portfolio_liquidity.PortfolioCashflowPoint
 PortfolioIdentity = _portfolio_core.PortfolioIdentity
+PortfolioLiquidityResponse = _portfolio_liquidity.PortfolioLiquidityResponse
 PortfolioPartialFailure = _portfolio_common.PortfolioPartialFailure
 PortfolioPerformanceSnapshotPoint = (
     _portfolio_performance_snapshot.PortfolioPerformanceSnapshotPoint
@@ -39,6 +43,7 @@ PortfolioTransactionLedgerResponse = _portfolio_transactions.PortfolioTransactio
 PortfolioTransactionView = _portfolio_transactions.PortfolioTransactionView
 PortfolioPositionBookResponse = _portfolio_holdings.PortfolioPositionBookResponse
 PortfolioPositionView = _portfolio_holdings.PortfolioPositionView
+PortfolioProjectedCashflowResponse = _portfolio_liquidity.PortfolioProjectedCashflowResponse
 PortfolioReadinessBucket = _portfolio_workflow.PortfolioReadinessBucket
 PortfolioReadinessIndicator = _portfolio_workflow.PortfolioReadinessIndicator
 PortfolioReadinessReason = _portfolio_workflow.PortfolioReadinessReason
@@ -162,58 +167,6 @@ class PortfolioProfile(BaseModel):
         default=None,
         description="Optional portfolio close date in YYYY-MM-DD format.",
         examples=["2026-03-31"],
-    )
-
-
-class PortfolioCashflowPoint(BaseModel):
-    projection_date: str = Field(
-        description="Projected business date represented by the forward cashflow point.",
-        examples=["2026-03-28"],
-    )
-    net_cashflow_base: float = Field(
-        description="Net projected cashflow for the point date, expressed in base currency.",
-        examples=[25.0],
-    )
-    projected_cumulative_cashflow_base: float = Field(
-        description=(
-            "Running cumulative projected cashflow through the point date, expressed in "
-            "base currency."
-        ),
-        examples=[125.0],
-    )
-
-
-class PortfolioCashflowOutlook(BaseModel):
-    as_of_date: str = Field(
-        description="As-of date used to resolve the projected cashflow path.",
-        examples=["2026-03-27"],
-    )
-    range_end_date: str = Field(
-        description="Inclusive end date of the projected cashflow horizon.",
-        examples=["2026-04-26"],
-    )
-    total_net_cashflow_base: float = Field(
-        description=(
-            "Net projected cashflow across the full returned horizon, expressed in base currency."
-        ),
-        examples=[125.0],
-    )
-    projection_days: int = Field(
-        description="Number of forward projection days covered by the returned liquidity path.",
-        examples=[30],
-    )
-    include_projected: bool = Field(
-        description="Whether projected events were included when generating the liquidity path.",
-        examples=[True],
-    )
-    notes: str | None = Field(
-        default=None,
-        description="Optional upstream note or caveat associated with the projected cashflow path.",
-        examples=["Projection includes booked and projected settlement events."],
-    )
-    upcoming_points: list[PortfolioCashflowPoint] = Field(
-        default_factory=list,
-        description="Ordered forward cashflow points spanning the returned liquidity horizon.",
     )
 
 
@@ -795,159 +748,6 @@ class PortfolioWorkspaceResponse(BaseModel):
                     "source_service": "lotus-core",
                     "error_code": "PORTFOLIO_SUPPORT_OVERVIEW_UNAVAILABLE",
                     "detail": "support overview unavailable",
-                }
-            ]
-        ],
-    )
-
-
-class PortfolioLiquidityResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Opaque correlation identifier for the liquidity response envelope.",
-        examples=["corr-portfolio-liquidity"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Version of the gateway portfolio liquidity response contract.",
-        examples=["v1"],
-    )
-    portfolio_id: str = Field(
-        description="Portfolio identifier whose liquidity snapshot is being returned.",
-        examples=["PF_1001"],
-    )
-    as_of_date: str = Field(
-        description="Resolved as-of date used for the liquidity summary and cash balances.",
-        examples=["2026-03-27"],
-    )
-    summary: PortfolioSummary = Field(
-        description="Source-backed summary values used to frame available and invested liquidity.",
-        examples=[
-            {
-                "assets_under_management_base": 1000.0,
-                "invested_market_value_base": 900.0,
-                "cash_market_value_base": 100.0,
-                "cash_weight_pct": 10.0,
-                "position_count": 3,
-                "cash_balance_count": 1,
-            }
-        ],
-    )
-    cash_balances: list[PortfolioCashBalance] = Field(
-        default_factory=list,
-        description=(
-            "Published cash balance rows for the requested portfolio and reporting currency."
-        ),
-        examples=[
-            [
-                {
-                    "security_id": "CASH_USD",
-                    "instrument_name": "USD Cash",
-                    "currency": "USD",
-                    "quantity": 100.0,
-                    "market_value_base": 100.0,
-                    "weight_pct": 10.0,
-                }
-            ]
-        ],
-    )
-    cashflow_outlook: PortfolioCashflowOutlook | None = Field(
-        default=None,
-        description="Projected liquidity path when forward cashflow evidence is available.",
-        examples=[
-            {
-                "as_of_date": "2026-03-27",
-                "range_end_date": "2026-04-06",
-                "total_net_cashflow_base": -25.0,
-                "projection_days": 10,
-                "include_projected": True,
-                "notes": [],
-                "upcoming_points": [
-                    {
-                        "projection_date": "2026-03-28",
-                        "net_cashflow_base": -25.0,
-                        "projected_cumulative_cashflow_base": -25.0,
-                    }
-                ],
-            }
-        ],
-    )
-    warnings: list[str] = Field(
-        default_factory=list,
-        description="Gateway warning codes describing degraded but still usable liquidity output.",
-        examples=[["PORTFOLIO_CASHFLOW_UNAVAILABLE"]],
-    )
-    partial_failures: list[PortfolioPartialFailure] = Field(
-        default_factory=list,
-        description=(
-            "Upstream source failures preserved when optional liquidity sections are unavailable."
-        ),
-        examples=[
-            [
-                {
-                    "source_service": "lotus-core",
-                    "error_code": "PORTFOLIO_CASHFLOW_UNAVAILABLE",
-                    "detail": "cashflow temporarily unavailable",
-                }
-            ]
-        ],
-    )
-
-
-class PortfolioProjectedCashflowResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Opaque correlation identifier for the projected-cashflow response envelope.",
-        examples=["corr-portfolio-projected-cashflow"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Version of the gateway projected-cashflow response contract.",
-        examples=["v1"],
-    )
-    portfolio_id: str = Field(
-        description="Portfolio identifier whose forward cashflow projection is being returned.",
-        examples=["PF_1001"],
-    )
-    as_of_date: str = Field(
-        description="Resolved projection as-of date used for the projected cashflow request.",
-        examples=["2026-03-27"],
-    )
-    cashflow_outlook: PortfolioCashflowOutlook | None = Field(
-        default=None,
-        description="Forward projected cashflow path for the requested horizon when available.",
-        examples=[
-            {
-                "as_of_date": "2026-03-27",
-                "range_end_date": "2026-04-26",
-                "total_net_cashflow_base": 125.0,
-                "projection_days": 30,
-                "include_projected": False,
-                "notes": None,
-                "upcoming_points": [
-                    {
-                        "projection_date": "2026-03-28",
-                        "net_cashflow_base": 25.0,
-                        "projected_cumulative_cashflow_base": 25.0,
-                    }
-                ],
-            }
-        ],
-    )
-    warnings: list[str] = Field(
-        default_factory=list,
-        description="Gateway warning codes describing degraded projected-cashflow output.",
-        examples=[["PORTFOLIO_PROJECTED_CASHFLOW_UNAVAILABLE"]],
-    )
-    partial_failures: list[PortfolioPartialFailure] = Field(
-        default_factory=list,
-        description=(
-            "Upstream source failures preserved when projected cashflow cannot be returned."
-        ),
-        examples=[
-            [
-                {
-                    "source_service": "lotus-core",
-                    "error_code": "PORTFOLIO_PROJECTED_CASHFLOW_UNAVAILABLE",
-                    "detail": "projected cashflow unavailable",
                 }
             ]
         ],

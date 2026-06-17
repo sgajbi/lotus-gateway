@@ -388,9 +388,9 @@ workflow action-runtime gate, mypy over 494 source files, Workbench/OpenAPI cont
 coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
 
-The current proposal memo contract-boundary branch ratchets the source-file threshold to 954
+The previous proposal memo contract-boundary branch ratcheted the source-file threshold to 954
 script-counted lines after moving memo-specific proposal request and envelope contracts into
-`proposal_memos.py`. It reduces `src/app/contracts/proposals.py` from 979 to 828 script-counted
+`proposal_memos.py`. It reduced `src/app/contracts/proposals.py` from 979 to 828 script-counted
 lines while preserving the public `app.contracts.proposals` import surface. Focused validation
 passed with proposal contract tests, contract-boundary tests, and refactor-threshold trials proving
 `max_source_file_lines=954` passes while `953` fails on `src/app/contracts/portfolio.py`. Full
@@ -399,6 +399,16 @@ workflow action-runtime gate, mypy over 496 source files, Workbench/OpenAPI cont
 1,168 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,375 combined
 coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
+
+The current portfolio liquidity contract-boundary branch ratchets the source-file threshold to 951
+script-counted lines after moving liquidity and projected-cashflow contracts into
+`portfolio_liquidity.py`. It reduces `src/app/contracts/portfolio.py` from 954 to 754
+script-counted lines while preserving the public `app.contracts.portfolio` import surface. Full
+local `make check` passed with 1,169 unit/contract tests, and full local `make ci` passed with 207
+integration tests, 1,376 combined coverage tests, 94.22% total coverage, migration contract smoke,
+and no known vulnerabilities after the governed `PYSEC-2026-161` exception. Focused
+refactor-threshold trials prove `max_source_file_lines=951` passes while `950` fails on
+`src/app/services/foundation_service.py`.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
