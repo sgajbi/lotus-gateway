@@ -549,7 +549,7 @@ class WorkbenchService:
             report_start_date=None,
             period="YTD",
             metric_basis="NET",
-            benchmark_id=None,
+            benchmark_id=settings.workbench_default_benchmark_code,
             correlation_id=correlation_id,
         )
 
