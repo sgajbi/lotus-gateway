@@ -280,6 +280,39 @@ def test_portfolio_service_delegates_upstream_payload_helpers() -> None:
     assert local_upstream_payload_helpers == []
 
 
+def test_portfolio_service_delegates_transaction_workflows() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_transaction_ledger",
+            "get_income_summary",
+            "get_activity_summary",
+            "_load_transaction_ledger_payload",
+            "_load_transaction_summary_context",
+            "_load_transaction_rows_page",
+        }
+    )
+    portfolio_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PortfolioService"
+    ]
+    base_names = {
+        base.id
+        for service_class in portfolio_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "PortfolioTransactionServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_workspace_component_parsing() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
