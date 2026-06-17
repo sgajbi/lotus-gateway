@@ -246,7 +246,7 @@ Most recent local PR-grade evidence:
     upstream warning and partial-failure behavior. Focused validation passed with ruff check,
     ruff format check, touched-module mypy, 67 service/component/boundary unit tests, and a trial
     refactor threshold gate at `max_source_file_lines=1362`.
-31. Current DPM PM operating-quality client-boundary branch moves score-run, fairness-analysis,
+31. Prior DPM PM operating-quality client-boundary branch moves score-run, fairness-analysis,
     review-action, summary-invocation, and policy route methods into
     `dpm_pm_operating_quality_client.py` while preserving `DpmClient` as the public upstream
     client surface. Focused validation passed with ruff check, ruff format check, mypy over the
@@ -256,11 +256,21 @@ Most recent local PR-grade evidence:
     `make ci` passed with 207 integration tests, 1,366 combined coverage tests, 94.29% total
     coverage, migration contract smoke, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
-32. Current concrete-route registration fix expands registered gateway routers into concrete
+32. Current DPM construction/proof-pack client-boundary branch moves construction-alternative and
+    proof-pack route methods into `dpm_construction_client.py` and `dpm_proof_pack_client.py`
+    while preserving `DpmClient` as the public upstream client surface, idempotency headers,
+    route paths, operation names, observed fan-out transport, and Markdown binary response
+    decoding. Focused validation passed with ruff check, ruff format check, touched-client mypy,
+    180 upstream-client and boundary unit tests, and the refactor threshold gate. Local
+    `make check` passed with mypy over 486 source files and 1,161 unit/contract tests. Local
+    `make ci` passed with 207 integration tests, 1,368 combined coverage tests, 94.26% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
+33. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
     check, ruff format check, mypy over `router_registry.py`, and 15 route/contract tests.
-33. Current portfolio workspace component parser branch full local gates passed: `make check`
+34. Current portfolio workspace component parser branch full local gates passed: `make check`
     passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow
     action-runtime gate, mypy over 483 source files, Workbench/OpenAPI contract smoke, and 1,158
     unit/contract tests. `make ci` passed with 207 integration tests, 1,365 combined coverage

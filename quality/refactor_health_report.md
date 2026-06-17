@@ -383,22 +383,28 @@ resolved-as-of-date extraction into `portfolio_workspace_components.py`, reducin
 `portfolio_service.py` from 1,453 to 1,237 script-counted lines while preserving optional-upstream
 warning and partial-failure behavior. The blocking source-file threshold is ratcheted from 1,453
 to 1,362 lines, making `dpm_client.py` the single largest residual source-file hotspot.
-The current DPM PM operating-quality client-boundary slice moves score-run, fairness-analysis,
+The prior DPM PM operating-quality client-boundary slice moves score-run, fairness-analysis,
 review-action, summary-invocation, and policy route methods into
 `dpm_pm_operating_quality_client.py` while preserving the public `DpmClient` surface and shared
 observed fan-out transport. The blocking source-file threshold is ratcheted from 1,362 to 1,237
 lines, making `portfolio_service.py` the single largest residual source-file hotspot.
+The current DPM construction/proof-pack client-boundary slice moves construction-alternative and
+proof-pack route methods into `dpm_construction_client.py` and `dpm_proof_pack_client.py` while
+preserving the public `DpmClient` surface, observed fan-out transport, idempotency headers, and
+Markdown binary response decoding. `dpm_client.py` is reduced from 1,121 to 1,041 physical lines.
+The blocking source-file threshold remains 1,237 lines because `portfolio_service.py` is still the
+largest source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current DPM PM operating-quality client-boundary branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current DPM PM operating-quality client-boundary branch focused validation passed with 182 upstream-client, boundary, and threshold tests plus ruff, mypy, and trial 1,237/1,236-line refactor threshold checks; local `make check` passed with 1,159 unit/contract tests |
+| Branch hygiene | Healthy | Current DPM construction/proof-pack client-boundary branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current DPM construction/proof-pack client-boundary branch focused validation passed with 180 upstream-client and boundary tests plus ruff, mypy, and the refactor threshold gate; local `make check` passed with 1,161 unit/contract tests |
 | Integration coverage | Healthy | Current local `make ci` passed with 207 integration tests |
-| Total coverage | Healthy | Current local `make ci` passed with 1,366 combined coverage tests and 94.29% total coverage |
-| Security audit | Governed | Current DPM PM operating-quality client-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; current local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 1,237 lines, `performance_workspace_service.py` to 1,206 lines, and `advisor_brief_service.py` from 1,454 to 861 script-counted lines; `dpm_client.py` is reduced below the ceiling by moving PM operating-quality route methods into a dedicated client mixin; `portfolio_service.py` is now the largest current source-file hotspot at 1,237 lines |
+| Total coverage | Healthy | Current local `make ci` passed with 1,368 combined coverage tests and 94.26% total coverage |
+| Security audit | Governed | Current DPM construction/proof-pack client-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 1,237 lines, `performance_workspace_service.py` to 1,206 lines, and `advisor_brief_service.py` from 1,454 to 861 script-counted lines; `dpm_client.py` is reduced below the ceiling by moving PM operating-quality, construction, and proof-pack route methods into dedicated client mixins; `portfolio_service.py` is now the largest current source-file hotspot at 1,237 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
