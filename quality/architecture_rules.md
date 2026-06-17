@@ -175,7 +175,10 @@ reducing `portfolio_service.py` from 1,453 to 1,237 script-counted lines and mak
 `dpm_client.py` the largest remaining source-file hotspot. PM operating-quality client route
 methods now live in `src/app/clients/dpm_pm_operating_quality_client.py`, reducing
 `dpm_client.py` below the current source-file ceiling and making `portfolio_service.py` the largest
-remaining source-file hotspot. The current longest functions are
+remaining source-file hotspot. Construction-alternative and proof-pack client route methods now
+live in `src/app/clients/dpm_construction_client.py` and
+`src/app/clients/dpm_proof_pack_client.py`, reducing `dpm_client.py` to 1,041 physical lines while
+preserving `DpmClient` as the public upstream client surface. The current longest functions are
 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.

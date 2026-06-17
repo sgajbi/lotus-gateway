@@ -280,8 +280,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio workspace component parser extraction branch
-shows 484 Python source files under `src/app` and 199 Python test files under `tests`.
+Working-tree verification for the current DPM construction/proof-pack client-boundary branch shows
+486 Python source files under `src/app` and 199 Python test files under `tests`.
 
 ## Largest Source Files
 
@@ -292,7 +292,7 @@ shows 484 Python source files under `src/app` and 199 Python test files under `t
 | 3 | 1,206 | `src/app/services/performance_workspace_service.py` |
 | 4 | 1,098 | `src/app/clients/advise_client.py` |
 | 5 | 1,093 | `src/app/services/dpm_wave_service.py` |
-| 6 | 1,036 | `src/app/clients/dpm_client.py` |
+| 6 | 1,041 | `src/app/clients/dpm_client.py` |
 | 7 | 979 | `src/app/contracts/proposals.py` |
 | 8 | 954 | `src/app/contracts/portfolio.py` |
 | 9 | 951 | `src/app/services/foundation_service.py` |
@@ -786,6 +786,18 @@ Most recent local evidence:
      Local `make ci` passed with 207 integration tests, 1,365 combined coverage tests, 94.31%
      total coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
+126. Current DPM construction/proof-pack client-boundary branch focused validation passed with
+     ruff check, ruff format check, touched-client mypy, 180 upstream-client and DPM client
+     boundary unit tests, and the refactor threshold gate. The slice moves construction-alternative
+     and proof-pack upstream route methods into `dpm_construction_client.py` and
+     `dpm_proof_pack_client.py`, reducing `dpm_client.py` from 1,121 to 1,041 physical lines while
+     preserving public `DpmClient` methods, idempotency headers, route paths, operation names,
+     shared observed fan-out transport, and Markdown binary response decoding. Local `make check`
+     passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow
+     action-runtime gate, mypy over 486 source files, Workbench/OpenAPI contract smoke, and 1,161
+     unit/contract tests. Local `make ci` passed with 207 integration tests, 1,368 combined
+     coverage tests, 94.26% total coverage, migration contract smoke, and no known vulnerabilities
+     after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
