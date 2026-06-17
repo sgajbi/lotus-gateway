@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,098
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,093
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1098` and `max_function_lines=49`.
+   `max_source_file_lines=1093` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -301,6 +301,13 @@ Most recent local PR-grade evidence:
     contract smoke, and 1,162 unit/contract tests. Local `make ci` passed with 207 integration
     tests, 1,369 combined coverage tests, 94.26% total coverage, migration contract smoke, and no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
+36. Current Advise bank-demo proof client-boundary branch moves RFC-0028 bank-demo proof upstream
+    route methods into `advise_bank_demo_proof_client.py`, reducing `advise_client.py` from 1,098
+    to 1,062 script-counted lines while preserving the public `AdviseClient` surface. Focused
+    validation passed with ruff check, ruff format check, touched-client mypy, 14 Advise client
+    boundary/factory, bank-demo proof router, Advise route-coverage, and refactor-threshold tests,
+    and the refactor threshold gate at `max_source_file_lines=1093`. Full local `make check` and
+    `make ci` evidence remains pending for this branch.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
@@ -320,7 +327,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest clients
-   and services are split; `advise_client.py` is now the largest file at 1,098
+   and services are split; `dpm_wave_service.py` is now the largest file at 1,093
    script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

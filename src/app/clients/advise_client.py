@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.clients.advise_bank_demo_proof_client import AdviseBankDemoProofClientMixin
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import (
     build_idempotent_upstream_headers,
@@ -12,7 +13,7 @@ from app.clients.upstream_headers import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-class AdviseClient:
+class AdviseClient(AdviseBankDemoProofClientMixin):
     def __init__(
         self,
         base_url: str,
@@ -56,43 +57,6 @@ class AdviseClient:
             consumer_system="lotus-gateway",
             tenant_id=tenant_id,
             correlation_id=correlation_id,
-        )
-
-    async def get_bank_demo_proof_scenario_contract(
-        self,
-        *,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            "/advisory/bank-demo-proof/scenario-contract",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.bank-demo-proof.scenario-contract",
-        )
-
-    async def get_bank_demo_supported_claim_register(
-        self,
-        *,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            "/advisory/bank-demo-proof/supported-claim-register",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.bank-demo-proof.supported-claim-register",
-        )
-
-    async def build_bank_demo_proof_pack(
-        self,
-        *,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            "/advisory/bank-demo-proof/proof-packs",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.bank-demo-proof.proof-packs",
         )
 
     async def simulate_proposal(

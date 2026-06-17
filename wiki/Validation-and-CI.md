@@ -338,6 +338,15 @@ workflow action-runtime gate, mypy over 489 source files, Workbench/OpenAPI cont
 coverage tests, 94.26% total coverage, migration contract smoke, and no known vulnerabilities after
 the governed `PYSEC-2026-161` exception.
 
+The current Advise bank-demo proof client-boundary branch ratchets the source-file threshold to
+1,093 script-counted lines after moving RFC-0028 bank-demo proof upstream route methods into
+`advise_bank_demo_proof_client.py`. It reduces `advise_client.py` from 1,098 to 1,062
+script-counted lines while preserving the public `AdviseClient` surface. Focused validation passed
+with ruff check, ruff format check, touched-client mypy, 14 Advise client boundary/factory,
+bank-demo proof router, Advise route-coverage, and refactor-threshold tests, and the refactor
+threshold gate at `max_source_file_lines=1093`. Full local `make check` and `make ci` evidence
+remains pending for this branch.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
