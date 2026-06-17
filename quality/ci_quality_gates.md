@@ -272,7 +272,11 @@ Most recent local PR-grade evidence:
     optional-client behavior, source fan-out call shapes, and the public `PortfolioService` API.
     Focused validation passed with ruff check, touched-module mypy, 42 portfolio service tests,
     and trial refactor threshold gates proving `max_source_file_lines=1217` passes while `1216`
-    fails.
+    fails. Local `make check` passed with ruff, format check, monetary-float guard, refactor
+    threshold gate, workflow action-runtime gate, mypy over 487 source files, Workbench/OpenAPI
+    contract smoke, and 1,161 unit/contract tests. Local `make ci` passed with 207 integration
+    tests, 1,368 combined coverage tests, 94.26% total coverage, migration contract smoke, and no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception.
 34. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff

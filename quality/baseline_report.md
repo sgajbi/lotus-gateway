@@ -804,8 +804,12 @@ Most recent local evidence:
      performance, and DPM upstream result acquisition into `portfolio_upstream_access.py`,
      reducing `portfolio_service.py` from 1,237 to 980 script-counted lines while preserving
      cache keys, optional-client behavior, source fan-out call shapes, and the public
-     `PortfolioService` API. Full local `make check` and `make ci` evidence remains pending for
-     this branch.
+     `PortfolioService` API. Local `make check` passed with ruff, format check,
+     monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 487
+     source files, Workbench/OpenAPI contract smoke, and 1,161 unit/contract tests. Local
+     `make ci` passed with 207 integration tests, 1,368 combined coverage tests, 94.26% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
