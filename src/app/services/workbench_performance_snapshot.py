@@ -25,14 +25,20 @@ def parse_performance_snapshot(
     if period_key is None:
         return None
 
-    period_return_payload = _period_return_payload(results_by_period, period_key)
+    period_payload = results_by_period.get(period_key, {})
+    period_return_payload = _period_return_payload(period_payload)
     if period_return_payload is None:
         return None
+    benchmark_return_payload = _benchmark_return_payload(period_payload)
 
     return WorkbenchPerformanceSnapshot(
         period=period_key,
         return_pct=cast(Any, period_return_payload.get("base")),
-        benchmark_return_pct=None,
+        benchmark_return_pct=(
+            cast(Any, benchmark_return_payload.get("base"))
+            if benchmark_return_payload is not None
+            else None
+        ),
     )
 
 
@@ -112,12 +118,19 @@ def _selected_period_key(results_by_period: dict[object, object]) -> str | None:
 
 
 def _period_return_payload(
-    results_by_period: dict[object, object],
-    period_key: str,
+    period_payload: object,
 ) -> dict[str, object] | None:
-    period_payload = results_by_period.get(period_key, {})
     if not isinstance(period_payload, dict):
         return None
+    workspace_portfolio_payload = _nested_dict(
+        period_payload,
+        "portfolio_twr",
+        "net",
+        "summary",
+        "period_return",
+    )
+    if workspace_portfolio_payload is not None:
+        return workspace_portfolio_payload
     portfolio_payload = period_payload.get("portfolio", {})
     if not isinstance(portfolio_payload, dict):
         return None
@@ -128,6 +141,29 @@ def _period_return_payload(
     if not isinstance(period_return_payload, dict):
         return None
     return period_return_payload
+
+
+def _benchmark_return_payload(period_payload: object) -> dict[str, object] | None:
+    if not isinstance(period_payload, dict):
+        return None
+    return _nested_dict(
+        period_payload,
+        "benchmark",
+        "net",
+        "summary",
+        "period_return",
+    )
+
+
+def _nested_dict(payload: dict[str, object], *keys: str) -> dict[str, object] | None:
+    current: object = payload
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if not isinstance(current, dict):
+        return None
+    return current
 
 
 def _append_performance_snapshot_failure(

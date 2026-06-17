@@ -145,6 +145,39 @@ class _StubLotusAnalyticsClient:
             correlation_id=correlation_id,
         )
 
+    async def get_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_id: str | None,
+        reporting_currency: str | None,
+        segment: str,
+        correlation_id: str,
+        periods: list[dict] | None = None,
+        include_detail_blocks: bool = False,
+    ):
+        _ = (
+            report_start_date,
+            chart_frequency,
+            detail_basis,
+            benchmark_id,
+            reporting_currency,
+            segment,
+            periods,
+            include_detail_blocks,
+        )
+        return await self.get_stateful_twr(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            period=period,
+            correlation_id=correlation_id,
+        )
+
     async def get_workbench_analytics(self, payload: dict, correlation_id: str):
         return self.analytics_status, self.analytics_payload
 
@@ -305,6 +338,44 @@ def test_parse_performance_snapshot_falls_back_to_first_period_key():
     assert parsed is not None
     assert parsed.period == "QTD"
     assert parsed.return_pct == 2.2
+
+
+def test_parse_performance_snapshot_accepts_workspace_summary_payload():
+    partial_failures = []
+    warnings = []
+    parsed = parse_performance_snapshot(
+        (
+            200,
+            {
+                "results_by_period": {
+                    "YTD": {
+                        "portfolio_twr": {
+                            "net": {
+                                "summary": {
+                                    "period_return": {"base": -0.69},
+                                },
+                            },
+                        },
+                        "benchmark": {
+                            "net": {
+                                "summary": {
+                                    "period_return": {"base": 5.1},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        ),
+        partial_failures,
+        warnings,
+    )
+    assert parsed is not None
+    assert parsed.period == "YTD"
+    assert parsed.return_pct == -0.69
+    assert parsed.benchmark_return_pct == 5.1
+    assert warnings == []
+    assert partial_failures == []
 
 
 @pytest.mark.parametrize(

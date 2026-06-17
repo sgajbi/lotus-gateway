@@ -96,6 +96,8 @@ class _StubLotusAnalyticsClient:
         self.last_report_start_date: str | None = None
         self.last_report_end_date: str | None = None
         self.last_benchmark_id: str | None = None
+        self.workspace_summary_calls = 0
+        self.twr_analytics_calls = 0
         self.workbench_status_code = 200
         self.workbench_payload = {
             "portfolioId": "PF_1001",
@@ -148,7 +150,42 @@ class _StubLotusAnalyticsClient:
         benchmark_id: str | None,
         correlation_id: str,
     ):
+        self.twr_analytics_calls += 1
         _ = report_start_date, metric_basis
+        self.last_report_start_date = report_start_date
+        self.last_benchmark_id = benchmark_id
+        return await self.get_stateful_twr(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            period=period,
+            correlation_id=correlation_id,
+        )
+
+    async def get_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_id: str | None,
+        reporting_currency: str | None,
+        segment: str,
+        correlation_id: str,
+        periods: list[dict] | None = None,
+        include_detail_blocks: bool = False,
+    ):
+        _ = (
+            chart_frequency,
+            detail_basis,
+            reporting_currency,
+            segment,
+            periods,
+            include_detail_blocks,
+        )
+        self.workspace_summary_calls += 1
         self.last_report_start_date = report_start_date
         self.last_benchmark_id = benchmark_id
         return await self.get_stateful_twr(
@@ -316,7 +353,9 @@ async def test_workbench_overview_success():
     assert response.portfolio.booking_center_code == "SG"
     assert response.overview.market_value_base == 1000.0
     assert response.overview.cash_weight_pct == pytest.approx(20.0)
-    assert analytics_client.last_report_start_date == "2026-01-01"
+    assert analytics_client.workspace_summary_calls == 1
+    assert analytics_client.twr_analytics_calls == 0
+    assert analytics_client.last_report_start_date is None
     assert analytics_client.last_report_end_date == "2026-02-23"
     assert analytics_client.last_benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.rebalance_snapshot is not None
