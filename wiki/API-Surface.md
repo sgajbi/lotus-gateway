@@ -11,6 +11,7 @@
 - `GET /api/v1/domain-products/trust-certification`
 - `POST /api/v1/source-products/portfolios/{portfolio_id}/external-order-execution-acknowledgement`
 - `POST /api/v1/proposals/*` and `GET /api/v1/proposals/*`
+- `GET` and `POST /api/v1/advisory-copilot/*`
 - `GET` and `POST /api/v1/advisory/bank-demo-proof/*`
 - `POST /api/v1/intake/*`
 - `GET /api/v1/lookups/*`
@@ -282,6 +283,21 @@
   Gateway does not reconstruct advisory policy, memo blockers, cockpit action or preparation semantics, tactical house-view membership,
   client-ready publication, external client communication, OMS/order/fill/settlement posture, or
   demo-readiness claims.
+- advisory-copilot routes call `lotus-advise` `/advisory/copilot/*` and
+  `/advisory/proposals/{proposal_id}/versions/{version_id}/copilot-runs` through
+  `/api/v1/advisory-copilot/evidence-packets`,
+  `/api/v1/advisory-copilot/evidence-packets/from-proposal-version`,
+  `/api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}`,
+  `/api/v1/advisory-copilot/actions`,
+  `/api/v1/advisory-copilot/actions/{run_id}`,
+  `/api/v1/advisory-copilot/actions/{run_id}/reviews`,
+  `/api/v1/advisory-copilot/supportability`, and
+  `/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`.
+  Gateway unwraps Workbench command envelopes where needed, preserves Advise-owned evidence
+  packet identity, action-run posture, supportability, lineage, blocked capabilities, and review
+  state, and does not generate recommendations, score suitability, infer client-ready advice,
+  approve reviews, expose prompts/model output, contact clients, or claim OMS/order/fill/
+  settlement posture.
 - bank-demo proof routes call `lotus-advise` `/advisory/bank-demo-proof/*` through
   `/api/v1/advisory/bank-demo-proof/scenario-contract`,
   `/api/v1/advisory/bank-demo-proof/supported-claim-register`, and

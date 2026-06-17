@@ -40,6 +40,13 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         ),
     },
     {
+        "name": "advisory-copilot",
+        "description": (
+            "Gateway-facing advisory copilot evidence-packet, action, review, supportability, "
+            "and proposal-version run APIs backed by lotus-advise source truth."
+        ),
+    },
+    {
         "name": "Composite Performance",
         "description": (
             "Gateway-facing composite performance operations backed by lotus-performance "

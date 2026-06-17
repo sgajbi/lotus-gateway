@@ -139,6 +139,22 @@ def test_gateway_exposes_supported_lotus_advise_advisor_cockpit_surface() -> Non
     assert expected - routes == set()
 
 
+def test_gateway_exposes_supported_lotus_advise_advisory_copilot_surface() -> None:
+    routes = _route_keys()
+    expected = {
+        ("POST", "/api/v1/advisory-copilot/evidence-packets"),
+        ("POST", "/api/v1/advisory-copilot/evidence-packets/from-proposal-version"),
+        ("GET", "/api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}"),
+        ("POST", "/api/v1/advisory-copilot/actions"),
+        ("GET", "/api/v1/advisory-copilot/actions/{run_id}"),
+        ("POST", "/api/v1/advisory-copilot/actions/{run_id}/reviews"),
+        ("GET", "/api/v1/advisory-copilot/supportability"),
+        ("GET", "/api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs"),
+    }
+
+    assert expected - routes == set()
+
+
 def test_gateway_exposes_rfc0028_bank_demo_proof_surface() -> None:
     routes = _route_keys()
     expected = {

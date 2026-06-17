@@ -31,7 +31,8 @@ Current repository posture:
 
 1. `lotus-gateway` is the primary backend contract for `lotus-workbench`,
 2. the repository is moving from thin pass-through behavior to a cleaner experience-API posture,
-3. performance, proposal, advisory-workspace, advisory-policy, advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
+3. performance, proposal, advisory-workspace, advisory-policy, advisory-copilot,
+   advisor-cockpit, bank-demo proof, foundation, reporting, and capability aggregation
    routes are active, with proposal simulation/lifecycle/workflow/approval/lineage, async
    operation support, idempotency lookup, replay evidence, reviewed narrative posture, execution
    handoff/status/update posture, memo report-package events, report-request, and delivery-posture
@@ -42,17 +43,22 @@ Current repository posture:
    event, and AI-evidence routes are routed to `lotus-advise` `/advisory/policy-*` and
    `/advisory/proposals/*/policy-evaluations`; advisor-cockpit action, preparation-packet,
    single-action, snapshot, supportability, and acknowledgement routes are routed to `lotus-advise`
-   `/advisory/cockpit/*`; bank-demo proof scenario-contract, supported-claim register, and
+   `/advisory/cockpit/*`; advisory-copilot evidence-packet, action-run, review, supportability,
+   and proposal-version run-lineage routes are routed to `lotus-advise`
+   `/advisory/copilot/*` and `/advisory/proposals/*/copilot-runs`; bank-demo proof
+   scenario-contract, supported-claim register, and
    proof-pack capture routes are routed to `lotus-advise`
    `/advisory/bank-demo-proof/*`. Gateway preserves source-hash, review,
    report-package, workspace replay, execution handoff, policy supportability, degraded/blocked
    posture, maker-checker state, sign-off posture, AI-evidence posture, cockpit action status,
-   owner role, reason codes, preparation-packet posture, evidence refs, lineage refs,
+   owner role, reason codes, preparation-packet posture, copilot action-run posture, evidence
+   refs, lineage refs,
    acknowledgement state, supported-claim classifications, material-review conflicts, backend
    proof-pack posture, and delivery event posture
    without generating narrative, evaluating policy rules, inferring client-ready publication,
    rendering reports, archiving documents, sourcing portfolio positions locally, or recomputing
-   advisory delivery truth;
+   advisory delivery truth, generating copilot recommendations, or turning support output into
+   client-ready advice;
    `lotus-manage` consumption is through versioned `/api/v1` APIs for
    run lookup, supportability summary, capability posture, RFC-0038 mandate command-center
    summary/monitoring/exception/mandate drill-down route families, RFC-0040 proof-pack

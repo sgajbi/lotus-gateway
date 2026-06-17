@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.clients.advise_advisory_copilot_client import AdviseAdvisoryCopilotClientMixin
 from app.clients.advise_bank_demo_proof_client import AdviseBankDemoProofClientMixin
 from app.clients.advise_workspace_client import AdviseWorkspaceClientMixin
 from app.clients.observed_fanout import request_observed_fanout
@@ -14,7 +15,11 @@ from app.clients.upstream_headers import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-class AdviseClient(AdviseWorkspaceClientMixin, AdviseBankDemoProofClientMixin):
+class AdviseClient(
+    AdviseWorkspaceClientMixin,
+    AdviseBankDemoProofClientMixin,
+    AdviseAdvisoryCopilotClientMixin,
+):
     def __init__(
         self,
         base_url: str,
