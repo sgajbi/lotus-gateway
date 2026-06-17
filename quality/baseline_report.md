@@ -280,15 +280,15 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance trend service-boundary branch shows 489
-Python source files under `src/app` and 199 Python test files under `tests`.
+Working-tree verification for the current Advise bank-demo proof client-boundary branch shows 490
+Python source files under `src/app` and 200 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,098 | `src/app/clients/advise_client.py` |
-| 2 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 1 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 2 | 1,062 | `src/app/clients/advise_client.py` |
 | 3 | 1,041 | `src/app/clients/dpm_client.py` |
 | 4 | 980 | `src/app/services/portfolio_service.py` |
 | 5 | 979 | `src/app/contracts/proposals.py` |
@@ -533,7 +533,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1098` and `max_function_lines=49` after the latest threshold ratchet.
+    `max_source_file_lines=1093` and `max_function_lines=49` after the latest threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -835,6 +835,17 @@ Most recent local evidence:
      `make ci` passed with 207 integration tests, 1,369 combined coverage tests, 94.26% total
      coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
+130. Current Advise bank-demo proof client-boundary branch focused validation passed with ruff
+     check, ruff format check, touched-client mypy, 14 Advise client boundary/factory, bank-demo
+     proof router, Advise route-coverage, and refactor-threshold tests, and the refactor threshold
+     gate at `max_source_file_lines=1093`. The slice moves RFC-0028 bank-demo proof upstream route
+     methods into `advise_bank_demo_proof_client.py`, reducing `advise_client.py` from 1,098 to
+     1,062 script-counted lines while preserving the public `AdviseClient` surface. Full local
+     `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+     workflow action-runtime gate, mypy over 490 source files, Workbench/OpenAPI contract smoke,
+     and 1,163 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,370
+     combined coverage tests, 94.24% total coverage, migration contract smoke, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -852,7 +863,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,098 script-counted lines,
+1. no Python source file under `src/app` above 1,093 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

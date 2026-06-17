@@ -35,8 +35,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/advise_client.py` at 1,098 script-counted lines,
-2. `src/app/services/dpm_wave_service.py` at 1,093 script-counted lines,
+1. `src/app/services/dpm_wave_service.py` at 1,093 script-counted lines,
+2. `src/app/clients/advise_client.py` at 1,062 script-counted lines,
 3. `src/app/clients/dpm_client.py` at 1,041 script-counted lines,
 4. `src/app/services/portfolio_service.py` at 980 script-counted lines,
 5. `src/app/contracts/proposals.py` at 979 script-counted lines.
@@ -189,7 +189,10 @@ call shapes. DPM PM operating-quality service orchestration now lives in
 horizon-comparison and attribution-trend orchestration now lives in
 `src/app/services/performance_workspace_trend_service.py`, reducing
 `performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
-public `PerformanceWorkspaceService` surface. The current longest functions are
+public `PerformanceWorkspaceService` surface. RFC-0028 bank-demo proof Advise client routes now
+live in `src/app/clients/advise_bank_demo_proof_client.py`, reducing `advise_client.py` from 1,098
+to 1,062 script-counted lines while preserving the public `AdviseClient` surface. The current
+longest functions are
 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.
