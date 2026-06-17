@@ -179,6 +179,54 @@ Operational behavior:
 3. upstream validation, not-found, and idempotency-conflict outcomes are surfaced as product-safe
    Gateway errors without rewriting cockpit semantics.
 
+## Advisory Copilot Evidence And Action Runs
+
+Status: implementation-backed in Gateway for the canonical Workbench advisory-copilot proof path.
+Gateway publishes the product-facing route family over Advise-owned copilot evidence packets,
+action runs, review decisions, supportability, and proposal-version run lineage.
+
+Business outcome:
+
+1. Workbench can execute the advisory-copilot proof path through Gateway instead of calling
+   `lotus-advise` directly,
+2. advisors and support users can inspect Advise-owned evidence-packet identity, action-run
+   posture, supportability, blocked capabilities, lineage, and review state in a stable
+   product-facing envelope,
+3. canonical front-office validation can prove the copilot surface without inventing
+   browser-local recommendations or bypassing Gateway.
+
+Supported routes:
+
+1. `POST /api/v1/advisory-copilot/evidence-packets`
+2. `POST /api/v1/advisory-copilot/evidence-packets/from-proposal-version`
+3. `GET /api/v1/advisory-copilot/evidence-packets/{evidence_packet_id}`
+4. `POST /api/v1/advisory-copilot/actions`
+5. `GET /api/v1/advisory-copilot/actions/{run_id}`
+6. `POST /api/v1/advisory-copilot/actions/{run_id}/reviews`
+7. `GET /api/v1/advisory-copilot/supportability`
+8. `GET /api/v1/advisory-copilot/proposals/{proposal_id}/versions/{version_id}/runs`
+
+Authority and integrations:
+
+1. `lotus-advise` remains the advisory-copilot evidence-packet, action-run, review, lineage, and
+   supportability authority.
+2. Gateway forwards request bodies, proposal/version identifiers, evidence packet identifiers,
+   action run identifiers, review payloads, idempotency keys, and correlation context to
+   `lotus-advise`.
+3. Gateway preserves Advise-owned supportability, blocked capabilities, evidence refs, lineage
+   refs, action-run state, and review state.
+4. Gateway does not generate recommendations, score suitability, infer client-ready advice,
+   approve reviews, expose prompts or model output, contact clients, create orders, or claim
+   OMS/order/fill/settlement posture.
+
+Operational behavior:
+
+1. Workbench command envelopes are unwrapped before forwarding where the Advise route expects the
+   business payload at the top level,
+2. upstream validation and not-found outcomes are surfaced as product-safe Gateway error detail,
+3. supportability is source-owned by `lotus-advise`; Gateway only publishes it for product
+   consumers.
+
 ## Bank Demo Proof Publication
 
 Status: implementation-backed in Gateway for the RFC-0028 API publication slice. This is the

@@ -21,6 +21,7 @@ from app.routers.advisor_cockpit_snapshot import router as advisor_cockpit_snaps
 from app.routers.advisor_cockpit_supportability import (
     router as advisor_cockpit_supportability_router,
 )
+from app.routers.advisory_copilot import router as advisory_copilot_router
 from app.routers.advisory_policy import router as advisory_policy_router
 from app.routers.advisory_policy_actions import router as advisory_policy_actions_router
 from app.routers.advisory_policy_ai_evidence import (
@@ -553,6 +554,8 @@ ADVISORY_POLICY_ROUTERS: RouterGroup = (
     advisory_policy_validation_router,
 )
 
+ADVISORY_COPILOT_ROUTERS: RouterGroup = (advisory_copilot_router,)
+
 PROPOSAL_ROUTERS: RouterGroup = (
     proposal_generation_router,
     proposal_artifact_router,
@@ -806,6 +809,7 @@ ROUTER_GROUPS: tuple[RouterGroup, ...] = (
     BANK_DEMO_PROOF_ROUTERS,
     ADVISORY_WORKSPACE_ROUTERS,
     ADVISORY_POLICY_ROUTERS,
+    ADVISORY_COPILOT_ROUTERS,
     PROPOSAL_ROUTERS,
     PLATFORM_DISCOVERY_ROUTERS,
     INTAKE_ROUTERS,

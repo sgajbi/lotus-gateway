@@ -25,7 +25,9 @@
    replay, event, and AI evidence,
 4. advisor cockpit actions, preparation packets, snapshot, supportability, acknowledgements, and
    house-view cohorts,
-5. bank-demo proof scenario contract, supported-claim register, and proof-pack capture.
+5. advisory copilot evidence packets, action runs, review decisions, supportability, and
+   proposal-version run lineage,
+6. bank-demo proof scenario contract, supported-claim register, and proof-pack capture.
 
 ## DPM Command Center
 
