@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,206
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,098
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1206` and `max_function_lines=49`.
+   `max_source_file_lines=1098` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -290,11 +290,18 @@ Most recent local PR-grade evidence:
     `make ci` passed with 207 integration tests, 1,368 combined coverage tests, 94.27% total
     coverage, migration contract smoke, and no known vulnerabilities after the governed
     `PYSEC-2026-161` exception.
-35. Current concrete-route registration fix expands registered gateway routers into concrete
+35. Current performance trend service-boundary branch moves performance horizon-comparison and
+    attribution-trend service orchestration into `performance_workspace_trend_service.py`, reducing
+    `performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
+    public `PerformanceWorkspaceService` surface. Focused validation passed with ruff check,
+    touched-module mypy, 67 performance workspace trend/horizon/attribution/context/control tests,
+    and trial refactor threshold gates proving `max_source_file_lines=1098` passes while `1097`
+    fails.
+36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
     check, ruff format check, mypy over `router_registry.py`, and 15 route/contract tests.
-36. Current portfolio workspace component parser branch full local gates passed: `make check`
+37. Current portfolio workspace component parser branch full local gates passed: `make check`
     passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow
     action-runtime gate, mypy over 483 source files, Workbench/OpenAPI contract smoke, and 1,158
     unit/contract tests. `make ci` passed with 207 integration tests, 1,365 combined coverage
@@ -309,7 +316,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest clients
-   and services are split; `performance_workspace_service.py` is now the largest file at 1,206
+   and services are split; `advise_client.py` is now the largest file at 1,098
    script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
