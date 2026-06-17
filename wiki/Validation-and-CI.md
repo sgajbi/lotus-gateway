@@ -338,7 +338,7 @@ workflow action-runtime gate, mypy over 489 source files, Workbench/OpenAPI cont
 coverage tests, 94.26% total coverage, migration contract smoke, and no known vulnerabilities after
 the governed `PYSEC-2026-161` exception.
 
-The current Advise bank-demo proof client-boundary branch ratchets the source-file threshold to
+The merged Advise bank-demo proof client-boundary branch ratcheted the source-file threshold to
 1,093 script-counted lines after moving RFC-0028 bank-demo proof upstream route methods into
 `advise_bank_demo_proof_client.py`. It reduces `advise_client.py` from 1,098 to 1,062
 script-counted lines while preserving the public `AdviseClient` surface. Focused validation passed
@@ -350,6 +350,19 @@ gate, workflow action-runtime gate, mypy over 490 source files, Workbench/OpenAP
 and 1,163 unit/contract tests; `make ci` passed with 207 integration tests, 1,370 combined
 coverage tests, 94.24% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
+
+The current DPM wave AI handoff boundary branch ratchets the source-file threshold to 1,062
+script-counted lines after moving PM memo and operations handoff summary workflow-pack
+orchestration into `dpm_wave_ai_handoff.py`. It reduces `dpm_wave_service.py` from 1,093 to 692
+script-counted lines while preserving the public `DpmWaveService` surface. Focused validation
+passed with ruff check, ruff format check, touched-module mypy, 38 DPM wave
+service/boundary/contract/router tests, and trial refactor threshold gates proving
+`max_source_file_lines=1062` passes while `1061` fails. Full local `make check` and `make ci`
+evidence is green: `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, workflow action-runtime gate, mypy over 491 source files, Workbench/OpenAPI
+contract smoke, and 1,164 unit/contract tests; `make ci` passed with 207 integration tests, 1,371
+combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

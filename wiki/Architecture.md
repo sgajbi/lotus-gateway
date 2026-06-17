@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `dpm_wave_service.py` as the largest residual
-  source file at 1,093 script-counted lines after RFC-0028 bank-demo proof Advise client routes
-  moved into `advise_bank_demo_proof_client.py`, reducing `advise_client.py` to 1,062
-  script-counted lines; the repository
+- current enterprise-hardening evidence records `advise_client.py` as the largest residual source
+  file at 1,062 script-counted lines after DPM wave AI handoff orchestration moved into
+  `dpm_wave_ai_handoff.py`, reducing `dpm_wave_service.py` to 692 script-counted lines; the
+  repository
   longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
