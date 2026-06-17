@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 980 script-counted lines,
-2. `src/app/contracts/proposals.py` at 979 script-counted lines,
-3. `src/app/contracts/portfolio.py` at 954 script-counted lines,
-4. `src/app/services/foundation_service.py` at 951 script-counted lines,
-5. `src/app/contracts/performance_workspace.py` at 930 script-counted lines.
+1. `src/app/contracts/proposals.py` at 979 script-counted lines,
+2. `src/app/contracts/portfolio.py` at 954 script-counted lines,
+3. `src/app/services/foundation_service.py` at 951 script-counted lines,
+4. `src/app/contracts/performance_workspace.py` at 930 script-counted lines,
+5. `src/app/clients/advise_client.py` at 909 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -197,10 +197,13 @@ handoff slice moves PM memo and operations handoff summary workflow-pack orchest
 script-counted lines while preserving the public `DpmWaveService` surface. The current Advise
 workspace client-boundary slice moves advisory-workspace upstream route methods into
 `src/app/clients/advise_workspace_client.py`, reducing `advise_client.py` from 1,062 to 909
-script-counted lines while preserving the public `AdviseClient` surface. The current
-longest functions are
+script-counted lines while preserving the public `AdviseClient` surface. The current portfolio
+transaction workflow slice moves transaction ledger, income summary, and activity summary
+orchestration into `src/app/services/portfolio_transaction_service.py`, reducing
+`portfolio_service.py` to 811 physical lines while preserving the public `PortfolioService`
+surface and Lotus Core transaction request behavior. The current longest functions are
 49-line helpers:
-`get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
+`get_transaction_ledger` in `portfolio_transaction_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.
 
 ## Progressive Enforcement
