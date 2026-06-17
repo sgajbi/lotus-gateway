@@ -10,11 +10,13 @@ class _StubLotusCoreQueryClient:
         portfolio_payload: dict,
         snapshot_status_code: int,
         snapshot_payload: dict,
+        reference_performance_end_date: str = "2026-02-23",
     ):
         self.portfolio_status_code = portfolio_status_code
         self.portfolio_payload = portfolio_payload
         self.snapshot_status_code = snapshot_status_code
         self.snapshot_payload = snapshot_payload
+        self.reference_performance_end_date = reference_performance_end_date
         self.reference_calls = 0
         self.snapshot_calls: list[dict[str, object]] = []
 
@@ -48,7 +50,7 @@ class _StubLotusCoreQueryClient:
         correlation_id: str,
     ):
         self.reference_calls += 1
-        return 200, {"performance_end_date": "2026-02-23"}
+        return 200, {"performance_end_date": self.reference_performance_end_date}
 
     async def get_projected_positions(self, session_id: str, correlation_id: str):
         return 200, {
@@ -93,7 +95,11 @@ class _StubLotusAnalyticsClient:
     def __init__(self, status_code: int, payload: dict):
         self.status_code = status_code
         self.payload = payload
+        self.last_report_start_date: str | None = None
         self.last_report_end_date: str | None = None
+        self.last_benchmark_id: str | None = None
+        self.workspace_summary_calls = 0
+        self.twr_analytics_calls = 0
         self.workbench_status_code = 200
         self.workbench_payload = {
             "portfolioId": "PF_1001",
@@ -146,7 +152,44 @@ class _StubLotusAnalyticsClient:
         benchmark_id: str | None,
         correlation_id: str,
     ):
-        _ = report_start_date, metric_basis, benchmark_id
+        self.twr_analytics_calls += 1
+        _ = report_start_date, metric_basis
+        self.last_report_start_date = report_start_date
+        self.last_benchmark_id = benchmark_id
+        return await self.get_stateful_twr(
+            portfolio_id=portfolio_id,
+            report_end_date=report_end_date,
+            period=period,
+            correlation_id=correlation_id,
+        )
+
+    async def get_workspace_summary(
+        self,
+        *,
+        portfolio_id: str,
+        report_end_date: str,
+        report_start_date: str | None,
+        period: str,
+        chart_frequency: str,
+        detail_basis: str,
+        benchmark_id: str | None,
+        reporting_currency: str | None,
+        segment: str,
+        correlation_id: str,
+        periods: list[dict] | None = None,
+        include_detail_blocks: bool = False,
+    ):
+        _ = (
+            chart_frequency,
+            detail_basis,
+            reporting_currency,
+            segment,
+            periods,
+            include_detail_blocks,
+        )
+        self.workspace_summary_calls += 1
+        self.last_report_start_date = report_start_date
+        self.last_benchmark_id = benchmark_id
         return await self.get_stateful_twr(
             portfolio_id=portfolio_id,
             report_end_date=report_end_date,
@@ -188,6 +231,52 @@ class _StubDpmClient:
         correlation_id: str,
     ):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
+
+
+@pytest.mark.asyncio
+async def test_performance_snapshot_end_date_clamps_canonical_portfolio_to_supported_dataset():
+    service = WorkbenchService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            200,
+            {},
+            200,
+            {},
+            reference_performance_end_date="2026-06-17",
+        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+    )
+
+    report_end_date = await service._resolve_performance_snapshot_end_date(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date="2026-06-17",
+        correlation_id="corr-1",
+    )
+
+    assert report_end_date == "2026-04-10"
+
+
+@pytest.mark.asyncio
+async def test_performance_snapshot_end_date_keeps_non_canonical_reference_date():
+    service = WorkbenchService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            200,
+            {},
+            200,
+            {},
+            reference_performance_end_date="2026-06-17",
+        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+    )
+
+    report_end_date = await service._resolve_performance_snapshot_end_date(
+        portfolio_id="PF_1001",
+        as_of_date="2026-06-17",
+        correlation_id="corr-1",
+    )
+
+    assert report_end_date == "2026-06-17"
 
 
 @pytest.mark.asyncio
@@ -312,7 +401,11 @@ async def test_workbench_overview_success():
     assert response.portfolio.booking_center_code == "SG"
     assert response.overview.market_value_base == 1000.0
     assert response.overview.cash_weight_pct == pytest.approx(20.0)
+    assert analytics_client.workspace_summary_calls == 1
+    assert analytics_client.twr_analytics_calls == 0
+    assert analytics_client.last_report_start_date is None
     assert analytics_client.last_report_end_date == "2026-02-23"
+    assert analytics_client.last_benchmark_id == "BMK_PB_GLOBAL_BALANCED_60_40"
     assert response.rebalance_snapshot is not None
     assert response.rebalance_snapshot.status == "READY"
     assert response.rebalance_snapshot.last_rebalance_run_id == "rr_1"
@@ -494,14 +587,7 @@ async def test_workbench_portfolio_360_with_projected_state():
     )
     service = WorkbenchService(
         lotus_core_query_client=lotus_core_client,
-        analytics_client=_StubLotusAnalyticsClient(
-            200,
-            {
-                "results_by_period": {
-                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
-                }
-            },
-        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_portfolio_360(
@@ -628,6 +714,14 @@ async def test_workbench_apply_sandbox_changes_with_policy_eval():
 
 @pytest.mark.asyncio
 async def test_workbench_analytics_response():
+    analytics_client = _StubLotusAnalyticsClient(
+        200,
+        {
+            "results_by_period": {
+                "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
+            }
+        },
+    )
     service = WorkbenchService(
         lotus_core_query_client=_StubLotusCoreQueryClient(
             200,
@@ -658,14 +752,7 @@ async def test_workbench_analytics_response():
                 },
             },
         ),
-        analytics_client=_StubLotusAnalyticsClient(
-            200,
-            {
-                "results_by_period": {
-                    "YTD": {"portfolio": {"summary": {"period_return": {"base": 1.0}}}}
-                }
-            },
-        ),
+        analytics_client=analytics_client,
         dpm_client=_StubDpmClient(200, {"items": []}),
     )
     response = await service.get_workbench_analytics(
@@ -681,6 +768,7 @@ async def test_workbench_analytics_response():
     assert response.session_id == "sess_1"
     assert response.period == "YTD"
     assert response.benchmark_code == "MODEL_60_40"
+    assert analytics_client.last_benchmark_id == "MODEL_60_40"
     assert response.portfolio_return_pct == pytest.approx(1.0)
     assert response.benchmark_return_pct is None
     assert response.active_return_pct is None

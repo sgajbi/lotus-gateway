@@ -67,6 +67,9 @@ class Settings(BaseSettings):
             "domain-product-live-trust-certification.json",
         )
     )
+    workbench_default_benchmark_code: str = Field(default="BMK_PB_GLOBAL_BALANCED_60_40")
+    workbench_canonical_portfolio_id: str = Field(default="PB_SG_GLOBAL_BAL_001")
+    workbench_canonical_performance_end_date: str = Field(default="2026-04-10")
 
     @field_validator(
         "decisioning_service_base_url",
