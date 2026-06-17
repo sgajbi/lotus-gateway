@@ -252,7 +252,10 @@ Most recent local PR-grade evidence:
     client surface. Focused validation passed with ruff check, ruff format check, mypy over the
     touched clients, 182 upstream-client, boundary, and threshold unit tests, and trial refactor
     threshold gates proving `max_source_file_lines=1237` passes while `1236` fails. Local
-    `make check` passed with mypy over 484 source files and 1,159 unit/contract tests.
+    `make check` passed with mypy over 484 source files and 1,159 unit/contract tests. Local
+    `make ci` passed with 207 integration tests, 1,366 combined coverage tests, 94.29% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 32. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
