@@ -54,3 +54,54 @@ def test_proof_pack_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= proof_pack_methods
     assert not extracted_methods & dpm_client_methods
+
+
+def test_wave_routes_live_in_dedicated_client_mixin() -> None:
+    dpm_client_methods = _async_function_names(_CLIENT_ROOT / "dpm_client.py")
+    wave_methods = _async_function_names(_CLIENT_ROOT / "dpm_wave_client.py")
+
+    extracted_methods = {
+        "preview_wave",
+        "create_wave",
+        "list_waves",
+        "get_wave",
+        "put_campaign_definition",
+        "list_campaign_definitions",
+        "get_campaign_definition",
+        "get_campaign_definition_lifecycle_events",
+        "get_campaign_definition_preview_readiness",
+        "get_campaign_definition_launch_history",
+        "get_campaign_definition_launch_package",
+        "launch_campaign_definition",
+        "retire_campaign_definition",
+        "supersede_campaign_definition",
+        "discover_campaigns",
+        "get_campaign_operating_queue",
+        "get_campaign_approval_inbox",
+        "get_campaign_workflow_board",
+        "get_campaign_assignment_plan",
+        "get_campaign_workflow_automation",
+        "list_campaign_approval_decisions",
+        "create_campaign_approval_decision",
+        "list_campaign_assignment_actions",
+        "create_campaign_assignment_action",
+        "list_campaign_assignment_tasks",
+        "create_campaign_assignment_task",
+        "transition_campaign_assignment_task",
+        "list_campaign_maker_checker_controls",
+        "create_campaign_maker_checker_control",
+        "get_wave_items",
+        "source_check_wave",
+        "simulate_wave",
+        "select_wave_item",
+        "approve_wave",
+        "stage_wave",
+        "handoff_wave",
+        "cancel_wave",
+        "get_wave_proof_pack_posture",
+        "get_wave_supportability",
+        "get_wave_report_input",
+    }
+
+    assert extracted_methods <= wave_methods
+    assert not extracted_methods & dpm_client_methods
