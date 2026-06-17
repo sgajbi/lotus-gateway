@@ -364,15 +364,15 @@ contract smoke, and 1,164 unit/contract tests; `make ci` passed with 207 integra
 combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current Advise workspace client-boundary branch ratchets the source-file threshold to 1,041
-script-counted lines after moving advisory-workspace upstream route methods into
-`advise_workspace_client.py`. It reduces `advise_client.py` from 1,062 to 909 script-counted lines
-while preserving the public `AdviseClient` surface. Focused validation passed with ruff check,
-ruff format check, touched-client mypy, 179 upstream-client/boundary tests, and the refactor
-threshold gate at `max_source_file_lines=1041`. Full local `make check` passed with ruff, format
-check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 492
-source files, Workbench/OpenAPI contract smoke, and 1,165 unit/contract tests; `make ci` passed
-with 207 integration tests, 1,372 combined coverage tests, 94.23% total coverage, migration
+The current DPM wave client-boundary branch ratchets the source-file threshold to 980
+script-counted lines after moving rebalance-wave and campaign workflow upstream route methods into
+`dpm_wave_client.py`. It reduces `dpm_client.py` from 1,041 to 452 script-counted lines while
+preserving the public `DpmClient` surface. Focused validation passed with ruff check, ruff format
+check, 101 DPM upstream-client/boundary tests, and the refactor threshold gate at
+`max_source_file_lines=980`. Full local `make check` passed with ruff, format check,
+monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 493 source
+files, Workbench/OpenAPI contract smoke, and 1,166 unit/contract tests. Full local `make ci`
+passed with 207 integration tests, 1,373 combined coverage tests, 94.21% total coverage, migration
 contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
