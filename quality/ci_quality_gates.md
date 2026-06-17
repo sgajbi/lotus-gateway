@@ -1,6 +1,6 @@
 # CI Quality Gates
 
-Date: 2026-06-13  
+Date: 2026-06-17  
 Mode: progressive enforcement
 
 This file records the governed CI measurement posture for the gateway hardening program. It is the
@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 980
+2. Current enforced source-file threshold: no Python source file under `src/app` above 979
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=980` and `max_function_lines=49`.
+   `max_source_file_lines=979` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -333,7 +333,7 @@ Most recent local PR-grade evidence:
     and 1,165 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,372
     combined coverage tests, 94.23% total coverage, migration contract smoke, and no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
-39. Current DPM wave client-boundary branch moves rebalance-wave and campaign workflow upstream
+39. Previous DPM wave client-boundary branch moved rebalance-wave and campaign workflow upstream
     route methods into `dpm_wave_client.py`, reducing `dpm_client.py` from 1,041 to 452
     script-counted lines while preserving the public `DpmClient` surface. Focused validation
     passed with ruff check, ruff format check, 101 DPM upstream-client/boundary tests, and the
@@ -343,6 +343,18 @@ Most recent local PR-grade evidence:
     tests. Full local `make ci` passed with 207 integration tests, 1,373 combined coverage tests,
     94.21% total coverage, migration contract smoke, and no known vulnerabilities after the
     governed `PYSEC-2026-161` exception.
+40. Current portfolio transaction-boundary branch moves transaction ledger, income summary, and
+    activity summary orchestration into `portfolio_transaction_service.py`, reducing
+    `portfolio_service.py` from 980 script-counted lines to 811 physical lines while preserving
+    the public `PortfolioService` surface. Focused validation passed with ruff check, ruff format
+    check, touched-service mypy, 19 transaction/service-boundary tests, and refactor-threshold
+    trials proving `max_source_file_lines=979` passes while `978` fails on
+    `src/app/contracts/proposals.py`. Full local `make check` passed with ruff, format check,
+    monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over 494
+    source files, Workbench/OpenAPI contract smoke, and 1,167 unit/contract tests. Full local
+    `make ci` passed with 207 integration tests, 1,374 combined coverage tests, 94.22% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
@@ -362,7 +374,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `portfolio_service.py` is now the largest file at
-   980 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/proposals.py` is now the largest
+   file at 979 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

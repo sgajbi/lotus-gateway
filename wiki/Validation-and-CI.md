@@ -364,9 +364,9 @@ contract smoke, and 1,164 unit/contract tests; `make ci` passed with 207 integra
 combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current DPM wave client-boundary branch ratchets the source-file threshold to 980
+The previous DPM wave client-boundary branch ratcheted the source-file threshold to 980
 script-counted lines after moving rebalance-wave and campaign workflow upstream route methods into
-`dpm_wave_client.py`. It reduces `dpm_client.py` from 1,041 to 452 script-counted lines while
+`dpm_wave_client.py`. It reduced `dpm_client.py` from 1,041 to 452 script-counted lines while
 preserving the public `DpmClient` surface. Focused validation passed with ruff check, ruff format
 check, 101 DPM upstream-client/boundary tests, and the refactor threshold gate at
 `max_source_file_lines=980`. Full local `make check` passed with ruff, format check,
@@ -374,6 +374,19 @@ monetary-float guard, refactor threshold gate, workflow action-runtime gate, myp
 files, Workbench/OpenAPI contract smoke, and 1,166 unit/contract tests. Full local `make ci`
 passed with 207 integration tests, 1,373 combined coverage tests, 94.21% total coverage, migration
 contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
+The current portfolio transaction-boundary branch ratchets the source-file threshold to 979
+script-counted lines after moving transaction ledger, income summary, and activity summary
+orchestration into `portfolio_transaction_service.py`. It reduces `portfolio_service.py` from 980
+script-counted lines to 811 physical lines while preserving the public `PortfolioService` surface.
+Focused validation passed with ruff check, ruff format check, touched-service mypy, 19
+transaction/service-boundary tests, and refactor-threshold trials proving
+`max_source_file_lines=979` passes while `978` fails on `src/app/contracts/proposals.py`. Full
+local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+workflow action-runtime gate, mypy over 494 source files, Workbench/OpenAPI contract smoke, and
+1,167 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,374 combined
+coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
+after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

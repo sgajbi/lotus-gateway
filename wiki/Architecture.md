@@ -10,11 +10,11 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `portfolio_service.py` as the largest residual
-  source file at 980 script-counted lines after DPM rebalance-wave and campaign workflow routes
-  moved into `dpm_wave_client.py`, reducing `dpm_client.py` to 452 script-counted lines; the
-  repository
-  longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/contracts/proposals.py` as the largest
+  residual source file at 979 script-counted lines after portfolio transaction ledger, income
+  summary, and activity summary orchestration moved into `portfolio_transaction_service.py`,
+  reducing `portfolio_service.py` to 811 physical lines; the repository longest-function baseline
+  remains held at the enforced 49-line AST span
 
 ## Route-family map
 

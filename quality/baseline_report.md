@@ -287,22 +287,22 @@ source files under `src/app` and 201 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,041 | `src/app/clients/dpm_client.py` |
-| 2 | 980 | `src/app/services/portfolio_service.py` |
-| 3 | 979 | `src/app/contracts/proposals.py` |
-| 4 | 954 | `src/app/contracts/portfolio.py` |
-| 5 | 951 | `src/app/services/foundation_service.py` |
-| 6 | 930 | `src/app/contracts/performance_workspace.py` |
-| 7 | 909 | `src/app/clients/advise_client.py` |
-| 8 | 868 | `src/app/router_registry.py` |
-| 9 | 861 | `src/app/services/advisor_brief_service.py` |
-| 10 | 854 | `src/app/services/proposal_service.py` |
+| 1 | 979 | `src/app/contracts/proposals.py` |
+| 2 | 954 | `src/app/contracts/portfolio.py` |
+| 3 | 951 | `src/app/services/foundation_service.py` |
+| 4 | 930 | `src/app/contracts/performance_workspace.py` |
+| 5 | 909 | `src/app/clients/advise_client.py` |
+| 6 | 868 | `src/app/router_registry.py` |
+| 7 | 861 | `src/app/services/advisor_brief_service.py` |
+| 8 | 854 | `src/app/services/proposal_service.py` |
+| 9 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 10 | 811 | `src/app/services/portfolio_service.py` |
 
 ## Largest Functions
 
 | Rank | Lines | Function | File |
 | ---: | ---: | --- | --- |
-| 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_service.py` |
+| 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
 | 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
@@ -874,7 +874,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 980 script-counted lines,
+1. no Python source file under `src/app` above 979 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
