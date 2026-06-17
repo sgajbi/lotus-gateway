@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio liquidity contract-boundary branch shows 497 Python
-source files under `src/app` and 202 Python test files under `tests`.
+Working-tree verification for the current foundation core-snapshot mapper branch shows 498 Python
+source files under `src/app` and 203 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 951 | `src/app/services/foundation_service.py` |
-| 2 | 930 | `src/app/contracts/performance_workspace.py` |
-| 3 | 909 | `src/app/clients/advise_client.py` |
-| 4 | 868 | `src/app/router_registry.py` |
-| 5 | 861 | `src/app/services/advisor_brief_service.py` |
-| 6 | 854 | `src/app/services/proposal_service.py` |
+| 1 | 930 | `src/app/contracts/performance_workspace.py` |
+| 2 | 909 | `src/app/clients/advise_client.py` |
+| 3 | 868 | `src/app/router_registry.py` |
+| 4 | 861 | `src/app/services/advisor_brief_service.py` |
+| 5 | 854 | `src/app/services/proposal_service.py` |
+| 6 | 842 | `src/app/services/performance_workspace_service.py` |
 | 7 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 8 | 828 | `src/app/contracts/proposals.py` |
-| 9 | 811 | `src/app/services/portfolio_service.py` |
-| 10 | 754 | `src/app/contracts/portfolio.py` |
+| 8 | 812 | `src/app/contracts/proposals.py` |
+| 9 | 812 | `src/app/contracts/advisor_brief.py` |
+| 10 | 811 | `src/app/services/portfolio_service.py` |
 
 ## Largest Functions
 
@@ -311,7 +311,7 @@ source files under `src/app` and 202 Python test files under `tests`.
 | 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
 | 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
 | 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
-| 10 | 46 | `_parse_core_snapshot` | `src/app/services/foundation_service.py` |
+| 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
 
 ## Existing Blocking Gates
 
@@ -874,7 +874,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 951 script-counted lines,
+1. no Python source file under `src/app` above 930 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
