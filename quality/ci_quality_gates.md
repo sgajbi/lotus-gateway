@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 1,062
+2. Current enforced source-file threshold: no Python source file under `src/app` above 1,041
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=1062` and `max_function_lines=49`.
+   `max_source_file_lines=1041` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -312,7 +312,7 @@ Most recent local PR-grade evidence:
     unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,370 combined
     coverage tests, 94.24% total coverage, migration contract smoke, and no known vulnerabilities
     after the governed `PYSEC-2026-161` exception.
-37. Current DPM wave AI handoff boundary branch moves PM memo and operations handoff summary
+37. Merged DPM wave AI handoff boundary branch moves PM memo and operations handoff summary
     workflow-pack orchestration into `dpm_wave_ai_handoff.py`, reducing `dpm_wave_service.py` from
     1,093 to 692 script-counted lines while preserving the public `DpmWaveService` surface.
     Focused validation passed with ruff check, ruff format check, touched-module mypy, 38 DPM wave
@@ -323,6 +323,16 @@ Most recent local PR-grade evidence:
     tests. Full local `make ci` passed with 207 integration tests, 1,371 combined coverage tests,
     94.25% total coverage, migration contract smoke, and no known vulnerabilities after the
     governed `PYSEC-2026-161` exception.
+38. Current Advise workspace client-boundary branch moves advisory-workspace upstream route methods
+    into `advise_workspace_client.py`, reducing `advise_client.py` from 1,062 to 909
+    script-counted lines while preserving the public `AdviseClient` surface. Focused validation
+    passed with ruff check, ruff format check, touched-client mypy, 179 upstream-client/boundary
+    tests, and the refactor threshold gate at `max_source_file_lines=1041`. Full local
+    `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+    workflow action-runtime gate, mypy over 492 source files, Workbench/OpenAPI contract smoke,
+    and 1,165 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,372
+    combined coverage tests, 94.23% total coverage, migration contract smoke, and no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
@@ -342,7 +352,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest clients
-   and services are split; `advise_client.py` is now the largest file at 1,062 script-counted
-   lines and defines the current blocking ceiling.
+   and services are split; `dpm_client.py` is now the largest file at 1,041 script-counted lines
+   and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

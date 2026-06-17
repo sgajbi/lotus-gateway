@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from app.clients.advise_bank_demo_proof_client import AdviseBankDemoProofClientMixin
+from app.clients.advise_workspace_client import AdviseWorkspaceClientMixin
 from app.clients.observed_fanout import request_observed_fanout
 from app.clients.upstream_headers import (
     build_idempotent_upstream_headers,
@@ -13,7 +14,7 @@ from app.clients.upstream_headers import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-class AdviseClient(AdviseBankDemoProofClientMixin):
+class AdviseClient(AdviseWorkspaceClientMixin, AdviseBankDemoProofClientMixin):
     def __init__(
         self,
         base_url: str,
@@ -83,160 +84,6 @@ class AdviseClient(AdviseBankDemoProofClientMixin):
             body=body,
             headers=self._headers(correlation_id, {"Idempotency-Key": idempotency_key}),
             operation="advise.advisory.proposals.artifact",
-        )
-
-    async def create_advisory_workspace(
-        self,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            "/advisory/workspaces",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.create",
-        )
-
-    async def get_advisory_workspace(
-        self,
-        workspace_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/workspaces/{workspace_id}",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.get",
-        )
-
-    async def apply_advisory_workspace_draft_action(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/draft-actions",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.draft-action",
-        )
-
-    async def evaluate_advisory_workspace(
-        self,
-        workspace_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/evaluate",
-            body={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.evaluate",
-        )
-
-    async def save_advisory_workspace(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/save",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.save",
-        )
-
-    async def list_advisory_workspace_saved_versions(
-        self,
-        workspace_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/workspaces/{workspace_id}/saved-versions",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.saved-versions.list",
-        )
-
-    async def get_advisory_workspace_saved_version_replay_evidence(
-        self,
-        workspace_id: str,
-        workspace_version_id: str,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._get(
-            f"/advisory/workspaces/{workspace_id}/saved-versions/"
-            f"{workspace_version_id}/replay-evidence",
-            params={},
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.saved-versions.replay-evidence",
-        )
-
-    async def resume_advisory_workspace(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/resume",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.resume",
-        )
-
-    async def compare_advisory_workspace(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/compare",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.compare",
-        )
-
-    async def request_advisory_workspace_rationale(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/assistant/rationale",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.assistant.rationale",
-        )
-
-    async def review_advisory_workspace_rationale(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/assistant/rationale/review-actions",
-            body=body,
-            headers=self._headers(correlation_id),
-            operation="advise.advisory.workspaces.assistant.rationale.review-actions",
-        )
-
-    async def handoff_advisory_workspace(
-        self,
-        workspace_id: str,
-        body: dict[str, Any],
-        idempotency_key: str | None,
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post(
-            f"/advisory/workspaces/{workspace_id}/handoff",
-            body=body,
-            headers=self._optional_idempotency_headers(correlation_id, idempotency_key),
-            operation="advise.advisory.workspaces.handoff",
         )
 
     async def list_policy_packs(
