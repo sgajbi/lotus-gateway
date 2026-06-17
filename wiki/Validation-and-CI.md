@@ -364,6 +364,14 @@ contract smoke, and 1,164 unit/contract tests; `make ci` passed with 207 integra
 combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current Advise workspace client-boundary branch ratchets the source-file threshold to 1,041
+script-counted lines after moving advisory-workspace upstream route methods into
+`advise_workspace_client.py`. It reduces `advise_client.py` from 1,062 to 909 script-counted lines
+while preserving the public `AdviseClient` surface. Focused validation passed with ruff check,
+ruff format check, touched-client mypy, 179 upstream-client/boundary tests, and the refactor
+threshold gate at `max_source_file_lines=1041`. Full local `make check` and `make ci` remain
+required before PR/merge.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

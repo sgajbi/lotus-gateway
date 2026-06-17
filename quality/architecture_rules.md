@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/advise_client.py` at 1,062 script-counted lines,
-2. `src/app/clients/dpm_client.py` at 1,041 script-counted lines,
-3. `src/app/services/portfolio_service.py` at 980 script-counted lines,
-4. `src/app/contracts/proposals.py` at 979 script-counted lines,
-5. `src/app/contracts/portfolio.py` at 954 script-counted lines.
+1. `src/app/clients/dpm_client.py` at 1,041 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 980 script-counted lines,
+3. `src/app/contracts/proposals.py` at 979 script-counted lines,
+4. `src/app/contracts/portfolio.py` at 954 script-counted lines,
+5. `src/app/services/foundation_service.py` at 951 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -191,10 +191,13 @@ horizon-comparison and attribution-trend orchestration now lives in
 `performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
 public `PerformanceWorkspaceService` surface. RFC-0028 bank-demo proof Advise client routes now
 live in `src/app/clients/advise_bank_demo_proof_client.py`, reducing `advise_client.py` from 1,098
-to 1,062 script-counted lines while preserving the public `AdviseClient` surface. The current
-DPM wave AI handoff slice moves PM memo and operations handoff summary workflow-pack orchestration
-into `src/app/services/dpm_wave_ai_handoff.py`, reducing `dpm_wave_service.py` from 1,093 to 692
-script-counted lines while preserving the public `DpmWaveService` surface. The current
+to 1,062 script-counted lines while preserving the public `AdviseClient` surface. The DPM wave AI
+handoff slice moves PM memo and operations handoff summary workflow-pack orchestration into
+`src/app/services/dpm_wave_ai_handoff.py`, reducing `dpm_wave_service.py` from 1,093 to 692
+script-counted lines while preserving the public `DpmWaveService` surface. The current Advise
+workspace client-boundary slice moves advisory-workspace upstream route methods into
+`src/app/clients/advise_workspace_client.py`, reducing `advise_client.py` from 1,062 to 909
+script-counted lines while preserving the public `AdviseClient` surface. The current
 longest functions are
 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
