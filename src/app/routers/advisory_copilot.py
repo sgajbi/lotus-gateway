@@ -3,14 +3,95 @@ from typing import Any
 from fastapi import APIRouter, Body, Header, Path, Query
 
 from app.contracts.advisory_copilot import AdvisoryCopilotEnvelopeResponse
-from app.routers.correlation import resolve_router_correlation_id
+from app.middleware.correlation import correlation_id_var
 from app.services.advisory_service_provider import advisory_copilot_service
 
 router = APIRouter(prefix="/api/v1/advisory-copilot", tags=["advisory-copilot"])
 
 
-def _correlation_id(x_correlation_id: str | None) -> str:
-    return resolve_router_correlation_id(x_correlation_id)
+def _correlation_id() -> str:
+    return correlation_id_var.get()
+
+
+async def _create_evidence_packet(body: dict[str, Any]) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().create_evidence_packet(
+        body=body,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _create_evidence_packet_from_proposal_version(
+    body: dict[str, Any],
+) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().create_evidence_packet_from_proposal_version(
+        body=body,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _get_evidence_packet(evidence_packet_id: str) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().get_evidence_packet(
+        evidence_packet_id=evidence_packet_id,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _run_action(
+    *,
+    body: dict[str, Any],
+    idempotency_key: str | None,
+) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().run_action(
+        body=body,
+        idempotency_key=idempotency_key,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _get_run(run_id: str) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().get_run(
+        run_id=run_id,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _review_run(
+    *,
+    run_id: str,
+    body: dict[str, Any],
+    idempotency_key: str,
+) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().review_run(
+        run_id=run_id,
+        body=body,
+        idempotency_key=idempotency_key,
+        correlation_id=_correlation_id(),
+    )
+
+
+async def _get_supportability() -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().get_supportability(
+        correlation_id=_correlation_id(),
+    )
+
+
+def _proposal_version_run_params(*, limit: int, cursor: str | None) -> dict[str, Any]:
+    return {"limit": limit, "cursor": cursor}
+
+
+async def _list_proposal_version_runs(
+    *,
+    proposal_id: str,
+    version_id: str,
+    limit: int,
+    cursor: str | None,
+) -> AdvisoryCopilotEnvelopeResponse:
+    return await advisory_copilot_service().list_proposal_version_runs(
+        proposal_id=proposal_id,
+        version_id=version_id,
+        params=_proposal_version_run_params(limit=limit, cursor=cursor),
+        correlation_id=_correlation_id(),
+    )
 
 
 @router.post(
@@ -26,12 +107,8 @@ def _correlation_id(x_correlation_id: str | None) -> str:
 )
 async def create_advisory_copilot_evidence_packet(
     body: dict[str, Any] = Body(...),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().create_evidence_packet(
-        body=body,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _create_evidence_packet(body)
 
 
 @router.post(
@@ -47,12 +124,8 @@ async def create_advisory_copilot_evidence_packet(
 )
 async def create_advisory_copilot_evidence_packet_from_proposal_version(
     body: dict[str, Any] = Body(...),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().create_evidence_packet_from_proposal_version(
-        body=body,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _create_evidence_packet_from_proposal_version(body)
 
 
 @router.get(
@@ -68,12 +141,8 @@ async def get_advisory_copilot_evidence_packet(
     evidence_packet_id: str = Path(
         description="Advisory copilot evidence-packet identifier owned by lotus-advise."
     ),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().get_evidence_packet(
-        evidence_packet_id=evidence_packet_id,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _get_evidence_packet(evidence_packet_id)
 
 
 @router.post(
@@ -89,13 +158,8 @@ async def get_advisory_copilot_evidence_packet(
 async def run_advisory_copilot_action(
     body: dict[str, Any] = Body(...),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().run_action(
-        body=body,
-        idempotency_key=idempotency_key,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _run_action(body=body, idempotency_key=idempotency_key)
 
 
 @router.get(
@@ -109,12 +173,8 @@ async def run_advisory_copilot_action(
 )
 async def get_advisory_copilot_run(
     run_id: str = Path(description="Advisory copilot run identifier owned by lotus-advise."),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().get_run(
-        run_id=run_id,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _get_run(run_id)
 
 
 @router.post(
@@ -131,14 +191,8 @@ async def review_advisory_copilot_run(
     body: dict[str, Any] = Body(...),
     run_id: str = Path(description="Advisory copilot run identifier owned by lotus-advise."),
     idempotency_key: str = Header(alias="Idempotency-Key"),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().review_run(
-        run_id=run_id,
-        body=body,
-        idempotency_key=idempotency_key,
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+    return await _review_run(run_id=run_id, body=body, idempotency_key=idempotency_key)
 
 
 @router.get(
@@ -150,12 +204,8 @@ async def review_advisory_copilot_run(
         "Gateway does not infer demo readiness or client-ready publication."
     ),
 )
-async def get_advisory_copilot_supportability(
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
-) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().get_supportability(
-        correlation_id=_correlation_id(x_correlation_id),
-    )
+async def get_advisory_copilot_supportability() -> AdvisoryCopilotEnvelopeResponse:
+    return await _get_supportability()
 
 
 @router.get(
@@ -172,11 +222,10 @@ async def list_advisory_copilot_proposal_version_runs(
     version_id: str = Path(description="Proposal version identifier owned by lotus-advise."),
     limit: int = Query(default=25, ge=1, le=100),
     cursor: str | None = Query(default=None),
-    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id"),
 ) -> AdvisoryCopilotEnvelopeResponse:
-    return await advisory_copilot_service().list_proposal_version_runs(
+    return await _list_proposal_version_runs(
         proposal_id=proposal_id,
         version_id=version_id,
-        params={"limit": limit, "cursor": cursor},
-        correlation_id=_correlation_id(x_correlation_id),
+        limit=limit,
+        cursor=cursor,
     )
