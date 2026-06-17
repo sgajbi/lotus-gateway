@@ -345,7 +345,11 @@ script-counted lines while preserving the public `AdviseClient` surface. Focused
 with ruff check, ruff format check, touched-client mypy, 14 Advise client boundary/factory,
 bank-demo proof router, Advise route-coverage, and refactor-threshold tests, and the refactor
 threshold gate at `max_source_file_lines=1093`. Full local `make check` and `make ci` evidence
-remains pending for this branch.
+is green: `make check` passed with ruff, format check, monetary-float guard, refactor threshold
+gate, workflow action-runtime gate, mypy over 490 source files, Workbench/OpenAPI contract smoke,
+and 1,163 unit/contract tests; `make ci` passed with 207 integration tests, 1,370 combined
+coverage tests, 94.24% total coverage, migration contract smoke, and no known vulnerabilities
+after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

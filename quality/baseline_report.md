@@ -841,7 +841,11 @@ Most recent local evidence:
      gate at `max_source_file_lines=1093`. The slice moves RFC-0028 bank-demo proof upstream route
      methods into `advise_bank_demo_proof_client.py`, reducing `advise_client.py` from 1,098 to
      1,062 script-counted lines while preserving the public `AdviseClient` surface. Full local
-     `make check` and `make ci` evidence remains pending for this branch.
+     `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+     workflow action-runtime gate, mypy over 490 source files, Workbench/OpenAPI contract smoke,
+     and 1,163 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,370
+     combined coverage tests, 94.24% total coverage, migration contract smoke, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

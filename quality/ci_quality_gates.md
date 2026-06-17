@@ -306,8 +306,12 @@ Most recent local PR-grade evidence:
     to 1,062 script-counted lines while preserving the public `AdviseClient` surface. Focused
     validation passed with ruff check, ruff format check, touched-client mypy, 14 Advise client
     boundary/factory, bank-demo proof router, Advise route-coverage, and refactor-threshold tests,
-    and the refactor threshold gate at `max_source_file_lines=1093`. Full local `make check` and
-    `make ci` evidence remains pending for this branch.
+    and the refactor threshold gate at `max_source_file_lines=1093`. Full local `make check`
+    passed with ruff, format check, monetary-float guard, refactor threshold gate, workflow
+    action-runtime gate, mypy over 490 source files, Workbench/OpenAPI contract smoke, and 1,163
+    unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,370 combined
+    coverage tests, 94.24% total coverage, migration contract smoke, and no known vulnerabilities
+    after the governed `PYSEC-2026-161` exception.
 36. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff
