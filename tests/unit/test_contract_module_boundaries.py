@@ -1,0 +1,31 @@
+import ast
+from pathlib import Path
+
+_CONTRACT_ROOT = Path(__file__).parents[2] / "src" / "app" / "contracts"
+
+
+def _class_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
+
+
+def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
+    proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
+    memo_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_memos.py")
+
+    expected_memo_contracts = {
+        "ProposalMemoAiCommentaryEnvelopeResponse",
+        "ProposalMemoAiCommentaryRequest",
+        "ProposalMemoCreateRequest",
+        "ProposalMemoEnvelopeResponse",
+        "ProposalMemoLineageEnvelopeResponse",
+        "ProposalMemoProjectionEnvelopeResponse",
+        "ProposalMemoReplayEvidenceEnvelopeResponse",
+        "ProposalMemoReportPackageEnvelopeResponse",
+        "ProposalMemoReportPackageRequest",
+        "ProposalMemoReviewEnvelopeResponse",
+        "ProposalMemoReviewRequest",
+    }
+
+    assert expected_memo_contracts <= memo_contract_classes
+    assert proposal_facade_classes.isdisjoint(expected_memo_contracts)
