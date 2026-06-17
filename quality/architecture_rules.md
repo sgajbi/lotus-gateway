@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 1,237 script-counted lines,
-2. `src/app/services/dpm_command_center_service.py` at 1,217 lines,
-3. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
-4. `src/app/clients/advise_client.py` at 1,098 lines,
-5. `src/app/services/dpm_wave_service.py` at 1,093 lines.
+1. `src/app/services/dpm_command_center_service.py` at 1,217 script-counted lines,
+2. `src/app/services/performance_workspace_service.py` at 1,206 script-counted lines,
+3. `src/app/clients/advise_client.py` at 1,098 script-counted lines,
+4. `src/app/services/dpm_wave_service.py` at 1,093 script-counted lines,
+5. `src/app/clients/dpm_client.py` at 1,041 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -178,7 +178,11 @@ methods now live in `src/app/clients/dpm_pm_operating_quality_client.py`, reduci
 remaining source-file hotspot. Construction-alternative and proof-pack client route methods now
 live in `src/app/clients/dpm_construction_client.py` and
 `src/app/clients/dpm_proof_pack_client.py`, reducing `dpm_client.py` to 1,041 physical lines while
-preserving `DpmClient` as the public upstream client surface. The current longest functions are
+preserving `DpmClient` as the public upstream client surface. Cached Lotus Core, performance, and
+DPM upstream result acquisition for portfolio surfaces now lives in
+`src/app/services/portfolio_upstream_access.py`, reducing `portfolio_service.py` from 1,237 to 980
+script-counted lines while preserving cache keys, optional-client behavior, and source fan-out
+call shapes. The current longest functions are
 49-line helpers:
 `get_transaction_ledger` in `portfolio_service.py` and `get_portfolio_transactions` in
 `lotus_core_query_client.py`.
