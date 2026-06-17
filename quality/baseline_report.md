@@ -852,7 +852,11 @@ Most recent local evidence:
      fails. The slice moves DPM wave PM memo and operations handoff summary workflow-pack
      orchestration into `dpm_wave_ai_handoff.py`, reducing `dpm_wave_service.py` from 1,093 to 692
      script-counted lines while preserving the public `DpmWaveService` surface. Full local
-     `make check` and `make ci` evidence remains pending for this branch.
+     `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+     workflow action-runtime gate, mypy over 491 source files, Workbench/OpenAPI contract smoke,
+     and 1,164 unit/contract tests. Full local `make ci` passed with 207 integration tests, 1,371
+     combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 

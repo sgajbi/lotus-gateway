@@ -358,7 +358,11 @@ script-counted lines while preserving the public `DpmWaveService` surface. Focus
 passed with ruff check, ruff format check, touched-module mypy, 38 DPM wave
 service/boundary/contract/router tests, and trial refactor threshold gates proving
 `max_source_file_lines=1062` passes while `1061` fails. Full local `make check` and `make ci`
-evidence remains pending for this branch.
+evidence is green: `make check` passed with ruff, format check, monetary-float guard, refactor
+threshold gate, workflow action-runtime gate, mypy over 491 source files, Workbench/OpenAPI
+contract smoke, and 1,164 unit/contract tests; `make ci` passed with 207 integration tests, 1,371
+combined coverage tests, 94.25% total coverage, migration contract smoke, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
