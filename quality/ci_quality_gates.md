@@ -284,7 +284,12 @@ Most recent local PR-grade evidence:
     public `DpmCommandCenterService` surface, manage-owned evidence boundaries, and `lotus-ai`
     workflow-pack execution behavior. Focused validation passed with ruff check, touched-module
     mypy, 48 DPM command-center service/contract tests, and trial refactor threshold gates proving
-    `max_source_file_lines=1206` passes while `1205` fails.
+    `max_source_file_lines=1206` passes while `1205` fails. Local `make check` passed with ruff,
+    format check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy
+    over 488 source files, Workbench/OpenAPI contract smoke, and 1,161 unit/contract tests. Local
+    `make ci` passed with 207 integration tests, 1,368 combined coverage tests, 94.27% total
+    coverage, migration contract smoke, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 35. Current concrete-route registration fix expands registered gateway routers into concrete
     `APIRoute` entries so route enumeration, contract tests, and Prometheus route-name middleware
     do not see FastAPI lazy included-router placeholders. Focused validation passed with ruff

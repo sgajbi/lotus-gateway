@@ -412,11 +412,11 @@ lines. The blocking source-file threshold is ratcheted from 1,217 to 1,206 lines
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current portfolio upstream-access extraction branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current DPM PM operating-quality service-boundary branch focused validation passed with ruff, touched-module mypy, 48 DPM command-center service/contract tests, and the refactor threshold gate at `max_source_file_lines=1206`; full local `make check` remains pending for this branch |
-| Integration coverage | Pending | Full local `make ci` remains pending for this branch |
-| Total coverage | Pending | Full local `make ci` coverage evidence remains pending for this branch |
-| Security audit | Governed | Current DPM PM operating-quality service-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; full local `make ci` security audit evidence remains pending for this branch |
+| Branch hygiene | Healthy | Current DPM PM operating-quality service-boundary branch was created from clean `main`; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current DPM PM operating-quality service-boundary branch focused validation passed with ruff, touched-module mypy, 48 DPM command-center service/contract tests, and the refactor threshold gate at `max_source_file_lines=1206`; local `make check` passed with 1,161 unit/contract tests |
+| Integration coverage | Healthy | Current local `make ci` passed with 207 integration tests |
+| Total coverage | Healthy | Current local `make ci` passed with 1,368 combined coverage tests and 94.27% total coverage |
+| Security audit | Governed | Current DPM PM operating-quality service-boundary branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; local `make ci` found no known vulnerabilities after the governed `PYSEC-2026-161` exception |
 | Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 980 lines, `performance_workspace_service.py` to 1,206 lines, `advisor_brief_service.py` from 1,454 to 861 script-counted lines, and `dpm_command_center_service.py` to 695 lines; `performance_workspace_service.py` is now the largest current source-file hotspot at 1,206 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |

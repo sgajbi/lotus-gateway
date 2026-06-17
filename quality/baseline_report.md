@@ -817,8 +817,12 @@ Most recent local evidence:
      summary-invocation, and AI summary workflow-pack service orchestration into
      `dpm_pm_operating_quality_service.py`, reducing `dpm_command_center_service.py` from 1,217 to
      695 script-counted lines while preserving the public `DpmCommandCenterService` surface,
-     manage-owned evidence boundaries, and `lotus-ai` workflow-pack execution behavior. Full local
-     `make check` and `make ci` evidence remains pending for this branch.
+     manage-owned evidence boundaries, and `lotus-ai` workflow-pack execution behavior. Local
+     `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+     workflow action-runtime gate, mypy over 488 source files, Workbench/OpenAPI contract smoke,
+     and 1,161 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,368
+     combined coverage tests, 94.27% total coverage, migration contract smoke, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
