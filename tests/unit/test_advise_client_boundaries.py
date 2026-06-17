@@ -21,3 +21,26 @@ def test_bank_demo_proof_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= bank_demo_methods
     assert not extracted_methods & advise_client_methods
+
+
+def test_advisory_workspace_routes_live_in_dedicated_client_mixin() -> None:
+    advise_client_methods = _async_function_names(_CLIENT_ROOT / "advise_client.py")
+    workspace_methods = _async_function_names(_CLIENT_ROOT / "advise_workspace_client.py")
+
+    extracted_methods = {
+        "apply_advisory_workspace_draft_action",
+        "compare_advisory_workspace",
+        "create_advisory_workspace",
+        "evaluate_advisory_workspace",
+        "get_advisory_workspace",
+        "get_advisory_workspace_saved_version_replay_evidence",
+        "handoff_advisory_workspace",
+        "list_advisory_workspace_saved_versions",
+        "request_advisory_workspace_rationale",
+        "resume_advisory_workspace",
+        "review_advisory_workspace_rationale",
+        "save_advisory_workspace",
+    }
+
+    assert extracted_methods <= workspace_methods
+    assert not extracted_methods & advise_client_methods
