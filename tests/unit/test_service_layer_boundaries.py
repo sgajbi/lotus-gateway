@@ -330,6 +330,32 @@ def test_performance_workspace_service_delegates_request_context_policy() -> Non
     assert local_context_policy_helpers == []
 
 
+def test_performance_workspace_service_delegates_trend_orchestration() -> None:
+    path = _SERVICE_ROOT / "performance_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_trend_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "get_performance_attribution_trend",
+            "get_performance_horizon_comparison",
+            "_build_attribution_trend_request_context",
+            "_build_attribution_trend_response",
+            "_build_attribution_trend_rows",
+            "_build_attribution_trend_window_pairs",
+            "_build_horizon_comparison_request_context",
+            "_build_horizon_comparison_response",
+            "_fetch_attribution_trend_results",
+            "_fetch_horizon_comparison_dependencies",
+            "_parse_horizon_comparison_rows",
+        }
+    )
+
+    assert local_trend_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

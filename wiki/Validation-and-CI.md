@@ -325,6 +325,19 @@ contract smoke, and 1,161 unit/contract tests. Local `make ci` passed with 207 i
 1,368 combined coverage tests, 94.27% total coverage, migration contract smoke, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current performance trend service-boundary branch ratchets the source-file threshold to 1,098
+script-counted lines after moving performance horizon-comparison and attribution-trend service
+orchestration into `performance_workspace_trend_service.py`. It reduces
+`performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
+public `PerformanceWorkspaceService` surface. Focused validation passed with ruff check,
+touched-module mypy, 67 performance workspace trend/horizon/attribution/context/control tests, and
+trial refactor threshold gates proving `max_source_file_lines=1098` passes while `1097` fails.
+Local `make check` passed with ruff, format check, monetary-float guard, refactor threshold gate,
+workflow action-runtime gate, mypy over 489 source files, Workbench/OpenAPI contract smoke, and
+1,162 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,369 combined
+coverage tests, 94.26% total coverage, migration contract smoke, and no known vulnerabilities after
+the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

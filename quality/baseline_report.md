@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current DPM PM operating-quality service-boundary branch shows 488
+Working-tree verification for the current performance trend service-boundary branch shows 489
 Python source files under `src/app` and 199 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 1,206 | `src/app/services/performance_workspace_service.py` |
-| 2 | 1,098 | `src/app/clients/advise_client.py` |
-| 3 | 1,093 | `src/app/services/dpm_wave_service.py` |
-| 4 | 1,041 | `src/app/clients/dpm_client.py` |
-| 5 | 980 | `src/app/services/portfolio_service.py` |
-| 6 | 979 | `src/app/contracts/proposals.py` |
-| 7 | 954 | `src/app/contracts/portfolio.py` |
-| 8 | 951 | `src/app/services/foundation_service.py` |
-| 9 | 930 | `src/app/contracts/performance_workspace.py` |
-| 10 | 868 | `src/app/router_registry.py` |
+| 1 | 1,098 | `src/app/clients/advise_client.py` |
+| 2 | 1,093 | `src/app/services/dpm_wave_service.py` |
+| 3 | 1,041 | `src/app/clients/dpm_client.py` |
+| 4 | 980 | `src/app/services/portfolio_service.py` |
+| 5 | 979 | `src/app/contracts/proposals.py` |
+| 6 | 954 | `src/app/contracts/portfolio.py` |
+| 7 | 951 | `src/app/services/foundation_service.py` |
+| 8 | 930 | `src/app/contracts/performance_workspace.py` |
+| 9 | 868 | `src/app/router_registry.py` |
+| 10 | 861 | `src/app/services/advisor_brief_service.py` |
 
 ## Largest Functions
 
@@ -307,7 +307,7 @@ Python source files under `src/app` and 199 Python test files under `tests`.
 | 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
 | 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
-| 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_service.py` |
+| 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
 | 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
 | 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
 | 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
@@ -533,7 +533,7 @@ Most recent local evidence:
 91. Merged quality-baseline enforcement branch promoted the remediated file/function-size
     baseline into `make lint` through `scripts/check_refactor_quality_thresholds.py`.
 92. `python scripts/check_refactor_quality_thresholds.py` now passes with
-    `max_source_file_lines=1206` and `max_function_lines=49` after the latest threshold ratchet.
+    `max_source_file_lines=1098` and `max_function_lines=49` after the latest threshold ratchet.
 93. Merged quality-baseline enforcement branch: `make check` passed with ruff, format check,
     monetary-float guard, refactor threshold gate, mypy over 471 source files, Workbench/OpenAPI
     contract smoke, and 1,066 unit/contract tests.
@@ -823,6 +823,18 @@ Most recent local evidence:
      and 1,161 unit/contract tests. Local `make ci` passed with 207 integration tests, 1,368
      combined coverage tests, 94.27% total coverage, migration contract smoke, and no known
      vulnerabilities after the governed `PYSEC-2026-161` exception.
+129. Current performance trend service-boundary branch focused validation passed with ruff check,
+     touched-module mypy, 67 performance workspace trend/horizon/attribution/context/control tests,
+     and trial refactor threshold gates proving `max_source_file_lines=1098` passes while `1097`
+     fails. The slice moves performance horizon-comparison and attribution-trend service
+     orchestration into `performance_workspace_trend_service.py`, reducing
+     `performance_workspace_service.py` from 1,206 to 842 script-counted lines while preserving the
+     public `PerformanceWorkspaceService` surface. Full local `make check` passed with ruff, format
+     check, monetary-float guard, refactor threshold gate, workflow action-runtime gate, mypy over
+     489 source files, Workbench/OpenAPI contract smoke, and 1,162 unit/contract tests. Full local
+     `make ci` passed with 207 integration tests, 1,369 combined coverage tests, 94.26% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -840,7 +852,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 1,206 script-counted lines,
+1. no Python source file under `src/app` above 1,098 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
