@@ -1,12 +1,18 @@
 from typing import Any
 
-from fastapi import APIRouter, Body, Header, Path, Query
+from fastapi import APIRouter, Body, Header, Path, Query, status
 
 from app.contracts.advisory_copilot import AdvisoryCopilotEnvelopeResponse
 from app.middleware.correlation import correlation_id_var
 from app.services.advisory_service_provider import advisory_copilot_service
 
 router = APIRouter(prefix="/api/v1/advisory-copilot", tags=["advisory-copilot"])
+
+ADVISORY_COPILOT_SUPPORTABILITY_RESPONSES: dict[int | str, dict[str, str]] = {
+    status.HTTP_502_BAD_GATEWAY: {
+        "description": "lotus-advise advisory-copilot supportability is unavailable or invalid."
+    },
+}
 
 
 def _correlation_id() -> str:
@@ -203,6 +209,7 @@ async def review_advisory_copilot_run(
         "Returns Advise-owned advisory copilot supportability and unsupported claim boundaries. "
         "Gateway does not infer demo readiness or client-ready publication."
     ),
+    responses=ADVISORY_COPILOT_SUPPORTABILITY_RESPONSES,
 )
 async def get_advisory_copilot_supportability() -> AdvisoryCopilotEnvelopeResponse:
     return await _get_supportability()
