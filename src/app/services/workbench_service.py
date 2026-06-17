@@ -188,6 +188,8 @@ class WorkbenchService:
         performance_end_date = payload.get("performance_end_date")
         if not isinstance(performance_end_date, str) or not performance_end_date.strip():
             return as_of_date
+        if portfolio_id == settings.workbench_canonical_portfolio_id:
+            return min(performance_end_date, settings.workbench_canonical_performance_end_date)
         return performance_end_date
 
     async def get_portfolio_360(

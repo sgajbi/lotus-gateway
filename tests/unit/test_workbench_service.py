@@ -10,11 +10,13 @@ class _StubLotusCoreQueryClient:
         portfolio_payload: dict,
         snapshot_status_code: int,
         snapshot_payload: dict,
+        reference_performance_end_date: str = "2026-02-23",
     ):
         self.portfolio_status_code = portfolio_status_code
         self.portfolio_payload = portfolio_payload
         self.snapshot_status_code = snapshot_status_code
         self.snapshot_payload = snapshot_payload
+        self.reference_performance_end_date = reference_performance_end_date
         self.reference_calls = 0
         self.snapshot_calls: list[dict[str, object]] = []
 
@@ -48,7 +50,7 @@ class _StubLotusCoreQueryClient:
         correlation_id: str,
     ):
         self.reference_calls += 1
-        return 200, {"performance_end_date": "2026-02-23"}
+        return 200, {"performance_end_date": self.reference_performance_end_date}
 
     async def get_projected_positions(self, session_id: str, correlation_id: str):
         return 200, {
@@ -229,6 +231,52 @@ class _StubDpmClient:
         correlation_id: str,
     ):
         return 200, {"status": "COMPLETED", "gate_decision": {"status": "PASS"}}
+
+
+@pytest.mark.asyncio
+async def test_performance_snapshot_end_date_clamps_canonical_portfolio_to_supported_dataset():
+    service = WorkbenchService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            200,
+            {},
+            200,
+            {},
+            reference_performance_end_date="2026-06-17",
+        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+    )
+
+    report_end_date = await service._resolve_performance_snapshot_end_date(
+        portfolio_id="PB_SG_GLOBAL_BAL_001",
+        as_of_date="2026-06-17",
+        correlation_id="corr-1",
+    )
+
+    assert report_end_date == "2026-04-10"
+
+
+@pytest.mark.asyncio
+async def test_performance_snapshot_end_date_keeps_non_canonical_reference_date():
+    service = WorkbenchService(
+        lotus_core_query_client=_StubLotusCoreQueryClient(
+            200,
+            {},
+            200,
+            {},
+            reference_performance_end_date="2026-06-17",
+        ),
+        analytics_client=_StubLotusAnalyticsClient(200, {}),
+        dpm_client=_StubDpmClient(200, {}),
+    )
+
+    report_end_date = await service._resolve_performance_snapshot_end_date(
+        portfolio_id="PF_1001",
+        as_of_date="2026-06-17",
+        correlation_id="corr-1",
+    )
+
+    assert report_end_date == "2026-06-17"
 
 
 @pytest.mark.asyncio
