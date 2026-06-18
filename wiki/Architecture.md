@@ -10,12 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/advisory_client_protocols.py`
-  as the largest residual source file at 692 script-counted lines after DPM command-center
-  exception-summary orchestration moved into
-  `src/app/services/dpm_command_center_exception_summary.py`; the public
-  `DpmCommandCenterService` method surface remains preserved, and the repository
-  longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/clients/lotus_analytics_client.py` and
+  `src/app/services/portfolio_service.py` as the largest residual source files at 689
+  script-counted lines after Advisor Brief AI and Advise client protocols moved into
+  `src/app/services/advisor_brief_client_protocols.py`; Advisor Brief service, supportability,
+  and workflow-pack helpers retain typed protocol boundaries, and the repository longest-function
+  baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 
@@ -95,3 +95,6 @@
     context loading, transaction page loading, portfolio book response assembly, and shared
     analytics async polling now sit behind focused helpers so public route/service methods stay
     orchestration-oriented.
+15. Advisor Brief AI and Advise client protocol surfaces are isolated in
+    `src/app/services/advisor_brief_client_protocols.py`; the broader advisory protocol module no
+    longer owns Advisor Brief-specific upstream surfaces.

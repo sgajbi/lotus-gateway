@@ -681,6 +681,24 @@ and 1,212 unit/contract tests; `make ci` covered migration contract smoke, 209 i
 1,421 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
+The current Advisor Brief client-protocol boundary branch moves Advisor Brief AI and Advise client
+protocol surfaces into `src/app/services/advisor_brief_client_protocols.py` while preserving
+service, supportability, and workflow-pack protocol contracts. It reduces
+`advisory_client_protocols.py` from 692 to 630 script-counted lines, creates a focused
+63-line Advisor Brief protocol module, moves the largest residual source-file hotspot to
+`src/app/clients/lotus_analytics_client.py` and `src/app/services/portfolio_service.py` at 689
+script-counted lines, and ratchets the source-file threshold to 689 script-counted lines. Focused
+validation passed with ruff check, ruff format check, mypy over the touched advisory protocol and
+Advisor Brief service modules, 51 focused Advisor Brief service/supportability/workflow-pack/
+boundary tests, and refactor-threshold trials proving `max_source_file_lines=689` passes while
+`688` fails on `src/app/clients/lotus_analytics_client.py` and
+`src/app/services/portfolio_service.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 744 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 528 source files, OpenAPI smoke,
+and 1,213 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,422 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

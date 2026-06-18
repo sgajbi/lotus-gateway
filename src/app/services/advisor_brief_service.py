@@ -16,6 +16,10 @@ from app.contracts.advisor_brief import (
 )
 from app.contracts.performance_workspace import PerformanceWorkspaceResponse
 from app.middleware.server_timing import server_timing_span
+from app.services.advisor_brief_client_protocols import (
+    AdvisorBriefAdviseClient,
+    AdvisorBriefAiClient,
+)
 from app.services.advisor_brief_narrative import (
     AdvisorBriefNarrativeState,
     build_advisor_brief_ai_task_request,
@@ -38,7 +42,6 @@ from app.services.advisor_brief_workflow_pack import (
     load_advisor_brief_workflow_pack_task_flow,
     resolve_advisor_brief_workflow_pack_run_id,
 )
-from app.services.advisory_client_protocols import AdvisorBriefAdviseClient, AdvisorBriefAiClient
 from app.services.async_ttl_cache import AsyncTtlCache
 
 

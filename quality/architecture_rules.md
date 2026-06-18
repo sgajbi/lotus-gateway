@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/advisory_client_protocols.py` at 692 script-counted lines,
+1. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines,
 2. `src/app/services/portfolio_service.py` at 689 script-counted lines,
-3. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines,
-4. `src/app/services/workbench_service.py` at 685 script-counted lines,
-5. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines.
+3. `src/app/services/workbench_service.py` at 685 script-counted lines,
+4. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines,
+5. `src/app/contracts/reporting_query.py` at 664 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -131,6 +131,13 @@ to 521 script-counted lines. Shared product-safe Manage command-center error rai
 `src/app/services/dpm_command_center_errors.py`. The blocking source-file threshold is ratcheted
 from 695 to 692 script-counted lines, making `src/app/services/advisory_client_protocols.py` the
 largest residual source-file hotspot.
+Advisor Brief AI and Advise client protocol surfaces now live in
+`src/app/services/advisor_brief_client_protocols.py`, preserving the typed protocol contracts used
+by the Advisor Brief service, supportability, and workflow-pack helpers while reducing
+`advisory_client_protocols.py` from 692 to 630 script-counted lines. The blocking source-file
+threshold is ratcheted from 692 to 689 script-counted lines, making
+`src/app/clients/lotus_analytics_client.py` and `src/app/services/portfolio_service.py` the
+largest residual source-file hotspots.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
