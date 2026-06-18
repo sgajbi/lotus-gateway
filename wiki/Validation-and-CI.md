@@ -456,7 +456,9 @@ ruff check, ruff format check, touched-module mypy, 10 router-registry/refactor-
 and the refactor threshold gate at `max_source_file_lines=861`. Full local `make check` passed
 with ruff, format check over 716 files, monetary-float guard, refactor-threshold gate,
 workflow action-runtime gate, mypy over 506 source files, Workbench/OpenAPI contract smoke, and
-1,180 unit/contract tests.
+1,180 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,389 combined
+coverage tests, 94.17% total coverage, migration contract smoke, and no known vulnerabilities
+after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

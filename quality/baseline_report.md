@@ -897,7 +897,9 @@ Most recent local evidence:
      script-counted lines while preserving concrete route registration. Full local `make check`
      passed with ruff, format check over 716 files, monetary-float guard, refactor-threshold gate,
      workflow action-runtime gate, mypy over 506 source files, OpenAPI smoke, and 1,180
-     unit/contract tests.
+     unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,389 combined
+     coverage tests, 94.17% total coverage, migration contract smoke, and no known vulnerabilities
+     after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
