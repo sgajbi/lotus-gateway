@@ -164,13 +164,19 @@ Most recent local PR-grade evidence:
     was generated at `2026-06-18T14:46:17.019Z` with 94 API checks, 29 screenshots, 25 ready
     panel classifications, 2 calculation checks, 28 supportability checks, 10 workflow-pack
     checks, and 12 advisory journey checks.
-23. Current proposal service-boundary branch focused validation passed with 38 proposal-service and
-    service-boundary tests, and refactor-threshold trials proving `max_source_file_lines=646`
-    passes while `645` fails on `src/app/contracts/advisor_brief.py`. The slice preserves the
-    public `ProposalService` lifecycle transition method surface while moving submit/approval
-    orchestration into `src/app/services/proposal_transition_service.py`, reducing
+23. Current proposal service-boundary branch focused validation passed with 42 proposal-service,
+    service-boundary, and threshold tests, and refactor-threshold trials proving
+    `max_source_file_lines=646` passes while `645` fails on
+    `src/app/contracts/advisor_brief.py`. The slice preserves the public `ProposalService`
+    lifecycle transition method surface while moving submit/approval orchestration into
+    `src/app/services/proposal_transition_service.py`, reducing
     `src/app/services/proposal_service.py` from 658 to 520 script-counted lines. Full local
-    `make check`, `make ci`, and GitHub gate evidence remain pending for this branch.
+    `make check` passed with ruff, format check over 765 files, monetary-float guard,
+    refactor-threshold gate, workflow action-runtime gate, mypy over 545 source files, OpenAPI
+    smoke, and 1,226 unit/contract tests. Full local `make ci` passed with migration contract
+    smoke, 209 integration tests, 1,435 combined coverage tests, 94.32% total coverage, and no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub gate evidence
+    remains pending for this branch.
 24. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.

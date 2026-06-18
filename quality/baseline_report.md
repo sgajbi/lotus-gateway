@@ -321,9 +321,12 @@ migration contract smoke, 209 integration tests, 1,434 combined coverage tests, 
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 Current proposal service-boundary working-tree verification moves proposal submit, approval, and
 client-consent orchestration into `proposal_transition_service.py`, reducing
-`proposal_service.py` from 658 to 520 script-counted lines. Focused validation passed with 38
-proposal-service and service-boundary tests, and refactor-threshold trials prove
-`max_source_file_lines=646` passes while `645` fails on `src/app/contracts/advisor_brief.py`.
+`proposal_service.py` from 658 to 520 script-counted lines. Focused validation passed with 42
+proposal-service, service-boundary, and threshold tests, and refactor-threshold trials prove
+`max_source_file_lines=646` passes while `645` fails on `src/app/contracts/advisor_brief.py`. Full
+local `make check` passed with 1,226 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,435 combined coverage tests, 94.32% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Largest Source Files
 
