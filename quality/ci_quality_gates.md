@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 664
+2. Current enforced source-file threshold: no Python source file under `src/app` above 662
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=664` and `max_function_lines=49`.
+   `max_source_file_lines=662` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current DPM command-center exception-summary boundary branch focused validation passed with
@@ -135,7 +135,17 @@ Most recent local PR-grade evidence:
     with 94 API checks, 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
     supportability checks, 10 workflow-pack checks, 12 advisory journey checks, 0 non-demo
     screenshots, and 0 non-ready panels.
-21. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
+21. Current reporting query contract-boundary branch focused validation passed with 11 reporting
+    query/threshold tests and refactor-threshold trials proving `max_source_file_lines=662`
+    passes while `661` fails on `src/app/contracts/reporting_batches.py`. Full local
+    `make check` passed with ruff, format check over 755 files, monetary-float guard,
+    refactor-threshold gate, workflow action-runtime gate, mypy over 536 source files, Workbench
+    contract smoke, and 1,220 unit/contract tests. Full local `make ci` passed with migration
+    contract smoke, 209 integration tests, 1,429 combined coverage tests, 94.32% total coverage,
+    and no known vulnerabilities after the governed `PYSEC-2026-161` exception. The slice
+    preserves the existing `app.contracts.reporting_query` import surface while splitting
+    status-event, job-search, snapshot-lineage, and example contract modules.
+22. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.
 22. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
@@ -605,7 +615,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/reporting_query.py` is now the
-   largest file at 664 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/reporting_batches.py` is now the
+   largest file at 662 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

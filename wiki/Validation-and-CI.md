@@ -763,6 +763,21 @@ records 94 API checks, 29 screenshots, 25 ready panel classifications, 2 calcula
 supportability checks, 10 workflow-pack checks, 12 advisory journey checks, 0 non-demo screenshots,
 and 0 non-ready panels.
 
+The reporting query contract-boundary branch splits report job status, job-search,
+snapshot-lineage, and example contracts behind the existing
+`src/app/contracts/reporting_query.py` compatibility facade. It reduces
+`src/app/contracts/reporting_query.py` from 664 to 41 script-counted lines, moves the largest
+residual source-file hotspot to `src/app/contracts/reporting_batches.py` at 662 script-counted
+lines, and ratchets the source-file threshold to 662 script-counted lines. Focused validation
+passed with 11 reporting query/threshold tests and refactor-threshold trials proving
+`max_source_file_lines=662` passes while `661` fails on
+`src/app/contracts/reporting_batches.py`. Full local `make check` passed with ruff, format check
+over 755 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 536 source files, Workbench contract smoke, and 1,220 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,429 combined coverage
+tests, 94.32% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception. GitHub checks and post-merge wiki publication remain pending for this branch.
+
 The same branch was validated against the live canonical front-office stack after rebuilding the
 `lotus-gateway` container from the branch. `Start-LotusFrontOfficeCanonical.ps1 -BuildImages
 -RunValidation` passed for `PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing
