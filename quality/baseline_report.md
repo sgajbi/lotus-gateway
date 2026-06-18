@@ -314,24 +314,24 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current workbench enrichment boundary branch shows 1,759 counted
-files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`, 530 Python source files under
-`src/app`, and 213 Python test files under `tests`.
+Working-tree verification for the current performance horizon row-boundary branch shows 1,765
+counted files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`, 532 Python source
+files under `src/app`, and 214 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 680 | `src/app/services/portfolio_service.py` |
-| 2 | 667 | `src/app/services/performance_workspace_horizon.py` |
-| 3 | 664 | `src/app/contracts/reporting_query.py` |
-| 4 | 662 | `src/app/contracts/reporting_batches.py` |
-| 5 | 658 | `src/app/services/proposal_service.py` |
-| 6 | 651 | `src/app/contracts/performance_workspace.py` |
-| 7 | 646 | `src/app/contracts/advisor_brief.py` |
-| 8 | 639 | `src/app/services/performance_workspace_service.py` |
-| 9 | 632 | `src/app/router_registry.py` |
-| 10 | 632 | `src/app/services/risk_workspace_service.py` |
+| 1 | 664 | `src/app/contracts/reporting_query.py` |
+| 2 | 662 | `src/app/contracts/reporting_batches.py` |
+| 3 | 658 | `src/app/services/proposal_service.py` |
+| 4 | 651 | `src/app/contracts/performance_workspace.py` |
+| 5 | 646 | `src/app/contracts/advisor_brief.py` |
+| 6 | 639 | `src/app/services/performance_workspace_service.py` |
+| 7 | 632 | `src/app/router_registry.py` |
+| 8 | 632 | `src/app/services/risk_workspace_service.py` |
+| 9 | 630 | `src/app/services/advisory_client_protocols.py` |
+| 10 | 628 | `src/app/clients/dpm_wave_client.py` |
 
 ## Largest Functions
 
@@ -343,7 +343,7 @@ files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`, 530 Python
 | 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
 | 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
-| 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon.py` |
+| 7 | 46 | `build_horizon_row_return_fields` | `src/app/services/performance_workspace_horizon_rows.py` |
 | 8 | 46 | `_unpack_rebalance_supportability_summary` | `src/app/services/workbench_rebalance_snapshot.py` |
 | 9 | 46 | `_performance_payload_from_result` | `src/app/services/workbench_performance_snapshot.py` |
 | 10 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
@@ -1052,7 +1052,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 667 script-counted lines,
+1. no Python source file under `src/app` above 664 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

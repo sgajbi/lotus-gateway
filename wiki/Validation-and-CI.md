@@ -739,6 +739,22 @@ tests. Full local `make ci` passed with migration contract smoke, 209 integratio
 combined coverage tests, 94.31% total coverage, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 
+The current performance horizon row-boundary branch moves horizon comparison row assembly from
+`src/app/services/performance_workspace_horizon.py` into
+`src/app/services/performance_workspace_horizon_rows.py`. It preserves horizon comparison
+semantics while reducing `src/app/services/performance_workspace_horizon.py` from 667 to 441
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/contracts/reporting_query.py` at 664 script-counted lines, and ratchets the source-file
+threshold to 664 script-counted lines. Focused validation passed with ruff check, ruff format,
+mypy over the touched performance horizon modules, 32 focused horizon and service-boundary unit
+tests, and refactor-threshold trials proving `max_source_file_lines=664` passes while `663` fails
+on `src/app/contracts/reporting_query.py`. Full local `make check` passed with ruff, format check
+over 751 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 532 source files, Workbench contract smoke, and 1,220 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,429 combined coverage
+tests, 94.32% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
+
 The same branch was validated against the live canonical front-office stack after rebuilding the
 `lotus-gateway` container from the branch. `Start-LotusFrontOfficeCanonical.ps1 -BuildImages
 -RunValidation` passed for `PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing
