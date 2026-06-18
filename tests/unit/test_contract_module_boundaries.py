@@ -123,6 +123,34 @@ def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() ->
     assert advisor_brief_facade_classes.isdisjoint(expected_workflow_contracts)
 
 
+def test_advisor_brief_item_contracts_live_outside_advisor_brief_facade() -> None:
+    advisor_brief_facade_classes = _class_names(_CONTRACT_ROOT / "advisor_brief.py")
+    item_contract_classes = _class_names(_CONTRACT_ROOT / "advisor_brief_items.py")
+    supportability_contract_classes = _class_names(
+        _CONTRACT_ROOT / "advisor_brief_supportability.py"
+    )
+
+    expected_item_contracts = {
+        "AdvisorBriefActionItem",
+        "AdvisorBriefEvidenceRef",
+        "AdvisorBriefNarrativeItem",
+        "AdvisorBriefSourceMetric",
+        "AdvisorBriefStatus",
+        "AdvisorBriefSupportabilityItem",
+        "AdvisorBriefTone",
+    }
+    expected_supportability_contracts = {
+        "AdvisorBriefAdvisorySupportability",
+        "AdvisorBriefAiSurfaceSupportability",
+        "AdvisorBriefAiSurfaceSupportabilityItem",
+    }
+
+    assert expected_item_contracts <= item_contract_classes
+    assert expected_supportability_contracts <= supportability_contract_classes
+    assert advisor_brief_facade_classes.isdisjoint(expected_item_contracts)
+    assert advisor_brief_facade_classes.isdisjoint(expected_supportability_contracts)
+
+
 def test_proposal_lifecycle_contracts_live_outside_proposals_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
     lifecycle_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle.py")

@@ -820,6 +820,22 @@ migration contract smoke, 209 integration tests, 1,435 combined coverage tests, 
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
 checks and post-merge wiki publication remain pending for this branch.
 
+The advisor-brief contract-boundary branch moves Advisor Brief presentation/source item contracts
+into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts into
+`src/app/contracts/advisor_brief_supportability.py` while preserving the public
+`app.contracts.advisor_brief` import surface. `src/app/contracts/advisor_brief.py` is reduced from
+646 to 398 script-counted lines, and the blocking source-file threshold is ratcheted to 639
+script-counted lines. Focused validation passed with 39 contract-boundary, threshold, Advisor Brief
+service/supportability, and Workbench contract tests plus mypy over 547 source files.
+Refactor-threshold trials prove `max_source_file_lines=639` passes while `638` fails on
+`src/app/services/performance_workspace_service.py`. Full local `make check` passed with ruff,
+format check over 767 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+gate, mypy over 547 source files, Workbench/OpenAPI contract smoke, and 1,227 unit/contract tests.
+Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,436 combined
+coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception. GitHub checks and post-merge wiki publication remain pending for this
+branch.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

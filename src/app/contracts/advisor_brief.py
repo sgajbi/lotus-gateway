@@ -1,13 +1,30 @@
 from __future__ import annotations
 
-from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.contracts import advisor_brief_items as _advisor_brief_items
+from app.contracts import advisor_brief_supportability as _advisor_brief_supportability
 from app.contracts import advisor_brief_workflow as _advisor_brief_workflow
 from app.contracts.workbench import WorkbenchPartialFailure, WorkbenchPortfolioSummary
 
+AdvisorBriefActionItem = _advisor_brief_items.AdvisorBriefActionItem
+AdvisorBriefEvidenceRef = _advisor_brief_items.AdvisorBriefEvidenceRef
+AdvisorBriefNarrativeItem = _advisor_brief_items.AdvisorBriefNarrativeItem
+AdvisorBriefSourceMetric = _advisor_brief_items.AdvisorBriefSourceMetric
+AdvisorBriefStatus = _advisor_brief_items.AdvisorBriefStatus
+AdvisorBriefSupportabilityItem = _advisor_brief_items.AdvisorBriefSupportabilityItem
+AdvisorBriefTone = _advisor_brief_items.AdvisorBriefTone
+AdvisorBriefAdvisorySupportability = (
+    _advisor_brief_supportability.AdvisorBriefAdvisorySupportability
+)
+AdvisorBriefAiSurfaceSupportability = (
+    _advisor_brief_supportability.AdvisorBriefAiSurfaceSupportability
+)
+AdvisorBriefAiSurfaceSupportabilityItem = (
+    _advisor_brief_supportability.AdvisorBriefAiSurfaceSupportabilityItem
+)
 AdvisorBriefWorkflowPackRun = _advisor_brief_workflow.AdvisorBriefWorkflowPackRun
 AdvisorBriefWorkflowPackRunFinding = _advisor_brief_workflow.AdvisorBriefWorkflowPackRunFinding
 AdvisorBriefWorkflowPackRunReviewActionRequest = (
@@ -23,271 +40,6 @@ AdvisorBriefWorkflowPackTaskFlowHandoff = (
 AdvisorBriefWorkflowPackTaskFlowLineage = (
     _advisor_brief_workflow.AdvisorBriefWorkflowPackTaskFlowLineage
 )
-
-
-class AdvisorBriefStatus(str, Enum):
-    READY = "ready"
-    PARTIAL = "partial"
-    UNAVAILABLE = "unavailable"
-
-
-class AdvisorBriefTone(str, Enum):
-    POSITIVE = "positive"
-    NEUTRAL = "neutral"
-    WARNING = "warning"
-
-
-class AdvisorBriefEvidenceRef(BaseModel):
-    metric_label: str = Field(
-        description="Human-readable metric label referenced by the narrative claim.",
-        examples=["Active Return"],
-    )
-    metric_value: str = Field(
-        description="Rendered metric value shown to the advisor in the brief context.",
-        examples=["-6.68%"],
-    )
-    source_surface: str = Field(
-        description="Gateway analytical surface that produced the referenced metric.",
-        examples=["performance.return_path"],
-    )
-    target_mode: str = Field(
-        description="Preferred UI mode to open when the advisor follows the evidence reference.",
-        examples=["summary"],
-    )
-    route: str = Field(
-        description="Workbench route that opens the supporting analytical context.",
-        examples=["/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"],
-    )
-
-
-class AdvisorBriefNarrativeItem(BaseModel):
-    headline: str = Field(
-        description="Short advisor-facing narrative headline.",
-        examples=["Portfolio return is 1.25% versus benchmark 7.93%."],
-    )
-    detail: str = Field(
-        description="Supporting narrative detail grounding the headline in source metrics.",
-        examples=["Active return is -6.68% for the selected YTD period."],
-    )
-    tone: AdvisorBriefTone = Field(
-        description="Presentation tone for the narrative item.",
-        examples=[AdvisorBriefTone.WARNING],
-    )
-    evidence_refs: list[AdvisorBriefEvidenceRef] = Field(
-        default_factory=list,
-        description="Supporting evidence references that allow the advisor to inspect the claim.",
-    )
-
-
-class AdvisorBriefActionItem(BaseModel):
-    label: str = Field(
-        description="Advisor-facing action label.",
-        examples=["Open Return Path"],
-    )
-    target_mode: str = Field(
-        description="Preferred UI mode to launch for the action.",
-        examples=["summary"],
-    )
-    route: str = Field(
-        description="Workbench route that executes the recommended action.",
-        examples=["/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"],
-    )
-
-
-class AdvisorBriefSourceMetric(BaseModel):
-    label: str = Field(
-        description="Source metric label highlighted in the advisor brief.",
-        examples=["Active Return"],
-    )
-    value: str = Field(
-        description="Rendered source metric value.",
-        examples=["-6.68%"],
-    )
-    support_label: str = Field(
-        description="Compact context label describing the supporting analytical window.",
-        examples=["YTD NET"],
-    )
-    target_mode: str = Field(
-        description="Preferred UI mode to open when inspecting the metric.",
-        examples=["summary"],
-    )
-    route: str = Field(
-        description="Workbench route that opens the source metric context.",
-        examples=["/performance?portfolioId=PF_1001&period=YTD&detailBasis=NET"],
-    )
-    state: str = Field(
-        default="ready",
-        description="Availability state for the source metric in the brief.",
-        examples=["ready"],
-    )
-
-
-class AdvisorBriefSupportabilityItem(BaseModel):
-    label: str = Field(
-        description="Supportability dimension assessed for the advisor brief.",
-        examples=["Advisor Brief"],
-    )
-    value: str = Field(
-        description="Rendered supportability value for the dimension.",
-        examples=["Ready"],
-    )
-    tone: str = Field(
-        default="default",
-        description="Presentation tone for the supportability item.",
-        examples=["success"],
-    )
-    reason: str | None = Field(
-        default=None,
-        description="Optional explanation when supportability is partial or unavailable.",
-        examples=["Benchmark context was unavailable for one or more requested periods."],
-    )
-
-
-class AdvisorBriefAiSurfaceSupportabilityItem(BaseModel):
-    surface_id: str = Field(
-        description="Stable AI-backed product or workflow surface identifier.",
-        examples=["advisor_brief"],
-    )
-    owning_service: str = Field(
-        description="Domain service that owns the AI-backed surface contract.",
-        examples=["lotus-advise"],
-    )
-    workflow_authority_owner: str = Field(
-        description="Service retaining consequence-bearing workflow authority for the surface.",
-        examples=["lotus-advise"],
-    )
-    workflow_pack_ref: str = Field(
-        description="Workflow-pack version reference grounding the surface supportability item.",
-        examples=["advisor_brief.pack@v1"],
-    )
-    supportability_status: str = Field(
-        description="Bounded lotus-ai supportability posture for this AI-backed surface.",
-        examples=["ACTION_REQUIRED"],
-    )
-    model_posture: str = Field(
-        description="Bounded model/provider posture relevant to the AI-backed surface.",
-        examples=["degraded"],
-    )
-    latest_ready_run_id: str | None = Field(
-        default=None,
-        description="Latest ready workflow-pack run for this surface, when available.",
-    )
-    latest_action_required_run_id: str | None = Field(
-        default=None,
-        description="Latest action-required workflow-pack run for this surface, when available.",
-    )
-    no_sensitive_content_telemetry: bool = Field(
-        description="Whether lotus-ai reports bounded no-sensitive-content telemetry coverage.",
-    )
-    status_summary: list[str] = Field(
-        default_factory=list,
-        description="Bounded operator-facing supportability summary for this surface.",
-    )
-
-
-class AdvisorBriefAiSurfaceSupportability(BaseModel):
-    feature_key: str = Field(
-        default="ai.observability.ai_surface_supportability",
-        description="RFC-0108 feature key for lotus-ai AI-backed surface supportability.",
-        examples=["ai.observability.ai_surface_supportability"],
-    )
-    state: str = Field(
-        description="Gateway-normalized supportability state derived from lotus-ai posture.",
-        examples=["action_required"],
-    )
-    freshness_bucket: str = Field(
-        description="Gateway-normalized freshness bucket derived from lotus-ai freshness.",
-        examples=["fresh"],
-    )
-    posture: str = Field(
-        description="Raw bounded lotus-ai observability posture for AI-backed surfaces.",
-        examples=["degraded"],
-    )
-    freshness: str = Field(
-        description="Raw bounded lotus-ai freshness posture for AI-backed surfaces.",
-        examples=["current"],
-    )
-    metric_name: str = Field(
-        description="Prometheus metric emitted by lotus-ai for this supportability posture.",
-        examples=["lotus_ai_surface_supportability_state"],
-    )
-    supported_surface_count: int = Field(
-        ge=0,
-        description="Number of AI-backed surfaces represented in the source posture.",
-    )
-    executable_workflow_pack_count: int = Field(
-        ge=0,
-        description=(
-            "Number of executable workflow-pack versions represented in the source posture."
-        ),
-    )
-    action_required_surface_count: int = Field(
-        ge=0,
-        description="Number of represented AI-backed surfaces requiring operator action.",
-    )
-    unavailable_surface_count: int = Field(
-        ge=0,
-        description="Number of represented AI-backed surfaces with unavailable source posture.",
-    )
-    no_sensitive_content_telemetry: bool = Field(
-        description=(
-            "Whether all represented AI-backed surfaces have no-sensitive telemetry coverage."
-        ),
-    )
-    surfaces: list[AdvisorBriefAiSurfaceSupportabilityItem] = Field(
-        default_factory=list,
-        description="Bounded per-surface source supportability posture from lotus-ai.",
-    )
-    status_summary: list[str] = Field(
-        default_factory=list,
-        description="Bounded operator-facing source summary from lotus-ai.",
-    )
-
-
-class AdvisorBriefAdvisorySupportability(BaseModel):
-    feature_key: str = Field(
-        default="advise.observability.advisory_supportability",
-        description="RFC-0108 feature key for lotus-advise advisory supportability.",
-        examples=["advise.observability.advisory_supportability"],
-    )
-    state: str = Field(
-        description="Source-owned lotus-advise supportability state.",
-        examples=["ready"],
-    )
-    reason: str | None = Field(
-        default=None,
-        description="Bounded source-owned reason for the advisory supportability state.",
-        examples=["advisory_ready"],
-    )
-    freshness_bucket: str = Field(
-        description="Source-owned advisory supportability freshness bucket.",
-        examples=["current"],
-    )
-    dependency_count: int = Field(
-        ge=0,
-        description="Number of advisory dependency seams evaluated by lotus-advise.",
-    )
-    ready_dependency_count: int = Field(
-        ge=0,
-        description="Number of advisory dependency seams ready in lotus-advise.",
-    )
-    degraded_dependency_count: int = Field(
-        ge=0,
-        description="Number of advisory dependency seams degraded in lotus-advise.",
-    )
-    enabled_feature_count: int = Field(
-        ge=0,
-        description="Number of enabled advisory features included in source posture.",
-    )
-    ready_feature_count: int = Field(
-        ge=0,
-        description="Number of enabled advisory features ready in source posture.",
-    )
-    metric_name: str = Field(
-        default="lotus_advise_advisory_supportability_total",
-        description="Prometheus metric emitted by lotus-advise for this supportability posture.",
-        examples=["lotus_advise_advisory_supportability_total"],
-    )
 
 
 class AdvisorBriefResponse(BaseModel):
