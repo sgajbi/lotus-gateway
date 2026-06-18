@@ -321,16 +321,16 @@ Python source files under `src/app` and 209 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 695 | `src/app/services/dpm_command_center_service.py` |
-| 2 | 692 | `src/app/services/advisory_client_protocols.py` |
-| 3 | 689 | `src/app/services/portfolio_service.py` |
-| 4 | 689 | `src/app/clients/lotus_analytics_client.py` |
-| 5 | 685 | `src/app/services/workbench_service.py` |
-| 6 | 667 | `src/app/services/performance_workspace_horizon.py` |
-| 7 | 664 | `src/app/contracts/reporting_query.py` |
-| 8 | 662 | `src/app/contracts/reporting_batches.py` |
-| 9 | 658 | `src/app/services/proposal_service.py` |
-| 10 | 651 | `src/app/contracts/performance_workspace.py` |
+| 1 | 692 | `src/app/services/advisory_client_protocols.py` |
+| 2 | 689 | `src/app/services/portfolio_service.py` |
+| 3 | 689 | `src/app/clients/lotus_analytics_client.py` |
+| 4 | 685 | `src/app/services/workbench_service.py` |
+| 5 | 667 | `src/app/services/performance_workspace_horizon.py` |
+| 6 | 664 | `src/app/contracts/reporting_query.py` |
+| 7 | 662 | `src/app/contracts/reporting_batches.py` |
+| 8 | 658 | `src/app/services/proposal_service.py` |
+| 9 | 651 | `src/app/contracts/performance_workspace.py` |
+| 10 | 646 | `src/app/contracts/advisor_brief.py` |
 
 ## Largest Functions
 
@@ -1051,7 +1051,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 695 script-counted lines,
+1. no Python source file under `src/app` above 692 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

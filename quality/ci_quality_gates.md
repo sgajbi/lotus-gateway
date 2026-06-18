@@ -62,23 +62,24 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 695
+2. Current enforced source-file threshold: no Python source file under `src/app` above 692
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=695` and `max_function_lines=49`.
+   `max_source_file_lines=692` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current DPM wave campaign-definition boundary branch focused validation passed with ruff check,
-   ruff format check, mypy over touched DPM wave service modules, 32 focused DPM wave service and
-   router tests, and refactor-threshold trials proving `max_source_file_lines=695` passes while
-   `694` fails on `src/app/services/dpm_command_center_service.py`.
-7. Current DPM wave campaign-definition boundary branch `make check` passed with ruff, format check
-   over 741 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
-   mypy over 525 source files, OpenAPI smoke, and 1,211 unit/contract tests.
-8. Current DPM wave campaign-definition boundary branch `make ci` passed with migration contract
-   smoke, 209 integration tests, 1,420 coverage tests, 94.29% total coverage, and no known
+6. Current DPM command-center exception-summary boundary branch focused validation passed with
+   ruff check, ruff format check, mypy over four touched DPM command-center service modules,
+   74 focused DPM command-center service/router/boundary tests, and refactor-threshold trials
+   proving `max_source_file_lines=692` passes while `691` fails on
+   `src/app/services/advisory_client_protocols.py`.
+7. Current DPM command-center exception-summary boundary branch `make check` passed with ruff,
+   format check over 743 files, monetary-float guard, refactor-threshold gate, workflow
+   action-runtime gate, mypy over 527 source files, OpenAPI smoke, and 1,212 unit/contract tests.
+8. Current DPM command-center exception-summary boundary branch `make ci` passed with migration
+   contract smoke, 209 integration tests, 1,421 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
 9. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
    over 739 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,

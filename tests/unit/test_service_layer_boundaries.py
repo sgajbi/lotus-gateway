@@ -114,6 +114,37 @@ def test_services_delegate_workflow_task_request_shape_to_shared_helper() -> Non
     assert offenders == {}
 
 
+def test_dpm_command_center_service_delegates_exception_summary_handoff() -> None:
+    path = _SERVICE_ROOT / "dpm_command_center_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "request_exception_summary",
+            "_load_exception_summary_context",
+            "_execute_exception_summary_workflow",
+            "_compose_exception_summary_response",
+        }
+    )
+    command_center_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "DpmCommandCenterService"
+    ]
+    base_names = {
+        base.id
+        for service_class in command_center_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "DpmCommandCenterExceptionSummaryMixin" in base_names
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
