@@ -86,13 +86,19 @@ Most recent local PR-grade evidence:
    51 focused Advisor Brief service/supportability/workflow-pack/boundary tests, and
    refactor-threshold trials proving `max_source_file_lines=689` passes while `688` fails on
    `src/app/clients/lotus_analytics_client.py` and `src/app/services/portfolio_service.py`.
-10. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
+10. Current Advisor Brief client-protocol boundary branch `make check` passed with ruff, format
+   check over 744 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+   gate, mypy over 528 source files, OpenAPI smoke, and 1,213 unit/contract tests.
+11. Current Advisor Brief client-protocol boundary branch `make ci` passed with migration contract
+   smoke, 209 integration tests, 1,422 coverage tests, 94.29% total coverage, and no known
+   vulnerabilities after the governed `PYSEC-2026-161` exception.
+12. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
    over 739 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
    mypy over 524 source files, OpenAPI smoke, and 1,210 unit/contract tests.
-11. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
+13. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
    209 integration tests, 1,419 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-12. Prior source-file threshold ratchet branch focused validation passed with the then-current
+14. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
 10. Merged performance horizon contract branch focused validation passed with ruff check, ruff
