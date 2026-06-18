@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 692
+2. Current enforced source-file threshold: no Python source file under `src/app` above 689
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=692` and `max_function_lines=49`.
+   `max_source_file_lines=689` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current DPM command-center exception-summary boundary branch focused validation passed with
@@ -81,13 +81,18 @@ Most recent local PR-grade evidence:
 8. Current DPM command-center exception-summary boundary branch `make ci` passed with migration
    contract smoke, 209 integration tests, 1,421 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-9. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
+9. Current Advisor Brief client-protocol boundary branch focused validation passed with ruff check,
+   ruff format check, mypy over the touched advisory protocol and Advisor Brief service modules,
+   51 focused Advisor Brief service/supportability/workflow-pack/boundary tests, and
+   refactor-threshold trials proving `max_source_file_lines=689` passes while `688` fails on
+   `src/app/clients/lotus_analytics_client.py` and `src/app/services/portfolio_service.py`.
+10. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
    over 739 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
    mypy over 524 source files, OpenAPI smoke, and 1,210 unit/contract tests.
-10. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
+11. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
    209 integration tests, 1,419 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-11. Prior source-file threshold ratchet branch focused validation passed with the then-current
+12. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
 10. Merged performance horizon contract branch focused validation passed with ruff check, ruff
