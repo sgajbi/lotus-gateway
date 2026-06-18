@@ -732,9 +732,22 @@ and insight/exception semantics while reducing `src/app/services/portfolio_servi
 source-file threshold to 667 script-counted lines. Focused validation passed with ruff check, ruff
 format, mypy over the touched portfolio service/response modules, 43 focused portfolio unit tests,
 and refactor-threshold trials proving `max_source_file_lines=667` passes while `666` fails on
-`src/app/services/performance_workspace_horizon.py`. Full local `make check`, `make ci`, live
-canonical stack validation, GitHub CI, and post-merge wiki publication evidence are pending for
-this branch.
+`src/app/services/performance_workspace_horizon.py`. Full local `make check` passed with ruff,
+format check over 750 files, monetary-float guard, refactor-threshold gate, workflow
+action-runtime gate, mypy over 531 source files, Workbench contract smoke, and 1,220 unit/contract
+tests. Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,429
+combined coverage tests, 94.31% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
+
+The same branch was validated against the live canonical front-office stack after rebuilding the
+`lotus-gateway` container from the branch. `Start-LotusFrontOfficeCanonical.ps1 -BuildImages
+-RunValidation` passed for `PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing
+evidence to `lotus-workbench/output/playwright/live-canonical-gateway-portfolio-service-boundary/`:
+the summary records 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
+supportability checks, 10 workflow-pack checks, and 12 advisory journey checks. Companion
+observability evidence in `lotus-workbench/output/observability-live/20260618-202754/` records
+13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5 observability
+screenshots at HTTP 200.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
