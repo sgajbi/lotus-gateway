@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 714 script-counted lines,
-3. `src/app/clients/advise_client.py` at 712 script-counted lines,
-4. `src/app/contracts/risk_workspace.py` at 709 script-counted lines,
-5. `src/app/services/dpm_wave_service.py` at 700 script-counted lines.
+1. `src/app/services/portfolio_service.py` at 714 script-counted lines,
+2. `src/app/clients/advise_client.py` at 712 script-counted lines,
+3. `src/app/contracts/risk_workspace.py` at 709 script-counted lines,
+4. `src/app/services/dpm_wave_service.py` at 700 script-counted lines,
+5. `src/app/services/dpm_command_center_service.py` at 695 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -50,8 +50,10 @@ helpers. Performance workspace context loading, report-window resolution, benchm
 assembly, and analytics-reference fallback are now split into
 `src/app/services/performance_workspace_context_service.py`, reducing
 `performance_workspace_service.py` to 639 script-counted lines. Advisor-brief source-context,
-fallback narrative, source-metric, supportability, route,
-AI fact-bundle shaping, and AI narrative parsing are split into `advisor_brief_source.py` and
+fallback narrative, source-metric, supportability, route, source formatting,
+source-contributor ranking, AI fact-bundle shaping, and AI narrative parsing are split into
+`advisor_brief_source.py`, `advisor_brief_source_formatting.py`,
+`advisor_brief_source_contributors.py`, `advisor_brief_source_fact_bundle.py`, and
 `advisor_brief_narrative.py`, leaving the service focused on orchestration, runtime supportability,
 review actions, and response assembly. The proposal memo route-family forwarding methods have been split into
 `src/app/services/proposal_memo_service.py`, leaving `proposal_service.py` focused on core proposal
@@ -96,6 +98,12 @@ contracts have been split into `src/app/contracts/portfolio_workspace.py`, prese
 `app.contracts.portfolio` facade while reducing that facade from 754 to 281 script-counted lines.
 The largest remaining source-file hotspot is now `src/app/services/advisor_brief_source.py` at 742
 script-counted lines.
+Advisor-brief source formatting, source-contributor ranking, and AI fact-bundle shaping have been
+split out of `src/app/services/advisor_brief_source.py`, preserving the compatibility import for
+`build_advisor_brief_ai_fact_bundle` while reducing `advisor_brief_source.py` to 508
+script-counted lines. The blocking source-file threshold is ratcheted from 742 to 714
+script-counted lines, making `src/app/services/portfolio_service.py` the largest residual
+source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
