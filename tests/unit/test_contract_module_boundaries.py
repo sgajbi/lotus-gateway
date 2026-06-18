@@ -58,3 +58,19 @@ def test_performance_horizon_contracts_live_outside_performance_workspace_facade
 
     assert expected_horizon_contracts <= horizon_contract_classes
     assert performance_workspace_facade_classes.isdisjoint(expected_horizon_contracts)
+
+
+def test_dpm_pm_operating_quality_contracts_live_outside_dpm_command_center_facade() -> None:
+    dpm_command_center_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_command_center.py")
+    pm_quality_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_pm_operating_quality.py")
+
+    expected_pm_quality_contracts = {
+        "DpmPmOperatingQualityForwardRequest",
+        "DpmPmOperatingQualityGatewayResponse",
+        "DpmPmOperatingQualitySummaryGatewayResponse",
+        "DpmPmOperatingQualitySummaryRequest",
+        "DpmPmOperatingQualitySupportability",
+    }
+
+    assert expected_pm_quality_contracts <= pm_quality_contract_classes
+    assert dpm_command_center_facade_classes.isdisjoint(expected_pm_quality_contracts)
