@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 930
+2. Current enforced source-file threshold: no Python source file under `src/app` above 914
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=930` and `max_function_lines=49`.
+   `max_source_file_lines=914` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -83,7 +83,14 @@ Most recent local PR-grade evidence:
 9. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
-10. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
+10. Current performance horizon contract branch focused validation passed with ruff check, ruff
+    format, mypy over touched performance contract modules, 46 focused performance/workbench
+    contract and integration tests, and refactor-threshold trials proving
+    `max_source_file_lines=914` passes while `913` fails on `src/app/clients/advise_client.py`.
+    Full local `make check` passed with 1,178 unit/contract tests. Full local `make ci` passed
+    with 209 integration tests, 1,387 combined coverage tests, 94.18% total coverage, migration
+    contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+11. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
     `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
     tests, 1,300 coverage tests, 94.10% total coverage, and no known vulnerabilities after the
@@ -406,7 +413,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/performance_workspace.py` is now
-   the largest file at 930 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/clients/advise_client.py` is now the
+   largest file at 914 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

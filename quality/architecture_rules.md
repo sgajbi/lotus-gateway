@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/performance_workspace.py` at 930 script-counted lines,
-2. `src/app/clients/advise_client.py` at 909 script-counted lines,
-3. `src/app/router_registry.py` at 868 script-counted lines,
-4. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
-5. `src/app/services/proposal_service.py` at 854 script-counted lines.
+1. `src/app/clients/advise_client.py` at 914 script-counted lines,
+2. `src/app/router_registry.py` at 872 script-counted lines,
+3. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
+4. `src/app/services/proposal_service.py` at 854 script-counted lines,
+5. `src/app/services/performance_workspace_service.py` at 842 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -82,8 +82,10 @@ capability construction has been extracted to
 and moving historical-snapshot and reporting-currency support matrices behind focused tests. The
 performance horizon comparison parser has been split into diagnostic propagation, row-list
 selection, row construction, period-block extraction, and date-resolution helpers, reducing
-`parse_horizon_comparison_result` from 172 lines to 50 lines. The foundation core snapshot parser
-has been split into validation, section extraction, totals,
+`parse_horizon_comparison_result` from 172 lines to 50 lines. Performance horizon-comparison
+contract models now live in `src/app/contracts/performance_horizon.py`, reducing the performance
+workspace contract facade while preserving compatibility imports for existing consumers. The
+foundation core snapshot parser has been split into validation, section extraction, totals,
 enrichment indexing, position projection, allocation finalization, and portfolio identity helpers,
 reducing `_parse_core_snapshot` from 153 lines to 38 lines. The advisor-brief narrative-state
 builder has been split into source fallback, AI result
