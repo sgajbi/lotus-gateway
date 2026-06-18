@@ -646,7 +646,7 @@ refactor-threshold trials proving `max_source_file_lines=712` passes while `711`
 migration contract smoke, 209 integration tests, 1,405 combined coverage tests, 94.27% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current risk workspace example-boundary branch moves response OpenAPI examples into
+The previous risk workspace example-boundary branch moves response OpenAPI examples into
 `src/app/contracts/risk_workspace_examples.py` while preserving the public
 `app.contracts.risk_workspace` response model names. It reduces `risk_workspace.py` from 709 to
 312 script-counted lines, keeps the extracted example module at 379 script-counted lines, moves the
@@ -660,6 +660,22 @@ refactor-threshold trials proving `max_source_file_lines=700` passes while `699`
 refactor-threshold gate, workflow action-runtime gate, mypy over 524 source files, OpenAPI smoke,
 and 1,210 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
 1,419 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
+
+The current DPM wave campaign-definition boundary branch moves Manage-owned campaign-definition
+orchestration into `src/app/services/dpm_wave_campaign_definitions.py` while preserving the public
+`DpmWaveService` method surface. It reduces `dpm_wave_service.py` from 700 to 479 script-counted
+lines, keeps the extracted campaign-definition module at 244 script-counted lines, moves the
+largest residual source-file hotspot to `src/app/services/dpm_command_center_service.py` at 695
+script-counted lines, and ratchets the source-file threshold to 695 script-counted lines. Focused
+validation passed with ruff check, ruff format check, mypy over touched DPM wave service modules,
+32 focused DPM wave service/router tests, and refactor-threshold trials proving
+`max_source_file_lines=695` passes while `694` fails on
+`src/app/services/dpm_command_center_service.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 741 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 525 source files, OpenAPI smoke,
+and 1,211 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,420 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
