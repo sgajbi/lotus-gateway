@@ -314,23 +314,24 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current portfolio liquidity response-boundary branch shows 522
-Python source files under `src/app` and 209 Python test files under `tests`.
+Working-tree verification for the current analytics/catalog boundary branch shows 1,755 counted
+files under `src`, `tests`, `docs`, `wiki`, `.github`, and `scripts`, 529 Python source files under
+`src/app`, and 212 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 692 | `src/app/services/advisory_client_protocols.py` |
-| 2 | 689 | `src/app/services/portfolio_service.py` |
-| 3 | 689 | `src/app/clients/lotus_analytics_client.py` |
-| 4 | 685 | `src/app/services/workbench_service.py` |
-| 5 | 667 | `src/app/services/performance_workspace_horizon.py` |
-| 6 | 664 | `src/app/contracts/reporting_query.py` |
-| 7 | 662 | `src/app/contracts/reporting_batches.py` |
-| 8 | 658 | `src/app/services/proposal_service.py` |
-| 9 | 651 | `src/app/contracts/performance_workspace.py` |
-| 10 | 646 | `src/app/contracts/advisor_brief.py` |
+| 1 | 685 | `src/app/services/workbench_service.py` |
+| 2 | 680 | `src/app/services/portfolio_service.py` |
+| 3 | 667 | `src/app/services/performance_workspace_horizon.py` |
+| 4 | 664 | `src/app/contracts/reporting_query.py` |
+| 5 | 662 | `src/app/contracts/reporting_batches.py` |
+| 6 | 658 | `src/app/services/proposal_service.py` |
+| 7 | 651 | `src/app/contracts/performance_workspace.py` |
+| 8 | 646 | `src/app/contracts/advisor_brief.py` |
+| 9 | 639 | `src/app/services/performance_workspace_service.py` |
+| 10 | 632 | `src/app/router_registry.py` |
 
 ## Largest Functions
 
@@ -1051,7 +1052,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 689 script-counted lines,
+1. no Python source file under `src/app` above 685 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

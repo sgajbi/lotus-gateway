@@ -34,7 +34,7 @@ from app.services.portfolio_book_sources import (
     PortfolioBookSourceResults,
     load_portfolio_book_source_results,
 )
-from app.services.portfolio_catalog_payloads import parse_catalog_items
+from app.services.portfolio_catalog_payloads import load_portfolio_catalog_response
 from app.services.portfolio_exception_summaries import (
     PortfolioExceptionReadiness,
     build_portfolio_exception_summaries,
@@ -139,18 +139,9 @@ class PortfolioService(
         )
 
     async def get_portfolio_catalog(self, correlation_id: str) -> PortfolioCatalogResponse:
-        status_code, payload = await self._lotus_core_query_client.list_portfolios(
-            correlation_id=correlation_id
-        )
-        items_payload = require_payload(
-            result=(status_code, payload),
-            unavailable_detail_prefix="lotus-core portfolio catalog unavailable",
-        ).get("portfolios", [])
-        items = parse_catalog_items(items_payload)
-        return PortfolioCatalogResponse(
+        return await load_portfolio_catalog_response(
+            lotus_core_query_client=self._lotus_core_query_client,
             correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            items=items,
         )
 
     async def get_portfolio_workspace(

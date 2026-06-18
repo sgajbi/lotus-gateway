@@ -699,6 +699,33 @@ and 1,213 unit/contract tests; `make ci` covered migration contract smoke, 209 i
 1,422 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
+The current analytics/catalog boundary branch moves analytics workspace-summary request payload
+construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
+response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
+client and `PortfolioService` behavior. It reduces `src/app/clients/lotus_analytics_client.py`
+from 689 to 623 script-counted lines and `src/app/services/portfolio_service.py` from 689 to 680
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/workbench_service.py` at 685 script-counted lines, and ratchets the source-file
+threshold to 685 script-counted lines. Focused validation passed with ruff check, ruff format
+check, mypy over the touched analytics client/payload and portfolio service/catalog modules, 233
+focused upstream-client and portfolio service/catalog tests, and refactor-threshold trials proving
+`max_source_file_lines=685` passes while `684` fails on
+`src/app/services/workbench_service.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 746 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 529 source files, OpenAPI smoke,
+and 1,216 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,425 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
+
+The same branch was validated against the live canonical front-office stack after rebuilding the
+`lotus-gateway` container from the branch. `Validate-LotusFrontOfficeCanonical.ps1` passed for
+`PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing evidence to
+`lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/`: the summary records 29
+screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability checks, and
+10 workflow-pack checks. Companion observability evidence in
+`lotus-workbench/output/observability-live/20260618-190935/` records 13/13 API checks at HTTP 200,
+4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5 observability screenshots at HTTP 200.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
