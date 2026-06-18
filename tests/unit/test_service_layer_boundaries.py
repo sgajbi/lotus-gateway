@@ -508,6 +508,27 @@ def test_performance_workspace_service_delegates_trend_orchestration() -> None:
     assert local_trend_helpers == []
 
 
+def test_performance_workspace_service_delegates_detail_view_orchestration() -> None:
+    path = _SERVICE_ROOT / "performance_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_detail_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "_build_workspace_detail_views",
+            "_should_fetch_independent_detail_views",
+            "_build_independent_workspace_detail_views",
+            "_fetch_independent_workspace_detail_results",
+            "_build_summary_workspace_detail_views",
+            "_workspace_summary_has_return_payload",
+        }
+    )
+
+    assert local_detail_helpers == []
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

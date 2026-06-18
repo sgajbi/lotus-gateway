@@ -836,6 +836,19 @@ coverage tests, 94.33% total coverage, and no known vulnerabilities after the go
 `PYSEC-2026-161` exception. GitHub checks and post-merge wiki publication remain pending for this
 branch.
 
+The performance workspace boundary branch moves detail-view orchestration into
+`src/app/services/performance_workspace_detail_views.py` while preserving the public
+`PerformanceWorkspaceService` surface. It reduces `src/app/services/performance_workspace_service.py`
+below the previous top-file ceiling and ratchets the blocking source-file threshold to 632
+script-counted lines. Focused validation passed with 69 targeted performance workspace
+detail/service-boundary/threshold tests. Full local `make check` passed with ruff, format check over 769 files,
+monetary-float guard, refactor threshold gate, workflow action-runtime baseline, mypy over 548
+source files, OpenAPI smoke, and 1,231 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,440 combined coverage tests, 94.33% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+Refactor-threshold trials prove `max_source_file_lines=632` passes while `631` fails on
+`src/app/router_registry.py` and `src/app/services/risk_workspace_service.py`.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

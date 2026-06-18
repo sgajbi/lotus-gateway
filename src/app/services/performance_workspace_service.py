@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Any
 
 from app.config import settings
-from app.contracts.performance_attribution import AttributionSummaryView
-from app.contracts.performance_contribution import ContributionSummaryView
 from app.contracts.performance_evidence import PerformanceEvidenceView
 from app.contracts.performance_workspace import (
     PerformanceWorkspaceDetailsResponse,
@@ -19,9 +16,6 @@ from app.contracts.portfolio_performance_snapshot import (
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
-from app.services.performance_workspace_attribution import (
-    parse_attribution_result,
-)
 from app.services.performance_workspace_benchmarks import (
     parse_benchmark_catalog_result,
 )
@@ -33,17 +27,13 @@ from app.services.performance_workspace_context import (
 from app.services.performance_workspace_context_service import (
     PerformanceWorkspaceContextServiceMixin,
 )
-from app.services.performance_workspace_contribution import (
-    merge_contribution_summary_views,
-    parse_contribution_result,
-)
 from app.services.performance_workspace_controls import (
     resolve_workspace_summary_request,
 )
 from app.services.performance_workspace_dependencies import (
-    fetch_workspace_detail_results,
     fetch_workspace_summary_result,
 )
+from app.services.performance_workspace_detail_views import build_workspace_detail_views
 from app.services.performance_workspace_evidence import (
     EvidenceViewFetchState,
     EvidenceViewRequestContext,
@@ -64,7 +54,6 @@ from app.services.performance_workspace_response import (
     assemble_performance_workspace_response,
 )
 from app.services.performance_workspace_summary import (
-    ParsedWorkspaceSummary,
     parse_workspace_summary_result,
 )
 from app.services.performance_workspace_trend_service import (
@@ -75,14 +64,6 @@ from app.services.workspace_client_protocols import (
     PerformanceWorkspaceAnalyticsClient,
     PerformanceWorkspaceCoreClient,
 )
-
-
-@dataclass(frozen=True)
-class WorkspaceDetailViews:
-    contribution: ContributionSummaryView | None
-    attribution: AttributionSummaryView | None
-    contribution_detail_result: GatheredResult | None
-    attribution_detail_result: GatheredResult | None
 
 
 class PerformanceWorkspaceService(
@@ -359,7 +340,9 @@ class PerformanceWorkspaceService(
             warnings=context.warnings,
             partial_failures=context.partial_failures,
         )
-        detail_views = await self._build_workspace_detail_views(
+        detail_views = await build_workspace_detail_views(
+            cache=self._upstream_cache,
+            analytics_client=self._analytics_client,
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             context=context,
@@ -409,131 +392,6 @@ class PerformanceWorkspaceService(
                     include_detail_blocks and not prefer_independent_detail_analytics
                 ),
             )
-
-    async def _build_workspace_detail_views(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        context: WorkspaceRequestContext,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-        include_detail_blocks: bool,
-        prefer_independent_detail_analytics: bool,
-    ) -> WorkspaceDetailViews:
-        if self._should_fetch_independent_detail_views(
-            parsed_workspace_summary=parsed_workspace_summary,
-            include_detail_blocks=include_detail_blocks,
-            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
-        ):
-            return await self._build_independent_workspace_detail_views(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                context=context,
-                parsed_workspace_summary=parsed_workspace_summary,
-            )
-        return self._build_summary_workspace_detail_views(parsed_workspace_summary)
-
-    def _should_fetch_independent_detail_views(
-        self,
-        *,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-        include_detail_blocks: bool,
-        prefer_independent_detail_analytics: bool,
-    ) -> bool:
-        return (
-            include_detail_blocks
-            and prefer_independent_detail_analytics
-            and self._workspace_summary_has_return_payload(parsed_workspace_summary)
-        )
-
-    async def _build_independent_workspace_detail_views(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        context: WorkspaceRequestContext,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-    ) -> WorkspaceDetailViews:
-        (
-            contribution_detail_result,
-            attribution_detail_result,
-        ) = await self._fetch_independent_workspace_detail_results(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            parsed_workspace_summary=parsed_workspace_summary,
-        )
-        contribution = merge_contribution_summary_views(
-            summary_contribution=parsed_workspace_summary.contribution,
-            detail_contribution=parse_contribution_result(
-                result=contribution_detail_result,
-                metric_basis=context.detail_basis,
-                requested_period=context.effective_period,
-                warnings=context.warnings,
-                partial_failures=context.partial_failures,
-            ),
-        )
-        attribution = (
-            parse_attribution_result(
-                result=attribution_detail_result,
-                metric_basis=context.detail_basis,
-                requested_period=context.effective_period,
-                warnings=context.warnings,
-                partial_failures=context.partial_failures,
-            )
-            or parsed_workspace_summary.attribution
-        )
-        return WorkspaceDetailViews(
-            contribution=contribution,
-            attribution=attribution,
-            contribution_detail_result=contribution_detail_result,
-            attribution_detail_result=attribution_detail_result,
-        )
-
-    async def _fetch_independent_workspace_detail_results(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        context: WorkspaceRequestContext,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-    ) -> tuple[GatheredResult, GatheredResult]:
-        return await fetch_workspace_detail_results(
-            cache=self._upstream_cache,
-            analytics_client=self._analytics_client,
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            report_start_date=context.report_start_date.isoformat(),
-            report_end_date=context.report_end_date,
-            requested_period=context.effective_period,
-            detail_basis=context.detail_basis,
-            benchmark_code=parsed_workspace_summary.resolved_benchmark_code,
-            contribution_dimension=context.contribution_dimension,
-            attribution_dimension=context.attribution_dimension,
-        )
-
-    def _build_summary_workspace_detail_views(
-        self,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-    ) -> WorkspaceDetailViews:
-        return WorkspaceDetailViews(
-            contribution=parsed_workspace_summary.contribution,
-            attribution=parsed_workspace_summary.attribution,
-            contribution_detail_result=None,
-            attribution_detail_result=None,
-        )
-
-    def _workspace_summary_has_return_payload(
-        self,
-        parsed_workspace_summary: ParsedWorkspaceSummary,
-    ) -> bool:
-        return (
-            parsed_workspace_summary.net_performance.portfolio_return_pct is not None
-            or parsed_workspace_summary.gross_performance.portfolio_return_pct is not None
-            or parsed_workspace_summary.money_weighted_return is not None
-            or bool(parsed_workspace_summary.net_chart)
-            or bool(parsed_workspace_summary.gross_chart)
-        )
 
     async def _build_workspace_response_evidence_view(
         self,

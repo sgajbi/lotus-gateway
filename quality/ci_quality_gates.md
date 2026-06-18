@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 639
+2. Current enforced source-file threshold: no Python source file under `src/app` above 632
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=639` and `max_function_lines=49`.
+   `max_source_file_lines=632` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
@@ -81,6 +81,18 @@ Most recent local PR-grade evidence:
    unit/contract tests, and full local `make ci` passed with 209 integration tests, 1,436 combined
    coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
+7. Current performance workspace boundary branch moves detail-view orchestration into
+   `src/app/services/performance_workspace_detail_views.py`, preserving the public
+   `PerformanceWorkspaceService` surface while reducing
+   `src/app/services/performance_workspace_service.py` below the previous top-file ceiling.
+   Focused validation passed with 69 targeted performance workspace detail/service-boundary/threshold
+   tests. Full local `make check` passed with ruff, format check over 769 files, monetary-float
+   guard, refactor threshold gate, workflow action-runtime baseline, mypy over 548 source files,
+   Workbench/OpenAPI contract smoke, and 1,231 unit/contract tests. Full local `make ci` passed with
+   migration contract smoke, 209 integration tests, 1,440 combined coverage tests, 94.33% total
+   coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+   Refactor-threshold trials prove `max_source_file_lines=632` passes while `631` fails on
+   `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py`.
 7. Current DPM command-center exception-summary boundary branch focused validation passed with
    ruff check, ruff format check, mypy over four touched DPM command-center service modules,
    74 focused DPM command-center service/router/boundary tests, and refactor-threshold trials

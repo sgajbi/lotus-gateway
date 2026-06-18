@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
-2. `src/app/router_registry.py` at 632 script-counted lines,
-3. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
-4. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
-5. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines.
+1. `src/app/router_registry.py` at 632 script-counted lines,
+2. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
+3. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
+4. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
+5. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -53,7 +53,9 @@ response builder has also been split into request-context, summary/detail, evide
 helpers. Performance workspace context loading, report-window resolution, benchmark context
 assembly, and analytics-reference fallback are now split into
 `src/app/services/performance_workspace_context_service.py`, reducing
-`performance_workspace_service.py` to 639 script-counted lines. Advisor-brief source-context,
+`performance_workspace_service.py` to 639 script-counted lines. Performance workspace detail-view
+orchestration now lives in `src/app/services/performance_workspace_detail_views.py`, reducing
+`performance_workspace_service.py` below the current top-file ceiling. Advisor-brief source-context,
 fallback narrative, source-metric, supportability, route, source formatting,
 source-contributor ranking, AI fact-bundle shaping, and AI narrative parsing are split into
 `advisor_brief_source.py`, `advisor_brief_source_formatting.py`,
@@ -192,8 +194,10 @@ Advisor Brief presentation/source item contracts now live in
 `src/app/contracts/advisor_brief_items.py`, and source-supportability contracts now live in
 `src/app/contracts/advisor_brief_supportability.py`, preserving the public
 `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines. The
-blocking source-file threshold is ratcheted from 646 to 639 script-counted lines, making
-`src/app/services/performance_workspace_service.py` the largest residual source-file hotspot.
+blocking source-file threshold is ratcheted from 646 to 639 script-counted lines. The current
+performance workspace detail-view slice ratchets the ceiling again to 632 script-counted lines,
+making `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py` the largest
+residual source-file hotspots.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
