@@ -710,8 +710,12 @@ threshold to 685 script-counted lines. Focused validation passed with ruff check
 check, mypy over the touched analytics client/payload and portfolio service/catalog modules, 233
 focused upstream-client and portfolio service/catalog tests, and refactor-threshold trials proving
 `max_source_file_lines=685` passes while `684` fails on
-`src/app/services/workbench_service.py`. Full local `make check` and `make ci` are pending for
-this branch.
+`src/app/services/workbench_service.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 746 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 529 source files, OpenAPI smoke,
+and 1,216 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,425 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
