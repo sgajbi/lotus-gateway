@@ -322,14 +322,14 @@ files under `src/app`, and 214 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 664 | `src/app/contracts/reporting_query.py` |
-| 2 | 662 | `src/app/contracts/reporting_batches.py` |
-| 3 | 658 | `src/app/services/proposal_service.py` |
-| 4 | 651 | `src/app/contracts/performance_workspace.py` |
-| 5 | 646 | `src/app/contracts/advisor_brief.py` |
-| 6 | 639 | `src/app/services/performance_workspace_service.py` |
-| 7 | 632 | `src/app/router_registry.py` |
-| 8 | 632 | `src/app/services/risk_workspace_service.py` |
+| 1 | 662 | `src/app/contracts/reporting_batches.py` |
+| 2 | 658 | `src/app/services/proposal_service.py` |
+| 3 | 651 | `src/app/contracts/performance_workspace.py` |
+| 4 | 646 | `src/app/contracts/advisor_brief.py` |
+| 5 | 639 | `src/app/services/performance_workspace_service.py` |
+| 6 | 632 | `src/app/router_registry.py` |
+| 7 | 632 | `src/app/services/risk_workspace_service.py` |
+| 8 | 630 | `src/app/services/advisory_client_protocols.py` |
 | 9 | 630 | `src/app/services/advisory_client_protocols.py` |
 | 10 | 628 | `src/app/clients/dpm_wave_client.py` |
 
@@ -1052,7 +1052,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 664 script-counted lines,
+1. no Python source file under `src/app` above 662 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

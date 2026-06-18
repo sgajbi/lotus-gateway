@@ -7,6 +7,15 @@ from app.contracts.reporting_query import (
     ReportSnapshotLineageResponse,
     ReportStatusEvent,
 )
+from app.contracts.reporting_query_lineage import (
+    ReportSnapshotLineageResponse as LineageModuleResponse,
+)
+from app.contracts.reporting_query_search import (
+    ReportJobListResponse as SearchModuleResponse,
+)
+from app.contracts.reporting_query_status import (
+    ReportJobStatusEventsResponse as StatusModuleResponse,
+)
 
 
 def test_reporting_query_contracts_remain_legacy_reexported() -> None:
@@ -14,6 +23,9 @@ def test_reporting_query_contracts_remain_legacy_reexported() -> None:
     assert reporting.ReportJobStatusEventsResponse is ReportJobStatusEventsResponse
     assert reporting.ReportSnapshotLineageResponse is ReportSnapshotLineageResponse
     assert reporting.REPORT_JOB_LIST_RESPONSE_EXAMPLE is REPORT_JOB_LIST_RESPONSE_EXAMPLE
+    assert ReportJobListResponse is SearchModuleResponse
+    assert ReportJobStatusEventsResponse is StatusModuleResponse
+    assert ReportSnapshotLineageResponse is LineageModuleResponse
 
 
 def test_report_job_list_response_accepts_alias_payload() -> None:
