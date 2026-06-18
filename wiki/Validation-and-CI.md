@@ -448,7 +448,7 @@ local `make ci` passed with 209 integration tests, 1,388 combined coverage tests
 coverage, migration contract smoke, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 
-The current advisory router-group branch ratchets the source-file threshold to 861 script-counted
+The merged advisory router-group branch ratchets the source-file threshold to 861 script-counted
 lines after moving Advise-owned route-family imports and router group tuples into
 `src/app/router_groups/advisory.py`. It reduces `src/app/router_registry.py` from 872 to 632
 script-counted lines while preserving concrete route registration. Focused validation passed with
@@ -459,6 +459,21 @@ workflow action-runtime gate, mypy over 506 source files, Workbench/OpenAPI cont
 1,180 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,389 combined
 coverage tests, 94.17% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
+
+The current advisor brief narrative mapper branch ratchets the source-file threshold to 854
+script-counted lines after moving AI task-request construction, AI narrative parsing, fallback
+audit normalization, and AI evidence-reference mapping into
+`src/app/services/advisor_brief_narrative.py`. It reduces
+`src/app/services/advisor_brief_service.py` from 861 to 435 script-counted lines while preserving
+advisor brief orchestration and review-action behavior. Focused validation passed with ruff check,
+ruff format check, 24 advisor-brief source/narrative/service unit tests, and refactor-threshold
+trials proving `max_source_file_lines=854` passes while `853` fails on
+`src/app/services/proposal_service.py`. Full local `make check` passed with ruff, format check
+over 719 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 507 source files, Workbench/OpenAPI contract smoke, and 1,184 unit/contract tests. Full local
+`make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.22% total coverage,
+migration contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

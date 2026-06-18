@@ -471,17 +471,23 @@ behavior in `src/app/router_registry.py`. `src/app/router_registry.py` is reduce
 script-counted lines. The blocking source-file threshold is ratcheted from 872 to 861 lines,
 making `src/app/services/advisor_brief_service.py` the single largest residual source-file
 hotspot.
+The current advisor brief narrative mapper slice moves AI task-request construction, AI narrative
+parsing, fallback audit normalization, and AI evidence-reference mapping into
+`src/app/services/advisor_brief_narrative.py`. `src/app/services/advisor_brief_service.py` is
+reduced from 861 to 435 script-counted lines. The blocking source-file threshold is ratcheted from
+861 to 854 lines, making `src/app/services/proposal_service.py` the single largest residual
+source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current advisory router-group branch was created from clean `main`; no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current advisory router-group branch focused validation passed with 10 router-registry/refactor-threshold tests and the refactor threshold gate at `max_source_file_lines=861`; full local `make check` passed with 1,180 unit/contract tests |
+| Branch hygiene | Healthy | Current advisor brief narrative mapper branch was created from clean `main`; no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Full local `make check` passed with 1,184 unit/contract tests and the refactor threshold gate at `max_source_file_lines=854` |
 | Integration coverage | Healthy | Full local `make ci` passed with 209 integration tests and migration contract smoke |
-| Total coverage | Healthy | Full local `make ci` passed with 1,389 combined coverage tests and 94.17% total coverage |
-| Security audit | Governed | Current advisory router-group branch introduces no dependency, authentication, caller-context, monetary-float, or error-detail policy changes; full local `make ci` `pip-audit` reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 811 physical lines, `performance_workspace_service.py` to 842 lines, `advisor_brief_service.py` to 861 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 712 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/proposals.py` to 812 script-counted lines, `src/app/contracts/portfolio.py` to 719 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/services/advisor_brief_service.py` is now the largest current source-file hotspot at 861 lines |
+| Total coverage | Healthy | Full local `make ci` passed with 1,393 combined coverage tests and 94.22% total coverage |
+| Security audit | Governed | Current advisor brief narrative mapper branch introduces no dependency, authentication, caller-context, monetary-float, or product-error-detail policy changes; full local `make ci` `pip-audit` reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 811 physical lines, `performance_workspace_service.py` to 842 lines, `advisor_brief_service.py` to 435 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 712 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/proposals.py` to 812 script-counted lines, `src/app/contracts/portfolio.py` to 719 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/services/proposal_service.py` is now the largest current source-file hotspot at 854 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -526,7 +532,7 @@ hotspot.
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 861 script-counted lines,
+   - no Python source file under `src/app` above 854 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

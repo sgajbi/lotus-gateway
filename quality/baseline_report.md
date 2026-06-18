@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current advisory router-group branch shows 506 Python source
-files under `src/app` and 205 Python test files under `tests`.
+Working-tree verification for the current advisor brief narrative mapper branch shows 507 Python
+source files under `src/app` and 207 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 861 | `src/app/services/advisor_brief_service.py` |
-| 2 | 854 | `src/app/services/proposal_service.py` |
-| 3 | 842 | `src/app/services/performance_workspace_service.py` |
-| 4 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 5 | 812 | `src/app/contracts/proposals.py` |
-| 6 | 812 | `src/app/contracts/advisor_brief.py` |
-| 7 | 811 | `src/app/services/portfolio_service.py` |
-| 8 | 794 | `src/app/contracts/workbench.py` |
-| 9 | 771 | `src/app/services/performance_workspace_evidence.py` |
-| 10 | 769 | `src/app/services/risk_workspace_service.py` |
+| 1 | 854 | `src/app/services/proposal_service.py` |
+| 2 | 842 | `src/app/services/performance_workspace_service.py` |
+| 3 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 4 | 812 | `src/app/contracts/proposals.py` |
+| 5 | 812 | `src/app/contracts/advisor_brief.py` |
+| 6 | 811 | `src/app/services/portfolio_service.py` |
+| 7 | 794 | `src/app/contracts/workbench.py` |
+| 8 | 771 | `src/app/services/performance_workspace_evidence.py` |
+| 9 | 769 | `src/app/services/risk_workspace_service.py` |
+| 10 | 754 | `src/app/contracts/portfolio.py` |
 
 ## Largest Functions
 
@@ -890,7 +890,7 @@ Most recent local evidence:
      local `make ci` passed with 209 integration tests, 1,388 combined coverage tests, 94.16%
      total coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
-135. Current advisory router-group branch focused validation passed with ruff check, ruff format,
+135. Merged advisory router-group branch focused validation passed with ruff check, ruff format,
      touched-module mypy, 10 router-registry/refactor-threshold tests, and the refactor threshold
      gate at `max_source_file_lines=861`. The slice moves Advise-owned route-family imports and
      group tuples into `router_groups/advisory.py`, reducing `router_registry.py` from 872 to 632
@@ -900,6 +900,18 @@ Most recent local evidence:
      unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,389 combined
      coverage tests, 94.17% total coverage, migration contract smoke, and no known vulnerabilities
      after the governed `PYSEC-2026-161` exception.
+136. Current advisor brief narrative mapper branch moves AI task-request construction, AI
+     narrative parsing, fallback audit normalization, and AI evidence-reference mapping from
+     `advisor_brief_service.py` into `advisor_brief_narrative.py`, reducing
+     `advisor_brief_service.py` from 861 to 435 script-counted lines. Focused validation passed
+     with ruff check, ruff format, 24 advisor-brief source/narrative/service unit tests, and
+     refactor-threshold trials proving `max_source_file_lines=854` passes while `853` fails on
+     `src/app/services/proposal_service.py`. Full local `make check` passed with ruff, format
+     check over 719 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+     gate, mypy over 507 source files, OpenAPI smoke, and 1,184 unit/contract tests. Full local
+     `make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.22% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -917,7 +929,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 861 script-counted lines,
+1. no Python source file under `src/app` above 854 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
