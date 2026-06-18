@@ -600,6 +600,21 @@ files, OpenAPI smoke, and 1,191 unit/contract tests. Full local `make ci` passed
 contract smoke, 209 integration tests, 1,400 combined coverage tests, 94.25% total coverage, and no
 known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current portfolio workspace contract-boundary branch moves portfolio workspace response,
+profile, rebalance, reporting, operations, and control-capability contracts into
+`src/app/contracts/portfolio_workspace.py` while preserving compatibility imports through
+`app.contracts.portfolio`. It reduces `src/app/contracts/portfolio.py` from 754 to 281
+script-counted lines, introduces `portfolio_workspace.py` at 503 script-counted lines, moves the
+largest residual source-file hotspot to `src/app/services/advisor_brief_source.py` at 742
+script-counted lines, and ratchets the source-file threshold to 742 script-counted lines. Focused
+validation passed with ruff check, ruff format check, 19 focused workspace
+contract/response/control/OpenAPI/threshold tests, and the refactor-threshold gate at
+`max_source_file_lines=742`. Full local `make check` passed with ruff, format check over 731
+files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy over 518
+source files, OpenAPI smoke, and 1,193 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,402 combined coverage tests, 94.26% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
