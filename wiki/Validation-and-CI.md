@@ -699,6 +699,20 @@ and 1,213 unit/contract tests; `make ci` covered migration contract smoke, 209 i
 1,422 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
+The current analytics/catalog boundary branch moves analytics workspace-summary request payload
+construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
+response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
+client and `PortfolioService` behavior. It reduces `src/app/clients/lotus_analytics_client.py`
+from 689 to 623 script-counted lines and `src/app/services/portfolio_service.py` from 689 to 680
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/workbench_service.py` at 685 script-counted lines, and ratchets the source-file
+threshold to 685 script-counted lines. Focused validation passed with ruff check, ruff format
+check, mypy over the touched analytics client/payload and portfolio service/catalog modules, 233
+focused upstream-client and portfolio service/catalog tests, and refactor-threshold trials proving
+`max_source_file_lines=685` passes while `684` fails on
+`src/app/services/workbench_service.py`. Full local `make check` and `make ci` are pending for
+this branch.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

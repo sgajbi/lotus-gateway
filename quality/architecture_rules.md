@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 689 script-counted lines,
-3. `src/app/services/workbench_service.py` at 685 script-counted lines,
-4. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines,
-5. `src/app/contracts/reporting_query.py` at 664 script-counted lines.
+1. `src/app/services/workbench_service.py` at 685 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 680 script-counted lines,
+3. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines,
+4. `src/app/contracts/reporting_query.py` at 664 script-counted lines,
+5. `src/app/contracts/reporting_batches.py` at 662 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -138,6 +138,13 @@ by the Advisor Brief service, supportability, and workflow-pack helpers while re
 threshold is ratcheted from 692 to 689 script-counted lines, making
 `src/app/clients/lotus_analytics_client.py` and `src/app/services/portfolio_service.py` the
 largest residual source-file hotspots.
+Analytics workspace-summary request payload construction now lives in
+`src/app/clients/lotus_analytics_workspace_payloads.py`, and portfolio catalog response loading
+now lives in `src/app/services/portfolio_catalog_payloads.py`. The public analytics client and
+`PortfolioService` behavior is preserved while reducing `lotus_analytics_client.py` from 689 to
+623 script-counted lines and `portfolio_service.py` from 689 to 680 script-counted lines. The
+blocking source-file threshold is ratcheted from 689 to 685 script-counted lines, making
+`src/app/services/workbench_service.py` the largest residual source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
