@@ -1,12 +1,8 @@
 from typing import Any
 
-from app.contracts.portfolio import (
-    PortfolioCashflowOutlook,
-    PortfolioCashflowPoint,
-    PortfolioOperationalReadiness,
-    PortfolioProfile,
-)
 from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
+from app.contracts.portfolio_liquidity import PortfolioCashflowOutlook, PortfolioCashflowPoint
+from app.contracts.portfolio_workspace import PortfolioOperationalReadiness, PortfolioProfile
 from app.precision_policy import quantize_money, quantize_performance
 
 

@@ -2,8 +2,9 @@ import asyncio
 from typing import Protocol, cast
 
 from app.config import settings
-from app.contracts.portfolio import PortfolioWorkflowResponse, PortfolioWorkspaceResponse
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
+from app.contracts.portfolio_workflow import PortfolioWorkflowResponse
+from app.contracts.portfolio_workspace import PortfolioWorkspaceResponse
 from app.services.portfolio_workflow import build_workflow_actions
 
 

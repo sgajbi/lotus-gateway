@@ -2,19 +2,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.contracts.portfolio import (
-    PortfolioCashflowOutlook,
+from app.contracts.portfolio_common import PortfolioPartialFailure
+from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
+from app.contracts.portfolio_liquidity import PortfolioCashflowOutlook
+from app.contracts.portfolio_workflow import PortfolioWorkflowLaunchCue
+from app.contracts.portfolio_workspace import (
     PortfolioOperationalReadiness,
     PortfolioPerformanceSummary,
     PortfolioProfile,
     PortfolioRebalanceSummary,
     PortfolioReportingReadiness,
-    PortfolioWorkflowLaunchCue,
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceResponse,
 )
-from app.contracts.portfolio_common import PortfolioPartialFailure
-from app.contracts.portfolio_core import PortfolioIdentity, PortfolioSummary
 
 
 @dataclass(frozen=True)

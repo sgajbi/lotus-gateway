@@ -1,7 +1,7 @@
 {
   "description": "Approved baseline monetary-float findings. New findings fail CI.",
   "policy_version": "1.1.0",
-  "generated_at": "2026-06-18T03:50:48Z",
+  "generated_at": "2026-06-18T05:23:55Z",
   "allowlist": [
     {
       "finding": "scripts/check_monetary_float_usage.py:162:\"justification\": \"Temporary approved monetary float usage; migrate to Decimal.\",",
@@ -340,12 +340,6 @@
       "review_by": "2026-11-06"
     },
     {
-      "finding": "src/app/contracts/portfolio.py:180:return_pct: float | None = Field(",
-      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
-      "owner": "platform-governance",
-      "review_by": "2026-10-14"
-    },
-    {
       "finding": "src/app/contracts/portfolio_activity_income.py:10:reporting_currency_amount: float = Field(",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
@@ -506,6 +500,12 @@
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-12-09"
+    },
+    {
+      "finding": "src/app/contracts/portfolio_workspace.py:68:return_pct: float | None = Field(",
+      "justification": "Temporary approved monetary float usage; migrate to Decimal.",
+      "owner": "platform-governance",
+      "review_by": "2026-12-15"
     },
     {
       "finding": "src/app/contracts/risk_workspace.py:148:value: float | None = Field(",
@@ -940,7 +940,7 @@
       "review_by": "2026-12-09"
     },
     {
-      "finding": "src/app/services/portfolio_workspace_payloads.py:56:invested_market_value_base=float(quantize_money(invested - cash_total)),",
+      "finding": "src/app/services/portfolio_workspace_payloads.py:52:invested_market_value_base=float(quantize_money(invested - cash_total)),",
       "justification": "Temporary approved monetary float usage; migrate to Decimal.",
       "owner": "platform-governance",
       "review_by": "2026-11-19"

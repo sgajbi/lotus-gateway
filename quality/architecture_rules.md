@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/portfolio.py` at 754 script-counted lines,
-2. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
-3. `src/app/services/portfolio_service.py` at 716 script-counted lines,
-4. `src/app/clients/advise_client.py` at 712 script-counted lines,
-5. `src/app/contracts/risk_workspace.py` at 709 script-counted lines.
+1. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 714 script-counted lines,
+3. `src/app/clients/advise_client.py` at 712 script-counted lines,
+4. `src/app/contracts/risk_workspace.py` at 709 script-counted lines,
+5. `src/app/services/dpm_wave_service.py` at 700 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -91,6 +91,11 @@ Stale private pass-through wrappers around portfolio workspace assembly have bee
 `src/app/services/portfolio_service.py`; the service now calls the extracted workspace assembly
 helpers directly, reducing the file from 768 to 716 script-counted lines and moving the largest
 remaining source-file hotspot to `src/app/contracts/portfolio.py` at 754 script-counted lines.
+Portfolio workspace response, profile, rebalance, reporting, operations, and control-capability
+contracts have been split into `src/app/contracts/portfolio_workspace.py`, preserving the public
+`app.contracts.portfolio` facade while reducing that facade from 754 to 281 script-counted lines.
+The largest remaining source-file hotspot is now `src/app/services/advisor_brief_source.py` at 742
+script-counted lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

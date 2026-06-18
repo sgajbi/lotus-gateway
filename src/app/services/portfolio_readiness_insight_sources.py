@@ -3,15 +3,13 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-from app.contracts.portfolio import (
-    PortfolioActivitySummaryResponse,
-    PortfolioWorkspaceResponse,
-)
+from app.contracts.portfolio_activity_income import PortfolioActivitySummaryResponse
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
     PortfolioPositionBookResponse,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
+from app.contracts.portfolio_workspace import PortfolioWorkspaceResponse
 
 UpstreamResult = tuple[int, dict[str, Any]]
 

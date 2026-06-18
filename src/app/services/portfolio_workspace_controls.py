@@ -1,13 +1,13 @@
 from typing import Literal
 
-from app.contracts.portfolio import (
+from app.contracts.portfolio_core import PortfolioIdentity
+from app.contracts.portfolio_workspace import (
     PortfolioProfile,
     PortfolioWorkspaceControlCapabilities,
     PortfolioWorkspaceHistoricalSnapshotCapability,
     PortfolioWorkspaceModuleCapability,
     PortfolioWorkspaceReportingCurrencyCapability,
 )
-from app.contracts.portfolio_core import PortfolioIdentity
 
 ModuleCapabilityState = Literal["supported", "partial", "unsupported"]
 ModuleCapabilitySpec = tuple[str, ModuleCapabilityState, str]

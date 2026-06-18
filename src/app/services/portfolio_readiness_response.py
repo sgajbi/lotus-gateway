@@ -1,15 +1,15 @@
 from typing import Any
 
-from app.contracts.portfolio import (
-    PortfolioReportingReadiness,
-    PortfolioWorkspaceResponse,
-)
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
     PortfolioPositionBookResponse,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.contracts.portfolio_workflow import PortfolioReadinessResponse
+from app.contracts.portfolio_workspace import (
+    PortfolioReportingReadiness,
+    PortfolioWorkspaceResponse,
+)
 from app.services.portfolio_source_readiness import (
     build_source_readiness_indicators,
     parse_portfolio_supportability,
