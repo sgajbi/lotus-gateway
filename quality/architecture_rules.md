@@ -35,18 +35,22 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_service.py` at 842 script-counted lines,
-2. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines,
-3. `src/app/contracts/proposals.py` at 812 script-counted lines,
-4. `src/app/contracts/advisor_brief.py` at 812 script-counted lines,
-5. `src/app/services/portfolio_service.py` at 811 script-counted lines.
+1. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines,
+2. `src/app/contracts/proposals.py` at 812 script-counted lines,
+3. `src/app/contracts/advisor_brief.py` at 812 script-counted lines,
+4. `src/app/services/portfolio_service.py` at 811 script-counted lines,
+5. `src/app/contracts/workbench.py` at 794 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
 also been extracted into `src/app/router_groups/advisory.py`, reducing `router_registry.py` to 632
 script-counted lines while preserving concrete route registration. The performance workspace
 response builder has also been split into request-context, summary/detail, evidence, and assembly
-helpers. Advisor-brief source-context, fallback narrative, source-metric, supportability, route,
+helpers. Performance workspace context loading, report-window resolution, benchmark context
+assembly, and analytics-reference fallback are now split into
+`src/app/services/performance_workspace_context_service.py`, reducing
+`performance_workspace_service.py` to 639 script-counted lines. Advisor-brief source-context,
+fallback narrative, source-metric, supportability, route,
 AI fact-bundle shaping, and AI narrative parsing are split into `advisor_brief_source.py` and
 `advisor_brief_narrative.py`, leaving the service focused on orchestration, runtime supportability,
 review actions, and response assembly. The proposal memo route-family forwarding methods have been split into

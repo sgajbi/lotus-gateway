@@ -490,6 +490,21 @@ unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,3
 coverage tests, 94.21% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
 
+The current performance workspace context-service branch ratchets the source-file threshold to 841
+script-counted lines after moving cache-backed overview loading, report-window resolution,
+benchmark context assembly, and analytics-reference end-date fallback into
+`src/app/services/performance_workspace_context_service.py`. It reduces
+`src/app/services/performance_workspace_service.py` from 842 to 639 script-counted lines while
+preserving workspace summary/detail, trend, cache, warning, and partial-failure behavior. Focused
+validation passed with ruff check, ruff format check, mypy over 509 source files, 36 performance
+workspace service unit tests, and refactor-threshold trials proving `max_source_file_lines=841`
+passes while `840` fails on `src/app/contracts/dpm_command_center.py`. Full local `make check`
+passed with ruff, format check over 721 files, monetary-float guard, refactor-threshold gate,
+workflow action-runtime gate, mypy over 509 source files, Workbench/OpenAPI contract smoke, and
+1,184 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,393 combined
+coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
+after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
