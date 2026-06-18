@@ -287,16 +287,16 @@ files under `src/app` and 205 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 861 | `src/app/services/advisor_brief_service.py` |
-| 2 | 854 | `src/app/services/proposal_service.py` |
-| 3 | 842 | `src/app/services/performance_workspace_service.py` |
-| 4 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 5 | 812 | `src/app/contracts/proposals.py` |
-| 6 | 812 | `src/app/contracts/advisor_brief.py` |
-| 7 | 811 | `src/app/services/portfolio_service.py` |
-| 8 | 794 | `src/app/contracts/workbench.py` |
-| 9 | 771 | `src/app/services/performance_workspace_evidence.py` |
-| 10 | 769 | `src/app/services/risk_workspace_service.py` |
+| 1 | 854 | `src/app/services/proposal_service.py` |
+| 2 | 842 | `src/app/services/performance_workspace_service.py` |
+| 3 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 4 | 812 | `src/app/contracts/proposals.py` |
+| 5 | 812 | `src/app/contracts/advisor_brief.py` |
+| 6 | 811 | `src/app/services/portfolio_service.py` |
+| 7 | 794 | `src/app/contracts/workbench.py` |
+| 8 | 771 | `src/app/services/performance_workspace_evidence.py` |
+| 9 | 769 | `src/app/services/risk_workspace_service.py` |
+| 10 | 754 | `src/app/contracts/portfolio.py` |
 
 ## Largest Functions
 
@@ -900,6 +900,13 @@ Most recent local evidence:
      unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,389 combined
      coverage tests, 94.17% total coverage, migration contract smoke, and no known vulnerabilities
      after the governed `PYSEC-2026-161` exception.
+136. Current advisor brief narrative mapper branch moves AI task-request construction, AI
+     narrative parsing, fallback audit normalization, and AI evidence-reference mapping from
+     `advisor_brief_service.py` into `advisor_brief_narrative.py`, reducing
+     `advisor_brief_service.py` from 861 to 435 script-counted lines. Focused validation passed
+     with ruff check, ruff format, 24 advisor-brief source/narrative/service unit tests, and
+     refactor-threshold trials proving `max_source_file_lines=854` passes while `853` fails on
+     `src/app/services/proposal_service.py`.
 
 ## Tooling Availability Baseline
 
@@ -917,7 +924,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 861 script-counted lines,
+1. no Python source file under `src/app` above 854 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

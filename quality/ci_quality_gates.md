@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 861
+2. Current enforced source-file threshold: no Python source file under `src/app` above 854
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=861` and `max_function_lines=49`.
+   `max_source_file_lines=854` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -102,6 +102,13 @@ Most recent local PR-grade evidence:
     gate at `max_source_file_lines=861`. The slice reduces `src/app/router_registry.py` from 872
     to 632 script-counted lines by moving Advise-owned router groups into
     `src/app/router_groups/advisory.py`.
+13. Current advisor brief narrative mapper branch focused validation passed with ruff check, ruff
+    format, 24 advisor-brief source/narrative/service unit tests, and refactor-threshold trials
+    proving `max_source_file_lines=854` passes while `853` fails on
+    `src/app/services/proposal_service.py`. The slice reduces
+    `src/app/services/advisor_brief_service.py` from 861 to 435 script-counted lines by moving AI
+    task-request construction, AI narrative parsing, fallback audit normalization, and AI
+    evidence-reference mapping into `src/app/services/advisor_brief_narrative.py`.
 13. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
     `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
@@ -435,7 +442,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/services/advisor_brief_service.py` is now
-   the largest file at 861 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/proposal_service.py` is now the
+   largest file at 854 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
