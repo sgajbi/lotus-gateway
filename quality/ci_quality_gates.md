@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 658
+2. Current enforced source-file threshold: no Python source file under `src/app` above 646
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=658` and `max_function_lines=49`.
+   `max_source_file_lines=646` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current DPM command-center exception-summary boundary branch focused validation passed with
@@ -164,13 +164,26 @@ Most recent local PR-grade evidence:
     was generated at `2026-06-18T14:46:17.019Z` with 94 API checks, 29 screenshots, 25 ready
     panel classifications, 2 calculation checks, 28 supportability checks, 10 workflow-pack
     checks, and 12 advisory journey checks.
-23. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
+23. Current proposal service-boundary branch focused validation passed with 42 proposal-service,
+    service-boundary, and threshold tests, and refactor-threshold trials proving
+    `max_source_file_lines=646` passes while `645` fails on
+    `src/app/contracts/advisor_brief.py`. The slice preserves the public `ProposalService`
+    lifecycle transition method surface while moving submit/approval orchestration into
+    `src/app/services/proposal_transition_service.py`, reducing
+    `src/app/services/proposal_service.py` from 658 to 520 script-counted lines. Full local
+    `make check` passed with ruff, format check over 765 files, monetary-float guard,
+    refactor-threshold gate, workflow action-runtime gate, mypy over 545 source files, OpenAPI
+    smoke, and 1,226 unit/contract tests. Full local `make ci` passed with migration contract
+    smoke, 209 integration tests, 1,435 combined coverage tests, 94.32% total coverage, and no
+    known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub gate evidence
+    remains pending for this branch.
+24. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.
-24. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
+25. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
    integration tests, 1,425 combined coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-25. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
+26. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
     `lotus-gateway` container from this branch. Evidence:
     `lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/live-validation-summary.json`
     with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability

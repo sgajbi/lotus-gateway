@@ -35,11 +35,15 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/proposal_service.py` at 658 script-counted lines,
-2. `src/app/contracts/advisor_brief.py` at 646 script-counted lines,
-3. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
-4. `src/app/router_registry.py` at 632 script-counted lines,
-5. `src/app/services/risk_workspace_service.py` at 632 script-counted lines.
+1. `src/app/contracts/advisor_brief.py` at 646 script-counted lines,
+2. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
+3. `src/app/router_registry.py` at 632 script-counted lines,
+4. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
+5. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines.
+
+`src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
+proposal lifecycle transition orchestration moved into
+`src/app/services/proposal_transition_service.py`.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -177,6 +181,12 @@ literals, materialization/status/control contracts, worker runtime contracts, an
 contracts now live in dedicated `reporting_batch_*` modules, reducing `reporting_batches.py` to a
 75-line compatibility facade. The blocking source-file threshold is ratcheted from 662 to 658
 script-counted lines, making `src/app/services/proposal_service.py` the largest residual
+source-file hotspot.
+Proposal lifecycle transition orchestration now lives in
+`src/app/services/proposal_transition_service.py`, preserving the public `ProposalService`
+submit/approval/client-consent method surface while reducing `proposal_service.py` from 658 to
+520 script-counted lines. The blocking source-file threshold is ratcheted from 658 to 646
+script-counted lines, making `src/app/contracts/advisor_brief.py` the largest residual
 source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has

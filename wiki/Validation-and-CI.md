@@ -776,7 +776,8 @@ over 755 files, monetary-float guard, refactor-threshold gate, workflow action-r
 over 536 source files, Workbench contract smoke, and 1,220 unit/contract tests. Full local
 `make ci` passed with migration contract smoke, 209 integration tests, 1,429 combined coverage
 tests, 94.32% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
-exception. GitHub checks and post-merge wiki publication remain pending for this branch.
+exception. GitHub checks passed, PR #447 was merged to `main`, and post-merge wiki publication
+completed with `DiffCount 0`.
 
 The performance/reporting contract-boundary branch splits performance workspace common,
 summary-response, and details-response contracts behind the existing
@@ -793,8 +794,8 @@ ruff, format check over 764 files, monetary-float guard, refactor-threshold gate
 action-runtime gate, mypy over 544 source files, OpenAPI smoke, and 1,225 unit/contract tests.
 Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,434 combined
 coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
-`PYSEC-2026-161` exception. GitHub checks and post-merge wiki publication remain pending for this
-branch.
+`PYSEC-2026-161` exception. GitHub checks passed, PR #448 was merged to `main`, and post-merge
+wiki publication completed with `DiffCount 0`.
 
 The same branch was validated against the live canonical front-office stack after rebuilding the
 `lotus-gateway` container, restoring the canonical `lotus-advise` runtime after an initial
@@ -804,6 +805,20 @@ missing-container failure, and reseeding `PB_SG_GLOBAL_BAL_001`. `npm run live:v
 `2026-06-18T14:46:17.019Z`: the summary records 94 API checks, 29 screenshots, 25 ready panel
 classifications, 2 calculation checks, 28 supportability checks, 10 workflow-pack checks, and 12
 advisory journey checks.
+
+The proposal service-boundary branch moves submit, risk approval, compliance approval, client
+consent, and shared approval-payload orchestration into
+`src/app/services/proposal_transition_service.py` while preserving the public `ProposalService`
+method surface. `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted
+lines, and the blocking source-file threshold is ratcheted to 646 script-counted lines. Focused
+validation passed with 42 proposal-service, service-boundary, and threshold tests, and
+refactor-threshold trials prove `max_source_file_lines=646` passes while `645` fails on
+`src/app/contracts/advisor_brief.py`. Full local `make check` passed with ruff, format check over
+765 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy over
+545 source files, OpenAPI smoke, and 1,226 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,435 combined coverage tests, 94.32% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
+checks and post-merge wiki publication remain pending for this branch.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

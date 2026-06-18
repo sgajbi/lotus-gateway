@@ -10,11 +10,11 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/proposal_service.py`
-  as the largest residual source file at 658 script-counted lines after performance workspace
-  common/summary/details contracts and report-batch examples, materialization, worker, and scheduler
-  contracts moved behind existing compatibility facades; the blocking source-file threshold is
-  ratcheted to 658 script-counted lines, and the repository longest-function baseline
+- current enterprise-hardening evidence records `src/app/contracts/advisor_brief.py`
+  as the largest residual source file at 646 script-counted lines after proposal lifecycle
+  transition orchestration moved into `src/app/services/proposal_transition_service.py`; the
+  blocking source-file threshold is ratcheted to 646 script-counted lines, and the repository
+  longest-function baseline
   remains held at the enforced 49-line AST span
 
 ## Route-family map
