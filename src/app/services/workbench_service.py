@@ -1,5 +1,4 @@
 import asyncio
-from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, cast
@@ -38,7 +37,10 @@ from app.services.workbench_core_snapshot import (
     extract_current_positions,
     parse_lotus_core_snapshot,
 )
-from app.services.workbench_performance_snapshot import parse_performance_snapshot
+from app.services.workbench_overview_enrichment import (
+    load_workbench_overview_enrichment,
+    resolve_workbench_performance_snapshot_end_date,
+)
 from app.services.workbench_policy_feedback import (
     build_policy_idempotency_key,
     build_policy_simulation_payload,
@@ -46,7 +48,6 @@ from app.services.workbench_policy_feedback import (
     parse_policy_feedback_unavailable,
 )
 from app.services.workbench_projected_state import parse_projected_state
-from app.services.workbench_rebalance_snapshot import parse_rebalance_snapshot
 from app.services.workspace_client_protocols import (
     WorkbenchAdviseClient,
     WorkbenchCoreClient,
@@ -63,13 +64,6 @@ class WorkbenchAnalyticsParts:
     portfolio_return_pct: Any
     benchmark_return_pct: Any
     active_return_pct: Any
-
-
-@dataclass(frozen=True)
-class WorkbenchOverviewEnrichmentResults:
-    performance_result: object
-    rebalance_result: object
-    rebalance_supportability_result: object
 
 
 @dataclass(frozen=True)
@@ -163,9 +157,6 @@ class WorkbenchService:
             partial_failures=partial_failures,
         )
 
-    async def _empty_async_result(self) -> tuple[int, dict[str, Any]]:
-        return 204, {}
-
     async def _resolve_performance_snapshot_end_date(
         self,
         *,
@@ -173,24 +164,12 @@ class WorkbenchService:
         as_of_date: str,
         correlation_id: str,
     ) -> str:
-        (
-            status_code,
-            payload,
-        ) = await self._lotus_core_query_client.get_portfolio_analytics_reference(
+        return await resolve_workbench_performance_snapshot_end_date(
+            core_client=self._lotus_core_query_client,
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
-            consumer_system="lotus-gateway",
             correlation_id=correlation_id,
         )
-        if status_code >= status.HTTP_400_BAD_REQUEST or not isinstance(payload, dict):
-            return as_of_date
-
-        performance_end_date = payload.get("performance_end_date")
-        if not isinstance(performance_end_date, str) or not performance_end_date.strip():
-            return as_of_date
-        if portfolio_id == settings.workbench_canonical_portfolio_id:
-            return min(performance_end_date, settings.workbench_canonical_performance_end_date)
-        return performance_end_date
 
     async def get_portfolio_360(
         self,
@@ -470,118 +449,16 @@ class WorkbenchService:
         list[str],
         list[WorkbenchPartialFailure],
     ]:
-        partial_failures: list[WorkbenchPartialFailure] = []
-        warnings: list[str] = []
-        performance_snapshot = None
-        rebalance_snapshot = None
-
-        if include_performance_snapshot or include_rebalance_snapshot:
-            gathered = await self._gather_overview_enrichment_results(
-                portfolio_id=portfolio_id,
-                as_of_date=as_of_date,
-                correlation_id=correlation_id,
-                include_performance_snapshot=include_performance_snapshot,
-                include_rebalance_snapshot=include_rebalance_snapshot,
-                benchmark_code=benchmark_code,
-            )
-            if include_performance_snapshot:
-                performance_snapshot = parse_performance_snapshot(
-                    result=gathered.performance_result,
-                    partial_failures=partial_failures,
-                    warnings=warnings,
-                )
-            if include_rebalance_snapshot:
-                rebalance_snapshot = parse_rebalance_snapshot(
-                    result=gathered.rebalance_result,
-                    supportability_result=gathered.rebalance_supportability_result,
-                    partial_failures=partial_failures,
-                    warnings=warnings,
-                )
-
-        return performance_snapshot, rebalance_snapshot, warnings, partial_failures
-
-    async def _gather_overview_enrichment_results(
-        self,
-        *,
-        portfolio_id: str,
-        as_of_date: str,
-        correlation_id: str,
-        include_performance_snapshot: bool,
-        include_rebalance_snapshot: bool,
-        benchmark_code: str | None,
-    ) -> WorkbenchOverviewEnrichmentResults:
-        performance_task = await self._build_performance_snapshot_task(
+        return await load_workbench_overview_enrichment(
+            core_client=self._lotus_core_query_client,
+            analytics_client=self._analytics_client,
+            dpm_client=self._dpm_client,
             portfolio_id=portfolio_id,
             as_of_date=as_of_date,
             correlation_id=correlation_id,
             include_performance_snapshot=include_performance_snapshot,
-            benchmark_code=benchmark_code,
-        )
-        dpm_runs_task, dpm_supportability_task = self._build_rebalance_snapshot_tasks(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
             include_rebalance_snapshot=include_rebalance_snapshot,
-        )
-        performance_result, rebalance_result, supportability_result = cast(
-            tuple[object, object, object],
-            await asyncio.gather(
-                performance_task,
-                dpm_runs_task,
-                dpm_supportability_task,
-                return_exceptions=True,
-            ),
-        )
-        return WorkbenchOverviewEnrichmentResults(
-            performance_result=performance_result,
-            rebalance_result=rebalance_result,
-            rebalance_supportability_result=supportability_result,
-        )
-
-    async def _build_performance_snapshot_task(
-        self,
-        *,
-        portfolio_id: str,
-        as_of_date: str,
-        correlation_id: str,
-        include_performance_snapshot: bool,
-        benchmark_code: str | None,
-    ) -> Awaitable[tuple[int, dict[str, Any]]]:
-        if not include_performance_snapshot:
-            return self._empty_async_result()
-        performance_end_date = await self._resolve_performance_snapshot_end_date(
-            portfolio_id=portfolio_id,
-            as_of_date=as_of_date,
-            correlation_id=correlation_id,
-        )
-        return self._analytics_client.get_workspace_summary(
-            portfolio_id=portfolio_id,
-            report_end_date=performance_end_date,
-            report_start_date=None,
-            period="YTD",
-            chart_frequency="monthly",
-            detail_basis="NET",
-            benchmark_id=benchmark_code or settings.workbench_default_benchmark_code,
-            reporting_currency=None,
-            segment="asset_class",
-            correlation_id=correlation_id,
-            include_detail_blocks=False,
-        )
-
-    def _build_rebalance_snapshot_tasks(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        include_rebalance_snapshot: bool,
-    ) -> tuple[Awaitable[tuple[int, dict[str, Any]]], Awaitable[tuple[int, dict[str, Any]]]]:
-        if not include_rebalance_snapshot:
-            return self._empty_async_result(), self._empty_async_result()
-        return (
-            self._dpm_client.list_runs(
-                params={"portfolio_id": portfolio_id, "limit": 5},
-                correlation_id=correlation_id,
-            ),
-            self._dpm_client.get_supportability_summary(correlation_id=correlation_id),
+            benchmark_code=benchmark_code,
         )
 
     def _raise_for_lotus_core_error(self, upstream_status: int, payload: dict[str, Any]) -> None:
