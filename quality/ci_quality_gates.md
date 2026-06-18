@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 685
+2. Current enforced source-file threshold: no Python source file under `src/app` above 680
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=685` and `max_function_lines=49`.
+   `max_source_file_lines=680` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current DPM command-center exception-summary boundary branch focused validation passed with
@@ -81,18 +81,32 @@ Most recent local PR-grade evidence:
 8. Current DPM command-center exception-summary boundary branch `make ci` passed with migration
    contract smoke, 209 integration tests, 1,421 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-9. Current analytics/catalog boundary branch focused validation passed with ruff check, ruff
-   format check, mypy over the touched analytics client/payload and portfolio service/catalog
-   modules, 233 focused upstream-client and portfolio service/catalog tests, and
-   refactor-threshold trials proving `max_source_file_lines=685` passes while `684` fails on
-   `src/app/services/workbench_service.py`.
-10. Current analytics/catalog boundary branch `make check` passed with ruff, format check over
+9. Current workbench enrichment boundary branch focused validation passed with ruff check, ruff
+   format check, mypy over the touched Workbench service/enrichment modules, 114 focused
+   Workbench/refactor tests, and refactor-threshold trials proving
+   `max_source_file_lines=680` passes while `679` fails on
+   `src/app/services/portfolio_service.py`.
+10. Current workbench enrichment boundary branch `make check` passed with ruff, format check over
+   748 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+   over 530 source files, OpenAPI smoke, and 1,219 unit/contract tests.
+11. Current workbench enrichment boundary branch `make ci` passed with migration contract smoke,
+   209 integration tests, 1,428 combined coverage tests, 94.31% total coverage, and no known
+   vulnerabilities after the governed `PYSEC-2026-161` exception.
+12. Current workbench enrichment boundary branch live canonical validation passed after rebuilding
+    the `lotus-gateway` container from this branch. Evidence:
+    `lotus-workbench/output/playwright/live-canonical-gateway-workbench-boundaries/live-validation-summary.json`
+    with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
+    checks, and 10 workflow-pack checks; companion observability evidence:
+    `lotus-workbench/output/observability-live/20260618-194325/observability-evidence-manifest.json`
+    with 13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5
+    observability screenshots at HTTP 200.
+13. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.
-11. Current analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
+14. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
    integration tests, 1,425 combined coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-12. Current analytics/catalog boundary branch live canonical validation passed after rebuilding the
+15. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
     `lotus-gateway` container from this branch. Evidence:
     `lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/live-validation-summary.json`
     with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
@@ -100,19 +114,19 @@ Most recent local PR-grade evidence:
     `lotus-workbench/output/observability-live/20260618-190935/observability-evidence-manifest.json`
     with 13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5
     observability screenshots at HTTP 200.
-13. Current Advisor Brief client-protocol boundary branch `make check` passed with ruff, format
+16. Current Advisor Brief client-protocol boundary branch `make check` passed with ruff, format
    check over 744 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
    gate, mypy over 528 source files, OpenAPI smoke, and 1,213 unit/contract tests.
-14. Current Advisor Brief client-protocol boundary branch `make ci` passed with migration contract
+17. Current Advisor Brief client-protocol boundary branch `make ci` passed with migration contract
    smoke, 209 integration tests, 1,422 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-15. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
+18. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
    over 739 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
    mypy over 524 source files, OpenAPI smoke, and 1,210 unit/contract tests.
-16. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
+19. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
    209 integration tests, 1,419 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-17. Prior source-file threshold ratchet branch focused validation passed with the then-current
+20. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
 10. Merged performance horizon contract branch focused validation passed with ruff check, ruff
@@ -556,7 +570,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/services/dpm_wave_service.py`
-   is now the largest file at 700 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/portfolio_service.py`
+   is now the largest file at 680 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
