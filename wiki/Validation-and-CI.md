@@ -519,6 +519,21 @@ tests. Full local `make ci` passed with migration contract smoke, 209 integratio
 combined coverage tests, 94.22% total coverage, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 
+The current advisor-brief/proposal contract-boundary branch ratchets the source-file threshold to
+811 script-counted lines after moving advisor-brief workflow-pack and task-flow contracts into
+`src/app/contracts/advisor_brief_workflow.py` and proposal lifecycle, version, workflow, approval,
+and lineage contracts into `src/app/contracts/proposal_lifecycle.py`. It reduces
+`src/app/contracts/advisor_brief.py` from 812 to 646 script-counted lines and
+`src/app/contracts/proposals.py` from 812 to 431 script-counted lines while preserving
+compatibility imports through both facades. Focused validation passed with ruff check, ruff format
+check, mypy over 512 source files, 61 advisor-brief/proposal contract/boundary/threshold tests,
+and refactor-threshold trials proving `max_source_file_lines=811` passes while `810` fails on
+`src/app/services/portfolio_service.py`. Full local `make check` passed with ruff, format check
+over 724 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 512 source files, OpenAPI smoke, and 1,187 unit/contract tests. Full local `make ci` passed
+with migration contract smoke, 209 integration tests, 1,396 combined coverage tests, 94.23% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/proposals.py` at 812 script-counted lines,
-2. `src/app/contracts/advisor_brief.py` at 812 script-counted lines,
-3. `src/app/services/portfolio_service.py` at 811 script-counted lines,
-4. `src/app/contracts/workbench.py` at 794 script-counted lines,
-5. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines.
+1. `src/app/services/portfolio_service.py` at 811 script-counted lines,
+2. `src/app/contracts/workbench.py` at 794 script-counted lines,
+3. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines,
+4. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
+5. `src/app/contracts/portfolio.py` at 754 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -60,6 +60,12 @@ PM operating-quality request, supportability, gateway response, and AI-summary h
 have been split into `src/app/contracts/dpm_pm_operating_quality.py`, leaving
 `dpm_command_center.py` as a compatibility facade for that PM quality contract family and reducing
 the command-center facade to 593 script-counted lines.
+Advisor-brief workflow-pack and task-flow contracts have been split into
+`src/app/contracts/advisor_brief_workflow.py`, reducing `advisor_brief.py` from 812 to 646
+script-counted lines while preserving compatibility imports. Proposal lifecycle, version,
+workflow, approval, and lineage contracts have been split into
+`src/app/contracts/proposal_lifecycle.py`, reducing `proposals.py` from 812 to 431 script-counted
+lines while preserving the proposal facade.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
