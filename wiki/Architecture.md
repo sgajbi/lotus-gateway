@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/proposal_service.py` as the
-  largest residual source file at 854 script-counted lines after advisor-brief AI narrative
-  mapping moved into `src/app/services/advisor_brief_narrative.py`, reducing
-  `src/app/services/advisor_brief_service.py` from 861 to 435 script-counted lines; the repository
+- current enterprise-hardening evidence records `src/app/services/performance_workspace_service.py`
+  as the largest residual source file at 842 script-counted lines after proposal memo route-family
+  forwarding moved into `src/app/services/proposal_memo_service.py`, reducing
+  `src/app/services/proposal_service.py` from 854 to 658 script-counted lines; the repository
   longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
