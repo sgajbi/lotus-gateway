@@ -145,6 +145,33 @@ def test_dpm_command_center_service_delegates_exception_summary_handoff() -> Non
     assert "DpmCommandCenterExceptionSummaryMixin" in base_names
 
 
+def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
+    advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
+    advisor_brief_protocols_path = _SERVICE_ROOT / "advisor_brief_client_protocols.py"
+    advisory_tree = ast.parse(
+        advisory_protocols_path.read_text(encoding="utf-8"),
+        filename=str(advisory_protocols_path),
+    )
+    advisor_brief_tree = ast.parse(
+        advisor_brief_protocols_path.read_text(encoding="utf-8"),
+        filename=str(advisor_brief_protocols_path),
+    )
+
+    advisory_protocol_names = {
+        node.name for node in ast.walk(advisory_tree) if isinstance(node, ast.ClassDef)
+    }
+    advisor_brief_protocol_names = {
+        node.name for node in ast.walk(advisor_brief_tree) if isinstance(node, ast.ClassDef)
+    }
+
+    assert "AdvisorBriefAiClient" not in advisory_protocol_names
+    assert "AdvisorBriefAdviseClient" not in advisory_protocol_names
+    assert advisor_brief_protocol_names == {
+        "AdvisorBriefAdviseClient",
+        "AdvisorBriefAiClient",
+    }
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

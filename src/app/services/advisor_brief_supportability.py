@@ -7,7 +7,10 @@ from app.contracts.advisor_brief import (
     AdvisorBriefAiSurfaceSupportability,
     AdvisorBriefAiSurfaceSupportabilityItem,
 )
-from app.services.advisory_client_protocols import AdvisorBriefAdviseClient, AdvisorBriefAiClient
+from app.services.advisor_brief_client_protocols import (
+    AdvisorBriefAdviseClient,
+    AdvisorBriefAiClient,
+)
 
 
 async def load_advisory_supportability(

@@ -12,7 +12,7 @@ from app.contracts.advisor_brief import (
     AdvisorBriefWorkflowPackTaskFlowHandoff,
     AdvisorBriefWorkflowPackTaskFlowLineage,
 )
-from app.services.advisory_client_protocols import AdvisorBriefAiClient
+from app.services.advisor_brief_client_protocols import AdvisorBriefAiClient
 
 _ADVISOR_BRIEF_TASK_FLOW_LOOKUP_LIMIT = 100
 
