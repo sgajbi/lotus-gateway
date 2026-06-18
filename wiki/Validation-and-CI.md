@@ -755,6 +755,14 @@ over 532 source files, Workbench contract smoke, and 1,220 unit/contract tests. 
 tests, 94.32% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 
+The same branch was validated against the live canonical front-office stack after targeted-refresh
+rebuilt only `lotus-gateway` from this branch. `Validate-LotusFrontOfficeCanonical.ps1` passed for
+`PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing evidence to
+`lotus-workbench/output/playwright/live-canonical-gateway-performance-horizon-rows/`: the summary
+records 94 API checks, 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
+supportability checks, 10 workflow-pack checks, 12 advisory journey checks, 0 non-demo screenshots,
+and 0 non-ready panels.
+
 The same branch was validated against the live canonical front-office stack after rebuilding the
 `lotus-gateway` container from the branch. `Start-LotusFrontOfficeCanonical.ps1 -BuildImages
 -RunValidation` passed for `PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing

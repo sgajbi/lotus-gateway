@@ -129,13 +129,19 @@ Most recent local PR-grade evidence:
 19. Current performance horizon row-boundary branch `make ci` passed with migration contract smoke,
     209 integration tests, 1,429 combined coverage tests, 94.32% total coverage, and no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
-20. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
+20. Current performance horizon row-boundary branch live canonical validation passed after
+    targeted-refresh rebuilt only `lotus-gateway` from this branch. Evidence:
+    `lotus-workbench/output/playwright/live-canonical-gateway-performance-horizon-rows/live-validation-summary.json`
+    with 94 API checks, 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
+    supportability checks, 10 workflow-pack checks, 12 advisory journey checks, 0 non-demo
+    screenshots, and 0 non-ready panels.
+21. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.
-21. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
+22. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
    integration tests, 1,425 combined coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-22. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
+23. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
     `lotus-gateway` container from this branch. Evidence:
     `lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/live-validation-summary.json`
     with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
