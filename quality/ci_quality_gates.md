@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 667
+2. Current enforced source-file threshold: no Python source file under `src/app` above 664
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=667` and `max_function_lines=49`.
+   `max_source_file_lines=664` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current DPM command-center exception-summary boundary branch focused validation passed with
@@ -100,17 +100,17 @@ Most recent local PR-grade evidence:
     `lotus-workbench/output/observability-live/20260618-194325/observability-evidence-manifest.json`
     with 13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5
     observability screenshots at HTTP 200.
-13. Current portfolio insights response boundary branch focused validation passed with ruff check,
+13. Previous portfolio insights response boundary branch focused validation passed with ruff check,
     ruff format, mypy over the touched portfolio service/response modules, 43 focused portfolio
     unit tests, and refactor-threshold trials proving `max_source_file_lines=667` passes while
     `666` fails on `src/app/services/performance_workspace_horizon.py`.
-14. Current portfolio insights response boundary branch `make check` passed with ruff, format
+14. Previous portfolio insights response boundary branch `make check` passed with ruff, format
     check over 750 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
     gate, mypy over 531 source files, Workbench contract smoke, and 1,220 unit/contract tests.
-15. Current portfolio insights response boundary branch `make ci` passed with migration contract
+15. Previous portfolio insights response boundary branch `make ci` passed with migration contract
     smoke, 209 integration tests, 1,429 combined coverage tests, 94.31% total coverage, and no
     known vulnerabilities after the governed `PYSEC-2026-161` exception.
-16. Current portfolio insights response boundary branch live canonical validation passed after
+16. Previous portfolio insights response boundary branch live canonical validation passed after
     rebuilding the `lotus-gateway` container from this branch. Evidence:
     `lotus-workbench/output/playwright/live-canonical-gateway-portfolio-service-boundary/live-validation-summary.json`
     with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
@@ -119,13 +119,29 @@ Most recent local PR-grade evidence:
     `lotus-workbench/output/observability-live/20260618-202754/observability-evidence-manifest.json`
     with 13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5
     observability screenshots at HTTP 200.
-17. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
+17. Current performance horizon row-boundary branch focused validation passed with ruff check,
+    ruff format, mypy over the touched performance horizon modules, 32 focused horizon and
+    service-boundary unit tests, and refactor-threshold trials proving `max_source_file_lines=664`
+    passes while `663` fails on `src/app/contracts/reporting_query.py`.
+18. Current performance horizon row-boundary branch `make check` passed with ruff, format check
+    over 751 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
+    mypy over 532 source files, OpenAPI smoke, and 1,220 unit/contract tests.
+19. Current performance horizon row-boundary branch `make ci` passed with migration contract smoke,
+    209 integration tests, 1,429 combined coverage tests, 94.32% total coverage, and no known
+    vulnerabilities after the governed `PYSEC-2026-161` exception.
+20. Current performance horizon row-boundary branch live canonical validation passed after
+    targeted-refresh rebuilt only `lotus-gateway` from this branch. Evidence:
+    `lotus-workbench/output/playwright/live-canonical-gateway-performance-horizon-rows/live-validation-summary.json`
+    with 94 API checks, 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
+    supportability checks, 10 workflow-pack checks, 12 advisory journey checks, 0 non-demo
+    screenshots, and 0 non-ready panels.
+21. Previous analytics/catalog boundary branch `make check` passed with ruff, format check over
    746 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
    over 529 source files, OpenAPI smoke, and 1,216 unit/contract tests.
-18. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
+22. Previous analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
    integration tests, 1,425 combined coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-19. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
+23. Previous analytics/catalog boundary branch live canonical validation passed after rebuilding the
     `lotus-gateway` container from this branch. Evidence:
     `lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/live-validation-summary.json`
     with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
@@ -589,7 +605,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/services/performance_workspace_horizon.py`
-   is now the largest file at 667 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/reporting_query.py` is now the
+   largest file at 664 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
