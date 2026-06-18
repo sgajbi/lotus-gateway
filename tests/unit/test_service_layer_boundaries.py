@@ -241,6 +241,38 @@ def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     assert source_helpers == []
 
 
+def test_proposal_service_delegates_lifecycle_transitions() -> None:
+    path = _SERVICE_ROOT / "proposal_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "approve_compliance",
+            "approve_risk",
+            "record_client_consent",
+            "submit_proposal",
+            "_record_approval",
+        }
+    )
+    proposal_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "ProposalService"
+    ]
+    base_names = {
+        base.id
+        for service_class in proposal_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "ProposalTransitionServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_readiness_and_insight_source_loading() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

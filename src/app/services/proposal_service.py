@@ -18,8 +18,6 @@ from app.contracts.proposals import (
     ProposalReportRequestEnvelopeResponse,
     ProposalSimulateResponse,
     ProposalSimulationData,
-    ProposalStateTransitionData,
-    ProposalStateTransitionEnvelopeResponse,
     ProposalVersionData,
     ProposalVersionEnvelopeResponse,
     ProposalWorkflowEventsData,
@@ -27,6 +25,7 @@ from app.contracts.proposals import (
 )
 from app.services.advisory_client_protocols import ProposalClient
 from app.services.proposal_memo_service import ProposalMemoServiceMixin
+from app.services.proposal_transition_service import ProposalTransitionServiceMixin
 from app.services.upstream_envelope import (
     build_gateway_envelope,
     build_typed_gateway_envelope,
@@ -54,7 +53,7 @@ def _normalize_proposal_context_payload(
     return normalized
 
 
-class ProposalService(ProposalMemoServiceMixin):
+class ProposalService(ProposalTransitionServiceMixin, ProposalMemoServiceMixin):
     def __init__(self, advise_client: ProposalClient):
         self._advise_client = advise_client
 
@@ -260,108 +259,6 @@ class ProposalService(ProposalMemoServiceMixin):
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._opaque_envelope(correlation_id, upstream_payload)
-
-    async def submit_proposal(
-        self,
-        proposal_id: str,
-        actor_id: str,
-        expected_state: str,
-        review_type: str,
-        reason: dict[str, Any],
-        related_version_no: int | None,
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> ProposalStateTransitionEnvelopeResponse:
-        event_type = (
-            "SUBMITTED_FOR_COMPLIANCE_REVIEW"
-            if review_type == "COMPLIANCE"
-            else "SUBMITTED_FOR_RISK_REVIEW"
-        )
-        transition_body: dict[str, Any] = {
-            "event_type": event_type,
-            "actor_id": actor_id,
-            "expected_state": expected_state,
-            "reason": reason,
-        }
-        if related_version_no is not None:
-            transition_body["related_version_no"] = related_version_no
-
-        upstream_status, upstream_payload = await self._advise_client.transition_proposal(
-            proposal_id=proposal_id,
-            body=transition_body,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
-            ProposalStateTransitionEnvelopeResponse,
-            ProposalStateTransitionData,
-            correlation_id=correlation_id,
-            upstream_payload=upstream_payload,
-        )
-
-    async def approve_risk(
-        self,
-        proposal_id: str,
-        actor_id: str,
-        expected_state: str,
-        details: dict[str, Any],
-        related_version_no: int | None,
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> ProposalStateTransitionEnvelopeResponse:
-        return await self._record_approval(
-            proposal_id=proposal_id,
-            approval_type="RISK",
-            actor_id=actor_id,
-            expected_state=expected_state,
-            details=details,
-            related_version_no=related_version_no,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
-
-    async def approve_compliance(
-        self,
-        proposal_id: str,
-        actor_id: str,
-        expected_state: str,
-        details: dict[str, Any],
-        related_version_no: int | None,
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> ProposalStateTransitionEnvelopeResponse:
-        return await self._record_approval(
-            proposal_id=proposal_id,
-            approval_type="COMPLIANCE",
-            actor_id=actor_id,
-            expected_state=expected_state,
-            details=details,
-            related_version_no=related_version_no,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
-
-    async def record_client_consent(
-        self,
-        proposal_id: str,
-        actor_id: str,
-        expected_state: str,
-        details: dict[str, Any],
-        related_version_no: int | None,
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> ProposalStateTransitionEnvelopeResponse:
-        return await self._record_approval(
-            proposal_id=proposal_id,
-            approval_type="CLIENT_CONSENT",
-            actor_id=actor_id,
-            expected_state=expected_state,
-            details=details,
-            related_version_no=related_version_no,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
 
     async def get_workflow_events(
         self,
@@ -597,41 +494,6 @@ class ProposalService(ProposalMemoServiceMixin):
         )
         self._raise_for_upstream_error(upstream_status, upstream_payload)
         return self._opaque_envelope(correlation_id, upstream_payload)
-
-    async def _record_approval(
-        self,
-        proposal_id: str,
-        approval_type: str,
-        actor_id: str,
-        expected_state: str,
-        details: dict[str, Any],
-        related_version_no: int | None,
-        idempotency_key: str,
-        correlation_id: str,
-    ) -> ProposalStateTransitionEnvelopeResponse:
-        payload: dict[str, Any] = {
-            "approval_type": approval_type,
-            "approved": True,
-            "actor_id": actor_id,
-            "expected_state": expected_state,
-            "details": details,
-        }
-        if related_version_no is not None:
-            payload["related_version_no"] = related_version_no
-
-        upstream_status, upstream_payload = await self._advise_client.record_approval(
-            proposal_id=proposal_id,
-            body=payload,
-            idempotency_key=idempotency_key,
-            correlation_id=correlation_id,
-        )
-        self._raise_for_upstream_error(upstream_status, upstream_payload)
-        return build_typed_gateway_envelope(
-            ProposalStateTransitionEnvelopeResponse,
-            ProposalStateTransitionData,
-            correlation_id=correlation_id,
-            upstream_payload=upstream_payload,
-        )
 
     def _opaque_envelope(
         self,
