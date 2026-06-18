@@ -327,21 +327,31 @@ proposal-service, service-boundary, and threshold tests, and refactor-threshold 
 local `make check` passed with 1,226 unit/contract tests. Full local `make ci` passed with
 migration contract smoke, 209 integration tests, 1,435 combined coverage tests, 94.32% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+Current advisor-brief contract-boundary working-tree verification moves Advisor Brief
+presentation/source item contracts into `advisor_brief_items.py` and source-supportability
+contracts into `advisor_brief_supportability.py`, reducing `advisor_brief.py` from 646 to 398
+script-counted lines while preserving facade imports. Focused validation passed with 39
+contract-boundary, threshold, Advisor Brief service/supportability, and Workbench contract tests,
+plus mypy over 547 source files. Refactor-threshold trials prove `max_source_file_lines=639`
+passes while `638` fails on `src/app/services/performance_workspace_service.py`. Full local
+`make check` passed with 1,227 unit/contract tests. Full local `make ci` passed with migration
+contract smoke, 209 integration tests, 1,436 combined coverage tests, 94.33% total coverage, and no
+known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 646 | `src/app/contracts/advisor_brief.py` |
-| 2 | 639 | `src/app/services/performance_workspace_service.py` |
-| 3 | 632 | `src/app/router_registry.py` |
-| 4 | 632 | `src/app/services/risk_workspace_service.py` |
-| 5 | 630 | `src/app/services/advisory_client_protocols.py` |
-| 6 | 628 | `src/app/clients/dpm_wave_client.py` |
-| 7 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 8 | 618 | `src/app/services/foundation_service.py` |
-| 9 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 10 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 1 | 639 | `src/app/services/performance_workspace_service.py` |
+| 2 | 632 | `src/app/router_registry.py` |
+| 3 | 632 | `src/app/services/risk_workspace_service.py` |
+| 4 | 630 | `src/app/services/advisory_client_protocols.py` |
+| 5 | 628 | `src/app/clients/dpm_wave_client.py` |
+| 6 | 623 | `src/app/clients/lotus_analytics_client.py` |
+| 7 | 618 | `src/app/services/foundation_service.py` |
+| 8 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 9 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 10 | 595 | `src/app/contracts/dpm_command_center.py` |
 
 ## Largest Functions
 

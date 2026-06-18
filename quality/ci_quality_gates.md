@@ -1,6 +1,6 @@
 # CI Quality Gates
 
-Date: 2026-06-18  
+Date: 2026-06-19
 Mode: progressive enforcement
 
 This file records the governed CI measurement posture for the gateway hardening program. It is the
@@ -62,15 +62,26 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 646
+2. Current enforced source-file threshold: no Python source file under `src/app` above 639
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=646` and `max_function_lines=49`.
+   `max_source_file_lines=639` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current DPM command-center exception-summary boundary branch focused validation passed with
+6. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+   contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
+   into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
+   `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.
+   Focused validation passed with 39 Advisor Brief contract/service/supportability, threshold,
+   and Workbench contract tests, mypy over 547 source files, and refactor-threshold trials proving
+   `max_source_file_lines=639` passes while `638` fails on
+   `src/app/services/performance_workspace_service.py`. Full local `make check` passed with 1,227
+   unit/contract tests, and full local `make ci` passed with 209 integration tests, 1,436 combined
+   coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
+   `PYSEC-2026-161` exception.
+7. Current DPM command-center exception-summary boundary branch focused validation passed with
    ruff check, ruff format check, mypy over four touched DPM command-center service modules,
    74 focused DPM command-center service/router/boundary tests, and refactor-threshold trials
    proving `max_source_file_lines=692` passes while `691` fails on

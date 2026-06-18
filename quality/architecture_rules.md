@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/advisor_brief.py` at 646 script-counted lines,
-2. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
-3. `src/app/router_registry.py` at 632 script-counted lines,
-4. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
-5. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines.
+1. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
+2. `src/app/router_registry.py` at 632 script-counted lines,
+3. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
+4. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
+5. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -188,6 +188,12 @@ submit/approval/client-consent method surface while reducing `proposal_service.p
 520 script-counted lines. The blocking source-file threshold is ratcheted from 658 to 646
 script-counted lines, making `src/app/contracts/advisor_brief.py` the largest residual
 source-file hotspot.
+Advisor Brief presentation/source item contracts now live in
+`src/app/contracts/advisor_brief_items.py`, and source-supportability contracts now live in
+`src/app/contracts/advisor_brief_supportability.py`, preserving the public
+`app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines. The
+blocking source-file threshold is ratcheted from 646 to 639 script-counted lines, making
+`src/app/services/performance_workspace_service.py` the largest residual source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
