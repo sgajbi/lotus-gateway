@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/dpm_wave_service.py` at 700 script-counted lines,
-2. `src/app/services/dpm_command_center_service.py` at 695 script-counted lines,
-3. `src/app/services/advisory_client_protocols.py` at 692 script-counted lines,
-4. `src/app/services/portfolio_service.py` at 689 script-counted lines,
-5. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines.
+1. `src/app/services/dpm_command_center_service.py` at 695 script-counted lines,
+2. `src/app/services/advisory_client_protocols.py` at 692 script-counted lines,
+3. `src/app/services/portfolio_service.py` at 689 script-counted lines,
+4. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines,
+5. `src/app/services/workbench_service.py` at 685 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -119,6 +119,11 @@ Risk workspace response OpenAPI examples now live in
 script-counted lines while preserving response model schema names and examples. The blocking
 source-file threshold is ratcheted from 709 to 700 script-counted lines, making
 `src/app/services/dpm_wave_service.py` the largest residual source-file hotspot.
+DPM wave campaign-definition orchestration now lives in
+`src/app/services/dpm_wave_campaign_definitions.py`, preserving the public `DpmWaveService`
+method surface while reducing `dpm_wave_service.py` from 700 to 479 script-counted lines. The
+blocking source-file threshold is ratcheted from 700 to 695 script-counted lines, making
+`src/app/services/dpm_command_center_service.py` the largest residual source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

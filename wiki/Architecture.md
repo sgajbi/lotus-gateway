@@ -10,11 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/dpm_wave_service.py` as the
-  largest residual source file at 700 script-counted lines after risk workspace response OpenAPI
-  examples moved into `src/app/contracts/risk_workspace_examples.py`; the public risk workspace
-  response model names remain preserved, and the repository longest-function baseline remains held
-  at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/services/dpm_command_center_service.py`
+  as the largest residual source file at 695 script-counted lines after DPM wave
+  campaign-definition orchestration moved into
+  `src/app/services/dpm_wave_campaign_definitions.py`; the public `DpmWaveService` method surface
+  remains preserved, and the repository longest-function baseline remains held at the enforced
+  49-line AST span
 
 ## Route-family map
 
