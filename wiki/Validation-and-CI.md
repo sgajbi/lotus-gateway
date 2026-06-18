@@ -717,6 +717,15 @@ and 1,216 unit/contract tests; `make ci` covered migration contract smoke, 209 i
 1,425 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
+The same branch was validated against the live canonical front-office stack after rebuilding the
+`lotus-gateway` container from the branch. `Validate-LotusFrontOfficeCanonical.ps1` passed for
+`PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing evidence to
+`lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/`: the summary records 29
+screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability checks, and
+10 workflow-pack checks. Companion observability evidence in
+`lotus-workbench/output/observability-live/20260618-190935/` records 13/13 API checks at HTTP 200,
+4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5 observability screenshots at HTTP 200.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

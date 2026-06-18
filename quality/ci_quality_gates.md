@@ -92,19 +92,27 @@ Most recent local PR-grade evidence:
 11. Current analytics/catalog boundary branch `make ci` passed with migration contract smoke, 209
    integration tests, 1,425 combined coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-12. Current Advisor Brief client-protocol boundary branch `make check` passed with ruff, format
+12. Current analytics/catalog boundary branch live canonical validation passed after rebuilding the
+    `lotus-gateway` container from this branch. Evidence:
+    `lotus-workbench/output/playwright/live-canonical-gateway-client-catalog/live-validation-summary.json`
+    with 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
+    checks, and 10 workflow-pack checks; companion observability evidence:
+    `lotus-workbench/output/observability-live/20260618-190935/observability-evidence-manifest.json`
+    with 13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5
+    observability screenshots at HTTP 200.
+13. Current Advisor Brief client-protocol boundary branch `make check` passed with ruff, format
    check over 744 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
    gate, mypy over 528 source files, OpenAPI smoke, and 1,213 unit/contract tests.
-13. Current Advisor Brief client-protocol boundary branch `make ci` passed with migration contract
+14. Current Advisor Brief client-protocol boundary branch `make ci` passed with migration contract
    smoke, 209 integration tests, 1,422 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-14. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
+15. Previous risk workspace example-boundary branch `make check` passed with ruff, format check
    over 739 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
    mypy over 524 source files, OpenAPI smoke, and 1,210 unit/contract tests.
-15. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
+16. Previous risk workspace example-boundary branch `make ci` passed with migration contract smoke,
    209 integration tests, 1,419 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
-16. Prior source-file threshold ratchet branch focused validation passed with the then-current
+17. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
 10. Merged performance horizon contract branch focused validation passed with ruff check, ruff
