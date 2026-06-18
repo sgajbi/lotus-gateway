@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 841
+2. Current enforced source-file threshold: no Python source file under `src/app` above 812
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=841` and `max_function_lines=49`.
+   `max_source_file_lines=812` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -139,6 +139,18 @@ Most recent local PR-grade evidence:
     and 1,184 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,393
     combined coverage tests, 94.22% total coverage, migration contract smoke, and no known
     vulnerabilities after the governed `PYSEC-2026-161` exception.
+16. Current DPM PM operating-quality contract branch focused validation passed with ruff check,
+    ruff format, mypy over 510 source files, 17 focused contract/boundary/threshold tests, and
+    refactor-threshold trials proving `max_source_file_lines=812` passes while `811` fails on
+    `src/app/contracts/advisor_brief.py` and `src/app/contracts/proposals.py`. The slice reduces
+    `src/app/contracts/dpm_command_center.py` from 841 to 593 script-counted lines by moving PM
+    quality request, supportability, gateway response, and AI-summary handoff contracts into
+    `src/app/contracts/dpm_pm_operating_quality.py`. Full local `make check` passed with ruff,
+    format check over 722 files, monetary-float guard, refactor-threshold gate, workflow
+    action-runtime gate, mypy over 510 source files, OpenAPI smoke, and 1,185 unit/contract tests.
+    Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,394
+    combined coverage tests, 94.22% total coverage, and no known vulnerabilities after the
+    governed `PYSEC-2026-161` exception.
 13. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
     `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
@@ -472,7 +484,8 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/dpm_command_center.py`
-   is now the largest file at 841 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/advisor_brief.py` and
+   `src/app/contracts/proposals.py` are now the largest files at 812 script-counted lines and
+   define the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

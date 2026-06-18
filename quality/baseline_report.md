@@ -61,6 +61,10 @@ report-window resolution, benchmark context assembly, and analytics-reference en
 into `performance_workspace_context_service.py`, reducing `performance_workspace_service.py` from
 842 to 639 script-counted lines and moving the largest residual hotspot to
 `contracts/dpm_command_center.py` at 841 script-counted lines.
+The latest DPM PM operating-quality contract slice split PM quality request, supportability,
+gateway response, and AI-summary handoff contracts into `dpm_pm_operating_quality.py`, reducing
+`dpm_command_center.py` from 841 to 593 script-counted lines and moving the largest residual
+hotspots to `contracts/proposals.py` and `contracts/advisor_brief.py` at 812 script-counted lines.
 The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
 document error response mapping into smaller, reusable helpers while preserving safe error payload
 contracts.
@@ -285,23 +289,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance workspace context-service branch shows 509 Python
+Working-tree verification for the current DPM PM operating-quality contract branch shows 510 Python
 source files under `src/app` and 207 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 2 | 812 | `src/app/contracts/proposals.py` |
-| 3 | 812 | `src/app/contracts/advisor_brief.py` |
-| 4 | 811 | `src/app/services/portfolio_service.py` |
-| 5 | 794 | `src/app/contracts/workbench.py` |
-| 6 | 771 | `src/app/services/performance_workspace_evidence.py` |
-| 7 | 769 | `src/app/services/risk_workspace_service.py` |
-| 8 | 754 | `src/app/contracts/portfolio.py` |
-| 9 | 742 | `src/app/services/advisor_brief_source.py` |
-| 10 | 712 | `src/app/clients/advise_client.py` |
+| 1 | 812 | `src/app/contracts/proposals.py` |
+| 2 | 812 | `src/app/contracts/advisor_brief.py` |
+| 3 | 811 | `src/app/services/portfolio_service.py` |
+| 4 | 794 | `src/app/contracts/workbench.py` |
+| 5 | 771 | `src/app/services/performance_workspace_evidence.py` |
+| 6 | 769 | `src/app/services/risk_workspace_service.py` |
+| 7 | 754 | `src/app/contracts/portfolio.py` |
+| 8 | 742 | `src/app/services/advisor_brief_source.py` |
+| 9 | 712 | `src/app/clients/advise_client.py` |
+| 10 | 709 | `src/app/contracts/risk_workspace.py` |
 
 ## Largest Functions
 
@@ -942,6 +946,19 @@ Most recent local evidence:
      `make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.22% total
      coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
+139. Current DPM PM operating-quality contract branch moves PM quality request, supportability,
+     gateway response, and AI-summary handoff contracts from `dpm_command_center.py` into
+     `dpm_pm_operating_quality.py`, reducing `dpm_command_center.py` from 841 to 593
+     script-counted lines while preserving compatibility imports through the command-center
+     facade. Focused validation passed with ruff check, ruff format, mypy over 510 source files,
+     17 focused contract/boundary/threshold tests, and refactor-threshold trials proving
+     `max_source_file_lines=812` passes while `811` fails on `src/app/contracts/advisor_brief.py`
+     and `src/app/contracts/proposals.py`. Full local `make check` passed with ruff, format check
+     over 722 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
+     mypy over 510 source files, OpenAPI smoke, and 1,185 unit/contract tests. Full local
+     `make ci` passed with migration contract smoke, 209 integration tests, 1,394 combined
+     coverage tests, 94.22% total coverage, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -959,7 +976,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 841 script-counted lines,
+1. no Python source file under `src/app` above 812 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
