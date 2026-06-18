@@ -74,3 +74,48 @@ def test_dpm_pm_operating_quality_contracts_live_outside_dpm_command_center_faca
 
     assert expected_pm_quality_contracts <= pm_quality_contract_classes
     assert dpm_command_center_facade_classes.isdisjoint(expected_pm_quality_contracts)
+
+
+def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:
+    advisor_brief_facade_classes = _class_names(_CONTRACT_ROOT / "advisor_brief.py")
+    workflow_contract_classes = _class_names(_CONTRACT_ROOT / "advisor_brief_workflow.py")
+
+    expected_workflow_contracts = {
+        "AdvisorBriefWorkflowPackRun",
+        "AdvisorBriefWorkflowPackRunFinding",
+        "AdvisorBriefWorkflowPackRunReviewActionRequest",
+        "AdvisorBriefWorkflowPackRunReviewActionType",
+        "AdvisorBriefWorkflowPackTaskFlow",
+        "AdvisorBriefWorkflowPackTaskFlowHandoff",
+        "AdvisorBriefWorkflowPackTaskFlowLineage",
+    }
+
+    assert expected_workflow_contracts <= workflow_contract_classes
+    assert advisor_brief_facade_classes.isdisjoint(expected_workflow_contracts)
+
+
+def test_proposal_lifecycle_contracts_live_outside_proposals_facade() -> None:
+    proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
+    lifecycle_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_lifecycle.py")
+
+    expected_lifecycle_contracts = {
+        "ProposalApprovalsData",
+        "ProposalApprovalsEnvelopeResponse",
+        "ProposalApprovalRecordData",
+        "ProposalCreateData",
+        "ProposalCreateEnvelopeResponse",
+        "ProposalLineageData",
+        "ProposalLineageEnvelopeResponse",
+        "ProposalStateTransitionData",
+        "ProposalStateTransitionEnvelopeResponse",
+        "ProposalSummaryData",
+        "ProposalVersionData",
+        "ProposalVersionEnvelopeResponse",
+        "ProposalVersionLineageItemData",
+        "ProposalWorkflowEventData",
+        "ProposalWorkflowEventsData",
+        "ProposalWorkflowEventsEnvelopeResponse",
+    }
+
+    assert expected_lifecycle_contracts <= lifecycle_contract_classes
+    assert proposal_facade_classes.isdisjoint(expected_lifecycle_contracts)
