@@ -505,6 +505,20 @@ workflow action-runtime gate, mypy over 509 source files, Workbench/OpenAPI cont
 coverage tests, 94.22% total coverage, migration contract smoke, and no known vulnerabilities
 after the governed `PYSEC-2026-161` exception.
 
+The current DPM PM operating-quality contract branch ratchets the source-file threshold to 812
+script-counted lines after moving PM quality request, supportability, gateway response, and
+AI-summary handoff contracts into `src/app/contracts/dpm_pm_operating_quality.py`. It reduces
+`src/app/contracts/dpm_command_center.py` from 841 to 593 script-counted lines while preserving
+compatibility imports through the command-center facade. Focused validation passed with ruff check,
+ruff format check, mypy over 510 source files, 17 focused contract/boundary/threshold tests, and
+refactor-threshold trials proving `max_source_file_lines=812` passes while `811` fails on
+`src/app/contracts/advisor_brief.py` and `src/app/contracts/proposals.py`. Full local `make check`
+passed with ruff, format check over 722 files, monetary-float guard, refactor-threshold gate,
+workflow action-runtime gate, mypy over 510 source files, OpenAPI smoke, and 1,185 unit/contract
+tests. Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,394
+combined coverage tests, 94.22% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

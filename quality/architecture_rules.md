@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines,
-2. `src/app/contracts/proposals.py` at 812 script-counted lines,
-3. `src/app/contracts/advisor_brief.py` at 812 script-counted lines,
-4. `src/app/services/portfolio_service.py` at 811 script-counted lines,
-5. `src/app/contracts/workbench.py` at 794 script-counted lines.
+1. `src/app/contracts/proposals.py` at 812 script-counted lines,
+2. `src/app/contracts/advisor_brief.py` at 812 script-counted lines,
+3. `src/app/services/portfolio_service.py` at 811 script-counted lines,
+4. `src/app/contracts/workbench.py` at 794 script-counted lines,
+5. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -56,6 +56,10 @@ AI fact-bundle shaping, and AI narrative parsing are split into `advisor_brief_s
 review actions, and response assembly. The proposal memo route-family forwarding methods have been split into
 `src/app/services/proposal_memo_service.py`, leaving `proposal_service.py` focused on core proposal
 lifecycle, workflow, approval, narrative, operation, and delivery-summary orchestration.
+PM operating-quality request, supportability, gateway response, and AI-summary handoff contracts
+have been split into `src/app/contracts/dpm_pm_operating_quality.py`, leaving
+`dpm_command_center.py` as a compatibility facade for that PM quality contract family and reducing
+the command-center facade to 593 script-counted lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
