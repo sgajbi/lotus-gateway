@@ -534,6 +534,19 @@ over 512 source files, OpenAPI smoke, and 1,187 unit/contract tests. Full local 
 with migration contract smoke, 209 integration tests, 1,396 combined coverage tests, 94.23% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current portfolio workflow service-boundary branch ratchets the source-file threshold to 794
+script-counted lines after moving portfolio workflow orchestration and the latest-transaction probe
+into `src/app/services/portfolio_workflow_service.py`. It reduces
+`src/app/services/portfolio_service.py` from 811 to 768 script-counted lines while preserving the
+public `PortfolioService` surface. Focused validation passed with ruff check, ruff format check,
+mypy over touched service files, 68 portfolio service/boundary/threshold tests, and
+refactor-threshold trials proving `max_source_file_lines=794` passes while `793` fails on
+`src/app/contracts/workbench.py`. Full local `make check` passed with ruff, format check over 725
+files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy over 513
+source files, OpenAPI smoke, and 1,188 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,397 combined coverage tests, 94.23% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

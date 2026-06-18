@@ -1,4 +1,3 @@
-import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,7 +11,6 @@ from app.contracts.portfolio import (
     PortfolioPartialFailure,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
-    PortfolioWorkflowResponse,
     PortfolioWorkspaceResponse,
 )
 from app.contracts.portfolio_activity_income import (
@@ -83,12 +81,12 @@ from app.services.portfolio_upstream_payloads import (
     require_payload,
 )
 from app.services.portfolio_workflow import (
-    build_workflow_actions,
     holdings_readiness_status,
     pricing_readiness_status,
     reporting_status_label,
     transactions_readiness_status,
 )
+from app.services.portfolio_workflow_service import PortfolioWorkflowServiceMixin
 from app.services.portfolio_workspace_components import (
     PortfolioWorkspaceAssemblyState,
     assemble_portfolio_workspace_components,
@@ -122,7 +120,11 @@ from app.services.workspace_client_protocols import (
 UpstreamResult = tuple[int, dict[str, Any]]
 
 
-class PortfolioService(PortfolioTransactionServiceMixin, PortfolioUpstreamAccessMixin):
+class PortfolioService(
+    PortfolioWorkflowServiceMixin,
+    PortfolioTransactionServiceMixin,
+    PortfolioUpstreamAccessMixin,
+):
     def __init__(
         self,
         lotus_core_query_client: PortfolioCoreClient,
@@ -436,51 +438,6 @@ class PortfolioService(PortfolioTransactionServiceMixin, PortfolioUpstreamAccess
                 get_latest_transaction_probe=self._get_latest_transaction_probe,
                 get_activity_summary=self.get_activity_summary,
             ),
-        )
-
-    async def get_portfolio_workflow(
-        self, portfolio_id: str, correlation_id: str, as_of_date: str | None
-    ) -> PortfolioWorkflowResponse:
-        workspace, transactions = await asyncio.gather(
-            self.get_portfolio_workspace(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-            self._get_latest_transaction_probe(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                as_of_date=as_of_date,
-            ),
-        )
-        actions = build_workflow_actions(
-            portfolio_id=portfolio_id,
-            summary=workspace.summary,
-            workflow_cues=workspace.workflow_cues,
-            transaction_total=transactions.total,
-        )
-        return PortfolioWorkflowResponse(
-            correlation_id=correlation_id,
-            contract_version=settings.contract_version,
-            portfolio_id=portfolio_id,
-            as_of_date=workspace.as_of_date,
-            actions=actions,
-        )
-
-    async def _get_latest_transaction_probe(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        as_of_date: str | None,
-    ) -> PortfolioTransactionLedgerResponse:
-        return await self.get_transaction_ledger(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            as_of_date=as_of_date,
-            include_projected=False,
-            skip=0,
-            limit=1,
         )
 
     async def get_portfolio_book(
