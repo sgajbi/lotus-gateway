@@ -14,6 +14,7 @@ from app.contracts.dpm_command_center import (
 from app.services import dpm_command_center_ai_context, dpm_command_center_supportability
 from app.services.ai_client_protocols import LotusAiWorkflowClient
 from app.services.dpm_client_protocols import DpmCommandCenterClient
+from app.services.dpm_command_center_errors import raise_manage_command_center_error
 from app.services.lotus_ai_workflow import (
     build_workflow_pack_task_request,
     require_lotus_ai_client,
@@ -21,7 +22,6 @@ from app.services.lotus_ai_workflow import (
 from app.services.upstream_envelope import (
     build_product_safe_upstream_status_gateway_envelope,
     raise_product_safe_service_error,
-    raise_product_safe_upstream_error,
 )
 
 
@@ -363,7 +363,7 @@ class DpmPmOperatingQualityServiceMixin:
             score_run_id=score_run_id,
             correlation_id=correlation_id,
         )
-        _raise_manage_command_center_error(
+        raise_manage_command_center_error(
             manage_status,
             manage_payload,
             error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
@@ -547,18 +547,3 @@ class DpmPmOperatingQualityServiceMixin:
             error_code="MANAGE_PM_OPERATING_QUALITY_UPSTREAM_ERROR",
             default_detail="lotus-manage command-center request failed",
         )
-
-
-def _raise_manage_command_center_error(
-    upstream_status: int,
-    payload: dict[str, Any],
-    *,
-    error_code: str,
-) -> None:
-    raise_product_safe_upstream_error(
-        upstream_status,
-        payload,
-        error_model=DpmOutcomeReviewErrorDetail,
-        error_code=error_code,
-        default_detail="lotus-manage command-center request failed",
-    )
