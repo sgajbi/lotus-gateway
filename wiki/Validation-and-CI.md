@@ -662,20 +662,23 @@ and 1,210 unit/contract tests; `make ci` covered migration contract smoke, 209 i
 1,419 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
-The current DPM wave campaign-definition boundary branch moves Manage-owned campaign-definition
-orchestration into `src/app/services/dpm_wave_campaign_definitions.py` while preserving the public
-`DpmWaveService` method surface. It reduces `dpm_wave_service.py` from 700 to 479 script-counted
-lines, keeps the extracted campaign-definition module at 244 script-counted lines, moves the
-largest residual source-file hotspot to `src/app/services/dpm_command_center_service.py` at 695
-script-counted lines, and ratchets the source-file threshold to 695 script-counted lines. Focused
-validation passed with ruff check, ruff format check, mypy over touched DPM wave service modules,
-32 focused DPM wave service/router tests, and refactor-threshold trials proving
-`max_source_file_lines=695` passes while `694` fails on
-`src/app/services/dpm_command_center_service.py`. Full local `make check` and `make ci` passed:
-`make check` covered ruff, format check over 741 files, monetary-float guard,
-refactor-threshold gate, workflow action-runtime gate, mypy over 525 source files, OpenAPI smoke,
-and 1,211 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
-1,420 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+The current DPM command-center exception-summary boundary branch moves Manage-owned
+exception-summary AI handoff orchestration into
+`src/app/services/dpm_command_center_exception_summary.py` while preserving the public
+`DpmCommandCenterService` method surface. It also centralizes shared product-safe Manage
+command-center error raising in `src/app/services/dpm_command_center_errors.py`. It reduces
+`dpm_command_center_service.py` from 695 to 521 script-counted lines, keeps the extracted
+exception-summary module at 187 script-counted lines, moves the largest residual source-file
+hotspot to `src/app/services/advisory_client_protocols.py` at 692 script-counted lines, and
+ratchets the source-file threshold to 692 script-counted lines. Focused validation passed with
+ruff check, ruff format check, mypy over four touched DPM command-center service modules,
+74 focused DPM command-center service/router/boundary tests, and refactor-threshold trials proving
+`max_source_file_lines=692` passes while `691` fails on
+`src/app/services/advisory_client_protocols.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 743 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 527 source files, OpenAPI smoke,
+and 1,212 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,421 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
