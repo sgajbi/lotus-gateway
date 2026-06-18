@@ -10,12 +10,11 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/advisor_brief_source.py` as the
-  largest residual source file at 742 script-counted lines after portfolio workspace response,
-  profile, rebalance, reporting, operations, and control-capability contracts moved into
-  `src/app/contracts/portfolio_workspace.py`; the public `app.contracts.portfolio` facade is
-  preserved and reduced from 754 to 281 script-counted lines, while the repository
-  longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/services/portfolio_service.py` as the
+  largest residual source file at 714 script-counted lines after advisor-brief source formatting,
+  contributor ranking, and AI fact-bundle shaping moved into focused helper modules; the public
+  `advisor_brief_source.build_advisor_brief_ai_fact_bundle` compatibility import is preserved,
+  while the repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 

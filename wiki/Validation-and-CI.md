@@ -615,6 +615,23 @@ source files, OpenAPI smoke, and 1,193 unit/contract tests. Full local `make ci`
 migration contract smoke, 209 integration tests, 1,402 combined coverage tests, 94.26% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current advisor-brief source-boundary branch extracts advisor-brief source formatting,
+source-contributor ranking, and AI fact-bundle shaping into
+`src/app/services/advisor_brief_source_formatting.py`,
+`src/app/services/advisor_brief_source_contributors.py`, and
+`src/app/services/advisor_brief_source_fact_bundle.py` while preserving the existing
+`advisor_brief_source.build_advisor_brief_ai_fact_bundle` compatibility import. It reduces
+`advisor_brief_source.py` from 742 to 508 script-counted lines, moves the largest residual
+source-file hotspot to `src/app/services/portfolio_service.py` at 714 script-counted lines, and
+ratchets the source-file threshold to 714 script-counted lines. Focused validation passed with
+ruff check, ruff format check, mypy over touched service modules, 8 advisor-brief source/narrative
+tests, and refactor-threshold trials proving `max_source_file_lines=714` passes while `713` fails
+on `src/app/services/portfolio_service.py`. Full local `make check` passed with ruff, format check
+over 734 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 521 source files, OpenAPI smoke, and 1,194 unit/contract tests. Full local `make ci` passed
+with migration contract smoke, 209 integration tests, 1,403 combined coverage tests, 94.26% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

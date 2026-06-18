@@ -62,24 +62,24 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 742
+2. Current enforced source-file threshold: no Python source file under `src/app` above 714
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=742` and `max_function_lines=49`.
+   `max_source_file_lines=714` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
-   unit/contract tests.
-7. Current portfolio workspace payload mapper branch `make ci` passed with 207 integration tests,
-   1,282 coverage tests, 94.07% total coverage, and no known vulnerabilities after the governed
-   `PYSEC-2026-161` exception.
-8. Current quality-baseline artifact branch focused validation passed with 4 artifact-validator
-   unit tests plus ruff and format checks over the new validator and tests. `make check` passed
-   with 1,089 unit/contract tests, and `make ci` passed with 207 integration tests, 1,296 coverage
-   tests, 94.11% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
-   exception.
+6. Current advisor-brief source-boundary branch `make check` passed with ruff, format check over
+   734 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+   over 521 source files, OpenAPI smoke, and 1,194 unit/contract tests.
+7. Current advisor-brief source-boundary branch `make ci` passed with migration contract smoke,
+   209 integration tests, 1,403 coverage tests, 94.26% total coverage, and no known
+   vulnerabilities after the governed `PYSEC-2026-161` exception.
+8. Current advisor-brief source-boundary branch focused validation passed with ruff check, ruff
+   format check, mypy over touched service modules, 8 advisor-brief source/narrative tests, and
+   refactor-threshold trials proving `max_source_file_lines=714` passes while `713` fails on
+   `src/app/services/portfolio_service.py`.
 9. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
@@ -524,7 +524,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/services/advisor_brief_source.py`
-   is now the largest file at 742 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/portfolio_service.py`
+   is now the largest file at 714 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
