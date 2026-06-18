@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/performance_workspace_service.py`
-  as the largest residual source file at 639 script-counted lines after Advisor Brief
-  presentation/source and source-supportability contracts moved into dedicated modules; the
-  blocking source-file threshold is ratcheted to 639 script-counted lines, and the repository
+- current enterprise-hardening evidence records `src/app/router_registry.py` and
+  `src/app/services/risk_workspace_service.py` as the largest residual source files at 632
+  script-counted lines after performance workspace detail-view orchestration moved into a dedicated
+  module; the blocking source-file threshold is ratcheted to 632 script-counted lines, and the repository
   longest-function baseline
   remains held at the enforced 49-line AST span
 
