@@ -646,19 +646,20 @@ refactor-threshold trials proving `max_source_file_lines=712` passes while `711`
 migration contract smoke, 209 integration tests, 1,405 combined coverage tests, 94.27% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current Advise proposal client-boundary branch moves proposal lifecycle and memo upstream
-forwarding into `src/app/clients/advise_proposal_client.py` while preserving the public
-`AdviseClient` surface. It reduces `advise_client.py` from 712 to 220 script-counted lines, keeps
-the new proposal mixin at 536 script-counted lines, moves the largest residual source-file hotspot
-to `src/app/contracts/risk_workspace.py` at 709 script-counted lines, and ratchets the source-file
-threshold to 709 script-counted lines. Focused validation passed with ruff check, ruff format
-check, mypy over touched client modules, 28 focused Advise client boundary/upstream tests,
-4 refactor-threshold tests, and refactor-threshold trials proving `max_source_file_lines=709`
-passes while `708` fails on `src/app/contracts/risk_workspace.py`. Full local `make check` and
-`make ci` passed: `make check` covered ruff, format check over 737 files, monetary-float guard,
-refactor-threshold gate, workflow action-runtime gate, mypy over 523 source files, OpenAPI smoke,
-and 1,205 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
-1,414 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+The current risk workspace example-boundary branch moves response OpenAPI examples into
+`src/app/contracts/risk_workspace_examples.py` while preserving the public
+`app.contracts.risk_workspace` response model names. It reduces `risk_workspace.py` from 709 to
+312 script-counted lines, keeps the extracted example module at 379 script-counted lines, moves the
+largest residual source-file hotspot to `src/app/services/dpm_wave_service.py` at 700
+script-counted lines, and ratchets the source-file threshold to 700 script-counted lines. Focused
+validation passed with ruff check, ruff format check, mypy over touched risk contract modules,
+16 focused risk workspace contract/OpenAPI tests, 4 refactor-threshold tests, and
+refactor-threshold trials proving `max_source_file_lines=700` passes while `699` fails on
+`src/app/services/dpm_wave_service.py`. Full local `make check` and `make ci` passed:
+`make check` covered ruff, format check over 739 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 524 source files, OpenAPI smoke,
+and 1,210 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,419 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
 governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
