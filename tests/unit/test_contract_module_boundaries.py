@@ -44,3 +44,17 @@ def test_portfolio_liquidity_contracts_live_outside_portfolio_facade() -> None:
 
     assert expected_liquidity_contracts <= liquidity_contract_classes
     assert portfolio_facade_classes.isdisjoint(expected_liquidity_contracts)
+
+
+def test_performance_horizon_contracts_live_outside_performance_workspace_facade() -> None:
+    performance_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "performance_workspace.py")
+    horizon_contract_classes = _class_names(_CONTRACT_ROOT / "performance_horizon.py")
+
+    expected_horizon_contracts = {
+        "PerformanceBenchmarkOptionView",
+        "PerformanceHorizonComparisonResponse",
+        "PerformanceHorizonComparisonRow",
+    }
+
+    assert expected_horizon_contracts <= horizon_contract_classes
+    assert performance_workspace_facade_classes.isdisjoint(expected_horizon_contracts)

@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current foundation core-snapshot mapper branch shows 498 Python
-source files under `src/app` and 203 Python test files under `tests`.
+Working-tree verification for the current performance horizon contract branch shows 503 Python
+source files under `src/app` and 205 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 930 | `src/app/contracts/performance_workspace.py` |
-| 2 | 909 | `src/app/clients/advise_client.py` |
-| 3 | 868 | `src/app/router_registry.py` |
-| 4 | 861 | `src/app/services/advisor_brief_service.py` |
-| 5 | 854 | `src/app/services/proposal_service.py` |
-| 6 | 842 | `src/app/services/performance_workspace_service.py` |
-| 7 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 8 | 812 | `src/app/contracts/proposals.py` |
-| 9 | 812 | `src/app/contracts/advisor_brief.py` |
-| 10 | 811 | `src/app/services/portfolio_service.py` |
+| 1 | 914 | `src/app/clients/advise_client.py` |
+| 2 | 872 | `src/app/router_registry.py` |
+| 3 | 861 | `src/app/services/advisor_brief_service.py` |
+| 4 | 854 | `src/app/services/proposal_service.py` |
+| 5 | 842 | `src/app/services/performance_workspace_service.py` |
+| 6 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 7 | 812 | `src/app/contracts/proposals.py` |
+| 8 | 812 | `src/app/contracts/advisor_brief.py` |
+| 9 | 811 | `src/app/services/portfolio_service.py` |
+| 10 | 794 | `src/app/contracts/workbench.py` |
 
 ## Largest Functions
 
@@ -870,6 +870,16 @@ Most recent local evidence:
      `make ci` passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total
      coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
+133. Current performance horizon contract branch focused validation passed with ruff check, ruff
+     format, touched-module mypy, 46 performance/workbench contract and integration tests, and
+     trial refactor threshold gates proving `max_source_file_lines=914` passes while `913` fails
+     on `src/app/clients/advise_client.py`. The slice moves benchmark option and
+     horizon-comparison response models into `performance_horizon.py`, reducing
+     `performance_workspace.py` from 930 to 651 script-counted lines while preserving the public
+     `app.contracts.performance_workspace` import surface. Full local `make check` passed with
+     1,178 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,387
+     combined coverage tests, 94.18% total coverage, migration contract smoke, and no known
+     vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -887,7 +897,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 930 script-counted lines,
+1. no Python source file under `src/app` above 914 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

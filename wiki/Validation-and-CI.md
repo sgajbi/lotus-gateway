@@ -410,7 +410,7 @@ and no known vulnerabilities after the governed `PYSEC-2026-161` exception. Focu
 refactor-threshold trials prove `max_source_file_lines=951` passes while `950` fails on
 `src/app/services/foundation_service.py`.
 
-The current Foundation core-snapshot mapper branch ratchets the source-file threshold to 930
+The merged Foundation core-snapshot mapper branch ratcheted the source-file threshold to 930
 script-counted lines after moving lotus-core snapshot parsing, defensive payload normalization,
 allocation bucketing, top-position mapping, and market-value extraction into
 `foundation_core_snapshot.py`. It reduces `src/app/services/foundation_service.py` from 951 to 618
@@ -423,6 +423,18 @@ check, monetary-float guard, refactor threshold gate, workflow action-runtime ga
 source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. Full local `make ci`
 passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total coverage, migration
 contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
+The current performance horizon contract branch ratchets the source-file threshold to 914
+script-counted lines after moving benchmark option and horizon-comparison response models into
+`performance_horizon.py`. It reduces `src/app/contracts/performance_workspace.py` from 930 to 651
+script-counted lines while preserving the public `app.contracts.performance_workspace` import
+surface. Focused validation passed with ruff check, ruff format, mypy over touched performance
+contract modules, 46 focused performance/workbench contract and integration tests, and
+refactor-threshold trials proving `max_source_file_lines=914` passes while `913` fails on
+`src/app/clients/advise_client.py`. Full local `make check` passed with 1,178 unit/contract tests.
+Full local `make ci` passed with 209 integration tests, 1,387 combined coverage tests, 94.18% total
+coverage, migration contract smoke, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/contracts/performance_workspace.py` as the
-  largest residual source file at 930 script-counted lines after Foundation core snapshot parsing
-  moved into `foundation_core_snapshot.py`, reducing `src/app/services/foundation_service.py` to
-  618 script-counted lines; the repository longest-function baseline remains held at the enforced
+- current enterprise-hardening evidence records `src/app/clients/advise_client.py` as the largest
+  residual source file at 914 script-counted lines after performance horizon-comparison contracts
+  moved into `performance_horizon.py`, reducing `src/app/contracts/performance_workspace.py` to
+  651 script-counted lines; the repository longest-function baseline remains held at the enforced
   49-line AST span
 
 ## Route-family map
