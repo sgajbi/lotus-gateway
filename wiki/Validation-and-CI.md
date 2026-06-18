@@ -436,7 +436,7 @@ Full local `make ci` passed with 209 integration tests, 1,387 combined coverage 
 coverage, migration contract smoke, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 
-The current Advise policy client-boundary branch ratchets the source-file threshold to 872
+The merged Advise policy client-boundary branch ratcheted the source-file threshold to 872
 script-counted lines after moving advisory policy-pack, policy-evaluation, sign-off,
 report-package, and AI-evidence route methods into `advise_policy_client.py`. It reduces
 `src/app/clients/advise_client.py` from 914 to 712 script-counted lines while preserving the public
@@ -447,6 +447,16 @@ refactor-threshold trials proving `max_source_file_lines=872` passes while `871`
 local `make ci` passed with 209 integration tests, 1,388 combined coverage tests, 94.16% total
 coverage, migration contract smoke, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
+
+The current advisory router-group branch ratchets the source-file threshold to 861 script-counted
+lines after moving Advise-owned route-family imports and router group tuples into
+`src/app/router_groups/advisory.py`. It reduces `src/app/router_registry.py` from 872 to 632
+script-counted lines while preserving concrete route registration. Focused validation passed with
+ruff check, ruff format check, touched-module mypy, 10 router-registry/refactor-threshold tests,
+and the refactor threshold gate at `max_source_file_lines=861`. Full local `make check` passed
+with ruff, format check over 716 files, monetary-float guard, refactor-threshold gate,
+workflow action-runtime gate, mypy over 506 source files, Workbench/OpenAPI contract smoke, and
+1,180 unit/contract tests.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

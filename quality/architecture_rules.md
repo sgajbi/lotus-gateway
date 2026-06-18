@@ -35,14 +35,16 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/router_registry.py` at 872 script-counted lines,
-2. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
-3. `src/app/services/proposal_service.py` at 854 script-counted lines,
-4. `src/app/services/performance_workspace_service.py` at 842 script-counted lines,
-5. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines.
+1. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
+2. `src/app/services/proposal_service.py` at 854 script-counted lines,
+3. `src/app/services/performance_workspace_service.py` at 842 script-counted lines,
+4. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines,
+5. `src/app/contracts/proposals.py` at 812 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
-into explicit route-family groups and a short registration loop. The performance workspace
+into explicit route-family groups and a short registration loop. Advise-owned router groups have
+also been extracted into `src/app/router_groups/advisory.py`, reducing `router_registry.py` to 632
+script-counted lines while preserving concrete route registration. The performance workspace
 response builder has also been split into request-context, summary/detail, evidence, and assembly
 helpers. Advisor-brief source-context, fallback narrative, source-metric, supportability, route,
 and AI fact-bundle shaping are split into `advisor_brief_source.py`, leaving the service focused on
