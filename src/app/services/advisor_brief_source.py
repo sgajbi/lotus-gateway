@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from app.contracts.advisor_brief import (
     AdvisorBriefActionItem,
@@ -12,7 +11,6 @@ from app.contracts.advisor_brief import (
     AdvisorBriefSupportabilityItem,
     AdvisorBriefTone,
 )
-from app.contracts.performance_attribution import AttributionSummaryView
 from app.contracts.performance_contribution import (
     ContributionPositionView,
     ContributionSummaryView,
@@ -21,7 +19,30 @@ from app.contracts.performance_workspace import (
     PerformanceComparativeSummary,
     PerformanceWorkspaceResponse,
 )
-from app.precision_policy import quantize_money, quantize_performance
+from app.services.advisor_brief_source_contributors import (
+    negative_position_contributors,
+    positive_position_contributors,
+)
+from app.services.advisor_brief_source_fact_bundle import build_advisor_brief_ai_fact_bundle
+from app.services.advisor_brief_source_formatting import (
+    advisor_brief_analysis_evidence_ref,
+    advisor_brief_benchmark_display_label,
+    advisor_brief_portfolio_display_label,
+    advisor_brief_route_query,
+    advisor_brief_summary_evidence_ref,
+    format_advisor_brief_currency,
+    format_advisor_brief_pct,
+    normalize_advisor_brief_position_label,
+)
+
+__all__ = [
+    "AdvisorBriefSourceContext",
+    "build_advisor_brief_ai_fact_bundle",
+    "build_advisor_brief_source_context",
+    "build_advisor_brief_source_metrics",
+    "build_advisor_brief_source_route",
+    "build_advisor_brief_summary_evidence_ref",
+]
 
 
 @dataclass(frozen=True)
@@ -81,29 +102,9 @@ def build_advisor_brief_source_metrics(
     )
 
 
-def build_advisor_brief_ai_fact_bundle(
-    *,
-    source_context: AdvisorBriefSourceContext,
-) -> dict[str, Any]:
-    workspace = source_context.workspace
-    contribution = workspace.contribution
-    attribution = workspace.attribution
-    return {
-        "portfolio": _build_ai_portfolio_context(workspace=workspace),
-        "period": _build_ai_period_context(workspace=workspace),
-        "benchmark": _build_ai_benchmark_context(source_context=source_context),
-        "performance": _build_ai_performance_context(source_context=source_context),
-        "contribution": _build_ai_contribution_context(contribution=contribution),
-        "attribution": _build_ai_attribution_context(attribution=attribution),
-        "supportability": [item.model_dump(mode="json") for item in source_context.supportability],
-        "warnings": workspace.warnings,
-        "partial_failures": [item.model_dump(mode="json") for item in workspace.partial_failures],
-    }
-
-
 def build_advisor_brief_source_route(*, source_context: AdvisorBriefSourceContext) -> str:
     workspace = source_context.workspace
-    return _route_query(
+    return advisor_brief_route_query(
         portfolio_id=workspace.portfolio_id,
         period=workspace.period,
         basis=workspace.detail_basis,
@@ -118,7 +119,7 @@ def build_advisor_brief_summary_evidence_ref(
     source_context: AdvisorBriefSourceContext,
 ) -> AdvisorBriefEvidenceRef:
     workspace = source_context.workspace
-    return _summary_evidence_ref(
+    return advisor_brief_summary_evidence_ref(
         label=label,
         value=value,
         portfolio_id=workspace.portfolio_id,
@@ -135,104 +136,10 @@ def _build_source_refs(*, workspace: PerformanceWorkspaceResponse) -> list[str]:
     ]
     if workspace.benchmark_code:
         refs.append(
-            f"lotus-performance:benchmark:{workspace.portfolio_id}:{workspace.benchmark_code}:{workspace.period}"
+            "lotus-performance:benchmark:"
+            f"{workspace.portfolio_id}:{workspace.benchmark_code}:{workspace.period}"
         )
     return refs
-
-
-def _build_ai_portfolio_context(*, workspace: PerformanceWorkspaceResponse) -> dict[str, Any]:
-    return {
-        "portfolio_id": workspace.portfolio_id,
-        "display_label": _portfolio_display_label(workspace=workspace),
-        "base_currency": workspace.portfolio.base_currency,
-        "booking_center_code": workspace.portfolio.booking_center_code,
-        "client_id": workspace.portfolio.client_id,
-    }
-
-
-def _build_ai_period_context(*, workspace: PerformanceWorkspaceResponse) -> dict[str, Any]:
-    return {
-        "period": workspace.period,
-        "report_start_date": workspace.report_start_date,
-        "report_end_date": workspace.report_end_date,
-        "as_of_date": workspace.as_of_date,
-        "detail_basis": workspace.detail_basis,
-    }
-
-
-def _build_ai_benchmark_context(
-    *,
-    source_context: AdvisorBriefSourceContext,
-) -> dict[str, Any]:
-    workspace = source_context.workspace
-    return {
-        "benchmark_code": workspace.benchmark_code,
-        "benchmark_name": _benchmark_display_label(workspace=workspace),
-        "benchmark_return_pct": source_context.selected_performance.benchmark_return_pct,
-    }
-
-
-def _build_ai_performance_context(
-    *,
-    source_context: AdvisorBriefSourceContext,
-) -> dict[str, Any]:
-    workspace = source_context.workspace
-    selected_performance = source_context.selected_performance
-    return {
-        "portfolio_return_pct": selected_performance.portfolio_return_pct,
-        "benchmark_return_pct": selected_performance.benchmark_return_pct,
-        "active_return_pct": selected_performance.active_return_pct,
-        "net_cash_flow": selected_performance.net_cash_flow,
-        "end_market_value": selected_performance.end_market_value,
-        "money_weighted_return_pct": (
-            workspace.money_weighted_return.money_weighted_return_pct
-            if workspace.money_weighted_return
-            else None
-        ),
-    }
-
-
-def _build_ai_contribution_context(
-    *,
-    contribution: ContributionSummaryView | None,
-) -> dict[str, Any]:
-    return {
-        "portfolio_contribution_pct": (
-            contribution.portfolio_contribution_pct if contribution else None
-        ),
-        "coverage_mv_pct": contribution.coverage_mv_pct if contribution else None,
-        "top_positions": [
-            _build_ai_contribution_position(row=row)
-            for row in _positive_position_contributors(contribution=contribution)[:5]
-        ],
-        "bottom_positions": [
-            _build_ai_contribution_position(row=row)
-            for row in _negative_position_contributors(contribution=contribution)[:5]
-        ],
-    }
-
-
-def _build_ai_attribution_context(
-    *,
-    attribution: AttributionSummaryView | None,
-) -> dict[str, Any]:
-    return {
-        "active_return_pct": attribution.active_return_pct if attribution else None,
-        "sum_of_effects_pct": attribution.sum_of_effects_pct if attribution else None,
-        "residual_pct": attribution.residual_pct if attribution else None,
-        "top_effects": _top_attribution_effects(attribution=attribution),
-    }
-
-
-def _build_ai_contribution_position(*, row: ContributionPositionView) -> dict[str, Any]:
-    return {
-        "display_label": _normalize_position_label(row.position_id),
-        "contribution_pct": row.contribution_pct,
-        "weight_avg_pct": row.weight_avg_pct,
-        "total_return_pct": row.total_return_pct,
-        "local_contribution_pct": row.local_contribution_pct,
-        "fx_contribution_pct": row.fx_contribution_pct,
-    }
 
 
 def _build_source_summary(
@@ -240,9 +147,9 @@ def _build_source_summary(
     workspace: PerformanceWorkspaceResponse,
     selected_performance: PerformanceComparativeSummary,
 ) -> str:
-    portfolio_return = _format_pct(selected_performance.portfolio_return_pct)
-    benchmark_return = _format_pct(selected_performance.benchmark_return_pct)
-    active_return = _format_pct(selected_performance.active_return_pct)
+    portfolio_return = format_advisor_brief_pct(selected_performance.portfolio_return_pct)
+    benchmark_return = format_advisor_brief_pct(selected_performance.benchmark_return_pct)
+    active_return = format_advisor_brief_pct(selected_performance.active_return_pct)
     if (
         selected_performance.portfolio_return_pct is None
         and selected_performance.benchmark_return_pct is None
@@ -252,9 +159,11 @@ def _build_source_summary(
             "selection."
         )
     return (
-        f"{workspace.period} portfolio return for {_portfolio_display_label(workspace=workspace)} "
+        f"{workspace.period} portfolio return for "
+        f"{advisor_brief_portfolio_display_label(workspace=workspace)} "
         f"is {portfolio_return} versus "
-        f"{_benchmark_display_label(workspace=workspace) or 'benchmark'} {benchmark_return}, "
+        f"{advisor_brief_benchmark_display_label(workspace=workspace) or 'benchmark'} "
+        f"{benchmark_return}, "
         f"with active return {active_return}."
     )
 
@@ -317,11 +226,13 @@ def _build_return_talking_point(
         return None
     return AdvisorBriefNarrativeItem(
         headline=(
-            f"Portfolio return is {_format_pct(selected_performance.portfolio_return_pct)} "
-            f"versus benchmark {_format_pct(selected_performance.benchmark_return_pct)}."
+            "Portfolio return is "
+            f"{format_advisor_brief_pct(selected_performance.portfolio_return_pct)} "
+            "versus benchmark "
+            f"{format_advisor_brief_pct(selected_performance.benchmark_return_pct)}."
         ),
         detail=(
-            f"Active return is {_format_pct(selected_performance.active_return_pct)} "
+            f"Active return is {format_advisor_brief_pct(selected_performance.active_return_pct)} "
             f"for the selected {workspace.period} period."
         ),
         tone=(
@@ -330,9 +241,9 @@ def _build_return_talking_point(
             else AdvisorBriefTone.WARNING
         ),
         evidence_refs=[
-            _summary_evidence_ref(
+            advisor_brief_summary_evidence_ref(
                 label="Active Return",
-                value=_format_pct(selected_performance.active_return_pct),
+                value=format_advisor_brief_pct(selected_performance.active_return_pct),
                 portfolio_id=workspace.portfolio_id,
                 period=workspace.period,
                 basis=workspace.detail_basis,
@@ -345,14 +256,14 @@ def _build_return_talking_point(
 def _first_positive_position_contributor(
     contribution: ContributionSummaryView | None,
 ) -> ContributionPositionView | None:
-    contributors = _positive_position_contributors(contribution=contribution)
+    contributors = positive_position_contributors(contribution=contribution)
     return contributors[0] if contributors else None
 
 
 def _first_negative_position_contributor(
     contribution: ContributionSummaryView | None,
 ) -> ContributionPositionView | None:
-    contributors = _negative_position_contributors(contribution=contribution)
+    contributors = negative_position_contributors(contribution=contribution)
     return contributors[0] if contributors else None
 
 
@@ -364,16 +275,17 @@ def _build_position_talking_point(
     label: str,
     tone: AdvisorBriefTone,
 ) -> AdvisorBriefNarrativeItem:
-    position_label = _normalize_position_label(position.position_id)
+    position_label = normalize_advisor_brief_position_label(position.position_id)
     return AdvisorBriefNarrativeItem(
         headline=f"{headline_prefix} is {position_label}.",
         detail=(
-            f"{position_label} contributed {_format_pct(position.contribution_pct)} "
-            f"with return {_format_pct(position.total_return_pct)}."
+            f"{position_label} contributed "
+            f"{format_advisor_brief_pct(position.contribution_pct)} "
+            f"with return {format_advisor_brief_pct(position.total_return_pct)}."
         ),
         tone=tone,
         evidence_refs=[
-            _analysis_evidence_ref(
+            advisor_brief_analysis_evidence_ref(
                 label=label,
                 value=position_label,
                 portfolio_id=workspace.portfolio_id,
@@ -389,7 +301,7 @@ def _build_recommended_actions(
     *,
     workspace: PerformanceWorkspaceResponse,
 ) -> list[AdvisorBriefActionItem]:
-    route = _route_query(
+    route = advisor_brief_route_query(
         portfolio_id=workspace.portfolio_id,
         period=workspace.period,
         basis=workspace.detail_basis,
@@ -436,7 +348,7 @@ def _build_supportability_risk(
                     if supportability_item.label in {"Contribution", "Attribution"}
                     else "summary"
                 ),
-                route=_route_query(
+                route=advisor_brief_route_query(
                     portfolio_id=workspace.portfolio_id,
                     period=workspace.period,
                     basis=workspace.detail_basis,
@@ -456,35 +368,35 @@ def _build_return_source_metrics(
     return [
         _source_metric(
             label="Portfolio Return",
-            value=_format_pct(selected_performance.portfolio_return_pct),
+            value=format_advisor_brief_pct(selected_performance.portfolio_return_pct),
             support_label=f"{workspace.period} {workspace.detail_basis}",
             route=route,
             state=workspace.capabilities.summary_kpis.state,
         ),
         _source_metric(
             label="Benchmark Return",
-            value=_format_pct(selected_performance.benchmark_return_pct),
+            value=format_advisor_brief_pct(selected_performance.benchmark_return_pct),
             support_label=workspace.benchmark_code or "Unassigned",
             route=route,
             state=workspace.capabilities.benchmark_comparison.state,
         ),
         _source_metric(
             label="Active Return",
-            value=_format_pct(selected_performance.active_return_pct),
+            value=format_advisor_brief_pct(selected_performance.active_return_pct),
             support_label=f"{workspace.report_start_date} to {workspace.report_end_date}",
             route=route,
             state=workspace.capabilities.benchmark_comparison.state,
         ),
         _source_metric(
             label="Net Flow",
-            value=_format_currency(selected_performance.net_cash_flow),
+            value=format_advisor_brief_currency(selected_performance.net_cash_flow),
             support_label=workspace.portfolio.base_currency or "Portfolio currency",
             route=route,
             state=workspace.capabilities.summary_kpis.state,
         ),
         _source_metric(
             label="Ending MV",
-            value=_format_currency(selected_performance.end_market_value),
+            value=format_advisor_brief_currency(selected_performance.end_market_value),
             support_label=workspace.report_end_date,
             route=route,
             state=workspace.capabilities.summary_kpis.state,
@@ -594,149 +506,3 @@ def _resolve_status(
     if any(item.tone in {"warn", "danger"} for item in supportability):
         return AdvisorBriefStatus.PARTIAL
     return AdvisorBriefStatus.READY
-
-
-def _positive_position_contributors(
-    *,
-    contribution: ContributionSummaryView | None,
-) -> list[ContributionPositionView]:
-    if not contribution:
-        return []
-    return sorted(
-        [row for row in contribution.position_rows if row.contribution_pct > 0],
-        key=lambda row: row.contribution_pct,
-        reverse=True,
-    )
-
-
-def _negative_position_contributors(
-    *,
-    contribution: ContributionSummaryView | None,
-) -> list[ContributionPositionView]:
-    if not contribution:
-        return []
-    return sorted(
-        [row for row in contribution.position_rows if row.contribution_pct < 0],
-        key=lambda row: row.contribution_pct,
-    )
-
-
-def _top_attribution_effects(
-    *,
-    attribution: AttributionSummaryView | None,
-) -> list[dict[str, Any]]:
-    if not attribution:
-        return []
-    rows = [
-        row
-        for level in attribution.levels
-        for row in level.rows
-        if row.total_effect_pct is not None
-    ]
-    return [
-        {
-            "segment_label": row.key_label,
-            "total_effect_pct": row.total_effect_pct,
-            "allocation_pct": row.allocation_pct,
-            "selection_pct": row.selection_pct,
-            "interaction_pct": row.interaction_pct,
-            "portfolio_weight_avg_pct": row.portfolio_weight_avg_pct,
-            "benchmark_weight_avg_pct": row.benchmark_weight_avg_pct,
-            "portfolio_return_pct": row.portfolio_return_pct,
-            "benchmark_return_pct": row.benchmark_return_pct,
-        }
-        for row in sorted(rows, key=lambda row: abs(row.total_effect_pct), reverse=True)[:5]
-    ]
-
-
-def _summary_evidence_ref(
-    *,
-    label: str,
-    value: str,
-    portfolio_id: str,
-    period: str,
-    basis: str,
-    benchmark_code: str | None,
-) -> AdvisorBriefEvidenceRef:
-    return AdvisorBriefEvidenceRef(
-        metric_label=label,
-        metric_value=value,
-        source_surface="performance.return_path",
-        target_mode="summary",
-        route=_route_query(
-            portfolio_id=portfolio_id,
-            period=period,
-            basis=basis,
-            benchmark_code=benchmark_code,
-        ),
-    )
-
-
-def _analysis_evidence_ref(
-    *,
-    label: str,
-    value: str,
-    portfolio_id: str,
-    period: str,
-    basis: str,
-    benchmark_code: str | None,
-) -> AdvisorBriefEvidenceRef:
-    return AdvisorBriefEvidenceRef(
-        metric_label=label,
-        metric_value=value,
-        source_surface="performance.contribution",
-        target_mode="analysis",
-        route=_route_query(
-            portfolio_id=portfolio_id,
-            period=period,
-            basis=basis,
-            benchmark_code=benchmark_code,
-        ),
-    )
-
-
-def _route_query(
-    *,
-    portfolio_id: str,
-    period: str,
-    basis: str,
-    benchmark_code: str | None,
-) -> str:
-    route = f"/performance?portfolioId={portfolio_id}&period={period}&detailBasis={basis}"
-    if benchmark_code:
-        route += f"&benchmark={benchmark_code}"
-    return route
-
-
-def _format_pct(value: Any) -> str:
-    if value is None:
-        return "N/A"
-    return f"{quantize_performance(value):.2f}%"
-
-
-def _format_currency(value: Any) -> str:
-    if value is None:
-        return "N/A"
-    return f"${quantize_money(value):,.0f}"
-
-
-def _normalize_position_label(position_id: str) -> str:
-    display_label = position_id.rsplit(":", 1)[-1].strip()
-    for prefix in ("FO_EQ_", "FO_FI_", "FO_CASH_", "FO_ALT_", "FO_FX_"):
-        if display_label.startswith(prefix):
-            display_label = display_label[len(prefix) :]
-            break
-    return display_label.replace("_", " ").strip() or position_id
-
-
-def _portfolio_display_label(*, workspace: PerformanceWorkspaceResponse) -> str:
-    return _normalize_position_label(workspace.portfolio.portfolio_id)
-
-
-def _benchmark_display_label(*, workspace: PerformanceWorkspaceResponse) -> str | None:
-    if not workspace.benchmark_code:
-        return None
-    for option in workspace.benchmark_options:
-        if option.benchmark_code == workspace.benchmark_code:
-            return option.benchmark_name.strip() or workspace.benchmark_code
-    return workspace.benchmark_code

@@ -1,11 +1,12 @@
 from advisor_brief_test_data import build_advisor_brief_workspace
 
 from app.contracts.advisor_brief import AdvisorBriefStatus, AdvisorBriefTone
+from app.services import advisor_brief_source
 from app.services.advisor_brief_source import (
-    build_advisor_brief_ai_fact_bundle,
     build_advisor_brief_source_context,
     build_advisor_brief_source_metrics,
 )
+from app.services.advisor_brief_source_fact_bundle import build_advisor_brief_ai_fact_bundle
 
 
 def test_build_advisor_brief_source_context_preserves_source_grounded_narrative() -> None:
@@ -106,3 +107,9 @@ def test_build_advisor_brief_ai_fact_bundle_preserves_source_fact_shape() -> Non
     assert payload["supportability"][-1]["value"] == "Ready"
     assert payload["warnings"] == ["FOUNDATION_WARNING"]
     assert payload["partial_failures"][0]["error_code"] == "FOUNDATION_WARNING"
+
+
+def test_advisor_brief_source_keeps_fact_bundle_compatibility_import() -> None:
+    assert advisor_brief_source.build_advisor_brief_ai_fact_bundle is (
+        build_advisor_brief_ai_fact_bundle
+    )
