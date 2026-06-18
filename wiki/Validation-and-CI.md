@@ -632,6 +632,20 @@ over 521 source files, OpenAPI smoke, and 1,194 unit/contract tests. Full local 
 with migration contract smoke, 209 integration tests, 1,403 combined coverage tests, 94.26% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current portfolio liquidity response-boundary branch moves portfolio liquidity and projected
+cashflow response assembly into `src/app/services/portfolio_liquidity_response.py` while preserving
+upstream loading in `PortfolioService`. It reduces `portfolio_service.py` from 714 to 689
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/clients/advise_client.py` at 712 script-counted lines, and ratchets the source-file
+threshold to 712 script-counted lines. Focused validation passed with ruff check, ruff format
+check, mypy over touched service modules, 46 focused portfolio service/liquidity tests, and
+refactor-threshold trials proving `max_source_file_lines=712` passes while `711` fails on
+`src/app/clients/advise_client.py`. Full local `make check` passed with ruff, format check over
+736 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy over
+522 source files, OpenAPI smoke, and 1,196 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,405 combined coverage tests, 94.27% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

@@ -7,9 +7,6 @@ from app.contracts.portfolio import (
     PortfolioExceptionSummary,
     PortfolioInsight,
     PortfolioInsightsResponse,
-    PortfolioLiquidityResponse,
-    PortfolioPartialFailure,
-    PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
 )
 from app.contracts.portfolio_activity_income import (
@@ -22,6 +19,10 @@ from app.contracts.portfolio_holdings import (
     PortfolioPositionBookResponse,
     PortfolioPositionView,
     PortfolioTopPosition,
+)
+from app.contracts.portfolio_liquidity import (
+    PortfolioLiquidityResponse,
+    PortfolioProjectedCashflowResponse,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
 from app.contracts.portfolio_workspace import PortfolioWorkspaceResponse
@@ -48,7 +49,6 @@ from app.services.portfolio_holdings_payloads import (
     build_portfolio_allocation_response,
     load_portfolio_allocation_payloads,
     load_portfolio_position_book_payloads,
-    parse_cash_balances,
 )
 from app.services.portfolio_insights import build_portfolio_insights
 from app.services.portfolio_liquidity_payloads import (
@@ -56,6 +56,10 @@ from app.services.portfolio_liquidity_payloads import (
     PortfolioLiquidityPayloadLoaders,
     PortfolioLiquidityPayloads,
     load_portfolio_liquidity_payloads,
+)
+from app.services.portfolio_liquidity_response import (
+    build_portfolio_liquidity_response,
+    build_projected_cashflow_response,
 )
 from app.services.portfolio_position_book import (
     build_position_book_response,
@@ -92,8 +96,6 @@ from app.services.portfolio_workspace_components import (
     build_portfolio_workspace_assembly_state,
     build_portfolio_workspace_response_parts,
     extract_resolved_as_of_date,
-    parse_cashflow,
-    parse_summary,
 )
 from app.services.portfolio_workspace_response import (
     assemble_portfolio_workspace_response,
@@ -462,41 +464,19 @@ class PortfolioService(
         as_of_date: str | None,
         reporting_currency: str | None = None,
     ) -> PortfolioLiquidityResponse:
-        warnings: list[str] = []
-        partial_failures: list[PortfolioPartialFailure] = []
         payloads = await self._load_portfolio_liquidity_payloads(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             as_of_date=as_of_date,
             reporting_currency=reporting_currency,
         )
-        summary = parse_summary(
-            payloads.aum_result,
-            payloads.cash_balances_result,
-            warnings,
-            partial_failures,
-        )
-        return PortfolioLiquidityResponse(
+        return build_portfolio_liquidity_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            as_of_date=str(
-                payloads.aum_payload.get("resolved_as_of_date")
-                or as_of_date
-                or datetime.now(UTC).date()
-            ),
             portfolio_id=portfolio_id,
-            summary=summary,
-            cash_balances=parse_cash_balances(
-                payloads.cash_balances_payload,
-                summary.assets_under_management_base,
-            ),
-            cashflow_outlook=parse_cashflow(
-                payloads.cashflow_result,
-                warnings,
-                partial_failures,
-            ),
-            warnings=warnings,
-            partial_failures=partial_failures,
+            as_of_date=as_of_date,
+            default_as_of_date=datetime.now(UTC).date().isoformat(),
+            payloads=payloads,
         )
 
     async def _load_portfolio_liquidity_payloads(
@@ -530,8 +510,6 @@ class PortfolioService(
         horizon_days: int,
         include_projected: bool,
     ) -> PortfolioProjectedCashflowResponse:
-        warnings: list[str] = []
-        partial_failures: list[PortfolioPartialFailure] = []
         cashflow_result = await self._get_cashflow_projection_result(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
@@ -539,17 +517,14 @@ class PortfolioService(
             include_projected=include_projected,
             horizon_days=horizon_days,
         )
-        cashflow_outlook = parse_cashflow(cashflow_result, warnings, partial_failures)
-        resolved_as_of_date = extract_resolved_as_of_date(cashflow_result)
 
-        return PortfolioProjectedCashflowResponse(
+        return build_projected_cashflow_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=resolved_as_of_date or as_of_date or datetime.now(UTC).date().isoformat(),
-            cashflow_outlook=cashflow_outlook,
-            warnings=warnings,
-            partial_failures=partial_failures,
+            as_of_date=as_of_date,
+            default_as_of_date=datetime.now(UTC).date().isoformat(),
+            cashflow_result=cashflow_result,
         )
 
     async def get_portfolio_allocations(
