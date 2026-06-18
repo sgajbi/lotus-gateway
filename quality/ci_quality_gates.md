@@ -1,6 +1,6 @@
 # CI Quality Gates
 
-Date: 2026-06-17  
+Date: 2026-06-18  
 Mode: progressive enforcement
 
 This file records the governed CI measurement posture for the gateway hardening program. It is the
@@ -62,23 +62,24 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 712
+2. Current enforced source-file threshold: no Python source file under `src/app` above 709
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=712` and `max_function_lines=49`.
+   `max_source_file_lines=709` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current portfolio liquidity response-boundary branch focused validation passed with ruff check,
-   ruff format check, mypy over touched service modules, 46 focused portfolio service/liquidity
-   tests, and refactor-threshold trials proving `max_source_file_lines=712` passes while `711`
-   fails on `src/app/clients/advise_client.py`.
-7. Current portfolio liquidity response-boundary branch `make check` passed with ruff, format check
-   over 736 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
-   mypy over 522 source files, OpenAPI smoke, and 1,196 unit/contract tests.
-8. Current portfolio liquidity response-boundary branch `make ci` passed with migration contract
-   smoke, 209 integration tests, 1,405 coverage tests, 94.27% total coverage, and no known
+6. Current Advise proposal client-boundary branch focused validation passed with ruff check,
+   ruff format check, mypy over touched client modules, 28 focused Advise client
+   boundary/upstream tests, 4 refactor-threshold tests, and refactor-threshold trials proving
+   `max_source_file_lines=709` passes while `708` fails on
+   `src/app/contracts/risk_workspace.py`.
+7. Current Advise proposal client-boundary branch `make check` passed with ruff, format check
+   over 737 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
+   mypy over 523 source files, OpenAPI smoke, and 1,205 unit/contract tests.
+8. Current Advise proposal client-boundary branch `make ci` passed with migration contract smoke,
+   209 integration tests, 1,414 coverage tests, 94.29% total coverage, and no known
    vulnerabilities after the governed `PYSEC-2026-161` exception.
 9. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
@@ -524,7 +525,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/clients/advise_client.py`
-   is now the largest file at 712 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/contracts/risk_workspace.py`
+   is now the largest file at 709 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

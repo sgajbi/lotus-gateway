@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/advise_client.py` at 712 script-counted lines,
-2. `src/app/contracts/risk_workspace.py` at 709 script-counted lines,
-3. `src/app/services/dpm_wave_service.py` at 700 script-counted lines,
-4. `src/app/services/dpm_command_center_service.py` at 695 script-counted lines,
-5. `src/app/services/advisory_client_protocols.py` at 692 script-counted lines.
+1. `src/app/contracts/risk_workspace.py` at 709 script-counted lines,
+2. `src/app/services/dpm_wave_service.py` at 700 script-counted lines,
+3. `src/app/services/dpm_command_center_service.py` at 695 script-counted lines,
+4. `src/app/services/advisory_client_protocols.py` at 692 script-counted lines,
+5. `src/app/clients/lotus_analytics_client.py` at 689 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -109,6 +109,11 @@ Portfolio liquidity and projected-cashflow response assembly now live in
 `PortfolioService` while reducing `portfolio_service.py` to 689 script-counted lines. The blocking
 source-file threshold is ratcheted from 714 to 712 script-counted lines, making
 `src/app/clients/advise_client.py` the largest residual source-file hotspot.
+Advise proposal lifecycle and memo upstream route forwarding now lives in
+`src/app/clients/advise_proposal_client.py`, reducing `advise_client.py` from 712 to 220
+script-counted lines while preserving the public `AdviseClient` surface. The blocking source-file
+threshold is ratcheted from 712 to 709 script-counted lines, making
+`src/app/contracts/risk_workspace.py` the largest residual source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
@@ -266,6 +271,9 @@ script-counted lines while preserving the public `AdviseClient` surface. The cur
 client-boundary slice moves advisory policy-pack, policy-evaluation, sign-off, report-package, and
 AI-evidence upstream route methods into `src/app/clients/advise_policy_client.py`, reducing
 `advise_client.py` from 914 to 712 script-counted lines while preserving the public `AdviseClient`
+surface. The current Advise proposal client-boundary slice moves proposal lifecycle and memo
+upstream route methods into `src/app/clients/advise_proposal_client.py`, reducing
+`advise_client.py` from 712 to 220 script-counted lines while preserving the public `AdviseClient`
 surface. The current portfolio
 transaction workflow slice moves transaction ledger, income summary, and activity summary
 orchestration into `src/app/services/portfolio_transaction_service.py`, reducing
