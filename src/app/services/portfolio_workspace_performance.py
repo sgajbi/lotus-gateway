@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.contracts.portfolio import PortfolioPerformanceSummary
+from app.contracts.portfolio_workspace import PortfolioPerformanceSummary
 from app.precision_policy import quantize_performance
 
 

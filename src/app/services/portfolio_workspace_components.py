@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.contracts.portfolio import (
-    PortfolioCashflowOutlook,
+from app.contracts.portfolio_common import PortfolioPartialFailure
+from app.contracts.portfolio_core import PortfolioSummary
+from app.contracts.portfolio_liquidity import PortfolioCashflowOutlook
+from app.contracts.portfolio_workspace import (
     PortfolioOperationalReadiness,
-    PortfolioPartialFailure,
     PortfolioPerformanceSummary,
     PortfolioRebalanceSummary,
     PortfolioRebalanceSupportabilitySummary,
 )
-from app.contracts.portfolio_core import PortfolioSummary
 from app.services.portfolio_readiness_response import build_reporting_readiness
 from app.services.portfolio_upstream_payloads import (
     optional_payload,

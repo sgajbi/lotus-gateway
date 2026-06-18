@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 
-from app.contracts.portfolio import (
-    PortfolioOperationalReadiness,
-    PortfolioWorkspaceResponse,
-)
 from app.contracts.portfolio_core import PortfolioSummary
 from app.contracts.portfolio_holdings import PortfolioAllocationView, PortfolioPositionView
 from app.contracts.portfolio_workflow import (
     PortfolioReadinessIndicator,
     PortfolioWorkflowAction,
     PortfolioWorkflowLaunchCue,
+)
+from app.contracts.portfolio_workspace import (
+    PortfolioOperationalReadiness,
+    PortfolioWorkspaceResponse,
 )
 
 

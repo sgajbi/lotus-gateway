@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi import status
 
-from app.contracts.portfolio import PortfolioRebalanceSupportabilitySummary
+from app.contracts.portfolio_workspace import PortfolioRebalanceSupportabilitySummary
 from app.contracts.workbench import (
     WorkbenchPartialFailure,
     WorkbenchRebalanceRunSummary,

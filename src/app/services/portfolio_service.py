@@ -11,7 +11,6 @@ from app.contracts.portfolio import (
     PortfolioPartialFailure,
     PortfolioProjectedCashflowResponse,
     PortfolioReadinessResponse,
-    PortfolioWorkspaceResponse,
 )
 from app.contracts.portfolio_activity_income import (
     PortfolioActivitySummaryResponse,
@@ -25,6 +24,7 @@ from app.contracts.portfolio_holdings import (
     PortfolioTopPosition,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
+from app.contracts.portfolio_workspace import PortfolioWorkspaceResponse
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.portfolio_book import build_portfolio_book_response
 from app.services.portfolio_book_sources import (
