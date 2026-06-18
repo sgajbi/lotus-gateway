@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, FastAPI
 
+from app.router_groups.advisory import PROPOSAL_ROUTERS
 from app.router_registry import ROUTER_GROUPS, register_routers
 
 _MAIN_MODULE = Path(__file__).parents[2] / "src" / "app" / "main.py"
@@ -30,6 +31,18 @@ def test_router_registry_mounts_representative_gateway_route_families() -> None:
     assert "/api/v1/dpm/command-center" in routes
     assert "/api/v1/report-batches/{batch_id}" in routes
     assert "/api/v1/documents/{document_id}" in routes
+
+
+def test_advisory_router_group_keeps_proposal_routes_together() -> None:
+    routes = {
+        route.path
+        for router in PROPOSAL_ROUTERS
+        for route in router.routes
+        if hasattr(route, "path")
+    }
+
+    assert "/api/v1/proposals/simulate" in routes
+    assert "/api/v1/proposals/{proposal_id}/lineage" in routes
 
 
 def test_router_registry_registers_concrete_routes_for_middleware_introspection() -> None:
