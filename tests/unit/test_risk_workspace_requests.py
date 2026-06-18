@@ -1,7 +1,9 @@
 from app.services.risk_workspace_requests import (
     build_attribution_request,
+    build_attribution_request_context,
     build_risk_periods,
     build_rolling_request,
+    build_rolling_request_context,
     build_summary_request,
     normalize_detail_basis,
     normalize_period,
@@ -37,6 +39,41 @@ def test_resolve_reporting_currency_defaults_and_normalizes() -> None:
     assert resolve_reporting_currency(None) == "USD"
     assert resolve_reporting_currency("   ") == "USD"
     assert resolve_reporting_currency("sgd") == "SGD"
+
+
+def test_request_context_builders_resolve_dates_and_preserve_options() -> None:
+    rolling_context = build_rolling_request_context(
+        portfolio_id="PF_1",
+        correlation_id="corr-1",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-10",
+        report_start_date=None,
+        report_end_date=None,
+        reporting_currency="sgd",
+        include_time_series=True,
+    )
+    attribution_context = build_attribution_request_context(
+        portfolio_id="PF_1",
+        correlation_id="corr-2",
+        period="YTD",
+        detail_basis="NET",
+        benchmark_code="BMK_1",
+        as_of_date="2026-04-11",
+        report_start_date="2026-01-01",
+        report_end_date="2026-04-11",
+        reporting_currency="usd",
+        attribution_type="ACTIVE_RISK",
+        grouping_dimension="SECTOR",
+    )
+
+    assert rolling_context.as_of_date == "2026-04-10"
+    assert rolling_context.include_time_series is True
+    assert attribution_context.as_of_date == "2026-04-11"
+    assert attribution_context.report_start_date == "2026-01-01"
+    assert attribution_context.attribution_type == "ACTIVE_RISK"
+    assert attribution_context.grouping_dimension == "SECTOR"
 
 
 def test_normalize_detail_basis_fails_closed_to_net() -> None:

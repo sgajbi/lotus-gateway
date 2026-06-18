@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from app.services.risk_workspace_service import RiskWorkspaceService, _latest_business_day
+from app.services.risk_workspace_requests import latest_business_day
+from app.services.risk_workspace_service import RiskWorkspaceService
 
 
 class _StubRiskClient:
@@ -313,9 +314,9 @@ class _StubRiskClient:
 
 
 def test_latest_business_day_preserves_weekdays_and_rolls_weekends_back() -> None:
-    assert _latest_business_day(date(2026, 5, 8)) == date(2026, 5, 8)
-    assert _latest_business_day(date(2026, 5, 9)) == date(2026, 5, 8)
-    assert _latest_business_day(date(2026, 5, 10)) == date(2026, 5, 8)
+    assert latest_business_day(date(2026, 5, 8)) == date(2026, 5, 8)
+    assert latest_business_day(date(2026, 5, 9)) == date(2026, 5, 8)
+    assert latest_business_day(date(2026, 5, 10)) == date(2026, 5, 8)
 
 
 @pytest.mark.asyncio

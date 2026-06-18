@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-from datetime import date, timedelta
 from typing import Any, cast
 
 from fastapi import status
@@ -30,14 +28,21 @@ from app.services.risk_workspace_drawdown import (
     unavailable_drawdown,
 )
 from app.services.risk_workspace_requests import (
+    RiskAttributionRequestContext,
+    RiskConcentrationRequestContext,
+    RiskDrawdownRequestContext,
+    RiskRollingRequestContext,
+    RiskSummaryRequestContext,
     build_attribution_request,
+    build_attribution_request_context,
     build_concentration_request,
+    build_concentration_request_context,
     build_drawdown_request,
-    build_risk_periods,
+    build_drawdown_request_context,
     build_rolling_request,
+    build_rolling_request_context,
     build_summary_request,
-    normalize_period,
-    resolve_reporting_currency,
+    build_summary_request_context,
 )
 from app.services.risk_workspace_rolling import (
     map_rolling_response,
@@ -45,78 +50,7 @@ from app.services.risk_workspace_rolling import (
     should_retry_rolling_without_sharpe,
     unavailable_rolling,
 )
-from app.services.risk_workspace_summary import (
-    map_summary_response,
-    unavailable_summary,
-)
-
-
-@dataclass(frozen=True)
-class RiskRollingRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    period: str
-    detail_basis: str
-    benchmark_code: str | None
-    as_of_date: str
-    report_start_date: str | None
-    report_end_date: str | None
-    reporting_currency: str | None
-    include_time_series: bool
-
-
-@dataclass(frozen=True)
-class RiskDrawdownRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    period: str
-    detail_basis: str
-    benchmark_code: str | None
-    as_of_date: str
-    report_start_date: str | None
-    report_end_date: str | None
-    reporting_currency: str | None
-    include_underwater_series: bool
-
-
-@dataclass(frozen=True)
-class RiskAttributionRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    period: str
-    detail_basis: str
-    benchmark_code: str | None
-    as_of_date: str
-    report_start_date: str | None
-    report_end_date: str | None
-    reporting_currency: str | None
-    attribution_type: str
-    grouping_dimension: str
-
-
-@dataclass(frozen=True)
-class RiskSummaryRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    period: str
-    detail_basis: str
-    benchmark_code: str | None
-    as_of_date: str
-    report_start_date: str | None
-    report_end_date: str | None
-    reporting_currency: str | None
-
-
-@dataclass(frozen=True)
-class RiskConcentrationRequestContext:
-    portfolio_id: str
-    correlation_id: str
-    period: str
-    benchmark_code: str | None
-    as_of_date: str
-    report_start_date: str | None
-    report_end_date: str | None
-    reporting_currency: str | None
+from app.services.risk_workspace_summary import map_summary_response, unavailable_summary
 
 
 class RiskWorkspaceService:
@@ -151,13 +85,13 @@ class RiskWorkspaceService:
         report_end_date: str | None = None,
         reporting_currency: str | None,
     ) -> WorkbenchRiskSummaryResponse:
-        context = RiskSummaryRequestContext(
+        context = build_summary_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            as_of_date=_resolve_as_of_date(as_of_date),
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
@@ -238,13 +172,12 @@ class RiskWorkspaceService:
         reporting_currency: str | None,
         benchmark_code: str | None,
     ) -> WorkbenchRiskConcentrationResponse:
-        resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        context = RiskConcentrationRequestContext(
+        context = build_concentration_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             benchmark_code=benchmark_code,
-            as_of_date=resolved_as_of_date,
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
@@ -329,14 +262,13 @@ class RiskWorkspaceService:
         reporting_currency: str | None,
         include_underwater_series: bool,
     ) -> WorkbenchRiskDrawdownResponse:
-        resolved_as_of_date = _resolve_as_of_date(as_of_date)
-        context = RiskDrawdownRequestContext(
+        context = build_drawdown_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            as_of_date=resolved_as_of_date,
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
@@ -429,7 +361,7 @@ class RiskWorkspaceService:
         reporting_currency: str | None,
         include_time_series: bool,
     ) -> WorkbenchRiskRollingResponse:
-        context = _rolling_request_context(
+        context = build_rolling_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
@@ -610,18 +542,18 @@ class RiskWorkspaceService:
         attribution_type: str,
         grouping_dimension: str,
     ) -> RiskAttributionRequestContext:
-        return RiskAttributionRequestContext(
+        return build_attribution_request_context(
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             period=period,
             detail_basis=detail_basis,
             benchmark_code=benchmark_code,
-            as_of_date=_resolve_as_of_date(as_of_date),
+            as_of_date=as_of_date,
             report_start_date=report_start_date,
             report_end_date=report_end_date,
             reporting_currency=reporting_currency,
-            attribution_type=_normalize_risk_attribution_type(attribution_type),
-            grouping_dimension=_normalize_risk_attribution_grouping(grouping_dimension),
+            attribution_type=normalize_risk_attribution_type(attribution_type),
+            grouping_dimension=normalize_risk_attribution_grouping(grouping_dimension),
         )
 
     def _blocked_risk_attribution_response(
@@ -698,72 +630,3 @@ class RiskWorkspaceService:
             grouping_dimension=context.grouping_dimension,
             upstream_payload=upstream_payload,
         )
-
-
-def _resolve_reporting_currency(value: str | None) -> str:
-    return resolve_reporting_currency(value)
-
-
-def _normalize_risk_attribution_type(value: str) -> str:
-    return normalize_risk_attribution_type(value)
-
-
-def _normalize_risk_attribution_grouping(value: str) -> str:
-    return normalize_risk_attribution_grouping(value)
-
-
-def _latest_business_day(today: date | None = None) -> date:
-    resolved_today = today or date.today()
-    if resolved_today.weekday() == 5:
-        return resolved_today - timedelta(days=1)
-    if resolved_today.weekday() == 6:
-        return resolved_today - timedelta(days=2)
-    return resolved_today
-
-
-def _resolve_as_of_date(value: str | None) -> str:
-    return value or _latest_business_day().isoformat()
-
-
-def _rolling_request_context(
-    *,
-    portfolio_id: str,
-    correlation_id: str,
-    period: str,
-    detail_basis: str,
-    benchmark_code: str | None,
-    as_of_date: str | None,
-    report_start_date: str | None,
-    report_end_date: str | None,
-    reporting_currency: str | None,
-    include_time_series: bool,
-) -> RiskRollingRequestContext:
-    return RiskRollingRequestContext(
-        portfolio_id=portfolio_id,
-        correlation_id=correlation_id,
-        period=period,
-        detail_basis=detail_basis,
-        benchmark_code=benchmark_code,
-        as_of_date=_resolve_as_of_date(as_of_date),
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-        reporting_currency=reporting_currency,
-        include_time_series=include_time_series,
-    )
-
-
-def _normalize_period(value: str) -> str:
-    return normalize_period(value)
-
-
-def _build_risk_periods(
-    *,
-    period: str,
-    report_start_date: str | None,
-    report_end_date: str | None,
-) -> list[dict[str, Any]]:
-    return build_risk_periods(
-        period=period,
-        report_start_date=report_start_date,
-        report_end_date=report_end_date,
-    )
