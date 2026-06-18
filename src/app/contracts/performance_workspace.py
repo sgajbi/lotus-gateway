@@ -1,651 +1,79 @@
-from pydantic import BaseModel, Field
-
-from app.contracts import performance_attribution as _performance_attribution
-from app.contracts import performance_contribution as _performance_contribution
-from app.contracts import performance_evidence as _performance_evidence
-from app.contracts import performance_horizon as _performance_horizon
-from app.contracts.workbench import (
-    WorkbenchOverviewSummary,
-    WorkbenchPartialFailure,
-    WorkbenchPortfolioSummary,
+from app.contracts.performance_attribution import (
+    AttributionLevelView,
+    AttributionReasonView,
+    AttributionResidualMaterialityView,
+    AttributionRowView,
+    AttributionSummaryView,
+    AttributionSupportabilityEvidenceView,
+    PerformanceAttributionTrendResponse,
+    PerformanceAttributionTrendRow,
+)
+from app.contracts.performance_contribution import (
+    ContributionLevelView,
+    ContributionPositionView,
+    ContributionRowView,
+    ContributionSmoothingEvidenceView,
+    ContributionSourceEconomicsEvidenceView,
+    ContributionSummaryView,
+)
+from app.contracts.performance_evidence import (
+    PerformanceCalculationEvidenceView,
+    PerformanceEvidenceArtifactView,
+    PerformanceEvidenceStageView,
+    PerformanceEvidenceUpstreamSnapshotView,
+    PerformanceEvidenceView,
+    PerformanceSourceSupportabilityView,
+)
+from app.contracts.performance_horizon import (
+    PerformanceBenchmarkOptionView,
+    PerformanceHorizonComparisonResponse,
+    PerformanceHorizonComparisonRow,
+)
+from app.contracts.performance_workspace_common import (
+    MoneyWeightedReturnSummary,
+    PerformanceChartPoint,
+    PerformanceComparativeSummary,
+    PerformanceModuleCapability,
+    PerformanceWorkspaceCapabilities,
+    PerformanceWorkspaceResponse,
+)
+from app.contracts.performance_workspace_details_contract import (
+    PerformanceWorkspaceDetailsResponse,
+)
+from app.contracts.performance_workspace_summary_contract import (
+    PerformanceWorkspaceSummaryResponse,
 )
 
-AttributionLevelView = _performance_attribution.AttributionLevelView
-AttributionReasonView = _performance_attribution.AttributionReasonView
-AttributionResidualMaterialityView = _performance_attribution.AttributionResidualMaterialityView
-AttributionRowView = _performance_attribution.AttributionRowView
-AttributionSummaryView = _performance_attribution.AttributionSummaryView
-AttributionSupportabilityEvidenceView = (
-    _performance_attribution.AttributionSupportabilityEvidenceView
-)
-ContributionLevelView = _performance_contribution.ContributionLevelView
-ContributionPositionView = _performance_contribution.ContributionPositionView
-ContributionRowView = _performance_contribution.ContributionRowView
-ContributionSmoothingEvidenceView = _performance_contribution.ContributionSmoothingEvidenceView
-ContributionSourceEconomicsEvidenceView = (
-    _performance_contribution.ContributionSourceEconomicsEvidenceView
-)
-ContributionSummaryView = _performance_contribution.ContributionSummaryView
-PerformanceAttributionTrendResponse = _performance_attribution.PerformanceAttributionTrendResponse
-PerformanceAttributionTrendRow = _performance_attribution.PerformanceAttributionTrendRow
-PerformanceCalculationEvidenceView = _performance_evidence.PerformanceCalculationEvidenceView
-PerformanceEvidenceArtifactView = _performance_evidence.PerformanceEvidenceArtifactView
-PerformanceEvidenceStageView = _performance_evidence.PerformanceEvidenceStageView
-PerformanceEvidenceUpstreamSnapshotView = (
-    _performance_evidence.PerformanceEvidenceUpstreamSnapshotView
-)
-PerformanceEvidenceView = _performance_evidence.PerformanceEvidenceView
-PerformanceSourceSupportabilityView = _performance_evidence.PerformanceSourceSupportabilityView
-PerformanceBenchmarkOptionView = _performance_horizon.PerformanceBenchmarkOptionView
-PerformanceHorizonComparisonResponse = _performance_horizon.PerformanceHorizonComparisonResponse
-PerformanceHorizonComparisonRow = _performance_horizon.PerformanceHorizonComparisonRow
-
-
-class PerformanceComparativeSummary(BaseModel):
-    metric_basis: str
-    portfolio_return_pct: float | None = None
-    benchmark_return_pct: float | None = None
-    active_return_pct: float | None = None
-    annualized_return_pct: float | None = None
-    benchmark_id: str | None = None
-    benchmark_return_source: str | None = None
-    benchmark_input_mode: str | None = None
-    benchmark_currency_state: str | None = None
-    benchmark_calendar_alignment_state: str | None = None
-    benchmark_warning_codes: list[str] = Field(default_factory=list)
-    benchmark_missing_date_count: int | None = None
-    begin_market_value: float | None = None
-    end_market_value: float | None = None
-    beginning_cash_flow: float | None = None
-    ending_cash_flow: float | None = None
-    flow_adjusted_end_market_value: float | None = None
-    net_cash_flow: float | None = None
-    fees: float | None = None
-
-
-class PerformanceChartPoint(BaseModel):
-    label: str
-    frequency: str
-    period_start: str | None = None
-    period_end: str | None = None
-    portfolio_return_pct: float | None = None
-    benchmark_return_pct: float | None = None
-    active_return_pct: float | None = None
-    cumulative_portfolio_return_pct: float | None = None
-    cumulative_benchmark_return_pct: float | None = None
-    cumulative_active_return_pct: float | None = None
-
-
-class MoneyWeightedReturnSummary(BaseModel):
-    money_weighted_return_pct: float | None = None
-    annualized_return_pct: float | None = None
-    holding_period_return_pct: float | None = None
-    input_mode: str | None = None
-    method: str | None = None
-    status: str | None = None
-    reason_codes: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
-    is_annualized_primary: bool | None = None
-    fallback_from: str | None = None
-    fallback_reason: str | None = None
-    is_approximation: bool | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    begin_market_value: float | None = None
-    end_market_value: float | None = None
-    beginning_cash_flow: float | None = None
-    ending_cash_flow: float | None = None
-    flow_adjusted_end_market_value: float | None = None
-    net_cash_flow: float | None = None
-    fees: float | None = None
-    notes: list[str] = Field(default_factory=list)
-
-
-class PerformanceModuleCapability(BaseModel):
-    state: str
-    reason: str | None = None
-    coverage_level: str | None = None
-    fallback_available: bool | None = None
-    earliest_available_date: str | None = None
-    latest_available_date: str | None = None
-    supported_dimensions: list[str] | None = None
-    supported_frequencies: list[str] | None = None
-
-
-class PerformanceWorkspaceCapabilities(BaseModel):
-    summary_kpis: PerformanceModuleCapability
-    return_path: PerformanceModuleCapability
-    benchmark_comparison: PerformanceModuleCapability
-    multi_horizon_returns: PerformanceModuleCapability
-    contribution_ranking: PerformanceModuleCapability
-    attribution_detail: PerformanceModuleCapability
-    contribution_detail: PerformanceModuleCapability
-    evidence: PerformanceModuleCapability
-
-
-class PerformanceWorkspaceResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Correlation identifier propagated through the performance workspace request.",
-        examples=["corr-performance-workspace-1"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Gateway contract version for the performance workspace response.",
-        examples=["v1"],
-    )
-    portfolio_id: str
-    as_of_date: str
-    period: str
-    report_start_date: str
-    report_end_date: str
-    chart_frequency: str
-    contribution_dimension: str
-    attribution_dimension: str
-    detail_basis: str
-    requested_chart_frequency_supported: bool = True
-    requested_contribution_dimension_supported: bool = True
-    requested_attribution_dimension_supported: bool = True
-    segment: str
-    benchmark_code: str | None = None
-    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(default_factory=list)
-    capabilities: PerformanceWorkspaceCapabilities
-    evidence_view: PerformanceEvidenceView | None = Field(
-        default=None,
-        description=(
-            "Gateway-owned execution and lineage evidence payload for the "
-            "selected performance view."
-        ),
-    )
-    portfolio: WorkbenchPortfolioSummary
-    overview: WorkbenchOverviewSummary
-    net_performance: PerformanceComparativeSummary
-    gross_performance: PerformanceComparativeSummary
-    money_weighted_return: MoneyWeightedReturnSummary | None = None
-    net_chart: list[PerformanceChartPoint] = Field(default_factory=list)
-    gross_chart: list[PerformanceChartPoint] = Field(default_factory=list)
-    contribution: ContributionSummaryView | None = None
-    attribution: AttributionSummaryView | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
-
-
-class PerformanceWorkspaceSummaryResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Correlation identifier propagated through the performance summary request.",
-        examples=["corr-performance-summary-1"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Gateway contract version for the performance summary response.",
-        examples=["v1"],
-    )
-    portfolio_id: str = Field(
-        description="Portfolio identifier whose performance summary is being returned.",
-        examples=["PF_1001"],
-    )
-    as_of_date: str = Field(
-        description="Resolved as-of date used for the performance summary response.",
-        examples=["2026-02-24"],
-    )
-    period: str = Field(
-        description="Resolved requested horizon for the performance summary response.",
-        examples=["YTD"],
-    )
-    report_start_date: str = Field(
-        description="Inclusive start date for the resolved performance summary window.",
-        examples=["2026-01-01"],
-    )
-    report_end_date: str = Field(
-        description="Inclusive end date for the resolved performance summary window.",
-        examples=["2026-02-24"],
-    )
-    chart_frequency: str = Field(
-        description="Resolved chart frequency used for the performance summary context.",
-        examples=["monthly"],
-    )
-    detail_basis: str = Field(
-        description="Performance basis used for the performance summary metrics.",
-        examples=["NET"],
-    )
-    requested_chart_frequency_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested chart frequency was supported as-is.",
-        examples=[True],
-    )
-    requested_contribution_dimension_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested contribution dimension was supported as-is.",
-        examples=[True],
-    )
-    requested_attribution_dimension_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested attribution dimension was supported as-is.",
-        examples=[True],
-    )
-    benchmark_code: str | None = Field(
-        default=None,
-        description="Resolved benchmark code used for the performance summary when available.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    )
-    benchmark_options: list[PerformanceBenchmarkOptionView] = Field(
-        default_factory=list,
-        description="Benchmark options available for the current summary context.",
-    )
-    capabilities: PerformanceWorkspaceCapabilities = Field(
-        description="Gateway-published capability posture for the performance summary surface."
-    )
-    evidence_view: PerformanceEvidenceView | None = Field(
-        default=None,
-        description=(
-            "Gateway-owned execution and lineage evidence payload for the "
-            "selected performance view."
-        ),
-    )
-    portfolio: WorkbenchPortfolioSummary
-    overview: WorkbenchOverviewSummary
-    net_performance: PerformanceComparativeSummary
-    gross_performance: PerformanceComparativeSummary
-    money_weighted_return: MoneyWeightedReturnSummary | None = None
-    warnings: list[str] = Field(default_factory=list)
-    partial_failures: list[WorkbenchPartialFailure] = Field(default_factory=list)
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "correlation_id": "corr-performance-summary-1",
-                "contract_version": "v1",
-                "portfolio_id": "PF_1001",
-                "as_of_date": "2026-02-24",
-                "period": "YTD",
-                "report_start_date": "2026-01-01",
-                "report_end_date": "2026-02-24",
-                "chart_frequency": "monthly",
-                "detail_basis": "NET",
-                "requested_chart_frequency_supported": True,
-                "requested_contribution_dimension_supported": True,
-                "requested_attribution_dimension_supported": True,
-                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
-                "benchmark_options": [
-                    {
-                        "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
-                        "benchmark_name": "Global Balanced 60/40",
-                        "benchmark_currency": "USD",
-                        "benchmark_type": "composite",
-                        "benchmark_family": "multi_asset_strategic",
-                        "benchmark_provider": "LOTUS_DEMO",
-                        "is_assigned": True,
-                    }
-                ],
-                "capabilities": {
-                    "summary_kpis": {"state": "supported"},
-                    "return_path": {"state": "supported"},
-                    "benchmark_comparison": {"state": "supported"},
-                    "multi_horizon_returns": {"state": "supported"},
-                    "contribution_ranking": {"state": "supported"},
-                    "attribution_detail": {"state": "supported"},
-                    "contribution_detail": {"state": "supported"},
-                    "evidence": {"state": "partial"},
-                },
-                "evidence_view": {
-                    "state": "partial",
-                    "reason": (
-                        "Lineage artifacts are available, but execution evidence is incomplete."
-                    ),
-                    "calculations": [
-                        {
-                            "calculation_role": "workspace_summary",
-                            "calculation_id": "calc-workspace-summary",
-                            "analytics_type": "WORKSPACE_SUMMARY",
-                            "execution_status": "complete",
-                            "execution_mode": "sync",
-                            "lineage_status": "pending",
-                            "stage_statuses": [],
-                            "upstream_snapshots": [],
-                            "artifacts": [
-                                {
-                                    "artifact_name": "request.json",
-                                    "url": (
-                                        "/api/v1/workbench/PF_1001/performance/evidence/artifacts/"
-                                        "calc-workspace-summary/request.json"
-                                    ),
-                                    "content_type": "application/json",
-                                }
-                            ],
-                        }
-                    ],
-                },
-                "portfolio": {
-                    "portfolio_id": "PF_1001",
-                    "client_id": "CIF_1001",
-                    "base_currency": "USD",
-                    "booking_center_code": "SG",
-                },
-                "overview": {
-                    "market_value_base": 1250000.0,
-                    "cash_weight_pct": 6.8,
-                    "position_count": 18,
-                },
-                "net_performance": {
-                    "metric_basis": "NET",
-                    "portfolio_return_pct": 5.42,
-                    "benchmark_return_pct": 4.91,
-                    "active_return_pct": 0.52,
-                    "annualized_return_pct": 5.42,
-                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
-                    "benchmark_return_source": "calculated",
-                    "benchmark_input_mode": "stateful",
-                    "benchmark_currency_state": "fx_decomposed",
-                    "benchmark_calendar_alignment_state": "aligned",
-                    "benchmark_warning_codes": [],
-                    "benchmark_missing_date_count": 0,
-                    "begin_market_value": 1200000.0,
-                    "end_market_value": 1250000.0,
-                    "beginning_cash_flow": 50000.0,
-                    "ending_cash_flow": -8000.0,
-                    "flow_adjusted_end_market_value": 1208000.0,
-                    "net_cash_flow": 42000.0,
-                    "fees": 0.0,
-                },
-                "gross_performance": {
-                    "metric_basis": "GROSS",
-                    "portfolio_return_pct": 5.88,
-                    "benchmark_return_pct": 5.12,
-                    "active_return_pct": 0.76,
-                    "annualized_return_pct": 5.88,
-                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
-                    "benchmark_return_source": "calculated",
-                    "benchmark_input_mode": "stateful",
-                    "benchmark_currency_state": "fx_decomposed",
-                    "benchmark_calendar_alignment_state": "aligned",
-                    "benchmark_warning_codes": [],
-                    "benchmark_missing_date_count": 0,
-                    "begin_market_value": 1200000.0,
-                    "end_market_value": 1250000.0,
-                    "beginning_cash_flow": 50000.0,
-                    "ending_cash_flow": -8000.0,
-                    "flow_adjusted_end_market_value": 1208000.0,
-                    "net_cash_flow": 42000.0,
-                    "fees": 0.0,
-                },
-                "money_weighted_return": {
-                    "money_weighted_return_pct": 5.12,
-                    "annualized_return_pct": 5.12,
-                    "input_mode": "stateful",
-                    "method": "XIRR",
-                    "start_date": "2026-01-01",
-                    "end_date": "2026-02-24",
-                    "begin_market_value": 1200000.0,
-                    "end_market_value": 1250000.0,
-                    "beginning_cash_flow": 50000.0,
-                    "ending_cash_flow": -8000.0,
-                    "flow_adjusted_end_market_value": 1208000.0,
-                    "net_cash_flow": 42000.0,
-                    "fees": 0.0,
-                    "notes": ["cash-flow aware"],
-                },
-                "warnings": [],
-                "partial_failures": [],
-            }
-        }
-    }
-
-
-class PerformanceWorkspaceDetailsResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Correlation identifier propagated through the performance details request.",
-        examples=["corr-performance-details-1"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Gateway contract version for the performance details response.",
-        examples=["v1"],
-    )
-    portfolio_id: str = Field(
-        description="Portfolio identifier whose performance details are being returned.",
-        examples=["PF_1001"],
-    )
-    as_of_date: str = Field(
-        description="Resolved as-of date used for the performance details response.",
-        examples=["2026-02-24"],
-    )
-    period: str = Field(
-        description="Resolved requested horizon for the performance details response.",
-        examples=["YTD"],
-    )
-    report_start_date: str = Field(
-        description="Inclusive start date for the resolved performance details window.",
-        examples=["2026-01-01"],
-    )
-    report_end_date: str = Field(
-        description="Inclusive end date for the resolved performance details window.",
-        examples=["2026-02-24"],
-    )
-    chart_frequency: str = Field(
-        description="Resolved chart frequency used for the performance details context.",
-        examples=["monthly"],
-    )
-    contribution_dimension: str = Field(
-        description="Resolved contribution dimension used for the performance details response.",
-        examples=["asset_class"],
-    )
-    attribution_dimension: str = Field(
-        description="Resolved attribution dimension used for the performance details response.",
-        examples=["asset_class"],
-    )
-    detail_basis: str = Field(
-        description="Performance basis used for the performance details metrics.",
-        examples=["NET"],
-    )
-    requested_chart_frequency_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested chart frequency was supported as-is.",
-        examples=[True],
-    )
-    requested_contribution_dimension_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested contribution dimension was supported as-is.",
-        examples=[True],
-    )
-    requested_attribution_dimension_supported: bool = Field(
-        default=True,
-        description="Whether the caller's requested attribution dimension was supported as-is.",
-        examples=[True],
-    )
-    segment: str = Field(
-        description="Resolved segment key used to align the detailed performance payload.",
-        examples=["asset_class"],
-    )
-    benchmark_code: str | None = Field(
-        default=None,
-        description="Resolved benchmark code used for the performance details when available.",
-        examples=["BMK_PB_GLOBAL_BALANCED_60_40"],
-    )
-    capabilities: PerformanceWorkspaceCapabilities = Field(
-        description="Gateway-published capability posture for the performance details surface."
-    )
-    evidence_view: PerformanceEvidenceView | None = Field(
-        default=None,
-        description=(
-            "Gateway-owned execution and lineage evidence payload for the "
-            "selected performance view."
-        ),
-    )
-    net_chart: list[PerformanceChartPoint] = Field(
-        default_factory=list,
-        description="Net return path points published for the resolved details window.",
-    )
-    gross_chart: list[PerformanceChartPoint] = Field(
-        default_factory=list,
-        description="Gross return path points published for the resolved details window.",
-    )
-    contribution: ContributionSummaryView | None = Field(
-        default=None,
-        description="Contribution detail published for the resolved performance details context.",
-    )
-    attribution: AttributionSummaryView | None = Field(
-        default=None,
-        description="Attribution detail published for the resolved performance details context.",
-    )
-    warnings: list[str] = Field(
-        default_factory=list,
-        description="Gateway warning codes describing degraded but still usable details output.",
-    )
-    partial_failures: list[WorkbenchPartialFailure] = Field(
-        default_factory=list,
-        description=(
-            "Upstream source failures preserved when optional details inputs are unavailable."
-        ),
-    )
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "correlation_id": "corr-performance-details-1",
-                "contract_version": "v1",
-                "portfolio_id": "PF_1001",
-                "as_of_date": "2026-02-24",
-                "period": "YTD",
-                "report_start_date": "2026-01-01",
-                "report_end_date": "2026-02-24",
-                "chart_frequency": "monthly",
-                "contribution_dimension": "asset_class",
-                "attribution_dimension": "asset_class",
-                "detail_basis": "NET",
-                "requested_chart_frequency_supported": True,
-                "requested_contribution_dimension_supported": True,
-                "requested_attribution_dimension_supported": True,
-                "segment": "asset_class",
-                "benchmark_code": "BMK_PB_GLOBAL_BALANCED_60_40",
-                "capabilities": {
-                    "summary_kpis": {"state": "supported"},
-                    "return_path": {"state": "supported"},
-                    "benchmark_comparison": {"state": "supported"},
-                    "multi_horizon_returns": {"state": "supported"},
-                    "contribution_ranking": {"state": "supported"},
-                    "attribution_detail": {"state": "supported"},
-                    "contribution_detail": {"state": "supported"},
-                    "evidence": {"state": "partial"},
-                },
-                "evidence_view": {
-                    "state": "partial",
-                    "reason": (
-                        "Lineage artifacts are available, but execution evidence is incomplete."
-                    ),
-                    "calculations": [
-                        {
-                            "calculation_role": "workspace_summary",
-                            "calculation_id": "calc-workspace-summary",
-                            "analytics_type": "WORKSPACE_SUMMARY",
-                            "execution_status": "complete",
-                            "execution_mode": "sync",
-                            "lineage_status": "pending",
-                            "stage_statuses": [],
-                            "upstream_snapshots": [],
-                            "artifacts": [],
-                        }
-                    ],
-                },
-                "net_chart": [
-                    {
-                        "label": "2026-01",
-                        "frequency": "monthly",
-                        "period_start": "2026-01-01",
-                        "period_end": "2026-01-31",
-                        "portfolio_return_pct": 2.2,
-                        "benchmark_return_pct": 1.9,
-                        "active_return_pct": 0.3,
-                        "cumulative_portfolio_return_pct": 2.2,
-                        "cumulative_benchmark_return_pct": 1.9,
-                        "cumulative_active_return_pct": 0.3,
-                    }
-                ],
-                "gross_chart": [
-                    {
-                        "label": "2026-01",
-                        "frequency": "monthly",
-                        "period_start": "2026-01-01",
-                        "period_end": "2026-01-31",
-                        "portfolio_return_pct": 2.4,
-                        "benchmark_return_pct": 2.0,
-                        "active_return_pct": 0.4,
-                        "cumulative_portfolio_return_pct": 2.4,
-                        "cumulative_benchmark_return_pct": 2.0,
-                        "cumulative_active_return_pct": 0.4,
-                    }
-                ],
-                "contribution": {
-                    "metric_basis": "NET",
-                    "weighting_scheme": "average_weight",
-                    "portfolio_contribution_pct": 5.42,
-                    "total_portfolio_return_pct": 5.42,
-                    "coverage_mv_pct": 98.7,
-                    "portfolio_local_contribution_pct": 4.8,
-                    "portfolio_fx_contribution_pct": 0.62,
-                    "position_rows": [
-                        {
-                            "position_id": "AAPL",
-                            "contribution_pct": 1.55,
-                            "weight_avg_pct": 24.1,
-                            "total_return_pct": 8.2,
-                            "local_contribution_pct": 1.18,
-                            "fx_contribution_pct": 0.37,
-                        }
-                    ],
-                    "levels": [
-                        {
-                            "level": 1,
-                            "name": "asset_class",
-                            "total_contribution_pct": 5.0,
-                            "total_weight_avg_pct": 100.0,
-                            "total_portfolio_return_pct": 5.42,
-                            "rows": [
-                                {
-                                    "key_label": "Equity",
-                                    "contribution_pct": 3.8,
-                                    "weight_avg_pct": 61.0,
-                                    "total_return_pct": 7.4,
-                                    "local_contribution_pct": 3.4,
-                                    "fx_contribution_pct": 0.4,
-                                    "is_other": False,
-                                }
-                            ],
-                        }
-                    ],
-                },
-                "attribution": {
-                    "metric_basis": "NET",
-                    "model": "BF",
-                    "linking": "carino",
-                    "benchmark_id": "BMK_PB_GLOBAL_BALANCED_60_40",
-                    "benchmark_return_source": "calculated",
-                    "active_return_pct": 0.52,
-                    "sum_of_effects_pct": 0.5,
-                    "residual_pct": 0.02,
-                    "levels": [
-                        {
-                            "dimension": "asset_class",
-                            "allocation_total_pct": 0.18,
-                            "selection_total_pct": 0.24,
-                            "interaction_total_pct": 0.03,
-                            "total_effect_pct": 0.45,
-                            "rows": [
-                                {
-                                    "key_label": "Equity",
-                                    "portfolio_weight_avg_pct": 61.0,
-                                    "benchmark_weight_avg_pct": 58.0,
-                                    "portfolio_return_pct": 7.4,
-                                    "benchmark_return_pct": 6.8,
-                                    "allocation_pct": 0.18,
-                                    "selection_pct": 0.24,
-                                    "interaction_pct": 0.03,
-                                    "total_effect_pct": 0.45,
-                                }
-                            ],
-                        }
-                    ],
-                },
-                "warnings": [],
-                "partial_failures": [],
-            }
-        }
-    }
+__all__ = [
+    "AttributionLevelView",
+    "AttributionReasonView",
+    "AttributionResidualMaterialityView",
+    "AttributionRowView",
+    "AttributionSummaryView",
+    "AttributionSupportabilityEvidenceView",
+    "ContributionLevelView",
+    "ContributionPositionView",
+    "ContributionRowView",
+    "ContributionSmoothingEvidenceView",
+    "ContributionSourceEconomicsEvidenceView",
+    "ContributionSummaryView",
+    "MoneyWeightedReturnSummary",
+    "PerformanceAttributionTrendResponse",
+    "PerformanceAttributionTrendRow",
+    "PerformanceBenchmarkOptionView",
+    "PerformanceCalculationEvidenceView",
+    "PerformanceChartPoint",
+    "PerformanceComparativeSummary",
+    "PerformanceEvidenceArtifactView",
+    "PerformanceEvidenceStageView",
+    "PerformanceEvidenceUpstreamSnapshotView",
+    "PerformanceEvidenceView",
+    "PerformanceHorizonComparisonResponse",
+    "PerformanceHorizonComparisonRow",
+    "PerformanceModuleCapability",
+    "PerformanceSourceSupportabilityView",
+    "PerformanceWorkspaceCapabilities",
+    "PerformanceWorkspaceDetailsResponse",
+    "PerformanceWorkspaceResponse",
+    "PerformanceWorkspaceSummaryResponse",
+]
