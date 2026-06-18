@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/portfolio_service.py` as the
-  largest residual source file at 680 script-counted lines after Workbench overview enrichment
-  moved into `src/app/services/workbench_overview_enrichment.py`; the blocking source-file
-  threshold is ratcheted to 680 script-counted lines, and the repository longest-function baseline
+- current enterprise-hardening evidence records `src/app/services/performance_workspace_horizon.py`
+  as the largest residual source file at 667 script-counted lines after portfolio insights response
+  assembly moved into `src/app/services/portfolio_insight_response.py`; the blocking source-file
+  threshold is ratcheted to 667 script-counted lines, and the repository longest-function baseline
   remains held at the enforced 49-line AST span
 
 ## Route-family map

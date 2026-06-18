@@ -723,6 +723,19 @@ checks, and 10 workflow-pack checks. Companion observability evidence in
 `lotus-workbench/output/observability-live/20260618-194325/` records 13/13 API checks at HTTP 200,
 4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5 observability screenshots at HTTP 200.
 
+The current portfolio insights response boundary branch moves portfolio insights response assembly
+from `src/app/services/portfolio_service.py` into
+`src/app/services/portfolio_insight_response.py`. It preserves portfolio insights source loading
+and insight/exception semantics while reducing `src/app/services/portfolio_service.py` from 680 to
+589 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/performance_workspace_horizon.py` at 667 script-counted lines, and ratchets the
+source-file threshold to 667 script-counted lines. Focused validation passed with ruff check, ruff
+format, mypy over the touched portfolio service/response modules, 43 focused portfolio unit tests,
+and refactor-threshold trials proving `max_source_file_lines=667` passes while `666` fails on
+`src/app/services/performance_workspace_horizon.py`. Full local `make check`, `make ci`, live
+canonical stack validation, GitHub CI, and post-merge wiki publication evidence are pending for
+this branch.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

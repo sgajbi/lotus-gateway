@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 680 script-counted lines,
-2. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines,
-3. `src/app/contracts/reporting_query.py` at 664 script-counted lines,
-4. `src/app/contracts/reporting_batches.py` at 662 script-counted lines,
-5. `src/app/services/proposal_service.py` at 658 script-counted lines.
+1. `src/app/services/performance_workspace_horizon.py` at 667 script-counted lines,
+2. `src/app/contracts/reporting_query.py` at 664 script-counted lines,
+3. `src/app/contracts/reporting_batches.py` at 662 script-counted lines,
+4. `src/app/services/proposal_service.py` at 658 script-counted lines,
+5. `src/app/contracts/performance_workspace.py` at 651 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -151,6 +151,12 @@ portfolio-360, and analytics behavior while reducing `src/app/services/workbench
 685 to 562 script-counted lines. The blocking source-file threshold is ratcheted from 685 to 680
 script-counted lines, making `src/app/services/portfolio_service.py` the largest residual
 source-file hotspot.
+Portfolio insights response assembly now lives in
+`src/app/services/portfolio_insight_response.py`, preserving portfolio insight and exception
+semantics while reducing `src/app/services/portfolio_service.py` from 680 to 589 script-counted
+lines. The blocking source-file threshold is ratcheted from 680 to 667 script-counted lines,
+making `src/app/services/performance_workspace_horizon.py` the largest residual source-file
+hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
