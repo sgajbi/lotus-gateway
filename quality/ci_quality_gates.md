@@ -97,7 +97,7 @@ Most recent local PR-grade evidence:
     unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,388 combined
     coverage tests, 94.16% total coverage, migration contract smoke, and no known vulnerabilities
     after the governed `PYSEC-2026-161` exception.
-12. Current advisory router-group branch focused validation passed with ruff check, ruff format,
+12. Merged advisory router-group branch focused validation passed with ruff check, ruff format,
     touched-module mypy, 10 router-registry/refactor-threshold tests, and the refactor threshold
     gate at `max_source_file_lines=861`. The slice reduces `src/app/router_registry.py` from 872
     to 632 script-counted lines by moving Advise-owned router groups into
@@ -108,7 +108,12 @@ Most recent local PR-grade evidence:
     `src/app/services/proposal_service.py`. The slice reduces
     `src/app/services/advisor_brief_service.py` from 861 to 435 script-counted lines by moving AI
     task-request construction, AI narrative parsing, fallback audit normalization, and AI
-    evidence-reference mapping into `src/app/services/advisor_brief_narrative.py`.
+    evidence-reference mapping into `src/app/services/advisor_brief_narrative.py`. Full local
+    `make check` passed with ruff, format check over 719 files, monetary-float guard,
+    refactor-threshold gate, workflow action-runtime gate, mypy over 507 source files,
+    Workbench/OpenAPI contract smoke, and 1,184 unit/contract tests. Full local `make ci` passed
+    with 209 integration tests, 1,393 combined coverage tests, 94.22% total coverage, migration
+    contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 13. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
     `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
@@ -423,7 +428,7 @@ Most recent local PR-grade evidence:
     unit/contract tests. `make ci` passed with 207 integration tests, 1,365 combined coverage
     tests, 94.31% total coverage, migration contract smoke, and no known vulnerabilities after
     the governed `PYSEC-2026-161` exception.
-38. Current advisory router-group branch moves Advise-owned route-family imports and group tuples
+38. Merged advisory router-group branch moves Advise-owned route-family imports and group tuples
     into `src/app/router_groups/advisory.py`, reducing `src/app/router_registry.py` from 872 to
     632 script-counted lines while preserving concrete route registration. Focused validation
     passed with ruff check, ruff format check, touched-module mypy, 10 router-registry/refactor

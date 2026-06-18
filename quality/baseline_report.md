@@ -280,8 +280,8 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current advisory router-group branch shows 506 Python source
-files under `src/app` and 205 Python test files under `tests`.
+Working-tree verification for the current advisor brief narrative mapper branch shows 507 Python
+source files under `src/app` and 207 Python test files under `tests`.
 
 ## Largest Source Files
 
@@ -890,7 +890,7 @@ Most recent local evidence:
      local `make ci` passed with 209 integration tests, 1,388 combined coverage tests, 94.16%
      total coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
-135. Current advisory router-group branch focused validation passed with ruff check, ruff format,
+135. Merged advisory router-group branch focused validation passed with ruff check, ruff format,
      touched-module mypy, 10 router-registry/refactor-threshold tests, and the refactor threshold
      gate at `max_source_file_lines=861`. The slice moves Advise-owned route-family imports and
      group tuples into `router_groups/advisory.py`, reducing `router_registry.py` from 872 to 632
@@ -906,7 +906,12 @@ Most recent local evidence:
      `advisor_brief_service.py` from 861 to 435 script-counted lines. Focused validation passed
      with ruff check, ruff format, 24 advisor-brief source/narrative/service unit tests, and
      refactor-threshold trials proving `max_source_file_lines=854` passes while `853` fails on
-     `src/app/services/proposal_service.py`.
+     `src/app/services/proposal_service.py`. Full local `make check` passed with ruff, format
+     check over 719 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+     gate, mypy over 507 source files, OpenAPI smoke, and 1,184 unit/contract tests. Full local
+     `make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.22% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
