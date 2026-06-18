@@ -79,6 +79,12 @@ portfolio-360 responses, and sandbox/analytics contracts into dedicated modules 
 the public `app.contracts.workbench` facade. `workbench.py` is reduced from 794 to 47
 script-counted lines, and the largest residual hotspot is now
 `services/performance_workspace_evidence.py` at 771 script-counted lines.
+The latest performance evidence-boundary slice split calculation evidence artifact retrieval,
+lineage polling, execution refresh, payload normalization, stage/snapshot mapping, and artifact URL
+construction into `services/performance_calculation_evidence.py` while preserving the public
+`app.services.performance_workspace_evidence` facade. `performance_workspace_evidence.py` is
+reduced from 771 to 461 script-counted lines, and the largest residual hotspot is now
+`services/risk_workspace_service.py` at 769 script-counted lines.
 The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
 document error response mapping into smaller, reusable helpers while preserving safe error payload
 contracts.
@@ -303,23 +309,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current workbench contract-boundary branch shows 516 Python
+Working-tree verification for the current performance evidence-boundary branch shows 517 Python
 source files under `src/app` and 207 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 771 | `src/app/services/performance_workspace_evidence.py` |
-| 2 | 769 | `src/app/services/risk_workspace_service.py` |
-| 3 | 768 | `src/app/services/portfolio_service.py` |
-| 4 | 754 | `src/app/contracts/portfolio.py` |
-| 5 | 754 | `src/app/contracts/portfolio.py` |
-| 6 | 742 | `src/app/services/advisor_brief_source.py` |
-| 7 | 712 | `src/app/clients/advise_client.py` |
-| 8 | 709 | `src/app/contracts/risk_workspace.py` |
-| 9 | 700 | `src/app/services/dpm_wave_service.py` |
-| 10 | 695 | `src/app/services/dpm_command_center_service.py` |
+| 1 | 769 | `src/app/services/risk_workspace_service.py` |
+| 2 | 768 | `src/app/services/portfolio_service.py` |
+| 3 | 754 | `src/app/contracts/portfolio.py` |
+| 4 | 742 | `src/app/services/advisor_brief_source.py` |
+| 5 | 712 | `src/app/clients/advise_client.py` |
+| 6 | 709 | `src/app/contracts/risk_workspace.py` |
+| 7 | 700 | `src/app/services/dpm_wave_service.py` |
+| 8 | 695 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 692 | `src/app/services/advisory_client_protocols.py` |
+| 10 | 689 | `src/app/clients/lotus_analytics_client.py` |
 
 ## Largest Functions
 
@@ -999,7 +1005,7 @@ Most recent local evidence:
      passed with migration contract smoke, 209 integration tests, 1,397 combined coverage tests,
      94.23% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
      exception.
-142. Current workbench contract-boundary branch moves common workbench view models, overview and
+142. Previous workbench contract-boundary branch moves common workbench view models, overview and
      portfolio-360 responses, and sandbox/analytics contracts into `workbench_common.py`,
      `workbench_overview.py`, and `workbench_sandbox.py`, reducing `workbench.py` from 794 to 47
      script-counted lines while preserving the public `app.contracts.workbench` facade. Focused
@@ -1010,6 +1016,13 @@ Most recent local evidence:
      516 source files, OpenAPI smoke, and 1,189 unit/contract tests. Full local `make ci` passed
      with migration contract smoke, 209 integration tests, 1,398 combined coverage tests, 94.24%
      total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+143. Current performance evidence-boundary branch extracts performance calculation evidence
+     artifact retrieval, lineage polling, execution refresh, payload normalization, stage/snapshot
+     mapping, and artifact URL construction into `performance_calculation_evidence.py`. The public
+     `performance_workspace_evidence.py` facade is preserved for existing callers and tests, while
+     the orchestration module drops from 771 to 461 script-counted lines. The blocking source-file
+     threshold is ratcheted from 771 to 769 lines, making `risk_workspace_service.py` the largest
+     residual source-file hotspot.
 
 ## Tooling Availability Baseline
 
@@ -1027,7 +1040,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 771 script-counted lines,
+1. no Python source file under `src/app` above 769 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

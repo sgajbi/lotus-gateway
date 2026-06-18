@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 771
+2. Current enforced source-file threshold: no Python source file under `src/app` above 769
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=771` and `max_function_lines=49`.
+   `max_source_file_lines=769` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -179,7 +179,7 @@ Most recent local PR-grade evidence:
     passed with migration contract smoke, 209 integration tests, 1,397 combined coverage tests,
     94.23% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
     exception.
-19. Current workbench contract-boundary branch moves common workbench view models, overview and
+19. Previous workbench contract-boundary branch moves common workbench view models, overview and
     portfolio-360 responses, and sandbox/analytics contracts into
     `src/app/contracts/workbench_common.py`, `src/app/contracts/workbench_overview.py`, and
     `src/app/contracts/workbench_sandbox.py`, reducing `src/app/contracts/workbench.py` from 794
@@ -524,7 +524,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/services/performance_workspace_evidence.py`
-   is now the largest file at 771 script-counted lines and defines the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/risk_workspace_service.py`
+   is now the largest file at 769 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.

@@ -10,13 +10,13 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/performance_workspace_evidence.py`
-  as the largest residual source file at 771 script-counted lines after Workbench common,
-  overview, portfolio-360, sandbox, and analytics contracts moved into
-  `src/app/contracts/workbench_common.py`, `src/app/contracts/workbench_overview.py`, and
-  `src/app/contracts/workbench_sandbox.py`, reducing `src/app/contracts/workbench.py` from 794 to
-  47 script-counted lines; the repository longest-function baseline remains held at the enforced
-  49-line AST span
+- current enterprise-hardening evidence records `src/app/services/risk_workspace_service.py` as
+  the largest residual source file at 769 script-counted lines after performance calculation
+  evidence artifact retrieval, lineage polling, execution refresh, payload normalization,
+  stage/snapshot mapping, and artifact URL construction moved into
+  `src/app/services/performance_calculation_evidence.py`, reducing
+  `src/app/services/performance_workspace_evidence.py` from 771 to 461 script-counted lines; the
+  repository longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 
