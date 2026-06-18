@@ -70,3 +70,51 @@ def test_advisory_policy_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= policy_methods
     assert not extracted_methods & advise_client_methods
+
+
+def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
+    advise_client_methods = _async_function_names(_CLIENT_ROOT / "advise_client.py")
+    proposal_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_client.py")
+
+    extracted_methods = {
+        "create_execution_handoff",
+        "create_proposal",
+        "create_proposal_artifact",
+        "create_proposal_async",
+        "create_proposal_memo",
+        "create_proposal_version",
+        "create_proposal_version_async",
+        "create_report_request",
+        "get_approvals",
+        "get_delivery_events",
+        "get_delivery_summary",
+        "get_execution_status",
+        "get_proposal",
+        "get_proposal_idempotency_record",
+        "get_proposal_lineage",
+        "get_proposal_memo",
+        "get_proposal_memo_lineage",
+        "get_proposal_memo_projection",
+        "get_proposal_memo_replay_evidence",
+        "get_proposal_narrative",
+        "get_proposal_operation",
+        "get_proposal_operation_by_correlation",
+        "get_proposal_operation_replay_evidence",
+        "get_proposal_version",
+        "get_proposal_version_replay_evidence",
+        "get_workflow_events",
+        "list_proposals",
+        "record_approval",
+        "record_execution_update",
+        "record_proposal_memo_report_package_event",
+        "regenerate_proposal_narrative",
+        "request_proposal_memo_ai_commentary",
+        "request_proposal_memo_report_package",
+        "review_proposal_memo",
+        "review_proposal_narrative",
+        "simulate_proposal",
+        "transition_proposal",
+    }
+
+    assert extracted_methods <= proposal_methods
+    assert not extracted_methods & advise_client_methods

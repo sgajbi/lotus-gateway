@@ -3079,6 +3079,72 @@ async def test_dpm_client_rfc38_command_center_routes(
             {"proposal_id": "PR-1", "correlation_id": "corr-5"},
             "http://advise/advisory/proposals/PR-1/delivery-events",
         ),
+        (
+            "create_proposal_async",
+            {
+                "body": {"portfolio_id": "P1"},
+                "idempotency_key": "idem-async-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/async",
+        ),
+        (
+            "create_proposal_version_async",
+            {
+                "proposal_id": "PR-1",
+                "body": {"changes": []},
+                "idempotency_key": "idem-version-async-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions/async",
+        ),
+        (
+            "get_proposal_operation",
+            {"operation_id": "op-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/operations/op-1",
+        ),
+        (
+            "get_proposal_operation_by_correlation",
+            {"operation_correlation_id": "op-corr-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/operations/by-correlation/op-corr-1",
+        ),
+        (
+            "get_execution_status",
+            {"proposal_id": "PR-1", "correlation_id": "corr-5"},
+            "http://advise/advisory/proposals/PR-1/execution-status",
+        ),
+        (
+            "record_execution_update",
+            {
+                "proposal_id": "PR-1",
+                "body": {"status": "SUBMITTED"},
+                "idempotency_key": "idem-execution-update-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/execution-updates",
+        ),
+        (
+            "create_proposal_memo",
+            {
+                "proposal_id": "PR-1",
+                "version_no": 2,
+                "body": {"audience": "COMMITTEE"},
+                "idempotency_key": "idem-memo-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions/2/memo",
+        ),
+        (
+            "request_proposal_memo_report_package",
+            {
+                "proposal_id": "PR-1",
+                "version_no": 2,
+                "body": {"package_type": "INVESTMENT_REVIEW"},
+                "idempotency_key": "idem-memo-report-1",
+                "correlation_id": "corr-5",
+            },
+            "http://advise/advisory/proposals/PR-1/versions/2/memo/report-packages",
+        ),
     ],
 )
 async def test_advise_client_proposal_routes(method_name, kwargs, expected_url):
