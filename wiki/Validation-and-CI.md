@@ -710,9 +710,18 @@ modules, 114 focused Workbench/refactor tests, and refactor-threshold trials pro
 `max_source_file_lines=680` passes while `679` fails on
 `src/app/services/portfolio_service.py`. Full local `make check` passed with ruff, format check
 over 748 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
-over 530 source files, OpenAPI smoke, and 1,219 unit/contract tests. Fresh full local `make ci`,
-gateway Docker rebuild, live canonical validation, and observability evidence remain required
-before PR/merge.
+over 530 source files, OpenAPI smoke, and 1,219 unit/contract tests. Full local `make ci` passed
+with migration contract smoke, 209 integration tests, 1,428 combined coverage tests, 94.31% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
+The same branch was validated against the live canonical front-office stack after rebuilding the
+`lotus-gateway` container from the branch. `Validate-LotusFrontOfficeCanonical.ps1` passed for
+`PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing evidence to
+`lotus-workbench/output/playwright/live-canonical-gateway-workbench-boundaries/`: the summary
+records 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28 supportability
+checks, and 10 workflow-pack checks. Companion observability evidence in
+`lotus-workbench/output/observability-live/20260618-194325/` records 13/13 API checks at HTTP 200,
+4/4 metric checks at HTTP 200, 14 log artifacts, and 5/5 observability screenshots at HTTP 200.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
