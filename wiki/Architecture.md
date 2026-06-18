@@ -10,10 +10,10 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/clients/advise_client.py` as the largest
-  residual source file at 914 script-counted lines after performance horizon-comparison contracts
-  moved into `performance_horizon.py`, reducing `src/app/contracts/performance_workspace.py` to
-  651 script-counted lines; the repository longest-function baseline remains held at the enforced
+- current enterprise-hardening evidence records `src/app/router_registry.py` as the largest
+  residual source file at 872 script-counted lines after advisory policy route methods moved into
+  `advise_policy_client.py`, reducing `src/app/clients/advise_client.py` to 712 script-counted
+  lines; the repository longest-function baseline remains held at the enforced
   49-line AST span
 
 ## Route-family map
