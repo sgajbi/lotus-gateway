@@ -4,21 +4,13 @@ from typing import Any
 from app.config import settings
 from app.contracts.portfolio import (
     PortfolioCatalogResponse,
-    PortfolioExceptionSummary,
-    PortfolioInsight,
     PortfolioInsightsResponse,
     PortfolioReadinessResponse,
 )
-from app.contracts.portfolio_activity_income import (
-    PortfolioActivitySummaryResponse,
-)
 from app.contracts.portfolio_holdings import (
     PortfolioAllocationResponse,
-    PortfolioAllocationView,
     PortfolioBookResponse,
     PortfolioPositionBookResponse,
-    PortfolioPositionView,
-    PortfolioTopPosition,
 )
 from app.contracts.portfolio_liquidity import (
     PortfolioLiquidityResponse,
@@ -35,10 +27,6 @@ from app.services.portfolio_book_sources import (
     load_portfolio_book_source_results,
 )
 from app.services.portfolio_catalog_payloads import load_portfolio_catalog_response
-from app.services.portfolio_exception_summaries import (
-    PortfolioExceptionReadiness,
-    build_portfolio_exception_summaries,
-)
 from app.services.portfolio_holdings_payloads import (
     PortfolioAllocationLoadRequest,
     PortfolioAllocationPayloadLoaders,
@@ -50,7 +38,7 @@ from app.services.portfolio_holdings_payloads import (
     load_portfolio_allocation_payloads,
     load_portfolio_position_book_payloads,
 )
-from app.services.portfolio_insights import build_portfolio_insights
+from app.services.portfolio_insight_response import build_portfolio_insights_response
 from app.services.portfolio_liquidity_payloads import (
     PortfolioLiquidityLoadRequest,
     PortfolioLiquidityPayloadLoaders,
@@ -83,12 +71,6 @@ from app.services.portfolio_upstream_payloads import (
     optional_payload,
     raise_on_upstream_client_error,
     require_payload,
-)
-from app.services.portfolio_workflow import (
-    holdings_readiness_status,
-    pricing_readiness_status,
-    reporting_status_label,
-    transactions_readiness_status,
 )
 from app.services.portfolio_workflow_service import PortfolioWorkflowServiceMixin
 from app.services.portfolio_workspace_components import (
@@ -341,24 +323,11 @@ class PortfolioService(
             correlation_id=correlation_id,
             as_of_date=as_of_date,
         )
-        return PortfolioInsightsResponse(
+        return build_portfolio_insights_response(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
             portfolio_id=portfolio_id,
-            as_of_date=sources.workspace.as_of_date,
-            insights=self._build_portfolio_insights(
-                workspace=sources.workspace,
-                positions=sources.positions.positions,
-                top_positions=sources.positions.top_positions,
-                allocation_views=sources.allocations.views,
-                activity_summary=sources.activity,
-            ),
-            exception_summaries=self._build_portfolio_exception_summaries(
-                workspace=sources.workspace,
-                positions=sources.positions.positions,
-                allocation_views=sources.allocations.views,
-                transaction_total=sources.transactions.total,
-            ),
+            sources=sources,
         )
 
     async def _load_portfolio_insight_sources(
@@ -616,65 +585,5 @@ class PortfolioService(
                 query_aum_result=self._query_aum_result,
                 get_portfolio_positions_result=self._get_portfolio_positions_result,
                 require_payload=require_payload,
-            ),
-        )
-
-    def _build_portfolio_exception_summaries(
-        self,
-        *,
-        workspace: PortfolioWorkspaceResponse,
-        positions: list[PortfolioPositionView],
-        allocation_views: list[PortfolioAllocationView],
-        transaction_total: int,
-    ) -> list[PortfolioExceptionSummary]:
-        return build_portfolio_exception_summaries(
-            readiness=PortfolioExceptionReadiness(
-                holdings_status=holdings_readiness_status(
-                    position_count=workspace.summary.position_count,
-                    positions=positions,
-                ),
-                pricing_status=pricing_readiness_status(
-                    positions=positions,
-                    allocation_views=allocation_views,
-                ),
-                transaction_status=transactions_readiness_status(
-                    transaction_total=transaction_total,
-                    operations=workspace.operations,
-                ),
-                reporting_status=reporting_status_label(
-                    workspace.reporting.status,
-                    workspace.reporting.row_count,
-                ),
-            ),
-            controls_blocking=(
-                bool(workspace.operations.controls_blocking)
-                if workspace.operations is not None
-                else False
-            ),
-            partial_failures=workspace.partial_failures,
-        )
-
-    def _build_portfolio_insights(
-        self,
-        *,
-        workspace: PortfolioWorkspaceResponse,
-        positions: list[PortfolioPositionView],
-        top_positions: list[PortfolioTopPosition],
-        allocation_views: list[PortfolioAllocationView],
-        activity_summary: PortfolioActivitySummaryResponse,
-    ) -> list[PortfolioInsight]:
-        return build_portfolio_insights(
-            portfolio_id=workspace.portfolio.portfolio_id,
-            summary=workspace.summary,
-            positions=positions,
-            top_positions=top_positions,
-            activity_summary=activity_summary,
-            pricing_status=pricing_readiness_status(
-                positions=positions,
-                allocation_views=allocation_views,
-            ),
-            reporting_status=reporting_status_label(
-                workspace.reporting.status,
-                workspace.reporting.row_count,
             ),
         )
