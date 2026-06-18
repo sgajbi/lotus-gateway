@@ -35,9 +35,9 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 768 script-counted lines,
-2. `src/app/contracts/portfolio.py` at 754 script-counted lines,
-3. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
+1. `src/app/contracts/portfolio.py` at 754 script-counted lines,
+2. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
+3. `src/app/services/portfolio_service.py` at 716 script-counted lines,
 4. `src/app/clients/advise_client.py` at 712 script-counted lines,
 5. `src/app/contracts/risk_workspace.py` at 709 script-counted lines.
 
@@ -87,6 +87,10 @@ Risk workspace request-context dataclasses, latest-business-day fallback, as-of 
 context construction have been split into `src/app/services/risk_workspace_requests.py`, reducing
 `risk_workspace_service.py` from 769 to 633 script-counted lines and moving the largest remaining
 source-file hotspot to `src/app/services/portfolio_service.py` at 768 script-counted lines.
+Stale private pass-through wrappers around portfolio workspace assembly have been removed from
+`src/app/services/portfolio_service.py`; the service now calls the extracted workspace assembly
+helpers directly, reducing the file from 768 to 716 script-counted lines and moving the largest
+remaining source-file hotspot to `src/app/contracts/portfolio.py` at 754 script-counted lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
