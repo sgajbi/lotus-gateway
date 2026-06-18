@@ -517,17 +517,24 @@ portfolio-360 responses, and sandbox/analytics contracts into
 for existing imports. `src/app/contracts/workbench.py` is reduced from 794 to 47 script-counted
 lines. The blocking source-file threshold is ratcheted from 794 to 771 lines, making
 `src/app/services/performance_workspace_evidence.py` the largest residual source-file hotspot.
+The current performance evidence-boundary slice extracts performance calculation evidence artifact
+retrieval, lineage polling, execution refresh, payload normalization, stage/snapshot mapping, and
+artifact URL construction into `src/app/services/performance_calculation_evidence.py`. The public
+`app.services.performance_workspace_evidence` facade is preserved for existing imports.
+`src/app/services/performance_workspace_evidence.py` is reduced from 771 to 461 script-counted
+lines. The blocking source-file threshold is ratcheted from 771 to 769 lines, making
+`src/app/services/risk_workspace_service.py` the largest residual source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current workbench contract-boundary branch was created from clean `main`; no open PRs, no unmerged remote branches, and only remote `main` were present at slice start; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused validation passed with 118 workbench service/router/contract-boundary/threshold tests and the refactor threshold gate at `max_source_file_lines=771`; full local `make check` passed with 1,189 unit/contract tests |
+| Branch hygiene | Healthy | Current performance evidence-boundary branch was created from clean `main`; no open PRs, no unmerged remote branches, and only remote `main` were present at slice start; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Focused validation passed with 59 performance evidence/workspace/threshold tests and the refactor threshold gate at `max_source_file_lines=769`; full local `make check` passed with 1,190 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
-| Total coverage | Healthy | Full local `make ci` passed with 1,398 combined coverage tests and 94.24% total coverage |
-| Security audit | Governed | Current workbench contract-boundary branch introduces no dependency, authentication, caller-context, or product-error-detail policy changes; monetary-float allowlist remains at 159 governed findings after path refresh for moved workbench contract fields; full local `make ci` security audit reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `workbench.py` to 47 script-counted lines, `portfolio_service.py` to 768 script-counted lines, `performance_workspace_service.py` to 639 lines, `advisor_brief_service.py` to 435 script-counted lines, `proposal_service.py` to 658 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 712 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/dpm_command_center.py` to 593 script-counted lines, `src/app/contracts/proposals.py` to 431 script-counted lines, `src/app/contracts/advisor_brief.py` to 646 script-counted lines, `src/app/contracts/portfolio.py` to 754 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/services/performance_workspace_evidence.py` is now the largest current source-file hotspot at 771 lines |
+| Total coverage | Healthy | Full local `make ci` passed with 1,399 combined coverage tests and 94.24% total coverage |
+| Security audit | Governed | Current performance evidence-boundary branch introduces no dependency, authentication, caller-context, or product-error-detail policy changes; monetary-float allowlist remains at 159 governed findings; full local `make ci` security audit reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `performance_workspace_evidence.py` to 461 script-counted lines, `workbench.py` to 47 script-counted lines, `portfolio_service.py` to 768 script-counted lines, `performance_workspace_service.py` to 639 lines, `advisor_brief_service.py` to 435 script-counted lines, `proposal_service.py` to 658 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 692 script-counted lines, `advise_client.py` to 712 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/dpm_command_center.py` to 593 script-counted lines, `src/app/contracts/proposals.py` to 431 script-counted lines, `src/app/contracts/advisor_brief.py` to 646 script-counted lines, `src/app/contracts/portfolio.py` to 754 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/services/risk_workspace_service.py` is now the largest current source-file hotspot at 769 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -573,7 +580,7 @@ lines. The blocking source-file threshold is ratcheted from 794 to 771 lines, ma
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 771 script-counted lines,
+   - no Python source file under `src/app` above 769 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

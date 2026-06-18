@@ -561,6 +561,20 @@ local `make ci` passed with migration contract smoke, 209 integration tests, 1,3
 coverage tests, 94.24% total coverage, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 
+The current performance evidence-boundary branch extracts performance calculation evidence artifact
+retrieval, lineage polling, execution refresh, payload normalization, stage/snapshot mapping, and
+artifact URL construction into `src/app/services/performance_calculation_evidence.py`, preserving
+the public `app.services.performance_workspace_evidence` facade. The slice reduces
+`src/app/services/performance_workspace_evidence.py` from 771 to 461 script-counted lines and
+ratchets the source-file threshold to 769 script-counted lines. Focused validation passed with ruff
+check, ruff format check, 59 focused performance evidence/workspace/threshold tests, and the
+refactor-threshold gate at `max_source_file_lines=769`. Full local `make check` passed with ruff,
+format check over 729 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+gate, mypy over 517 source files, OpenAPI smoke, and 1,190 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,399 combined coverage
+tests, 94.24% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

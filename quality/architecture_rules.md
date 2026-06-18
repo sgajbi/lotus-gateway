@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines,
-2. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
-3. `src/app/services/portfolio_service.py` at 768 script-counted lines,
-4. `src/app/contracts/portfolio.py` at 754 script-counted lines,
-5. `src/app/services/advisor_brief_source.py` at 742 script-counted lines.
+1. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 768 script-counted lines,
+3. `src/app/contracts/portfolio.py` at 754 script-counted lines,
+4. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
+5. `src/app/clients/advise_client.py` at 712 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -75,6 +75,13 @@ Workbench common, overview, portfolio-360, sandbox, and analytics contracts have
 `src/app/contracts/workbench_sandbox.py`, preserving the public `app.contracts.workbench` facade
 while reducing `workbench.py` from 794 to 47 script-counted lines and moving the largest remaining
 source-file hotspot to `src/app/services/performance_workspace_evidence.py` at 771 script-counted
+lines.
+Performance calculation evidence artifact retrieval, lineage polling, execution refresh, payload
+normalization, stage/snapshot mapping, and artifact URL construction have been split into
+`src/app/services/performance_calculation_evidence.py`, preserving the public
+`app.services.performance_workspace_evidence` facade while reducing
+`performance_workspace_evidence.py` from 771 to 461 script-counted lines and moving the largest
+remaining source-file hotspot to `src/app/services/risk_workspace_service.py` at 769 script-counted
 lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has

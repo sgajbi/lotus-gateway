@@ -7,6 +7,7 @@ from app.contracts.performance_evidence import (
     PerformanceEvidenceUpstreamSnapshotView,
     PerformanceSourceSupportabilityView,
 )
+from app.services import performance_calculation_evidence, performance_workspace_evidence
 from app.services.performance_workspace_evidence import (
     EvidenceViewFetchState,
     EvidenceViewRequestContext,
@@ -43,6 +44,21 @@ def test_workspace_contract_reexports_performance_evidence_views() -> None:
     assert (
         performance_workspace.PerformanceSourceSupportabilityView
         is PerformanceSourceSupportabilityView
+    )
+
+
+def test_workspace_evidence_facade_reexports_calculation_evidence_boundary() -> None:
+    assert (
+        performance_workspace_evidence.fetch_calculation_evidence
+        is performance_calculation_evidence.fetch_calculation_evidence
+    )
+    assert (
+        performance_workspace_evidence.fetch_performance_evidence_artifact
+        is performance_calculation_evidence.fetch_performance_evidence_artifact
+    )
+    assert (
+        performance_workspace_evidence.build_calculation_evidence_view
+        is performance_calculation_evidence.build_calculation_evidence_view
     )
 
 
