@@ -424,7 +424,7 @@ source files, Workbench/OpenAPI contract smoke, and 1,171 unit/contract tests. F
 passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total coverage, migration
 contract smoke, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
-The current performance horizon contract branch ratchets the source-file threshold to 914
+The merged performance horizon contract branch ratcheted the source-file threshold to 914
 script-counted lines after moving benchmark option and horizon-comparison response models into
 `performance_horizon.py`. It reduces `src/app/contracts/performance_workspace.py` from 930 to 651
 script-counted lines while preserving the public `app.contracts.performance_workspace` import
@@ -433,6 +433,18 @@ contract modules, 46 focused performance/workbench contract and integration test
 refactor-threshold trials proving `max_source_file_lines=914` passes while `913` fails on
 `src/app/clients/advise_client.py`. Full local `make check` passed with 1,178 unit/contract tests.
 Full local `make ci` passed with 209 integration tests, 1,387 combined coverage tests, 94.18% total
+coverage, migration contract smoke, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
+
+The current Advise policy client-boundary branch ratchets the source-file threshold to 872
+script-counted lines after moving advisory policy-pack, policy-evaluation, sign-off,
+report-package, and AI-evidence route methods into `advise_policy_client.py`. It reduces
+`src/app/clients/advise_client.py` from 914 to 712 script-counted lines while preserving the public
+`AdviseClient` surface. Focused validation passed with ruff check, ruff format, mypy over touched
+Advise client modules, 187 focused upstream/client-boundary/policy-router tests, and
+refactor-threshold trials proving `max_source_file_lines=872` passes while `871` fails on
+`src/app/router_registry.py`. Full local `make check` passed with 1,179 unit/contract tests. Full
+local `make ci` passed with 209 integration tests, 1,388 combined coverage tests, 94.16% total
 coverage, migration contract smoke, and no known vulnerabilities after the governed
 `PYSEC-2026-161` exception.
 

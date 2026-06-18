@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/advise_client.py` at 914 script-counted lines,
-2. `src/app/router_registry.py` at 872 script-counted lines,
-3. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
-4. `src/app/services/proposal_service.py` at 854 script-counted lines,
-5. `src/app/services/performance_workspace_service.py` at 842 script-counted lines.
+1. `src/app/router_registry.py` at 872 script-counted lines,
+2. `src/app/services/advisor_brief_service.py` at 861 script-counted lines,
+3. `src/app/services/proposal_service.py` at 854 script-counted lines,
+4. `src/app/services/performance_workspace_service.py` at 842 script-counted lines,
+5. `src/app/contracts/dpm_command_center.py` at 841 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. The performance workspace
@@ -199,7 +199,11 @@ handoff slice moves PM memo and operations handoff summary workflow-pack orchest
 script-counted lines while preserving the public `DpmWaveService` surface. The current Advise
 workspace client-boundary slice moves advisory-workspace upstream route methods into
 `src/app/clients/advise_workspace_client.py`, reducing `advise_client.py` from 1,062 to 909
-script-counted lines while preserving the public `AdviseClient` surface. The current portfolio
+script-counted lines while preserving the public `AdviseClient` surface. The current Advise policy
+client-boundary slice moves advisory policy-pack, policy-evaluation, sign-off, report-package, and
+AI-evidence upstream route methods into `src/app/clients/advise_policy_client.py`, reducing
+`advise_client.py` from 914 to 712 script-counted lines while preserving the public `AdviseClient`
+surface. The current portfolio
 transaction workflow slice moves transaction ledger, income summary, and activity summary
 orchestration into `src/app/services/portfolio_transaction_service.py`, reducing
 `portfolio_service.py` to 811 physical lines while preserving the public `PortfolioService`

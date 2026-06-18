@@ -280,23 +280,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current performance horizon contract branch shows 503 Python
+Working-tree verification for the current Advise policy client-boundary branch shows 504 Python
 source files under `src/app` and 205 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 914 | `src/app/clients/advise_client.py` |
-| 2 | 872 | `src/app/router_registry.py` |
-| 3 | 861 | `src/app/services/advisor_brief_service.py` |
-| 4 | 854 | `src/app/services/proposal_service.py` |
-| 5 | 842 | `src/app/services/performance_workspace_service.py` |
-| 6 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 7 | 812 | `src/app/contracts/proposals.py` |
-| 8 | 812 | `src/app/contracts/advisor_brief.py` |
-| 9 | 811 | `src/app/services/portfolio_service.py` |
-| 10 | 794 | `src/app/contracts/workbench.py` |
+| 1 | 872 | `src/app/router_registry.py` |
+| 2 | 861 | `src/app/services/advisor_brief_service.py` |
+| 3 | 854 | `src/app/services/proposal_service.py` |
+| 4 | 842 | `src/app/services/performance_workspace_service.py` |
+| 5 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 6 | 812 | `src/app/contracts/proposals.py` |
+| 7 | 812 | `src/app/contracts/advisor_brief.py` |
+| 8 | 811 | `src/app/services/portfolio_service.py` |
+| 9 | 794 | `src/app/contracts/workbench.py` |
+| 10 | 771 | `src/app/services/performance_workspace_evidence.py` |
 
 ## Largest Functions
 
@@ -870,7 +870,7 @@ Most recent local evidence:
      `make ci` passed with 207 integration tests, 1,378 combined coverage tests, 94.23% total
      coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
-133. Current performance horizon contract branch focused validation passed with ruff check, ruff
+133. Merged performance horizon contract branch focused validation passed with ruff check, ruff
      format, touched-module mypy, 46 performance/workbench contract and integration tests, and
      trial refactor threshold gates proving `max_source_file_lines=914` passes while `913` fails
      on `src/app/clients/advise_client.py`. The slice moves benchmark option and
@@ -880,6 +880,16 @@ Most recent local evidence:
      1,178 unit/contract tests. Full local `make ci` passed with 209 integration tests, 1,387
      combined coverage tests, 94.18% total coverage, migration contract smoke, and no known
      vulnerabilities after the governed `PYSEC-2026-161` exception.
+134. Current Advise policy client-boundary branch focused validation passed with ruff check, ruff
+     format, touched-module mypy, 187 upstream/client-boundary/policy-router tests, and trial
+     refactor threshold gates proving `max_source_file_lines=872` passes while `871` fails on
+     `src/app/router_registry.py`. The slice moves advisory policy-pack, policy-evaluation,
+     sign-off, report-package, and AI-evidence route methods into `advise_policy_client.py`,
+     reducing `advise_client.py` from 914 to 712 script-counted lines while preserving the public
+     `AdviseClient` surface. Full local `make check` passed with 1,179 unit/contract tests. Full
+     local `make ci` passed with 209 integration tests, 1,388 combined coverage tests, 94.16%
+     total coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -897,7 +907,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 914 script-counted lines,
+1. no Python source file under `src/app` above 872 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
