@@ -778,15 +778,32 @@ over 536 source files, Workbench contract smoke, and 1,220 unit/contract tests. 
 tests, 94.32% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception. GitHub checks and post-merge wiki publication remain pending for this branch.
 
+The performance/reporting contract-boundary branch splits performance workspace common,
+summary-response, and details-response contracts behind the existing
+`src/app/contracts/performance_workspace.py` compatibility facade, reducing that facade to 79
+script-counted lines. It also splits report-batch examples, shared status literals,
+materialization/status/control contracts, worker runtime contracts, and scheduler contracts behind
+the existing `src/app/contracts/reporting_batches.py` compatibility facade, reducing that facade to
+75 script-counted lines. The branch ratchets the source-file threshold to 658 script-counted lines.
+Focused validation passed with 18 reporting/performance contract and boundary tests,
+`python scripts/check_monetary_float_usage.py --update-allowlist`, the monetary-float guard with
+159 allowlisted findings, and refactor-threshold trials proving `max_source_file_lines=658` passes
+while `657` fails on `src/app/services/proposal_service.py`. Full local `make check` passed with
+ruff, format check over 764 files, monetary-float guard, refactor-threshold gate, workflow
+action-runtime gate, mypy over 544 source files, OpenAPI smoke, and 1,225 unit/contract tests.
+Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,434 combined
+coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception. GitHub checks and post-merge wiki publication remain pending for this
+branch.
+
 The same branch was validated against the live canonical front-office stack after rebuilding the
-`lotus-gateway` container from the branch. `Start-LotusFrontOfficeCanonical.ps1 -BuildImages
--RunValidation` passed for `PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing
-evidence to `lotus-workbench/output/playwright/live-canonical-gateway-portfolio-service-boundary/`:
-the summary records 29 screenshots, 25 ready panel classifications, 2 calculation checks, 28
-supportability checks, 10 workflow-pack checks, and 12 advisory journey checks. Companion
-observability evidence in `lotus-workbench/output/observability-live/20260618-202754/` records
-13/13 API checks at HTTP 200, 4/4 metric checks at HTTP 200, 14 log artifacts, and 5 observability
-screenshots at HTTP 200.
+`lotus-gateway` container, restoring the canonical `lotus-advise` runtime after an initial
+missing-container failure, and reseeding `PB_SG_GLOBAL_BAL_001`. `npm run live:validate` passed for
+`PB_SG_GLOBAL_BAL_001` and `BMK_PB_GLOBAL_BALANCED_60_40`, writing evidence to
+`lotus-workbench/output/playwright/live-canonical/live-validation-summary.json` generated at
+`2026-06-18T14:46:17.019Z`: the summary records 94 API checks, 29 screenshots, 25 ready panel
+classifications, 2 calculation checks, 28 supportability checks, 10 workflow-pack checks, and 12
+advisory journey checks.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

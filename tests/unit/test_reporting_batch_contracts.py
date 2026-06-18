@@ -1,4 +1,37 @@
 from app.contracts import reporting
+from app.contracts.reporting_batch_materialization import (
+    BatchControlResponse as MaterializationBatchControlResponse,
+)
+from app.contracts.reporting_batch_materialization import (
+    BatchCreateRequest as MaterializationBatchCreateRequest,
+)
+from app.contracts.reporting_batch_materialization import (
+    BatchHandleResponse as MaterializationBatchHandleResponse,
+)
+from app.contracts.reporting_batch_materialization import (
+    BatchItemStatusResponse as MaterializationBatchItemStatusResponse,
+)
+from app.contracts.reporting_batch_materialization import (
+    BatchRecoveryResponse as MaterializationBatchRecoveryResponse,
+)
+from app.contracts.reporting_batch_materialization import (
+    BatchStatusResponse as MaterializationBatchStatusResponse,
+)
+from app.contracts.reporting_batch_scheduler import (
+    BatchScheduleListResponse as SchedulerBatchScheduleListResponse,
+)
+from app.contracts.reporting_batch_scheduler import (
+    BatchSchedulerRunRequest as SchedulerBatchSchedulerRunRequest,
+)
+from app.contracts.reporting_batch_scheduler import (
+    BatchSchedulerRunResponse as SchedulerBatchSchedulerRunResponse,
+)
+from app.contracts.reporting_batch_worker import (
+    BatchWorkerRunRequest as WorkerBatchWorkerRunRequest,
+)
+from app.contracts.reporting_batch_worker import (
+    BatchWorkerRunResponse as WorkerBatchWorkerRunResponse,
+)
 from app.contracts.reporting_batches import (
     BatchControlResponse,
     BatchCreateRequest,
@@ -40,6 +73,17 @@ def test_reporting_batch_contracts_remain_compatibility_reexports() -> None:
     )
     assert reporting.REPORT_BATCH_ERROR_EXAMPLES is REPORT_BATCH_ERROR_EXAMPLES
     assert reporting.REPORT_JOB_ERROR_EXAMPLES is REPORT_JOB_ERROR_EXAMPLES
+    assert BatchControlResponse is MaterializationBatchControlResponse
+    assert BatchCreateRequest is MaterializationBatchCreateRequest
+    assert BatchHandleResponse is MaterializationBatchHandleResponse
+    assert BatchItemStatusResponse is MaterializationBatchItemStatusResponse
+    assert BatchRecoveryResponse is MaterializationBatchRecoveryResponse
+    assert BatchScheduleListResponse is SchedulerBatchScheduleListResponse
+    assert BatchSchedulerRunRequest is SchedulerBatchSchedulerRunRequest
+    assert BatchSchedulerRunResponse is SchedulerBatchSchedulerRunResponse
+    assert BatchStatusResponse is MaterializationBatchStatusResponse
+    assert BatchWorkerRunRequest is WorkerBatchWorkerRunRequest
+    assert BatchWorkerRunResponse is WorkerBatchWorkerRunResponse
 
 
 def test_batch_request_accepts_extracted_candidate_contract() -> None:

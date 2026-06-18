@@ -60,6 +60,35 @@ def test_performance_horizon_contracts_live_outside_performance_workspace_facade
     assert performance_workspace_facade_classes.isdisjoint(expected_horizon_contracts)
 
 
+def test_performance_workspace_contracts_live_outside_performance_workspace_facade() -> None:
+    performance_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "performance_workspace.py")
+    common_contract_classes = _class_names(_CONTRACT_ROOT / "performance_workspace_common.py")
+    summary_contract_classes = _class_names(
+        _CONTRACT_ROOT / "performance_workspace_summary_contract.py"
+    )
+    details_contract_classes = _class_names(
+        _CONTRACT_ROOT / "performance_workspace_details_contract.py"
+    )
+
+    expected_common_contracts = {
+        "MoneyWeightedReturnSummary",
+        "PerformanceChartPoint",
+        "PerformanceComparativeSummary",
+        "PerformanceModuleCapability",
+        "PerformanceWorkspaceCapabilities",
+        "PerformanceWorkspaceResponse",
+    }
+    expected_summary_contracts = {"PerformanceWorkspaceSummaryResponse"}
+    expected_details_contracts = {"PerformanceWorkspaceDetailsResponse"}
+
+    assert expected_common_contracts <= common_contract_classes
+    assert expected_summary_contracts <= summary_contract_classes
+    assert expected_details_contracts <= details_contract_classes
+    assert performance_workspace_facade_classes.isdisjoint(expected_common_contracts)
+    assert performance_workspace_facade_classes.isdisjoint(expected_summary_contracts)
+    assert performance_workspace_facade_classes.isdisjoint(expected_details_contracts)
+
+
 def test_dpm_pm_operating_quality_contracts_live_outside_dpm_command_center_facade() -> None:
     dpm_command_center_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_command_center.py")
     pm_quality_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_pm_operating_quality.py")
@@ -157,3 +186,45 @@ def test_workbench_contracts_live_outside_workbench_facade() -> None:
     assert expected_overview_contracts <= overview_contract_classes
     assert expected_sandbox_contracts <= sandbox_contract_classes
     assert workbench_facade_classes == set()
+
+
+def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
+    reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
+    materialization_contract_classes = _class_names(
+        _CONTRACT_ROOT / "reporting_batch_materialization.py"
+    )
+    worker_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_batch_worker.py")
+    scheduler_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_batch_scheduler.py")
+
+    expected_materialization_contracts = {
+        "BatchControlResponse",
+        "BatchCreateRequest",
+        "BatchHandleResponse",
+        "BatchItemStatusResponse",
+        "BatchRecoveryResponse",
+        "BatchStatusResponse",
+        "PortfolioBatchCandidate",
+        "RenderSupportabilitySummary",
+        "ReportingEvidenceSurfaceSupportability",
+    }
+    expected_worker_contracts = {
+        "BatchDispatchPolicy",
+        "BatchRuntimeLoad",
+        "BatchWorkerItemExecutionResponse",
+        "BatchWorkerRunRequest",
+        "BatchWorkerRunResponse",
+    }
+    expected_scheduler_contracts = {
+        "BatchScheduleListResponse",
+        "BatchScheduleSummaryResponse",
+        "BatchSchedulerMaterializationResponse",
+        "BatchSchedulerRunRequest",
+        "BatchSchedulerRunResponse",
+    }
+
+    assert expected_materialization_contracts <= materialization_contract_classes
+    assert expected_worker_contracts <= worker_contract_classes
+    assert expected_scheduler_contracts <= scheduler_contract_classes
+    assert reporting_batches_facade_classes.isdisjoint(expected_materialization_contracts)
+    assert reporting_batches_facade_classes.isdisjoint(expected_worker_contracts)
+    assert reporting_batches_facade_classes.isdisjoint(expected_scheduler_contracts)
