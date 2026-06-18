@@ -62,12 +62,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 812
+2. Current enforced source-file threshold: no Python source file under `src/app` above 811
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=812` and `max_function_lines=49`.
+   `max_source_file_lines=811` and `max_function_lines=49`.
 5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
 6. Current portfolio workspace payload mapper branch `make check` passed with 1,075
@@ -151,6 +151,21 @@ Most recent local PR-grade evidence:
     Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,394
     combined coverage tests, 94.22% total coverage, and no known vulnerabilities after the
     governed `PYSEC-2026-161` exception.
+17. Current advisor-brief/proposal contract-boundary branch focused validation passed with ruff
+    check, ruff format, mypy over 512 source files, 61 advisor-brief/proposal
+    contract/boundary/threshold tests, and refactor-threshold trials proving
+    `max_source_file_lines=811` passes while `810` fails on `src/app/services/portfolio_service.py`.
+    The slice reduces
+    `src/app/contracts/advisor_brief.py` from 812 to 646 script-counted lines by moving
+    workflow-pack and task-flow contracts into `src/app/contracts/advisor_brief_workflow.py`, and
+    reduces `src/app/contracts/proposals.py` from 812 to 431 script-counted lines by moving
+    lifecycle, version, workflow, approval, and lineage contracts into
+    `src/app/contracts/proposal_lifecycle.py`. Full local `make check` passed with ruff, format
+    check over 724 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+    gate, mypy over 512 source files, OpenAPI smoke, and 1,187 unit/contract tests. Full local
+    `make ci` passed with migration contract smoke, 209 integration tests, 1,396 combined coverage
+    tests, 94.23% total coverage, and no known vulnerabilities after the governed
+    `PYSEC-2026-161` exception.
 13. Current portfolio holdings payload mapper branch focused validation passed with ruff format,
     ruff check, the refactor threshold gate, and 45 focused portfolio holdings/service unit tests.
     `make check` passed with 1,093 unit/contract tests, and `make ci` passed with 207 integration
@@ -484,8 +499,7 @@ Most recent local PR-grade evidence:
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.
 4. Continue tightening the enforced source-file threshold downward as the remaining largest
-   services, contracts, and clients are split; `src/app/contracts/advisor_brief.py` and
-   `src/app/contracts/proposals.py` are now the largest files at 812 script-counted lines and
-   define the current blocking ceiling.
+   services, contracts, and clients are split; `src/app/services/portfolio_service.py` is now the
+   largest file at 811 script-counted lines and defines the current blocking ceiling.
 5. Extend static no-sensitive-observability checks beyond the new Prometheus metric-label gate to
    broader logs, trace attributes, and diagnostics fields.
