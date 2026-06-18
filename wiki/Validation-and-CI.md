@@ -655,7 +655,11 @@ threshold to 709 script-counted lines. Focused validation passed with ruff check
 check, mypy over touched client modules, 28 focused Advise client boundary/upstream tests,
 4 refactor-threshold tests, and refactor-threshold trials proving `max_source_file_lines=709`
 passes while `708` fails on `src/app/contracts/risk_workspace.py`. Full local `make check` and
-`make ci` remain the pre-PR/merge gates for this branch.
+`make ci` passed: `make check` covered ruff, format check over 737 files, monetary-float guard,
+refactor-threshold gate, workflow action-runtime gate, mypy over 523 source files, OpenAPI smoke,
+and 1,205 unit/contract tests; `make ci` covered migration contract smoke, 209 integration tests,
+1,414 combined coverage tests, 94.29% total coverage, and no known vulnerabilities after the
+governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and

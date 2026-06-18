@@ -75,8 +75,12 @@ Most recent local PR-grade evidence:
    boundary/upstream tests, 4 refactor-threshold tests, and refactor-threshold trials proving
    `max_source_file_lines=709` passes while `708` fails on
    `src/app/contracts/risk_workspace.py`.
-7. Current Advise proposal client-boundary branch `make check` remains a pre-PR/merge gate.
-8. Current Advise proposal client-boundary branch `make ci` remains a pre-PR/merge gate.
+7. Current Advise proposal client-boundary branch `make check` passed with ruff, format check
+   over 737 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate,
+   mypy over 523 source files, OpenAPI smoke, and 1,205 unit/contract tests.
+8. Current Advise proposal client-boundary branch `make ci` passed with migration contract smoke,
+   209 integration tests, 1,414 coverage tests, 94.29% total coverage, and no known
+   vulnerabilities after the governed `PYSEC-2026-161` exception.
 9. Prior source-file threshold ratchet branch focused validation passed with the then-current
    refactor threshold gate, 4 refactor-threshold unit tests, ruff check, and ruff format check over
    the touched threshold script and tests. The current blocking ceiling is recorded below.
