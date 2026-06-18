@@ -119,3 +119,41 @@ def test_proposal_lifecycle_contracts_live_outside_proposals_facade() -> None:
 
     assert expected_lifecycle_contracts <= lifecycle_contract_classes
     assert proposal_facade_classes.isdisjoint(expected_lifecycle_contracts)
+
+
+def test_workbench_contracts_live_outside_workbench_facade() -> None:
+    workbench_facade_classes = _class_names(_CONTRACT_ROOT / "workbench.py")
+    common_contract_classes = _class_names(_CONTRACT_ROOT / "workbench_common.py")
+    overview_contract_classes = _class_names(_CONTRACT_ROOT / "workbench_overview.py")
+    sandbox_contract_classes = _class_names(_CONTRACT_ROOT / "workbench_sandbox.py")
+
+    expected_common_contracts = {
+        "WorkbenchOverviewSummary",
+        "WorkbenchPartialFailure",
+        "WorkbenchPerformanceSnapshot",
+        "WorkbenchPortfolioSummary",
+        "WorkbenchPositionView",
+        "WorkbenchProjectedPositionView",
+        "WorkbenchProjectedSummary",
+        "WorkbenchRebalanceRunSummary",
+        "WorkbenchRebalanceSnapshot",
+    }
+    expected_overview_contracts = {
+        "WorkbenchOverviewResponse",
+        "WorkbenchPortfolio360Response",
+    }
+    expected_sandbox_contracts = {
+        "WorkbenchAnalyticsBucket",
+        "WorkbenchAnalyticsResponse",
+        "WorkbenchPolicyFeedback",
+        "WorkbenchSandboxApplyChangesRequest",
+        "WorkbenchSandboxChangeInput",
+        "WorkbenchSandboxSessionCreateRequest",
+        "WorkbenchSandboxStateResponse",
+        "WorkbenchTopChange",
+    }
+
+    assert expected_common_contracts <= common_contract_classes
+    assert expected_overview_contracts <= overview_contract_classes
+    assert expected_sandbox_contracts <= sandbox_contract_classes
+    assert workbench_facade_classes == set()

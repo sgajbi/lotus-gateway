@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/workbench.py` at 794 script-counted lines,
-2. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines,
-3. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
-4. `src/app/services/portfolio_service.py` at 768 script-counted lines,
-5. `src/app/contracts/portfolio.py` at 754 script-counted lines.
+1. `src/app/services/performance_workspace_evidence.py` at 771 script-counted lines,
+2. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
+3. `src/app/services/portfolio_service.py` at 768 script-counted lines,
+4. `src/app/contracts/portfolio.py` at 754 script-counted lines,
+5. `src/app/services/advisor_brief_source.py` at 742 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -70,6 +70,12 @@ Portfolio workflow orchestration has been split into
 `src/app/services/portfolio_workflow_service.py`, preserving the public `PortfolioService` surface
 while reducing `portfolio_service.py` from 811 to 768 script-counted lines and moving the largest
 remaining source-file hotspot to `src/app/contracts/workbench.py` at 794 script-counted lines.
+Workbench common, overview, portfolio-360, sandbox, and analytics contracts have been split into
+`src/app/contracts/workbench_common.py`, `src/app/contracts/workbench_overview.py`, and
+`src/app/contracts/workbench_sandbox.py`, preserving the public `app.contracts.workbench` facade
+while reducing `workbench.py` from 794 to 47 script-counted lines and moving the largest remaining
+source-file hotspot to `src/app/services/performance_workspace_evidence.py` at 771 script-counted
+lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

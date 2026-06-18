@@ -547,6 +547,20 @@ source files, OpenAPI smoke, and 1,188 unit/contract tests. Full local `make ci`
 migration contract smoke, 209 integration tests, 1,397 combined coverage tests, 94.23% total
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current workbench contract-boundary branch ratchets the source-file threshold to 771
+script-counted lines after moving common workbench view models, overview and portfolio-360
+responses, and sandbox/analytics contracts into `src/app/contracts/workbench_common.py`,
+`src/app/contracts/workbench_overview.py`, and `src/app/contracts/workbench_sandbox.py`. It reduces
+`src/app/contracts/workbench.py` from 794 to 47 script-counted lines while preserving the public
+`app.contracts.workbench` facade. Focused validation passed with ruff check, ruff format check,
+mypy over touched contract modules, 118 workbench service/router/contract-boundary/threshold tests,
+and the refactor-threshold gate at `max_source_file_lines=771`. Full local `make check` passed with
+ruff, format check over 728 files, monetary-float guard, refactor-threshold gate, workflow
+action-runtime gate, mypy over 516 source files, OpenAPI smoke, and 1,189 unit/contract tests. Full
+local `make ci` passed with migration contract smoke, 209 integration tests, 1,398 combined
+coverage tests, 94.24% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
