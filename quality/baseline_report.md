@@ -85,6 +85,11 @@ construction into `services/performance_calculation_evidence.py` while preservin
 `app.services.performance_workspace_evidence` facade. `performance_workspace_evidence.py` is
 reduced from 771 to 461 script-counted lines, and the largest residual hotspot is now
 `services/risk_workspace_service.py` at 769 script-counted lines.
+The latest risk workspace request-context slice moved request-context dataclasses,
+latest-business-day fallback, as-of date resolution, and context construction into
+`services/risk_workspace_requests.py`, reducing `risk_workspace_service.py` from 769 to 633
+script-counted lines. The largest residual hotspot is now `services/portfolio_service.py` at 768
+script-counted lines.
 The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
 document error response mapping into smaller, reusable helpers while preserving safe error payload
 contracts.
@@ -316,16 +321,16 @@ source files under `src/app` and 207 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 769 | `src/app/services/risk_workspace_service.py` |
-| 2 | 768 | `src/app/services/portfolio_service.py` |
-| 3 | 754 | `src/app/contracts/portfolio.py` |
-| 4 | 742 | `src/app/services/advisor_brief_source.py` |
-| 5 | 712 | `src/app/clients/advise_client.py` |
-| 6 | 709 | `src/app/contracts/risk_workspace.py` |
-| 7 | 700 | `src/app/services/dpm_wave_service.py` |
-| 8 | 695 | `src/app/services/dpm_command_center_service.py` |
-| 9 | 692 | `src/app/services/advisory_client_protocols.py` |
-| 10 | 689 | `src/app/clients/lotus_analytics_client.py` |
+| 1 | 768 | `src/app/services/portfolio_service.py` |
+| 2 | 754 | `src/app/contracts/portfolio.py` |
+| 3 | 742 | `src/app/services/advisor_brief_source.py` |
+| 4 | 712 | `src/app/clients/advise_client.py` |
+| 5 | 709 | `src/app/contracts/risk_workspace.py` |
+| 6 | 700 | `src/app/services/dpm_wave_service.py` |
+| 7 | 695 | `src/app/services/dpm_command_center_service.py` |
+| 8 | 692 | `src/app/services/advisory_client_protocols.py` |
+| 9 | 689 | `src/app/clients/lotus_analytics_client.py` |
+| 10 | 685 | `src/app/services/workbench_service.py` |
 
 ## Largest Functions
 
@@ -1023,6 +1028,12 @@ Most recent local evidence:
      the orchestration module drops from 771 to 461 script-counted lines. The blocking source-file
      threshold is ratcheted from 771 to 769 lines, making `risk_workspace_service.py` the largest
      residual source-file hotspot.
+144. Current risk workspace request-context branch moves risk request-context dataclasses,
+     latest-business-day fallback, as-of date resolution, and context construction into
+     `risk_workspace_requests.py`. `RiskWorkspaceService` remains the orchestration and cache
+     boundary, while `risk_workspace_service.py` drops from 769 to 633 script-counted lines. The
+     blocking source-file threshold is ratcheted from 769 to 768 lines, making
+     `portfolio_service.py` the largest residual source-file hotspot.
 
 ## Tooling Availability Baseline
 
@@ -1040,7 +1051,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 769 script-counted lines,
+1. no Python source file under `src/app` above 768 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

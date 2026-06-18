@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/risk_workspace_service.py` at 769 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 768 script-counted lines,
-3. `src/app/contracts/portfolio.py` at 754 script-counted lines,
-4. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
-5. `src/app/clients/advise_client.py` at 712 script-counted lines.
+1. `src/app/services/portfolio_service.py` at 768 script-counted lines,
+2. `src/app/contracts/portfolio.py` at 754 script-counted lines,
+3. `src/app/services/advisor_brief_source.py` at 742 script-counted lines,
+4. `src/app/clients/advise_client.py` at 712 script-counted lines,
+5. `src/app/contracts/risk_workspace.py` at 709 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -83,6 +83,10 @@ normalization, stage/snapshot mapping, and artifact URL construction have been s
 `performance_workspace_evidence.py` from 771 to 461 script-counted lines and moving the largest
 remaining source-file hotspot to `src/app/services/risk_workspace_service.py` at 769 script-counted
 lines.
+Risk workspace request-context dataclasses, latest-business-day fallback, as-of date resolution, and
+context construction have been split into `src/app/services/risk_workspace_requests.py`, reducing
+`risk_workspace_service.py` from 769 to 633 script-counted lines and moving the largest remaining
+source-file hotspot to `src/app/services/portfolio_service.py` at 768 script-counted lines.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

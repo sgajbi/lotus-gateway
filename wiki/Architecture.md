@@ -10,13 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records `src/app/services/risk_workspace_service.py` as
-  the largest residual source file at 769 script-counted lines after performance calculation
-  evidence artifact retrieval, lineage polling, execution refresh, payload normalization,
-  stage/snapshot mapping, and artifact URL construction moved into
-  `src/app/services/performance_calculation_evidence.py`, reducing
-  `src/app/services/performance_workspace_evidence.py` from 771 to 461 script-counted lines; the
-  repository longest-function baseline remains held at the enforced 49-line AST span
+- current enterprise-hardening evidence records `src/app/services/portfolio_service.py` as the
+  largest residual source file at 768 script-counted lines after risk workspace request-context
+  dataclasses, latest-business-day fallback, as-of date resolution, and context construction moved
+  into `src/app/services/risk_workspace_requests.py`, reducing
+  `src/app/services/risk_workspace_service.py` from 769 to 633 script-counted lines; the repository
+  longest-function baseline remains held at the enforced 49-line AST span
 
 ## Route-family map
 

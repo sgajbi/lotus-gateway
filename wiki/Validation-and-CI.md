@@ -575,6 +575,19 @@ gate, mypy over 517 source files, OpenAPI smoke, and 1,190 unit/contract tests. 
 tests, 94.24% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 
+The current risk workspace request-context branch moves risk request-context dataclasses,
+latest-business-day fallback, as-of date resolution, and context construction into
+`src/app/services/risk_workspace_requests.py`, preserving the `RiskWorkspaceService` orchestration
+and cache boundary. The slice reduces `src/app/services/risk_workspace_service.py` from 769 to 633
+script-counted lines and ratchets the source-file threshold to 768 script-counted lines. Focused
+validation passed with ruff check, 33 focused risk workspace/request/threshold tests, and the
+refactor-threshold gate at `max_source_file_lines=768`. Full local `make check` passed with ruff,
+format check over 729 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+gate, mypy over 517 source files, OpenAPI smoke, and 1,191 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,400 combined coverage
+tests, 94.25% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces
