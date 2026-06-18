@@ -418,12 +418,12 @@ routes into `advise_bank_demo_proof_client.py` while preserving the public `Advi
 `advise_client.py` is reduced from 1,098 to 1,062 script-counted lines. The blocking source-file
 threshold is ratcheted from 1,098 to 1,093 lines, making `dpm_wave_service.py` the single largest
 residual source-file hotspot.
-The current DPM wave AI handoff boundary slice moves PM memo and operations handoff summary
+The DPM wave AI handoff boundary slice moves PM memo and operations handoff summary
 workflow-pack orchestration into `dpm_wave_ai_handoff.py` while preserving the public
 `DpmWaveService` surface. `dpm_wave_service.py` is reduced from 1,093 to 692 script-counted lines.
 The blocking source-file threshold is ratcheted from 1,093 to 1,062 lines, making
 `advise_client.py` the single largest residual source-file hotspot.
-The current Advise workspace client-boundary slice moves advisory-workspace upstream route methods
+The Advise workspace client-boundary slice moves advisory-workspace upstream route methods
 into `advise_workspace_client.py` while preserving the public `AdviseClient` surface.
 `advise_client.py` is reduced from 1,062 to 909 script-counted lines. The blocking source-file
 threshold is ratcheted from 1,062 to 1,041 lines, making `dpm_client.py` the single largest residual
@@ -558,17 +558,23 @@ Advise proposal lifecycle and memo upstream forwarding has been extracted into
 `src/app/clients/advise_proposal_client.py` is 536 script-counted lines, and the blocking
 source-file threshold is ratcheted from 712 to 709 lines, making
 `src/app/contracts/risk_workspace.py` the largest residual source-file hotspot.
+Risk workspace response OpenAPI examples have been extracted into
+`src/app/contracts/risk_workspace_examples.py` while preserving the public
+`app.contracts.risk_workspace` response models. `src/app/contracts/risk_workspace.py` is reduced
+from 709 to 312 script-counted lines, the example module is 379 script-counted lines, and the
+blocking source-file threshold is ratcheted from 709 to 700 lines, making
+`src/app/services/dpm_wave_service.py` the largest residual source-file hotspot.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current Advise proposal client-boundary branch was created from clean `main`; no open PRs and no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused validation passed with 28 Advise client boundary/upstream tests, 4 refactor-threshold tests, mypy over the touched client modules, and refactor-threshold trials proving `max_source_file_lines=709` passes while `708` fails on `src/app/contracts/risk_workspace.py`; full local `make check` passed with 1,205 unit/contract tests |
+| Branch hygiene | Healthy | Current risk workspace example-boundary branch was created from clean `main`; no open PRs and no unmerged remote branches were present at slice start; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Focused validation passed with 16 risk workspace contract/OpenAPI tests, 4 refactor-threshold tests, mypy over the touched contract modules, and refactor-threshold trials proving `max_source_file_lines=700` passes while `699` fails on `src/app/services/dpm_wave_service.py`; full local `make check` passed with 1,210 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
-| Total coverage | Healthy | Full local `make ci` passed with 1,414 combined coverage tests and 94.29% total coverage |
-| Security audit | Governed | Current Advise proposal client-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, monetary-float policy, or upstream error-shape changes; full local `make ci` security audit reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 689 script-counted lines, `advisor_brief_source.py` to 508 script-counted lines, `risk_workspace_service.py` to 633 script-counted lines, `performance_workspace_evidence.py` to 461 script-counted lines, `workbench.py` to 47 script-counted lines, `performance_workspace_service.py` to 639 lines, `advisor_brief_service.py` to 435 script-counted lines, `proposal_service.py` to 658 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 700 script-counted lines, `advise_client.py` to 220 script-counted lines, `advise_proposal_client.py` to 536 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/dpm_command_center.py` to 593 script-counted lines, `src/app/contracts/proposals.py` to 431 script-counted lines, `src/app/contracts/advisor_brief.py` to 646 script-counted lines, `src/app/contracts/portfolio.py` to 281 script-counted lines, `src/app/contracts/portfolio_workspace.py` to 503 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/contracts/risk_workspace.py` is now the largest current source-file hotspot at 709 lines |
+| Total coverage | Healthy | Full local `make ci` passed with 1,419 combined coverage tests and 94.29% total coverage |
+| Security audit | Governed | Current risk workspace example-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, monetary-float policy, or upstream error-shape changes; full local `make ci` reported no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; recent response/request-context/parser/mapper/contract slices lower `portfolio_service.py` to 689 script-counted lines, `advisor_brief_source.py` to 508 script-counted lines, `risk_workspace_service.py` to 632 script-counted lines, `performance_workspace_evidence.py` to 461 script-counted lines, `workbench.py` to 47 script-counted lines, `performance_workspace_service.py` to 639 lines, `advisor_brief_service.py` to 435 script-counted lines, `proposal_service.py` to 658 script-counted lines, `dpm_command_center_service.py` to 695 lines, `dpm_wave_service.py` to 700 script-counted lines, `advise_client.py` to 220 script-counted lines, `advise_proposal_client.py` to 536 script-counted lines, `dpm_client.py` to 452 script-counted lines, `src/app/contracts/dpm_command_center.py` to 593 script-counted lines, `src/app/contracts/proposals.py` to 431 script-counted lines, `src/app/contracts/advisor_brief.py` to 646 script-counted lines, `src/app/contracts/portfolio.py` to 281 script-counted lines, `src/app/contracts/portfolio_workspace.py` to 503 script-counted lines, `src/app/services/foundation_service.py` to 618 script-counted lines, `src/app/contracts/performance_workspace.py` to 651 script-counted lines, `src/app/contracts/risk_workspace.py` to 312 script-counted lines, `src/app/contracts/risk_workspace_examples.py` to 379 script-counted lines, and `src/app/router_registry.py` to 632 script-counted lines; `src/app/services/dpm_wave_service.py` is now the largest current source-file hotspot at 700 lines |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
 | Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
@@ -615,7 +621,7 @@ source-file threshold is ratcheted from 712 to 709 lines, making
 
 1. Report-only workflow uploads quality logs for baseline classification.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 709 script-counted lines,
+   - no Python source file under `src/app` above 700 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,
