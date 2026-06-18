@@ -588,6 +588,18 @@ gate, mypy over 517 source files, OpenAPI smoke, and 1,191 unit/contract tests. 
 tests, 94.25% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
 exception.
 
+The current portfolio workspace wrapper-cleanup branch removes stale private pass-through wrappers
+around already extracted workspace assembly helpers from `src/app/services/portfolio_service.py`.
+The service now calls those helpers directly, preserving the public `PortfolioService` surface while
+reducing `portfolio_service.py` from 768 to 716 script-counted lines and ratcheting the source-file
+threshold to 754 script-counted lines. Focused validation passed with ruff check, ruff format
+check, 52 focused portfolio service/workspace/threshold tests, and the refactor-threshold gate at
+`max_source_file_lines=754`. Full local `make check` passed with ruff, format check over 729 files,
+monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy over 517 source
+files, OpenAPI smoke, and 1,191 unit/contract tests. Full local `make ci` passed with migration
+contract smoke, 209 integration tests, 1,400 combined coverage tests, 94.25% total coverage, and no
+known vulnerabilities after the governed `PYSEC-2026-161` exception.
+
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
 requested-window filtering into `portfolio_transaction_summary.py`. It reduces

@@ -321,9 +321,9 @@ source files under `src/app` and 207 Python test files under `tests`.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 768 | `src/app/services/portfolio_service.py` |
-| 2 | 754 | `src/app/contracts/portfolio.py` |
-| 3 | 742 | `src/app/services/advisor_brief_source.py` |
+| 1 | 754 | `src/app/contracts/portfolio.py` |
+| 2 | 742 | `src/app/services/advisor_brief_source.py` |
+| 3 | 716 | `src/app/services/portfolio_service.py` |
 | 4 | 712 | `src/app/clients/advise_client.py` |
 | 5 | 709 | `src/app/contracts/risk_workspace.py` |
 | 6 | 700 | `src/app/services/dpm_wave_service.py` |
@@ -1051,7 +1051,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 768 script-counted lines,
+1. no Python source file under `src/app` above 754 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:

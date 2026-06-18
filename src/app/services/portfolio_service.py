@@ -88,7 +88,6 @@ from app.services.portfolio_workflow import (
 )
 from app.services.portfolio_workflow_service import PortfolioWorkflowServiceMixin
 from app.services.portfolio_workspace_components import (
-    PortfolioWorkspaceAssemblyState,
     assemble_portfolio_workspace_components,
     build_portfolio_workspace_assembly_state,
     build_portfolio_workspace_response_parts,
@@ -97,8 +96,6 @@ from app.services.portfolio_workspace_components import (
     parse_summary,
 )
 from app.services.portfolio_workspace_response import (
-    PortfolioWorkspaceComponents,
-    PortfolioWorkspaceResponseParts,
     assemble_portfolio_workspace_response,
 )
 from app.services.portfolio_workspace_sources import (
@@ -245,12 +242,15 @@ class PortfolioService(
         source_results: PortfolioWorkspaceSourceResults,
         analytics_results: PortfolioWorkspaceAnalyticsResults,
     ) -> PortfolioWorkspaceResponse:
-        components = self._build_portfolio_workspace_components(
+        assembly_state = build_portfolio_workspace_assembly_state(
+            source_results=source_results,
+        )
+        components = assemble_portfolio_workspace_components(
             source_results=source_results,
             analytics_results=analytics_results,
+            assembly_state=assembly_state,
         )
-
-        response_parts = self._build_portfolio_workspace_response_parts(
+        response_parts = build_portfolio_workspace_response_parts(
             portfolio_id=portfolio_id,
             components=components,
             source_results=source_results,
@@ -265,60 +265,6 @@ class PortfolioService(
             as_of_date=resolved_as_of_date,
             components=components,
             response_parts=response_parts,
-        )
-
-    def _build_portfolio_workspace_response_parts(
-        self,
-        *,
-        portfolio_id: str,
-        components: PortfolioWorkspaceComponents,
-        source_results: PortfolioWorkspaceSourceResults,
-        effective_as_of_date: str,
-        resolved_as_of_date: str,
-        reporting_currency: str | None,
-    ) -> PortfolioWorkspaceResponseParts:
-        return build_portfolio_workspace_response_parts(
-            portfolio_id=portfolio_id,
-            components=components,
-            source_results=source_results,
-            effective_as_of_date=effective_as_of_date,
-            resolved_as_of_date=resolved_as_of_date,
-            reporting_currency=reporting_currency,
-        )
-
-    def _build_portfolio_workspace_components(
-        self,
-        *,
-        source_results: PortfolioWorkspaceSourceResults,
-        analytics_results: PortfolioWorkspaceAnalyticsResults,
-    ) -> PortfolioWorkspaceComponents:
-        assembly_state = self._portfolio_workspace_assembly_state(
-            source_results=source_results,
-        )
-        return self._assemble_portfolio_workspace_components(
-            source_results=source_results,
-            analytics_results=analytics_results,
-            assembly_state=assembly_state,
-        )
-
-    def _portfolio_workspace_assembly_state(
-        self,
-        *,
-        source_results: PortfolioWorkspaceSourceResults,
-    ) -> PortfolioWorkspaceAssemblyState:
-        return build_portfolio_workspace_assembly_state(source_results=source_results)
-
-    def _assemble_portfolio_workspace_components(
-        self,
-        *,
-        source_results: PortfolioWorkspaceSourceResults,
-        analytics_results: PortfolioWorkspaceAnalyticsResults,
-        assembly_state: PortfolioWorkspaceAssemblyState,
-    ) -> PortfolioWorkspaceComponents:
-        return assemble_portfolio_workspace_components(
-            source_results=source_results,
-            analytics_results=analytics_results,
-            assembly_state=assembly_state,
         )
 
     async def get_portfolio_readiness(
