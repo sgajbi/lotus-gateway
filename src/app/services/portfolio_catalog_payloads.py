@@ -1,7 +1,29 @@
 from typing import Any
 
-from app.contracts.portfolio import PortfolioCatalogItem
+from app.config import settings
+from app.contracts.portfolio import PortfolioCatalogItem, PortfolioCatalogResponse
+from app.services.portfolio_upstream_payloads import require_payload
 from app.services.portfolio_workspace_payloads import resolve_portfolio_display_name
+from app.services.workspace_client_protocols import PortfolioCoreClient
+
+
+async def load_portfolio_catalog_response(
+    *,
+    lotus_core_query_client: PortfolioCoreClient,
+    correlation_id: str,
+) -> PortfolioCatalogResponse:
+    status_code, payload = await lotus_core_query_client.list_portfolios(
+        correlation_id=correlation_id
+    )
+    items_payload = require_payload(
+        result=(status_code, payload),
+        unavailable_detail_prefix="lotus-core portfolio catalog unavailable",
+    ).get("portfolios", [])
+    return PortfolioCatalogResponse(
+        correlation_id=correlation_id,
+        contract_version=settings.contract_version,
+        items=parse_catalog_items(items_payload),
+    )
 
 
 def parse_catalog_items(items_payload: list[Any]) -> list[PortfolioCatalogItem]:

@@ -1,4 +1,21 @@
-from app.services.portfolio_catalog_payloads import parse_catalog_item, parse_catalog_items
+import pytest
+
+from app.services.portfolio_catalog_payloads import (
+    load_portfolio_catalog_response,
+    parse_catalog_item,
+    parse_catalog_items,
+)
+
+
+class _PortfolioCatalogCoreClient:
+    async def list_portfolios(self, correlation_id: str):
+        assert correlation_id == "corr-catalog"
+        return 200, {
+            "portfolios": [
+                {"portfolio_id": "PF_2002", "base_currency": "EUR"},
+                {"portfolio_id": "PF_1001", "base_currency": "USD"},
+            ]
+        }
 
 
 def test_parse_catalog_items_sorts_and_skips_non_object_payloads() -> None:
@@ -52,3 +69,14 @@ def test_parse_catalog_item_prefers_canonical_metadata_fields() -> None:
     assert item.display_name == "Core Growth"
     assert item.client_id == "CIF_CANONICAL"
     assert item.booking_center_code == "SGPB"
+
+
+@pytest.mark.asyncio
+async def test_load_portfolio_catalog_response_builds_contract() -> None:
+    response = await load_portfolio_catalog_response(
+        lotus_core_query_client=_PortfolioCatalogCoreClient(),
+        correlation_id="corr-catalog",
+    )
+
+    assert response.correlation_id == "corr-catalog"
+    assert [item.portfolio_id for item in response.items] == ["PF_1001", "PF_2002"]
