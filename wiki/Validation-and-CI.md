@@ -626,8 +626,11 @@ source-file hotspot to `src/app/services/portfolio_service.py` at 714 script-cou
 ratchets the source-file threshold to 714 script-counted lines. Focused validation passed with
 ruff check, ruff format check, mypy over touched service modules, 8 advisor-brief source/narrative
 tests, and refactor-threshold trials proving `max_source_file_lines=714` passes while `713` fails
-on `src/app/services/portfolio_service.py`. Full local `make check` and `make ci` remain required
-before PR/merge.
+on `src/app/services/portfolio_service.py`. Full local `make check` passed with ruff, format check
+over 734 files, monetary-float guard, refactor-threshold gate, workflow action-runtime gate, mypy
+over 521 source files, OpenAPI smoke, and 1,194 unit/contract tests. Full local `make ci` passed
+with migration contract smoke, 209 integration tests, 1,403 combined coverage tests, 94.26% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The current portfolio transaction-summary context branch moves reporting-window resolution, YTD
 transaction pagination, defensive page-row extraction, reporting-currency fallback, and
