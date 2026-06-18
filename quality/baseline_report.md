@@ -56,6 +56,11 @@ drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
 transaction-ledger payload loading, portfolio workspace source gathering, and Lotus Core
 transaction query-parameter construction out of previously tied hotspot functions.
+The latest performance workspace context-service slice split cache-backed overview loading,
+report-window resolution, benchmark context assembly, and analytics-reference end-date fallback
+into `performance_workspace_context_service.py`, reducing `performance_workspace_service.py` from
+842 to 639 script-counted lines and moving the largest residual hotspot to
+`contracts/dpm_command_center.py` at 841 script-counted lines.
 The latest error-mapping slice split foundation optional-upstream unavailable handling and archive
 document error response mapping into smaller, reusable helpers while preserving safe error payload
 contracts.
@@ -280,23 +285,23 @@ yet enforced unless they are already covered by existing repo-native gates.
 | OpenAPI paths | 233 |
 | OpenAPI operations | 247 |
 
-Working-tree verification for the current proposal memo service branch shows 508 Python
+Working-tree verification for the current performance workspace context-service branch shows 509 Python
 source files under `src/app` and 207 Python test files under `tests`.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 842 | `src/app/services/performance_workspace_service.py` |
-| 2 | 841 | `src/app/contracts/dpm_command_center.py` |
-| 3 | 812 | `src/app/contracts/proposals.py` |
-| 4 | 812 | `src/app/contracts/advisor_brief.py` |
-| 5 | 811 | `src/app/services/portfolio_service.py` |
-| 6 | 794 | `src/app/contracts/workbench.py` |
-| 7 | 771 | `src/app/services/performance_workspace_evidence.py` |
-| 8 | 769 | `src/app/services/risk_workspace_service.py` |
-| 9 | 754 | `src/app/contracts/portfolio.py` |
-| 10 | 742 | `src/app/services/advisor_brief_source.py` |
+| 1 | 841 | `src/app/contracts/dpm_command_center.py` |
+| 2 | 812 | `src/app/contracts/proposals.py` |
+| 3 | 812 | `src/app/contracts/advisor_brief.py` |
+| 4 | 811 | `src/app/services/portfolio_service.py` |
+| 5 | 794 | `src/app/contracts/workbench.py` |
+| 6 | 771 | `src/app/services/performance_workspace_evidence.py` |
+| 7 | 769 | `src/app/services/risk_workspace_service.py` |
+| 8 | 754 | `src/app/contracts/portfolio.py` |
+| 9 | 742 | `src/app/services/advisor_brief_source.py` |
+| 10 | 712 | `src/app/clients/advise_client.py` |
 
 ## Largest Functions
 
@@ -924,6 +929,19 @@ Most recent local evidence:
      Full local `make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.21%
      total coverage, migration contract smoke, and no known vulnerabilities after the governed
      `PYSEC-2026-161` exception.
+138. Current performance workspace context-service branch moves cache-backed overview loading,
+     report-window resolution, benchmark context assembly, and analytics-reference end-date
+     fallback from `performance_workspace_service.py` into
+     `performance_workspace_context_service.py`, reducing `performance_workspace_service.py` from
+     842 to 639 script-counted lines. Focused validation passed with ruff check, ruff format,
+     mypy over 509 source files, 36 performance workspace service unit tests, and
+     refactor-threshold trials proving `max_source_file_lines=841` passes while `840` fails on
+     `src/app/contracts/dpm_command_center.py`. Full local `make check` passed with ruff, format
+     check over 721 files, monetary-float guard, refactor-threshold gate, workflow action-runtime
+     gate, mypy over 509 source files, OpenAPI smoke, and 1,184 unit/contract tests. Full local
+     `make ci` passed with 209 integration tests, 1,393 combined coverage tests, 94.22% total
+     coverage, migration contract smoke, and no known vulnerabilities after the governed
+     `PYSEC-2026-161` exception.
 
 ## Tooling Availability Baseline
 
@@ -941,7 +959,7 @@ Report-only complexity tools are being introduced now. Current manual size evide
 large-file and long-function hotspots in service, contract, and client code.
 The remediated size baselines are now partially enforced through `make lint`:
 
-1. no Python source file under `src/app` above 842 script-counted lines,
+1. no Python source file under `src/app` above 841 script-counted lines,
 2. no function or async function above the current longest-function baseline of 49 lines.
 
 The remaining enforcement candidates should be:
