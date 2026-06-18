@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/reporting_batches.py` at 662 script-counted lines,
-2. `src/app/services/proposal_service.py` at 658 script-counted lines,
-3. `src/app/contracts/performance_workspace.py` at 651 script-counted lines,
-4. `src/app/contracts/advisor_brief.py` at 646 script-counted lines,
-5. `src/app/services/performance_workspace_service.py` at 639 script-counted lines.
+1. `src/app/services/proposal_service.py` at 658 script-counted lines,
+2. `src/app/contracts/advisor_brief.py` at 646 script-counted lines,
+3. `src/app/services/performance_workspace_service.py` at 639 script-counted lines,
+4. `src/app/router_registry.py` at 632 script-counted lines,
+5. `src/app/services/risk_workspace_service.py` at 632 script-counted lines.
 
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
@@ -167,6 +167,17 @@ Reporting query contracts have been split into status-event, job-search, snapsho
 example modules behind the existing `src/app/contracts/reporting_query.py` compatibility facade.
 The blocking source-file threshold is ratcheted from 664 to 662 script-counted lines, making
 `src/app/contracts/reporting_batches.py` the largest residual source-file hotspot.
+Performance workspace common, summary-response, and details-response contracts now live in
+`src/app/contracts/performance_workspace_common.py`,
+`src/app/contracts/performance_workspace_summary_contract.py`, and
+`src/app/contracts/performance_workspace_details_contract.py`, reducing
+`performance_workspace.py` to a 79-line compatibility facade while preserving the public
+`app.contracts.performance_workspace` import surface. Report-batch examples, shared status
+literals, materialization/status/control contracts, worker runtime contracts, and scheduler
+contracts now live in dedicated `reporting_batch_*` modules, reducing `reporting_batches.py` to a
+75-line compatibility facade. The blocking source-file threshold is ratcheted from 662 to 658
+script-counted lines, making `src/app/services/proposal_service.py` the largest residual
+source-file hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
