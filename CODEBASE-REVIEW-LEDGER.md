@@ -81,3 +81,22 @@ Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
   `tests/unit/test_contract_module_boundaries.py` pins proposal-generation DTO ownership.
 - Follow-up: next measured modularity slice should inspect
   `src/app/services/advisor_brief_source.py` before changing code.
+
+## Advisor-Brief Source Metric Extraction
+
+- Scope: behavior-preserving advisor-brief source metric modularity and CI ratchet enforcement.
+- Existing owner pattern: `advisor_brief_source.py` remains the source-context compatibility
+  module; contributors, fact bundle, formatting, and source supportability already live in focused
+  advisor-brief source modules.
+- Change: moved return-source metric list construction and source metric DTO creation into
+  `src/app/services/advisor_brief_source_metrics.py` while preserving
+  `build_advisor_brief_source_metrics` behavior.
+- Measured signal: `src/app/services/advisor_brief_source.py` reduced from 429 to 366 lines;
+  largest source file is now `src/app/services/platform_capabilities_service.py` at 427 lines;
+  longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `429/49` to `427/49`; `427` passes
+  and `426` fails only on `src/app/services/platform_capabilities_service.py`.
+- Tests: `tests/unit/test_advisor_brief_source.py` preserves source metric output and
+  `tests/unit/test_service_layer_boundaries.py` pins source metric construction ownership.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/platform_capabilities_service.py` before changing code.

@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 429/49 ratchet, the current largest hotspot
-   `src/app/services/advisor_brief_source.py`, and durable scorecard/context guidance in
+   keeps the executable 427/49 ratchet, the current largest hotspot
+   `src/app/services/platform_capabilities_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -69,12 +69,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 429
+2. Current enforced source-file threshold: no Python source file under `src/app` above 427
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=429` and `max_function_lines=49`.
+   `max_source_file_lines=427` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -84,10 +84,19 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 429/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 427/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/advisor_brief_source.py` as the 429-line hotspot.
-8. Current proposal generation contract extraction moves simulation request, response, and data
+   `src/app/services/platform_capabilities_service.py` as the 427-line hotspot.
+8. Current advisor-brief source metric extraction moves return-source metric construction into
+   `src/app/services/advisor_brief_source_metrics.py` while preserving public
+   `build_advisor_brief_source_metrics` behavior. It reduces
+   `src/app/services/advisor_brief_source.py` from 429 to 366 lines, moves the largest
+   source-file hotspot to `src/app/services/platform_capabilities_service.py` at 427 lines, and
+   ratchets the blocking source-file threshold from 429 to 427. Focused validation includes
+   advisor-brief source, service-boundary, refactor-threshold, quality-baseline artifact, and
+   agent quality evidence tests, with threshold trials proving 427 passes while 426 fails only on
+   `src/app/services/platform_capabilities_service.py`.
+9. Current proposal generation contract extraction moves simulation request, response, and data
    contracts into `src/app/contracts/proposal_generation.py` while preserving public
    `app.contracts.proposals` imports. It reduces `src/app/contracts/proposals.py` from 431 to 314
    lines, moves the largest source-file hotspot to `src/app/services/advisor_brief_source.py` at

@@ -447,6 +447,16 @@ def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     assert source_helpers == []
 
 
+def test_advisor_brief_source_delegates_source_metric_construction() -> None:
+    source_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source.py")
+    metric_methods = _function_names(_SERVICE_ROOT / "advisor_brief_source_metrics.py")
+
+    assert "build_return_source_metrics" in metric_methods
+    assert "_source_metric" in metric_methods
+    assert "_build_return_source_metrics" not in source_methods
+    assert "_source_metric" not in source_methods
+
+
 def test_proposal_service_delegates_lifecycle_transitions() -> None:
     path = _SERVICE_ROOT / "proposal_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
