@@ -1176,6 +1176,17 @@ source-file threshold from 508 to 504 lines. Focused validation passed with 64 a
 source, supportability, service, and service-boundary tests; the agent quality evidence gate now
 keeps the executable 504/49 ratchet and current hotspot guidance synchronized.
 
+The current portfolio transaction activity-summary slice moves activity bucket assembly into
+`src/app/services/portfolio_transaction_activity_summary.py` while keeping monetary amount
+normalization helpers in their existing governed allowlisted module. It reduces
+`portfolio_transaction_summary.py` from
+504 to 462 lines, moves the largest residual source-file hotspot to
+`src/app/contracts/portfolio_workspace.py` at 503 lines, and ratchets the blocking source-file
+threshold from 504 to 503 lines. Focused validation passed with transaction-summary tests, mypy
+over touched transaction modules, and threshold trials proving 503 passes while 502 fails only on
+the portfolio workspace contract hotspot; the agent quality evidence gate now keeps the executable
+503/49 ratchet and current hotspot guidance synchronized.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

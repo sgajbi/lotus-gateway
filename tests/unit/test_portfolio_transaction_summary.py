@@ -2,16 +2,18 @@ from datetime import date
 
 import pytest
 
+from app.services.portfolio_transaction_activity_summary import (
+    build_activity_summary_response,
+    summarize_activity_rows,
+)
 from app.services.portfolio_transaction_summary import (
     InvalidPortfolioReportingWindow,
     PortfolioTransactionSummaryContext,
     PortfolioTransactionSummaryRequest,
     TransactionRowsPageRequest,
-    build_activity_summary_response,
     build_income_summary_response,
     build_transaction_summary_context,
     resolve_reporting_window,
-    summarize_activity_rows,
     summarize_income_rows,
     transaction_date_in_range,
     transaction_date_value,

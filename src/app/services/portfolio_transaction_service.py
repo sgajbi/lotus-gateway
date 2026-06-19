@@ -8,6 +8,7 @@ from app.contracts.portfolio_activity_income import (
     PortfolioIncomeSummaryResponse,
 )
 from app.contracts.portfolio_transactions import PortfolioTransactionLedgerResponse
+from app.services.portfolio_transaction_activity_summary import build_activity_summary_response
 from app.services.portfolio_transaction_ledger import (
     PortfolioTransactionLedgerRequest,
     PortfolioTransactionsRequestContext,
@@ -19,7 +20,6 @@ from app.services.portfolio_transaction_summary import (
     PortfolioTransactionSummaryContext,
     PortfolioTransactionSummaryRequest,
     TransactionRowsPageRequest,
-    build_activity_summary_response,
     build_income_summary_response,
     build_transaction_summary_context,
 )

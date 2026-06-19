@@ -3,14 +3,26 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any, Awaitable, Callable
 
 from app.contracts.portfolio_activity_income import (
-    PortfolioActivityBucketSummary,
-    PortfolioActivitySummaryResponse,
     PortfolioIncomePeriodSummary,
     PortfolioIncomeSummaryResponse,
     PortfolioIncomeTypeSummary,
     PortfolioMoneySummary,
 )
 from app.precision_policy import quantize_money
+
+__all__ = [
+    "InvalidPortfolioReportingWindow",
+    "PortfolioTransactionSummaryContext",
+    "PortfolioTransactionSummaryRequest",
+    "TransactionRowsPageRequest",
+    "build_income_summary_response",
+    "build_transaction_summary_context",
+    "resolve_reporting_window",
+    "summarize_income_rows",
+    "transaction_date_in_range",
+    "transaction_date_value",
+    "transaction_page_rows",
+]
 
 
 @dataclass(frozen=True)
@@ -186,36 +198,6 @@ def build_income_summary_response(
     )
 
 
-def build_activity_summary_response(
-    *,
-    context: PortfolioTransactionSummaryContext,
-    contract_version: str,
-) -> PortfolioActivitySummaryResponse:
-    requested_buckets = summarize_activity_rows(context.requested_window_rows)
-    year_to_date_buckets = summarize_activity_rows(context.year_to_date_rows)
-    bucket_names = list(dict.fromkeys([*requested_buckets.keys(), *year_to_date_buckets.keys()]))
-    return PortfolioActivitySummaryResponse(
-        correlation_id=context.correlation_id,
-        contract_version=contract_version,
-        portfolio_id=context.portfolio_id,
-        reporting_currency=context.reporting_currency,
-        window_start_date=context.window_start.isoformat(),
-        window_end_date=context.window_end.isoformat(),
-        buckets=[
-            PortfolioActivityBucketSummary(
-                bucket=bucket,
-                requested_window=build_money_summary(
-                    requested_buckets.get(bucket, new_flow_metric())
-                ),
-                year_to_date=build_money_summary(
-                    year_to_date_buckets.get(bucket, new_flow_metric())
-                ),
-            )
-            for bucket in bucket_names
-        ],
-    )
-
-
 def summarize_income_rows(
     rows: list[dict[str, Any]],
 ) -> tuple[dict[str, float | int], dict[str, dict[str, float | int]]]:
@@ -229,30 +211,6 @@ def summarize_income_rows(
         accumulate_income_metric(totals, row)
         accumulate_income_metric(bucket, row)
     return totals, by_income_type
-
-
-def summarize_activity_rows(rows: list[dict[str, Any]]) -> dict[str, dict[str, float | int]]:
-    buckets: dict[str, dict[str, float | int]] = {}
-    for row in rows:
-        transaction_type = str(row.get("transaction_type") or "").strip().upper()
-        bucket_name = activity_bucket_name(transaction_type)
-        if bucket_name is not None:
-            bucket = buckets.setdefault(bucket_name, new_flow_metric())
-            accumulate_flow_metric(
-                bucket,
-                portfolio_amount=activity_portfolio_amount(row),
-                reporting_amount=activity_reporting_amount(row),
-            )
-        withholding_portfolio = absolute_money(row.get("withholding_tax_amount"))
-        withholding_reporting = absolute_money(row.get("withholding_tax_amount_reporting_currency"))
-        if withholding_portfolio > 0 or withholding_reporting > 0:
-            tax_bucket = buckets.setdefault("TAXES", new_flow_metric())
-            accumulate_flow_metric(
-                tax_bucket,
-                portfolio_amount=withholding_portfolio,
-                reporting_amount=withholding_reporting,
-            )
-    return buckets
 
 
 def new_income_metric() -> dict[str, float | int]:
