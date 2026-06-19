@@ -5,10 +5,8 @@ from app.contracts.dpm_waves import (
     DpmWaveGatewayResponse,
 )
 from app.services.ai_client_protocols import LotusAiWorkflowClient
-from app.services.dpm_wave_ai_handoff import (
-    DpmWaveAiHandoffMixin,
-    _supportability_from,
-)
+from app.services.dpm_wave_ai_handoff import DpmWaveAiHandoffMixin
+from app.services.dpm_wave_ai_payloads import supportability_from
 from app.services.dpm_wave_campaign_definitions import DpmWaveCampaignDefinitionMixin
 from app.services.dpm_wave_campaign_workflow import DpmWaveCampaignWorkflowMixin
 from app.services.dpm_wave_client_protocols import DpmWaveClient
@@ -223,7 +221,7 @@ class DpmWaveService(
             DpmWaveGatewayResponse,
             correlation_id=correlation_id,
             upstream_status=upstream_status,
-            supportability=_supportability_from(upstream_payload),
+            supportability=supportability_from(upstream_payload),
             upstream_payload=upstream_payload,
             error_model=DpmWaveErrorDetail,
             error_code="MANAGE_WAVE_UPSTREAM_ERROR",

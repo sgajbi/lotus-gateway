@@ -83,9 +83,13 @@ The current risk rolling payload-example extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 415/49 refactor ratchet,
 current `src/app/services/performance_workspace_trend_service.py` hotspot evidence, and durable scorecard/context guidance
 synchronized for future agent work.
-The current performance workspace attribution-trend service extraction keeps
+The previous performance workspace attribution-trend service extraction kept
 `scripts/check_agent_quality_evidence.py` aligned with the executable 411/49 refactor ratchet,
 current `src/app/services/dpm_wave_ai_handoff.py` hotspot evidence, and durable scorecard/context
+guidance synchronized for future agent work.
+The current DPM wave AI payload extraction keeps `scripts/check_agent_quality_evidence.py` aligned
+with the executable 408/49 refactor ratchet, current
+`src/app/services/risk_workspace_attribution.py` hotspot evidence, and durable scorecard/context
 guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -894,28 +898,36 @@ The blocking source-file threshold remains `max_source_file_lines=415` because
 `src/app/services/performance_workspace_trend_service.py` is now the sole 415-line hotspot.
 Threshold trials prove 415 passes while 414 fails only on the performance workspace trend service.
 
-Current performance workspace attribution-trend service extraction reduces
+Previous performance workspace attribution-trend service extraction reduced
 `src/app/services/performance_workspace_trend_service.py` from 415 to 223 script-counted lines by
 moving attribution-trend request-context assembly, window construction, upstream fan-out, and
 response assembly into `src/app/services/performance_workspace_attribution_trend_service.py`.
-The blocking source-file threshold is ratcheted to `max_source_file_lines=411` because
-`src/app/services/dpm_wave_ai_handoff.py` is now the sole 411-line hotspot. Threshold trials prove
-411 passes while 410 fails only on the DPM wave AI handoff service.
+The blocking source-file threshold was ratcheted to `max_source_file_lines=411` because
+`src/app/services/dpm_wave_ai_handoff.py` was the sole 411-line hotspot. Threshold trials proved
+411 passed while 410 failed only on the DPM wave AI handoff service.
+
+Current DPM wave AI payload extraction reduces `src/app/services/dpm_wave_ai_handoff.py` from 411
+to 195 script-counted lines by moving wave report-input supportability extraction, source-reference
+construction, request/task payload construction, supportability guardrail payloads, and gateway
+response assembly into `src/app/services/dpm_wave_ai_payloads.py`. The blocking source-file
+threshold is ratcheted to `max_source_file_lines=408` because
+`src/app/services/risk_workspace_attribution.py` is now the sole 408-line hotspot. Threshold trials
+prove 408 passes while 407 fails only on the risk workspace attribution service.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
-| 2 | 408 | `src/app/services/risk_workspace_attribution.py` |
-| 3 | 406 | `src/app/clients/advise_proposal_client.py` |
-| 4 | 405 | `src/app/contracts/proposal_lifecycle.py` |
-| 5 | 405 | `src/app/services/proposal_service.py` |
-| 6 | 404 | `src/app/services/platform_capabilities_normalization.py` |
-| 7 | 402 | `src/app/services/performance_workspace_contribution.py` |
-| 8 | 402 | `src/app/services/risk_workspace_service.py` |
-| 9 | 399 | `src/app/services/dpm_proof_pack_service.py` |
-| 10 | 398 | `src/app/contracts/advisor_brief.py` |
+| 1 | 408 | `src/app/services/risk_workspace_attribution.py` |
+| 2 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 3 | 405 | `src/app/contracts/proposal_lifecycle.py` |
+| 4 | 405 | `src/app/services/proposal_service.py` |
+| 5 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 6 | 402 | `src/app/services/performance_workspace_contribution.py` |
+| 7 | 402 | `src/app/services/risk_workspace_service.py` |
+| 8 | 399 | `src/app/services/dpm_proof_pack_service.py` |
+| 9 | 398 | `src/app/contracts/advisor_brief.py` |
+| 10 | 397 | `src/app/services/risk_workspace_attribution_controls.py` |
 
 ## Largest Functions
 

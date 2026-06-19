@@ -4,6 +4,27 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## DPM Wave AI Payload Extraction
+
+- Scope: behavior-preserving DPM wave AI handoff modularity and CI ratchet enforcement.
+- Existing owner pattern: `DpmWaveService` composes focused mixins; `dpm_wave_ai_handoff.py`
+  owns Manage report-input loading and Lotus AI workflow-pack orchestration for PM memo and
+  operations handoff summary requests.
+- Change: moved wave report-input supportability extraction, source-reference construction,
+  request/task payload construction, supportability guardrail payloads, and gateway response
+  assembly into `src/app/services/dpm_wave_ai_payloads.py`; the handoff mixin remains the owner of
+  workflow-pack execution and product-safe upstream error mapping.
+- Measured signal: `src/app/services/dpm_wave_ai_handoff.py` reduced from 411 to 195 lines; the
+  extracted payload module is 235 lines; largest source file is now
+  `src/app/services/risk_workspace_attribution.py` at 408 lines; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `411/49` to `408/49`; `408` passes
+  and `407` fails only on `src/app/services/risk_workspace_attribution.py`.
+- Tests: `tests/unit/test_dpm_wave_service.py` preserves Manage report-input and Lotus AI
+  workflow-pack behavior; `tests/contract/test_dpm_wave_contract.py` preserves contract shape;
+  `tests/unit/test_dpm_wave_service_boundaries.py` pins the new payload/helper module boundary.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/risk_workspace_attribution.py` before changing code.
+
 ## Performance Workspace Attribution-Trend Service Extraction
 
 - Scope: behavior-preserving performance workspace trend-service modularity and CI ratchet
