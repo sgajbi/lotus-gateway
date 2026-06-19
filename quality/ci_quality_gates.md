@@ -17,15 +17,19 @@ The current local and PR-grade blocking gates are:
    longest-function baselines,
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
-5. `mypy` over `src`,
-6. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
+5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
+   keeps the executable 521/49 ratchet, the current largest hotspot
+   `src/app/services/dpm_command_center_service.py`, and durable scorecard/context guidance in
+   sync,
+6. `mypy` over `src`,
+7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
-7. migration contract smoke,
-8. unit and contract tests,
-9. integration tests,
-10. coverage with an 84% floor,
-11. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
-12. Docker build and local Docker parity in the PR Merge Gate.
+8. migration contract smoke,
+9. unit and contract tests,
+10. integration tests,
+11. coverage with an 84% floor,
+12. `pip-audit` with the governed temporary `PYSEC-2026-161` exception,
+13. Docker build and local Docker parity in the PR Merge Gate.
 
 The PR Merge Gate now runs integration tests and the coverage gate in parallel after the
 lint/typecheck/unit job. Docker build and Docker parity remain downstream of both jobs so the
@@ -43,11 +47,12 @@ Report-only quality checks should remain advisory until findings are classified:
 6. import-linter architecture contracts,
 7. documentation and observability scorecard gaps.
 
-The quality-baseline workflow now enforces the already-remediated source-size, function-size, and
-workflow-governance thresholds before running report-only tools. It also enforces evidence capture
-itself: the expected quality-baseline log files, workflow-governance proof, and generated OpenAPI
-artifact must exist before upload. Tool findings remain report-only; missing or unusable evidence
-is treated as a CI measurement defect.
+The quality-baseline workflow now enforces the already-remediated source-size, function-size,
+workflow-governance, and agent quality evidence thresholds before running report-only tools. It
+also enforces evidence capture itself: the expected quality-baseline log files,
+workflow-governance proof, agent-quality-evidence proof, and generated OpenAPI artifact must exist
+before upload. Tool findings remain report-only; missing or unusable evidence is treated as a CI
+measurement defect.
 
 ## Progressive Enforcement Plan
 
@@ -78,15 +83,19 @@ Most recent local PR-grade evidence:
    `Enforce Workflow Governance` steps, capturing both
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
-7. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
+   `scripts/check_agent_quality_evidence.py`, proving the executable 521/49 ratchet still matches
+   current source truth and that durable scorecard/context guidance names
+   `src/app/services/dpm_command_center_service.py` as the 521-line hotspot.
+8. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
-8. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+9. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-9. Current CI workflow-governance enforcement slice focused validation passed with 24
-   quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests.
-   Full local `make check` passed with workflow governance, refactor thresholds, mypy over 578
-   source files, OpenAPI smoke, and 1,268 unit/contract tests.
+10. Current CI enforcement slice focused validation passed with 26 agent quality evidence,
+   quality-baseline artifact, workflow-action runtime, and refactor-threshold tests. Full local
+   `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+   over 578 source files, OpenAPI smoke, and 1,271 unit/contract tests.
 10. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public

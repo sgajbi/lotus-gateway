@@ -16,7 +16,7 @@
 
 - `make check`
   lint, monetary-float governance, refactor thresholds, workflow action-runtime governance,
-  typecheck, OpenAPI contract proof, unit tests
+  agent quality evidence governance, typecheck, OpenAPI contract proof, unit tests
 - `make ci`
   migration smoke, integration tests, coverage, security audit
 - `make ci-local`
@@ -40,8 +40,11 @@
 
 The Quality Baseline workflow keeps advisory quality tools report-only, but it is no longer a
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
-missing required evidence before uploading artifacts. It installs the optional `quality`
-dependency group and records evidence for:
+agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
+required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
+521/49 ratchet, the current `src/app/services/dpm_command_center_service.py` hotspot, and durable
+scorecard/context guidance synchronized for future agent development. It installs the optional
+`quality` dependency group and records evidence for:
 
 - complexity and maintainability through `radon` and `xenon`
 - high-confidence dead-code candidates through `vulture`
@@ -1124,14 +1127,15 @@ ratchets the blocking source-file threshold from 522 to 521 script-counted lines
 validation passed with 33 risk rolling window, service, refactor-threshold, and quality-artifact
 tests.
 
-The current CI workflow-governance enforcement slice adds a blocking Quality Baseline
-`Enforce Workflow Governance` step, records `output/quality-baseline/workflow-governance.txt`, and
-requires that artifact before upload. This makes GitHub Actions major, Node 24 opt-in, and bounded
-job-timeout governance visible in the quality-baseline evidence pack instead of relying only on
-the lint-stage `make check` path. Focused validation passed with 24 quality-baseline artifact,
-workflow-action runtime, refactor-threshold, and wiki-overview tests; full local `make check`
-passed with workflow governance, refactor thresholds, mypy over 578 source files, OpenAPI smoke,
-and 1,268 unit/contract tests.
+The current CI enforcement slice adds blocking Quality Baseline `Enforce Workflow Governance` and
+`Enforce Agent Quality Evidence` steps, records `output/quality-baseline/workflow-governance.txt`
+and `output/quality-baseline/agent-quality-evidence.txt`, and requires those artifacts before
+upload. This makes GitHub Actions major, Node 24 opt-in, bounded job-timeout governance, and
+future-agent quality guidance visible in the quality-baseline evidence pack instead of relying
+only on the lint-stage `make check` path. Focused validation passed with 26 agent quality evidence,
+quality-baseline artifact, workflow-action runtime, and refactor-threshold tests; full local
+`make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+over 578 source files, OpenAPI smoke, and 1,271 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

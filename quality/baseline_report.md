@@ -51,6 +51,10 @@ The latest contribution slice split detail-vs-summary merge selection policy out
 contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
+The latest CI enforcement slice adds a blocking agent quality evidence gate through
+`scripts/check_agent_quality_evidence.py`, keeping the executable 521/49 refactor ratchet,
+current `src/app/services/dpm_command_center_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -555,15 +559,17 @@ the source-file ceiling, and the blocking source-file threshold is ratcheted to
 `max_source_file_lines=521`. Focused validation passed with 33 risk rolling window, service,
 refactor-threshold, and quality-artifact tests.
 
-Current CI workflow-governance enforcement verification adds an explicit blocking Quality Baseline
-`Enforce Workflow Governance` step, records
-`output/quality-baseline/workflow-governance.txt`, and extends artifact validation so the
-workflow-governance evidence must exist before upload. This preserves the 521/49 refactor
-threshold posture while preventing GitHub Actions major, Node runtime opt-in, and job-timeout
-governance drift from becoming invisible report-only debt. Focused validation passed with 24
-quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests;
-full local `make check` passed with workflow governance, refactor thresholds, mypy over 578 source
-files, OpenAPI smoke, and 1,268 unit/contract tests.
+Current CI enforcement verification adds explicit blocking Quality Baseline `Enforce Workflow
+Governance` and `Enforce Agent Quality Evidence` steps, records
+`output/quality-baseline/workflow-governance.txt` and
+`output/quality-baseline/agent-quality-evidence.txt`, and extends artifact validation so both
+evidence files must exist before upload. This preserves the 521/49 refactor threshold posture
+while preventing GitHub Actions major, Node runtime opt-in, job-timeout governance, and
+future-agent quality guidance drift from becoming invisible report-only debt. Focused validation
+passed with 26 agent quality evidence, quality-baseline artifact, workflow-action runtime, and
+refactor-threshold tests; full local `make check` passed with workflow governance, refactor
+thresholds, agent quality evidence, mypy over 578 source files, OpenAPI smoke, and 1,271
+unit/contract tests.
 
 ## Largest Source Files
 

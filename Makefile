@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
+.PHONY: install lint typecheck monetary-float-guard refactor-quality-thresholds workflow-action-runtime agent-quality-evidence openapi-gate migration-smoke migration-apply test test-unit test-integration test-coverage test-e2e test-e2e-live security-audit check ci ci-local ci-local-docker ci-local-docker-down run run-canonical clean docker-up docker-down e2e-up e2e-down
 
 install:
 	python -m pip install -e ".[dev]"
@@ -9,6 +9,7 @@ lint:
 	$(MAKE) monetary-float-guard
 	$(MAKE) refactor-quality-thresholds
 	$(MAKE) workflow-action-runtime
+	$(MAKE) agent-quality-evidence
 
 monetary-float-guard:
 	python scripts/check_monetary_float_usage.py
@@ -18,6 +19,9 @@ refactor-quality-thresholds:
 
 workflow-action-runtime:
 	python scripts/check_workflow_action_runtime.py
+
+agent-quality-evidence:
+	python scripts/check_agent_quality_evidence.py
 
 typecheck:
 	python -m mypy src
