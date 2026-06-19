@@ -849,6 +849,27 @@ coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` excep
 Refactor-threshold trials prove `max_source_file_lines=632` passes while `631` fails on
 `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py`.
 
+The current DPM router-group boundary branch moves DPM command-center, campaign, proof-pack,
+construction, and wave router registration groups into `src/app/router_groups/dpm.py` while
+preserving concrete route registration order in `src/app/router_registry.py`. Focused validation
+passed with ruff check, ruff format check, 29 router-boundary and DPM command-center/wave contract
+tests, and refactor-threshold trials proving `max_source_file_lines=632` still passes while `631`
+now fails only on `src/app/services/risk_workspace_service.py`. Full local `make check` passed with
+ruff, format check over 770 files, monetary-float guard, refactor threshold gate, workflow
+action-runtime baseline, mypy over 549 source files, OpenAPI smoke, and 1,233 unit/contract tests.
+Full local `make ci` passed with migration contract smoke, 209 integration tests, 1,442 combined
+coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
+`PYSEC-2026-161` exception. The same branch was validated against the live canonical
+front-office stack after rebuilding the Docker-backed Gateway and downstream stack:
+`lotus-workbench/output/playwright/live-canonical-dpm-router-boundary/live-validation-summary.json`
+passed for `PB_SG_GLOBAL_BAL_001` with 94 API checks, 2 calculation checks, 29 screenshots,
+25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing
+or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps. Companion
+observability evidence at `lotus-workbench/output/observability-live/20260619-083718/observability-evidence-manifest.json`
+captured 13/13 DNS checks, 13/13 representative API checks, 4/4 metrics checks, 14 log artifacts,
+and the validation summary link. GitHub checks and post-merge wiki publication remain pending for
+this branch.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/router_registry.py` at 632 script-counted lines,
-2. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
-3. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
-4. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
-5. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines.
+1. `src/app/services/risk_workspace_service.py` at 632 script-counted lines,
+2. `src/app/services/advisory_client_protocols.py` at 630 script-counted lines,
+3. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
+4. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
+5. `src/app/services/foundation_service.py` at 618 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -48,7 +48,10 @@ proposal lifecycle transition orchestration moved into
 The prior longest function, `register_routers` in `src/app/router_registry.py`, has been split
 into explicit route-family groups and a short registration loop. Advise-owned router groups have
 also been extracted into `src/app/router_groups/advisory.py`, reducing `router_registry.py` to 632
-script-counted lines while preserving concrete route registration. The performance workspace
+script-counted lines while preserving concrete route registration. DPM command-center, campaign,
+proof-pack, construction, and wave router groups now live in `src/app/router_groups/dpm.py`,
+reducing `router_registry.py` to 294 script-counted lines while preserving route registration
+order. The performance workspace
 response builder has also been split into request-context, summary/detail, evidence, and assembly
 helpers. Performance workspace context loading, report-window resolution, benchmark context
 assembly, and analytics-reference fallback are now split into
@@ -197,7 +200,10 @@ Advisor Brief presentation/source item contracts now live in
 blocking source-file threshold is ratcheted from 646 to 639 script-counted lines. The current
 performance workspace detail-view slice ratchets the ceiling again to 632 script-counted lines,
 making `src/app/router_registry.py` and `src/app/services/risk_workspace_service.py` the largest
-residual source-file hotspots.
+residual source-file hotspots. The current DPM router-group boundary slice then moves DPM
+registration groups into `src/app/router_groups/dpm.py`, reducing `router_registry.py` to 294
+script-counted lines and leaving `src/app/services/risk_workspace_service.py` as the single
+632-line source-file ceiling blocker.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

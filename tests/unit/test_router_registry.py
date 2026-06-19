@@ -4,9 +4,11 @@ from pathlib import Path
 from fastapi import APIRouter, FastAPI
 
 from app.router_groups.advisory import PROPOSAL_ROUTERS
+from app.router_groups.dpm import DPM_COMMAND_CENTER_ROUTERS, DPM_WAVE_ROUTERS
 from app.router_registry import ROUTER_GROUPS, register_routers
 
 _MAIN_MODULE = Path(__file__).parents[2] / "src" / "app" / "main.py"
+_ROUTER_REGISTRY_MODULE = Path(__file__).parents[2] / "src" / "app" / "router_registry.py"
 
 
 def _imported_modules(path: Path) -> set[str]:
@@ -45,6 +47,26 @@ def test_advisory_router_group_keeps_proposal_routes_together() -> None:
     assert "/api/v1/proposals/{proposal_id}/lineage" in routes
 
 
+def test_dpm_router_groups_keep_command_center_and_wave_routes_together() -> None:
+    command_center_routes = {
+        route.path
+        for router in DPM_COMMAND_CENTER_ROUTERS
+        for route in router.routes
+        if hasattr(route, "path")
+    }
+    wave_routes = {
+        route.path
+        for router in DPM_WAVE_ROUTERS
+        for route in router.routes
+        if hasattr(route, "path")
+    }
+
+    assert "/api/v1/dpm/command-center" in command_center_routes
+    assert "/api/v1/dpm/command-center/mandates/{mandate_id}/health" in command_center_routes
+    assert "/api/v1/dpm/command-center/waves" in wave_routes
+    assert "/api/v1/dpm/command-center/waves/{wave_id}/supportability" in wave_routes
+
+
 def test_router_registry_registers_concrete_routes_for_middleware_introspection() -> None:
     app = FastAPI()
 
@@ -73,3 +95,13 @@ def test_main_delegates_router_imports_to_registry() -> None:
     ]
 
     assert router_imports == []
+
+
+def test_router_registry_delegates_dpm_router_imports_to_group_module() -> None:
+    dpm_router_imports = [
+        module
+        for module in _imported_modules(_ROUTER_REGISTRY_MODULE)
+        if module.startswith("app.routers.dpm_")
+    ]
+
+    assert dpm_router_imports == []
