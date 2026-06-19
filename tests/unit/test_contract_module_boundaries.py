@@ -321,6 +321,22 @@ def test_portfolio_position_book_contracts_live_outside_holdings_facade() -> Non
     assert portfolio_holdings_facade_classes.isdisjoint(expected_position_book_contracts)
 
 
+def test_domain_product_trust_contracts_live_outside_domain_products_facade() -> None:
+    domain_products_facade_classes = _class_names(_CONTRACT_ROOT / "domain_products.py")
+    trust_contract_classes = _class_names(_CONTRACT_ROOT / "domain_product_trust.py")
+
+    expected_trust_contracts = {
+        "DomainProductLiveTrustCertification",
+        "DomainProductLiveTrustIssue",
+        "DomainProductLiveTrustSummary",
+        "DomainProductTrustCertificationData",
+        "DomainProductTrustCertificationResponse",
+    }
+
+    assert expected_trust_contracts <= trust_contract_classes
+    assert domain_products_facade_classes.isdisjoint(expected_trust_contracts)
+
+
 def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
     reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
     materialization_contract_classes = _class_names(

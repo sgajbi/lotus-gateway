@@ -52,8 +52,8 @@ contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
 The latest CI enforcement slice adds a blocking agent quality evidence gate through
-`scripts/check_agent_quality_evidence.py`, keeping the executable 465/49 refactor ratchet,
-current `src/app/contracts/domain_products.py` hotspot evidence, and durable
+`scripts/check_agent_quality_evidence.py`, keeping the executable 462/49 refactor ratchet,
+current `src/app/services/portfolio_transaction_summary.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -736,20 +736,34 @@ executable 465/49 ratchet. Full local `make check` passed with monetary-float go
 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy
 over 595 source files, OpenAPI smoke, and 1,286 unit/contract tests.
 
+Current domain-product trust contract verification moves live-trust certification summary,
+per-product certification, issue, data, and response DTOs into
+`src/app/contracts/domain_product_trust.py` while preserving the public
+`app.contracts.domain_products` import surface. The largest source-file hotspot moves to
+`src/app/services/portfolio_transaction_summary.py` at 462 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=462`. Focused validation passed with 37
+domain-product contract, service, contract-boundary, refactor-threshold, and quality-baseline
+artifact tests, mypy over touched domain-product contract/service modules, and
+refactor-threshold trials proving 462 passes while 461 fails only on the portfolio transaction
+summary hotspot; the agent quality evidence gate now tracks the executable 462/49 ratchet. Full
+local `make check` passed with monetary-float governance at 152 findings/152 allowlisted,
+workflow governance, refactor thresholds, agent quality evidence, mypy over 596 source files,
+OpenAPI smoke, and 1,287 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 465 | `src/app/contracts/domain_products.py` |
-| 2 | 462 | `src/app/services/portfolio_transaction_summary.py` |
-| 3 | 458 | `src/app/services/workspace_client_protocols.py` |
-| 4 | 452 | `src/app/clients/dpm_client.py` |
-| 5 | 448 | `src/app/services/risk_workspace_requests.py` |
-| 6 | 444 | `src/app/services/advisor_brief_narrative.py` |
-| 7 | 441 | `src/app/services/performance_workspace_horizon.py` |
-| 8 | 440 | `src/app/contracts/performance_attribution.py` |
-| 9 | 438 | `src/app/services/advisor_brief_service.py` |
-| 10 | 437 | `src/app/services/performance_workspace_service.py` |
+| 1 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 2 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 3 | 452 | `src/app/clients/dpm_client.py` |
+| 4 | 448 | `src/app/services/risk_workspace_requests.py` |
+| 5 | 444 | `src/app/services/advisor_brief_narrative.py` |
+| 6 | 441 | `src/app/services/performance_workspace_horizon.py` |
+| 7 | 440 | `src/app/contracts/performance_attribution.py` |
+| 8 | 438 | `src/app/services/advisor_brief_service.py` |
+| 9 | 437 | `src/app/services/performance_workspace_service.py` |
+| 10 | 432 | `src/app/services/risk_workspace_rolling.py` |
 
 ## Largest Functions
 

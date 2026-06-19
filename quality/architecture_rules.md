@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/domain_products.py` at 465 lines,
-2. `src/app/services/portfolio_transaction_summary.py` at 462 lines,
-3. `src/app/services/workspace_client_protocols.py` at 458 lines,
-4. `src/app/clients/dpm_client.py` at 452 lines,
-5. `src/app/services/risk_workspace_requests.py` at 448 lines.
+1. `src/app/services/portfolio_transaction_summary.py` at 462 lines,
+2. `src/app/services/workspace_client_protocols.py` at 458 lines,
+3. `src/app/clients/dpm_client.py` at 452 lines,
+4. `src/app/services/risk_workspace_requests.py` at 448 lines,
+5. `src/app/services/advisor_brief_narrative.py` at 444 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -368,6 +368,12 @@ period-payload selection, and row construction into
 reduced from 471 to 302 script-counted lines, the extracted trend parser module is 205 lines, and
 the blocking threshold is ratcheted from 471 to 465 script-counted lines, with
 `src/app/contracts/domain_products.py` as the largest residual hotspot.
+The current domain-product trust contract slice moves live-trust certification DTOs into
+`src/app/contracts/domain_product_trust.py` while preserving the existing
+`app.contracts.domain_products` import surface. `domain_products.py` is reduced from 465 to 321
+script-counted lines, the extracted trust contract module is 163 lines, and the blocking
+threshold is ratcheted from 465 to 462 script-counted lines, with
+`src/app/services/portfolio_transaction_summary.py` as the largest residual hotspot.
 The current risk rolling window-boundary slice moves rolling-window, metric-series,
 dependency-context, and window-length mapping into
 `src/app/services/risk_workspace_rolling_windows.py` while preserving the public rolling response
