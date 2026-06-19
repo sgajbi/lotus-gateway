@@ -509,20 +509,30 @@ passed with 70 risk workspace service, service-boundary, service-factory, provid
 quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 573
 source files, OpenAPI smoke, and 1,260 unit/contract tests.
 
+Current DPM PM operating-quality summary working-tree verification moves Manage score-run evidence
+loading, Lotus AI workflow-pack execution, missing-score-run validation, and summary response
+assembly into `src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the
+public `request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is
+reduced from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines,
+and the blocking source-file threshold is ratcheted to `max_source_file_lines=536`. Focused
+validation passed with 105 DPM command-center service, AI context, supportability, router,
+service-boundary, wiki, and quality-threshold tests. Full local `make check` passed with workflow
+governance, mypy over 574 source files, OpenAPI smoke, and 1,261 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 2 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 3 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 5 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 6 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 7 | 520 | `src/app/services/proposal_service.py` |
-| 8 | 515 | `src/app/services/workbench_service.py` |
-| 9 | 508 | `src/app/services/advisor_brief_source.py` |
-| 10 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 1 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 2 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 3 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 4 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 5 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 6 | 520 | `src/app/services/proposal_service.py` |
+| 7 | 515 | `src/app/services/workbench_service.py` |
+| 8 | 508 | `src/app/services/advisor_brief_source.py` |
+| 9 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 10 | 503 | `src/app/contracts/portfolio_workspace.py` |
 
 ## Largest Functions
 

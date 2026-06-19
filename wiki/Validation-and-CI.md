@@ -1066,6 +1066,18 @@ script-counted lines. Focused validation passed with 70 risk workspace service, 
 service-factory, provider, wiki, and quality-threshold tests. Current local `make check` passed with
 workflow governance, mypy over 573 source files, OpenAPI smoke, and 1,260 unit/contract tests.
 
+The current DPM PM operating-quality summary boundary branch moves Manage score-run evidence
+loading, Lotus AI workflow-pack execution, missing-score-run validation, and summary response
+assembly into `src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the
+public `request_pm_operating_quality_summary` surface. It reduces
+`src/app/services/dpm_pm_operating_quality_service.py` from 549 to 360 script-counted lines, moves
+the largest residual source-file hotspot to `src/app/clients/advise_proposal_client.py` at 536
+script-counted lines, and ratchets the blocking source-file threshold from 549 to 536
+script-counted lines. Focused validation passed with 105 DPM command-center service, AI context,
+supportability, router, service-boundary, wiki, and quality-threshold tests. Current local
+`make check` passed with workflow governance, mypy over 574 source files, OpenAPI smoke, and
+1,261 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines,
-2. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines,
-3. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines,
-4. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
-5. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines.
+1. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines,
+2. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines,
+3. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
+4. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
+5. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -293,6 +293,13 @@ blocked-response handling, cache orchestration, upstream fan-out, and response m
 380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
 blocking threshold is ratcheted from 556 to 549 script-counted lines, with
 `src/app/services/dpm_pm_operating_quality_service.py` as the largest residual hotspot.
+The current DPM PM operating-quality summary slice moves Manage score-run evidence loading,
+Lotus AI workflow-pack execution, missing-score-run validation, and summary response assembly into
+`src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the public
+`request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is reduced
+from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines, and the
+blocking threshold is ratcheted from 549 to 536 script-counted lines, with
+`src/app/clients/advise_proposal_client.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

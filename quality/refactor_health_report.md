@@ -740,17 +740,24 @@ mapping into `src/app/services/risk_workspace_attribution_service.py` while pres
 380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
 blocking source-file threshold is ratcheted from 556 to 549 lines, with
 `src/app/services/dpm_pm_operating_quality_service.py` now the single source-file ceiling blocker.
+The current DPM PM operating-quality summary boundary slice moves Manage score-run evidence
+loading, Lotus AI workflow-pack execution, missing-score-run validation, and summary response
+assembly into `src/app/services/dpm_pm_operating_quality_summary_service.py` while preserving the
+public `request_pm_operating_quality_summary` surface. `dpm_pm_operating_quality_service.py` is
+reduced from 549 to 360 script-counted lines, the extracted summary workflow mixin is 169 lines,
+and the blocking source-file threshold is ratcheted from 549 to 536 lines, with
+`src/app/clients/advise_proposal_client.py` now the single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current risk workspace attribution service focused validation passed with 70 risk workspace service, service-boundary, service-factory, provider, wiki, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=549`; full local `make check` passed with workflow governance, mypy over 573 source files, OpenAPI smoke, and 1,260 unit/contract tests |
+| Unit/contract coverage | Healthy | Current DPM PM operating-quality summary focused validation passed with 105 DPM command-center service, AI context, supportability, router, service-boundary, wiki, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=536`; full local `make check` passed with workflow governance, mypy over 574 source files, OpenAPI smoke, and 1,261 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
-| Security audit | Governed | Current risk workspace attribution service extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits risk workspace attribution orchestration into a focused mixin while preserving the public risk workspace service surface. The largest current source-file hotspot is now `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines |
+| Security audit | Governed | Current DPM PM operating-quality summary extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits DPM PM operating-quality summary workflow orchestration into a focused mixin while preserving the public command-center service surface. The largest current source-file hotspot is now `src/app/clients/advise_proposal_client.py` at 536 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -762,7 +769,7 @@ blocking source-file threshold is ratcheted from 556 to 549 lines, with
 
 1. Continue splitting large contract modules and remaining upstream clients around clear service
    and route-family boundaries. The next source-file hotspot is
-   `src/app/services/dpm_pm_operating_quality_service.py`.
+   `src/app/clients/advise_proposal_client.py`.
 2. Continue splitting remaining large observability, contract, service, or client modules around
    cohesive behavior-preserving seams.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context

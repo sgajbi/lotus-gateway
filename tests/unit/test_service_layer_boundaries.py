@@ -252,6 +252,23 @@ def test_dpm_wave_services_import_focused_protocol_family() -> None:
         assert "app.services.dpm_client_protocols" not in imports
 
 
+def test_dpm_pm_operating_quality_summary_lives_in_focused_service_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "dpm_pm_operating_quality_service.py")
+    summary_service_methods = _function_names(
+        _SERVICE_ROOT / "dpm_pm_operating_quality_summary_service.py"
+    )
+    summary_methods = {
+        "request_pm_operating_quality_summary",
+        "_compose_pm_operating_quality_summary_response",
+        "_execute_pm_operating_quality_summary_workflow",
+        "_load_pm_operating_quality_summary_context",
+        "_require_pm_operating_quality_score_run",
+    }
+
+    assert summary_methods <= summary_service_methods
+    assert not summary_methods & service_methods
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
