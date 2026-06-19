@@ -35,8 +35,8 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/proposals.py` at 431 lines,
-2. `src/app/services/advisor_brief_source.py` at 429 lines,
+1. `src/app/services/advisor_brief_source.py` at 429 lines,
+2. `src/app/services/platform_capabilities_service.py` at 427 lines,
 3. `src/app/services/platform_capabilities_service.py` at 427 lines,
 4. `src/app/contracts/risk_workspace_rolling.py` at 421 lines,
 5. `src/app/services/performance_workspace_trend_service.py` at 415 lines.

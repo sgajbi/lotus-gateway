@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-431/49 ratchet, the current `src/app/contracts/proposals.py` hotspot, and durable
+429/49 ratchet, the current `src/app/services/advisor_brief_source.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 

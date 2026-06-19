@@ -62,3 +62,22 @@ Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
   `tests/unit/test_service_layer_boundaries.py` pins shared source-supportability ownership.
 - Follow-up: next measured modularity slice should inspect `src/app/contracts/proposals.py` before
   changing code.
+
+## Proposal Generation Contract Extraction
+
+- Scope: behavior-preserving proposal generation contract modularity and CI ratchet enforcement.
+- Existing owner pattern: `app.contracts.proposals` remains the compatibility facade for
+  Workbench-facing proposal imports; focused proposal contract families already live in
+  `proposal_memos.py`, `proposal_lifecycle.py`, and `proposal_common.py`.
+- Change: moved proposal simulation request/response/data DTOs into
+  `src/app/contracts/proposal_generation.py` while preserving public
+  `app.contracts.proposals` imports and router response models.
+- Measured signal: `src/app/contracts/proposals.py` reduced from 431 to 314 lines; largest source
+  file is now `src/app/services/advisor_brief_source.py` at 429 lines; longest function remains
+  49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `431/49` to `429/49`; `429` passes
+  and `428` fails only on `src/app/services/advisor_brief_source.py`.
+- Tests: `tests/contract/test_proposals_contract.py` preserves facade import compatibility and
+  `tests/unit/test_contract_module_boundaries.py` pins proposal-generation DTO ownership.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/advisor_brief_source.py` before changing code.

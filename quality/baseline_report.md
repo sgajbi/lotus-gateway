@@ -71,10 +71,10 @@ The current performance workspace summary-view extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 432/49 refactor ratchet,
 current `src/app/services/risk_workspace_attribution.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
-The current risk workspace supportability extraction keeps
-`scripts/check_agent_quality_evidence.py` aligned with the executable 431/49 refactor ratchet,
-current `src/app/contracts/proposals.py` hotspot evidence, and durable scorecard/context guidance
-synchronized for future agent work.
+The current proposal generation contract extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 429/49 refactor ratchet,
+current `src/app/services/advisor_brief_source.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -862,16 +862,16 @@ executable 438/49 ratchet.
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 438 | `src/app/services/advisor_brief_service.py` |
-| 2 | 437 | `src/app/services/performance_workspace_service.py` |
-| 3 | 432 | `src/app/services/risk_workspace_attribution.py` |
-| 4 | 432 | `src/app/services/risk_workspace_rolling.py` |
-| 5 | 431 | `src/app/contracts/proposals.py` |
-| 6 | 429 | `src/app/services/advisor_brief_source.py` |
-| 7 | 431 | `src/app/contracts/proposals.py` |
-| 8 | 429 | `src/app/services/advisor_brief_source.py` |
-| 9 | 427 | `src/app/services/platform_capabilities_service.py` |
-| 10 | 421 | `src/app/contracts/risk_workspace_rolling.py` |
+| 1 | 429 | `src/app/services/advisor_brief_source.py` |
+| 2 | 427 | `src/app/services/platform_capabilities_service.py` |
+| 3 | 421 | `src/app/contracts/risk_workspace_rolling.py` |
+| 4 | 415 | `src/app/services/performance_workspace_trend_service.py` |
+| 5 | 415 | `src/app/contracts/dpm_waves.py` |
+| 6 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
+| 7 | 408 | `src/app/services/risk_workspace_attribution.py` |
+| 8 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 9 | 405 | `src/app/services/proposal_service.py` |
+| 10 | 405 | `src/app/contracts/proposal_lifecycle.py` |
 
 ## Largest Functions
 
