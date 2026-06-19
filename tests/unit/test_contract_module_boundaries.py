@@ -206,6 +206,25 @@ def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() ->
     assert dpm_waves_facade_classes.isdisjoint(expected_campaign_workflow_contracts)
 
 
+def test_dpm_wave_ai_contracts_live_outside_dpm_waves_facade() -> None:
+    dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    wave_ai_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_wave_ai.py")
+    supportability_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_wave_supportability.py")
+
+    expected_wave_ai_contracts = {
+        "DpmOperationsHandoffSummaryGatewayResponse",
+        "DpmOperationsHandoffSummaryRequest",
+        "DpmWaveMemoGatewayResponse",
+        "DpmWaveMemoRequest",
+    }
+    expected_supportability_contracts = {"DpmWaveSupportability"}
+
+    assert expected_wave_ai_contracts <= wave_ai_contract_classes
+    assert expected_supportability_contracts <= supportability_contract_classes
+    assert dpm_waves_facade_classes.isdisjoint(expected_wave_ai_contracts)
+    assert dpm_waves_facade_classes.isdisjoint(expected_supportability_contracts)
+
+
 def test_risk_rolling_payload_example_lives_outside_contract_models() -> None:
     rolling_contract_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_rolling.py")
     rolling_example_assignments = _assigned_names(

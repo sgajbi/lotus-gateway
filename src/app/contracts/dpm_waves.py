@@ -1,5 +1,11 @@
 from pydantic import BaseModel, Field, model_validator
 
+from app.contracts.dpm_wave_ai import (
+    DpmOperationsHandoffSummaryGatewayResponse,
+    DpmOperationsHandoffSummaryRequest,
+    DpmWaveMemoGatewayResponse,
+    DpmWaveMemoRequest,
+)
 from app.contracts.dpm_wave_campaign_definitions import (
     DpmCampaignDefinitionForwardRequest,
     DpmCampaignDefinitionGatewayResponse,
@@ -10,6 +16,7 @@ from app.contracts.dpm_wave_campaign_workflow import (
     DpmCampaignWorkflowForwardRequest,
     DpmCampaignWorkflowGatewayResponse,
 )
+from app.contracts.dpm_wave_supportability import DpmWaveSupportability
 
 __all__ = [
     "DpmCampaignDefinitionForwardRequest",
@@ -107,121 +114,6 @@ class DpmWaveCreateRequest(DpmWaveForwardRequest):
     )
 
 
-class DpmWaveMemoRequest(BaseModel):
-    requested_outputs: list[str] = Field(
-        default_factory=lambda: [
-            "wave_pm_memo",
-            "wave_rationale_summary",
-            "approval_checklist",
-            "risk_caveats",
-            "operations_handoff",
-            "evidence_gaps",
-        ],
-        min_length=1,
-        description=(
-            "Bounded support-only outputs requested from lotus-ai dpm_wave_pm_memo.pack@v1. "
-            "Gateway forwards these labels as caller intent and does not allow outputs that "
-            "approve trades, place orders, contact clients, score PMs, or invent missing evidence."
-        ),
-        examples=[["wave_pm_memo", "approval_checklist", "evidence_gaps"]],
-    )
-    audience: list[str] = Field(
-        default_factory=lambda: ["portfolio_manager", "investment_control", "operations"],
-        min_length=1,
-        description=(
-            "Intended human review audiences for the generated support memo. The lotus-ai pack "
-            "still returns review-required evidence text; Gateway does not route the output to "
-            "clients or operational execution systems."
-        ),
-        examples=[["portfolio_manager", "investment_control", "operations"]],
-    )
-
-
-class DpmOperationsHandoffSummaryRequest(BaseModel):
-    requested_outputs: list[str] = Field(
-        default_factory=lambda: [
-            "operations_summary",
-            "execution_prerequisites",
-            "blocking_conditions",
-            "support_references",
-            "evidence_gaps",
-        ],
-        min_length=1,
-        description=(
-            "Bounded support-only outputs requested from lotus-ai "
-            "dpm_operations_handoff_summary.pack@v1. Gateway forwards these labels as caller "
-            "intent and does not allow outputs that approve trades, place orders, contact "
-            "clients, score PMs, route execution, or invent missing evidence."
-        ),
-        examples=[["operations_summary", "execution_prerequisites", "blocking_conditions"]],
-    )
-    audience: list[str] = Field(
-        default_factory=lambda: ["operations", "portfolio_manager", "investment_control"],
-        min_length=1,
-        description=(
-            "Intended internal review audiences for the generated operations handoff summary. "
-            "The lotus-ai pack returns review-required support text; Gateway does not route the "
-            "output to clients or external execution systems."
-        ),
-        examples=[["operations", "portfolio_manager", "investment_control"]],
-    )
-
-
-class DpmWaveSupportability(BaseModel):
-    source_service: str = Field(
-        default="lotus-manage",
-        description="Authoritative service that owns rebalance-wave state and supportability.",
-        examples=["lotus-manage"],
-    )
-    authority: str = Field(
-        default="lotus-manage:RFC-0041",
-        description="Business authority and RFC provenance for DPM rebalance waves.",
-        examples=["lotus-manage:RFC-0041"],
-    )
-    state: str = Field(
-        description=(
-            "Manage-published supportability state. Gateway preserves this value and defaults to "
-            "UNKNOWN only when the upstream payload omits explicit supportability."
-        ),
-        examples=["ready", "degraded", "blocked", "UNKNOWN"],
-    )
-    reason_codes: list[str] = Field(
-        default_factory=list,
-        description="Manage-published bounded reason codes for blocked or degraded wave posture.",
-        examples=[["wave_supportability_ready"]],
-    )
-    blocked_actions: list[str] = Field(
-        default_factory=list,
-        description="Manage-published action identifiers that Workbench should disable.",
-        examples=[["simulate", "approve"]],
-    )
-    wave_id: str | None = Field(
-        default=None,
-        description="Manage-owned rebalance-wave identifier when available.",
-        examples=["dwv_001"],
-    )
-    wave_state: str | None = Field(
-        default=None,
-        description="Manage-owned wave lifecycle state when available.",
-        examples=["HANDOFF_READY"],
-    )
-    item_count: int | None = Field(
-        default=None,
-        description="Manage-published item count when available.",
-        examples=[12],
-    )
-    issue_count: int = Field(
-        default=0,
-        description="Count of manage-published supportability issues, if supplied.",
-        examples=[0],
-    )
-    remediation_owner: str | None = Field(
-        default=None,
-        description="Manage-published owner for source repair or operational remediation.",
-        examples=["Portfolio Operations"],
-    )
-
-
 class DpmWaveGatewayResponse(BaseModel):
     correlation_id: str = Field(
         description="Correlation identifier propagated across Gateway and lotus-manage.",
@@ -262,136 +154,6 @@ class DpmWaveGatewayResponse(BaseModel):
                 "durable": True,
             }
         ],
-    )
-
-
-class DpmWaveMemoGatewayResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Correlation identifier propagated across Gateway, lotus-manage, and lotus-ai.",
-        examples=["corr-rfc41-wave-ai-pm-memo"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Gateway BFF contract version for DPM wave AI memo handoff responses.",
-        examples=["v1"],
-    )
-    source_service: str = Field(
-        default="lotus-ai",
-        description="Service that executed the governed workflow-pack run.",
-        examples=["lotus-ai"],
-    )
-    evidence_source_service: str = Field(
-        default="lotus-manage",
-        description="Service that supplied the authoritative wave report-input evidence.",
-        examples=["lotus-manage"],
-    )
-    manage_upstream_status: int = Field(
-        description="HTTP status returned by lotus-manage for the wave report-input request.",
-        examples=[200],
-    )
-    ai_upstream_status: int = Field(
-        description="HTTP status returned by lotus-ai for workflow-pack execution.",
-        examples=[200],
-    )
-    supportability: DpmWaveSupportability = Field(
-        description=(
-            "Gateway-normalized supportability summary derived only from manage-published wave "
-            "report-input fields and carried into the lotus-ai guardrail request."
-        )
-    )
-    wave_report_input: dict[str, object] = Field(
-        description=(
-            "Authoritative manage DpmWaveReportInput payload preserved for traceability. Gateway "
-            "does not rewrite item evidence, source refs, hashes, approval posture, or proof-pack "
-            "posture before calling lotus-ai."
-        ),
-        examples=[
-            {
-                "wave_id": "dwv_001",
-                "report_input_ref": "report-input:dwv_001",
-                "source_refs": ["lotus-manage:wave:dwv_001"],
-            }
-        ],
-    )
-    memo_request: dict[str, object] = Field(
-        description=(
-            "Bounded caller intent sent to lotus-ai. This object is support-only and excludes "
-            "trade approval, order placement, client contact, PM scoring, and evidence invention."
-        ),
-        examples=[
-            {
-                "requested_outputs": ["wave_pm_memo", "approval_checklist"],
-                "audience": ["portfolio_manager", "investment_control"],
-            }
-        ],
-    )
-    data: dict[str, object] = Field(
-        description=(
-            "lotus-ai workflow-pack execution response. Gateway preserves the AI authority "
-            "payload and does not post-process generated memo content into execution actions."
-        )
-    )
-
-
-class DpmOperationsHandoffSummaryGatewayResponse(BaseModel):
-    correlation_id: str = Field(
-        description="Correlation identifier propagated across Gateway, lotus-manage, and lotus-ai.",
-        examples=["corr-rfc41-operations-handoff-summary"],
-    )
-    contract_version: str = Field(
-        default="v1",
-        description="Gateway BFF contract version for DPM operations handoff summary responses.",
-        examples=["v1"],
-    )
-    source_service: str = Field(
-        default="lotus-ai",
-        description="Service that executed the governed operations handoff summary workflow pack.",
-        examples=["lotus-ai"],
-    )
-    evidence_source_service: str = Field(
-        default="lotus-manage",
-        description="Service that supplied the authoritative wave handoff evidence.",
-        examples=["lotus-manage"],
-    )
-    manage_upstream_status: int = Field(
-        description="HTTP status returned by lotus-manage for the wave report-input request.",
-        examples=[200],
-    )
-    ai_upstream_status: int = Field(
-        description="HTTP status returned by lotus-ai for workflow-pack execution.",
-        examples=[200],
-    )
-    supportability: DpmWaveSupportability = Field(
-        description=(
-            "Gateway-normalized supportability summary derived only from manage-published wave "
-            "report-input fields and carried into the lotus-ai guardrail request."
-        )
-    )
-    wave_report_input: dict[str, object] = Field(
-        description=(
-            "Authoritative manage DpmWaveReportInput payload preserved for traceability. Gateway "
-            "does not rewrite handoff refs, item evidence, source refs, hashes, approval posture, "
-            "or proof-pack posture before calling lotus-ai."
-        ),
-    )
-    handoff_summary_request: dict[str, object] = Field(
-        description=(
-            "Bounded caller intent sent to lotus-ai for operations handoff support. This object "
-            "excludes trade approval, order placement, client contact, PM scoring, routing "
-            "instructions, and evidence invention."
-        ),
-        examples=[
-            {
-                "requested_outputs": ["operations_summary", "blocking_conditions"],
-                "audience": ["operations", "portfolio_manager"],
-            }
-        ],
-    )
-    data: dict[str, object] = Field(
-        description=(
-            "lotus-ai workflow-pack execution response. Gateway preserves the AI authority "
-            "payload and does not post-process generated handoff text into execution actions."
-        )
     )
 
 

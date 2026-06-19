@@ -19,7 +19,7 @@ The current local and PR-grade blocking gates are:
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
    keeps the executable 415/49 ratchet, the current largest hotspot
-   `src/app/contracts/dpm_waves.py`, and durable scorecard/context guidance in
+   `src/app/services/performance_workspace_trend_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -86,8 +86,16 @@ Most recent local PR-grade evidence:
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
    `scripts/check_agent_quality_evidence.py`, proving the executable 415/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/contracts/dpm_waves.py` as the 415-line hotspot.
-8. Current risk rolling payload-example extraction moves the large rolling OpenAPI payload example
+   `src/app/services/performance_workspace_trend_service.py` as the 415-line hotspot.
+8. Current DPM wave AI contract extraction moves supportability and AI handoff DTOs into
+   `src/app/contracts/dpm_wave_supportability.py` and `src/app/contracts/dpm_wave_ai.py` while
+   preserving public `app.contracts.dpm_waves` imports and OpenAPI schema names. It reduces
+   `src/app/contracts/dpm_waves.py` from 415 to 177 lines. The blocking threshold remains 415/49
+   because `src/app/services/performance_workspace_trend_service.py` is now the sole 415-line
+   hotspot; threshold trials prove 415 passes while 414 fails only on that file. Focused validation
+   includes DPM wave contract, DPM wave service, contract-boundary, refactor-threshold, and agent
+   quality evidence checks.
+9. Current risk rolling payload-example extraction moves the large rolling OpenAPI payload example
    into `src/app/contracts/risk_workspace_rolling_examples.py` while preserving
    `WorkbenchRiskRollingPayload` schema behavior and the compatibility example alias. It reduces
    `src/app/contracts/risk_workspace_rolling.py` from 421 to 337 lines, moves the largest
@@ -96,7 +104,7 @@ Most recent local PR-grade evidence:
    contract-boundary, refactor-threshold, quality-baseline artifact, and agent quality evidence
    tests, with threshold trials proving 415 passes while 414 fails on
    `src/app/contracts/dpm_waves.py` and `src/app/services/performance_workspace_trend_service.py`.
-9. Current platform capabilities source-result extraction moves upstream capability result
+10. Current platform capabilities source-result extraction moves upstream capability result
    classification into `src/app/services/platform_capabilities_sources.py` while preserving public
    `get_platform_capabilities` behavior. It reduces
    `src/app/services/platform_capabilities_service.py` from 427 to 326 lines, moves the largest

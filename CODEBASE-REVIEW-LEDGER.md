@@ -4,6 +4,26 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## DPM Wave AI Contract Extraction
+
+- Scope: behavior-preserving DPM wave contract modularity and CI evidence synchronization.
+- Existing owner pattern: `dpm_waves.py` remains the compatibility import surface for DPM wave
+  route contracts; campaign definition and workflow DTOs already live in focused modules.
+- Change: moved DPM wave supportability and AI handoff request/response DTOs into
+  `src/app/contracts/dpm_wave_supportability.py` and `src/app/contracts/dpm_wave_ai.py` while
+  preserving public `app.contracts.dpm_waves` imports and OpenAPI schema names.
+- Measured signal: `src/app/contracts/dpm_waves.py` reduced from 415 to 177 lines; largest source
+  file is now `src/app/services/performance_workspace_trend_service.py` at 415 lines; longest
+  function remains 49 lines.
+- CI enforcement: blocking refactor threshold remains `415/49`; `415` passes and `414` fails only
+  on `src/app/services/performance_workspace_trend_service.py`, so this slice updates durable
+  agent-quality evidence instead of claiming an artificial ratchet.
+- Tests: `tests/contract/test_dpm_wave_contract.py`, `tests/unit/test_dpm_wave_service.py`, and
+  `tests/unit/test_contract_module_boundaries.py` preserve schema/import behavior and pin focused
+  contract-module ownership.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/services/performance_workspace_trend_service.py` before changing code.
+
 ## Risk Rolling Payload Example Extraction
 
 - Scope: behavior-preserving risk rolling contract modularity and CI ratchet enforcement.
