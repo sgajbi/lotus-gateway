@@ -767,17 +767,22 @@ existing `performance_workspace_attribution` import surface. `performance_worksp
 is reduced from 525 to 471 script-counted lines, the extracted parser module is 65 lines, and the
 blocking source-file threshold is ratcheted from 525 to 522 lines, with
 `src/app/services/risk_workspace_rolling.py` now the single source-file ceiling blocker.
+The current risk rolling window-boundary slice moves rolling-window, metric-series,
+dependency-context, and window-length mapping into
+`src/app/services/risk_workspace_rolling_windows.py`, moving the single source-file ceiling blocker
+to `src/app/services/dpm_command_center_service.py` at 521 script-counted lines. The blocking
+source-file threshold is ratcheted from 522 to 521 lines.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current performance attribution supportability focused validation passed with 56 performance attribution contract, parser, service, quality-artifact, and refactor-threshold tests and refactor-threshold proof at `max_source_file_lines=522`; current full local `make check` passed with workflow governance, refactor thresholds, mypy over 577 source files, OpenAPI smoke, and 1,264 unit/contract tests |
+| Unit/contract coverage | Healthy | Current risk rolling window-boundary focused validation passed with 33 risk rolling window, service, threshold, and quality-artifact tests and refactor-threshold proof at `max_source_file_lines=521`; current full local `make check` passed with workflow governance, refactor thresholds, mypy over 578 source files, OpenAPI smoke, and 1,268 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current performance attribution supportability parser extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits performance attribution supportability parsers into a focused module while preserving the existing attribution import surface. The largest current source-file hotspot is now `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits risk rolling window mapping into a focused module while preserving the existing rolling response mapper. The largest current source-file hotspot is now `src/app/services/dpm_command_center_service.py` at 521 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -829,7 +834,7 @@ blocking source-file threshold is ratcheted from 525 to 522 lines, with
 1. Quality Baseline uploads quality logs for baseline classification after blocking refactor
    threshold, workflow-governance, and artifact-integrity checks pass.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 522 script-counted lines,
+   - no Python source file under `src/app` above 521 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

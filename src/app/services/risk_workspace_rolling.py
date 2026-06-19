@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from numbers import Real
 from typing import Any, cast
 
 from fastapi import status
@@ -11,20 +10,20 @@ from app.contracts.risk_workspace import (
     WorkbenchRiskSupportabilityItem,
 )
 from app.contracts.risk_workspace_rolling import (
-    WorkbenchRiskRollingDependencyContext,
-    WorkbenchRiskRollingMetricSeriesContext,
-    WorkbenchRiskRollingMetricSeriesPoint,
-    WorkbenchRiskRollingMetricSummary,
     WorkbenchRiskRollingPayload,
     WorkbenchRiskRollingPeriodResult,
     WorkbenchRiskRollingRequestContext,
-    WorkbenchRiskRollingWindowResult,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
 from app.services.risk_workspace_envelopes import (
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
+)
+from app.services.risk_workspace_rolling_windows import (
+    map_rolling_window_results,
+    rolling_dependency_context,
+    rolling_window_lengths,
 )
 from app.services.source_supportability import (
     extract_calculation_supportability,
@@ -297,29 +296,15 @@ def _map_rolling_period_result(
         aligned_benchmark_series_count=int(value.get("aligned_benchmark_series_count", 0)),
         risk_free_series_count=int(value.get("risk_free_series_count", 0)),
         aligned_risk_free_series_count=int(value.get("aligned_risk_free_series_count", 0)),
-        window_lengths_requested=_rolling_window_lengths(value.get("window_lengths_requested")),
+        window_lengths_requested=rolling_window_lengths(value.get("window_lengths_requested")),
         window_count_requested=int(value.get("window_count_requested", 0)),
-        window_lengths_emitted=_rolling_window_lengths(value.get("window_lengths_emitted")),
+        window_lengths_emitted=rolling_window_lengths(value.get("window_lengths_emitted")),
         window_count_emitted=int(value.get("window_count_emitted", 0)),
-        benchmark_context=_rolling_dependency_context(value.get("benchmark_context")),
-        risk_free_context=_rolling_dependency_context(value.get("risk_free_context")),
-        window_results=_map_rolling_window_results(value.get("window_results")),
+        benchmark_context=rolling_dependency_context(value.get("benchmark_context")),
+        risk_free_context=rolling_dependency_context(value.get("risk_free_context")),
+        window_results=map_rolling_window_results(value.get("window_results")),
         quality_flags=quality_flags,
         error=str(error) if isinstance(error, str) and error.strip() else None,
-    )
-
-
-def _rolling_window_lengths(value: Any) -> list[int]:
-    if not isinstance(value, list):
-        return []
-    return [int(cast(Any, window)) for window in value if isinstance(window, Real)]
-
-
-def _rolling_dependency_context(value: Any) -> WorkbenchRiskRollingDependencyContext | None:
-    return (
-        WorkbenchRiskRollingDependencyContext.model_validate(value)
-        if isinstance(value, dict)
-        else None
     )
 
 
@@ -445,78 +430,3 @@ def _append_source_calculation_supportability(
             source_service=source_supportability.source_service or "lotus-risk",
         )
     )
-
-
-def _map_rolling_window_results(window_payload: Any) -> list[WorkbenchRiskRollingWindowResult]:
-    if not isinstance(window_payload, list):
-        return []
-    results: list[WorkbenchRiskRollingWindowResult] = []
-    for entry in window_payload:
-        if not isinstance(entry, dict):
-            continue
-        metric_summaries_payload = entry.get("metric_summaries")
-        metric_series_payload = entry.get("metric_series")
-        metric_summaries = (
-            {
-                str(key): WorkbenchRiskRollingMetricSummary.model_validate(value)
-                for key, value in metric_summaries_payload.items()
-                if isinstance(key, str) and isinstance(value, dict)
-            }
-            if isinstance(metric_summaries_payload, dict)
-            else {}
-        )
-        metric_series = (
-            _map_rolling_metric_series(metric_series_payload)
-            if isinstance(metric_series_payload, list)
-            else None
-        )
-        results.append(
-            WorkbenchRiskRollingWindowResult(
-                window_length=int(entry.get("window_length", 0)),
-                metric_summaries=metric_summaries,
-                metric_series=metric_series,
-                metric_series_context=(
-                    WorkbenchRiskRollingMetricSeriesContext.model_validate(
-                        entry.get("metric_series_context")
-                    )
-                    if isinstance(entry.get("metric_series_context"), dict)
-                    else None
-                ),
-            )
-        )
-    results.sort(key=lambda item: item.window_length)
-    return results
-
-
-def _map_rolling_metric_series(
-    series_payload: list[Any],
-) -> list[WorkbenchRiskRollingMetricSeriesPoint]:
-    series: list[WorkbenchRiskRollingMetricSeriesPoint] = []
-    for entry in series_payload:
-        if not isinstance(entry, dict):
-            continue
-        metric_values_payload = entry.get("metric_values")
-        metric_values = (
-            {
-                str(key): _safe_float(value)
-                for key, value in metric_values_payload.items()
-                if isinstance(key, str)
-            }
-            if isinstance(metric_values_payload, dict)
-            else {}
-        )
-        series.append(
-            WorkbenchRiskRollingMetricSeriesPoint(
-                date=str(entry.get("date", "")),
-                metric_values=metric_values,
-            )
-        )
-    return series
-
-
-def _safe_float(value: Any) -> float | None:  # monetary-float-allow
-    if value is None:
-        return None
-    if isinstance(value, Real):
-        return float(value)  # monetary-float-allow
-    return None

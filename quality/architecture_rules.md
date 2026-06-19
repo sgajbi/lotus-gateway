@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines,
-2. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
-3. `src/app/services/proposal_service.py` at 520 script-counted lines,
-4. `src/app/services/workbench_service.py` at 515 script-counted lines,
-5. `src/app/services/advisor_brief_source.py` at 508 script-counted lines.
+1. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
+2. `src/app/services/proposal_service.py` at 520 script-counted lines,
+3. `src/app/services/workbench_service.py` at 515 script-counted lines,
+4. `src/app/services/advisor_brief_source.py` at 508 script-counted lines,
+5. `src/app/services/portfolio_transaction_summary.py` at 504 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -321,6 +321,11 @@ existing `performance_workspace_attribution` import surface. `performance_worksp
 is reduced from 525 to 471 script-counted lines, the extracted parser module is 65 lines, and the
 blocking threshold is ratcheted from 525 to 522 script-counted lines, with
 `src/app/services/risk_workspace_rolling.py` as the largest residual hotspot.
+The current risk rolling window-boundary slice moves rolling-window, metric-series,
+dependency-context, and window-length mapping into
+`src/app/services/risk_workspace_rolling_windows.py` while preserving the public rolling response
+mapper. The blocking threshold is ratcheted from 522 to 521 script-counted lines, with
+`src/app/services/dpm_command_center_service.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

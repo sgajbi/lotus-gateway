@@ -547,30 +547,38 @@ lines, and the blocking source-file threshold is ratcheted to `max_source_file_l
 Focused validation passed with 56 performance attribution contract, parser, service,
 quality-artifact, and refactor-threshold tests.
 
+Current risk rolling window-boundary verification moves rolling-window result mapping,
+metric-series point mapping, dependency-context validation, and rolling-window length normalization
+into `src/app/services/risk_workspace_rolling_windows.py` while preserving the existing
+`risk_workspace_rolling` response-mapping surface. `risk_workspace_rolling.py` is reduced below
+the source-file ceiling, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=521`. Focused validation passed with 33 risk rolling window, service,
+refactor-threshold, and quality-artifact tests.
+
 Current CI workflow-governance enforcement verification adds an explicit blocking Quality Baseline
 `Enforce Workflow Governance` step, records
 `output/quality-baseline/workflow-governance.txt`, and extends artifact validation so the
-workflow-governance evidence must exist before upload. This preserves the 522/49 refactor
+workflow-governance evidence must exist before upload. This preserves the 521/49 refactor
 threshold posture while preventing GitHub Actions major, Node runtime opt-in, and job-timeout
 governance drift from becoming invisible report-only debt. Focused validation passed with 24
 quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests;
-full local `make check` passed with workflow governance, refactor thresholds, mypy over 577 source
-files, OpenAPI smoke, and 1,264 unit/contract tests.
+full local `make check` passed with workflow governance, refactor thresholds, mypy over 578 source
+files, OpenAPI smoke, and 1,268 unit/contract tests.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 2 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 3 | 520 | `src/app/services/proposal_service.py` |
-| 4 | 515 | `src/app/services/workbench_service.py` |
-| 5 | 508 | `src/app/services/advisor_brief_source.py` |
-| 6 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 7 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 8 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 9 | 497 | `src/app/services/performance_workspace_service.py` |
-| 10 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 1 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 2 | 520 | `src/app/services/proposal_service.py` |
+| 3 | 515 | `src/app/services/workbench_service.py` |
+| 4 | 508 | `src/app/services/advisor_brief_source.py` |
+| 5 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 6 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 7 | 499 | `src/app/contracts/dpm_command_center.py` |
+| 8 | 497 | `src/app/services/performance_workspace_service.py` |
+| 9 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 10 | 488 | `src/app/services/platform_capabilities_shell.py` |
 
 ## Largest Functions
 

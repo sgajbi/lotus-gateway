@@ -1115,14 +1115,23 @@ script-counted lines. Focused validation passed with 56 performance attribution 
 service, quality-artifact, and refactor-threshold tests. Full local `make check` passed with workflow governance, refactor thresholds,
 mypy over 577 source files, OpenAPI smoke, and 1,264 unit/contract tests.
 
+The current risk rolling window-boundary branch moves rolling-window result mapping,
+metric-series point mapping, dependency-context validation, and rolling-window length normalization
+into `src/app/services/risk_workspace_rolling_windows.py` while preserving the existing
+`risk_workspace_rolling` response-mapping surface. It moves the largest residual source-file
+hotspot to `src/app/services/dpm_command_center_service.py` at 521 script-counted lines and
+ratchets the blocking source-file threshold from 522 to 521 script-counted lines. Focused
+validation passed with 33 risk rolling window, service, refactor-threshold, and quality-artifact
+tests.
+
 The current CI workflow-governance enforcement slice adds a blocking Quality Baseline
 `Enforce Workflow Governance` step, records `output/quality-baseline/workflow-governance.txt`, and
 requires that artifact before upload. This makes GitHub Actions major, Node 24 opt-in, and bounded
 job-timeout governance visible in the quality-baseline evidence pack instead of relying only on
 the lint-stage `make check` path. Focused validation passed with 24 quality-baseline artifact,
 workflow-action runtime, refactor-threshold, and wiki-overview tests; full local `make check`
-passed with workflow governance, refactor thresholds, mypy over 577 source files, OpenAPI smoke,
-and 1,264 unit/contract tests.
+passed with workflow governance, refactor thresholds, mypy over 578 source files, OpenAPI smoke,
+and 1,268 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

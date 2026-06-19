@@ -64,26 +64,30 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 522
+2. Current enforced source-file threshold: no Python source file under `src/app` above 521
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=522` and `max_function_lines=49`.
-5. Quality Baseline now runs blocking `Enforce Refactored Source Thresholds` and
+   `max_source_file_lines=521` and `max_function_lines=49`.
+5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
+   window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
+   source-file ceiling to 521 script-counted lines with
+   `src/app/services/dpm_command_center_service.py` now the largest residual hotspot.
+6. Quality Baseline now runs blocking `Enforce Refactored Source Thresholds` and
    `Enforce Workflow Governance` steps, capturing both
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
-6. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+7. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
-7. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+8. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-8. Current CI workflow-governance enforcement slice focused validation passed with 24
+9. Current CI workflow-governance enforcement slice focused validation passed with 24
    quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests.
-   Full local `make check` passed with workflow governance, refactor thresholds, mypy over 577
-   source files, OpenAPI smoke, and 1,264 unit/contract tests.
-9. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+   Full local `make check` passed with workflow governance, refactor thresholds, mypy over 578
+   source files, OpenAPI smoke, and 1,268 unit/contract tests.
+10. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
    `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.
@@ -94,7 +98,7 @@ Most recent local PR-grade evidence:
    unit/contract tests, and full local `make ci` passed with 209 integration tests, 1,436 combined
    coverage tests, 94.33% total coverage, and no known vulnerabilities after the governed
    `PYSEC-2026-161` exception.
-7. Current performance workspace boundary branch moves detail-view orchestration into
+11. Current performance workspace boundary branch moves detail-view orchestration into
    `src/app/services/performance_workspace_detail_views.py`, preserving the public
    `PerformanceWorkspaceService` surface while reducing
    `src/app/services/performance_workspace_service.py` below the previous top-file ceiling.
