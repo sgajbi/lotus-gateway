@@ -470,20 +470,30 @@ source-file threshold is ratcheted to `max_source_file_lines=562`. Focused valid
 `make check` passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and
 1,252 unit/contract tests.
 
+Current Workbench snapshot-context working-tree verification moves Core portfolio/snapshot fan-out,
+product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembly into
+`src/app/services/workbench_snapshot_context.py` while preserving the public `WorkbenchService`
+surface and existing private error-mapping compatibility shim. `src/app/services/workbench_service.py`
+is reduced from 562 to 515 script-counted lines, the extracted snapshot-context module is 79 lines,
+and the blocking source-file threshold is ratcheted to `max_source_file_lines=560`. Focused
+validation passed with 88 Workbench service, snapshot-context, factory, provider, wiki, and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 570
+source files, OpenAPI smoke, and 1,254 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 562 | `src/app/services/workbench_service.py` |
-| 2 | 560 | `src/app/contracts/reporting.py` |
-| 3 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 4 | 556 | `src/app/services/risk_workspace_service.py` |
-| 5 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 6 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 7 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 8 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 9 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 10 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 1 | 560 | `src/app/contracts/reporting.py` |
+| 2 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 3 | 556 | `src/app/services/risk_workspace_service.py` |
+| 4 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 5 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 6 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 7 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 8 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 9 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 10 | 520 | `src/app/services/proposal_service.py` |
 
 ## Largest Functions
 

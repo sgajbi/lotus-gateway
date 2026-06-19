@@ -1,6 +1,4 @@
-import asyncio
 from dataclasses import dataclass
-from datetime import date
 from typing import Any, cast
 
 from fastapi import HTTPException, status
@@ -10,13 +8,10 @@ from app.contracts.workbench import (
     WorkbenchAnalyticsBucket,
     WorkbenchAnalyticsResponse,
     WorkbenchOverviewResponse,
-    WorkbenchOverviewSummary,
     WorkbenchPartialFailure,
     WorkbenchPerformanceSnapshot,
     WorkbenchPolicyFeedback,
     WorkbenchPortfolio360Response,
-    WorkbenchPortfolioSummary,
-    WorkbenchPositionView,
     WorkbenchProjectedPositionView,
     WorkbenchProjectedSummary,
     WorkbenchRebalanceSnapshot,
@@ -33,10 +28,6 @@ from app.services.workbench_analytics_projection import (
     build_workbench_top_changes,
     with_controlled_risk_bff_gap,
 )
-from app.services.workbench_core_snapshot import (
-    extract_current_positions,
-    parse_lotus_core_snapshot,
-)
 from app.services.workbench_overview_enrichment import (
     load_workbench_overview_enrichment,
     resolve_workbench_performance_snapshot_end_date,
@@ -48,6 +39,11 @@ from app.services.workbench_policy_feedback import (
     parse_policy_feedback_unavailable,
 )
 from app.services.workbench_projected_state import parse_projected_state
+from app.services.workbench_snapshot_context import (
+    WorkbenchSnapshotContext,
+    load_workbench_snapshot_context,
+    raise_for_lotus_core_snapshot_error,
+)
 from app.services.workspace_client_protocols import (
     WorkbenchAdviseClient,
     WorkbenchCoreClient,
@@ -398,40 +394,11 @@ class WorkbenchService:
         *,
         portfolio_id: str,
         correlation_id: str,
-    ) -> "_WorkbenchSnapshotContext":
-        fallback_as_of_date = date.today().isoformat()
-        (
-            portfolio_result,
-            snapshot_result,
-        ) = await asyncio.gather(
-            self._lotus_core_query_client.get_portfolio(
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-            ),
-            self._lotus_core_query_client.get_core_snapshot(
-                portfolio_id=portfolio_id,
-                as_of_date=fallback_as_of_date,
-                sections=["positions_baseline", "portfolio_totals", "instrument_enrichment"],
-                consumer_system="lotus-gateway",
-                correlation_id=correlation_id,
-            ),
-        )
-        portfolio_status, portfolio_payload = portfolio_result
-        snapshot_status, snapshot_payload = snapshot_result
-        self._raise_for_lotus_core_error(portfolio_status, portfolio_payload)
-        self._raise_for_lotus_core_error(snapshot_status, snapshot_payload)
-
-        portfolio, overview, as_of_date = parse_lotus_core_snapshot(
-            fallback_portfolio_id=portfolio_id,
-            portfolio_payload=portfolio_payload,
-            snapshot_payload=snapshot_payload,
-            fallback_as_of_date=fallback_as_of_date,
-        )
-        return _WorkbenchSnapshotContext(
-            portfolio=portfolio,
-            overview=overview,
-            as_of_date=as_of_date,
-            current_positions=extract_current_positions(snapshot_payload),
+    ) -> WorkbenchSnapshotContext:
+        return await load_workbench_snapshot_context(
+            core_client=self._lotus_core_query_client,
+            portfolio_id=portfolio_id,
+            correlation_id=correlation_id,
         )
 
     async def _load_overview_enrichment(
@@ -462,13 +429,7 @@ class WorkbenchService:
         )
 
     def _raise_for_lotus_core_error(self, upstream_status: int, payload: dict[str, Any]) -> None:
-        raise_product_safe_gateway_unavailable_error(
-            upstream_status,
-            payload,
-            source_service="lotus-core",
-            error_code="LOTUS_CORE_SNAPSHOT_UNAVAILABLE",
-            default_detail="Lotus Core snapshot is unavailable.",
-        )
+        raise_for_lotus_core_snapshot_error(upstream_status, payload)
 
     async def _load_projected_state(
         self,
@@ -552,11 +513,3 @@ class WorkbenchService:
             return parse_policy_feedback_unavailable(advise_payload)
 
         return parse_policy_feedback_success(advise_payload)
-
-
-@dataclass(slots=True)
-class _WorkbenchSnapshotContext:
-    portfolio: WorkbenchPortfolioSummary
-    overview: WorkbenchOverviewSummary
-    as_of_date: str
-    current_positions: list[WorkbenchPositionView]

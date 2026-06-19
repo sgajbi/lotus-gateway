@@ -1022,6 +1022,17 @@ wave contract, service, contract-boundary, and quality-threshold tests. Full loc
 passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and 1,252
 unit/contract tests.
 
+The current Workbench snapshot-context boundary branch splits Core portfolio/snapshot fan-out,
+product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembly into
+`src/app/services/workbench_snapshot_context.py` while preserving the public `WorkbenchService`
+surface and its existing private error-mapping compatibility shim. It reduces
+`src/app/services/workbench_service.py` from 562 to 515 script-counted lines, moves the largest
+residual source-file hotspot to `src/app/contracts/reporting.py` at 560 script-counted lines, and
+ratchets the blocking source-file threshold from 562 to 560 script-counted lines. Focused
+validation passed with 88 Workbench service, snapshot-context, factory, provider, wiki, and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 570
+source files, OpenAPI smoke, and 1,254 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
