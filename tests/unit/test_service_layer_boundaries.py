@@ -429,6 +429,40 @@ def test_proposal_service_delegates_lifecycle_transitions() -> None:
     assert "ProposalTransitionServiceMixin" in base_names
 
 
+def test_proposal_service_delegates_delivery_posture_routes() -> None:
+    path = _SERVICE_ROOT / "proposal_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "create_execution_handoff",
+            "create_report_request",
+            "get_delivery_events",
+            "get_delivery_summary",
+            "get_execution_status",
+            "record_execution_update",
+            "review_proposal_narrative",
+        }
+    )
+    proposal_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "ProposalService"
+    ]
+    base_names = {
+        base.id
+        for service_class in proposal_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "ProposalDeliveryServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_readiness_and_insight_source_loading() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

@@ -582,20 +582,30 @@ service and service-boundary tests, and full local `make check` passed with work
 refactor thresholds, agent quality evidence, mypy over 579 source files, OpenAPI smoke, and 1,272
 unit/contract tests.
 
+Current proposal delivery-posture boundary verification moves proposal narrative review, report
+request, delivery summary/events, execution handoff, execution status, and execution update
+orchestration into `src/app/services/proposal_delivery_service.py` while preserving the public
+`ProposalService` method surface. `proposal_service.py` is reduced from 520 to 405
+script-counted lines, the extracted delivery module is 145 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=515`, with
+`src/app/services/workbench_service.py` now the single source-file ceiling blocker. Focused
+validation passed with 49 proposal service and service-boundary tests; the agent quality evidence
+gate now tracks the executable 515/49 ratchet.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 520 | `src/app/services/proposal_service.py` |
-| 2 | 515 | `src/app/services/workbench_service.py` |
-| 3 | 508 | `src/app/services/advisor_brief_source.py` |
-| 4 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 5 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 6 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 7 | 497 | `src/app/services/performance_workspace_service.py` |
-| 8 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 9 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 10 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 1 | 515 | `src/app/services/workbench_service.py` |
+| 2 | 479 | `src/app/contracts/portfolio_workspace.py` |
+| 3 | 477 | `src/app/services/performance_workspace_service.py` |
+| 4 | 472 | `src/app/contracts/dpm_command_center.py` |
+| 5 | 461 | `src/app/services/advisor_brief_source.py` |
+| 6 | 457 | `src/app/contracts/portfolio_holdings.py` |
+| 7 | 453 | `src/app/clients/lotus_core_query_client.py` |
+| 8 | 452 | `src/app/contracts/dpm_waves.py` |
+| 9 | 447 | `src/app/services/performance_workspace_evidence.py` |
+| 10 | 445 | `src/app/services/dpm_wave_service.py` |
 
 ## Largest Functions
 

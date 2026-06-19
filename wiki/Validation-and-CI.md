@@ -1148,6 +1148,16 @@ command-center service and service-boundary tests; full local `make check` passe
 governance, refactor thresholds, agent quality evidence, mypy over 579 source files, OpenAPI
 smoke, and 1,272 unit/contract tests.
 
+The current proposal delivery-posture boundary slice moves proposal narrative review, report
+request, delivery summary/events, execution handoff, execution status, and execution update
+orchestration into `src/app/services/proposal_delivery_service.py` while preserving the public
+`ProposalService` method surface. It reduces `proposal_service.py` from 520 to 405
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/workbench_service.py` at 515 script-counted lines, and ratchets the blocking
+source-file threshold from 520 to 515 script-counted lines. Focused validation passed with 49
+proposal service and service-boundary tests; the agent quality evidence gate now keeps the
+executable 515/49 ratchet and current hotspot guidance synchronized.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
