@@ -1221,7 +1221,7 @@ touched service modules, and threshold trials proving 493 passes while 492 fails
 performance workspace evidence hotspot; the agent quality evidence gate kept the executable
 493/49 ratchet and then-current hotspot guidance synchronized.
 
-The current performance workspace evidence-response slice moves evidence-view response composition
+The previous performance workspace evidence-response slice moves evidence-view response composition
 into `src/app/services/performance_workspace_evidence_response.py` and evidence request/fetch
 state into `src/app/services/performance_workspace_evidence_state.py` while preserving
 compatibility imports through `performance_workspace_evidence.py`. It moves the largest residual
@@ -1230,7 +1230,19 @@ the blocking source-file threshold from 493 to 488 lines. Focused validation pas
 performance workspace evidence, performance workspace service, and service-layer boundary tests,
 mypy over touched evidence modules, and threshold trials proving 488 passes while 487 fails only
 on the platform capabilities shell hotspot; the agent quality evidence gate now keeps the
-executable 488/49 ratchet and current hotspot guidance synchronized.
+executable 488/49 ratchet and then-current hotspot guidance synchronized.
+
+The current platform capabilities workspace-descriptor slice moves workspace descriptor policy,
+source-supportability override handling, workspace evidence/freshness/versioning/caching helpers,
+and descriptor state mapping into
+`src/app/services/platform_capabilities_workspace_descriptors.py` while preserving compatibility
+imports through `platform_capabilities_shell.py`. It moves the largest residual source-file
+hotspot to `src/app/clients/lotus_core_query_client.py` at 481 lines and ratchets the blocking
+source-file threshold from 488 to 481 lines. Focused validation passed with platform capability
+shell, normalization, service, and service-layer boundary tests, mypy over touched capability
+modules, and threshold trials proving 481 passes while 480 fails only on the Lotus Core
+query-client hotspot; the agent quality evidence gate now keeps the executable 481/49 ratchet and
+current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

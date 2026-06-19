@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/platform_capabilities_shell.py` at 488 lines,
-2. `src/app/clients/lotus_core_query_client.py` at 481 lines,
-3. `src/app/contracts/dpm_waves.py` at 480 lines,
-4. `src/app/services/risk_workspace_drawdown.py` at 479 lines,
-5. `src/app/services/dpm_wave_service.py` at 479 lines.
+1. `src/app/clients/lotus_core_query_client.py` at 481 lines,
+2. `src/app/contracts/dpm_waves.py` at 480 lines,
+3. `src/app/services/risk_workspace_drawdown.py` at 479 lines,
+4. `src/app/services/dpm_wave_service.py` at 479 lines,
+5. `src/app/contracts/portfolio_holdings.py` at 476 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -307,12 +307,12 @@ orchestration into `src/app/services/performance_workspace_evidence_service.py` 
 the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is reduced
 from 497 to 437 lines, and the blocking threshold is ratcheted from 497 to 493 lines, with
 `src/app/services/performance_workspace_evidence.py` as the largest residual hotspot.
-The current performance workspace evidence-response slice moves evidence-view response composition
+The previous performance workspace evidence-response slice moves evidence-view response composition
 into `src/app/services/performance_workspace_evidence_response.py` and evidence request/fetch
 state into `src/app/services/performance_workspace_evidence_state.py` while preserving the public
 `performance_workspace_evidence.py` import surface. `performance_workspace_evidence.py` is reduced
 from 493 to below the top-file list, and the blocking threshold is ratcheted from 493 to 488 lines,
-with `src/app/services/platform_capabilities_shell.py` as the largest residual hotspot.
+with `src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
 The current reporting job contract slice moves report-job request, error, handle, and status DTOs
 into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
 import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,

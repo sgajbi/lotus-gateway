@@ -833,6 +833,29 @@ def test_performance_workspace_evidence_delegates_response_composition() -> None
     assert evidence_facade_methods.isdisjoint(expected_response_methods)
 
 
+def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
+    shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
+    descriptor_methods = _function_names(
+        _SERVICE_ROOT / "platform_capabilities_workspace_descriptors.py"
+    )
+    expected_descriptor_methods = {
+        "apply_source_supportability",
+        "build_workspace_descriptor",
+        "build_workspace_descriptor_from_spec",
+        "source_supportability",
+        "workspace_caching",
+        "workspace_descriptor_state",
+        "workspace_descriptors",
+        "workspace_evidence",
+        "workspace_freshness",
+        "workspace_supportability",
+        "workspace_versioning",
+    }
+
+    assert expected_descriptor_methods <= descriptor_methods
+    assert shell_methods.isdisjoint(expected_descriptor_methods)
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

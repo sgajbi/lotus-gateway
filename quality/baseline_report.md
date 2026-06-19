@@ -654,31 +654,42 @@ modules, and refactor-threshold trials proving 493 passes while 492 fails only o
 workspace evidence hotspot; the agent quality evidence gate tracked the executable 493/49
 ratchet.
 
-Current performance workspace evidence-response verification moves evidence-view response
+Previous performance workspace evidence-response verification moves evidence-view response
 composition into `src/app/services/performance_workspace_evidence_response.py` and evidence
 request/fetch state into `src/app/services/performance_workspace_evidence_state.py` while
 preserving compatibility imports through `performance_workspace_evidence.py`. The largest
-source-file hotspot moves to `src/app/services/platform_capabilities_shell.py` at 488 lines, and
-the blocking source-file threshold is ratcheted to `max_source_file_lines=488`. Focused validation
-passed with performance workspace evidence, performance workspace service, and service-layer
-boundary tests, mypy over touched evidence modules, and refactor-threshold trials proving 488
-passes while 487 fails only on the platform capabilities shell hotspot; the agent quality evidence
-gate now tracks the executable 488/49 ratchet.
+source-file hotspot moved to `src/app/services/platform_capabilities_shell.py` at 488 lines, and
+the blocking source-file threshold was ratcheted to `max_source_file_lines=488`. Focused
+validation passed with performance workspace evidence, performance workspace service, and
+service-layer boundary tests, mypy over touched evidence modules, and refactor-threshold trials
+proving 488 passes while 487 fails only on the platform capabilities shell hotspot; the agent
+quality evidence gate tracked the executable 488/49 ratchet.
+
+Current platform capabilities workspace-descriptor verification moves workspace descriptor policy,
+source-supportability override handling, workspace evidence/freshness/versioning/caching helpers,
+and descriptor state mapping into
+`src/app/services/platform_capabilities_workspace_descriptors.py` while preserving compatibility
+imports through `platform_capabilities_shell.py`. The largest source-file hotspot moves to
+`src/app/clients/lotus_core_query_client.py` at 481 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=481`. Focused validation passed with platform capability
+shell, normalization, service, and service-layer boundary tests, mypy over touched capability
+modules, and refactor-threshold trials proving 481 passes while 480 fails only on the Lotus Core
+query-client hotspot; the agent quality evidence gate now tracks the executable 481/49 ratchet.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 2 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 480 | `src/app/contracts/dpm_waves.py` |
-| 4 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 5 | 479 | `src/app/services/dpm_wave_service.py` |
-| 6 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 7 | 471 | `src/app/services/performance_workspace_attribution.py` |
-| 8 | 465 | `src/app/contracts/domain_products.py` |
-| 9 | 462 | `src/app/services/portfolio_transaction_summary.py` |
-| 10 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 1 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 2 | 480 | `src/app/contracts/dpm_waves.py` |
+| 3 | 479 | `src/app/services/risk_workspace_drawdown.py` |
+| 4 | 479 | `src/app/services/dpm_wave_service.py` |
+| 5 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 6 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 7 | 465 | `src/app/contracts/domain_products.py` |
+| 8 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 9 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 10 | 452 | `src/app/clients/dpm_client.py` |
 
 ## Largest Functions
 
@@ -686,7 +697,7 @@ gate now tracks the executable 488/49 ratchet.
 | ---: | ---: | --- | --- |
 | 1 | 49 | `get_transaction_ledger` | `src/app/services/portfolio_transaction_service.py` |
 | 2 | 49 | `get_portfolio_transactions` | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_shell.py` |
+| 3 | 47 | `_build_workspace_descriptor_contract` | `src/app/services/platform_capabilities_workspace_descriptors.py` |
 | 4 | 47 | `_build_performance_workspace_response` | `src/app/services/performance_workspace_service.py` |
 | 5 | 46 | `get_portfolio_360` | `src/app/services/workbench_service.py` |
 | 6 | 46 | `get_performance_attribution_trend` | `src/app/services/performance_workspace_trend_service.py` |
