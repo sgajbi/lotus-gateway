@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
 
 from fastapi import HTTPException, status
 
 from app.contracts.advisor_brief import (
-    AdvisorBriefAdvisorySupportability,
-    AdvisorBriefAiSurfaceSupportability,
     AdvisorBriefResponse,
     AdvisorBriefStatus,
-    AdvisorBriefWorkflowPackRun,
     AdvisorBriefWorkflowPackRunReviewActionRequest,
-    AdvisorBriefWorkflowPackTaskFlow,
 )
 from app.contracts.performance_workspace import PerformanceWorkspaceResponse
 from app.middleware.server_timing import server_timing_span
@@ -27,30 +23,20 @@ from app.services.advisor_brief_narrative import (
     build_source_advisor_brief_narrative_state,
     safe_advisor_brief_error_detail,
 )
+from app.services.advisor_brief_runtime_context import (
+    AdvisorBriefRuntimeContext,
+    load_advisor_brief_runtime_context,
+)
 from app.services.advisor_brief_source import (
     AdvisorBriefSourceContext,
     build_advisor_brief_source_context,
     build_advisor_brief_source_metrics,
 )
-from app.services.advisor_brief_supportability import (
-    load_advisory_supportability,
-    load_ai_surface_supportability,
-)
 from app.services.advisor_brief_workflow_pack import (
     assert_advisor_brief_review_action_allowed,
-    load_advisor_brief_workflow_pack_run,
-    load_advisor_brief_workflow_pack_task_flow,
     resolve_advisor_brief_workflow_pack_run_id,
 )
 from app.services.async_ttl_cache import AsyncTtlCache
-
-
-@dataclass(frozen=True)
-class AdvisorBriefRuntimeContext:
-    workflow_pack_run: AdvisorBriefWorkflowPackRun | None
-    workflow_pack_task_flow: AdvisorBriefWorkflowPackTaskFlow | None
-    ai_surface_supportability: AdvisorBriefAiSurfaceSupportability | None
-    advisory_supportability: AdvisorBriefAdvisorySupportability | None
 
 
 @dataclass(frozen=True)
@@ -169,7 +155,9 @@ class AdvisorBriefService:
             correlation_id=correlation_id,
             source_context=source_context,
         )
-        runtime_context = await self._load_advisor_brief_runtime_context(
+        runtime_context = await load_advisor_brief_runtime_context(
+            lotus_ai_client=self._lotus_ai_client,
+            advise_client=self._advise_client,
             correlation_id=correlation_id,
             ai_audit=narrative_state.ai_audit,
         )
@@ -237,37 +225,6 @@ class AdvisorBriefService:
             narrative_state=narrative_state,
             ai_status=ai_status,
             ai_payload=ai_payload,
-        )
-
-    async def _load_advisor_brief_runtime_context(
-        self,
-        *,
-        correlation_id: str,
-        ai_audit: dict[str, Any],
-    ) -> AdvisorBriefRuntimeContext:
-        workflow_pack_run = await load_advisor_brief_workflow_pack_run(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=ai_audit,
-            correlation_id=correlation_id,
-        )
-        workflow_pack_task_flow = await load_advisor_brief_workflow_pack_task_flow(
-            lotus_ai_client=self._lotus_ai_client,
-            ai_audit=ai_audit,
-            correlation_id=correlation_id,
-        )
-        ai_surface_supportability = await load_ai_surface_supportability(
-            lotus_ai_client=self._lotus_ai_client,
-            correlation_id=correlation_id,
-        )
-        advisory_supportability = await load_advisory_supportability(
-            advise_client=self._advise_client,
-            correlation_id=correlation_id,
-        )
-        return AdvisorBriefRuntimeContext(
-            workflow_pack_run=workflow_pack_run,
-            workflow_pack_task_flow=workflow_pack_task_flow,
-            ai_surface_supportability=ai_surface_supportability,
-            advisory_supportability=advisory_supportability,
         )
 
     def _assemble_advisor_brief_response(
@@ -343,7 +300,9 @@ class AdvisorBriefService:
             correlation_id=correlation_id,
             request=request,
         )
-        runtime_context = await self._load_advisor_brief_runtime_context(
+        runtime_context = await load_advisor_brief_runtime_context(
+            lotus_ai_client=self._lotus_ai_client,
+            advise_client=self._advise_client,
             correlation_id=correlation_id,
             ai_audit=review_context.brief.ai_audit,
         )

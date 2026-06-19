@@ -418,6 +418,14 @@ def test_advisor_brief_service_delegates_supportability_runtime_mapping() -> Non
     assert supportability_helpers == []
 
 
+def test_advisor_brief_runtime_context_owns_runtime_evidence_loading() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "advisor_brief_service.py")
+    runtime_context_methods = _function_names(_SERVICE_ROOT / "advisor_brief_runtime_context.py")
+
+    assert "load_advisor_brief_runtime_context" in runtime_context_methods
+    assert "_load_advisor_brief_runtime_context" not in service_methods
+
+
 def test_advisor_brief_service_delegates_source_context_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

@@ -63,6 +63,10 @@ The current performance attribution supportability contract extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 438/49 refactor ratchet,
 current `src/app/services/advisor_brief_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current advisor-brief runtime-context extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 437/49 refactor ratchet,
+current `src/app/services/performance_workspace_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
