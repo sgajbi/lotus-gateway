@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
-2. `src/app/services/foundation_service.py` at 618 script-counted lines,
-3. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
-4. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
-5. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines.
+1. `src/app/services/foundation_service.py` at 618 script-counted lines,
+2. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
+3. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
+4. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
+5. `src/app/services/portfolio_service.py` at 589 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -219,6 +219,11 @@ The current DPM wave client-boundary slice splits Manage rebalance-wave core, ca
 and campaign-workflow route forwarding into focused client mixins behind the existing
 `DpmWaveClientMixin` compatibility facade. The blocking threshold is ratcheted to 623
 script-counted lines, with `src/app/clients/lotus_analytics_client.py` as the largest residual
+hotspot.
+The current analytics risk-client boundary slice moves risk calculate, concentration, drawdown,
+rolling metrics, and historical-attribution forwarding into `lotus_analytics_risk_client.py`
+behind the public `LotusAnalyticsClient` surface. The blocking threshold is ratcheted to 618
+script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
 hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has

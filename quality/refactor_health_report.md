@@ -659,17 +659,23 @@ public `DpmWaveClientMixin` compatibility facade. Public `DpmClient` behavior is
 `src/app/clients/dpm_wave_client.py` is reduced from 628 to 14 script-counted lines. The blocking
 source-file threshold is ratcheted from 628 to 623 lines, with
 `src/app/clients/lotus_analytics_client.py` now the single source-file ceiling blocker.
+The current analytics risk-client boundary slice splits risk calculate, concentration, drawdown,
+rolling metrics, and historical-attribution forwarding into
+`src/app/clients/lotus_analytics_risk_client.py` behind the public `LotusAnalyticsClient` surface.
+`src/app/clients/lotus_analytics_client.py` is reduced from 623 to 560 script-counted lines. The
+blocking source-file threshold is ratcheted from 623 to 618 lines, with
+`src/app/services/foundation_service.py` now the single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current DPM wave client-boundary branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged remote branches; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Focused DPM client-boundary validation passed with ruff over touched files, 8 DPM client/threshold tests, and refactor-threshold proof at `max_source_file_lines=623`; full local `make check` passed with workflow governance, mypy over 560 source files, OpenAPI smoke, and 1,242 unit/contract tests |
+| Unit/contract coverage | Healthy | Current analytics risk-client boundary validation passed with ruff, refactor-threshold proof at `max_source_file_lines=618`, workflow governance, mypy over 561 source files, OpenAPI smoke, and 1,243 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current DPM wave client-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits DPM wave client route forwarding into focused core, campaign-definition, and campaign-workflow modules while preserving a compatibility facade. The largest current source-file hotspot is now `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits analytics risk route forwarding into a focused mixin while preserving the public `LotusAnalyticsClient` surface. The largest current source-file hotspot is now `src/app/services/foundation_service.py` at 618 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -681,7 +687,7 @@ source-file threshold is ratcheted from 628 to 623 lines, with
 
 1. Continue splitting large contract modules and remaining upstream clients around clear service
    and route-family boundaries. The next source-file hotspot is
-   `src/app/clients/lotus_analytics_client.py`.
+   `src/app/services/foundation_service.py`.
 2. Continue splitting `portfolio_service.py` around clear source-readiness, workspace, insight,
    book, and workflow adapters only when cohesive behavior-preserving seams remain.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context

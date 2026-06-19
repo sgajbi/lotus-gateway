@@ -6,6 +6,7 @@ from uuid import uuid4
 import httpx
 
 from app.clients.http_resilience import request_with_retry
+from app.clients.lotus_analytics_risk_client import LotusAnalyticsRiskClientMixin
 from app.clients.lotus_analytics_workspace_payloads import build_workspace_summary_payload
 from app.clients.upstream_headers import build_upstream_headers
 from app.observability.analytics_ui import (
@@ -17,7 +18,7 @@ from app.observability.analytics_ui import (
 logger = logging.getLogger("analytics_ui.gateway")
 
 
-class LotusAnalyticsClient:
+class LotusAnalyticsClient(LotusAnalyticsRiskClientMixin):
     def __init__(
         self,
         base_url: str,
@@ -556,68 +557,3 @@ class LotusAnalyticsClient:
             correlation_id=correlation_id,
         )
         return status_code, response_payload
-
-    async def post_risk_calculate(
-        self,
-        payload: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post_analytics_request(
-            path="/analytics/risk/calculate",
-            payload=payload,
-            correlation_id=correlation_id,
-            service="lotus-risk",
-            operation="analytics.risk.calculate",
-        )
-
-    async def post_risk_concentration(
-        self,
-        payload: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post_analytics_request(
-            path="/analytics/risk/concentration",
-            payload=payload,
-            correlation_id=correlation_id,
-            service="lotus-risk",
-            operation="analytics.risk.concentration",
-        )
-
-    async def post_risk_drawdown(
-        self,
-        payload: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post_analytics_request(
-            path="/analytics/risk/drawdown",
-            payload=payload,
-            correlation_id=correlation_id,
-            service="lotus-risk",
-            operation="analytics.risk.drawdown",
-        )
-
-    async def post_risk_rolling_metrics(
-        self,
-        payload: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post_analytics_request(
-            path="/analytics/risk/rolling-metrics",
-            payload=payload,
-            correlation_id=correlation_id,
-            service="lotus-risk",
-            operation="analytics.risk.rolling-metrics",
-        )
-
-    async def post_risk_historical_attribution(
-        self,
-        payload: dict[str, Any],
-        correlation_id: str,
-    ) -> tuple[int, dict[str, Any]]:
-        return await self._post_analytics_request(
-            path="/analytics/risk/historical-attribution",
-            payload=payload,
-            correlation_id=correlation_id,
-            service="lotus-risk",
-            operation="analytics.risk.historical-attribution",
-        )

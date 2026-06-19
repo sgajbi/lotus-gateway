@@ -403,19 +403,25 @@ migration contract smoke, 209 integration tests, 1,451 combined coverage tests, 
 coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
 checks and post-merge wiki publication remain pending for this branch.
 
+Current analytics risk-client boundary working-tree verification splits risk calculate,
+concentration, drawdown, rolling metrics, and historical-attribution forwarding into
+`src/app/clients/lotus_analytics_risk_client.py` while preserving the public
+`LotusAnalyticsClient` surface. Local `make check` passed with workflow governance, mypy over
+561 source files, OpenAPI smoke, and 1,243 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 2 | 618 | `src/app/services/foundation_service.py` |
-| 3 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 5 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 6 | 589 | `src/app/services/portfolio_service.py` |
-| 7 | 575 | `src/app/observability/analytics_ui.py` |
-| 8 | 567 | `src/app/contracts/dpm_waves.py` |
-| 9 | 562 | `src/app/services/workbench_service.py` |
+| 1 | 618 | `src/app/services/foundation_service.py` |
+| 2 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 3 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 4 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 5 | 589 | `src/app/services/portfolio_service.py` |
+| 6 | 575 | `src/app/observability/analytics_ui.py` |
+| 7 | 567 | `src/app/contracts/dpm_waves.py` |
+| 8 | 562 | `src/app/services/workbench_service.py` |
+| 9 | 560 | `src/app/clients/lotus_analytics_client.py` |
 | 10 | 560 | `src/app/contracts/reporting.py` |
 
 ## Largest Functions

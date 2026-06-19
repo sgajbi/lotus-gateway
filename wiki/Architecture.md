@@ -13,7 +13,8 @@
 - current enterprise-hardening evidence records the DPM wave client split into focused core,
   campaign-definition, and campaign-workflow route-family modules behind the existing
   `DpmWaveClientMixin` compatibility facade; the blocking source-file threshold is ratcheted from
-  628 to 623 script-counted lines, with `src/app/clients/lotus_analytics_client.py` now the
+  623 to 618 script-counted lines after splitting analytics risk route forwarding into
+  `lotus_analytics_risk_client.py`, with `src/app/services/foundation_service.py` now the
   source-file ceiling blocker, and the repository longest-function baseline remains held at the
   enforced 49-line AST span
 

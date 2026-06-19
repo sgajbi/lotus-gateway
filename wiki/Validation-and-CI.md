@@ -935,6 +935,15 @@ and 1,242 unit/contract tests. Full local `make ci` passed with migration contra
 integration tests, 1,451 combined coverage tests, 94.30% total coverage, and no known
 vulnerabilities after the governed `PYSEC-2026-161` exception.
 
+The current analytics risk-client boundary branch splits risk calculate, concentration, drawdown,
+rolling metrics, and historical-attribution forwarding into
+`src/app/clients/lotus_analytics_risk_client.py` while preserving the public
+`LotusAnalyticsClient` surface. It reduces `src/app/clients/lotus_analytics_client.py` from 623 to
+560 script-counted lines and ratchets the blocking source-file threshold from 623 to 618
+script-counted lines, making `src/app/services/foundation_service.py` the source-file ceiling
+blocker. Local `make check` passed with workflow governance, mypy over 561 source files, OpenAPI
+smoke, and 1,243 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

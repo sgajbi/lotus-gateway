@@ -63,12 +63,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 623
+2. Current enforced source-file threshold: no Python source file under `src/app` above 618
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=623` and `max_function_lines=49`.
+   `max_source_file_lines=618` and `max_function_lines=49`.
 5. Quality Baseline now runs a blocking `Enforce Refactored Source Thresholds` step and captures
    `output/quality-baseline/refactor-thresholds.txt` before uploading report-only evidence.
 6. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
