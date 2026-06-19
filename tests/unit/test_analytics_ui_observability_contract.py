@@ -1,5 +1,6 @@
 import pytest
 
+from app.observability import analytics_ui, analytics_ui_fields
 from app.observability.analytics_ui import (
     ANALYTICS_UI_ALLOWED_LABELS,
     ANALYTICS_UI_ATTENTION_EVENT_ATTRIBUTES,
@@ -29,6 +30,20 @@ from app.observability.analytics_ui import (
     validate_gateway_analytics_ui_audit_log_fields,
     validate_gateway_analytics_ui_log_fields,
 )
+
+
+def test_analytics_ui_reexports_bounded_field_contracts() -> None:
+    assert (
+        analytics_ui.ANALYTICS_UI_ALLOWED_LABELS is analytics_ui_fields.ANALYTICS_UI_ALLOWED_LABELS
+    )
+    assert (
+        analytics_ui.validate_gateway_analytics_ui_log_fields
+        is analytics_ui_fields.validate_gateway_analytics_ui_log_fields
+    )
+    assert (
+        analytics_ui.validate_gateway_analytics_ui_audit_log_fields
+        is analytics_ui_fields.validate_gateway_analytics_ui_audit_log_fields
+    )
 
 
 def test_gateway_metric_families_are_explicitly_scoped_to_gateway() -> None:

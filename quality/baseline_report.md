@@ -450,20 +450,30 @@ ratcheted to `max_source_file_lines=575`. Focused validation passed with 101
 portfolio/service-boundary/quality tests. Full local `make check` passed with workflow
 governance, mypy over 567 source files, OpenAPI smoke, and 1,250 unit/contract tests.
 
+Current analytics UI field-governance working-tree verification splits bounded analytics UI
+labels, forbidden fields, event vocabularies, and log/audit field validators into
+`src/app/observability/analytics_ui_fields.py` while preserving the public
+`app.observability.analytics_ui` import surface. `src/app/observability/analytics_ui.py` is
+reduced from 575 to 343 script-counted lines, the extracted field module is 255 lines, and the
+blocking source-file threshold is ratcheted to `max_source_file_lines=567`. Focused validation
+passed with 39 observability, analytics-diagnostics, and quality-threshold tests. Full local
+`make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and
+1,251 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 575 | `src/app/observability/analytics_ui.py` |
-| 2 | 567 | `src/app/contracts/dpm_waves.py` |
-| 3 | 562 | `src/app/services/workbench_service.py` |
-| 4 | 560 | `src/app/contracts/reporting.py` |
-| 5 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 6 | 556 | `src/app/services/risk_workspace_service.py` |
-| 7 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 8 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 9 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 10 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 1 | 567 | `src/app/contracts/dpm_waves.py` |
+| 2 | 562 | `src/app/services/workbench_service.py` |
+| 3 | 560 | `src/app/contracts/reporting.py` |
+| 4 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 5 | 556 | `src/app/services/risk_workspace_service.py` |
+| 6 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 7 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 8 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 9 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 10 | 522 | `src/app/services/risk_workspace_rolling.py` |
 
 ## Largest Functions
 

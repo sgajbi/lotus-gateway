@@ -1000,6 +1000,17 @@ source-file threshold from 589 to 575 script-counted lines. Focused validation p
 portfolio/service-boundary/quality tests. Full local `make check` passed with workflow
 governance, mypy over 567 source files, OpenAPI smoke, and 1,250 unit/contract tests.
 
+The current analytics UI field-governance boundary branch splits bounded analytics UI labels,
+forbidden fields, event vocabularies, and log/audit field validators into
+`src/app/observability/analytics_ui_fields.py` while preserving the public
+`app.observability.analytics_ui` import surface. It reduces
+`src/app/observability/analytics_ui.py` from 575 to 343 script-counted lines, moves the largest
+residual source-file hotspot to `src/app/contracts/dpm_waves.py` at 567 script-counted lines, and
+ratchets the blocking source-file threshold from 575 to 567 script-counted lines. Focused
+validation passed with 39 observability, analytics-diagnostics, and quality-threshold tests. Full
+local `make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and
+1,251 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
