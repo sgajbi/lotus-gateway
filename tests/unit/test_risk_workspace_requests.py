@@ -1,3 +1,6 @@
+import ast
+from pathlib import Path
+
 from app.services.risk_workspace_requests import (
     build_attribution_request,
     build_attribution_request_context,
@@ -9,6 +12,33 @@ from app.services.risk_workspace_requests import (
     normalize_period,
     resolve_reporting_currency,
 )
+
+_SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+
+
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+
+
+def test_risk_payload_builders_live_in_dedicated_module() -> None:
+    request_module_functions = _function_names(_SERVICE_ROOT / "risk_workspace_requests.py")
+    payload_module_functions = _function_names(_SERVICE_ROOT / "risk_workspace_request_payloads.py")
+
+    payload_builders = {
+        "build_summary_request",
+        "build_concentration_request",
+        "build_drawdown_request",
+        "build_rolling_request",
+        "build_attribution_request",
+        "build_risk_periods",
+        "resolve_reporting_currency",
+        "normalize_detail_basis",
+        "normalize_period",
+    }
+
+    assert payload_builders <= payload_module_functions
+    assert not payload_builders & request_module_functions
 
 
 def test_normalize_period_accepts_canonical_values_and_legacy_aliases() -> None:

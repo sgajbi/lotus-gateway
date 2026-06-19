@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-448/49 ratchet, the current `src/app/services/risk_workspace_requests.py` hotspot, and durable
+444/49 ratchet, the current `src/app/services/advisor_brief_narrative.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
@@ -1360,6 +1360,18 @@ boundary coverage, upstream-client route coverage, refactor-threshold, quality-b
 and agent quality evidence tests, with threshold trials proving 448 passes while 447 fails only on
 the risk workspace request hotspot; the agent quality evidence gate now keeps the executable
 448/49 ratchet and current hotspot guidance synchronized.
+
+The risk workspace request-payload slice moves Lotus Risk stateful request payload construction and
+period/currency/detail-basis normalization into
+`src/app/services/risk_workspace_request_payloads.py` while preserving the public
+`risk_workspace_requests` compatibility surface. It reduces
+`src/app/services/risk_workspace_requests.py` from 448 to 254 lines, moves the largest residual
+source-file hotspot to `src/app/services/advisor_brief_narrative.py` at 444 lines, and ratchets the
+blocking source-file threshold from 448 to 444 lines. Focused validation includes risk workspace
+request, service, cache, attribution, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, with threshold trials proving 444 passes while 443 fails only on the
+advisor-brief narrative hotspot; the agent quality evidence gate now keeps the executable 444/49
+ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

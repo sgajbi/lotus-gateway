@@ -52,8 +52,8 @@ contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
 The latest CI enforcement slice adds a blocking agent quality evidence gate through
-`scripts/check_agent_quality_evidence.py`, keeping the executable 448/49 refactor ratchet,
-current `src/app/services/risk_workspace_requests.py` hotspot evidence, and durable
+`scripts/check_agent_quality_evidence.py`, keeping the executable 444/49 refactor ratchet,
+current `src/app/services/advisor_brief_narrative.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -790,20 +790,32 @@ quality evidence tests, with refactor-threshold trials proving 448 passes while 
 the risk workspace request hotspot; the agent quality evidence gate now tracks the executable
 448/49 ratchet.
 
+Current risk workspace request-payload verification moves Lotus Risk stateful request payload
+construction and period/currency/detail-basis normalization into
+`src/app/services/risk_workspace_request_payloads.py` while preserving the public
+`risk_workspace_requests` compatibility surface. `risk_workspace_requests.py` is reduced from 448
+to 254 lines, the extracted payload module is 232 lines, the largest source-file hotspot moves to
+`src/app/services/advisor_brief_narrative.py` at 444 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=444`. Focused validation includes risk workspace request,
+service, cache, attribution, refactor-threshold, quality-baseline artifact, and agent quality
+evidence tests, with refactor-threshold trials proving 444 passes while 443 fails only on the
+advisor-brief narrative hotspot; the agent quality evidence gate now tracks the executable 444/49
+ratchet.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 448 | `src/app/services/risk_workspace_requests.py` |
-| 2 | 444 | `src/app/services/advisor_brief_narrative.py` |
-| 3 | 441 | `src/app/services/performance_workspace_horizon.py` |
-| 4 | 440 | `src/app/contracts/performance_attribution.py` |
-| 5 | 438 | `src/app/services/advisor_brief_service.py` |
-| 6 | 437 | `src/app/services/performance_workspace_service.py` |
-| 7 | 432 | `src/app/services/risk_workspace_rolling.py` |
-| 8 | 432 | `src/app/services/risk_workspace_attribution.py` |
-| 9 | 431 | `src/app/contracts/proposals.py` |
-| 10 | 429 | `src/app/services/advisor_brief_source.py` |
+| 1 | 444 | `src/app/services/advisor_brief_narrative.py` |
+| 2 | 441 | `src/app/services/performance_workspace_horizon.py` |
+| 3 | 440 | `src/app/contracts/performance_attribution.py` |
+| 4 | 438 | `src/app/services/advisor_brief_service.py` |
+| 5 | 437 | `src/app/services/performance_workspace_service.py` |
+| 6 | 432 | `src/app/services/risk_workspace_rolling.py` |
+| 7 | 432 | `src/app/services/risk_workspace_attribution.py` |
+| 8 | 431 | `src/app/contracts/proposals.py` |
+| 9 | 429 | `src/app/services/advisor_brief_source.py` |
+| 10 | 427 | `src/app/services/platform_capabilities_service.py` |
 
 ## Largest Functions
 
