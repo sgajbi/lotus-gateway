@@ -52,8 +52,8 @@ contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
 The latest CI enforcement slice adds a blocking agent quality evidence gate through
-`scripts/check_agent_quality_evidence.py`, keeping the executable 521/49 refactor ratchet,
-current `src/app/services/dpm_command_center_service.py` hotspot evidence, and durable
+`scripts/check_agent_quality_evidence.py`, keeping the executable 520/49 refactor ratchet,
+current `src/app/services/proposal_service.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -568,23 +568,34 @@ while preventing GitHub Actions major, Node runtime opt-in, job-timeout governan
 future-agent quality guidance drift from becoming invisible report-only debt. Focused validation
 passed with 26 agent quality evidence, quality-baseline artifact, workflow-action runtime, and
 refactor-threshold tests; full local `make check` passed with workflow governance, refactor
-thresholds, agent quality evidence, mypy over 578 source files, OpenAPI smoke, and 1,271
+thresholds, agent quality evidence, mypy over 579 source files, OpenAPI smoke, and 1,272
+unit/contract tests.
+
+Current DPM outcome-review narrative boundary verification moves Manage-owned outcome-review AI
+evidence loading, Lotus AI workflow-pack execution, and narrative response composition into
+`src/app/services/dpm_command_center_outcome_narrative.py` while preserving the public
+`DpmCommandCenterService` method surface. `dpm_command_center_service.py` is reduced from 521 to
+396 script-counted lines, the extracted narrative module is 139 lines, and the blocking source-file
+threshold is ratcheted to `max_source_file_lines=520`, with `src/app/services/proposal_service.py`
+now the single source-file ceiling blocker. Focused validation passed with 68 DPM command-center
+service and service-boundary tests, and full local `make check` passed with workflow governance,
+refactor thresholds, agent quality evidence, mypy over 579 source files, OpenAPI smoke, and 1,272
 unit/contract tests.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 2 | 520 | `src/app/services/proposal_service.py` |
-| 3 | 515 | `src/app/services/workbench_service.py` |
-| 4 | 508 | `src/app/services/advisor_brief_source.py` |
-| 5 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 6 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 7 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 8 | 497 | `src/app/services/performance_workspace_service.py` |
-| 9 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 10 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 1 | 520 | `src/app/services/proposal_service.py` |
+| 2 | 515 | `src/app/services/workbench_service.py` |
+| 3 | 508 | `src/app/services/advisor_brief_source.py` |
+| 4 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 5 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 6 | 499 | `src/app/contracts/dpm_command_center.py` |
+| 7 | 497 | `src/app/services/performance_workspace_service.py` |
+| 8 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 9 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 10 | 481 | `src/app/clients/lotus_core_query_client.py` |
 
 ## Largest Functions
 

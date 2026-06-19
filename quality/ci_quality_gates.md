@@ -18,8 +18,8 @@ The current local and PR-grade blocking gates are:
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
    workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. agent quality evidence governance through `scripts/check_agent_quality_evidence.py`, which
-   keeps the executable 521/49 ratchet, the current largest hotspot
-   `src/app/services/dpm_command_center_service.py`, and durable scorecard/context guidance in
+   keeps the executable 520/49 ratchet, the current largest hotspot
+   `src/app/services/proposal_service.py`, and durable scorecard/context guidance in
    sync,
 6. `mypy` over `src`,
 7. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
@@ -69,12 +69,12 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 521
+2. Current enforced source-file threshold: no Python source file under `src/app` above 520
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=521` and `max_function_lines=49`.
+   `max_source_file_lines=520` and `max_function_lines=49`.
 5. Current risk rolling window-boundary slice focused validation passed with 33 risk rolling
    window, service, refactor-threshold, and quality-artifact tests. The slice ratchets the
    source-file ceiling to 521 script-counted lines with
@@ -84,9 +84,9 @@ Most recent local PR-grade evidence:
    `output/quality-baseline/refactor-thresholds.txt` and
    `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 7. Quality Baseline and `make lint` now run the blocking agent quality evidence gate through
-   `scripts/check_agent_quality_evidence.py`, proving the executable 521/49 ratchet still matches
+   `scripts/check_agent_quality_evidence.py`, proving the executable 520/49 ratchet still matches
    current source truth and that durable scorecard/context guidance names
-   `src/app/services/dpm_command_center_service.py` as the 521-line hotspot.
+   `src/app/services/proposal_service.py` as the 520-line hotspot.
 8. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
@@ -95,7 +95,7 @@ Most recent local PR-grade evidence:
 10. Current CI enforcement slice focused validation passed with 26 agent quality evidence,
    quality-baseline artifact, workflow-action runtime, and refactor-threshold tests. Full local
    `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
-   over 578 source files, OpenAPI smoke, and 1,271 unit/contract tests.
+   over 579 source files, OpenAPI smoke, and 1,272 unit/contract tests.
 10. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public

@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-521/49 ratchet, the current `src/app/services/dpm_command_center_service.py` hotspot, and durable
+520/49 ratchet, the current `src/app/services/proposal_service.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
@@ -1135,7 +1135,18 @@ future-agent quality guidance visible in the quality-baseline evidence pack inst
 only on the lint-stage `make check` path. Focused validation passed with 26 agent quality evidence,
 quality-baseline artifact, workflow-action runtime, and refactor-threshold tests; full local
 `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
-over 578 source files, OpenAPI smoke, and 1,271 unit/contract tests.
+over 579 source files, OpenAPI smoke, and 1,272 unit/contract tests.
+
+The current DPM outcome-review narrative boundary slice moves Manage-owned outcome-review AI
+evidence loading, Lotus AI workflow-pack execution, and narrative response composition into
+`src/app/services/dpm_command_center_outcome_narrative.py` while preserving the public
+`DpmCommandCenterService` method surface. It reduces `dpm_command_center_service.py` from 521 to
+396 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/proposal_service.py` at 520 script-counted lines, and ratchets the blocking
+source-file threshold from 521 to 520 script-counted lines. Focused validation passed with 68 DPM
+command-center service and service-boundary tests; full local `make check` passed with workflow
+governance, refactor thresholds, agent quality evidence, mypy over 579 source files, OpenAPI
+smoke, and 1,272 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

@@ -154,6 +154,36 @@ def test_dpm_command_center_service_delegates_exception_summary_handoff() -> Non
     assert "DpmCommandCenterExceptionSummaryMixin" in base_names
 
 
+def test_dpm_command_center_service_delegates_outcome_narrative_handoff() -> None:
+    path = _SERVICE_ROOT / "dpm_command_center_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "request_outcome_review_ai_narrative",
+            "_build_outcome_review_narrative_context",
+            "_execute_outcome_review_narrative_pack",
+        }
+    )
+    command_center_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "DpmCommandCenterService"
+    ]
+    base_names = {
+        base.id
+        for service_class in command_center_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "DpmCommandCenterOutcomeNarrativeMixin" in base_names
+
+
 def test_advisory_protocols_delegate_advisor_brief_client_protocols() -> None:
     advisory_protocols_path = _SERVICE_ROOT / "advisory_client_protocols.py"
     advisor_brief_protocols_path = _SERVICE_ROOT / "advisor_brief_client_protocols.py"
