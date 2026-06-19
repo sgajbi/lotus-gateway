@@ -480,20 +480,29 @@ validation passed with 88 Workbench service, snapshot-context, factory, provider
 quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 570
 source files, OpenAPI smoke, and 1,254 unit/contract tests.
 
+Current reporting job contract working-tree verification splits report-job request, error, handle,
+and status DTOs into `src/app/contracts/reporting_jobs.py` while preserving the public
+`app.contracts.reporting` import surface. `src/app/contracts/reporting.py` is reduced from 560 to
+355 script-counted lines, the extracted report-job contract module is 221 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=559`. Focused validation passed with
+59 reporting job contract, submission, query, batch compatibility, contract-boundary, reporting
+router, wiki, and quality-threshold tests. Full local `make check` passed with workflow governance,
+mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 560 | `src/app/contracts/reporting.py` |
-| 2 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 3 | 556 | `src/app/services/risk_workspace_service.py` |
-| 4 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 5 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 6 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 7 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 8 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 9 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 10 | 520 | `src/app/services/proposal_service.py` |
+| 1 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 2 | 556 | `src/app/services/risk_workspace_service.py` |
+| 3 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 4 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 5 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 6 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 7 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 8 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 9 | 520 | `src/app/services/proposal_service.py` |
+| 10 | 515 | `src/app/services/workbench_service.py` |
 
 ## Largest Functions
 

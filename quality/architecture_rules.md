@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/reporting.py` at 560 script-counted lines,
-2. `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines,
-3. `src/app/services/risk_workspace_service.py` at 556 script-counted lines,
-4. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines,
-5. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines.
+1. `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines,
+2. `src/app/services/risk_workspace_service.py` at 556 script-counted lines,
+3. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines,
+4. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines,
+5. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -273,6 +273,12 @@ product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembl
 surface. `src/app/services/workbench_service.py` is reduced from 562 to 515 script-counted lines,
 and the blocking threshold is ratcheted from 562 to 560 script-counted lines, with
 `src/app/contracts/reporting.py` as the largest residual hotspot.
+The current reporting job contract slice moves report-job request, error, handle, and status DTOs
+into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
+import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,
+the extracted contract module is 221 lines, and the blocking threshold is ratcheted from 560 to
+559 script-counted lines, with `src/app/clients/lotus_analytics_client.py` as the largest residual
+hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

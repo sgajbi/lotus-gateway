@@ -286,3 +286,20 @@ def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> No
     assert reporting_batches_facade_classes.isdisjoint(expected_materialization_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_worker_contracts)
     assert reporting_batches_facade_classes.isdisjoint(expected_scheduler_contracts)
+
+
+def test_reporting_job_contracts_live_outside_reporting_facade() -> None:
+    reporting_facade_classes = _class_names(_CONTRACT_ROOT / "reporting.py")
+    reporting_job_contract_classes = _class_names(_CONTRACT_ROOT / "reporting_jobs.py")
+
+    expected_reporting_job_contracts = {
+        "OutcomeReviewReportJobRequest",
+        "PortfolioReviewJobRequest",
+        "ReportJobErrorDetail",
+        "ReportJobErrorResponse",
+        "ReportJobHandleResponse",
+        "ReportJobStatusResponse",
+    }
+
+    assert expected_reporting_job_contracts <= reporting_job_contract_classes
+    assert reporting_facade_classes.isdisjoint(expected_reporting_job_contracts)

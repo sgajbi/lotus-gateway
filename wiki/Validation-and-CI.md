@@ -1033,6 +1033,16 @@ validation passed with 88 Workbench service, snapshot-context, factory, provider
 quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 570
 source files, OpenAPI smoke, and 1,254 unit/contract tests.
 
+The current reporting job contract boundary branch splits report-job request, error, handle, and
+status DTOs into `src/app/contracts/reporting_jobs.py` while preserving the public
+`app.contracts.reporting` import surface. It reduces `src/app/contracts/reporting.py` from 560 to
+355 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/clients/lotus_analytics_client.py` at 559 script-counted lines, and ratchets the blocking
+source-file threshold from 560 to 559 script-counted lines. Focused validation passed with 59
+reporting job contract, submission, query, batch compatibility, contract-boundary, reporting
+router, wiki, and quality-threshold tests. Full local `make check` passed with workflow governance,
+mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
