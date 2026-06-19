@@ -4,6 +4,28 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## Risk Workspace Attribution Mapping Extraction
+
+- Scope: behavior-preserving risk workspace attribution mapping modularity and CI ratchet
+  enforcement.
+- Existing owner pattern: `RiskWorkspaceAttributionServiceMixin` owns request context, caching, and
+  upstream Lotus Risk calls; `risk_workspace_attribution.py` owns product response state,
+  controls, supportability, metadata, and failure envelopes.
+- Change: moved upstream attribution period, set, contributor, quality-flag, and numeric coercion
+  mapping into `src/app/services/risk_workspace_attribution_mapping.py`; response assembly remains
+  in `src/app/services/risk_workspace_attribution.py`.
+- Measured signal: `src/app/services/risk_workspace_attribution.py` reduced from 408 to 274 lines;
+  the extracted mapping module is 142 lines; largest source file is now
+  `src/app/clients/advise_proposal_client.py` at 406 lines; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `408/49` to `406/49`; `406` passes
+  and `405` fails only on `src/app/clients/advise_proposal_client.py`.
+- Tests: `tests/unit/test_risk_workspace_attribution.py` preserves upstream methodology, period
+  error, numeric coercion, blocked, and unavailable behavior; `tests/unit/test_risk_workspace_service.py`
+  preserves service orchestration; `tests/unit/test_service_layer_boundaries.py` pins the new
+  attribution mapping module boundary.
+- Follow-up: next measured modularity slice should inspect
+  `src/app/clients/advise_proposal_client.py` before changing code.
+
 ## DPM Wave AI Payload Extraction
 
 - Scope: behavior-preserving DPM wave AI handoff modularity and CI ratchet enforcement.

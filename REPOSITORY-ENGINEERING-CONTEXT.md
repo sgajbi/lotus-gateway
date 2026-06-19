@@ -210,8 +210,8 @@ Important validation expectations:
 4. workflow action-runtime governance is part of `make lint` and enforces the platform baseline
    for governed core GitHub Actions majors plus the workflow-level Node 24 JavaScript action opt-in,
 5. agent quality evidence governance is part of `make lint` through
-   `scripts/check_agent_quality_evidence.py`; it keeps the executable 408/49 refactor ratchet, the
-   current `src/app/services/risk_workspace_attribution.py` hotspot, and durable
+   `scripts/check_agent_quality_evidence.py`; it keeps the executable 406/49 refactor ratchet, the
+   current `src/app/clients/advise_proposal_client.py` hotspot, and durable
    scorecard/context guidance synchronized for future agent work,
 6. Docker parity matters because the gateway is a live integration boundary,
 7. README and wiki updates should preserve truthful endpoint-specific parameter conventions, and

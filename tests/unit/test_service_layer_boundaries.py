@@ -953,6 +953,22 @@ def test_risk_workspace_mappers_delegate_source_supportability() -> None:
     assert "_append_source_calculation_supportability" not in attribution_methods
 
 
+def test_risk_workspace_attribution_delegates_period_mapping() -> None:
+    attribution_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution.py")
+    mapping_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution_mapping.py")
+    expected_mapping_methods = {
+        "map_attribution_period_results",
+        "_map_attribution_period_result",
+        "_map_attribution_sets",
+        "_map_attribution_set",
+        "_map_attribution_contributors",
+        "_safe_float",
+    }
+
+    assert expected_mapping_methods <= mapping_methods
+    assert attribution_methods.isdisjoint(expected_mapping_methods)
+
+
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
     descriptor_methods = _function_names(
