@@ -409,20 +409,26 @@ concentration, drawdown, rolling metrics, and historical-attribution forwarding 
 `LotusAnalyticsClient` surface. Local `make check` passed with workflow governance, mypy over
 561 source files, OpenAPI smoke, and 1,243 unit/contract tests.
 
+Current Foundation catalog-payload boundary working-tree verification splits portfolio catalog item
+parsing into `src/app/services/foundation_catalog_payloads.py` while preserving the public
+`FoundationService` surface. Focused validation passed with 26 Foundation catalog/service and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 562
+source files, OpenAPI smoke, and 1,245 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 618 | `src/app/services/foundation_service.py` |
-| 2 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 4 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 1 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 2 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 3 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 4 | 591 | `src/app/services/foundation_service.py` |
 | 5 | 589 | `src/app/services/portfolio_service.py` |
 | 6 | 575 | `src/app/observability/analytics_ui.py` |
 | 7 | 567 | `src/app/contracts/dpm_waves.py` |
 | 8 | 562 | `src/app/services/workbench_service.py` |
-| 9 | 560 | `src/app/clients/lotus_analytics_client.py` |
-| 10 | 560 | `src/app/contracts/reporting.py` |
+| 9 | 560 | `src/app/contracts/reporting.py` |
+| 10 | 559 | `src/app/clients/lotus_analytics_client.py` |
 
 ## Largest Functions
 

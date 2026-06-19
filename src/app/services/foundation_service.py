@@ -11,7 +11,6 @@ from app.contracts.foundation import (
     FoundationEvidenceSummary,
     FoundationPartialFailure,
     FoundationPerformanceSummary,
-    FoundationPortfolioCatalogItem,
     FoundationPortfolioCatalogResponse,
     FoundationPortfolioIdentity,
     FoundationPortfolioSummary,
@@ -22,6 +21,7 @@ from app.contracts.foundation import (
     FoundationWorkspaceReadiness,
     FoundationWorkspaceResponse,
 )
+from app.services.foundation_catalog_payloads import parse_foundation_catalog_items
 from app.services.foundation_core_snapshot import FoundationCoreSnapshotMapper
 from app.services.upstream_envelope import safe_upstream_detail
 from app.services.workspace_client_protocols import (
@@ -109,13 +109,10 @@ class FoundationService:
                 detail="Invalid lotus-core portfolio catalog payload structure.",
             )
 
-        items = [self._parse_catalog_item(item) for item in items_payload if isinstance(item, dict)]
-        items.sort(key=lambda item: item.portfolio_id)
-
         return FoundationPortfolioCatalogResponse(
             correlation_id=correlation_id,
             contract_version=settings.contract_version,
-            items=items,
+            items=parse_foundation_catalog_items(items_payload),
         )
 
     async def get_portfolio_workspace(
@@ -366,30 +363,6 @@ class FoundationService:
         if not isinstance(reference_payload, dict):
             return as_of_date
         return self._optional_str(reference_payload.get("performance_end_date")) or as_of_date
-
-    def _parse_catalog_item(self, item: dict[str, Any]) -> FoundationPortfolioCatalogItem:
-        portfolio_id = str(item.get("portfolio_id", item.get("id", ""))).strip()
-        if not portfolio_id:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Invalid lotus-core portfolio catalog item without portfolio_id.",
-            )
-        display_name = str(
-            item.get("portfolio_name")
-            or item.get("name")
-            or item.get("label")
-            or item.get("display_name")
-            or portfolio_id
-        )
-        return FoundationPortfolioCatalogItem(
-            portfolio_id=portfolio_id,
-            display_name=display_name,
-            base_currency=str(item.get("base_currency", "USD")),
-            client_id=self._optional_str(item.get("cif_id", item.get("client_id"))),
-            booking_center_code=self._optional_str(
-                item.get("booking_center", item.get("booking_center_code"))
-            ),
-        )
 
     def _parse_performance_result(
         self,

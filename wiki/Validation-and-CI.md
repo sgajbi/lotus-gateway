@@ -944,6 +944,15 @@ script-counted lines, making `src/app/services/foundation_service.py` the source
 blocker. Local `make check` passed with workflow governance, mypy over 561 source files, OpenAPI
 smoke, and 1,243 unit/contract tests.
 
+The current Foundation catalog-payload boundary branch splits portfolio catalog item parsing into
+`src/app/services/foundation_catalog_payloads.py` while preserving the public `FoundationService`
+surface. It reduces `src/app/services/foundation_service.py` from 618 to 591 script-counted lines
+and ratchets the blocking source-file threshold from 618 to 610 script-counted lines, making
+`src/app/clients/lotus_core_query_client.py` the source-file ceiling blocker. Focused validation
+passed with 26 Foundation catalog/service and quality-threshold tests. Full local `make check`
+passed with workflow governance, mypy over 562 source files, OpenAPI smoke, and 1,245 unit/contract
+tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

@@ -35,10 +35,10 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/foundation_service.py` at 618 script-counted lines,
-2. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
-3. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
-4. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
+1. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
+2. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
+3. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
+4. `src/app/services/foundation_service.py` at 591 script-counted lines,
 5. `src/app/services/portfolio_service.py` at 589 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
@@ -225,6 +225,10 @@ rolling metrics, and historical-attribution forwarding into `lotus_analytics_ris
 behind the public `LotusAnalyticsClient` surface. The blocking threshold is ratcheted to 618
 script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
 hotspot.
+The current Foundation catalog-payload boundary slice moves portfolio catalog item parsing into
+`foundation_catalog_payloads.py` while preserving the `FoundationService` API surface. The
+blocking threshold is ratcheted to 610 script-counted lines, with
+`src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe
