@@ -930,6 +930,10 @@ Baseline workflow now runs `Enforce Refactored Source Thresholds` as a blocking 
 All GitHub workflow jobs now declare explicit bounded `timeout-minutes` values, and the workflow
 governance guard blocks missing or unbounded job timeouts alongside action-runtime and Node 24
 opt-in drift.
+Full local `make check` passed with workflow governance, mypy over 560 source files, OpenAPI smoke,
+and 1,242 unit/contract tests. Full local `make ci` passed with migration contract smoke, 209
+integration tests, 1,451 combined coverage tests, 94.30% total coverage, and no known
+vulnerabilities after the governed `PYSEC-2026-161` exception.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

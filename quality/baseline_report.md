@@ -397,8 +397,11 @@ Current DPM wave client-boundary working-tree verification splits Manage rebalan
 campaign-definition, and campaign-workflow route forwarding into focused client mixins while
 preserving the public `DpmWaveClientMixin` compatibility facade. Focused validation passed with
 ruff over touched files, 8 DPM client/threshold tests, and refactor-threshold proof at
-`max_source_file_lines=623`. Full local `make check`, `make ci`, GitHub checks, and post-merge
-wiki publication remain pending for this branch.
+`max_source_file_lines=623`. Full local `make check` passed with workflow governance, mypy over
+560 source files, OpenAPI smoke, and 1,242 unit/contract tests. Full local `make ci` passed with
+migration contract smoke, 209 integration tests, 1,451 combined coverage tests, 94.30% total
+coverage, and no known vulnerabilities after the governed `PYSEC-2026-161` exception. GitHub
+checks and post-merge wiki publication remain pending for this branch.
 
 ## Largest Source Files
 
