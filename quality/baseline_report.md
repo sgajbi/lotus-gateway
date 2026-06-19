@@ -348,21 +348,42 @@ integration tests, 1,440 combined coverage tests, 94.33% total coverage, and no 
 after the governed `PYSEC-2026-161` exception. Refactor-threshold trials
 prove `max_source_file_lines=632` passes while `631` fails on `src/app/router_registry.py` and
 `src/app/services/risk_workspace_service.py`.
+Current DPM router-group boundary working-tree verification moves DPM command-center, campaign,
+proof-pack, construction, and wave router registration groups into `src/app/router_groups/dpm.py`,
+reducing `router_registry.py` from 632 to 294 script-counted lines while preserving concrete route
+registration order. Focused validation passed with ruff check, ruff format check, 29
+router-boundary and DPM command-center/wave contract tests, and refactor-threshold trials proving
+`max_source_file_lines=632` passes while `631` fails only on
+`src/app/services/risk_workspace_service.py`. Full local `make check` passed with ruff, format
+check over 770 files, monetary-float guard, refactor threshold gate, workflow action-runtime
+baseline, mypy over 549 source files, OpenAPI smoke, and 1,233 unit/contract tests. Full local
+`make ci` passed with migration contract smoke, 209 integration tests, 1,442 combined coverage
+tests, 94.33% total coverage, and no known vulnerabilities after the governed `PYSEC-2026-161`
+exception. Branch-specific live canonical validation passed after rebuilding the Docker-backed
+Gateway and downstream stack:
+`lotus-workbench/output/playwright/live-canonical-dpm-router-boundary/live-validation-summary.json`
+records 94 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications,
+28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43
+features validated, and 0 RFC36-43 gaps. Companion observability evidence at
+`lotus-workbench/output/observability-live/20260619-083718/observability-evidence-manifest.json`
+records 13/13 DNS checks, 13/13 representative API checks, 4/4 metrics checks, 14 log artifacts,
+and a validation-summary link. GitHub checks and post-merge wiki publication remain pending for
+this branch.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 632 | `src/app/router_registry.py` |
-| 2 | 632 | `src/app/services/risk_workspace_service.py` |
-| 3 | 630 | `src/app/services/advisory_client_protocols.py` |
-| 4 | 628 | `src/app/clients/dpm_wave_client.py` |
-| 5 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 6 | 618 | `src/app/services/foundation_service.py` |
-| 7 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 8 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 9 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 10 | 589 | `src/app/services/portfolio_service.py` |
+| 1 | 632 | `src/app/services/risk_workspace_service.py` |
+| 2 | 630 | `src/app/services/advisory_client_protocols.py` |
+| 3 | 628 | `src/app/clients/dpm_wave_client.py` |
+| 4 | 623 | `src/app/clients/lotus_analytics_client.py` |
+| 5 | 618 | `src/app/services/foundation_service.py` |
+| 6 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 7 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 8 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 9 | 589 | `src/app/services/portfolio_service.py` |
+| 10 | 575 | `src/app/observability/analytics_ui.py` |
 
 ## Largest Functions
 
