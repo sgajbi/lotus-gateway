@@ -1254,6 +1254,18 @@ factory tests, mypy over touched Lotus Core client modules, and threshold trials
 passes while 479 fails only on the DPM waves contract hotspot; the agent quality evidence gate now
 keeps the executable 480/49 ratchet and current hotspot guidance synchronized.
 
+The current DPM wave campaign-workflow contract slice moves campaign workflow/audit request and
+gateway response contracts into `src/app/contracts/dpm_wave_campaign_workflow.py` while preserving
+the public `app.contracts.dpm_waves` import surface. It moves the largest residual source-file
+hotspots to `src/app/services/risk_workspace_drawdown.py` and
+`src/app/services/dpm_wave_service.py` at 479 lines and ratchets the blocking source-file
+threshold from 480 to 479 lines. Focused validation passed with 22 DPM wave contract and
+contract-boundary tests, mypy over touched DPM wave contract modules, and threshold trials proving
+479 passes while 478 fails only on those two service hotspots; the agent quality evidence gate now
+keeps the executable 479/49 ratchet and current hotspot guidance synchronized. Full local
+`make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+over 591 source files, OpenAPI smoke, and 1,282 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

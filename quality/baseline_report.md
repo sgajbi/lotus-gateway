@@ -686,20 +686,32 @@ upstream-client, boundary, and factory tests, mypy over touched Lotus Core clien
 refactor-threshold trials proving 480 passes while 479 fails only on the DPM waves contract
 hotspot; the agent quality evidence gate now tracks the executable 480/49 ratchet.
 
+Current DPM wave campaign-workflow contract verification moves campaign workflow/audit request
+and gateway response contracts into `src/app/contracts/dpm_wave_campaign_workflow.py` while
+preserving the public `app.contracts.dpm_waves` import surface. The largest source-file hotspots
+move to `src/app/services/risk_workspace_drawdown.py` and
+`src/app/services/dpm_wave_service.py` at 479 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=479`. Focused validation passed with 22 DPM wave contract
+and contract-boundary tests, mypy over touched DPM wave contract modules, and
+refactor-threshold trials proving 479 passes while 478 fails only on those two service hotspots;
+the agent quality evidence gate now tracks the executable 479/49 ratchet. Full local
+`make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
+over 591 source files, OpenAPI smoke, and 1,282 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 480 | `src/app/contracts/dpm_waves.py` |
-| 2 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 3 | 479 | `src/app/services/dpm_wave_service.py` |
-| 4 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 5 | 471 | `src/app/services/performance_workspace_attribution.py` |
-| 6 | 465 | `src/app/contracts/domain_products.py` |
-| 7 | 462 | `src/app/services/portfolio_transaction_summary.py` |
-| 8 | 458 | `src/app/services/workspace_client_protocols.py` |
-| 9 | 452 | `src/app/clients/dpm_client.py` |
-| 10 | 448 | `src/app/services/risk_workspace_requests.py` |
+| 1 | 479 | `src/app/services/risk_workspace_drawdown.py` |
+| 2 | 479 | `src/app/services/dpm_wave_service.py` |
+| 3 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 4 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 5 | 465 | `src/app/contracts/domain_products.py` |
+| 6 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 7 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 8 | 452 | `src/app/clients/dpm_client.py` |
+| 9 | 448 | `src/app/services/risk_workspace_requests.py` |
+| 10 | 444 | `src/app/services/advisor_brief_narrative.py` |
 
 ## Largest Functions
 

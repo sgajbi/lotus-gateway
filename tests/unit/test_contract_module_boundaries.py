@@ -166,6 +166,21 @@ def test_dpm_wave_campaign_definition_contracts_live_outside_dpm_waves_facade() 
     assert dpm_waves_facade_classes.isdisjoint(expected_campaign_definition_contracts)
 
 
+def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() -> None:
+    dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
+    campaign_workflow_contract_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_wave_campaign_workflow.py"
+    )
+
+    expected_campaign_workflow_contracts = {
+        "DpmCampaignWorkflowForwardRequest",
+        "DpmCampaignWorkflowGatewayResponse",
+    }
+
+    assert expected_campaign_workflow_contracts <= campaign_workflow_contract_classes
+    assert dpm_waves_facade_classes.isdisjoint(expected_campaign_workflow_contracts)
+
+
 def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:
     advisor_brief_facade_classes = _class_names(_CONTRACT_ROOT / "advisor_brief.py")
     workflow_contract_classes = _class_names(_CONTRACT_ROOT / "advisor_brief_workflow.py")
