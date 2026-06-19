@@ -1232,7 +1232,7 @@ mypy over touched evidence modules, and threshold trials proving 488 passes whil
 on the platform capabilities shell hotspot; the agent quality evidence gate now keeps the
 executable 488/49 ratchet and then-current hotspot guidance synchronized.
 
-The current platform capabilities workspace-descriptor slice moves workspace descriptor policy,
+The previous platform capabilities workspace-descriptor slice moves workspace descriptor policy,
 source-supportability override handling, workspace evidence/freshness/versioning/caching helpers,
 and descriptor state mapping into
 `src/app/services/platform_capabilities_workspace_descriptors.py` while preserving compatibility
@@ -1241,8 +1241,18 @@ hotspot to `src/app/clients/lotus_core_query_client.py` at 481 lines and ratchet
 source-file threshold from 488 to 481 lines. Focused validation passed with platform capability
 shell, normalization, service, and service-layer boundary tests, mypy over touched capability
 modules, and threshold trials proving 481 passes while 480 fails only on the Lotus Core
-query-client hotspot; the agent quality evidence gate now keeps the executable 481/49 ratchet and
-current hotspot guidance synchronized.
+query-client hotspot; the agent quality evidence gate kept the executable 481/49 ratchet and
+then-current hotspot guidance synchronized.
+
+The current Lotus Core portfolio-query slice moves portfolio list/get, positions, transactions,
+cashflow projection, cash balances, assets-under-management query, and allocation query route
+forwarding into `src/app/clients/lotus_core_portfolio_query_client.py` while preserving the public
+`LotusCoreQueryClient` surface. It moves the largest residual source-file hotspot to
+`src/app/contracts/dpm_waves.py` at 480 lines and ratchets the blocking source-file threshold from
+481 to 480 lines. Focused validation passed with 190 Lotus Core upstream-client, boundary, and
+factory tests, mypy over touched Lotus Core client modules, and threshold trials proving 480
+passes while 479 fails only on the DPM waves contract hotspot; the agent quality evidence gate now
+keeps the executable 480/49 ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

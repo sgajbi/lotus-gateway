@@ -37,3 +37,22 @@ def test_lotus_core_simulation_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= simulation_methods
     assert not extracted_methods & query_methods
+
+
+def test_lotus_core_portfolio_query_routes_live_in_dedicated_client_mixin() -> None:
+    query_methods = _async_function_names(_CLIENT_ROOT / "lotus_core_query_client.py")
+    portfolio_methods = _async_function_names(_CLIENT_ROOT / "lotus_core_portfolio_query_client.py")
+
+    extracted_methods = {
+        "get_cashflow_projection",
+        "get_portfolio",
+        "get_portfolio_cash_balances",
+        "get_portfolio_positions",
+        "get_portfolio_transactions",
+        "list_portfolios",
+        "query_asset_allocation",
+        "query_assets_under_management",
+    }
+
+    assert extracted_methods <= portfolio_methods
+    assert not extracted_methods & query_methods
