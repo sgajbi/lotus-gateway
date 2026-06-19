@@ -547,6 +547,16 @@ lines, and the blocking source-file threshold is ratcheted to `max_source_file_l
 Focused validation passed with 56 performance attribution contract, parser, service,
 quality-artifact, and refactor-threshold tests.
 
+Current CI workflow-governance enforcement verification adds an explicit blocking Quality Baseline
+`Enforce Workflow Governance` step, records
+`output/quality-baseline/workflow-governance.txt`, and extends artifact validation so the
+workflow-governance evidence must exist before upload. This preserves the 522/49 refactor
+threshold posture while preventing GitHub Actions major, Node runtime opt-in, and job-timeout
+governance drift from becoming invisible report-only debt. Focused validation passed with 24
+quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests;
+full local `make check` passed with workflow governance, refactor thresholds, mypy over 577 source
+files, OpenAPI smoke, and 1,264 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
@@ -1361,7 +1371,8 @@ logs, and diagnostics lookup. Remaining baseline gaps:
 
 ## Next Gates
 
-1. Keep Quality Baseline workflow report-only.
+1. Keep Quality Baseline quality tools report-only while blocking refactor-threshold,
+   workflow-governance, and artifact-integrity failures.
 2. Classify baseline findings and false positives.
 3. Review uploaded quality log artifacts from GitHub Actions.
 4. Promote the OpenAPI operation-governance contract test through Feature Lane evidence.

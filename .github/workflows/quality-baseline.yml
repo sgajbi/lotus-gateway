@@ -51,6 +51,12 @@ jobs:
             --max-function-lines 49 \
             2>&1 | tee output/quality-baseline/refactor-thresholds.txt
 
+      - name: Enforce Workflow Governance
+        run: |
+          mkdir -p output/quality-baseline
+          python scripts/check_workflow_action_runtime.py \
+            2>&1 | tee output/quality-baseline/workflow-governance.txt
+
       - name: Ruff
         continue-on-error: true
         run: |

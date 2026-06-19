@@ -782,7 +782,7 @@ blocking source-file threshold is ratcheted from 525 to 522 lines, with
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
-| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint` |
+| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
 ## Primary Refactor Backlog
@@ -826,9 +826,10 @@ blocking source-file threshold is ratcheted from 525 to 522 lines, with
 
 ## Quality-Gate Roadmap
 
-1. Report-only workflow uploads quality logs for baseline classification.
+1. Quality Baseline uploads quality logs for baseline classification after blocking refactor
+   threshold, workflow-governance, and artifact-integrity checks pass.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 662 script-counted lines,
+   - no Python source file under `src/app` above 522 script-counted lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

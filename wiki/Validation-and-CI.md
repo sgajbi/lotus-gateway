@@ -9,7 +9,8 @@
 3. `Main Releasability Gate`
 4. platform-facing validation for cross-app experience changes
 5. `Quality Baseline`
-   report-only evidence for progressive enterprise-readiness gates
+   blocking no-regression evidence for refactor thresholds, workflow governance, and artifact
+   integrity plus report-only evidence for progressive enterprise-readiness gates
 
 ## Local command mapping
 
@@ -37,8 +38,10 @@
 
 ## Quality baseline lane
 
-The Quality Baseline workflow is report-only. It installs the optional `quality` dependency group
-and records evidence for:
+The Quality Baseline workflow keeps advisory quality tools report-only, but it is no longer a
+pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
+missing required evidence before uploading artifacts. It installs the optional `quality`
+dependency group and records evidence for:
 
 - complexity and maintainability through `radon` and `xenon`
 - high-confidence dead-code candidates through `vulture`
@@ -49,8 +52,8 @@ and records evidence for:
 - OpenAPI governance through Spectral and `.spectral.yaml`
 
 The lane must not replace `make check` or `make ci`. It exists to classify current baseline
-findings, then promote only agreed no-new-regression checks into blocking Feature Lane and PR Merge
-Gate enforcement.
+findings, prove the blocking no-regression checks, then promote only agreed additional checks into
+blocking Feature Lane and PR Merge Gate enforcement.
 
 Current baseline truth lives in:
 
@@ -1111,6 +1114,15 @@ script-counted lines, and ratchets the blocking source-file threshold from 525 t
 script-counted lines. Focused validation passed with 56 performance attribution contract, parser,
 service, quality-artifact, and refactor-threshold tests. Full local `make check` passed with workflow governance, refactor thresholds,
 mypy over 577 source files, OpenAPI smoke, and 1,264 unit/contract tests.
+
+The current CI workflow-governance enforcement slice adds a blocking Quality Baseline
+`Enforce Workflow Governance` step, records `output/quality-baseline/workflow-governance.txt`, and
+requires that artifact before upload. This makes GitHub Actions major, Node 24 opt-in, and bounded
+job-timeout governance visible in the quality-baseline evidence pack instead of relying only on
+the lint-stage `make check` path. Focused validation passed with 24 quality-baseline artifact,
+workflow-action runtime, refactor-threshold, and wiki-overview tests; full local `make check`
+passed with workflow governance, refactor thresholds, mypy over 577 source files, OpenAPI smoke,
+and 1,264 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

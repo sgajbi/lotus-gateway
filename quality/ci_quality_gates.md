@@ -43,10 +43,11 @@ Report-only quality checks should remain advisory until findings are classified:
 6. import-linter architecture contracts,
 7. documentation and observability scorecard gaps.
 
-The quality-baseline workflow now enforces the already-remediated source-size and function-size
-thresholds before running report-only tools. It also enforces evidence capture itself: the expected
-quality-baseline log files and generated OpenAPI artifact must exist before upload. Tool findings
-remain report-only; missing or unusable evidence is treated as a CI measurement defect.
+The quality-baseline workflow now enforces the already-remediated source-size, function-size, and
+workflow-governance thresholds before running report-only tools. It also enforces evidence capture
+itself: the expected quality-baseline log files, workflow-governance proof, and generated OpenAPI
+artifact must exist before upload. Tool findings remain report-only; missing or unusable evidence
+is treated as a CI measurement defect.
 
 ## Progressive Enforcement Plan
 
@@ -69,14 +70,20 @@ Most recent local PR-grade evidence:
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
    `max_source_file_lines=522` and `max_function_lines=49`.
-5. Quality Baseline now runs a blocking `Enforce Refactored Source Thresholds` step and captures
-   `output/quality-baseline/refactor-thresholds.txt` before uploading report-only evidence.
+5. Quality Baseline now runs blocking `Enforce Refactored Source Thresholds` and
+   `Enforce Workflow Governance` steps, capturing both
+   `output/quality-baseline/refactor-thresholds.txt` and
+   `output/quality-baseline/workflow-governance.txt` before uploading report-only evidence.
 6. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
    minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
    timeouts in `make lint`.
 7. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-8. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+8. Current CI workflow-governance enforcement slice focused validation passed with 24
+   quality-baseline artifact, workflow-action runtime, refactor-threshold, and wiki-overview tests.
+   Full local `make check` passed with workflow governance, refactor thresholds, mypy over 577
+   source files, OpenAPI smoke, and 1,264 unit/contract tests.
+9. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
    `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.
@@ -714,8 +721,9 @@ Most recent local PR-grade evidence:
 
 ## Next Tightening Candidates
 
-1. Keep the quality baseline tool findings report-only while findings are classified; keep artifact
-   presence and OpenAPI artifact validity enforced so evidence gaps are visible.
+1. Keep the quality baseline tool findings report-only while findings are classified; keep
+   refactor-threshold, workflow-governance, artifact presence, and OpenAPI artifact validity
+   enforced so evidence gaps are visible.
 2. Refresh the Spectral warning artifact from the GitHub quality-baseline workflow and decide
    whether explicit operation IDs should replace generated IDs.
 3. Promote import-linter contracts after false positives are classified.

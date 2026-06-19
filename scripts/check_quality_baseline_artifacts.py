@@ -8,6 +8,7 @@ from pathlib import Path
 
 EXPECTED_BASELINE_LOGS = (
     "refactor-thresholds.txt",
+    "workflow-governance.txt",
     "ruff.txt",
     "mypy.txt",
     "coverage.txt",
