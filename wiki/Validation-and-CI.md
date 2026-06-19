@@ -1187,6 +1187,17 @@ over touched transaction modules, and threshold trials proving 503 passes while 
 the portfolio workspace contract hotspot; the agent quality evidence gate now keeps the executable
 503/49 ratchet and current hotspot guidance synchronized.
 
+The current portfolio workspace controls contract slice moves historical snapshot and reporting
+currency control capability DTOs into `src/app/contracts/portfolio_workspace_controls.py` while
+preserving compatibility imports through `portfolio_workspace.py` and the portfolio facade. It
+reduces `portfolio_workspace.py` from 503 to 319 lines, moves the largest residual source-file
+hotspot to `src/app/contracts/dpm_command_center.py` at 499 lines, and ratchets the blocking
+source-file threshold from 503 to 499 lines. Focused validation passed with portfolio workspace
+contract, contract-module-boundary, and portfolio OpenAPI contract tests, mypy over touched
+contract modules, and threshold trials proving 499 passes while 498 fails only on the DPM
+command-center contract hotspot; the agent quality evidence gate now keeps the executable 499/49
+ratchet and current hotspot guidance synchronized.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

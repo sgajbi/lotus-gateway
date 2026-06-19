@@ -621,20 +621,31 @@ touched transaction modules, and refactor-threshold trials proving 503 passes wh
 on the portfolio workspace contract hotspot; the agent quality evidence gate now tracks the
 executable 503/49 ratchet.
 
+Current portfolio workspace controls contract verification moves historical snapshot and reporting
+currency control capability DTOs into `src/app/contracts/portfolio_workspace_controls.py` while
+preserving compatibility imports through `portfolio_workspace.py` and the portfolio facade.
+`portfolio_workspace.py` is reduced from 503 to 319 lines, and the blocking source-file threshold
+is ratcheted to `max_source_file_lines=499`, with
+`src/app/contracts/dpm_command_center.py` now the single source-file ceiling blocker. Focused
+validation passed with portfolio workspace contract, contract-module-boundary, and portfolio
+OpenAPI contract tests, mypy over touched contract modules, and refactor-threshold trials proving
+499 passes while 498 fails only on the DPM command-center contract hotspot; the agent quality
+evidence gate now tracks the executable 499/49 ratchet.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 503 | `src/app/contracts/portfolio_workspace.py` |
-| 2 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 3 | 497 | `src/app/services/performance_workspace_service.py` |
-| 4 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 5 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 6 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 7 | 480 | `src/app/contracts/dpm_waves.py` |
-| 8 | 479 | `src/app/services/dpm_wave_service.py` |
-| 9 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 10 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 1 | 499 | `src/app/contracts/dpm_command_center.py` |
+| 2 | 497 | `src/app/services/performance_workspace_service.py` |
+| 3 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 4 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 5 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 6 | 480 | `src/app/contracts/dpm_waves.py` |
+| 7 | 479 | `src/app/services/dpm_wave_service.py` |
+| 8 | 479 | `src/app/services/risk_workspace_drawdown.py` |
+| 9 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 10 | 471 | `src/app/services/performance_workspace_attribution.py` |
 
 ## Largest Functions
 

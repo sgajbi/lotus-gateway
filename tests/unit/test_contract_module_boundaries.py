@@ -246,6 +246,21 @@ def test_workbench_contracts_live_outside_workbench_facade() -> None:
     assert workbench_facade_classes == set()
 
 
+def test_portfolio_workspace_control_contracts_live_outside_workspace_facade() -> None:
+    portfolio_workspace_facade_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace.py")
+    control_contract_classes = _class_names(_CONTRACT_ROOT / "portfolio_workspace_controls.py")
+
+    expected_control_contracts = {
+        "PortfolioWorkspaceControlCapabilities",
+        "PortfolioWorkspaceHistoricalSnapshotCapability",
+        "PortfolioWorkspaceModuleCapability",
+        "PortfolioWorkspaceReportingCurrencyCapability",
+    }
+
+    assert expected_control_contracts <= control_contract_classes
+    assert portfolio_workspace_facade_classes.isdisjoint(expected_control_contracts)
+
+
 def test_reporting_batch_contracts_live_outside_reporting_batches_facade() -> None:
     reporting_batches_facade_classes = _class_names(_CONTRACT_ROOT / "reporting_batches.py")
     materialization_contract_classes = _class_names(
