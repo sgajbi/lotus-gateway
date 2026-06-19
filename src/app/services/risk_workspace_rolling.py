@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from fastapi import status
 
@@ -20,14 +20,13 @@ from app.services.risk_workspace_envelopes import (
     risk_upstream_failure,
     unavailable_risk_service_supportability,
 )
+from app.services.risk_workspace_rolling_supportability import (
+    rolling_supportability_from_payload,
+)
 from app.services.risk_workspace_rolling_windows import (
     map_rolling_window_results,
     rolling_dependency_context,
     rolling_window_lengths,
-)
-from app.services.source_supportability import (
-    extract_calculation_supportability,
-    source_supportability_reason,
 )
 
 
@@ -60,7 +59,7 @@ def map_rolling_response(
 ) -> WorkbenchRiskRollingResponse:
     results = upstream_payload.get("results")
     mapping = _map_rolling_period_results(results)
-    supportability = _rolling_supportability_from_payload(
+    supportability = rolling_supportability_from_payload(
         results=results,
         benchmark_code=benchmark_code,
         include_time_series=include_time_series,
@@ -88,27 +87,6 @@ def map_rolling_response(
         partial_failures=response_parts.partial_failures,
         metadata=response_parts.metadata,
     )
-
-
-def _rolling_supportability_from_payload(
-    *,
-    results: Any,
-    benchmark_code: str | None,
-    include_time_series: bool,
-    sharpe_fallback_reason: str | None,
-    upstream_payload: dict[str, Any],
-) -> list[WorkbenchRiskSupportabilityItem]:
-    supportability = _build_rolling_supportability(
-        results=results,
-        benchmark_code=benchmark_code,
-        include_time_series=include_time_series,
-        sharpe_fallback_reason=sharpe_fallback_reason,
-    )
-    _append_source_calculation_supportability(
-        supportability=supportability,
-        upstream_payload=upstream_payload,
-    )
-    return supportability
 
 
 def _rolling_warnings_and_failures(
@@ -191,52 +169,6 @@ def rolling_sharpe_failure_reason(upstream_payload: Any) -> str:
         if isinstance(text, str) and text.strip():
             return text
     return "Rolling Sharpe is unavailable because the risk-free series could not be sourced."
-
-
-def _build_rolling_supportability(
-    *,
-    results: Any,
-    benchmark_code: str | None,
-    include_time_series: bool,
-    sharpe_fallback_reason: str | None,
-) -> list[WorkbenchRiskSupportabilityItem]:
-    return [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_returns",
-            label="Portfolio returns",
-            state="ready" if isinstance(results, dict) and results else "unavailable",
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="benchmark_returns",
-            label="Benchmark returns",
-            state="ready" if benchmark_code else "partial",
-            reason=(
-                None
-                if benchmark_code
-                else "Benchmark-relative rolling metrics require benchmark context."
-            ),
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="risk_free_series",
-            label="Risk-free series",
-            state="partial" if sharpe_fallback_reason else "ready",
-            reason=sharpe_fallback_reason,
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="rolling_time_series",
-            label="Rolling time series",
-            state="ready" if include_time_series else "partial",
-            reason=(
-                None
-                if include_time_series
-                else "Rolling metric series is available on demand and excluded from first paint."
-            ),
-            source_service="lotus-risk",
-        ),
-    ]
 
 
 def _map_rolling_period_results(results: Any) -> RollingMappingResult:
@@ -406,27 +338,4 @@ def _build_rolling_payload(
             if isinstance(upstream_metadata, dict)
             else None
         ),
-    )
-
-
-def _append_source_calculation_supportability(
-    *,
-    supportability: list[WorkbenchRiskSupportabilityItem],
-    upstream_payload: dict[str, Any],
-) -> None:
-    source_supportability = extract_calculation_supportability(upstream_payload)
-    if source_supportability is None:
-        return
-
-    supportability.append(
-        WorkbenchRiskSupportabilityItem(
-            key="source_calculation",
-            label="Source calculation",
-            state=cast(Any, source_supportability.risk_contract_state),
-            reason=source_supportability_reason(
-                source_supportability,
-                default_ready_reason="Source calculation supportability was confirmed upstream.",
-            ),
-            source_service=source_supportability.source_service or "lotus-risk",
-        )
     )

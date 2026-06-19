@@ -893,6 +893,18 @@ def test_performance_workspace_evidence_delegates_response_composition() -> None
     assert evidence_facade_methods.isdisjoint(expected_response_methods)
 
 
+def test_risk_workspace_mappers_delegate_source_supportability() -> None:
+    source_supportability_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_source_supportability.py"
+    )
+    rolling_methods = _function_names(_SERVICE_ROOT / "risk_workspace_rolling.py")
+    attribution_methods = _function_names(_SERVICE_ROOT / "risk_workspace_attribution.py")
+
+    assert "append_source_calculation_supportability" in source_supportability_methods
+    assert "_append_source_calculation_supportability" not in rolling_methods
+    assert "_append_source_calculation_supportability" not in attribution_methods
+
+
 def test_platform_capabilities_shell_delegates_workspace_descriptors() -> None:
     shell_methods = _function_names(_SERVICE_ROOT / "platform_capabilities_shell.py")
     descriptor_methods = _function_names(

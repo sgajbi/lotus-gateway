@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from app.contracts.risk_workspace import (
     RiskModuleState,
@@ -30,9 +30,8 @@ from app.services.risk_workspace_envelopes import (
     risk_metadata,
     risk_upstream_failure,
 )
-from app.services.source_supportability import (
-    extract_calculation_supportability,
-    source_supportability_reason,
+from app.services.risk_workspace_source_supportability import (
+    append_source_calculation_supportability,
 )
 
 
@@ -200,7 +199,7 @@ def _build_attribution_response_parts(
         attribution_type=attribution_type,
         grouping_dimension=grouping_dimension,
     )
-    _append_source_calculation_supportability(
+    append_source_calculation_supportability(
         supportability=supportability,
         upstream_payload=upstream_payload,
     )
@@ -397,29 +396,6 @@ def _build_attribution_payload(
             if isinstance(upstream_metadata, dict)
             else None
         ),
-    )
-
-
-def _append_source_calculation_supportability(
-    *,
-    supportability: list[WorkbenchRiskSupportabilityItem],
-    upstream_payload: dict[str, Any],
-) -> None:
-    source_supportability = extract_calculation_supportability(upstream_payload)
-    if source_supportability is None:
-        return
-
-    supportability.append(
-        WorkbenchRiskSupportabilityItem(
-            key="source_calculation",
-            label="Source calculation",
-            state=cast(Any, source_supportability.risk_contract_state),
-            reason=source_supportability_reason(
-                source_supportability,
-                default_ready_reason="Source calculation supportability was confirmed upstream.",
-            ),
-            source_service=source_supportability.source_service or "lotus-risk",
-        )
     )
 
 

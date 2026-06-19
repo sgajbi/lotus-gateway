@@ -42,3 +42,23 @@ Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
   `tests/unit/test_service_layer_boundaries.py` now pins summary-view orchestration ownership.
 - Follow-up: next measured modularity slice should inspect
   `src/app/services/risk_workspace_attribution.py` before changing code.
+
+## Risk Workspace Supportability Extraction
+
+- Scope: behavior-preserving risk workspace rolling and attribution supportability modularity.
+- Existing owner pattern: risk workspace mapper modules translate Lotus Risk stateful responses;
+  rolling-window parsing, request payloads, envelopes, and attribution controls already live in
+  focused helpers.
+- Change: moved rolling supportability construction into
+  `src/app/services/risk_workspace_rolling_supportability.py` and shared source-calculation
+  supportability append logic into `src/app/services/risk_workspace_source_supportability.py`.
+- Measured signal: `src/app/services/risk_workspace_rolling.py` reduced from 432 to 342 lines and
+  `src/app/services/risk_workspace_attribution.py` reduced from 432 to 408 lines; largest source
+  file is now `src/app/contracts/proposals.py` at 431 lines; longest function remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `432/49` to `431/49`; `431` passes
+  and `430` fails only on `src/app/contracts/proposals.py`.
+- Tests: `tests/unit/test_risk_workspace_rolling_supportability.py` covers supportability posture,
+  `tests/unit/test_risk_workspace_service.py` preserves service behavior, and
+  `tests/unit/test_service_layer_boundaries.py` pins shared source-supportability ownership.
+- Follow-up: next measured modularity slice should inspect `src/app/contracts/proposals.py` before
+  changing code.
