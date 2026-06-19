@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
-2. `src/app/services/foundation_service.py` at 591 script-counted lines,
-3. `src/app/services/portfolio_service.py` at 589 script-counted lines,
-4. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
-5. `src/app/contracts/dpm_waves.py` at 567 script-counted lines.
+1. `src/app/services/foundation_service.py` at 591 script-counted lines,
+2. `src/app/services/portfolio_service.py` at 589 script-counted lines,
+3. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
+4. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
+5. `src/app/services/workbench_service.py` at 562 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -237,6 +237,12 @@ The current DPM wave protocol-family boundary slice moves `DpmWaveClient` into
 `dpm_wave_client_protocols.py` and updates DPM wave services to import the focused protocol module
 directly. The blocking threshold is ratcheted to 595 script-counted lines, with
 `src/app/contracts/dpm_command_center.py` as the largest residual hotspot.
+The current DPM portfolio-memory contract-family boundary slice moves
+`DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
+`src/app/contracts/dpm_portfolio_memory.py` while preserving the public
+`dpm_command_center` compatibility facade. The blocking threshold is ratcheted from 595 to 591
+script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
+hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

@@ -23,7 +23,7 @@ def test_refactor_quality_thresholds_pass_for_small_source_file(tmp_path: Path) 
 
 
 def test_default_source_file_threshold_tracks_remediated_gateway_baseline() -> None:
-    assert DEFAULT_MAX_SOURCE_FILE_LINES == 595
+    assert DEFAULT_MAX_SOURCE_FILE_LINES == 591
 
 
 def test_refactor_quality_thresholds_reports_oversized_files(tmp_path: Path) -> None:

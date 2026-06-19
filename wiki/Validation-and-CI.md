@@ -970,6 +970,16 @@ lines, making `src/app/contracts/dpm_command_center.py` the source-file ceiling 
 validation passed with 52 DPM wave/service-boundary tests. Full local `make check` passed with
 workflow governance, mypy over 564 source files, OpenAPI smoke, and 1,248 unit/contract tests.
 
+The current DPM portfolio-memory contract-family boundary branch splits
+`DpmPortfolioMemorySupportability` and `DpmPortfolioMemoryGatewayResponse` into
+`src/app/contracts/dpm_portfolio_memory.py` while preserving the public `dpm_command_center`
+compatibility facade. It moves the largest residual source-file hotspot to
+`src/app/services/foundation_service.py` at 591 script-counted lines and ratchets the blocking
+source-file threshold from 595 to 591 script-counted lines. Focused validation passed with 59
+contract/service tests and 67 contract/service/quality tests after adding threshold artifact
+assertions. Full local `make check` passed with workflow governance, mypy over 565 source files,
+OpenAPI smoke, and 1,249 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
