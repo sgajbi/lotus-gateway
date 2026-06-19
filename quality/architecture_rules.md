@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/dpm_command_center_service.py` at 521 script-counted lines,
-2. `src/app/services/proposal_service.py` at 520 script-counted lines,
-3. `src/app/services/workbench_service.py` at 515 script-counted lines,
-4. `src/app/services/advisor_brief_source.py` at 508 script-counted lines,
-5. `src/app/services/portfolio_transaction_summary.py` at 504 script-counted lines.
+1. `src/app/services/advisor_brief_source.py` at 508 lines,
+2. `src/app/services/portfolio_transaction_summary.py` at 504 lines,
+3. `src/app/contracts/portfolio_workspace.py` at 503 lines,
+4. `src/app/contracts/dpm_command_center.py` at 499 lines,
+5. `src/app/services/performance_workspace_service.py` at 497 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -273,6 +273,12 @@ product-safe Core snapshot error mapping, and `WorkbenchSnapshotContext` assembl
 surface. `src/app/services/workbench_service.py` is reduced from 562 to 515 script-counted lines,
 and the blocking threshold is ratcheted from 562 to 560 script-counted lines, with
 `src/app/contracts/reporting.py` as the largest residual hotspot.
+The current Workbench sandbox boundary slice moves simulation-session creation, sandbox change
+application, projected-state loading, and policy-feedback orchestration into
+`src/app/services/workbench_sandbox_service.py` while preserving the public `WorkbenchService`
+surface. `src/app/services/workbench_service.py` is reduced from 515 to 277 lines, and the blocking
+threshold is ratcheted from 515 to 508 lines, with
+`src/app/services/advisor_brief_source.py` as the largest residual hotspot.
 The current reporting job contract slice moves report-job request, error, handle, and status DTOs
 into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
 import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,

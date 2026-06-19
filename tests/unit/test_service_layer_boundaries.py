@@ -463,6 +463,39 @@ def test_proposal_service_delegates_delivery_posture_routes() -> None:
     assert "ProposalDeliveryServiceMixin" in base_names
 
 
+def test_workbench_service_delegates_sandbox_orchestration() -> None:
+    path = _SERVICE_ROOT / "workbench_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "_apply_sandbox_changes_payload",
+            "_build_sandbox_policy_state",
+            "_evaluate_policy_feedback",
+            "_load_projected_state",
+            "apply_sandbox_changes",
+            "create_sandbox_session",
+        }
+    )
+    workbench_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "WorkbenchService"
+    ]
+    base_names = {
+        base.id
+        for service_class in workbench_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "WorkbenchSandboxServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_readiness_and_insight_source_loading() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

@@ -1158,6 +1158,15 @@ source-file threshold from 520 to 515 script-counted lines. Focused validation p
 proposal service and service-boundary tests; the agent quality evidence gate now keeps the
 executable 515/49 ratchet and current hotspot guidance synchronized.
 
+The current Workbench sandbox boundary slice moves simulation-session creation, sandbox change
+application, projected-state loading, and policy-feedback orchestration into
+`src/app/services/workbench_sandbox_service.py` while preserving the public `WorkbenchService`
+method surface. It reduces `workbench_service.py` from 515 to 277 lines, moves the largest
+residual source-file hotspot to `src/app/services/advisor_brief_source.py` at 508 lines, and
+ratchets the blocking source-file threshold from 515 to 508 lines. Focused validation passed with
+107 Workbench service and service-boundary tests; the agent quality evidence gate now keeps the
+executable 508/49 ratchet and current hotspot guidance synchronized.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
