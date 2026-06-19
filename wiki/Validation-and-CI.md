@@ -1198,6 +1198,18 @@ contract modules, and threshold trials proving 499 passes while 498 fails only o
 command-center contract hotspot; the agent quality evidence gate now keeps the executable 499/49
 ratchet and current hotspot guidance synchronized.
 
+The current DPM command-center contract slice moves core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py` while preserving the public
+`app.contracts.dpm_command_center` compatibility facade. It reduces `dpm_command_center.py` from
+499 to 63 lines, moves the largest residual source-file hotspot to
+`src/app/services/performance_workspace_service.py` at 497 lines, and ratchets the blocking
+source-file threshold from 499 to 497 lines. Focused validation passed with DPM command-center
+contract and contract-module-boundary tests, mypy over touched contract modules, and threshold
+trials proving 497 passes while 496 fails only on the performance workspace service hotspot; the
+agent quality evidence gate now keeps the executable 497/49 ratchet and current hotspot guidance
+synchronized.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

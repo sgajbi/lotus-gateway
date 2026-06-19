@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/dpm_command_center.py` at 499 lines,
-2. `src/app/services/performance_workspace_service.py` at 497 lines,
-3. `src/app/services/performance_workspace_evidence.py` at 493 lines,
-4. `src/app/services/platform_capabilities_shell.py` at 488 lines,
-5. `src/app/clients/lotus_core_query_client.py` at 481 lines.
+1. `src/app/services/performance_workspace_service.py` at 497 lines,
+2. `src/app/services/performance_workspace_evidence.py` at 493 lines,
+3. `src/app/services/platform_capabilities_shell.py` at 488 lines,
+4. `src/app/clients/lotus_core_query_client.py` at 481 lines,
+5. `src/app/contracts/dpm_waves.py` at 480 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -296,6 +296,12 @@ The current portfolio workspace controls contract slice moves workspace control 
 `portfolio_workspace.py` and the portfolio facade. `portfolio_workspace.py` is reduced from 503 to
 319 lines, and the blocking threshold is ratcheted from 503 to 499 lines, with
 `src/app/contracts/dpm_command_center.py` as the largest residual hotspot.
+The current DPM command-center contract slice moves core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py` while preserving compatibility imports through
+`dpm_command_center.py`. `dpm_command_center.py` is reduced from 499 to 63 lines, and the blocking
+threshold is ratcheted from 499 to 497 lines, with
+`src/app/services/performance_workspace_service.py` as the largest residual hotspot.
 The current reporting job contract slice moves report-job request, error, handle, and status DTOs
 into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
 import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,

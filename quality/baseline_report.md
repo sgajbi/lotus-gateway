@@ -632,20 +632,31 @@ OpenAPI contract tests, mypy over touched contract modules, and refactor-thresho
 499 passes while 498 fails only on the DPM command-center contract hotspot; the agent quality
 evidence gate now tracks the executable 499/49 ratchet.
 
+Current DPM command-center contract verification moves core command-center DTOs into
+`src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
+`src/app/contracts/dpm_outcome_review.py` while preserving the public
+`app.contracts.dpm_command_center` compatibility facade. `dpm_command_center.py` is reduced from
+499 to 63 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=497`, with `src/app/services/performance_workspace_service.py` now the
+single source-file ceiling blocker. Focused validation passed with DPM command-center contract and
+contract-module-boundary tests, mypy over touched contract modules, and refactor-threshold trials
+proving 497 passes while 496 fails only on the performance workspace service hotspot; the agent
+quality evidence gate now tracks the executable 497/49 ratchet.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 499 | `src/app/contracts/dpm_command_center.py` |
-| 2 | 497 | `src/app/services/performance_workspace_service.py` |
-| 3 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 4 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 5 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 6 | 480 | `src/app/contracts/dpm_waves.py` |
+| 1 | 497 | `src/app/services/performance_workspace_service.py` |
+| 2 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 3 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 4 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 5 | 480 | `src/app/contracts/dpm_waves.py` |
+| 6 | 479 | `src/app/services/risk_workspace_drawdown.py` |
 | 7 | 479 | `src/app/services/dpm_wave_service.py` |
-| 8 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 9 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 10 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 8 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 9 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 10 | 465 | `src/app/contracts/domain_products.py` |
 
 ## Largest Functions
 

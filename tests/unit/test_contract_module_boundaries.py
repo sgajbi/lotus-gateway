@@ -118,6 +118,37 @@ def test_dpm_portfolio_memory_contracts_live_outside_dpm_command_center_facade()
     assert dpm_command_center_facade_classes.isdisjoint(expected_portfolio_memory_contracts)
 
 
+def test_dpm_command_center_contracts_live_outside_dpm_command_center_facade() -> None:
+    dpm_command_center_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_command_center.py")
+    command_center_core_contract_classes = _class_names(
+        _CONTRACT_ROOT / "dpm_command_center_core.py"
+    )
+    outcome_review_contract_classes = _class_names(_CONTRACT_ROOT / "dpm_outcome_review.py")
+
+    expected_core_contracts = {
+        "DpmCommandCenterForwardRequest",
+        "DpmCommandCenterGatewayResponse",
+        "DpmCommandCenterResolveExceptionRequest",
+        "DpmCommandCenterSupportability",
+    }
+    expected_outcome_review_contracts = {
+        "DpmExceptionSummaryGatewayResponse",
+        "DpmExceptionSummaryRequest",
+        "DpmOutcomeReviewErrorDetail",
+        "DpmOutcomeReviewForwardRequest",
+        "DpmOutcomeReviewGatewayResponse",
+        "DpmOutcomeReviewNarrativeGatewayResponse",
+        "DpmOutcomeReviewNarrativeRequest",
+        "DpmOutcomeReviewRefreshRequest",
+        "DpmOutcomeReviewSupportability",
+    }
+
+    assert expected_core_contracts <= command_center_core_contract_classes
+    assert expected_outcome_review_contracts <= outcome_review_contract_classes
+    assert dpm_command_center_facade_classes.isdisjoint(expected_core_contracts)
+    assert dpm_command_center_facade_classes.isdisjoint(expected_outcome_review_contracts)
+
+
 def test_dpm_wave_campaign_definition_contracts_live_outside_dpm_waves_facade() -> None:
     dpm_waves_facade_classes = _class_names(_CONTRACT_ROOT / "dpm_waves.py")
     campaign_definition_contract_classes = _class_names(
