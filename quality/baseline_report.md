@@ -421,20 +421,26 @@ the public `LotusCoreQueryClient` surface. Focused validation passed with 188 up
 tests. Full local `make check` passed with workflow governance, mypy over 563 source files, OpenAPI
 smoke, and 1,246 unit/contract tests.
 
+Current DPM wave protocol-family working-tree verification splits `DpmWaveClient` into
+`src/app/services/dpm_wave_client_protocols.py` and updates DPM wave services to import the focused
+protocol module directly. Focused validation passed with 52 DPM wave/service-boundary tests; full
+local `make check` passed with workflow governance, mypy over 564 source files, OpenAPI smoke, and
+1,248 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 2 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 3 | 591 | `src/app/services/foundation_service.py` |
-| 4 | 589 | `src/app/services/portfolio_service.py` |
-| 5 | 575 | `src/app/observability/analytics_ui.py` |
-| 6 | 567 | `src/app/contracts/dpm_waves.py` |
-| 7 | 562 | `src/app/services/workbench_service.py` |
-| 8 | 560 | `src/app/contracts/reporting.py` |
-| 9 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 10 | 556 | `src/app/services/risk_workspace_service.py` |
+| 1 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 2 | 591 | `src/app/services/foundation_service.py` |
+| 3 | 589 | `src/app/services/portfolio_service.py` |
+| 4 | 575 | `src/app/observability/analytics_ui.py` |
+| 5 | 567 | `src/app/contracts/dpm_waves.py` |
+| 6 | 562 | `src/app/services/workbench_service.py` |
+| 7 | 560 | `src/app/contracts/reporting.py` |
+| 8 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 9 | 556 | `src/app/services/risk_workspace_service.py` |
+| 10 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
 
 ## Largest Functions
 

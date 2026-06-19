@@ -210,6 +210,39 @@ def test_advisory_services_import_focused_protocol_families() -> None:
         assert "app.services.advisory_client_protocols" not in imports
 
 
+def test_dpm_wave_protocol_is_split_from_shared_protocol_aggregator() -> None:
+    dpm_protocols_path = _SERVICE_ROOT / "dpm_client_protocols.py"
+    dpm_wave_protocols_path = _SERVICE_ROOT / "dpm_wave_client_protocols.py"
+    dpm_tree = ast.parse(
+        dpm_protocols_path.read_text(encoding="utf-8"),
+        filename=str(dpm_protocols_path),
+    )
+    dpm_wave_tree = ast.parse(
+        dpm_wave_protocols_path.read_text(encoding="utf-8"),
+        filename=str(dpm_wave_protocols_path),
+    )
+
+    dpm_protocol_names = {
+        node.name for node in ast.walk(dpm_tree) if isinstance(node, ast.ClassDef)
+    }
+    dpm_wave_protocol_names = {
+        node.name for node in ast.walk(dpm_wave_tree) if isinstance(node, ast.ClassDef)
+    }
+    assert "DpmWaveClient" not in dpm_protocol_names
+    assert dpm_wave_protocol_names == {"DpmWaveClient"}
+
+
+def test_dpm_wave_services_import_focused_protocol_family() -> None:
+    for service_file in {
+        "dpm_wave_ai_handoff.py",
+        "dpm_wave_campaign_definitions.py",
+        "dpm_wave_service.py",
+    }:
+        imports = _imported_modules(_SERVICE_ROOT / service_file)
+        assert "app.services.dpm_wave_client_protocols" in imports
+        assert "app.services.dpm_client_protocols" not in imports
+
+
 def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     path = _SERVICE_ROOT / "risk_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

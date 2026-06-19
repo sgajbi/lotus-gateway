@@ -5,7 +5,7 @@ from app.contracts.dpm_waves import (
     DpmWaveErrorDetail,
     DpmWaveGatewayResponse,
 )
-from app.services.dpm_client_protocols import DpmWaveClient
+from app.services.dpm_wave_client_protocols import DpmWaveClient
 from app.services.upstream_envelope import (
     build_product_safe_upstream_status_payload_gateway_envelope,
 )

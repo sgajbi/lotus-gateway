@@ -13,7 +13,7 @@ from app.contracts.dpm_waves import (
     DpmWaveSupportability,
 )
 from app.services.ai_client_protocols import LotusAiWorkflowClient
-from app.services.dpm_client_protocols import DpmWaveClient
+from app.services.dpm_wave_client_protocols import DpmWaveClient
 from app.services.lotus_ai_workflow import (
     build_workflow_pack_task_request,
     require_lotus_ai_client,

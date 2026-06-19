@@ -962,6 +962,14 @@ blocker. Focused validation passed with 188 upstream/core client tests. Full loc
 passed with workflow governance, mypy over 563 source files, OpenAPI smoke, and 1,246 unit/contract
 tests.
 
+The current DPM wave protocol-family boundary branch splits `DpmWaveClient` into
+`src/app/services/dpm_wave_client_protocols.py` and updates DPM wave services to import that focused
+protocol module directly. It reduces `src/app/services/dpm_client_protocols.py` from 606 to 322
+script-counted lines and ratchets the blocking source-file threshold from 606 to 595 script-counted
+lines, making `src/app/contracts/dpm_command_center.py` the source-file ceiling blocker. Focused
+validation passed with 52 DPM wave/service-boundary tests. Full local `make check` passed with
+workflow governance, mypy over 564 source files, OpenAPI smoke, and 1,248 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

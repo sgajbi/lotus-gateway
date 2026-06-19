@@ -6,12 +6,12 @@ from app.contracts.dpm_waves import (
     DpmWaveGatewayResponse,
 )
 from app.services.ai_client_protocols import LotusAiWorkflowClient
-from app.services.dpm_client_protocols import DpmWaveClient
 from app.services.dpm_wave_ai_handoff import (
     DpmWaveAiHandoffMixin,
     _supportability_from,
 )
 from app.services.dpm_wave_campaign_definitions import DpmWaveCampaignDefinitionMixin
+from app.services.dpm_wave_client_protocols import DpmWaveClient
 from app.services.upstream_envelope import (
     build_product_safe_upstream_status_gateway_envelope,
     build_product_safe_upstream_status_payload_gateway_envelope,
