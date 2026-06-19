@@ -5,7 +5,7 @@ from app.contracts.portfolio_activity_income import (
     PortfolioActivityBucketSummary,
     PortfolioActivitySummaryResponse,
 )
-from app.services.portfolio_transaction_summary import (
+from app.services.portfolio_transaction_amounts import (
     absolute_money,
     accumulate_flow_metric,
     activity_bucket_name,

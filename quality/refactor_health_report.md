@@ -865,29 +865,36 @@ The current domain-product trust contract slice moves live-trust certification D
 lines, the extracted trust contract module is 163 lines, and the blocking source-file threshold is
 ratcheted from 465 to 462 lines with `src/app/services/portfolio_transaction_summary.py` now the
 source-file ceiling blocker.
+The current portfolio transaction income-summary slice moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+`portfolio_transaction_summary` import surface. `portfolio_transaction_summary.py` is reduced from
+462 to 201 lines, the extracted income module is 210 lines, the extracted amount helper module is
+99 lines, and the blocking source-file threshold is ratcheted from 462 to 458 lines with
+`src/app/services/workspace_client_protocols.py` now the source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current domain-product trust contract focused validation passed with 40 domain-product contract, service, contract-boundary, refactor-threshold, quality-baseline artifact, and agent quality evidence tests, mypy over touched domain-product contract/service modules, and refactor-threshold proof at `max_source_file_lines=462`; current full local `make check` passed with monetary-float governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy over 596 source files, OpenAPI smoke, and 1,287 unit/contract tests |
+| Unit/contract coverage | Healthy | Current portfolio transaction income-summary focused validation passed with 21 portfolio transaction summary, refactor-threshold, quality-baseline artifact, and agent quality evidence tests, touched-module mypy, and refactor-threshold proof at `max_source_file_lines=458`; full local `make check` passed with monetary-float governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent quality evidence, mypy over 598 source files, OpenAPI smoke, and 1,288 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
-| Security audit | Governed | Current domain-product trust contract extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, data-mesh behavior, or runtime behavior changes; monetary-float governance remains flat at 152 findings/152 allowlisted because this slice does not move DTO float fields; prior full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits domain-product live-trust certification DTOs into a focused module while preserving public import compatibility. The largest current source-file hotspot is now `src/app/services/portfolio_transaction_summary.py` at 462 lines |
+| Security audit | Governed | Current portfolio transaction income-summary extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, data-mesh behavior, or runtime behavior changes; monetary-float governance remains flat at 152 findings/152 allowlisted after moving existing helper float conversions to focused transaction modules; prior full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits portfolio transaction income summary construction and shared amount helpers into focused modules while preserving public import compatibility. The largest current source-file hotspot is now `src/app/services/workspace_client_protocols.py` at 458 lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
 | Error consistency | Improving, incomplete | Reporting job and report-batch upstream error handling now uses explicit code-owned mapping rules with focused product-safe fallback tests; shared generic service-error status mapping is code-owned and tested; advisory-facing product-safe service-error defaults now use typed immutable configs; broader route/upstream error normalization remains open |
-| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 462/49 ratchet and the current `src/app/services/portfolio_transaction_summary.py` hotspot evidence to stay synchronized with durable guidance |
+| Architecture rules | Improving, incomplete | AST boundary tests exist; import-linter is report-only; source-file and function-size thresholds are now blocking through `make lint`; Quality Baseline also blocks workflow-governance drift and requires workflow-governance evidence before artifact upload; the agent quality evidence gate in `scripts/check_agent_quality_evidence.py` now forces the executable 458/49 ratchet and the current `src/app/services/workspace_client_protocols.py` hotspot evidence to stay synchronized with durable guidance |
 | Observability | Partial | Health/readiness/metrics/correlation exist; analytics UI structured log and audit event-family separation is enforced by unit tests; Prometheus metric-label contracts are enforced by a static unit gate; broader trace/log scoring is not enforced |
 
 ## Primary Refactor Backlog
 
 1. Continue splitting large contract modules, service modules, and remaining upstream clients
    around clear ownership boundaries. The next source-file hotspot is
-   `src/app/services/portfolio_transaction_summary.py`.
+   `src/app/services/workspace_client_protocols.py`.
 2. Continue splitting remaining large observability, contract, service, or client modules around
    cohesive behavior-preserving seams.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context
@@ -927,11 +934,11 @@ source-file ceiling blocker.
 1. Quality Baseline uploads quality logs for baseline classification after blocking refactor
    threshold, workflow-governance, agent quality evidence, and artifact-integrity checks pass.
 2. Blocking refactor threshold gate now enforces:
-   - no Python source file under `src/app` above 462 lines,
+   - no Python source file under `src/app` above 458 lines,
    - no Python function or async function above the remediated 49-line AST span baseline.
 3. The blocking agent quality evidence gate runs `scripts/check_agent_quality_evidence.py` to
-   make future agent slices ratchet the 462/49 thresholds when the current largest file or
-   function improves, and to keep `src/app/services/portfolio_transaction_summary.py` hotspot
+   make future agent slices ratchet the 458/49 thresholds when the current largest file or
+   function improves, and to keep `src/app/services/workspace_client_protocols.py` hotspot
    evidence truthful in scorecard/context docs.
 4. Then enforce no-new-regression thresholds for:
    - ruff/mypy,

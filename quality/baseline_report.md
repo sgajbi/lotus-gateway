@@ -52,8 +52,8 @@ contribution summary merge mapper.
 The latest risk rolling slice split supportability enrichment and fallback warning assembly out of
 the public rolling response mapper.
 The latest CI enforcement slice adds a blocking agent quality evidence gate through
-`scripts/check_agent_quality_evidence.py`, keeping the executable 462/49 refactor ratchet,
-current `src/app/services/portfolio_transaction_summary.py` hotspot evidence, and durable
+`scripts/check_agent_quality_evidence.py`, keeping the executable 458/49 refactor ratchet,
+current `src/app/services/workspace_client_protocols.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
@@ -750,20 +750,35 @@ local `make check` passed with monetary-float governance at 152 findings/152 all
 workflow governance, refactor thresholds, agent quality evidence, mypy over 596 source files,
 OpenAPI smoke, and 1,287 unit/contract tests.
 
+Current portfolio transaction income-summary verification moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+`portfolio_transaction_summary` import surface. `portfolio_transaction_summary.py` is reduced from
+462 to 201 lines, the extracted income module is 210 lines, the extracted amount helper module is
+99 lines, and the largest source-file hotspot moves to
+`src/app/services/workspace_client_protocols.py` at 458 lines. The blocking source-file threshold
+is ratcheted to `max_source_file_lines=458`. Focused validation passed with 21 portfolio
+transaction summary, refactor-threshold, quality-baseline artifact, and agent quality evidence
+tests, mypy over touched transaction summary modules, and refactor-threshold trials proving 458
+passes while 457 fails only on the workspace client protocol hotspot; the agent quality evidence
+gate now tracks the executable 458/49 ratchet. Full local `make check` passed with monetary-float
+governance at 152 findings/152 allowlisted, workflow governance, refactor thresholds, agent
+quality evidence, mypy over 598 source files, OpenAPI smoke, and 1,288 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 462 | `src/app/services/portfolio_transaction_summary.py` |
-| 2 | 458 | `src/app/services/workspace_client_protocols.py` |
-| 3 | 452 | `src/app/clients/dpm_client.py` |
-| 4 | 448 | `src/app/services/risk_workspace_requests.py` |
-| 5 | 444 | `src/app/services/advisor_brief_narrative.py` |
-| 6 | 441 | `src/app/services/performance_workspace_horizon.py` |
-| 7 | 440 | `src/app/contracts/performance_attribution.py` |
-| 8 | 438 | `src/app/services/advisor_brief_service.py` |
-| 9 | 437 | `src/app/services/performance_workspace_service.py` |
-| 10 | 432 | `src/app/services/risk_workspace_rolling.py` |
+| 1 | 458 | `src/app/services/workspace_client_protocols.py` |
+| 2 | 452 | `src/app/clients/dpm_client.py` |
+| 3 | 448 | `src/app/services/risk_workspace_requests.py` |
+| 4 | 444 | `src/app/services/advisor_brief_narrative.py` |
+| 5 | 441 | `src/app/services/performance_workspace_horizon.py` |
+| 6 | 440 | `src/app/contracts/performance_attribution.py` |
+| 7 | 438 | `src/app/services/advisor_brief_service.py` |
+| 8 | 437 | `src/app/services/performance_workspace_service.py` |
+| 9 | 432 | `src/app/services/risk_workspace_rolling.py` |
+| 10 | 432 | `src/app/services/risk_workspace_attribution.py` |
 
 ## Largest Functions
 

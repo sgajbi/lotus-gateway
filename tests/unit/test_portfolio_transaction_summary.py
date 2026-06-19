@@ -1,4 +1,6 @@
+import ast
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -19,6 +21,13 @@ from app.services.portfolio_transaction_summary import (
     transaction_date_value,
     transaction_page_rows,
 )
+
+_SERVICE_ROOT = Path(__file__).parents[2] / "src" / "app" / "services"
+
+
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
 
 
 def _summary_context(
@@ -256,3 +265,34 @@ def test_transaction_date_helpers_parse_iso_dates_and_reject_invalid_values() ->
         start_date=date(2026, 3, 1),
         end_date=date(2026, 3, 31),
     )
+
+
+def test_transaction_income_and_amount_helpers_live_in_dedicated_modules() -> None:
+    summary_functions = _function_names(_SERVICE_ROOT / "portfolio_transaction_summary.py")
+    income_functions = _function_names(_SERVICE_ROOT / "portfolio_transaction_income_summary.py")
+    amount_functions = _function_names(_SERVICE_ROOT / "portfolio_transaction_amounts.py")
+
+    expected_income_functions = {
+        "accumulate_income_metric",
+        "build_income_period_summary",
+        "build_income_summary_response",
+        "income_net_portfolio_amount",
+        "income_net_reporting_amount",
+        "new_income_metric",
+        "summarize_income_rows",
+    }
+    expected_amount_functions = {
+        "absolute_money",
+        "accumulate_flow_metric",
+        "activity_bucket_name",
+        "activity_portfolio_amount",
+        "activity_reporting_amount",
+        "build_money_summary",
+        "new_flow_metric",
+        "reporting_money",
+    }
+
+    assert expected_income_functions <= income_functions
+    assert expected_amount_functions <= amount_functions
+    assert summary_functions.isdisjoint(expected_income_functions)
+    assert summary_functions.isdisjoint(expected_amount_functions)

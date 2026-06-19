@@ -42,7 +42,7 @@ The Quality Baseline workflow keeps advisory quality tools report-only, but it i
 pure report-only lane. It blocks refactor-threshold regression, workflow-governance drift, and
 agent quality evidence drift through `scripts/check_agent_quality_evidence.py`, and missing
 required evidence before uploading artifacts. The agent quality evidence gate keeps the executable
-462/49 ratchet, the current `src/app/services/portfolio_transaction_summary.py` hotspot, and durable
+458/49 ratchet, the current `src/app/services/workspace_client_protocols.py` hotspot, and durable
 scorecard/context guidance synchronized for future agent development. It installs the optional
 `quality` dependency group and records evidence for:
 
@@ -1320,6 +1320,21 @@ now keeps the executable 462/49 ratchet and current hotspot guidance synchronize
 `make check` passed with monetary-float governance at 152 findings/152 allowlisted, workflow
 governance, refactor thresholds, agent quality evidence, mypy over 596 source files, OpenAPI
 smoke, and 1,287 unit/contract tests.
+
+The current portfolio transaction income-summary slice moves income summary construction into
+`src/app/services/portfolio_transaction_income_summary.py` and shared transaction amount helpers
+into `src/app/services/portfolio_transaction_amounts.py` while preserving the public
+`portfolio_transaction_summary` import surface. It reduces
+`src/app/services/portfolio_transaction_summary.py` from 462 to 201 lines, moves the largest
+residual source-file hotspot to `src/app/services/workspace_client_protocols.py` at 458 lines,
+and ratchets the blocking source-file threshold from 462 to 458 lines. Focused validation passed
+with 21 portfolio transaction summary, refactor-threshold, quality-baseline artifact, and agent
+quality evidence tests, mypy over touched transaction modules, and threshold trials proving 458
+passes while 457 fails only on the workspace client protocol hotspot; the agent quality evidence
+gate now keeps the executable 458/49 ratchet and current hotspot guidance synchronized. Full local
+`make check` passed with monetary-float governance at 152 findings/152 allowlisted, workflow
+governance, refactor thresholds, agent quality evidence, mypy over 598 source files, OpenAPI
+smoke, and 1,288 unit/contract tests.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
