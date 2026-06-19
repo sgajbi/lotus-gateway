@@ -1266,6 +1266,18 @@ keeps the executable 479/49 ratchet and current hotspot guidance synchronized. F
 `make check` passed with workflow governance, refactor thresholds, agent quality evidence, mypy
 over 591 source files, OpenAPI smoke, and 1,282 unit/contract tests.
 
+The current DPM workflow and risk drawdown supportability slice moves campaign workflow/audit
+service methods into `src/app/services/dpm_wave_campaign_workflow.py` and drawdown supportability
+policy into `src/app/services/risk_workspace_drawdown_supportability.py` while preserving public
+service behavior. It moves the largest residual source-file hotspot to
+`src/app/contracts/portfolio_holdings.py` at 476 lines and ratchets the blocking source-file
+threshold from 479 to 476 lines. Focused validation passed with 43 DPM wave service, risk
+workspace service, and boundary tests, mypy over touched DPM/risk service modules, and threshold
+trials proving 476 passes while 475 fails only on the portfolio holdings contract hotspot; the
+agent quality evidence gate now keeps the executable 476/49 ratchet and current hotspot guidance
+synchronized. Full local `make check` passed with workflow governance, refactor thresholds, agent
+quality evidence, mypy over 593 source files, OpenAPI smoke, and 1,284 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

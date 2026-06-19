@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from app.contracts.risk_workspace import (
     RiskModuleState,
@@ -20,17 +20,17 @@ from app.contracts.risk_workspace_drawdown import (
     WorkbenchRiskUnderwaterPoint,
 )
 from app.contracts.workbench import WorkbenchPartialFailure
+from app.services.risk_workspace_drawdown_supportability import (
+    append_source_calculation_supportability,
+    build_drawdown_supportability,
+    initial_drawdown_period_supportability,
+    resolve_drawdown_period_supportability,
+)
 from app.services.risk_workspace_envelopes import (
     risk_metadata,
     risk_upstream_failure,
     unavailable_risk_service_supportability,
 )
-from app.services.source_supportability import (
-    extract_calculation_supportability,
-    source_supportability_reason,
-)
-
-_DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK = "benchmark_relative_drawdown"
 
 
 @dataclass(frozen=True)
@@ -42,14 +42,6 @@ class DrawdownMappingResult:
     benchmark_supportability_reason: str | None
     underwater_supportability_state: RiskSupportabilityState
     underwater_supportability_reason: str | None
-
-
-@dataclass(frozen=True)
-class DrawdownPeriodSupportability:
-    benchmark_state: RiskSupportabilityState
-    benchmark_reason: str | None
-    underwater_state: RiskSupportabilityState
-    underwater_reason: str | None
 
 
 @dataclass(frozen=True)
@@ -77,11 +69,14 @@ def map_drawdown_response(
         benchmark_code=benchmark_code,
         include_underwater_series=include_underwater_series,
     )
-    supportability = _build_drawdown_supportability(
+    supportability = build_drawdown_supportability(
         results=results,
-        mapping=mapping,
+        benchmark_state=mapping.benchmark_supportability_state,
+        benchmark_reason=mapping.benchmark_supportability_reason,
+        underwater_state=mapping.underwater_supportability_state,
+        underwater_reason=mapping.underwater_supportability_reason,
     )
-    _append_source_calculation_supportability(
+    append_source_calculation_supportability(
         supportability=supportability,
         upstream_payload=upstream_payload,
     )
@@ -153,13 +148,13 @@ def _map_drawdown_period_results(
     warnings: list[str] = []
     partial_failures: list[WorkbenchPartialFailure] = []
     period_results: list[WorkbenchRiskDrawdownPeriodResult] = []
-    supportability = _initial_drawdown_period_supportability(
+    supportability = initial_drawdown_period_supportability(
         include_underwater_series=include_underwater_series
     )
 
     for key, value in _iter_drawdown_result_items(results):
         period = _map_drawdown_period_result(key=key, value=value)
-        supportability = _resolve_drawdown_period_supportability(
+        supportability = resolve_drawdown_period_supportability(
             benchmark_code=benchmark_code,
             include_underwater_series=include_underwater_series,
             current=supportability,
@@ -183,53 +178,6 @@ def _map_drawdown_period_results(
         benchmark_supportability_reason=supportability.benchmark_reason,
         underwater_supportability_state=supportability.underwater_state,
         underwater_supportability_reason=supportability.underwater_reason,
-    )
-
-
-def _initial_drawdown_period_supportability(
-    *,
-    include_underwater_series: bool,
-) -> DrawdownPeriodSupportability:
-    underwater_state: RiskSupportabilityState = (
-        "partial" if not include_underwater_series else "unavailable"
-    )
-    underwater_reason = (
-        "Underwater series is available on demand and is not included in first paint."
-        if not include_underwater_series
-        else None
-    )
-    return DrawdownPeriodSupportability(
-        benchmark_state="unavailable",
-        benchmark_reason=None,
-        underwater_state=underwater_state,
-        underwater_reason=underwater_reason,
-    )
-
-
-def _resolve_drawdown_period_supportability(
-    *,
-    benchmark_code: str | None,
-    include_underwater_series: bool,
-    current: DrawdownPeriodSupportability,
-    period: WorkbenchRiskDrawdownPeriodResult,
-    error: Any,
-) -> DrawdownPeriodSupportability:
-    benchmark_state, benchmark_reason = _resolve_drawdown_benchmark_supportability(
-        benchmark_code=benchmark_code,
-        relative_to_benchmark=period.relative_to_benchmark,
-        error=error,
-    )
-    underwater_state = current.underwater_state
-    underwater_reason = current.underwater_reason
-    if include_underwater_series:
-        underwater_state, underwater_reason = _resolve_underwater_supportability(
-            underwater_series=period.underwater_series,
-        )
-    return DrawdownPeriodSupportability(
-        benchmark_state=benchmark_state,
-        benchmark_reason=benchmark_reason,
-        underwater_state=underwater_state,
-        underwater_reason=underwater_reason,
     )
 
 
@@ -301,59 +249,6 @@ def _map_drawdown_period_result(
         ),
         error=str(error) if isinstance(error, str) and error.strip() else None,
     )
-
-
-def _resolve_drawdown_benchmark_supportability(
-    *,
-    benchmark_code: str | None,
-    relative_to_benchmark: WorkbenchRiskRelativeDrawdownSummary | None,
-    error: Any,
-) -> tuple[RiskSupportabilityState, str | None]:
-    if not benchmark_code:
-        return "partial", "Benchmark-relative drawdown requires benchmark context."
-    if relative_to_benchmark is not None:
-        return "ready", None
-    if isinstance(error, str) and error.strip():
-        return "partial", error
-    return "partial", "Benchmark-relative drawdown was not returned by lotus-risk."
-
-
-def _resolve_underwater_supportability(
-    *,
-    underwater_series: list[WorkbenchRiskUnderwaterPoint] | None,
-) -> tuple[RiskSupportabilityState, str | None]:
-    if underwater_series is not None:
-        return "ready", None
-    return "partial", "Underwater series detail was requested but not returned by lotus-risk."
-
-
-def _build_drawdown_supportability(
-    *,
-    results: Any,
-    mapping: DrawdownMappingResult,
-) -> list[WorkbenchRiskSupportabilityItem]:
-    return [
-        WorkbenchRiskSupportabilityItem(
-            key="portfolio_returns",
-            label="Portfolio returns",
-            state="ready" if isinstance(results, dict) and results else "unavailable",
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key=_DRAWDOWN_SUPPORTABILITY_KEY_BENCHMARK,
-            label="Benchmark-relative drawdown",
-            state=mapping.benchmark_supportability_state,
-            reason=mapping.benchmark_supportability_reason,
-            source_service="lotus-risk",
-        ),
-        WorkbenchRiskSupportabilityItem(
-            key="underwater_series",
-            label="Underwater series",
-            state=mapping.underwater_supportability_state,
-            reason=mapping.underwater_supportability_reason,
-            source_service="lotus-risk",
-        ),
-    ]
 
 
 def _resolve_drawdown_state(
@@ -430,29 +325,6 @@ def _build_drawdown_payload(
             if isinstance(upstream_metadata, dict)
             else None
         ),
-    )
-
-
-def _append_source_calculation_supportability(
-    *,
-    supportability: list[WorkbenchRiskSupportabilityItem],
-    upstream_payload: dict[str, Any],
-) -> None:
-    source_supportability = extract_calculation_supportability(upstream_payload)
-    if source_supportability is None:
-        return
-
-    supportability.append(
-        WorkbenchRiskSupportabilityItem(
-            key="source_calculation",
-            label="Source calculation",
-            state=cast(Any, source_supportability.risk_contract_state),
-            reason=source_supportability_reason(
-                source_supportability,
-                default_ready_reason="Source calculation supportability was confirmed upstream.",
-            ),
-            source_service=source_supportability.source_service or "lotus-risk",
-        )
     )
 
 

@@ -23,3 +23,30 @@ def test_dpm_wave_ai_handoff_lives_in_dedicated_service_mixin() -> None:
 
     assert extracted_methods <= ai_handoff_methods
     assert not extracted_methods & wave_service_methods
+
+
+def test_dpm_wave_campaign_workflow_lives_in_dedicated_service_mixin() -> None:
+    wave_service_methods = _async_function_names(_SERVICE_ROOT / "dpm_wave_service.py")
+    campaign_workflow_methods = _async_function_names(
+        _SERVICE_ROOT / "dpm_wave_campaign_workflow.py"
+    )
+
+    extracted_methods = {
+        "create_campaign_approval_decision",
+        "create_campaign_assignment_action",
+        "create_campaign_assignment_task",
+        "create_campaign_maker_checker_control",
+        "get_campaign_approval_inbox",
+        "get_campaign_assignment_plan",
+        "get_campaign_operating_queue",
+        "get_campaign_workflow_automation",
+        "get_campaign_workflow_board",
+        "list_campaign_approval_decisions",
+        "list_campaign_assignment_actions",
+        "list_campaign_assignment_tasks",
+        "list_campaign_maker_checker_controls",
+        "transition_campaign_assignment_task",
+    }
+
+    assert extracted_methods <= campaign_workflow_methods
+    assert not extracted_methods & wave_service_methods
