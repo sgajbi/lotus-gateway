@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/performance_workspace_service.py` at 497 lines,
-2. `src/app/services/performance_workspace_evidence.py` at 493 lines,
-3. `src/app/services/platform_capabilities_shell.py` at 488 lines,
-4. `src/app/clients/lotus_core_query_client.py` at 481 lines,
-5. `src/app/contracts/dpm_waves.py` at 480 lines.
+1. `src/app/services/performance_workspace_evidence.py` at 493 lines,
+2. `src/app/services/platform_capabilities_shell.py` at 488 lines,
+3. `src/app/clients/lotus_core_query_client.py` at 481 lines,
+4. `src/app/contracts/dpm_waves.py` at 480 lines,
+5. `src/app/services/risk_workspace_drawdown.py` at 479 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -302,6 +302,11 @@ The current DPM command-center contract slice moves core command-center DTOs int
 `dpm_command_center.py`. `dpm_command_center.py` is reduced from 499 to 63 lines, and the blocking
 threshold is ratcheted from 499 to 497 lines, with
 `src/app/services/performance_workspace_service.py` as the largest residual hotspot.
+The current performance workspace evidence-service slice moves evidence artifact and evidence-view
+orchestration into `src/app/services/performance_workspace_evidence_service.py` while preserving
+the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is reduced
+from 497 to 437 lines, and the blocking threshold is ratcheted from 497 to 493 lines, with
+`src/app/services/performance_workspace_evidence.py` as the largest residual hotspot.
 The current reporting job contract slice moves report-job request, error, handle, and status DTOs
 into `src/app/contracts/reporting_jobs.py` while preserving the public `app.contracts.reporting`
 import surface. `src/app/contracts/reporting.py` is reduced from 560 to 355 script-counted lines,

@@ -1198,7 +1198,7 @@ contract modules, and threshold trials proving 499 passes while 498 fails only o
 command-center contract hotspot; the agent quality evidence gate now keeps the executable 499/49
 ratchet and current hotspot guidance synchronized.
 
-The current DPM command-center contract slice moves core command-center DTOs into
+The previous DPM command-center contract slice moved core command-center DTOs into
 `src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
 `src/app/contracts/dpm_outcome_review.py` while preserving the public
 `app.contracts.dpm_command_center` compatibility facade. It reduces `dpm_command_center.py` from
@@ -1207,8 +1207,19 @@ The current DPM command-center contract slice moves core command-center DTOs int
 source-file threshold from 499 to 497 lines. Focused validation passed with DPM command-center
 contract and contract-module-boundary tests, mypy over touched contract modules, and threshold
 trials proving 497 passes while 496 fails only on the performance workspace service hotspot; the
-agent quality evidence gate now keeps the executable 497/49 ratchet and current hotspot guidance
+agent quality evidence gate kept the executable 497/49 ratchet and then-current hotspot guidance
 synchronized.
+
+The current performance workspace evidence-service slice moves evidence artifact download and
+evidence-view orchestration into `src/app/services/performance_workspace_evidence_service.py`
+while preserving the public `PerformanceWorkspaceService` surface. It reduces
+`performance_workspace_service.py` from 497 to 437 lines, moves the largest residual source-file
+hotspot to `src/app/services/performance_workspace_evidence.py` at 493 lines, and ratchets the
+blocking source-file threshold from 497 to 493 lines. Focused validation passed with performance
+workspace service, performance workspace evidence, and service-layer boundary tests, mypy over
+touched service modules, and threshold trials proving 493 passes while 492 fails only on the
+performance workspace evidence hotspot; the agent quality evidence gate now keeps the executable
+493/49 ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog

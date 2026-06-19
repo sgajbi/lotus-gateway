@@ -788,6 +788,36 @@ def test_performance_workspace_service_delegates_detail_view_orchestration() -> 
     assert local_detail_helpers == []
 
 
+def test_performance_workspace_service_delegates_evidence_orchestration() -> None:
+    path = _SERVICE_ROOT / "performance_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    local_evidence_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name
+        in {
+            "get_performance_evidence_artifact",
+            "_build_evidence_view",
+            "_fetch_evidence_view_state",
+        }
+    )
+    service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PerformanceWorkspaceService"
+    ]
+    base_names = {
+        base.id
+        for service_class in service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert local_evidence_helpers == []
+    assert "PerformanceWorkspaceEvidenceServiceMixin" in base_names
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

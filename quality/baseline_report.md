@@ -632,7 +632,7 @@ OpenAPI contract tests, mypy over touched contract modules, and refactor-thresho
 499 passes while 498 fails only on the DPM command-center contract hotspot; the agent quality
 evidence gate now tracks the executable 499/49 ratchet.
 
-Current DPM command-center contract verification moves core command-center DTOs into
+Previous DPM command-center contract verification moved core command-center DTOs into
 `src/app/contracts/dpm_command_center_core.py` and outcome-review/AI handoff DTOs into
 `src/app/contracts/dpm_outcome_review.py` while preserving the public
 `app.contracts.dpm_command_center` compatibility facade. `dpm_command_center.py` is reduced from
@@ -641,22 +641,33 @@ Current DPM command-center contract verification moves core command-center DTOs 
 single source-file ceiling blocker. Focused validation passed with DPM command-center contract and
 contract-module-boundary tests, mypy over touched contract modules, and refactor-threshold trials
 proving 497 passes while 496 fails only on the performance workspace service hotspot; the agent
-quality evidence gate now tracks the executable 497/49 ratchet.
+quality evidence gate tracked the executable 497/49 ratchet.
+
+Current performance workspace evidence-service verification moves evidence artifact download and
+evidence-view orchestration into `src/app/services/performance_workspace_evidence_service.py` while
+preserving the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is
+reduced from 497 to 437 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=493`, with `src/app/services/performance_workspace_evidence.py` now the
+single source-file ceiling blocker. Focused validation passed with performance workspace service,
+performance workspace evidence, and service-layer boundary tests, mypy over touched service
+modules, and refactor-threshold trials proving 493 passes while 492 fails only on the performance
+workspace evidence hotspot; the agent quality evidence gate now tracks the executable 493/49
+ratchet.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 497 | `src/app/services/performance_workspace_service.py` |
-| 2 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 3 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 4 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 5 | 480 | `src/app/contracts/dpm_waves.py` |
-| 6 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 7 | 479 | `src/app/services/dpm_wave_service.py` |
-| 8 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 9 | 471 | `src/app/services/performance_workspace_attribution.py` |
-| 10 | 465 | `src/app/contracts/domain_products.py` |
+| 1 | 493 | `src/app/services/performance_workspace_evidence.py` |
+| 2 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 3 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 4 | 480 | `src/app/contracts/dpm_waves.py` |
+| 5 | 479 | `src/app/services/risk_workspace_drawdown.py` |
+| 6 | 479 | `src/app/services/dpm_wave_service.py` |
+| 7 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 8 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 9 | 465 | `src/app/contracts/domain_products.py` |
+| 10 | 462 | `src/app/services/portfolio_transaction_summary.py` |
 
 ## Largest Functions
 
