@@ -460,20 +460,30 @@ passed with 39 observability, analytics-diagnostics, and quality-threshold tests
 `make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and
 1,251 unit/contract tests.
 
+Current DPM wave campaign-definition contract working-tree verification splits campaign-definition
+request, launch, lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public
+`app.contracts.dpm_waves` import surface. `src/app/contracts/dpm_waves.py` is reduced from 567 to
+480 script-counted lines, the extracted contract module is 113 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=562`. Focused validation passed with
+46 DPM wave contract, service, contract-boundary, and quality-threshold tests. Full local
+`make check` passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and
+1,252 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 567 | `src/app/contracts/dpm_waves.py` |
-| 2 | 562 | `src/app/services/workbench_service.py` |
-| 3 | 560 | `src/app/contracts/reporting.py` |
-| 4 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 5 | 556 | `src/app/services/risk_workspace_service.py` |
-| 6 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 7 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 8 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 9 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 10 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 1 | 562 | `src/app/services/workbench_service.py` |
+| 2 | 560 | `src/app/contracts/reporting.py` |
+| 3 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 4 | 556 | `src/app/services/risk_workspace_service.py` |
+| 5 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 6 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 7 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 8 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 9 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 10 | 521 | `src/app/services/dpm_command_center_service.py` |
 
 ## Largest Functions
 

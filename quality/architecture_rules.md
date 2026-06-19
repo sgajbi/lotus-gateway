@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
-2. `src/app/services/workbench_service.py` at 562 script-counted lines,
-3. `src/app/contracts/reporting.py` at 560 script-counted lines,
-4. `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines,
-5. `src/app/services/risk_workspace_service.py` at 556 script-counted lines.
+1. `src/app/services/workbench_service.py` at 562 script-counted lines,
+2. `src/app/contracts/reporting.py` at 560 script-counted lines,
+3. `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines,
+4. `src/app/services/risk_workspace_service.py` at 556 script-counted lines,
+5. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -261,6 +261,12 @@ forbidden fields, event vocabularies, and log/audit field validators into
 `app.observability.analytics_ui` import surface. `src/app/observability/analytics_ui.py` is reduced
 from 575 to 343 script-counted lines, and the blocking threshold is ratcheted from 575 to 567
 script-counted lines, with `src/app/contracts/dpm_waves.py` as the largest residual hotspot.
+The current DPM wave campaign-definition contract slice moves campaign-definition request, launch,
+lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public `dpm_waves`
+compatibility facade. `src/app/contracts/dpm_waves.py` is reduced from 567 to 480 script-counted
+lines, and the blocking threshold is ratcheted from 567 to 562 script-counted lines, with
+`src/app/services/workbench_service.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

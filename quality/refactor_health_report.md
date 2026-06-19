@@ -706,17 +706,24 @@ forbidden fields, event vocabularies, and log/audit field validators into
 reduced from 575 to 343 script-counted lines, the extracted field module is 255 lines, and the
 blocking source-file threshold is ratcheted from 575 to 567 lines, with
 `src/app/contracts/dpm_waves.py` now the single source-file ceiling blocker.
+The current DPM wave campaign-definition contract boundary slice moves campaign-definition
+request, launch, lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public
+`app.contracts.dpm_waves` import surface. `src/app/contracts/dpm_waves.py` is reduced from 567 to
+480 script-counted lines, the extracted contract module is 113 lines, and the blocking source-file
+threshold is ratcheted from 567 to 562 lines, with `src/app/services/workbench_service.py` now the
+single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current DPM wave client-boundary branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged remote branches; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current analytics UI field-governance focused validation passed with 39 observability, analytics-diagnostics, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=567`; full local `make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and 1,251 unit/contract tests |
+| Unit/contract coverage | Healthy | Current DPM wave campaign-definition contract focused validation passed with 46 DPM wave contract, service, contract-boundary, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=562`; full local `make check` passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and 1,252 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current DPM wave client-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits analytics UI field governance into a focused module while preserving the public observability import surface. The largest current source-file hotspot is now `src/app/contracts/dpm_waves.py` at 567 script-counted lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits DPM wave campaign-definition contracts into a focused module while preserving the public DPM waves import surface. The largest current source-file hotspot is now `src/app/services/workbench_service.py` at 562 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -728,7 +735,7 @@ blocking source-file threshold is ratcheted from 575 to 567 lines, with
 
 1. Continue splitting large contract modules and remaining upstream clients around clear service
    and route-family boundaries. The next source-file hotspot is
-   `src/app/contracts/dpm_waves.py`.
+   `src/app/services/workbench_service.py`.
 2. Continue splitting remaining large observability, contract, service, or client modules around
    cohesive behavior-preserving seams.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context

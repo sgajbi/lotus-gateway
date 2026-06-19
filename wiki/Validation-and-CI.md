@@ -1011,6 +1011,17 @@ validation passed with 39 observability, analytics-diagnostics, and quality-thre
 local `make check` passed with workflow governance, mypy over 568 source files, OpenAPI smoke, and
 1,251 unit/contract tests.
 
+The current DPM wave campaign-definition contract boundary branch splits campaign-definition
+request, launch, lifecycle-command, and gateway response contracts into
+`src/app/contracts/dpm_wave_campaign_definitions.py` while preserving the public
+`app.contracts.dpm_waves` import surface. It reduces `src/app/contracts/dpm_waves.py` from 567 to
+480 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/workbench_service.py` at 562 script-counted lines, and ratchets the blocking
+source-file threshold from 567 to 562 script-counted lines. Focused validation passed with 46 DPM
+wave contract, service, contract-boundary, and quality-threshold tests. Full local `make check`
+passed with workflow governance, mypy over 569 source files, OpenAPI smoke, and 1,252
+unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
