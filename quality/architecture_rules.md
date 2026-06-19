@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/contracts/performance_attribution.py` at 440 lines,
-2. `src/app/services/advisor_brief_service.py` at 438 lines,
-3. `src/app/services/performance_workspace_service.py` at 437 lines,
-4. `src/app/services/risk_workspace_attribution.py` at 432 lines,
-5. `src/app/services/risk_workspace_rolling.py` at 432 lines.
+1. `src/app/services/advisor_brief_service.py` at 438 lines,
+2. `src/app/services/performance_workspace_service.py` at 437 lines,
+3. `src/app/services/risk_workspace_attribution.py` at 432 lines,
+4. `src/app/services/risk_workspace_rolling.py` at 432 lines,
+5. `src/app/contracts/proposals.py` at 431 lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into

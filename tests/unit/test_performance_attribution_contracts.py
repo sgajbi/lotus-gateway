@@ -9,6 +9,9 @@ from app.contracts.performance_attribution import (
     PerformanceAttributionTrendResponse,
     PerformanceAttributionTrendRow,
 )
+from app.contracts.performance_attribution_supportability import (
+    AttributionReasonView as FocusedAttributionReasonView,
+)
 
 
 def test_performance_attribution_contracts_remain_compatibility_reexports() -> None:
@@ -29,6 +32,10 @@ def test_performance_attribution_contracts_remain_compatibility_reexports() -> N
         is PerformanceAttributionTrendResponse
     )
     assert performance_workspace.PerformanceAttributionTrendRow is PerformanceAttributionTrendRow
+
+
+def test_performance_attribution_supportability_contracts_live_in_focused_module() -> None:
+    assert AttributionReasonView is FocusedAttributionReasonView
 
 
 def test_performance_attribution_response_accepts_extracted_models() -> None:

@@ -59,6 +59,10 @@ The current performance horizon standard-window extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 440/49 refactor ratchet,
 current `src/app/contracts/performance_attribution.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current performance attribution supportability contract extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 438/49 refactor ratchet,
+current `src/app/services/advisor_brief_service.py` hotspot evidence, and durable
+scorecard/context guidance synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -829,17 +833,29 @@ the performance attribution contract hotspot; full local `make check` passed wit
 governance, refactor thresholds, agent quality evidence, mypy over 603 source files, OpenAPI
 smoke, and 1,293 unit/contract tests; the agent quality evidence gate now tracks the executable
 440/49 ratchet.
+Performance attribution supportability contract models now live in
+`src/app/contracts/performance_attribution_supportability.py`, preserving the public attribution
+and workspace compatibility imports while reducing `src/app/contracts/performance_attribution.py`
+from 440 to 361 script-counted lines. The extracted supportability contract module is 91 lines, the
+largest source-file hotspot moves to `src/app/services/advisor_brief_service.py` at 438 lines, and
+the blocking source-file threshold is ratcheted to `max_source_file_lines=438`. Focused validation
+includes performance attribution contract tests, touched-module mypy, refactor-threshold,
+quality-baseline artifact, and agent quality evidence tests, with refactor-threshold trials proving
+438 passes while 437 fails only on the advisor-brief service hotspot; full local `make check`
+passed with workflow governance, refactor thresholds, agent quality evidence, mypy over 604 source
+files, OpenAPI smoke, and 1,294 unit/contract tests; the agent quality evidence gate now tracks the
+executable 438/49 ratchet.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 440 | `src/app/contracts/performance_attribution.py` |
-| 2 | 438 | `src/app/services/advisor_brief_service.py` |
-| 3 | 437 | `src/app/services/performance_workspace_service.py` |
-| 4 | 432 | `src/app/services/risk_workspace_attribution.py` |
-| 5 | 432 | `src/app/services/risk_workspace_rolling.py` |
-| 6 | 431 | `src/app/contracts/proposals.py` |
+| 1 | 438 | `src/app/services/advisor_brief_service.py` |
+| 2 | 437 | `src/app/services/performance_workspace_service.py` |
+| 3 | 432 | `src/app/services/risk_workspace_attribution.py` |
+| 4 | 432 | `src/app/services/risk_workspace_rolling.py` |
+| 5 | 431 | `src/app/contracts/proposals.py` |
+| 6 | 429 | `src/app/services/advisor_brief_source.py` |
 | 7 | 431 | `src/app/contracts/proposals.py` |
 | 8 | 429 | `src/app/services/advisor_brief_source.py` |
 | 9 | 427 | `src/app/services/platform_capabilities_service.py` |
