@@ -4,6 +4,26 @@ Date: 2026-06-19
 Repository: `lotus-gateway`
 Branch: `feature/gateway-enterprise-hardening-dpm-wave-client`
 
+## Risk Rolling Payload Example Extraction
+
+- Scope: behavior-preserving risk rolling contract modularity and CI ratchet enforcement.
+- Existing owner pattern: `risk_workspace_rolling.py` owns Workbench-facing risk rolling DTOs;
+  `risk_workspace.py` remains the compatibility facade and `risk_workspace_examples.py` composes
+  response examples for OpenAPI.
+- Change: moved the large rolling payload example into
+  `src/app/contracts/risk_workspace_rolling_examples.py` while preserving
+  `WorkbenchRiskRollingPayload` schema behavior and the private compatibility example alias.
+- Measured signal: `src/app/contracts/risk_workspace_rolling.py` reduced from 421 to 337 lines;
+  largest source file is now `src/app/contracts/dpm_waves.py` at 415 lines; longest function
+  remains 49 lines.
+- CI enforcement: blocking refactor threshold ratcheted from `421/49` to `415/49`; `415` passes
+  and `414` fails on `src/app/contracts/dpm_waves.py` and
+  `src/app/services/performance_workspace_trend_service.py`.
+- Tests: `tests/unit/test_risk_workspace_rolling_contracts.py` preserves compatibility and schema
+  behavior; `tests/unit/test_contract_module_boundaries.py` pins risk rolling example ownership.
+- Follow-up: next measured modularity slice should inspect `src/app/contracts/dpm_waves.py` before
+  changing code.
+
 ## Platform Capabilities Source-Result Extraction
 
 - Scope: behavior-preserving platform capabilities aggregation modularity and CI ratchet

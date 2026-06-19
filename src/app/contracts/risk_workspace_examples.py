@@ -2,7 +2,7 @@ from typing import Any, cast
 
 from app.contracts.risk_workspace_attribution import _RISK_ATTRIBUTION_PAYLOAD_EXAMPLE
 from app.contracts.risk_workspace_concentration import _RISK_CONCENTRATION_PAYLOAD_EXAMPLE
-from app.contracts.risk_workspace_rolling import _RISK_ROLLING_PAYLOAD_EXAMPLE
+from app.contracts.risk_workspace_rolling_examples import RISK_ROLLING_PAYLOAD_EXAMPLE
 
 _RISK_SUMMARY_RESPONSE_EXAMPLE: dict[str, Any] = {
     "correlation_id": "corr-risk-summary-1",
@@ -266,7 +266,7 @@ _RISK_ROLLING_RESPONSE_EXAMPLE: dict[str, Any] = {
     "benchmark_code": "BMK_1",
     "source_service": "lotus-risk",
     "state": "partial",
-    "payload": cast(Any, _RISK_ROLLING_PAYLOAD_EXAMPLE),
+    "payload": cast(Any, RISK_ROLLING_PAYLOAD_EXAMPLE),
     "supportability": [
         {
             "key": "portfolio_returns",

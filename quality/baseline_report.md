@@ -79,6 +79,10 @@ The current platform capabilities source-result extraction keeps
 `scripts/check_agent_quality_evidence.py` aligned with the executable 421/49 refactor ratchet,
 current `src/app/contracts/risk_workspace_rolling.py` hotspot evidence, and durable
 scorecard/context guidance synchronized for future agent work.
+The current risk rolling payload-example extraction keeps
+`scripts/check_agent_quality_evidence.py` aligned with the executable 415/49 refactor ratchet,
+current `src/app/contracts/dpm_waves.py` hotspot evidence, and durable scorecard/context guidance
+synchronized for future agent work.
 The latest risk drawdown route slice split OpenAPI query parameter descriptors out of the public
 drawdown query dependency.
 The latest resilience and portfolio boundary slice split HTTP retry control helpers, portfolio
@@ -871,20 +875,29 @@ service tests, service-boundary tests, refactor-threshold, quality-baseline arti
 quality evidence tests, with threshold trials proving 421 passes while 420 fails only on the risk
 workspace rolling contract hotspot.
 
+Current risk rolling payload-example extraction reduces
+`src/app/contracts/risk_workspace_rolling.py` from 421 to 337 script-counted lines. The extracted
+rolling example module is 88 lines, the largest source-file hotspot moves to
+`src/app/contracts/dpm_waves.py` at 415 lines, and the blocking source-file threshold is ratcheted
+to `max_source_file_lines=415`. Focused validation includes risk rolling contract tests,
+contract-boundary tests, refactor-threshold, quality-baseline artifact, and agent quality evidence
+tests, with threshold trials proving 415 passes while 414 fails on the DPM waves contract and
+performance workspace trend service hotspots.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 421 | `src/app/contracts/risk_workspace_rolling.py` |
+| 1 | 415 | `src/app/contracts/dpm_waves.py` |
 | 2 | 415 | `src/app/services/performance_workspace_trend_service.py` |
-| 3 | 415 | `src/app/contracts/dpm_waves.py` |
-| 4 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
-| 5 | 408 | `src/app/services/risk_workspace_attribution.py` |
-| 6 | 406 | `src/app/clients/advise_proposal_client.py` |
-| 7 | 405 | `src/app/services/proposal_service.py` |
-| 8 | 405 | `src/app/contracts/proposal_lifecycle.py` |
-| 9 | 404 | `src/app/services/platform_capabilities_normalization.py` |
-| 10 | 403 | `src/app/clients/reporting_client.py` |
+| 3 | 411 | `src/app/services/dpm_wave_ai_handoff.py` |
+| 4 | 408 | `src/app/services/risk_workspace_attribution.py` |
+| 5 | 406 | `src/app/clients/advise_proposal_client.py` |
+| 6 | 405 | `src/app/services/proposal_service.py` |
+| 7 | 405 | `src/app/contracts/proposal_lifecycle.py` |
+| 8 | 404 | `src/app/services/platform_capabilities_normalization.py` |
+| 9 | 403 | `src/app/clients/reporting_client.py` |
+| 10 | 397 | `src/app/services/advisor_brief_service.py` |
 
 ## Largest Functions
 

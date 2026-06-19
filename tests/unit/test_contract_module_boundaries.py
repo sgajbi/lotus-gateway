@@ -9,6 +9,17 @@ def _class_names(path: Path) -> set[str]:
     return {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)}
 
 
+def _assigned_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        names.update(target.id for target in targets if isinstance(target, ast.Name))
+    return names
+
+
 def test_proposal_memo_contracts_live_outside_proposal_facade() -> None:
     proposal_facade_classes = _class_names(_CONTRACT_ROOT / "proposals.py")
     memo_contract_classes = _class_names(_CONTRACT_ROOT / "proposal_memos.py")
@@ -193,6 +204,16 @@ def test_dpm_wave_campaign_workflow_contracts_live_outside_dpm_waves_facade() ->
 
     assert expected_campaign_workflow_contracts <= campaign_workflow_contract_classes
     assert dpm_waves_facade_classes.isdisjoint(expected_campaign_workflow_contracts)
+
+
+def test_risk_rolling_payload_example_lives_outside_contract_models() -> None:
+    rolling_contract_assignments = _assigned_names(_CONTRACT_ROOT / "risk_workspace_rolling.py")
+    rolling_example_assignments = _assigned_names(
+        _CONTRACT_ROOT / "risk_workspace_rolling_examples.py"
+    )
+
+    assert "RISK_ROLLING_PAYLOAD_EXAMPLE" in rolling_example_assignments
+    assert "RISK_ROLLING_PAYLOAD_EXAMPLE" not in rolling_contract_assignments
 
 
 def test_advisor_brief_workflow_contracts_live_outside_advisor_brief_facade() -> None:
