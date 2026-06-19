@@ -32,10 +32,11 @@ before debugging gateway contracts.
 Domain-product discovery depends on platform-generated artifacts under the sibling
 `lotus-platform/generated/` directory by default. Live trust certification depends on
 `lotus-platform/output/trust-certification/domain-product-live-trust-certification.json` by
-default and returns an explicit unavailable posture until that artifact exists. Use
-`DOMAIN_PRODUCT_CATALOG_PATH`, `DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and
-`DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH` when a runtime image mounts those artifacts
-elsewhere.
+default and returns an explicit unavailable posture until that artifact exists. The Docker Compose
+runtime mounts these platform artifact directories read-only at `/lotus-platform/generated` and
+`/lotus-platform/output/trust-certification`. Use `DOMAIN_PRODUCT_CATALOG_PATH`,
+`DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH`, and `DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH` when a
+runtime image mounts those artifacts elsewhere.
 
 ## First docs to read
 

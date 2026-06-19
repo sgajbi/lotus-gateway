@@ -19,8 +19,14 @@ services:
       - REPORTING_AGGREGATION_BASE_URL=${REPORTING_AGGREGATION_BASE_URL:-http://host.docker.internal:8300}
       - RENDER_SERVICE_BASE_URL=${RENDER_SERVICE_BASE_URL:-http://host.docker.internal:8310}
       - ARCHIVE_SERVICE_BASE_URL=${ARCHIVE_SERVICE_BASE_URL:-http://host.docker.internal:8150}
+      - DOMAIN_PRODUCT_CATALOG_PATH=${DOMAIN_PRODUCT_CATALOG_PATH:-/lotus-platform/generated/domain-product-catalog.json}
+      - DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH=${DOMAIN_PRODUCT_DEPENDENCY_GRAPH_PATH:-/lotus-platform/generated/domain-product-dependency-graph.json}
+      - DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH=${DOMAIN_PRODUCT_LIVE_TRUST_CERTIFICATION_PATH:-/lotus-platform/output/trust-certification/domain-product-live-trust-certification.json}
       - UPSTREAM_TIMEOUT_SECONDS=${UPSTREAM_TIMEOUT_SECONDS:-30}
       - CONTRACT_VERSION=${CONTRACT_VERSION:-v1}
+    volumes:
+      - ../lotus-platform/generated:/lotus-platform/generated:ro
+      - ../lotus-platform/output/trust-certification:/lotus-platform/output/trust-certification:ro
     healthcheck:
       test:
         [
