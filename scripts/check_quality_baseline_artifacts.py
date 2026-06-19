@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 EXPECTED_BASELINE_LOGS = (
+    "refactor-thresholds.txt",
     "ruff.txt",
     "mypy.txt",
     "coverage.txt",

@@ -17,6 +17,7 @@ jobs:
   e2e-platform-capabilities-live:
     name: Platform End-to-End Validation / Gateway Live Upstreams
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       LOTUS_MANAGE_REPO_PATH: ../lotus-manage
       LOTUS_CORE_REPO_PATH: ../lotus-core

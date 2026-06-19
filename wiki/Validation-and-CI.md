@@ -917,6 +917,20 @@ records 13/13 DNS checks, 13/13 representative API checks, 4/4 metric checks, 14
 audit events. Residual data-mesh limitation is not Gateway-owned: performance contribution source
 economics remains `SOURCE_LIMITED` for non-source-authored component P&L economics.
 
+The current DPM wave client-boundary branch splits Manage rebalance-wave core,
+campaign-definition, and campaign-workflow route forwarding into focused client mixins behind the
+public `DpmWaveClientMixin` compatibility facade. It reduces
+`src/app/clients/dpm_wave_client.py` from 628 to 11 script-counted lines and ratchets the blocking
+source-file threshold from 628 to 623 script-counted lines, making
+`src/app/clients/lotus_analytics_client.py` the source-file ceiling blocker. Focused validation
+passed with ruff over touched files, 8 DPM client/threshold tests, and
+`python scripts/check_refactor_quality_thresholds.py` at `max_source_file_lines=623`. The Quality
+Baseline workflow now runs `Enforce Refactored Source Thresholds` as a blocking step and captures
+`output/quality-baseline/refactor-thresholds.txt` before uploading advisory quality reports.
+All GitHub workflow jobs now declare explicit bounded `timeout-minutes` values, and the workflow
+governance guard blocks missing or unbounded job timeouts alongside action-runtime and Node 24
+opt-in drift.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

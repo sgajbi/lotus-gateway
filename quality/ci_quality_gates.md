@@ -16,7 +16,7 @@ The current local and PR-grade blocking gates are:
 3. refactor quality thresholds blocking new growth above the current largest-file and
    longest-function baselines,
 4. workflow action-runtime governance for platform-baseline GitHub Actions majors and the
-   workflow-level Node 24 JavaScript action opt-in,
+   workflow-level Node 24 JavaScript action opt-in plus bounded job timeouts,
 5. `mypy` over `src`,
 6. Workbench OpenAPI contract smoke, operation-governance contract checks, and global tag-catalog
    coverage,
@@ -43,9 +43,10 @@ Report-only quality checks should remain advisory until findings are classified:
 6. import-linter architecture contracts,
 7. documentation and observability scorecard gaps.
 
-The report-only workflow now enforces evidence capture itself: the expected quality-baseline log
-files and generated OpenAPI artifact must exist before upload. Tool findings remain report-only;
-missing or unusable evidence is treated as a CI measurement defect.
+The quality-baseline workflow now enforces the already-remediated source-size and function-size
+thresholds before running report-only tools. It also enforces evidence capture itself: the expected
+quality-baseline log files and generated OpenAPI artifact must exist before upload. Tool findings
+remain report-only; missing or unusable evidence is treated as a CI measurement defect.
 
 ## Progressive Enforcement Plan
 
@@ -62,15 +63,20 @@ Most recent local PR-grade evidence:
 
 1. The previous quality-baseline enforcement branch added
    `scripts/check_refactor_quality_thresholds.py` as a blocking lint-stage gate.
-2. Current enforced source-file threshold: no Python source file under `src/app` above 628
+2. Current enforced source-file threshold: no Python source file under `src/app` above 623
    script-counted lines.
 3. Current enforced function threshold: no Python function or async function above the remediated
    49-line AST span baseline.
 4. `python scripts/check_refactor_quality_thresholds.py`: passed with
-   `max_source_file_lines=628` and `max_function_lines=49`.
-5. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
+   `max_source_file_lines=623` and `max_function_lines=49`.
+5. Quality Baseline now runs a blocking `Enforce Refactored Source Thresholds` step and captures
+   `output/quality-baseline/refactor-thresholds.txt` before uploading report-only evidence.
+6. All GitHub workflow jobs now declare explicit `timeout-minutes` values no higher than 60
+   minutes, and `scripts/check_workflow_action_runtime.py` blocks missing or unbounded job
+   timeouts in `make lint`.
+7. Feature Lane and PR Merge Gate step names now call out `Lint and Refactor Quality Thresholds`
    so the promoted gate is visible in GitHub logs.
-6. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
+8. Current advisor-brief contract-boundary branch moves Advisor Brief presentation/source item
    contracts into `src/app/contracts/advisor_brief_items.py` and source-supportability contracts
    into `src/app/contracts/advisor_brief_supportability.py`, preserving the public
    `app.contracts.advisor_brief` facade while reducing it from 646 to 398 script-counted lines.

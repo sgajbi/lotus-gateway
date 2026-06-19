@@ -20,6 +20,7 @@ jobs:
   workflow-lint:
     name: Feature Lane / Workflow Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: reviewdog/action-actionlint@v1
@@ -27,6 +28,7 @@ jobs:
   lint-typecheck-unit:
     name: Feature Lane / Lint Typecheck Unit
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

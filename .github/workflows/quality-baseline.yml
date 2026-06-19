@@ -22,6 +22,7 @@ jobs:
   report-only:
     name: Quality Baseline / Report Only
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
 
@@ -41,6 +42,14 @@ jobs:
 
       - name: Install Spectral
         run: npm install -g @stoplight/spectral-cli
+
+      - name: Enforce Refactored Source Thresholds
+        run: |
+          mkdir -p output/quality-baseline
+          python scripts/check_refactor_quality_thresholds.py \
+            --max-source-file-lines 623 \
+            --max-function-lines 49 \
+            2>&1 | tee output/quality-baseline/refactor-thresholds.txt
 
       - name: Ruff
         continue-on-error: true

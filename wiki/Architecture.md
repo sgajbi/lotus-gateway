@@ -10,12 +10,12 @@
 - consolidated architecture and quality-baseline docs under
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
-- current enterprise-hardening evidence records advisory client protocols split into focused
-  bank-demo proof, copilot, workspace, cockpit, policy, and proposal protocol modules behind the
-  existing compatibility facade; the blocking source-file threshold is ratcheted from 630 to 628
-  script-counted lines, with `src/app/clients/dpm_wave_client.py` now the source-file ceiling
-  blocker, and the repository longest-function baseline remains held at the enforced 49-line AST
-  span
+- current enterprise-hardening evidence records the DPM wave client split into focused core,
+  campaign-definition, and campaign-workflow route-family modules behind the existing
+  `DpmWaveClientMixin` compatibility facade; the blocking source-file threshold is ratcheted from
+  628 to 623 script-counted lines, with `src/app/clients/lotus_analytics_client.py` now the
+  source-file ceiling blocker, and the repository longest-function baseline remains held at the
+  enforced 49-line AST span
 
 ## Route-family map
 

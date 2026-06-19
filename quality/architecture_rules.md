@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/dpm_wave_client.py` at 628 script-counted lines,
-2. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
-3. `src/app/services/foundation_service.py` at 618 script-counted lines,
-4. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
-5. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines.
+1. `src/app/clients/lotus_analytics_client.py` at 623 script-counted lines,
+2. `src/app/services/foundation_service.py` at 618 script-counted lines,
+3. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
+4. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
+5. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -215,6 +215,11 @@ policy, and proposal protocol families out of `src/app/services/advisory_client_
 The compatibility facade remains in place for existing imports, but advisory services now import
 their focused protocol families directly. The blocking threshold is ratcheted to 628
 script-counted lines, with `src/app/clients/dpm_wave_client.py` as the largest residual hotspot.
+The current DPM wave client-boundary slice splits Manage rebalance-wave core, campaign-definition,
+and campaign-workflow route forwarding into focused client mixins behind the existing
+`DpmWaveClientMixin` compatibility facade. The blocking threshold is ratcheted to 623
+script-counted lines, with `src/app/clients/lotus_analytics_client.py` as the largest residual
+hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

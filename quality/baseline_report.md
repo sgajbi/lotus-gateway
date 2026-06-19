@@ -393,20 +393,27 @@ audit events. Residual data-mesh limitation is not Gateway-owned: performance co
 economics remains `SOURCE_LIMITED` for non-source-authored component P&L economics. GitHub checks
 and post-merge wiki publication remain pending for this branch.
 
+Current DPM wave client-boundary working-tree verification splits Manage rebalance-wave core,
+campaign-definition, and campaign-workflow route forwarding into focused client mixins while
+preserving the public `DpmWaveClientMixin` compatibility facade. Focused validation passed with
+ruff over touched files, 8 DPM client/threshold tests, and refactor-threshold proof at
+`max_source_file_lines=623`. Full local `make check`, `make ci`, GitHub checks, and post-merge
+wiki publication remain pending for this branch.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 628 | `src/app/clients/dpm_wave_client.py` |
-| 2 | 623 | `src/app/clients/lotus_analytics_client.py` |
-| 3 | 618 | `src/app/services/foundation_service.py` |
-| 4 | 610 | `src/app/clients/lotus_core_query_client.py` |
-| 5 | 606 | `src/app/services/dpm_client_protocols.py` |
-| 6 | 595 | `src/app/contracts/dpm_command_center.py` |
-| 7 | 589 | `src/app/services/portfolio_service.py` |
-| 8 | 575 | `src/app/observability/analytics_ui.py` |
-| 9 | 572 | `src/app/contracts/risk_workspace_rolling.py` |
-| 10 | 567 | `src/app/contracts/dpm_waves.py` |
+| 1 | 623 | `src/app/clients/lotus_analytics_client.py` |
+| 2 | 618 | `src/app/services/foundation_service.py` |
+| 3 | 610 | `src/app/clients/lotus_core_query_client.py` |
+| 4 | 606 | `src/app/services/dpm_client_protocols.py` |
+| 5 | 595 | `src/app/contracts/dpm_command_center.py` |
+| 6 | 589 | `src/app/services/portfolio_service.py` |
+| 7 | 575 | `src/app/observability/analytics_ui.py` |
+| 8 | 567 | `src/app/contracts/dpm_waves.py` |
+| 9 | 562 | `src/app/services/workbench_service.py` |
+| 10 | 560 | `src/app/contracts/reporting.py` |
 
 ## Largest Functions
 
