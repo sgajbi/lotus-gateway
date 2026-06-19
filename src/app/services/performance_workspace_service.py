@@ -12,7 +12,6 @@ from app.contracts.performance_workspace import (
 from app.contracts.portfolio_performance_snapshot import (
     PortfolioPerformanceSnapshotResponse,
 )
-from app.middleware.server_timing import server_timing_span
 from app.services.async_ttl_cache import AsyncTtlCache
 from app.services.performance_workspace_benchmarks import (
     parse_benchmark_catalog_result,
@@ -25,13 +24,6 @@ from app.services.performance_workspace_context import (
 from app.services.performance_workspace_context_service import (
     PerformanceWorkspaceContextServiceMixin,
 )
-from app.services.performance_workspace_controls import (
-    resolve_workspace_summary_request,
-)
-from app.services.performance_workspace_dependencies import (
-    fetch_workspace_summary_result,
-)
-from app.services.performance_workspace_detail_views import build_workspace_detail_views
 from app.services.performance_workspace_evidence import (
     extract_calculation_id_from_result,
 )
@@ -44,13 +36,12 @@ from app.services.performance_workspace_projection import (
     project_workspace_summary,
 )
 from app.services.performance_workspace_response import (
-    GatheredResult,
     WorkspaceResponseComponents,
     WorkspaceSummaryViews,
     assemble_performance_workspace_response,
 )
-from app.services.performance_workspace_summary import (
-    parse_workspace_summary_result,
+from app.services.performance_workspace_summary_views import (
+    build_workspace_summary_views,
 )
 from app.services.performance_workspace_trend_service import (
     PerformanceWorkspaceTrendServiceMixin,
@@ -259,7 +250,9 @@ class PerformanceWorkspaceService(
         include_detail_blocks: bool,
         prefer_independent_detail_analytics: bool,
     ) -> tuple[WorkspaceSummaryViews, WorkspaceResponseComponents]:
-        summary_views = await self._build_workspace_summary_views(
+        summary_views = await build_workspace_summary_views(
+            cache=self._upstream_cache,
+            analytics_client=self._analytics_client,
             portfolio_id=portfolio_id,
             correlation_id=correlation_id,
             context=context,
@@ -313,82 +306,6 @@ class PerformanceWorkspaceService(
             evidence_view=evidence_view,
             capabilities=capabilities,
         )
-
-    async def _build_workspace_summary_views(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        context: WorkspaceRequestContext,
-        include_detail_blocks: bool,
-        prefer_independent_detail_analytics: bool,
-    ) -> WorkspaceSummaryViews:
-        workspace_summary_result = await self._fetch_workspace_summary_view_result(
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            include_detail_blocks=include_detail_blocks,
-            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
-        )
-        parsed_workspace_summary = parse_workspace_summary_result(
-            result=workspace_summary_result,
-            requested_period=context.effective_period,
-            chart_frequency=context.chart_frequency,
-            warnings=context.warnings,
-            partial_failures=context.partial_failures,
-        )
-        detail_views = await build_workspace_detail_views(
-            cache=self._upstream_cache,
-            analytics_client=self._analytics_client,
-            portfolio_id=portfolio_id,
-            correlation_id=correlation_id,
-            context=context,
-            parsed_workspace_summary=parsed_workspace_summary,
-            include_detail_blocks=include_detail_blocks,
-            prefer_independent_detail_analytics=prefer_independent_detail_analytics,
-        )
-        return WorkspaceSummaryViews(
-            workspace_summary_result=workspace_summary_result,
-            parsed_summary=parsed_workspace_summary,
-            contribution=detail_views.contribution,
-            attribution=detail_views.attribution,
-            contribution_detail_result=detail_views.contribution_detail_result,
-            attribution_detail_result=detail_views.attribution_detail_result,
-        )
-
-    async def _fetch_workspace_summary_view_result(
-        self,
-        *,
-        portfolio_id: str,
-        correlation_id: str,
-        context: WorkspaceRequestContext,
-        include_detail_blocks: bool,
-        prefer_independent_detail_analytics: bool,
-    ) -> GatheredResult:
-        async with server_timing_span("perf-summary"):
-            workspace_summary_period, workspace_summary_report_start_date = (
-                resolve_workspace_summary_request(
-                    period=context.effective_period,
-                    report_start_date=context.report_start_date,
-                )
-            )
-            return await fetch_workspace_summary_result(
-                cache=self._upstream_cache,
-                analytics_client=self._analytics_client,
-                portfolio_id=portfolio_id,
-                correlation_id=correlation_id,
-                report_end_date=context.report_end_date,
-                report_start_date=workspace_summary_report_start_date,
-                effective_period=workspace_summary_period,
-                chart_frequency=context.chart_frequency,
-                detail_basis=context.detail_basis,
-                benchmark_code=context.benchmark_code,
-                portfolio_currency=context.overview.portfolio.base_currency,
-                segment=context.segment,
-                include_detail_blocks=(
-                    include_detail_blocks and not prefer_independent_detail_analytics
-                ),
-            )
 
     async def _build_workspace_response_evidence_view(
         self,

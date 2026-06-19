@@ -838,6 +838,16 @@ def test_performance_workspace_service_delegates_detail_view_orchestration() -> 
     assert local_detail_helpers == []
 
 
+def test_performance_workspace_service_delegates_summary_view_orchestration() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "performance_workspace_service.py")
+    summary_view_methods = _function_names(_SERVICE_ROOT / "performance_workspace_summary_views.py")
+
+    assert "build_workspace_summary_views" in summary_view_methods
+    assert "fetch_workspace_summary_view_result" in summary_view_methods
+    assert "_build_workspace_summary_views" not in service_methods
+    assert "_fetch_workspace_summary_view_result" not in service_methods
+
+
 def test_performance_workspace_service_delegates_evidence_orchestration() -> None:
     path = _SERVICE_ROOT / "performance_workspace_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
