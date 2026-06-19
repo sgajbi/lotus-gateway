@@ -30,6 +30,15 @@ def _imported_modules(path: Path) -> set[str]:
     return imports
 
 
+def _function_names(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+
 def test_only_service_factories_import_concrete_clients() -> None:
     offenders = {
         path.relative_to(_SERVICE_ROOT).as_posix(): sorted(
@@ -267,6 +276,23 @@ def test_risk_workspace_service_delegates_cache_policy() -> None:
     )
 
     assert private_cache_helpers == []
+
+
+def test_risk_workspace_attribution_orchestration_lives_in_focused_mixin() -> None:
+    service_methods = _function_names(_SERVICE_ROOT / "risk_workspace_service.py")
+    attribution_service_methods = _function_names(
+        _SERVICE_ROOT / "risk_workspace_attribution_service.py"
+    )
+    attribution_orchestration_methods = {
+        "get_attribution",
+        "_blocked_risk_attribution_response",
+        "_cached_attribution_response",
+        "_load_attribution_response",
+        "_risk_attribution_request_context",
+    }
+
+    assert attribution_orchestration_methods <= attribution_service_methods
+    assert not attribution_orchestration_methods & service_methods
 
 
 def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None:

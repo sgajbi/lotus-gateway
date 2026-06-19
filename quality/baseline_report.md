@@ -499,20 +499,30 @@ source-file threshold is ratcheted to `max_source_file_lines=556`. Focused valid
 wiki, and quality-threshold tests. Full local `make check` passed with workflow governance, mypy
 over 572 source files, OpenAPI smoke, and 1,259 unit/contract tests.
 
+Current risk workspace attribution service working-tree verification moves attribution request
+normalization, blocked-response handling, cache orchestration, upstream fan-out, and response
+mapping into `src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. `risk_workspace_service.py` is reduced from 556 to
+380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
+blocking source-file threshold is ratcheted to `max_source_file_lines=549`. Focused validation
+passed with 70 risk workspace service, service-boundary, service-factory, provider, wiki, and
+quality-threshold tests. Full local `make check` passed with workflow governance, mypy over 573
+source files, OpenAPI smoke, and 1,260 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 556 | `src/app/services/risk_workspace_service.py` |
-| 2 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 3 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 4 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 5 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 6 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 7 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 8 | 520 | `src/app/services/proposal_service.py` |
-| 9 | 515 | `src/app/services/workbench_service.py` |
-| 10 | 508 | `src/app/services/advisor_brief_source.py` |
+| 1 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 2 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 3 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 4 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 5 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 6 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 7 | 520 | `src/app/services/proposal_service.py` |
+| 8 | 515 | `src/app/services/workbench_service.py` |
+| 9 | 508 | `src/app/services/advisor_brief_source.py` |
+| 10 | 504 | `src/app/services/portfolio_transaction_summary.py` |
 
 ## Largest Functions
 

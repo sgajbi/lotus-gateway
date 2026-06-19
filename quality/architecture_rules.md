@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/risk_workspace_service.py` at 556 script-counted lines,
-2. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines,
-3. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines,
-4. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines,
-5. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines.
+1. `src/app/services/dpm_pm_operating_quality_service.py` at 549 script-counted lines,
+2. `src/app/clients/advise_proposal_client.py` at 536 script-counted lines,
+3. `src/app/clients/lotus_core_query_client.py` at 535 script-counted lines,
+4. `src/app/services/performance_workspace_attribution.py` at 525 script-counted lines,
+5. `src/app/services/risk_workspace_rolling.py` at 522 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -286,6 +286,13 @@ attribution, lineage, and workspace-summary route methods into
 290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking threshold
 is ratcheted from 559 to 556 script-counted lines, with
 `src/app/services/risk_workspace_service.py` as the largest residual hotspot.
+The current risk workspace attribution service slice moves attribution request normalization,
+blocked-response handling, cache orchestration, upstream fan-out, and response mapping into
+`src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. `risk_workspace_service.py` is reduced from 556 to
+380 script-counted lines, the extracted attribution orchestration mixin is 161 lines, and the
+blocking threshold is ratcheted from 556 to 549 script-counted lines, with
+`src/app/services/dpm_pm_operating_quality_service.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

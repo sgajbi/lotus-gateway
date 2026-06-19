@@ -1055,6 +1055,17 @@ quality-threshold tests.
 Current local `make check` passed with workflow governance, mypy over 572 source files, OpenAPI
 smoke, and 1,259 unit/contract tests.
 
+The current risk workspace attribution service boundary branch moves attribution request
+normalization, blocked-response handling, cache orchestration, upstream fan-out, and response
+mapping into `src/app/services/risk_workspace_attribution_service.py` while preserving the public
+`RiskWorkspaceService.get_attribution` surface. It reduces
+`src/app/services/risk_workspace_service.py` from 556 to 380 script-counted lines, moves the largest
+residual source-file hotspot to `src/app/services/dpm_pm_operating_quality_service.py` at 549
+script-counted lines, and ratchets the blocking source-file threshold from 556 to 549
+script-counted lines. Focused validation passed with 70 risk workspace service, service-boundary,
+service-factory, provider, wiki, and quality-threshold tests. Current local `make check` passed with
+workflow governance, mypy over 573 source files, OpenAPI smoke, and 1,260 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
