@@ -818,6 +818,21 @@ def test_performance_workspace_service_delegates_evidence_orchestration() -> Non
     assert "PerformanceWorkspaceEvidenceServiceMixin" in base_names
 
 
+def test_performance_workspace_evidence_delegates_response_composition() -> None:
+    evidence_facade_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence.py")
+    response_methods = _function_names(_SERVICE_ROOT / "performance_workspace_evidence_response.py")
+    expected_response_methods = {
+        "build_performance_evidence_view",
+        "build_source_supportability",
+        "resolve_evidence_reason",
+        "resolve_evidence_state",
+        "resolve_evidence_view_response",
+    }
+
+    assert expected_response_methods <= response_methods
+    assert evidence_facade_methods.isdisjoint(expected_response_methods)
+
+
 def test_service_tests_do_not_need_arg_type_suppressions() -> None:
     offenders: dict[str, int] = {}
     for path in _TEST_ROOT.glob("test_*_service.py"):

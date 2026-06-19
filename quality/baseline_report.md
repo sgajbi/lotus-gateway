@@ -643,7 +643,7 @@ contract-module-boundary tests, mypy over touched contract modules, and refactor
 proving 497 passes while 496 fails only on the performance workspace service hotspot; the agent
 quality evidence gate tracked the executable 497/49 ratchet.
 
-Current performance workspace evidence-service verification moves evidence artifact download and
+Previous performance workspace evidence-service verification moved evidence artifact download and
 evidence-view orchestration into `src/app/services/performance_workspace_evidence_service.py` while
 preserving the public `PerformanceWorkspaceService` surface. `performance_workspace_service.py` is
 reduced from 497 to 437 lines, and the blocking source-file threshold is ratcheted to
@@ -651,23 +651,34 @@ reduced from 497 to 437 lines, and the blocking source-file threshold is ratchet
 single source-file ceiling blocker. Focused validation passed with performance workspace service,
 performance workspace evidence, and service-layer boundary tests, mypy over touched service
 modules, and refactor-threshold trials proving 493 passes while 492 fails only on the performance
-workspace evidence hotspot; the agent quality evidence gate now tracks the executable 493/49
+workspace evidence hotspot; the agent quality evidence gate tracked the executable 493/49
 ratchet.
+
+Current performance workspace evidence-response verification moves evidence-view response
+composition into `src/app/services/performance_workspace_evidence_response.py` and evidence
+request/fetch state into `src/app/services/performance_workspace_evidence_state.py` while
+preserving compatibility imports through `performance_workspace_evidence.py`. The largest
+source-file hotspot moves to `src/app/services/platform_capabilities_shell.py` at 488 lines, and
+the blocking source-file threshold is ratcheted to `max_source_file_lines=488`. Focused validation
+passed with performance workspace evidence, performance workspace service, and service-layer
+boundary tests, mypy over touched evidence modules, and refactor-threshold trials proving 488
+passes while 487 fails only on the platform capabilities shell hotspot; the agent quality evidence
+gate now tracks the executable 488/49 ratchet.
 
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 493 | `src/app/services/performance_workspace_evidence.py` |
-| 2 | 488 | `src/app/services/platform_capabilities_shell.py` |
-| 3 | 481 | `src/app/clients/lotus_core_query_client.py` |
-| 4 | 480 | `src/app/contracts/dpm_waves.py` |
-| 5 | 479 | `src/app/services/risk_workspace_drawdown.py` |
-| 6 | 479 | `src/app/services/dpm_wave_service.py` |
-| 7 | 476 | `src/app/contracts/portfolio_holdings.py` |
-| 8 | 471 | `src/app/services/performance_workspace_attribution.py` |
-| 9 | 465 | `src/app/contracts/domain_products.py` |
-| 10 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 1 | 488 | `src/app/services/platform_capabilities_shell.py` |
+| 2 | 481 | `src/app/clients/lotus_core_query_client.py` |
+| 3 | 480 | `src/app/contracts/dpm_waves.py` |
+| 4 | 479 | `src/app/services/risk_workspace_drawdown.py` |
+| 5 | 479 | `src/app/services/dpm_wave_service.py` |
+| 6 | 476 | `src/app/contracts/portfolio_holdings.py` |
+| 7 | 471 | `src/app/services/performance_workspace_attribution.py` |
+| 8 | 465 | `src/app/contracts/domain_products.py` |
+| 9 | 462 | `src/app/services/portfolio_transaction_summary.py` |
+| 10 | 458 | `src/app/services/workspace_client_protocols.py` |
 
 ## Largest Functions
 

@@ -1210,7 +1210,7 @@ trials proving 497 passes while 496 fails only on the performance workspace serv
 agent quality evidence gate kept the executable 497/49 ratchet and then-current hotspot guidance
 synchronized.
 
-The current performance workspace evidence-service slice moves evidence artifact download and
+The previous performance workspace evidence-service slice moved evidence artifact download and
 evidence-view orchestration into `src/app/services/performance_workspace_evidence_service.py`
 while preserving the public `PerformanceWorkspaceService` surface. It reduces
 `performance_workspace_service.py` from 497 to 437 lines, moves the largest residual source-file
@@ -1218,8 +1218,19 @@ hotspot to `src/app/services/performance_workspace_evidence.py` at 493 lines, an
 blocking source-file threshold from 497 to 493 lines. Focused validation passed with performance
 workspace service, performance workspace evidence, and service-layer boundary tests, mypy over
 touched service modules, and threshold trials proving 493 passes while 492 fails only on the
-performance workspace evidence hotspot; the agent quality evidence gate now keeps the executable
-493/49 ratchet and current hotspot guidance synchronized.
+performance workspace evidence hotspot; the agent quality evidence gate kept the executable
+493/49 ratchet and then-current hotspot guidance synchronized.
+
+The current performance workspace evidence-response slice moves evidence-view response composition
+into `src/app/services/performance_workspace_evidence_response.py` and evidence request/fetch
+state into `src/app/services/performance_workspace_evidence_state.py` while preserving
+compatibility imports through `performance_workspace_evidence.py`. It moves the largest residual
+source-file hotspot to `src/app/services/platform_capabilities_shell.py` at 488 lines and ratchets
+the blocking source-file threshold from 493 to 488 lines. Focused validation passed with
+performance workspace evidence, performance workspace service, and service-layer boundary tests,
+mypy over touched evidence modules, and threshold trials proving 488 passes while 487 fails only
+on the platform capabilities shell hotspot; the agent quality evidence gate now keeps the
+executable 488/49 ratchet and current hotspot guidance synchronized.
 
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
