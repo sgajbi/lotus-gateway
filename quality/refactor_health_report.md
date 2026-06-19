@@ -670,17 +670,22 @@ The current Foundation catalog-payload boundary slice splits portfolio catalog i
 `src/app/services/foundation_service.py` is reduced from 618 to 591 script-counted lines. The
 blocking source-file threshold is ratcheted from 618 to 610 lines, with
 `src/app/clients/lotus_core_query_client.py` now the single source-file ceiling blocker.
+The current Lotus Core lookup-client boundary slice splits portfolio, instrument, and currency
+lookup forwarding into `src/app/clients/lotus_core_lookup_client.py` behind the public
+`LotusCoreQueryClient` surface. `src/app/clients/lotus_core_query_client.py` is reduced from 610 to
+535 script-counted lines. The blocking source-file threshold is ratcheted from 610 to 606 lines,
+with `src/app/services/dpm_client_protocols.py` now the single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
 | Branch hygiene | Healthy | Current DPM wave client-boundary branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged remote branches; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current Foundation catalog-payload boundary validation passed with ruff, refactor-threshold proof at `max_source_file_lines=610`, workflow governance, mypy over 562 source files, OpenAPI smoke, and 1,245 unit/contract tests |
+| Unit/contract coverage | Healthy | Current Lotus Core lookup-client boundary validation passed with ruff, refactor-threshold proof at `max_source_file_lines=606`, workflow governance, mypy over 563 source files, OpenAPI smoke, and 1,246 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
 | Security audit | Governed | Current DPM wave client-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits Foundation catalog parsing into a focused helper while preserving the public `FoundationService` surface. The largest current source-file hotspot is now `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits Lotus Core lookup forwarding into a focused mixin while preserving the public `LotusCoreQueryClient` surface. The largest current source-file hotspot is now `src/app/services/dpm_client_protocols.py` at 606 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -692,7 +697,7 @@ blocking source-file threshold is ratcheted from 618 to 610 lines, with
 
 1. Continue splitting large contract modules and remaining upstream clients around clear service
    and route-family boundaries. The next source-file hotspot is
-   `src/app/clients/lotus_core_query_client.py`.
+   `src/app/services/dpm_client_protocols.py`.
 2. Continue splitting `portfolio_service.py` around clear source-readiness, workspace, insight,
    book, and workflow adapters only when cohesive behavior-preserving seams remain.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context

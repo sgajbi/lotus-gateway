@@ -11,11 +11,11 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
-  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 618
-  to 610 script-counted lines after splitting Foundation catalog payload parsing into
-  `foundation_catalog_payloads.py`, with `src/app/clients/lotus_core_query_client.py` now the
-  source-file ceiling blocker, and the repository longest-function baseline remains held at the
-  enforced 49-line AST span
+  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 610
+  to 606 script-counted lines after splitting Lotus Core lookup forwarding into
+  `lotus_core_lookup_client.py`, with `src/app/services/dpm_client_protocols.py` now the source-file
+  ceiling blocker, and the repository longest-function baseline remains held at the enforced
+  49-line AST span
 
 ## Route-family map
 

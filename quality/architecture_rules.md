@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/clients/lotus_core_query_client.py` at 610 script-counted lines,
-2. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
-3. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
-4. `src/app/services/foundation_service.py` at 591 script-counted lines,
-5. `src/app/services/portfolio_service.py` at 589 script-counted lines.
+1. `src/app/services/dpm_client_protocols.py` at 606 script-counted lines,
+2. `src/app/contracts/dpm_command_center.py` at 595 script-counted lines,
+3. `src/app/services/foundation_service.py` at 591 script-counted lines,
+4. `src/app/services/portfolio_service.py` at 589 script-counted lines,
+5. `src/app/observability/analytics_ui.py` at 575 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -229,6 +229,10 @@ The current Foundation catalog-payload boundary slice moves portfolio catalog it
 `foundation_catalog_payloads.py` while preserving the `FoundationService` API surface. The
 blocking threshold is ratcheted to 610 script-counted lines, with
 `src/app/clients/lotus_core_query_client.py` as the largest residual hotspot.
+The current Lotus Core lookup-client boundary slice moves portfolio, instrument, and currency
+lookup forwarding into `lotus_core_lookup_client.py` while preserving the public
+`LotusCoreQueryClient` surface. The blocking threshold is ratcheted to 606 script-counted lines,
+with `src/app/services/dpm_client_protocols.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

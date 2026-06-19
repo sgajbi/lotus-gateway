@@ -953,6 +953,15 @@ passed with 26 Foundation catalog/service and quality-threshold tests. Full loca
 passed with workflow governance, mypy over 562 source files, OpenAPI smoke, and 1,245 unit/contract
 tests.
 
+The current Lotus Core lookup-client boundary branch splits portfolio, instrument, and currency
+lookup forwarding into `src/app/clients/lotus_core_lookup_client.py` while preserving the public
+`LotusCoreQueryClient` surface. It reduces `src/app/clients/lotus_core_query_client.py` from 610 to
+535 script-counted lines and ratchets the blocking source-file threshold from 610 to 606
+script-counted lines, making `src/app/services/dpm_client_protocols.py` the source-file ceiling
+blocker. Focused validation passed with 188 upstream/core client tests. Full local `make check`
+passed with workflow governance, mypy over 563 source files, OpenAPI smoke, and 1,246 unit/contract
+tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
