@@ -434,20 +434,27 @@ compatibility facade. Focused validation passed with 67 contract/service/quality
 `make check` passed with workflow governance, mypy over 565 source files, OpenAPI smoke, and 1,249
 unit/contract tests.
 
+Current Foundation optional-workspace working-tree verification splits optional performance,
+rebalance, reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py` while preserving the public
+`FoundationService` API surface. Focused validation passed with 30 foundation/quality tests and
+the refactor threshold gate at `max_source_file_lines=589`. Full local `make check` passed with
+workflow governance, mypy over 566 source files, OpenAPI smoke, and 1,249 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 591 | `src/app/services/foundation_service.py` |
-| 2 | 589 | `src/app/services/portfolio_service.py` |
-| 3 | 575 | `src/app/observability/analytics_ui.py` |
-| 4 | 567 | `src/app/contracts/dpm_waves.py` |
-| 5 | 562 | `src/app/services/workbench_service.py` |
-| 6 | 560 | `src/app/contracts/reporting.py` |
-| 7 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 8 | 556 | `src/app/services/risk_workspace_service.py` |
-| 9 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 10 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 1 | 589 | `src/app/services/portfolio_service.py` |
+| 2 | 575 | `src/app/observability/analytics_ui.py` |
+| 3 | 567 | `src/app/contracts/dpm_waves.py` |
+| 4 | 562 | `src/app/services/workbench_service.py` |
+| 5 | 560 | `src/app/contracts/reporting.py` |
+| 6 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 7 | 556 | `src/app/services/risk_workspace_service.py` |
+| 8 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 9 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 10 | 535 | `src/app/clients/lotus_core_query_client.py` |
 
 ## Largest Functions
 

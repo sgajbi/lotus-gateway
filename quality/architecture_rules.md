@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/foundation_service.py` at 591 script-counted lines,
-2. `src/app/services/portfolio_service.py` at 589 script-counted lines,
-3. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
-4. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
-5. `src/app/services/workbench_service.py` at 562 script-counted lines.
+1. `src/app/services/portfolio_service.py` at 589 script-counted lines,
+2. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
+3. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
+4. `src/app/services/workbench_service.py` at 562 script-counted lines,
+5. `src/app/contracts/reporting.py` at 560 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -243,6 +243,12 @@ The current DPM portfolio-memory contract-family boundary slice moves
 `dpm_command_center` compatibility facade. The blocking threshold is ratcheted from 595 to 591
 script-counted lines, with `src/app/services/foundation_service.py` as the largest residual
 hotspot.
+The current Foundation optional-workspace boundary slice moves optional performance, rebalance,
+reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py`. `FoundationService` is reduced from 591 to
+316 script-counted lines and stays focused on source loading and response orchestration. The
+blocking threshold is ratcheted from 591 to 589 script-counted lines, with
+`src/app/services/portfolio_service.py` as the largest residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

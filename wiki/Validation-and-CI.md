@@ -980,6 +980,16 @@ contract/service tests and 67 contract/service/quality tests after adding thresh
 assertions. Full local `make check` passed with workflow governance, mypy over 565 source files,
 OpenAPI smoke, and 1,249 unit/contract tests.
 
+The current Foundation optional-workspace boundary branch splits optional performance, rebalance,
+reporting, evidence-summary, and workflow-cue parsing into
+`src/app/services/foundation_workspace_optional.py` while preserving the public
+`FoundationService` API surface. It reduces `src/app/services/foundation_service.py` from 591 to
+316 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/portfolio_service.py` at 589 script-counted lines, and ratchets the blocking
+source-file threshold from 591 to 589 script-counted lines. Focused validation passed with 30
+foundation/quality tests. Full local `make check` passed with workflow governance, mypy over 566
+source files, OpenAPI smoke, and 1,249 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public
