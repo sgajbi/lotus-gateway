@@ -1078,6 +1078,18 @@ supportability, router, service-boundary, wiki, and quality-threshold tests. Cur
 `make check` passed with workflow governance, mypy over 574 source files, OpenAPI smoke, and
 1,261 unit/contract tests.
 
+The current Advise proposal memo client boundary branch moves proposal memo create/read,
+projection, review, report-package, AI-commentary, lineage, and replay-evidence route methods into
+`src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
+surface. It reduces `src/app/clients/advise_proposal_client.py` from 536 to 370 script-counted
+lines, moves the largest residual source-file hotspot to
+`src/app/clients/lotus_core_query_client.py` at 535 script-counted lines, and ratchets the blocking
+source-file threshold from 536 to 535 script-counted lines. Focused validation passed with 241
+Advise client-boundary, upstream-client, proposal-service, proposal-router, wiki-governance,
+quality-artifact, and refactor-threshold tests. Full local `make check` passed with workflow
+governance, refactor thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262
+unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

@@ -11,9 +11,9 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
-  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 549
-  to 536 script-counted lines after splitting DPM PM operating-quality summary workflow into
-  `dpm_pm_operating_quality_summary_service.py`, with `src/app/clients/advise_proposal_client.py` now the source-file
+  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 536
+  to 535 script-counted lines after splitting Advise proposal memo routes into
+  `advise_proposal_memo_client.py`, with `src/app/clients/lotus_core_query_client.py` now the source-file
   ceiling blocker, and the repository longest-function baseline remains held at the
   enforced 49-line AST span
 

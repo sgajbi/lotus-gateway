@@ -81,7 +81,6 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "create_proposal",
         "create_proposal_artifact",
         "create_proposal_async",
-        "create_proposal_memo",
         "create_proposal_version",
         "create_proposal_version_async",
         "create_report_request",
@@ -92,10 +91,6 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "get_proposal",
         "get_proposal_idempotency_record",
         "get_proposal_lineage",
-        "get_proposal_memo",
-        "get_proposal_memo_lineage",
-        "get_proposal_memo_projection",
-        "get_proposal_memo_replay_evidence",
         "get_proposal_narrative",
         "get_proposal_operation",
         "get_proposal_operation_by_correlation",
@@ -106,11 +101,7 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
         "list_proposals",
         "record_approval",
         "record_execution_update",
-        "record_proposal_memo_report_package_event",
         "regenerate_proposal_narrative",
-        "request_proposal_memo_ai_commentary",
-        "request_proposal_memo_report_package",
-        "review_proposal_memo",
         "review_proposal_narrative",
         "simulate_proposal",
         "transition_proposal",
@@ -118,3 +109,23 @@ def test_advisory_proposal_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= proposal_methods
     assert not extracted_methods & advise_client_methods
+
+
+def test_advisory_proposal_memo_routes_live_in_dedicated_client_mixin() -> None:
+    proposal_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_client.py")
+    memo_methods = _async_function_names(_CLIENT_ROOT / "advise_proposal_memo_client.py")
+
+    extracted_methods = {
+        "create_proposal_memo",
+        "get_proposal_memo",
+        "get_proposal_memo_lineage",
+        "get_proposal_memo_projection",
+        "get_proposal_memo_replay_evidence",
+        "record_proposal_memo_report_package_event",
+        "request_proposal_memo_ai_commentary",
+        "request_proposal_memo_report_package",
+        "review_proposal_memo",
+    }
+
+    assert extracted_methods <= memo_methods
+    assert not extracted_methods & proposal_methods

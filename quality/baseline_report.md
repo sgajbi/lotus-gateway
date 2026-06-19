@@ -519,20 +519,30 @@ validation passed with 105 DPM command-center service, AI context, supportabilit
 service-boundary, wiki, and quality-threshold tests. Full local `make check` passed with workflow
 governance, mypy over 574 source files, OpenAPI smoke, and 1,261 unit/contract tests.
 
+Current Advise proposal memo client working-tree verification moves proposal memo create/read,
+projection, review, report-package, AI-commentary, lineage, and replay-evidence route methods into
+`src/app/clients/advise_proposal_memo_client.py` while preserving the public `AdviseClient`
+surface. `advise_proposal_client.py` is reduced from 536 to 370 script-counted lines, the extracted
+memo mixin is 154 lines, and the blocking source-file threshold is ratcheted to
+`max_source_file_lines=535`. Focused validation passed with 241 Advise client-boundary,
+upstream-client, proposal-service, proposal-router, wiki-governance, quality-artifact, and
+refactor-threshold tests. Full local `make check` passed with workflow governance, refactor
+thresholds, mypy over 575 source files, OpenAPI smoke, and 1,262 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 2 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 3 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 4 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 5 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 6 | 520 | `src/app/services/proposal_service.py` |
-| 7 | 515 | `src/app/services/workbench_service.py` |
-| 8 | 508 | `src/app/services/advisor_brief_source.py` |
-| 9 | 504 | `src/app/services/portfolio_transaction_summary.py` |
-| 10 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 1 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 2 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 3 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 4 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 5 | 520 | `src/app/services/proposal_service.py` |
+| 6 | 515 | `src/app/services/workbench_service.py` |
+| 7 | 508 | `src/app/services/advisor_brief_source.py` |
+| 8 | 504 | `src/app/services/portfolio_transaction_summary.py` |
+| 9 | 503 | `src/app/contracts/portfolio_workspace.py` |
+| 10 | 499 | `src/app/contracts/dpm_command_center.py` |
 
 ## Largest Functions
 
