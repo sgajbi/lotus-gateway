@@ -35,11 +35,11 @@ report-only baseline is reviewed.
 
 The largest current modularity risks are:
 
-1. `src/app/services/portfolio_service.py` at 589 script-counted lines,
-2. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
-3. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
-4. `src/app/services/workbench_service.py` at 562 script-counted lines,
-5. `src/app/contracts/reporting.py` at 560 script-counted lines.
+1. `src/app/observability/analytics_ui.py` at 575 script-counted lines,
+2. `src/app/contracts/dpm_waves.py` at 567 script-counted lines,
+3. `src/app/services/workbench_service.py` at 562 script-counted lines,
+4. `src/app/contracts/reporting.py` at 560 script-counted lines,
+5. `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines.
 
 `src/app/services/proposal_service.py` is reduced from 658 to 520 script-counted lines after
 proposal lifecycle transition orchestration moved into
@@ -249,6 +249,12 @@ reporting, evidence-summary, and workflow-cue parsing into
 316 script-counted lines and stays focused on source loading and response orchestration. The
 blocking threshold is ratcheted from 591 to 589 script-counted lines, with
 `src/app/services/portfolio_service.py` as the largest residual hotspot.
+The current portfolio holdings-orchestration boundary slice moves portfolio book, liquidity,
+projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py`. `PortfolioService` is reduced from 589 to 314
+script-counted lines, the extracted mixin is 347 lines, and the blocking threshold is ratcheted
+from 589 to 575 script-counted lines, with `src/app/observability/analytics_ui.py` as the largest
+residual hotspot.
 The risk drawdown mapper has been split into
 period mapping, supportability, state, metadata, and payload helpers. The risk rolling mapper has
 been split into period mapping, dependency context, supportability, state, metadata, Sharpe

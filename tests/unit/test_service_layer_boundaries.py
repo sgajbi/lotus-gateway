@@ -515,6 +515,42 @@ def test_portfolio_service_delegates_workflow_orchestration() -> None:
     assert "PortfolioWorkflowServiceMixin" in base_names
 
 
+def test_portfolio_service_delegates_holdings_orchestration() -> None:
+    path = _SERVICE_ROOT / "portfolio_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    delegated_methods = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.AsyncFunctionDef)
+        and node.name
+        in {
+            "get_portfolio_book",
+            "_load_portfolio_book_source_results",
+            "get_portfolio_liquidity",
+            "_load_portfolio_liquidity_payloads",
+            "get_portfolio_projected_cashflow",
+            "get_portfolio_allocations",
+            "_load_portfolio_allocation_payloads",
+            "get_portfolio_positions",
+            "_load_position_book_payloads",
+        }
+    )
+    portfolio_service_classes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef) and node.name == "PortfolioService"
+    ]
+    base_names = {
+        base.id
+        for service_class in portfolio_service_classes
+        for base in service_class.bases
+        if isinstance(base, ast.Name)
+    }
+
+    assert delegated_methods == []
+    assert "PortfolioHoldingsServiceMixin" in base_names
+
+
 def test_portfolio_service_delegates_workspace_component_parsing() -> None:
     path = _SERVICE_ROOT / "portfolio_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))

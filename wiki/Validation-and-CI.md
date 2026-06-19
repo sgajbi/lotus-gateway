@@ -990,6 +990,16 @@ source-file threshold from 591 to 589 script-counted lines. Focused validation p
 foundation/quality tests. Full local `make check` passed with workflow governance, mypy over 566
 source files, OpenAPI smoke, and 1,249 unit/contract tests.
 
+The current portfolio holdings-orchestration boundary branch splits portfolio book, liquidity,
+projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py` while preserving the public `PortfolioService`
+method surface. It reduces `src/app/services/portfolio_service.py` from 589 to 314
+script-counted lines, moves the largest residual source-file hotspot to
+`src/app/observability/analytics_ui.py` at 575 script-counted lines, and ratchets the blocking
+source-file threshold from 589 to 575 script-counted lines. Focused validation passed with 101
+portfolio/service-boundary/quality tests. Full local `make check` passed with workflow
+governance, mypy over 567 source files, OpenAPI smoke, and 1,250 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

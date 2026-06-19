@@ -11,11 +11,11 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
-  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 591
-  to 589 script-counted lines after splitting Foundation optional-workspace parsing into
-  `foundation_workspace_optional.py`, with `src/app/services/portfolio_service.py` now the source-file
-  ceiling blocker, and the repository longest-function baseline remains held at the enforced
-  49-line AST span
+  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 589
+  to 575 script-counted lines after splitting portfolio holdings orchestration into
+  `portfolio_holdings_service.py`, with `src/app/observability/analytics_ui.py` now the
+  source-file ceiling blocker, and the repository longest-function baseline remains held at the
+  enforced 49-line AST span
 
 ## Route-family map
 

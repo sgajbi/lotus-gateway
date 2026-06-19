@@ -441,20 +441,29 @@ rebalance, reporting, evidence-summary, and workflow-cue parsing into
 the refactor threshold gate at `max_source_file_lines=589`. Full local `make check` passed with
 workflow governance, mypy over 566 source files, OpenAPI smoke, and 1,249 unit/contract tests.
 
+Current portfolio holdings-orchestration working-tree verification splits portfolio book,
+liquidity, projected cashflow, allocation, and position-book orchestration into
+`src/app/services/portfolio_holdings_service.py` while preserving the public `PortfolioService`
+method surface. `src/app/services/portfolio_service.py` is reduced from 589 to 314
+script-counted lines, the extracted mixin is 347 lines, and the blocking source-file threshold is
+ratcheted to `max_source_file_lines=575`. Focused validation passed with 101
+portfolio/service-boundary/quality tests. Full local `make check` passed with workflow
+governance, mypy over 567 source files, OpenAPI smoke, and 1,250 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 589 | `src/app/services/portfolio_service.py` |
-| 2 | 575 | `src/app/observability/analytics_ui.py` |
-| 3 | 567 | `src/app/contracts/dpm_waves.py` |
-| 4 | 562 | `src/app/services/workbench_service.py` |
-| 5 | 560 | `src/app/contracts/reporting.py` |
-| 6 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 7 | 556 | `src/app/services/risk_workspace_service.py` |
-| 8 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 9 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 10 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 1 | 575 | `src/app/observability/analytics_ui.py` |
+| 2 | 567 | `src/app/contracts/dpm_waves.py` |
+| 3 | 562 | `src/app/services/workbench_service.py` |
+| 4 | 560 | `src/app/contracts/reporting.py` |
+| 5 | 559 | `src/app/clients/lotus_analytics_client.py` |
+| 6 | 556 | `src/app/services/risk_workspace_service.py` |
+| 7 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 8 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 9 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 10 | 525 | `src/app/services/performance_workspace_attribution.py` |
 
 ## Largest Functions
 
