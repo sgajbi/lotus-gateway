@@ -19,6 +19,15 @@ from app.services.risk_workspace_attribution import (
     normalize_risk_attribution_type,
     unavailable_attribution,
 )
+from app.services.risk_workspace_cache import (
+    RiskWorkspaceResponse,
+    attribution_cache_key,
+    concentration_cache_key,
+    drawdown_cache_key,
+    rolling_cache_key,
+    summary_cache_key,
+    with_cache_status,
+)
 from app.services.risk_workspace_concentration import (
     map_concentration_response,
     unavailable_concentration,
@@ -61,13 +70,9 @@ class RiskWorkspaceService:
         cache_ttl_seconds: float | None = None,
     ) -> None:
         self._risk_client = risk_client
-        self._cache = AsyncTtlCache[
-            WorkbenchRiskSummaryResponse
-            | WorkbenchRiskConcentrationResponse
-            | WorkbenchRiskDrawdownResponse
-            | WorkbenchRiskRollingResponse
-            | WorkbenchRiskAttributionResponse
-        ](ttl_seconds=cache_ttl_seconds or settings.risk_bff_cache_ttl_seconds)
+        self._cache = AsyncTtlCache[RiskWorkspaceResponse](
+            ttl_seconds=cache_ttl_seconds or settings.risk_bff_cache_ttl_seconds
+        )
 
     def clear_cache(self) -> None:
         self._cache.clear()
@@ -97,31 +102,16 @@ class RiskWorkspaceService:
             reporting_currency=reporting_currency,
         )
         response, cache_hit = await self._cache.get_or_set_with_status(
-            key=self._summary_cache_key(context),
+            key=summary_cache_key(context),
             factory=lambda: self._load_summary_response(context),
         )
-        typed_response = cast(WorkbenchRiskSummaryResponse, response)
-        return typed_response.model_copy(
-            update={
-                "correlation_id": correlation_id,
-                "metadata": typed_response.metadata.model_copy(
-                    update={"cache_status": "hit" if cache_hit else "miss"}
-                ),
-            },
-            deep=True,
-        )
-
-    def _summary_cache_key(self, context: RiskSummaryRequestContext) -> tuple[object, ...]:
-        return (
-            "summary",
-            context.portfolio_id,
-            context.period,
-            context.detail_basis,
-            context.benchmark_code or "",
-            context.as_of_date,
-            context.report_start_date or "",
-            context.report_end_date or "",
-            context.reporting_currency or "",
+        return cast(
+            WorkbenchRiskSummaryResponse,
+            with_cache_status(
+                response,
+                correlation_id=correlation_id,
+                cache_hit=cache_hit,
+            ),
         )
 
     async def _load_summary_response(
@@ -187,33 +177,16 @@ class RiskWorkspaceService:
             return await self._load_concentration_response(context)
 
         response, cache_hit = await self._cache.get_or_set_with_status(
-            key=self._concentration_cache_key(context),
+            key=concentration_cache_key(context),
             factory=_load,
         )
-        typed_response = cast(WorkbenchRiskConcentrationResponse, response)
-        return typed_response.model_copy(
-            update={
-                "correlation_id": correlation_id,
-                "metadata": typed_response.metadata.model_copy(
-                    update={"cache_status": "hit" if cache_hit else "miss"}
-                ),
-            },
-            deep=True,
-        )
-
-    def _concentration_cache_key(
-        self,
-        context: RiskConcentrationRequestContext,
-    ) -> tuple[object, ...]:
-        return (
-            "concentration",
-            context.portfolio_id,
-            context.period,
-            context.as_of_date,
-            context.report_start_date or "",
-            context.report_end_date or "",
-            context.reporting_currency or "",
-            context.benchmark_code or "",
+        return cast(
+            WorkbenchRiskConcentrationResponse,
+            with_cache_status(
+                response,
+                correlation_id=correlation_id,
+                cache_hit=cache_hit,
+            ),
         )
 
     async def _load_concentration_response(
@@ -279,32 +252,16 @@ class RiskWorkspaceService:
             return await self._load_drawdown_response(context)
 
         response, cache_hit = await self._cache.get_or_set_with_status(
-            key=self._drawdown_cache_key(context),
+            key=drawdown_cache_key(context),
             factory=_load,
         )
-        typed_response = cast(WorkbenchRiskDrawdownResponse, response)
-        return typed_response.model_copy(
-            update={
-                "correlation_id": correlation_id,
-                "metadata": typed_response.metadata.model_copy(
-                    update={"cache_status": "hit" if cache_hit else "miss"}
-                ),
-            },
-            deep=True,
-        )
-
-    def _drawdown_cache_key(self, context: RiskDrawdownRequestContext) -> tuple[object, ...]:
-        return (
-            "drawdown",
-            context.portfolio_id,
-            context.period,
-            context.detail_basis,
-            context.benchmark_code or "",
-            context.as_of_date,
-            context.report_start_date or "",
-            context.report_end_date or "",
-            context.reporting_currency or "",
-            context.include_underwater_series,
+        return cast(
+            WorkbenchRiskDrawdownResponse,
+            with_cache_status(
+                response,
+                correlation_id=correlation_id,
+                cache_hit=cache_hit,
+            ),
         )
 
     async def _load_drawdown_response(
@@ -378,32 +335,16 @@ class RiskWorkspaceService:
             return await self._load_rolling_response(context)
 
         response, cache_hit = await self._cache.get_or_set_with_status(
-            key=self._rolling_cache_key(context),
+            key=rolling_cache_key(context),
             factory=_load,
         )
-        typed_response = cast(WorkbenchRiskRollingResponse, response)
-        return typed_response.model_copy(
-            update={
-                "correlation_id": correlation_id,
-                "metadata": typed_response.metadata.model_copy(
-                    update={"cache_status": "hit" if cache_hit else "miss"}
-                ),
-            },
-            deep=True,
-        )
-
-    def _rolling_cache_key(self, context: RiskRollingRequestContext) -> tuple[object, ...]:
-        return (
-            "rolling",
-            context.portfolio_id,
-            context.period,
-            context.detail_basis,
-            context.benchmark_code or "",
-            context.as_of_date,
-            context.report_start_date or "",
-            context.report_end_date or "",
-            context.reporting_currency or "",
-            context.include_time_series,
+        return cast(
+            WorkbenchRiskRollingResponse,
+            with_cache_status(
+                response,
+                correlation_id=correlation_id,
+                cache_hit=cache_hit,
+            ),
         )
 
     async def _load_rolling_response(
@@ -513,18 +454,16 @@ class RiskWorkspaceService:
             return await self._load_attribution_response(context)
 
         response, cache_hit = await self._cache.get_or_set_with_status(
-            key=self._attribution_cache_key(context),
+            key=attribution_cache_key(context),
             factory=_load,
         )
-        typed_response = cast(WorkbenchRiskAttributionResponse, response)
-        return typed_response.model_copy(
-            update={
-                "correlation_id": context.correlation_id,
-                "metadata": typed_response.metadata.model_copy(
-                    update={"cache_status": "hit" if cache_hit else "miss"}
-                ),
-            },
-            deep=True,
+        return cast(
+            WorkbenchRiskAttributionResponse,
+            with_cache_status(
+                response,
+                correlation_id=context.correlation_id,
+                cache_hit=cache_hit,
+            ),
         )
 
     def _risk_attribution_request_context(
@@ -568,21 +507,6 @@ class RiskWorkspaceService:
             benchmark_code=context.benchmark_code,
             attribution_type=context.attribution_type,
             grouping_dimension=context.grouping_dimension,
-        )
-
-    def _attribution_cache_key(self, context: RiskAttributionRequestContext) -> tuple[object, ...]:
-        return (
-            "attribution",
-            context.portfolio_id,
-            context.period,
-            context.detail_basis,
-            context.benchmark_code or "",
-            context.as_of_date,
-            context.report_start_date or "",
-            context.report_end_date or "",
-            context.reporting_currency or "",
-            context.attribution_type,
-            context.grouping_dimension,
         )
 
     async def _load_attribution_response(

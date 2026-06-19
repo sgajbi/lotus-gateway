@@ -186,6 +186,18 @@ def test_risk_workspace_service_uses_shared_request_builders_directly() -> None:
     assert private_request_builders == []
 
 
+def test_risk_workspace_service_delegates_cache_policy() -> None:
+    path = _SERVICE_ROOT / "risk_workspace_service.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    private_cache_helpers = sorted(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.FunctionDef) and node.name.endswith("_cache_key")
+    )
+
+    assert private_cache_helpers == []
+
+
 def test_advisor_brief_service_delegates_workflow_pack_runtime_mapping() -> None:
     path = _SERVICE_ROOT / "advisor_brief_service.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
