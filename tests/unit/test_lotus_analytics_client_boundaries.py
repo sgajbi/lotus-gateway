@@ -23,3 +23,27 @@ def test_risk_analytics_routes_live_in_dedicated_client_mixin() -> None:
 
     assert extracted_methods <= risk_methods
     assert not extracted_methods & analytics_methods
+
+
+def test_performance_analytics_routes_live_in_dedicated_client_mixin() -> None:
+    analytics_methods = _async_function_names(_CLIENT_ROOT / "lotus_analytics_client.py")
+    performance_methods = _async_function_names(
+        _CLIENT_ROOT / "lotus_analytics_performance_client.py"
+    )
+
+    extracted_methods = {
+        "get_attribution_analytics",
+        "get_contribution_analytics",
+        "get_execution",
+        "get_lineage",
+        "get_lineage_artifact",
+        "get_mwr_analytics",
+        "get_stateful_twr",
+        "get_twr_analytics",
+        "get_workspace_summary",
+        "post_composite_inspection",
+        "post_composite_twr",
+    }
+
+    assert extracted_methods <= performance_methods
+    assert not extracted_methods & analytics_methods

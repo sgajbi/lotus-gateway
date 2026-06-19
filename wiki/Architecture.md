@@ -11,9 +11,9 @@
   [docs/architecture.md](../docs/architecture.md) and
   [quality/architecture_rules.md](../quality/architecture_rules.md)
 - current enterprise-hardening evidence records route-family and payload-boundary extractions behind
-  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 560
-  to 559 script-counted lines after splitting report-job request, error, handle, and status DTOs
-  into `reporting_jobs.py`, with `src/app/clients/lotus_analytics_client.py` now the source-file
+  existing public service/client surfaces; the blocking source-file threshold is ratcheted from 559
+  to 556 script-counted lines after splitting analytics performance route methods into
+  `lotus_analytics_performance_client.py`, with `src/app/services/risk_workspace_service.py` now the source-file
   ceiling blocker, and the repository longest-function baseline remains held at the
   enforced 49-line AST span
 

@@ -489,20 +489,30 @@ source-file threshold is ratcheted to `max_source_file_lines=559`. Focused valid
 router, wiki, and quality-threshold tests. Full local `make check` passed with workflow governance,
 mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests.
 
+Current analytics performance client working-tree verification splits TWR, MWR, composite,
+contribution, attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. `src/app/clients/lotus_analytics_client.py` is reduced from 559 to
+290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking
+source-file threshold is ratcheted to `max_source_file_lines=556`. Focused validation passed with
+210 analytics client, factory, upstream-client, composite-performance, platform-capabilities,
+wiki, and quality-threshold tests. Full local `make check` passed with workflow governance, mypy
+over 572 source files, OpenAPI smoke, and 1,259 unit/contract tests.
+
 ## Largest Source Files
 
 | Rank | Lines | File |
 | ---: | ---: | --- |
-| 1 | 559 | `src/app/clients/lotus_analytics_client.py` |
-| 2 | 556 | `src/app/services/risk_workspace_service.py` |
-| 3 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
-| 4 | 536 | `src/app/clients/advise_proposal_client.py` |
-| 5 | 535 | `src/app/clients/lotus_core_query_client.py` |
-| 6 | 525 | `src/app/services/performance_workspace_attribution.py` |
-| 7 | 522 | `src/app/services/risk_workspace_rolling.py` |
-| 8 | 521 | `src/app/services/dpm_command_center_service.py` |
-| 9 | 520 | `src/app/services/proposal_service.py` |
-| 10 | 515 | `src/app/services/workbench_service.py` |
+| 1 | 556 | `src/app/services/risk_workspace_service.py` |
+| 2 | 549 | `src/app/services/dpm_pm_operating_quality_service.py` |
+| 3 | 536 | `src/app/clients/advise_proposal_client.py` |
+| 4 | 535 | `src/app/clients/lotus_core_query_client.py` |
+| 5 | 525 | `src/app/services/performance_workspace_attribution.py` |
+| 6 | 522 | `src/app/services/risk_workspace_rolling.py` |
+| 7 | 521 | `src/app/services/dpm_command_center_service.py` |
+| 8 | 520 | `src/app/services/proposal_service.py` |
+| 9 | 515 | `src/app/services/workbench_service.py` |
+| 10 | 508 | `src/app/services/advisor_brief_source.py` |
 
 ## Largest Functions
 

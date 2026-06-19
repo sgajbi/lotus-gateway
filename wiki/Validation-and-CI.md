@@ -1043,6 +1043,18 @@ reporting job contract, submission, query, batch compatibility, contract-boundar
 router, wiki, and quality-threshold tests. Full local `make check` passed with workflow governance,
 mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests.
 
+The current analytics performance client boundary branch splits TWR, MWR, composite, contribution,
+attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. It reduces `src/app/clients/lotus_analytics_client.py` from 559 to
+290 script-counted lines, moves the largest residual source-file hotspot to
+`src/app/services/risk_workspace_service.py` at 556 script-counted lines, and ratchets the blocking
+source-file threshold from 559 to 556 script-counted lines. Focused validation passed with 210
+analytics client, factory, upstream-client, composite-performance, platform-capabilities, wiki, and
+quality-threshold tests.
+Current local `make check` passed with workflow governance, mypy over 572 source files, OpenAPI
+smoke, and 1,259 unit/contract tests.
+
 The previous analytics/catalog boundary branch moves analytics workspace-summary request payload
 construction into `src/app/clients/lotus_analytics_workspace_payloads.py` and portfolio catalog
 response loading into `src/app/services/portfolio_catalog_payloads.py` while preserving public

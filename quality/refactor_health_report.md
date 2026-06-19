@@ -726,17 +726,24 @@ status DTOs into `src/app/contracts/reporting_jobs.py` while preserving the publ
 355 script-counted lines, the extracted report-job contract module is 221 lines, and the blocking
 source-file threshold is ratcheted from 560 to 559 lines, with
 `src/app/clients/lotus_analytics_client.py` now the single source-file ceiling blocker.
+The current analytics performance client boundary slice moves TWR, MWR, composite, contribution,
+attribution, lineage, and workspace-summary route methods into
+`src/app/clients/lotus_analytics_performance_client.py` while preserving the public
+`LotusAnalyticsClient` surface. `src/app/clients/lotus_analytics_client.py` is reduced from 559 to
+290 script-counted lines, the extracted performance mixin is 298 lines, and the blocking
+source-file threshold is ratcheted from 559 to 556 lines, with
+`src/app/services/risk_workspace_service.py` now the single source-file ceiling blocker.
 
 ## Health Signals
 
 | Area | Current posture | Evidence |
 | --- | --- | --- |
-| Branch hygiene | Healthy | Current DPM wave client-boundary branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged remote branches; final remote/local cleanup remains a post-merge gate |
-| Unit/contract coverage | Healthy | Current reporting job contract focused validation passed with 59 reporting job contract, submission, query, batch compatibility, contract-boundary, reporting router, wiki, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=559`; full local `make check` passed with workflow governance, mypy over 571 source files, OpenAPI smoke, and 1,258 unit/contract tests |
+| Branch hygiene | Healthy | Current enterprise-hardening feature branch was created from clean `main` at `5632d6dd57efbc7d0778825a1cb908bb229e2402`; stranded-truth reconciliation found no unmerged durable-truth branches beyond the active feature branch; final remote/local cleanup remains a post-merge gate |
+| Unit/contract coverage | Healthy | Current analytics performance client focused validation passed with 210 analytics client, factory, upstream-client, composite-performance, platform-capabilities, wiki, and quality-threshold tests and refactor-threshold proof at `max_source_file_lines=556`; full local `make check` passed with workflow governance, mypy over 572 source files, OpenAPI smoke, and 1,259 unit/contract tests |
 | Integration coverage | Healthy | Full local `make ci` passed with migration contract smoke and 209 integration tests |
 | Total coverage | Healthy | Full local `make ci` passed with 1,451 combined coverage tests and 94.30% total coverage |
-| Security audit | Governed | Current DPM wave client-boundary branch introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
-| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits reporting job contracts into a focused module while preserving the public reporting import surface. The largest current source-file hotspot is now `src/app/clients/lotus_analytics_client.py` at 559 script-counted lines |
+| Security audit | Governed | Current analytics performance client route-family extraction introduces no dependency, authentication, caller-context, product-error-detail, upstream error-shape, monetary-float conversion, data-mesh behavior, or runtime behavior changes; full local `make ci` passed `pip-audit` with no known vulnerabilities after the governed `PYSEC-2026-161` exception |
+| Modularity | Improving, incomplete | Longest-function baseline remains 49 lines; current branch splits analytics performance client routes into a focused mixin while preserving the public analytics client surface. The largest current source-file hotspot is now `src/app/services/risk_workspace_service.py` at 556 script-counted lines |
 | Live canonical runtime | Healthy for this branch | Branch-specific canonical proof passed after rebuilding the Docker-backed Gateway and downstream stack, then rerunning validation after performance lineage materialization completed. Machine-readable evidence at `lotus-workbench/output/playwright/live-canonical-advisory-protocol-boundaries-rerun/live-validation-summary.json` records 95 API checks, 2 calculation checks, 29 screenshots, 25/25 ready panel classifications, 28 supportability checks, 10 workflow-pack checks, no missing or non-ready panels, 9/9 RFC36-43 features validated, and 0 RFC36-43 gaps |
 | Observability evidence | Healthy with residual data-mesh qualification | Branch-specific companion pack `lotus-workbench/output/observability-live/advisory-protocol-boundaries-rerun/observability-evidence-manifest.json` captured canonical DNS, representative API samples, metrics, bounded logs, and observability screenshots; 13/13 DNS checks passed, 13/13 representative API checks returned HTTP 200, 4/4 metric checks returned HTTP 200, 14 log artifacts were captured, and 5/5 observability screenshots returned HTTP 200. Gateway log review found correlation/request/trace identifiers, 58 fan-out events, 14 audit events, and no ERROR/5xx scan hits. Remaining data-mesh qualification is upstream/domain-owned: performance contribution source economics reports `SOURCE_LIMITED` for non-source-authored component P&L economics |
 | API governance | Improving, incomplete | 233 OpenAPI paths and 247 operations have summaries, descriptions, operation IDs, tags, and documented 4xx/5xx responses; Spectral remains report-only |
@@ -748,7 +755,7 @@ source-file threshold is ratcheted from 560 to 559 lines, with
 
 1. Continue splitting large contract modules and remaining upstream clients around clear service
    and route-family boundaries. The next source-file hotspot is
-   `src/app/clients/lotus_analytics_client.py`.
+   `src/app/services/risk_workspace_service.py`.
 2. Continue splitting remaining large observability, contract, service, or client modules around
    cohesive behavior-preserving seams.
    Exception-summary payload construction, workflow-action assembly, transaction-summary context
